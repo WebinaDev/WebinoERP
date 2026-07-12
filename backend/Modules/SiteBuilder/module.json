@@ -1,0 +1,13 @@
+{
+    "name": "SiteBuilder",
+    "alias": "site_builder",
+    "description": "Webino site catalog, packages, and provisioning wizard",
+    "keywords": [],
+    "priority": 18,
+    "providers": [
+        "Modules\\SiteBuilder\\Providers\\SiteBuilderServiceProvider"
+    ],
+    "aliases": {},
+    "files": [],
+    "requires": []
+}

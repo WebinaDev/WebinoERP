@@ -1,0 +1,15 @@
+{
+    "Accounting": true,
+    "Core": true,
+    "Crm": true,
+    "Docs": true,
+    "Hrm": true,
+    "Integrations": true,
+    "Marketing": true,
+    "Marketplace": true,
+    "Mfg": true,
+    "Projects": true,
+    "Sales": true,
+    "Scm": true,
+    "SiteBuilder": true
+}

@@ -1,0 +1,82 @@
+{
+    "name": "webina/enterprise-crm",
+    "type": "project",
+    "description": "Webina Enterprise CRM - Modular Monolith System",
+    "keywords": ["laravel", "crm", "modular"],
+    "license": "proprietary",
+    "require": {
+        "php": "^8.2",
+        "guzzlehttp/guzzle": "^7.2",
+        "laravel/framework": "^12.0",
+        "laravel/reverb": "^1.0",
+        "laravel/sanctum": "^4.0",
+        "laravel/tinker": "^2.10",
+        "nwidart/laravel-modules": "^12.0",
+        "spatie/laravel-permission": "^6.0",
+        "spatie/laravel-query-builder": "^6.0",
+        "spatie/laravel-backup": "^9.0"
+    },
+    "suggest": {
+        "barryvdh/laravel-dompdf": "PDF generation for contracts/invoices (requires PHP ext-dom)",
+        "elasticsearch/elasticsearch": "Optional full-text search when ELASTICSEARCH_HOSTS is set"
+    },
+    "require-dev": {
+        "dedoc/scramble": "^0.13.0",
+        "fakerphp/faker": "^1.23",
+        "laravel/pint": "^1.13",
+        "laravel/sail": "^1.26",
+        "mockery/mockery": "^1.6",
+        "nunomaduro/collision": "^8.0",
+        "phpunit/phpunit": "^11.0",
+        "spatie/laravel-ignition": "^2.4",
+        "laravel/telescope": "^5.0"
+    },
+    "autoload": {
+        "psr-4": {
+            "App\\": "app/",
+            "Database\\Factories\\": "database/factories/",
+            "Database\\Seeders\\": "database/seeders/",
+            "Modules\\": "Modules/"
+        }
+    },
+    "autoload-dev": {
+        "psr-4": {
+            "Tests\\": "tests/"
+        }
+    },
+    "scripts": {
+        "test": "phpunit --configuration phpunit.xml",
+        "export-openapi": "php artisan scramble:export --path=../docs-site/openapi/openapi.json",
+        "post-autoload-dump": [
+            "Illuminate\\Foundation\\ComposerScripts::postAutoloadDump",
+            "@php artisan package:discover --ansi"
+        ],
+        "post-update-cmd": [
+            "@php artisan vendor:publish --tag=laravel-assets --ansi --force"
+        ],
+        "post-root-package-install": [
+            "@php -r \"file_exists('.env') || copy('.env.example', '.env');\""
+        ],
+        "post-create-project-cmd": [
+            "@php artisan key:generate --ansi"
+        ]
+    },
+    "extra": {
+        "laravel": {
+            "dont-discover": []
+        }
+    },
+    "config": {
+        "optimize-autoloader": true,
+        "preferred-install": "dist",
+        "sort-packages": true,
+        "allow-plugins": {
+            "pestphp/pest": true,
+            "php-http/discovery": true,
+            "wikimedia/composer-merge-plugin": true
+        }
+    },
+    "minimum-stability": "stable",
+    "prefer-stable": true
+}
+

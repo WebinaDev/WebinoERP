@@ -1,0 +1,72 @@
+# Production overlay: docker compose -f docker-compose.yml -f docker-compose.prod.yml up -d
+# - DB/Redis بدون publish به میزبان (فقط شبکهٔ داخلی)
+# - APP_ENV=production، صف Redis، worker جدا
+# TLS و پروکسی معکوس را روی nginx یا Traefik میزبان تنظیم کنید؛ APP_URL را به دامنهٔ عمومی تنظیم کنید.
+
+version: '3.8'
+
+services:
+  app:
+    environment:
+      APP_ENV: production
+      APP_DEBUG: "false"
+      QUEUE_CONNECTION: redis
+
+  web:
+    environment:
+      NODE_ENV: production
+
+  db:
+    ports: []
+
+  redis:
+    ports: []
+
+  queue:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: webina_queue
+    environment:
+      DB_HOST: db
+      DB_PORT: 5432
+      DB_DATABASE: webina_crm
+      DB_USERNAME: postgres
+      DB_PASSWORD: postgres
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+      APP_ENV: production
+      APP_DEBUG: "false"
+      QUEUE_CONNECTION: redis
+    volumes:
+      - ./backend:/var/www/html
+      - ./backend/storage:/var/www/html/storage
+    networks:
+      - internal
+    depends_on:
+      - db
+      - redis
+    restart: unless-stopped
+    command: >
+      sh -c "php artisan queue:work redis --sleep=3 --tries=3 --max-time=3600"
+
+  # نمونهٔ بکاپ cron (اختیاری): docker compose ... run --rm backup
+  backup:
+    image: postgres:15-alpine
+    profiles:
+      - backup
+    environment:
+      PGPASSWORD: postgres
+    networks:
+      - internal
+    volumes:
+      - pg_backups:/backups
+    depends_on:
+      - db
+    entrypoint: ['/bin/sh', '-c']
+    command:
+      - |
+        mkdir -p /backups && pg_dump -h db -U postgres webina_crm > /backups/webina_crm_$$(date +%Y%m%d_%H%M).sql
+
+volumes:
+  pg_backups:

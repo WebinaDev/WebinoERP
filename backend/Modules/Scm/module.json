@@ -1,0 +1,13 @@
+{
+    "name": "Scm",
+    "alias": "scm",
+    "description": "Supply chain management: warehouses, stock, inbound, outbound, audit",
+    "keywords": [],
+    "priority": 17,
+    "providers": [
+        "Modules\\Scm\\Providers\\ScmServiceProvider"
+    ],
+    "aliases": {},
+    "files": [],
+    "requires": []
+}

@@ -1,0 +1,6426 @@
+{
+  "openapi": "3.1.0",
+  "info": {
+    "title": "Webino ERP API",
+    "version": "1.0.0",
+    "description": "OpenAPI specification for WebinoERM Laravel API. Regenerate via `cd backend && composer export-openapi`."
+  },
+  "servers": [
+    {
+      "url": "/api"
+    }
+  ],
+  "security": [
+    {
+      "bearerAuth": []
+    }
+  ],
+  "components": {
+    "securitySchemes": {
+      "bearerAuth": {
+        "type": "http",
+        "scheme": "bearer",
+        "bearerFormat": "JWT",
+        "description": "Laravel Sanctum personal access token"
+      }
+    }
+  },
+  "paths": {
+    "/api/v1/accounting/cash-accounts": {
+      "get": {
+        "summary": "GET /api/v1/accounting/cash-accounts",
+        "tags": [
+          "ACCOUNTING"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/v1/accounting/chart": {
+      "get": {
+        "summary": "GET /api/v1/accounting/chart",
+        "tags": [
+          "ACCOUNTING"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      },
+      "post": {
+        "summary": "POST /api/v1/accounting/chart",
+        "tags": [
+          "ACCOUNTING"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/v1/accounting/chart/seed": {
+      "post": {
+        "summary": "POST /api/v1/accounting/chart/seed",
+        "tags": [
+          "ACCOUNTING"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/v1/accounting/chart/{id}": {
+      "patch": {
+        "summary": "PATCH /api/v1/accounting/chart/{id}",
+        "tags": [
+          "ACCOUNTING"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      },
+      "delete": {
+        "summary": "DELETE /api/v1/accounting/chart/{id}",
+        "tags": [
+          "ACCOUNTING"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/v1/accounting/checks": {
+      "get": {
+        "summary": "GET /api/v1/accounting/checks",
+        "tags": [
+          "ACCOUNTING"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/v1/accounting/checks/{id}/set-status": {
+      "post": {
+        "summary": "POST /api/v1/accounting/checks/{id}/set-status",
+        "tags": [
+          "ACCOUNTING"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/v1/accounting/dashboard": {
+      "get": {
+        "summary": "GET /api/v1/accounting/dashboard",
+        "tags": [
+          "ACCOUNTING"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/v1/accounting/fiscal-years": {
+      "get": {
+        "summary": "GET /api/v1/accounting/fiscal-years",
+        "tags": [
+          "ACCOUNTING"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/v1/accounting/invoices": {
+      "get": {
+        "summary": "GET /api/v1/accounting/invoices",
+        "tags": [
+          "ACCOUNTING"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/v1/accounting/invoices/next-number": {
+      "get": {
+        "summary": "GET /api/v1/accounting/invoices/next-number",
+        "tags": [
+          "ACCOUNTING"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/v1/accounting/invoices/{id}/confirm": {
+      "post": {
+        "summary": "POST /api/v1/accounting/invoices/{id}/confirm",
+        "tags": [
+          "ACCOUNTING"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/v1/accounting/journals": {
+      "get": {
+        "summary": "GET /api/v1/accounting/journals",
+        "tags": [
+          "ACCOUNTING"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/v1/accounting/ledger": {
+      "get": {
+        "summary": "GET /api/v1/accounting/ledger",
+        "tags": [
+          "ACCOUNTING"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/v1/accounting/persons": {
+      "get": {
+        "summary": "GET /api/v1/accounting/persons",
+        "tags": [
+          "ACCOUNTING"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/v1/accounting/products": {
+      "get": {
+        "summary": "GET /api/v1/accounting/products",
+        "tags": [
+          "ACCOUNTING"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/v1/accounting/receipts": {
+      "get": {
+        "summary": "GET /api/v1/accounting/receipts",
+        "tags": [
+          "ACCOUNTING"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/v1/accounting/receipts/{id}/post": {
+      "post": {
+        "summary": "POST /api/v1/accounting/receipts/{id}/post",
+        "tags": [
+          "ACCOUNTING"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/v1/accounting/reports": {
+      "get": {
+        "summary": "GET /api/v1/accounting/reports",
+        "tags": [
+          "ACCOUNTING"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/v1/accounting/settings": {
+      "get": {
+        "summary": "GET /api/v1/accounting/settings",
+        "tags": [
+          "ACCOUNTING"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/v1/accounting/summary": {
+      "get": {
+        "summary": "GET /api/v1/accounting/summary",
+        "tags": [
+          "ACCOUNTING"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/v1/accounting/user-defaults": {
+      "get": {
+        "summary": "GET /api/v1/accounting/user-defaults",
+        "tags": [
+          "ACCOUNTING"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      },
+      "put": {
+        "summary": "PUT /api/v1/accounting/user-defaults",
+        "tags": [
+          "ACCOUNTING"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/v1/accounting/warehouse-ajax/{action}": {
+      "post": {
+        "summary": "POST /api/v1/accounting/warehouse-ajax/{action}",
+        "tags": [
+          "ACCOUNTING"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/v1/accounting/warehouse-audit": {
+      "get": {
+        "summary": "GET /api/v1/accounting/warehouse-audit",
+        "tags": [
+          "ACCOUNTING"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/v1/accounting/warehouse-inbound": {
+      "get": {
+        "summary": "GET /api/v1/accounting/warehouse-inbound",
+        "tags": [
+          "ACCOUNTING"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/v1/accounting/warehouse-outbound": {
+      "get": {
+        "summary": "GET /api/v1/accounting/warehouse-outbound",
+        "tags": [
+          "ACCOUNTING"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/v1/accounting/warehouse-stock": {
+      "get": {
+        "summary": "GET /api/v1/accounting/warehouse-stock",
+        "tags": [
+          "ACCOUNTING"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/v1/accounting/warehouses": {
+      "get": {
+        "summary": "GET /api/v1/accounting/warehouses",
+        "tags": [
+          "ACCOUNTING"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/v1/accounting/wp-action/{action}": {
+      "post": {
+        "summary": "POST /api/v1/accounting/wp-action/{action}",
+        "tags": [
+          "ACCOUNTING"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/v1/core/activities": {
+      "get": {
+        "summary": "GET /api/v1/core/activities",
+        "tags": [
+          "CORE"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/v1/core/analytics/cohort": {
+      "get": {
+        "summary": "GET /api/v1/core/analytics/cohort",
+        "tags": [
+          "CORE"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/v1/core/analytics/funnel": {
+      "get": {
+        "summary": "GET /api/v1/core/analytics/funnel",
+        "tags": [
+          "CORE"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/v1/core/analytics/kpi": {
+      "get": {
+        "summary": "GET /api/v1/core/analytics/kpi",
+        "tags": [
+          "CORE"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/v1/core/auth/auto-login": {
+      "post": {
+        "summary": "POST /api/v1/core/auth/auto-login",
+        "tags": [
+          "CORE"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/v1/core/auth/auto-login/issue": {
+      "post": {
+        "summary": "POST /api/v1/core/auth/auto-login/issue",
+        "tags": [
+          "CORE"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/v1/core/auth/email-otp/send": {
+      "post": {
+        "summary": "POST /api/v1/core/auth/email-otp/send",
+        "tags": [
+          "CORE"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/v1/core/auth/email-otp/verify": {
+      "post": {
+        "summary": "POST /api/v1/core/auth/email-otp/verify",
+        "tags": [
+          "CORE"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/v1/core/auth/login": {
+      "post": {
+        "summary": "POST /api/v1/core/auth/login",
+        "tags": [
+          "CORE"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/v1/core/auth/logout": {
+      "post": {
+        "summary": "POST /api/v1/core/auth/logout",
+        "tags": [
+          "CORE"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/v1/core/auth/otp/send": {
+      "post": {
+        "summary": "POST /api/v1/core/auth/otp/send",
+        "tags": [
+          "CORE"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/v1/core/auth/otp/verify": {
+      "post": {
+        "summary": "POST /api/v1/core/auth/otp/verify",
+        "tags": [
+          "CORE"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/v1/core/auth/password/set": {
+      "post": {
+        "summary": "POST /api/v1/core/auth/password/set",
+        "tags": [
+          "CORE"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/v1/core/auth/register": {
+      "post": {
+        "summary": "POST /api/v1/core/auth/register",
+        "tags": [
+          "CORE"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/v1/core/auth/user": {
+      "get": {
+        "summary": "GET /api/v1/core/auth/user",
+        "tags": [
+          "CORE"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/v1/core/automation/rules": {
+      "get": {
+        "summary": "GET /api/v1/core/automation/rules",
+        "tags": [
+          "CORE"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      },
+      "post": {
+        "summary": "POST /api/v1/core/automation/rules",
+        "tags": [
+          "CORE"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/v1/core/automation/rules/{id}": {
+      "patch": {
+        "summary": "PATCH /api/v1/core/automation/rules/{id}",
+        "tags": [
+          "CORE"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      },
+      "delete": {
+        "summary": "DELETE /api/v1/core/automation/rules/{id}",
+        "tags": [
+          "CORE"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/v1/core/automation/rules/{id}/execute": {
+      "post": {
+        "summary": "POST /api/v1/core/automation/rules/{id}/execute",
+        "tags": [
+          "CORE"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/v1/core/automation/trigger": {
+      "post": {
+        "summary": "POST /api/v1/core/automation/trigger",
+        "tags": [
+          "CORE"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/v1/core/branding": {
+      "get": {
+        "summary": "GET /api/v1/core/branding",
+        "tags": [
+          "CORE"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/v1/core/branding.css": {
+      "get": {
+        "summary": "GET /api/v1/core/branding.css",
+        "tags": [
+          "CORE"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/v1/core/canned-responses": {
+      "get": {
+        "summary": "GET /api/v1/core/canned-responses",
+        "tags": [
+          "CORE"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      },
+      "post": {
+        "summary": "POST /api/v1/core/canned-responses",
+        "tags": [
+          "CORE"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/v1/core/canned-responses/{id}": {
+      "put": {
+        "summary": "PUT /api/v1/core/canned-responses/{id}",
+        "tags": [
+          "CORE"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      },
+      "delete": {
+        "summary": "DELETE /api/v1/core/canned-responses/{id}",
+        "tags": [
+          "CORE"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      },
+      "get": {
+        "summary": "GET /api/v1/core/canned-responses/{id}",
+        "tags": [
+          "CORE"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/v1/core/chat/channels": {
+      "get": {
+        "summary": "GET /api/v1/core/chat/channels",
+        "tags": [
+          "CORE"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      },
+      "post": {
+        "summary": "POST /api/v1/core/chat/channels",
+        "tags": [
+          "CORE"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/v1/core/chat/channels/{id}/messages": {
+      "get": {
+        "summary": "GET /api/v1/core/chat/channels/{id}/messages",
+        "tags": [
+          "CORE"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/v1/core/chat/channels/{id}/read": {
+      "post": {
+        "summary": "POST /api/v1/core/chat/channels/{id}/read",
+        "tags": [
+          "CORE"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/v1/core/chat/channels/{id}/typing": {
+      "post": {
+        "summary": "POST /api/v1/core/chat/channels/{id}/typing",
+        "tags": [
+          "CORE"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/v1/core/chat/direct/{user_id}": {
+      "get": {
+        "summary": "GET /api/v1/core/chat/direct/{user_id}",
+        "tags": [
+          "CORE"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/v1/core/chat/messages": {
+      "post": {
+        "summary": "POST /api/v1/core/chat/messages",
+        "tags": [
+          "CORE"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/v1/core/chat/messages/search": {
+      "get": {
+        "summary": "GET /api/v1/core/chat/messages/search",
+        "tags": [
+          "CORE"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/v1/core/chat/messages/{id}": {
+      "delete": {
+        "summary": "DELETE /api/v1/core/chat/messages/{id}",
+        "tags": [
+          "CORE"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/v1/core/chat/unread-count": {
+      "get": {
+        "summary": "GET /api/v1/core/chat/unread-count",
+        "tags": [
+          "CORE"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/v1/core/config": {
+      "get": {
+        "summary": "GET /api/v1/core/config",
+        "tags": [
+          "CORE"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/v1/core/dashboard": {
+      "get": {
+        "summary": "GET /api/v1/core/dashboard",
+        "tags": [
+          "CORE"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/v1/core/dashboard/stats": {
+      "get": {
+        "summary": "GET /api/v1/core/dashboard/stats",
+        "tags": [
+          "CORE"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/v1/core/dashboard/stats/client": {
+      "get": {
+        "summary": "GET /api/v1/core/dashboard/stats/client",
+        "tags": [
+          "CORE"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/v1/core/dashboard/stats/team-member": {
+      "get": {
+        "summary": "GET /api/v1/core/dashboard/stats/team-member",
+        "tags": [
+          "CORE"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/v1/core/documents": {
+      "get": {
+        "summary": "GET /api/v1/core/documents",
+        "tags": [
+          "CORE"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/v1/core/documents/folders": {
+      "post": {
+        "summary": "POST /api/v1/core/documents/folders",
+        "tags": [
+          "CORE"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/v1/core/documents/upload": {
+      "post": {
+        "summary": "POST /api/v1/core/documents/upload",
+        "tags": [
+          "CORE"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/v1/core/documents/{id}": {
+      "delete": {
+        "summary": "DELETE /api/v1/core/documents/{id}",
+        "tags": [
+          "CORE"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/v1/core/documents/{id}/download": {
+      "get": {
+        "summary": "GET /api/v1/core/documents/{id}/download",
+        "tags": [
+          "CORE"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/v1/core/documents/{id}/move": {
+      "patch": {
+        "summary": "PATCH /api/v1/core/documents/{id}/move",
+        "tags": [
+          "CORE"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/v1/core/documents/{id}/rename": {
+      "patch": {
+        "summary": "PATCH /api/v1/core/documents/{id}/rename",
+        "tags": [
+          "CORE"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/v1/core/documents/{id}/share": {
+      "post": {
+        "summary": "POST /api/v1/core/documents/{id}/share",
+        "tags": [
+          "CORE"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/v1/core/documents/{id}/versions": {
+      "get": {
+        "summary": "GET /api/v1/core/documents/{id}/versions",
+        "tags": [
+          "CORE"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/v1/core/field-permissions": {
+      "get": {
+        "summary": "GET /api/v1/core/field-permissions",
+        "tags": [
+          "CORE"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      },
+      "put": {
+        "summary": "PUT /api/v1/core/field-permissions",
+        "tags": [
+          "CORE"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/v1/core/field-permissions/viewable": {
+      "get": {
+        "summary": "GET /api/v1/core/field-permissions/viewable",
+        "tags": [
+          "CORE"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/v1/core/field-permissions/{id}": {
+      "delete": {
+        "summary": "DELETE /api/v1/core/field-permissions/{id}",
+        "tags": [
+          "CORE"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/v1/core/files/pdf/{token}": {
+      "get": {
+        "summary": "GET /api/v1/core/files/pdf/{token}",
+        "tags": [
+          "CORE"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/v1/core/licenses": {
+      "get": {
+        "summary": "GET /api/v1/core/licenses",
+        "tags": [
+          "CORE"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      },
+      "post": {
+        "summary": "POST /api/v1/core/licenses",
+        "tags": [
+          "CORE"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/v1/core/licenses/{id}": {
+      "patch": {
+        "summary": "PATCH /api/v1/core/licenses/{id}",
+        "tags": [
+          "CORE"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      },
+      "delete": {
+        "summary": "DELETE /api/v1/core/licenses/{id}",
+        "tags": [
+          "CORE"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/v1/core/licenses/{id}/cancel": {
+      "post": {
+        "summary": "POST /api/v1/core/licenses/{id}/cancel",
+        "tags": [
+          "CORE"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/v1/core/licenses/{id}/renew": {
+      "post": {
+        "summary": "POST /api/v1/core/licenses/{id}/renew",
+        "tags": [
+          "CORE"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/v1/core/logs": {
+      "get": {
+        "summary": "GET /api/v1/core/logs",
+        "tags": [
+          "CORE"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/v1/core/logs/console": {
+      "post": {
+        "summary": "POST /api/v1/core/logs/console",
+        "tags": [
+          "CORE"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/v1/core/logs/system": {
+      "delete": {
+        "summary": "DELETE /api/v1/core/logs/system",
+        "tags": [
+          "CORE"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      },
+      "get": {
+        "summary": "GET /api/v1/core/logs/system",
+        "tags": [
+          "CORE"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/v1/core/logs/user": {
+      "get": {
+        "summary": "GET /api/v1/core/logs/user",
+        "tags": [
+          "CORE"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/v1/core/logs/user-actions": {
+      "post": {
+        "summary": "POST /api/v1/core/logs/user-actions",
+        "tags": [
+          "CORE"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/v1/core/maintenance/cache/clear": {
+      "post": {
+        "summary": "POST /api/v1/core/maintenance/cache/clear",
+        "tags": [
+          "CORE"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/v1/core/maintenance/cache/stats": {
+      "get": {
+        "summary": "GET /api/v1/core/maintenance/cache/stats",
+        "tags": [
+          "CORE"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/v1/core/maintenance/optimize": {
+      "post": {
+        "summary": "POST /api/v1/core/maintenance/optimize",
+        "tags": [
+          "CORE"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/v1/core/manifest.json": {
+      "get": {
+        "summary": "GET /api/v1/core/manifest.json",
+        "tags": [
+          "CORE"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/v1/core/navigation": {
+      "get": {
+        "summary": "GET /api/v1/core/navigation",
+        "tags": [
+          "CORE"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/v1/core/notifications": {
+      "get": {
+        "summary": "GET /api/v1/core/notifications",
+        "tags": [
+          "CORE"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      },
+      "post": {
+        "summary": "POST /api/v1/core/notifications",
+        "tags": [
+          "CORE"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/v1/core/notifications/{id}": {
+      "patch": {
+        "summary": "PATCH /api/v1/core/notifications/{id}",
+        "tags": [
+          "CORE"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      },
+      "delete": {
+        "summary": "DELETE /api/v1/core/notifications/{id}",
+        "tags": [
+          "CORE"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/v1/core/notifications/{id}/read": {
+      "patch": {
+        "summary": "PATCH /api/v1/core/notifications/{id}/read",
+        "tags": [
+          "CORE"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      },
+      "post": {
+        "summary": "POST /api/v1/core/notifications/{id}/read",
+        "tags": [
+          "CORE"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/v1/core/positions": {
+      "get": {
+        "summary": "GET /api/v1/core/positions",
+        "tags": [
+          "CORE"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      },
+      "post": {
+        "summary": "POST /api/v1/core/positions",
+        "tags": [
+          "CORE"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/v1/core/positions/{id}": {
+      "put": {
+        "summary": "PUT /api/v1/core/positions/{id}",
+        "tags": [
+          "CORE"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      },
+      "delete": {
+        "summary": "DELETE /api/v1/core/positions/{id}",
+        "tags": [
+          "CORE"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/v1/core/reminders": {
+      "get": {
+        "summary": "GET /api/v1/core/reminders",
+        "tags": [
+          "CORE"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      },
+      "post": {
+        "summary": "POST /api/v1/core/reminders",
+        "tags": [
+          "CORE"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/v1/core/reminders/{id}/dismiss": {
+      "patch": {
+        "summary": "PATCH /api/v1/core/reminders/{id}/dismiss",
+        "tags": [
+          "CORE"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/v1/core/reminders/{id}/snooze": {
+      "patch": {
+        "summary": "PATCH /api/v1/core/reminders/{id}/snooze",
+        "tags": [
+          "CORE"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/v1/core/reports": {
+      "get": {
+        "summary": "GET /api/v1/core/reports",
+        "tags": [
+          "CORE"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/v1/core/reports/export.csv": {
+      "get": {
+        "summary": "GET /api/v1/core/reports/export.csv",
+        "tags": [
+          "CORE"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/v1/core/search": {
+      "get": {
+        "summary": "GET /api/v1/core/search",
+        "tags": [
+          "CORE"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/v1/core/sessions": {
+      "get": {
+        "summary": "GET /api/v1/core/sessions",
+        "tags": [
+          "CORE"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/v1/core/sessions/all-others": {
+      "delete": {
+        "summary": "DELETE /api/v1/core/sessions/all-others",
+        "tags": [
+          "CORE"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/v1/core/sessions/{id}": {
+      "delete": {
+        "summary": "DELETE /api/v1/core/sessions/{id}",
+        "tags": [
+          "CORE"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/v1/core/settings": {
+      "get": {
+        "summary": "GET /api/v1/core/settings",
+        "tags": [
+          "CORE"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      },
+      "put": {
+        "summary": "PUT /api/v1/core/settings",
+        "tags": [
+          "CORE"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/v1/core/settings/auth": {
+      "put": {
+        "summary": "PUT /api/v1/core/settings/auth",
+        "tags": [
+          "CORE"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/v1/core/settings/white-label": {
+      "put": {
+        "summary": "PUT /api/v1/core/settings/white-label",
+        "tags": [
+          "CORE"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/v1/core/task-categories": {
+      "get": {
+        "summary": "GET /api/v1/core/task-categories",
+        "tags": [
+          "CORE"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      },
+      "post": {
+        "summary": "POST /api/v1/core/task-categories",
+        "tags": [
+          "CORE"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/v1/core/task-categories/{id}": {
+      "put": {
+        "summary": "PUT /api/v1/core/task-categories/{id}",
+        "tags": [
+          "CORE"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      },
+      "delete": {
+        "summary": "DELETE /api/v1/core/task-categories/{id}",
+        "tags": [
+          "CORE"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/v1/core/users": {
+      "get": {
+        "summary": "GET /api/v1/core/users",
+        "tags": [
+          "CORE"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      },
+      "post": {
+        "summary": "POST /api/v1/core/users",
+        "tags": [
+          "CORE"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/v1/core/users/me": {
+      "patch": {
+        "summary": "PATCH /api/v1/core/users/me",
+        "tags": [
+          "CORE"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/v1/core/users/me/avatar": {
+      "post": {
+        "summary": "POST /api/v1/core/users/me/avatar",
+        "tags": [
+          "CORE"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/v1/core/users/me/preferences": {
+      "get": {
+        "summary": "GET /api/v1/core/users/me/preferences",
+        "tags": [
+          "CORE"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      },
+      "patch": {
+        "summary": "PATCH /api/v1/core/users/me/preferences",
+        "tags": [
+          "CORE"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/v1/core/users/search": {
+      "get": {
+        "summary": "GET /api/v1/core/users/search",
+        "tags": [
+          "CORE"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/v1/core/users/{id}": {
+      "patch": {
+        "summary": "PATCH /api/v1/core/users/{id}",
+        "tags": [
+          "CORE"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      },
+      "delete": {
+        "summary": "DELETE /api/v1/core/users/{id}",
+        "tags": [
+          "CORE"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/v1/core/visitor-stats": {
+      "get": {
+        "summary": "GET /api/v1/core/visitor-stats",
+        "tags": [
+          "CORE"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/v1/core/visitor-stats/track": {
+      "post": {
+        "summary": "POST /api/v1/core/visitor-stats/track",
+        "tags": [
+          "CORE"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/v1/crm/accounts": {
+      "get": {
+        "summary": "GET /api/v1/crm/accounts",
+        "tags": [
+          "CRM"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      },
+      "post": {
+        "summary": "POST /api/v1/crm/accounts",
+        "tags": [
+          "CRM"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/v1/crm/accounts/export": {
+      "get": {
+        "summary": "GET /api/v1/crm/accounts/export",
+        "tags": [
+          "CRM"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/v1/crm/accounts/import": {
+      "post": {
+        "summary": "POST /api/v1/crm/accounts/import",
+        "tags": [
+          "CRM"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/v1/crm/accounts/list": {
+      "get": {
+        "summary": "GET /api/v1/crm/accounts/list",
+        "tags": [
+          "CRM"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/v1/crm/accounts/summary": {
+      "get": {
+        "summary": "GET /api/v1/crm/accounts/summary",
+        "tags": [
+          "CRM"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/v1/crm/accounts/{id}": {
+      "patch": {
+        "summary": "PATCH /api/v1/crm/accounts/{id}",
+        "tags": [
+          "CRM"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      },
+      "delete": {
+        "summary": "DELETE /api/v1/crm/accounts/{id}",
+        "tags": [
+          "CRM"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/v1/crm/accounts/{id}/360": {
+      "get": {
+        "summary": "GET /api/v1/crm/accounts/{id}/360",
+        "tags": [
+          "CRM"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/v1/crm/activities": {
+      "get": {
+        "summary": "GET /api/v1/crm/activities",
+        "tags": [
+          "CRM"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      },
+      "post": {
+        "summary": "POST /api/v1/crm/activities",
+        "tags": [
+          "CRM"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/v1/crm/activities/{activity}": {
+      "delete": {
+        "summary": "DELETE /api/v1/crm/activities/{activity}",
+        "tags": [
+          "CRM"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/v1/crm/consultations": {
+      "get": {
+        "summary": "GET /api/v1/crm/consultations",
+        "tags": [
+          "CRM"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      },
+      "post": {
+        "summary": "POST /api/v1/crm/consultations",
+        "tags": [
+          "CRM"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      },
+      "put": {
+        "summary": "PUT /api/v1/crm/consultations",
+        "tags": [
+          "CRM"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/v1/crm/consultations/{id}/convert-project": {
+      "post": {
+        "summary": "POST /api/v1/crm/consultations/{id}/convert-project",
+        "tags": [
+          "CRM"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/v1/crm/contacts": {
+      "get": {
+        "summary": "Index contacts",
+        "tags": [
+          "CRM"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      },
+      "post": {
+        "summary": "Store contacts",
+        "tags": [
+          "CRM"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/v1/crm/contacts/{contact}": {
+      "get": {
+        "summary": "Show contacts",
+        "tags": [
+          "CRM"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      },
+      "put": {
+        "summary": "Update contacts",
+        "tags": [
+          "CRM"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      },
+      "delete": {
+        "summary": "Destroy contacts",
+        "tags": [
+          "CRM"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/v1/crm/deals": {
+      "get": {
+        "summary": "Index deals",
+        "tags": [
+          "CRM"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      },
+      "post": {
+        "summary": "Store deals",
+        "tags": [
+          "CRM"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/v1/crm/deals/{deal}": {
+      "get": {
+        "summary": "Show deals",
+        "tags": [
+          "CRM"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      },
+      "put": {
+        "summary": "Update deals",
+        "tags": [
+          "CRM"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      },
+      "delete": {
+        "summary": "Destroy deals",
+        "tags": [
+          "CRM"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/v1/crm/deals/{deal}/move": {
+      "patch": {
+        "summary": "PATCH /api/v1/crm/deals/{deal}/move",
+        "tags": [
+          "CRM"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/v1/crm/leads": {
+      "get": {
+        "summary": "GET /api/v1/crm/leads",
+        "tags": [
+          "CRM"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      },
+      "post": {
+        "summary": "POST /api/v1/crm/leads",
+        "tags": [
+          "CRM"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/v1/crm/leads/assignees": {
+      "get": {
+        "summary": "GET /api/v1/crm/leads/assignees",
+        "tags": [
+          "CRM"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/v1/crm/leads/export": {
+      "get": {
+        "summary": "GET /api/v1/crm/leads/export",
+        "tags": [
+          "CRM"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/v1/crm/leads/import": {
+      "post": {
+        "summary": "POST /api/v1/crm/leads/import",
+        "tags": [
+          "CRM"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/v1/crm/leads/{id}/assign": {
+      "patch": {
+        "summary": "PATCH /api/v1/crm/leads/{id}/assign",
+        "tags": [
+          "CRM"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/v1/crm/leads/{id}/convert": {
+      "post": {
+        "summary": "POST /api/v1/crm/leads/{id}/convert",
+        "tags": [
+          "CRM"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/v1/crm/leads/{id}/for-contract": {
+      "get": {
+        "summary": "GET /api/v1/crm/leads/{id}/for-contract",
+        "tags": [
+          "CRM"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/v1/crm/leads/{id}/status": {
+      "patch": {
+        "summary": "PATCH /api/v1/crm/leads/{id}/status",
+        "tags": [
+          "CRM"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/v1/crm/leads/{lead}": {
+      "get": {
+        "summary": "GET /api/v1/crm/leads/{lead}",
+        "tags": [
+          "CRM"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      },
+      "patch": {
+        "summary": "PATCH /api/v1/crm/leads/{lead}",
+        "tags": [
+          "CRM"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      },
+      "delete": {
+        "summary": "DELETE /api/v1/crm/leads/{lead}",
+        "tags": [
+          "CRM"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/v1/crm/pipelines": {
+      "get": {
+        "summary": "Index pipelines",
+        "tags": [
+          "CRM"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      },
+      "post": {
+        "summary": "Store pipelines",
+        "tags": [
+          "CRM"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/v1/crm/pipelines/{pipeline}": {
+      "get": {
+        "summary": "Show pipelines",
+        "tags": [
+          "CRM"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      },
+      "put": {
+        "summary": "Update pipelines",
+        "tags": [
+          "CRM"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      },
+      "delete": {
+        "summary": "Destroy pipelines",
+        "tags": [
+          "CRM"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/v1/crm/pipelines/{pipeline}/kanban": {
+      "get": {
+        "summary": "GET /api/v1/crm/pipelines/{pipeline}/kanban",
+        "tags": [
+          "CRM"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/v1/crm/pipelines/{pipeline}/stages": {
+      "post": {
+        "summary": "POST /api/v1/crm/pipelines/{pipeline}/stages",
+        "tags": [
+          "CRM"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/v1/crm/pipelines/{pipeline}/stages/{stage}": {
+      "patch": {
+        "summary": "PATCH /api/v1/crm/pipelines/{pipeline}/stages/{stage}",
+        "tags": [
+          "CRM"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      },
+      "delete": {
+        "summary": "DELETE /api/v1/crm/pipelines/{pipeline}/stages/{stage}",
+        "tags": [
+          "CRM"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/v1/crm/sources": {
+      "get": {
+        "summary": "GET /api/v1/crm/sources",
+        "tags": [
+          "CRM"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      },
+      "post": {
+        "summary": "POST /api/v1/crm/sources",
+        "tags": [
+          "CRM"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/v1/crm/statuses": {
+      "get": {
+        "summary": "GET /api/v1/crm/statuses",
+        "tags": [
+          "CRM"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      },
+      "post": {
+        "summary": "POST /api/v1/crm/statuses",
+        "tags": [
+          "CRM"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/v1/crm/statuses/{id}": {
+      "delete": {
+        "summary": "DELETE /api/v1/crm/statuses/{id}",
+        "tags": [
+          "CRM"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/v1/docs/contracts": {
+      "get": {
+        "summary": "Index contracts",
+        "tags": [
+          "DOCS"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      },
+      "post": {
+        "summary": "Store contracts",
+        "tags": [
+          "DOCS"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/v1/docs/contracts/{contract}": {
+      "get": {
+        "summary": "Show contracts",
+        "tags": [
+          "DOCS"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      },
+      "put": {
+        "summary": "Update contracts",
+        "tags": [
+          "DOCS"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      },
+      "delete": {
+        "summary": "Destroy contracts",
+        "tags": [
+          "DOCS"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/v1/docs/contracts/{contract}/cancel": {
+      "post": {
+        "summary": "POST /api/v1/docs/contracts/{contract}/cancel",
+        "tags": [
+          "DOCS"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/v1/docs/contracts/{contract}/projects": {
+      "post": {
+        "summary": "POST /api/v1/docs/contracts/{contract}/projects",
+        "tags": [
+          "DOCS"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/v1/docs/files": {
+      "get": {
+        "summary": "GET /api/v1/docs/files",
+        "tags": [
+          "DOCS"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      },
+      "post": {
+        "summary": "POST /api/v1/docs/files",
+        "tags": [
+          "DOCS"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/v1/docs/files/folders": {
+      "post": {
+        "summary": "POST /api/v1/docs/files/folders",
+        "tags": [
+          "DOCS"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/v1/docs/files/{file}": {
+      "patch": {
+        "summary": "PATCH /api/v1/docs/files/{file}",
+        "tags": [
+          "DOCS"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      },
+      "delete": {
+        "summary": "DELETE /api/v1/docs/files/{file}",
+        "tags": [
+          "DOCS"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/v1/docs/files/{file}/download": {
+      "get": {
+        "summary": "GET /api/v1/docs/files/{file}/download",
+        "tags": [
+          "DOCS"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/v1/docs/files/{file}/share": {
+      "post": {
+        "summary": "POST /api/v1/docs/files/{file}/share",
+        "tags": [
+          "DOCS"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/v1/docs/files/{file}/versions": {
+      "get": {
+        "summary": "GET /api/v1/docs/files/{file}/versions",
+        "tags": [
+          "DOCS"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/v1/forms/{slug}/submit": {
+      "post": {
+        "summary": "Submit public form",
+        "tags": [
+          "FORMS"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/v1/hrm/attendance": {
+      "get": {
+        "summary": "Index attendance",
+        "tags": [
+          "HRM"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      },
+      "post": {
+        "summary": "Store attendance",
+        "tags": [
+          "HRM"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/v1/hrm/attendance/check-in": {
+      "post": {
+        "summary": "POST /api/v1/hrm/attendance/check-in",
+        "tags": [
+          "HRM"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/v1/hrm/attendance/check-out": {
+      "post": {
+        "summary": "POST /api/v1/hrm/attendance/check-out",
+        "tags": [
+          "HRM"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/v1/hrm/attendance/{attendance}": {
+      "get": {
+        "summary": "Show attendance",
+        "tags": [
+          "HRM"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      },
+      "put": {
+        "summary": "Update attendance",
+        "tags": [
+          "HRM"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      },
+      "delete": {
+        "summary": "Destroy attendance",
+        "tags": [
+          "HRM"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/v1/hrm/employees": {
+      "get": {
+        "summary": "Index employees",
+        "tags": [
+          "HRM"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      },
+      "post": {
+        "summary": "Store employees",
+        "tags": [
+          "HRM"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/v1/hrm/employees/{employee}": {
+      "get": {
+        "summary": "Show employees",
+        "tags": [
+          "HRM"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      },
+      "put": {
+        "summary": "Update employees",
+        "tags": [
+          "HRM"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      },
+      "delete": {
+        "summary": "Destroy employees",
+        "tags": [
+          "HRM"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/v1/hrm/leave": {
+      "get": {
+        "summary": "Index leave",
+        "tags": [
+          "HRM"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      },
+      "post": {
+        "summary": "Store leave",
+        "tags": [
+          "HRM"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/v1/hrm/leave/balances": {
+      "get": {
+        "summary": "GET /api/v1/hrm/leave/balances",
+        "tags": [
+          "HRM"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/v1/hrm/leave/requests": {
+      "get": {
+        "summary": "GET /api/v1/hrm/leave/requests",
+        "tags": [
+          "HRM"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      },
+      "post": {
+        "summary": "POST /api/v1/hrm/leave/requests",
+        "tags": [
+          "HRM"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/v1/hrm/leave/requests/{leaveRequest}/approve": {
+      "post": {
+        "summary": "POST /api/v1/hrm/leave/requests/{leaveRequest}/approve",
+        "tags": [
+          "HRM"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/v1/hrm/leave/requests/{leaveRequest}/reject": {
+      "post": {
+        "summary": "POST /api/v1/hrm/leave/requests/{leaveRequest}/reject",
+        "tags": [
+          "HRM"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/v1/hrm/leave/types": {
+      "get": {
+        "summary": "GET /api/v1/hrm/leave/types",
+        "tags": [
+          "HRM"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      },
+      "post": {
+        "summary": "POST /api/v1/hrm/leave/types",
+        "tags": [
+          "HRM"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/v1/hrm/leave/{leave}": {
+      "get": {
+        "summary": "Show leave",
+        "tags": [
+          "HRM"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      },
+      "put": {
+        "summary": "Update leave",
+        "tags": [
+          "HRM"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      },
+      "delete": {
+        "summary": "Destroy leave",
+        "tags": [
+          "HRM"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/v1/hrm/org-positions": {
+      "get": {
+        "summary": "GET /api/v1/hrm/org-positions",
+        "tags": [
+          "HRM"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      },
+      "post": {
+        "summary": "POST /api/v1/hrm/org-positions",
+        "tags": [
+          "HRM"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/v1/hrm/org-positions/{orgPosition}": {
+      "delete": {
+        "summary": "DELETE /api/v1/hrm/org-positions/{orgPosition}",
+        "tags": [
+          "HRM"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/v1/hrm/payroll": {
+      "get": {
+        "summary": "Index payroll",
+        "tags": [
+          "HRM"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      },
+      "post": {
+        "summary": "Store payroll",
+        "tags": [
+          "HRM"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/v1/hrm/payroll/components": {
+      "get": {
+        "summary": "GET /api/v1/hrm/payroll/components",
+        "tags": [
+          "HRM"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      },
+      "post": {
+        "summary": "POST /api/v1/hrm/payroll/components",
+        "tags": [
+          "HRM"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/v1/hrm/payroll/employee-salaries": {
+      "get": {
+        "summary": "GET /api/v1/hrm/payroll/employee-salaries",
+        "tags": [
+          "HRM"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      },
+      "post": {
+        "summary": "POST /api/v1/hrm/payroll/employee-salaries",
+        "tags": [
+          "HRM"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/v1/hrm/payroll/runs": {
+      "get": {
+        "summary": "GET /api/v1/hrm/payroll/runs",
+        "tags": [
+          "HRM"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      },
+      "post": {
+        "summary": "POST /api/v1/hrm/payroll/runs",
+        "tags": [
+          "HRM"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/v1/hrm/payroll/runs/{run}": {
+      "get": {
+        "summary": "GET /api/v1/hrm/payroll/runs/{run}",
+        "tags": [
+          "HRM"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/v1/hrm/payroll/runs/{run}/approve": {
+      "post": {
+        "summary": "POST /api/v1/hrm/payroll/runs/{run}/approve",
+        "tags": [
+          "HRM"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/v1/hrm/payroll/runs/{run}/calculate": {
+      "post": {
+        "summary": "POST /api/v1/hrm/payroll/runs/{run}/calculate",
+        "tags": [
+          "HRM"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/v1/hrm/payroll/runs/{run}/payslips": {
+      "get": {
+        "summary": "GET /api/v1/hrm/payroll/runs/{run}/payslips",
+        "tags": [
+          "HRM"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/v1/hrm/payroll/settings": {
+      "get": {
+        "summary": "GET /api/v1/hrm/payroll/settings",
+        "tags": [
+          "HRM"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      },
+      "post": {
+        "summary": "POST /api/v1/hrm/payroll/settings",
+        "tags": [
+          "HRM"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/v1/hrm/payroll/{payroll}": {
+      "get": {
+        "summary": "Show payroll",
+        "tags": [
+          "HRM"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      },
+      "put": {
+        "summary": "Update payroll",
+        "tags": [
+          "HRM"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      },
+      "delete": {
+        "summary": "Destroy payroll",
+        "tags": [
+          "HRM"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/v1/hrm/payroll/{payroll}/items": {
+      "post": {
+        "summary": "POST /api/v1/hrm/payroll/{payroll}/items",
+        "tags": [
+          "HRM"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/v1/hrm/payroll/{payroll}/items/{item}": {
+      "delete": {
+        "summary": "DELETE /api/v1/hrm/payroll/{payroll}/items/{item}",
+        "tags": [
+          "HRM"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/v1/hrm/performance": {
+      "get": {
+        "summary": "Index performance",
+        "tags": [
+          "HRM"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      },
+      "post": {
+        "summary": "Store performance",
+        "tags": [
+          "HRM"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/v1/hrm/performance/cycles": {
+      "get": {
+        "summary": "GET /api/v1/hrm/performance/cycles",
+        "tags": [
+          "HRM"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      },
+      "post": {
+        "summary": "POST /api/v1/hrm/performance/cycles",
+        "tags": [
+          "HRM"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/v1/hrm/performance/kpi-templates": {
+      "get": {
+        "summary": "GET /api/v1/hrm/performance/kpi-templates",
+        "tags": [
+          "HRM"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      },
+      "post": {
+        "summary": "POST /api/v1/hrm/performance/kpi-templates",
+        "tags": [
+          "HRM"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/v1/hrm/performance/reviews": {
+      "get": {
+        "summary": "GET /api/v1/hrm/performance/reviews",
+        "tags": [
+          "HRM"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      },
+      "post": {
+        "summary": "POST /api/v1/hrm/performance/reviews",
+        "tags": [
+          "HRM"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/v1/hrm/performance/{performance}": {
+      "get": {
+        "summary": "Show performance",
+        "tags": [
+          "HRM"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      },
+      "put": {
+        "summary": "Update performance",
+        "tags": [
+          "HRM"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      },
+      "delete": {
+        "summary": "Destroy performance",
+        "tags": [
+          "HRM"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/v1/hrm/recruitment": {
+      "get": {
+        "summary": "Index recruitment",
+        "tags": [
+          "HRM"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      },
+      "post": {
+        "summary": "Store recruitment",
+        "tags": [
+          "HRM"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/v1/hrm/recruitment/applicants": {
+      "get": {
+        "summary": "GET /api/v1/hrm/recruitment/applicants",
+        "tags": [
+          "HRM"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      },
+      "post": {
+        "summary": "POST /api/v1/hrm/recruitment/applicants",
+        "tags": [
+          "HRM"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/v1/hrm/recruitment/applicants/{applicant}": {
+      "delete": {
+        "summary": "DELETE /api/v1/hrm/recruitment/applicants/{applicant}",
+        "tags": [
+          "HRM"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/v1/hrm/recruitment/applicants/{applicant}/hire": {
+      "post": {
+        "summary": "POST /api/v1/hrm/recruitment/applicants/{applicant}/hire",
+        "tags": [
+          "HRM"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/v1/hrm/recruitment/interviews": {
+      "get": {
+        "summary": "GET /api/v1/hrm/recruitment/interviews",
+        "tags": [
+          "HRM"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      },
+      "post": {
+        "summary": "POST /api/v1/hrm/recruitment/interviews",
+        "tags": [
+          "HRM"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/v1/hrm/recruitment/postings": {
+      "get": {
+        "summary": "GET /api/v1/hrm/recruitment/postings",
+        "tags": [
+          "HRM"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      },
+      "post": {
+        "summary": "POST /api/v1/hrm/recruitment/postings",
+        "tags": [
+          "HRM"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/v1/hrm/recruitment/{recruitment}": {
+      "get": {
+        "summary": "Show recruitment",
+        "tags": [
+          "HRM"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      },
+      "put": {
+        "summary": "Update recruitment",
+        "tags": [
+          "HRM"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      },
+      "delete": {
+        "summary": "Destroy recruitment",
+        "tags": [
+          "HRM"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/v1/hrm/staff": {
+      "get": {
+        "summary": "GET /api/v1/hrm/staff",
+        "tags": [
+          "HRM"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      },
+      "post": {
+        "summary": "POST /api/v1/hrm/staff",
+        "tags": [
+          "HRM"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/v1/hrm/staff/{staff}": {
+      "delete": {
+        "summary": "DELETE /api/v1/hrm/staff/{staff}",
+        "tags": [
+          "HRM"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/v1/hrm/staff/{staff}/profile": {
+      "get": {
+        "summary": "GET /api/v1/hrm/staff/{staff}/profile",
+        "tags": [
+          "HRM"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      },
+      "post": {
+        "summary": "POST /api/v1/hrm/staff/{staff}/profile",
+        "tags": [
+          "HRM"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/v1/hrm/training": {
+      "get": {
+        "summary": "Index training",
+        "tags": [
+          "HRM"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      },
+      "post": {
+        "summary": "Store training",
+        "tags": [
+          "HRM"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/v1/hrm/training/courses": {
+      "get": {
+        "summary": "GET /api/v1/hrm/training/courses",
+        "tags": [
+          "HRM"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      },
+      "post": {
+        "summary": "POST /api/v1/hrm/training/courses",
+        "tags": [
+          "HRM"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/v1/hrm/training/enrollments": {
+      "get": {
+        "summary": "GET /api/v1/hrm/training/enrollments",
+        "tags": [
+          "HRM"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      },
+      "post": {
+        "summary": "POST /api/v1/hrm/training/enrollments",
+        "tags": [
+          "HRM"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/v1/hrm/training/sessions": {
+      "get": {
+        "summary": "GET /api/v1/hrm/training/sessions",
+        "tags": [
+          "HRM"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      },
+      "post": {
+        "summary": "POST /api/v1/hrm/training/sessions",
+        "tags": [
+          "HRM"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/v1/hrm/training/{course}/enroll": {
+      "post": {
+        "summary": "POST /api/v1/hrm/training/{course}/enroll",
+        "tags": [
+          "HRM"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/v1/hrm/training/{training}": {
+      "get": {
+        "summary": "Show training",
+        "tags": [
+          "HRM"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      },
+      "put": {
+        "summary": "Update training",
+        "tags": [
+          "HRM"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      },
+      "delete": {
+        "summary": "Destroy training",
+        "tags": [
+          "HRM"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/v1/integrations/bale/messages": {
+      "post": {
+        "summary": "POST /api/v1/integrations/bale/messages",
+        "tags": [
+          "INTEGRATIONS"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/v1/integrations/bale/messages/bulk": {
+      "post": {
+        "summary": "POST /api/v1/integrations/bale/messages/bulk",
+        "tags": [
+          "INTEGRATIONS"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/v1/integrations/bale/webhook": {
+      "post": {
+        "summary": "POST /api/v1/integrations/bale/webhook",
+        "tags": [
+          "INTEGRATIONS"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/v1/integrations/modirpayamak/account": {
+      "get": {
+        "summary": "GET /api/v1/integrations/modirpayamak/account",
+        "tags": [
+          "INTEGRATIONS"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/v1/integrations/modirpayamak/admin/customers": {
+      "get": {
+        "summary": "GET /api/v1/integrations/modirpayamak/admin/customers",
+        "tags": [
+          "INTEGRATIONS"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/v1/integrations/modirpayamak/admin/customers/balance": {
+      "post": {
+        "summary": "POST /api/v1/integrations/modirpayamak/admin/customers/balance",
+        "tags": [
+          "INTEGRATIONS"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/v1/integrations/modirpayamak/admin/dashboard": {
+      "get": {
+        "summary": "GET /api/v1/integrations/modirpayamak/admin/dashboard",
+        "tags": [
+          "INTEGRATIONS"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/v1/integrations/modirpayamak/admin/messages": {
+      "get": {
+        "summary": "GET /api/v1/integrations/modirpayamak/admin/messages",
+        "tags": [
+          "INTEGRATIONS"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/v1/integrations/modirpayamak/admin/orders": {
+      "get": {
+        "summary": "GET /api/v1/integrations/modirpayamak/admin/orders",
+        "tags": [
+          "INTEGRATIONS"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/v1/integrations/modirpayamak/admin/packages": {
+      "get": {
+        "summary": "GET /api/v1/integrations/modirpayamak/admin/packages",
+        "tags": [
+          "INTEGRATIONS"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      },
+      "post": {
+        "summary": "POST /api/v1/integrations/modirpayamak/admin/packages",
+        "tags": [
+          "INTEGRATIONS"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/v1/integrations/modirpayamak/admin/packages/{package}": {
+      "delete": {
+        "summary": "DELETE /api/v1/integrations/modirpayamak/admin/packages/{package}",
+        "tags": [
+          "INTEGRATIONS"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/v1/integrations/modirpayamak/admin/proxy": {
+      "post": {
+        "summary": "POST /api/v1/integrations/modirpayamak/admin/proxy",
+        "tags": [
+          "INTEGRATIONS"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/v1/integrations/modirpayamak/admin/send": {
+      "post": {
+        "summary": "POST /api/v1/integrations/modirpayamak/admin/send",
+        "tags": [
+          "INTEGRATIONS"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/v1/integrations/modirpayamak/customers": {
+      "get": {
+        "summary": "GET /api/v1/integrations/modirpayamak/customers",
+        "tags": [
+          "INTEGRATIONS"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/v1/integrations/modirpayamak/numbers": {
+      "get": {
+        "summary": "GET /api/v1/integrations/modirpayamak/numbers",
+        "tags": [
+          "INTEGRATIONS"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/v1/integrations/modirpayamak/orders": {
+      "get": {
+        "summary": "GET /api/v1/integrations/modirpayamak/orders",
+        "tags": [
+          "INTEGRATIONS"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/v1/integrations/modirpayamak/packages": {
+      "get": {
+        "summary": "GET /api/v1/integrations/modirpayamak/packages",
+        "tags": [
+          "INTEGRATIONS"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/v1/integrations/modirpayamak/patterns": {
+      "get": {
+        "summary": "GET /api/v1/integrations/modirpayamak/patterns",
+        "tags": [
+          "INTEGRATIONS"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/v1/integrations/modirpayamak/reports": {
+      "get": {
+        "summary": "GET /api/v1/integrations/modirpayamak/reports",
+        "tags": [
+          "INTEGRATIONS"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/v1/integrations/modirpayamak/reports/messages": {
+      "get": {
+        "summary": "GET /api/v1/integrations/modirpayamak/reports/messages",
+        "tags": [
+          "INTEGRATIONS"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/v1/integrations/modirpayamak/reports/outbox": {
+      "get": {
+        "summary": "GET /api/v1/integrations/modirpayamak/reports/outbox",
+        "tags": [
+          "INTEGRATIONS"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/v1/integrations/modirpayamak/reports/outbox/{id}": {
+      "get": {
+        "summary": "GET /api/v1/integrations/modirpayamak/reports/outbox/{id}",
+        "tags": [
+          "INTEGRATIONS"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/v1/integrations/modirpayamak/send": {
+      "post": {
+        "summary": "POST /api/v1/integrations/modirpayamak/send",
+        "tags": [
+          "INTEGRATIONS"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      },
+      "get": {
+        "summary": "GET /api/v1/integrations/modirpayamak/send",
+        "tags": [
+          "INTEGRATIONS"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/v1/integrations/modirpayamak/send/calculate-price": {
+      "post": {
+        "summary": "POST /api/v1/integrations/modirpayamak/send/calculate-price",
+        "tags": [
+          "INTEGRATIONS"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/v1/integrations/modirpayamak/send/peer-to-peer": {
+      "post": {
+        "summary": "POST /api/v1/integrations/modirpayamak/send/peer-to-peer",
+        "tags": [
+          "INTEGRATIONS"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/v1/integrations/modirpayamak/settings": {
+      "get": {
+        "summary": "GET /api/v1/integrations/modirpayamak/settings",
+        "tags": [
+          "INTEGRATIONS"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      },
+      "put": {
+        "summary": "PUT /api/v1/integrations/modirpayamak/settings",
+        "tags": [
+          "INTEGRATIONS"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/v1/integrations/modirpayamak/topup/init": {
+      "post": {
+        "summary": "POST /api/v1/integrations/modirpayamak/topup/init",
+        "tags": [
+          "INTEGRATIONS"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/v1/integrations/modirpayamak/topup/verify": {
+      "post": {
+        "summary": "POST /api/v1/integrations/modirpayamak/topup/verify",
+        "tags": [
+          "INTEGRATIONS"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/v1/integrations/payments/initiate": {
+      "post": {
+        "summary": "POST /api/v1/integrations/payments/initiate",
+        "tags": [
+          "INTEGRATIONS"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/v1/integrations/payments/verify": {
+      "post": {
+        "summary": "POST /api/v1/integrations/payments/verify",
+        "tags": [
+          "INTEGRATIONS"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/v1/integrations/sms/send": {
+      "post": {
+        "summary": "POST /api/v1/integrations/sms/send",
+        "tags": [
+          "INTEGRATIONS"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/v1/integrations/sms/settings": {
+      "put": {
+        "summary": "PUT /api/v1/integrations/sms/settings",
+        "tags": [
+          "INTEGRATIONS"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/v1/integrations/telegram/send": {
+      "post": {
+        "summary": "POST /api/v1/integrations/telegram/send",
+        "tags": [
+          "INTEGRATIONS"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/v1/integrations/telegram/webhook": {
+      "post": {
+        "summary": "POST /api/v1/integrations/telegram/webhook",
+        "tags": [
+          "INTEGRATIONS"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/v1/marketplace/categories": {
+      "get": {
+        "summary": "Index categories",
+        "tags": [
+          "MARKETPLACE"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      },
+      "post": {
+        "summary": "Store categories",
+        "tags": [
+          "MARKETPLACE"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/v1/marketplace/categories/{categorie}": {
+      "get": {
+        "summary": "Show categories",
+        "tags": [
+          "MARKETPLACE"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      },
+      "put": {
+        "summary": "Update categories",
+        "tags": [
+          "MARKETPLACE"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      },
+      "delete": {
+        "summary": "Destroy categories",
+        "tags": [
+          "MARKETPLACE"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/v1/marketplace/gitea/settings": {
+      "get": {
+        "summary": "GET /api/v1/marketplace/gitea/settings",
+        "tags": [
+          "MARKETPLACE"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      },
+      "put": {
+        "summary": "PUT /api/v1/marketplace/gitea/settings",
+        "tags": [
+          "MARKETPLACE"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/v1/marketplace/gitea/test": {
+      "post": {
+        "summary": "POST /api/v1/marketplace/gitea/test",
+        "tags": [
+          "MARKETPLACE"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/v1/marketplace/modules": {
+      "get": {
+        "summary": "Index modules",
+        "tags": [
+          "MARKETPLACE"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      },
+      "post": {
+        "summary": "Store modules",
+        "tags": [
+          "MARKETPLACE"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/v1/marketplace/modules/{module}": {
+      "get": {
+        "summary": "Show modules",
+        "tags": [
+          "MARKETPLACE"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      },
+      "put": {
+        "summary": "Update modules",
+        "tags": [
+          "MARKETPLACE"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      },
+      "delete": {
+        "summary": "Destroy modules",
+        "tags": [
+          "MARKETPLACE"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/v1/marketplace/modules/{module}/readme/sync": {
+      "post": {
+        "summary": "POST /api/v1/marketplace/modules/{module}/readme/sync",
+        "tags": [
+          "MARKETPLACE"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/v1/marketplace/modules/{module}/releases": {
+      "get": {
+        "summary": "GET /api/v1/marketplace/modules/{module}/releases",
+        "tags": [
+          "MARKETPLACE"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      },
+      "post": {
+        "summary": "POST /api/v1/marketplace/modules/{module}/releases",
+        "tags": [
+          "MARKETPLACE"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/v1/marketplace/modules/{module}/repo": {
+      "post": {
+        "summary": "POST /api/v1/marketplace/modules/{module}/repo",
+        "tags": [
+          "MARKETPLACE"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      },
+      "patch": {
+        "summary": "PATCH /api/v1/marketplace/modules/{module}/repo",
+        "tags": [
+          "MARKETPLACE"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/v1/marketplace/modules/{module}/repo/sync": {
+      "post": {
+        "summary": "POST /api/v1/marketplace/modules/{module}/repo/sync",
+        "tags": [
+          "MARKETPLACE"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/v1/marketplace/orders": {
+      "get": {
+        "summary": "GET /api/v1/marketplace/orders",
+        "tags": [
+          "MARKETPLACE"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/v1/marketplace/products": {
+      "get": {
+        "summary": "Index products",
+        "tags": [
+          "MARKETPLACE"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      },
+      "post": {
+        "summary": "Store products",
+        "tags": [
+          "MARKETPLACE"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/v1/marketplace/products/{product}": {
+      "get": {
+        "summary": "Show products",
+        "tags": [
+          "MARKETPLACE"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      },
+      "put": {
+        "summary": "Update products",
+        "tags": [
+          "MARKETPLACE"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      },
+      "delete": {
+        "summary": "Destroy products",
+        "tags": [
+          "MARKETPLACE"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/v1/marketplace/releases/{release}": {
+      "delete": {
+        "summary": "DELETE /api/v1/marketplace/releases/{release}",
+        "tags": [
+          "MARKETPLACE"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/v1/marketplace/releases/{release}/publish": {
+      "post": {
+        "summary": "POST /api/v1/marketplace/releases/{release}/publish",
+        "tags": [
+          "MARKETPLACE"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/v1/projects/appointments": {
+      "get": {
+        "summary": "GET /api/v1/projects/appointments",
+        "tags": [
+          "PROJECTS"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      },
+      "post": {
+        "summary": "POST /api/v1/projects/appointments",
+        "tags": [
+          "PROJECTS"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      },
+      "put": {
+        "summary": "PUT /api/v1/projects/appointments",
+        "tags": [
+          "PROJECTS"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/v1/projects/appointments/calendar": {
+      "get": {
+        "summary": "GET /api/v1/projects/appointments/calendar",
+        "tags": [
+          "PROJECTS"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/v1/projects/appointments/quick": {
+      "post": {
+        "summary": "POST /api/v1/projects/appointments/quick",
+        "tags": [
+          "PROJECTS"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/v1/projects/appointments/request": {
+      "post": {
+        "summary": "POST /api/v1/projects/appointments/request",
+        "tags": [
+          "PROJECTS"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/v1/projects/appointments/{id}": {
+      "get": {
+        "summary": "GET /api/v1/projects/appointments/{id}",
+        "tags": [
+          "PROJECTS"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      },
+      "delete": {
+        "summary": "DELETE /api/v1/projects/appointments/{id}",
+        "tags": [
+          "PROJECTS"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/v1/projects/appointments/{id}/date": {
+      "patch": {
+        "summary": "PATCH /api/v1/projects/appointments/{id}/date",
+        "tags": [
+          "PROJECTS"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/v1/projects/assignable-users": {
+      "get": {
+        "summary": "GET /api/v1/projects/assignable-users",
+        "tags": [
+          "PROJECTS"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/v1/projects/contracts": {
+      "get": {
+        "summary": "GET /api/v1/projects/contracts",
+        "tags": [
+          "PROJECTS"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      },
+      "post": {
+        "summary": "POST /api/v1/projects/contracts",
+        "tags": [
+          "PROJECTS"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/v1/projects/contracts/from-product": {
+      "post": {
+        "summary": "POST /api/v1/projects/contracts/from-product",
+        "tags": [
+          "PROJECTS"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/v1/projects/contracts/{id}": {
+      "get": {
+        "summary": "GET /api/v1/projects/contracts/{id}",
+        "tags": [
+          "PROJECTS"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      },
+      "put": {
+        "summary": "PUT /api/v1/projects/contracts/{id}",
+        "tags": [
+          "PROJECTS"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      },
+      "patch": {
+        "summary": "PATCH /api/v1/projects/contracts/{id}",
+        "tags": [
+          "PROJECTS"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      },
+      "delete": {
+        "summary": "DELETE /api/v1/projects/contracts/{id}",
+        "tags": [
+          "PROJECTS"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/v1/projects/contracts/{id}/cancel": {
+      "post": {
+        "summary": "POST /api/v1/projects/contracts/{id}/cancel",
+        "tags": [
+          "PROJECTS"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/v1/projects/contracts/{id}/details": {
+      "get": {
+        "summary": "GET /api/v1/projects/contracts/{id}/details",
+        "tags": [
+          "PROJECTS"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/v1/projects/contracts/{id}/email": {
+      "post": {
+        "summary": "POST /api/v1/projects/contracts/{id}/email",
+        "tags": [
+          "PROJECTS"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/v1/projects/contracts/{id}/pdf": {
+      "post": {
+        "summary": "POST /api/v1/projects/contracts/{id}/pdf",
+        "tags": [
+          "PROJECTS"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/v1/projects/contracts/{id}/projects": {
+      "post": {
+        "summary": "POST /api/v1/projects/contracts/{id}/projects",
+        "tags": [
+          "PROJECTS"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/v1/projects/forms": {
+      "get": {
+        "summary": "GET /api/v1/projects/forms",
+        "tags": [
+          "PROJECTS"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      },
+      "post": {
+        "summary": "POST /api/v1/projects/forms",
+        "tags": [
+          "PROJECTS"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/v1/projects/forms/{id}": {
+      "get": {
+        "summary": "GET /api/v1/projects/forms/{id}",
+        "tags": [
+          "PROJECTS"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      },
+      "patch": {
+        "summary": "PATCH /api/v1/projects/forms/{id}",
+        "tags": [
+          "PROJECTS"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      },
+      "delete": {
+        "summary": "DELETE /api/v1/projects/forms/{id}",
+        "tags": [
+          "PROJECTS"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/v1/projects/invoices": {
+      "get": {
+        "summary": "GET /api/v1/projects/invoices",
+        "tags": [
+          "PROJECTS"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      },
+      "post": {
+        "summary": "POST /api/v1/projects/invoices",
+        "tags": [
+          "PROJECTS"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      },
+      "put": {
+        "summary": "PUT /api/v1/projects/invoices",
+        "tags": [
+          "PROJECTS"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/v1/projects/invoices/{id}": {
+      "get": {
+        "summary": "GET /api/v1/projects/invoices/{id}",
+        "tags": [
+          "PROJECTS"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      },
+      "delete": {
+        "summary": "DELETE /api/v1/projects/invoices/{id}",
+        "tags": [
+          "PROJECTS"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/v1/projects/invoices/{id}/email": {
+      "post": {
+        "summary": "POST /api/v1/projects/invoices/{id}/email",
+        "tags": [
+          "PROJECTS"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/v1/projects/invoices/{id}/pdf": {
+      "post": {
+        "summary": "POST /api/v1/projects/invoices/{id}/pdf",
+        "tags": [
+          "PROJECTS"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/v1/projects/kanban/cards": {
+      "post": {
+        "summary": "POST /api/v1/projects/kanban/cards",
+        "tags": [
+          "PROJECTS"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/v1/projects/kanban/cards/{id}": {
+      "patch": {
+        "summary": "PATCH /api/v1/projects/kanban/cards/{id}",
+        "tags": [
+          "PROJECTS"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      },
+      "delete": {
+        "summary": "DELETE /api/v1/projects/kanban/cards/{id}",
+        "tags": [
+          "PROJECTS"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/v1/projects/kanban/columns": {
+      "post": {
+        "summary": "POST /api/v1/projects/kanban/columns",
+        "tags": [
+          "PROJECTS"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/v1/projects/kanban/columns/{id}": {
+      "patch": {
+        "summary": "PATCH /api/v1/projects/kanban/columns/{id}",
+        "tags": [
+          "PROJECTS"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      },
+      "delete": {
+        "summary": "DELETE /api/v1/projects/kanban/columns/{id}",
+        "tags": [
+          "PROJECTS"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/v1/projects/kanban/data": {
+      "get": {
+        "summary": "GET /api/v1/projects/kanban/data",
+        "tags": [
+          "PROJECTS"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/v1/projects/products": {
+      "get": {
+        "summary": "GET /api/v1/projects/products",
+        "tags": [
+          "PROJECTS"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/v1/projects/products/{id}/projects-preview": {
+      "get": {
+        "summary": "GET /api/v1/projects/products/{id}/projects-preview",
+        "tags": [
+          "PROJECTS"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/v1/projects/products/{id}/task-template": {
+      "put": {
+        "summary": "PUT /api/v1/projects/products/{id}/task-template",
+        "tags": [
+          "PROJECTS"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/v1/projects/project-templates": {
+      "get": {
+        "summary": "GET /api/v1/projects/project-templates",
+        "tags": [
+          "PROJECTS"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/v1/projects/projects": {
+      "get": {
+        "summary": "GET /api/v1/projects/projects",
+        "tags": [
+          "PROJECTS"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      },
+      "post": {
+        "summary": "POST /api/v1/projects/projects",
+        "tags": [
+          "PROJECTS"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/v1/projects/projects/export": {
+      "get": {
+        "summary": "GET /api/v1/projects/projects/export",
+        "tags": [
+          "PROJECTS"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/v1/projects/projects/{id}": {
+      "put": {
+        "summary": "PUT /api/v1/projects/projects/{id}",
+        "tags": [
+          "PROJECTS"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      },
+      "patch": {
+        "summary": "PATCH /api/v1/projects/projects/{id}",
+        "tags": [
+          "PROJECTS"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      },
+      "delete": {
+        "summary": "DELETE /api/v1/projects/projects/{id}",
+        "tags": [
+          "PROJECTS"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/v1/projects/projects/{id}/assignees": {
+      "get": {
+        "summary": "GET /api/v1/projects/projects/{id}/assignees",
+        "tags": [
+          "PROJECTS"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/v1/projects/projects/{id}/details": {
+      "get": {
+        "summary": "GET /api/v1/projects/projects/{id}/details",
+        "tags": [
+          "PROJECTS"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/v1/projects/projects/{project}": {
+      "get": {
+        "summary": "GET /api/v1/projects/projects/{project}",
+        "tags": [
+          "PROJECTS"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/v1/projects/sprints": {
+      "get": {
+        "summary": "GET /api/v1/projects/sprints",
+        "tags": [
+          "PROJECTS"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      },
+      "post": {
+        "summary": "POST /api/v1/projects/sprints",
+        "tags": [
+          "PROJECTS"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/v1/projects/sprints/backlog": {
+      "get": {
+        "summary": "GET /api/v1/projects/sprints/backlog",
+        "tags": [
+          "PROJECTS"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/v1/projects/sprints/task/{taskId}": {
+      "delete": {
+        "summary": "DELETE /api/v1/projects/sprints/task/{taskId}",
+        "tags": [
+          "PROJECTS"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/v1/projects/sprints/{id}": {
+      "patch": {
+        "summary": "PATCH /api/v1/projects/sprints/{id}",
+        "tags": [
+          "PROJECTS"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      },
+      "delete": {
+        "summary": "DELETE /api/v1/projects/sprints/{id}",
+        "tags": [
+          "PROJECTS"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/v1/projects/sprints/{id}/finish": {
+      "post": {
+        "summary": "POST /api/v1/projects/sprints/{id}/finish",
+        "tags": [
+          "PROJECTS"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/v1/projects/sprints/{id}/start": {
+      "post": {
+        "summary": "POST /api/v1/projects/sprints/{id}/start",
+        "tags": [
+          "PROJECTS"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/v1/projects/sprints/{id}/tasks": {
+      "post": {
+        "summary": "POST /api/v1/projects/sprints/{id}/tasks",
+        "tags": [
+          "PROJECTS"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/v1/projects/subscriptions": {
+      "get": {
+        "summary": "GET /api/v1/projects/subscriptions",
+        "tags": [
+          "PROJECTS"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/v1/projects/subscriptions/{id}/convert-contract": {
+      "post": {
+        "summary": "POST /api/v1/projects/subscriptions/{id}/convert-contract",
+        "tags": [
+          "PROJECTS"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/v1/projects/task-templates": {
+      "post": {
+        "summary": "POST /api/v1/projects/task-templates",
+        "tags": [
+          "PROJECTS"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      },
+      "get": {
+        "summary": "GET /api/v1/projects/task-templates",
+        "tags": [
+          "PROJECTS"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/v1/projects/tasks": {
+      "get": {
+        "summary": "GET /api/v1/projects/tasks",
+        "tags": [
+          "PROJECTS"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      },
+      "post": {
+        "summary": "POST /api/v1/projects/tasks",
+        "tags": [
+          "PROJECTS"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/v1/projects/tasks/bulk": {
+      "patch": {
+        "summary": "PATCH /api/v1/projects/tasks/bulk",
+        "tags": [
+          "PROJECTS"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/v1/projects/tasks/calendar": {
+      "get": {
+        "summary": "GET /api/v1/projects/tasks/calendar",
+        "tags": [
+          "PROJECTS"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/v1/projects/tasks/gantt": {
+      "get": {
+        "summary": "GET /api/v1/projects/tasks/gantt",
+        "tags": [
+          "PROJECTS"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/v1/projects/tasks/quick": {
+      "post": {
+        "summary": "POST /api/v1/projects/tasks/quick",
+        "tags": [
+          "PROJECTS"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/v1/projects/tasks/search": {
+      "get": {
+        "summary": "GET /api/v1/projects/tasks/search",
+        "tags": [
+          "PROJECTS"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/v1/projects/tasks/{id}": {
+      "patch": {
+        "summary": "PATCH /api/v1/projects/tasks/{id}",
+        "tags": [
+          "PROJECTS"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      },
+      "delete": {
+        "summary": "DELETE /api/v1/projects/tasks/{id}",
+        "tags": [
+          "PROJECTS"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/v1/projects/tasks/{id}/assignee": {
+      "patch": {
+        "summary": "PATCH /api/v1/projects/tasks/{id}/assignee",
+        "tags": [
+          "PROJECTS"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/v1/projects/tasks/{id}/attachments": {
+      "post": {
+        "summary": "POST /api/v1/projects/tasks/{id}/attachments",
+        "tags": [
+          "PROJECTS"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      },
+      "get": {
+        "summary": "GET /api/v1/projects/tasks/{id}/attachments",
+        "tags": [
+          "PROJECTS"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/v1/projects/tasks/{id}/checklist": {
+      "post": {
+        "summary": "POST /api/v1/projects/tasks/{id}/checklist",
+        "tags": [
+          "PROJECTS"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/v1/projects/tasks/{id}/comments": {
+      "post": {
+        "summary": "POST /api/v1/projects/tasks/{id}/comments",
+        "tags": [
+          "PROJECTS"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/v1/projects/tasks/{id}/content": {
+      "patch": {
+        "summary": "PATCH /api/v1/projects/tasks/{id}/content",
+        "tags": [
+          "PROJECTS"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/v1/projects/tasks/{id}/links": {
+      "post": {
+        "summary": "POST /api/v1/projects/tasks/{id}/links",
+        "tags": [
+          "PROJECTS"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/v1/projects/tasks/{id}/links/{linkId}": {
+      "delete": {
+        "summary": "DELETE /api/v1/projects/tasks/{id}/links/{linkId}",
+        "tags": [
+          "PROJECTS"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/v1/projects/tasks/{id}/status": {
+      "patch": {
+        "summary": "PATCH /api/v1/projects/tasks/{id}/status",
+        "tags": [
+          "PROJECTS"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/v1/projects/tasks/{id}/time-logs": {
+      "post": {
+        "summary": "POST /api/v1/projects/tasks/{id}/time-logs",
+        "tags": [
+          "PROJECTS"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/v1/projects/tasks/{taskId}/attachments/{attachmentId}": {
+      "delete": {
+        "summary": "DELETE /api/v1/projects/tasks/{taskId}/attachments/{attachmentId}",
+        "tags": [
+          "PROJECTS"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/v1/projects/tickets": {
+      "get": {
+        "summary": "GET /api/v1/projects/tickets",
+        "tags": [
+          "PROJECTS"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      },
+      "post": {
+        "summary": "POST /api/v1/projects/tickets",
+        "tags": [
+          "PROJECTS"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/v1/projects/tickets/{id}": {
+      "get": {
+        "summary": "GET /api/v1/projects/tickets/{id}",
+        "tags": [
+          "PROJECTS"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      },
+      "patch": {
+        "summary": "PATCH /api/v1/projects/tickets/{id}",
+        "tags": [
+          "PROJECTS"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/v1/projects/tickets/{id}/convert-task": {
+      "post": {
+        "summary": "POST /api/v1/projects/tickets/{id}/convert-task",
+        "tags": [
+          "PROJECTS"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/v1/projects/tickets/{id}/rating": {
+      "post": {
+        "summary": "POST /api/v1/projects/tickets/{id}/rating",
+        "tags": [
+          "PROJECTS"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/v1/projects/tickets/{id}/replies": {
+      "post": {
+        "summary": "POST /api/v1/projects/tickets/{id}/replies",
+        "tags": [
+          "PROJECTS"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/v1/projects/time-entries": {
+      "get": {
+        "summary": "GET /api/v1/projects/time-entries",
+        "tags": [
+          "PROJECTS"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/v1/projects/time-entries/active": {
+      "get": {
+        "summary": "GET /api/v1/projects/time-entries/active",
+        "tags": [
+          "PROJECTS"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/v1/projects/time-entries/manual": {
+      "post": {
+        "summary": "POST /api/v1/projects/time-entries/manual",
+        "tags": [
+          "PROJECTS"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/v1/projects/time-entries/pause": {
+      "post": {
+        "summary": "POST /api/v1/projects/time-entries/pause",
+        "tags": [
+          "PROJECTS"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/v1/projects/time-entries/report": {
+      "get": {
+        "summary": "GET /api/v1/projects/time-entries/report",
+        "tags": [
+          "PROJECTS"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/v1/projects/time-entries/resume": {
+      "post": {
+        "summary": "POST /api/v1/projects/time-entries/resume",
+        "tags": [
+          "PROJECTS"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/v1/projects/time-entries/start": {
+      "post": {
+        "summary": "POST /api/v1/projects/time-entries/start",
+        "tags": [
+          "PROJECTS"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/v1/projects/time-entries/stop": {
+      "post": {
+        "summary": "POST /api/v1/projects/time-entries/stop",
+        "tags": [
+          "PROJECTS"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/v1/projects/time-entries/{id}": {
+      "delete": {
+        "summary": "DELETE /api/v1/projects/time-entries/{id}",
+        "tags": [
+          "PROJECTS"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/v1/projects/workflow/status-order": {
+      "put": {
+        "summary": "PUT /api/v1/projects/workflow/status-order",
+        "tags": [
+          "PROJECTS"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/v1/projects/workflow/statuses": {
+      "post": {
+        "summary": "POST /api/v1/projects/workflow/statuses",
+        "tags": [
+          "PROJECTS"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/v1/projects/workflow/statuses/{id}": {
+      "delete": {
+        "summary": "DELETE /api/v1/projects/workflow/statuses/{id}",
+        "tags": [
+          "PROJECTS"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/v1/sales/campaigns": {
+      "get": {
+        "summary": "Index campaigns",
+        "tags": [
+          "SALES"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      },
+      "post": {
+        "summary": "Store campaigns",
+        "tags": [
+          "SALES"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/v1/sales/campaigns/{campaign}": {
+      "get": {
+        "summary": "Show campaigns",
+        "tags": [
+          "SALES"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      },
+      "put": {
+        "summary": "Update campaigns",
+        "tags": [
+          "SALES"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      },
+      "delete": {
+        "summary": "Destroy campaigns",
+        "tags": [
+          "SALES"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/v1/sales/catalog": {
+      "get": {
+        "summary": "Index catalog",
+        "tags": [
+          "SALES"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      },
+      "post": {
+        "summary": "Store catalog",
+        "tags": [
+          "SALES"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/v1/sales/catalog/{catalog}": {
+      "get": {
+        "summary": "Show catalog",
+        "tags": [
+          "SALES"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      },
+      "put": {
+        "summary": "Update catalog",
+        "tags": [
+          "SALES"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      },
+      "delete": {
+        "summary": "Destroy catalog",
+        "tags": [
+          "SALES"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/v1/sales/invoices": {
+      "get": {
+        "summary": "Index invoices",
+        "tags": [
+          "SALES"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      },
+      "post": {
+        "summary": "Store invoices",
+        "tags": [
+          "SALES"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/v1/sales/invoices/{invoice}": {
+      "get": {
+        "summary": "Show invoices",
+        "tags": [
+          "SALES"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      },
+      "put": {
+        "summary": "Update invoices",
+        "tags": [
+          "SALES"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      },
+      "delete": {
+        "summary": "Destroy invoices",
+        "tags": [
+          "SALES"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/v1/sales/invoices/{invoice}/email": {
+      "post": {
+        "summary": "POST /api/v1/sales/invoices/{invoice}/email",
+        "tags": [
+          "SALES"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/v1/sales/invoices/{invoice}/pdf": {
+      "post": {
+        "summary": "POST /api/v1/sales/invoices/{invoice}/pdf",
+        "tags": [
+          "SALES"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/v1/sales/services/products": {
+      "get": {
+        "summary": "GET /api/v1/sales/services/products",
+        "tags": [
+          "SALES"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/v1/sales/services/subscriptions": {
+      "get": {
+        "summary": "GET /api/v1/sales/services/subscriptions",
+        "tags": [
+          "SALES"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/v1/sales/services/subscriptions/{catalog}/convert-contract": {
+      "post": {
+        "summary": "POST /api/v1/sales/services/subscriptions/{catalog}/convert-contract",
+        "tags": [
+          "SALES"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/v1/sales/services/task-templates": {
+      "get": {
+        "summary": "GET /api/v1/sales/services/task-templates",
+        "tags": [
+          "SALES"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/v1/scm/audit": {
+      "get": {
+        "summary": "GET /api/v1/scm/audit",
+        "tags": [
+          "SCM"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/v1/scm/audit/complete": {
+      "post": {
+        "summary": "POST /api/v1/scm/audit/complete",
+        "tags": [
+          "SCM"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/v1/scm/audit/create": {
+      "post": {
+        "summary": "POST /api/v1/scm/audit/create",
+        "tags": [
+          "SCM"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/v1/scm/audit/post": {
+      "post": {
+        "summary": "POST /api/v1/scm/audit/post",
+        "tags": [
+          "SCM"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/v1/scm/audit/record": {
+      "post": {
+        "summary": "POST /api/v1/scm/audit/record",
+        "tags": [
+          "SCM"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/v1/scm/audit/{id}": {
+      "get": {
+        "summary": "GET /api/v1/scm/audit/{id}",
+        "tags": [
+          "SCM"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/v1/scm/inbound": {
+      "get": {
+        "summary": "GET /api/v1/scm/inbound",
+        "tags": [
+          "SCM"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      },
+      "post": {
+        "summary": "POST /api/v1/scm/inbound",
+        "tags": [
+          "SCM"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/v1/scm/inbound/create": {
+      "post": {
+        "summary": "POST /api/v1/scm/inbound/create",
+        "tags": [
+          "SCM"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/v1/scm/inbound/post": {
+      "post": {
+        "summary": "POST /api/v1/scm/inbound/post",
+        "tags": [
+          "SCM"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/v1/scm/inbound/{id}": {
+      "get": {
+        "summary": "GET /api/v1/scm/inbound/{id}",
+        "tags": [
+          "SCM"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/v1/scm/outbound": {
+      "get": {
+        "summary": "GET /api/v1/scm/outbound",
+        "tags": [
+          "SCM"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      },
+      "post": {
+        "summary": "POST /api/v1/scm/outbound",
+        "tags": [
+          "SCM"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/v1/scm/outbound/create": {
+      "post": {
+        "summary": "POST /api/v1/scm/outbound/create",
+        "tags": [
+          "SCM"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/v1/scm/outbound/post": {
+      "post": {
+        "summary": "POST /api/v1/scm/outbound/post",
+        "tags": [
+          "SCM"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/v1/scm/outbound/{id}": {
+      "get": {
+        "summary": "GET /api/v1/scm/outbound/{id}",
+        "tags": [
+          "SCM"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/v1/scm/stock": {
+      "get": {
+        "summary": "GET /api/v1/scm/stock",
+        "tags": [
+          "SCM"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/v1/scm/stock/{warehouseId}/{productId}": {
+      "get": {
+        "summary": "GET /api/v1/scm/stock/{warehouseId}/{productId}",
+        "tags": [
+          "SCM"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/v1/scm/warehouses": {
+      "get": {
+        "summary": "GET /api/v1/scm/warehouses",
+        "tags": [
+          "SCM"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      },
+      "post": {
+        "summary": "POST /api/v1/scm/warehouses",
+        "tags": [
+          "SCM"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/v1/scm/warehouses/{warehouse}": {
+      "post": {
+        "summary": "POST /api/v1/scm/warehouses/{warehouse}",
+        "tags": [
+          "SCM"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      },
+      "delete": {
+        "summary": "DELETE /api/v1/scm/warehouses/{warehouse}",
+        "tags": [
+          "SCM"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    }
+  },
+  "tags": [
+    "ACCOUNTING",
+    "CORE",
+    "CRM",
+    "DOCS",
+    "FORMS",
+    "HRM",
+    "INTEGRATIONS",
+    "MARKETPLACE",
+    "PROJECTS",
+    "SALES",
+    "SCM"
+  ]
+}

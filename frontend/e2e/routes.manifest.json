@@ -1,0 +1,1228 @@
+{
+  "generatedAt": "2026-07-08T00:11:16.000Z",
+  "version": 1,
+  "routes": [
+    {
+      "route": "",
+      "module": "shell",
+      "apiHint": "/v1/core/dashboard",
+      "e2ePath": "",
+      "e2eAuth": true,
+      "component": "DashboardHomePage",
+      "apiSmoke": {
+        "method": "GET",
+        "path": "/api/v1/core/dashboard",
+        "role": "system_manager",
+        "allowNotFound": false
+      },
+      "featureTest": true
+    },
+    {
+      "route": "login",
+      "module": "shell",
+      "apiHint": "/v1/core/auth/*",
+      "e2ePath": "login",
+      "e2eAuth": false,
+      "component": "LoginForm"
+    },
+    {
+      "route": "reports",
+      "module": "shell",
+      "apiHint": "/v1/core/reports",
+      "e2ePath": "reports",
+      "e2eAuth": true,
+      "component": "ReportsPageView",
+      "apiSmoke": {
+        "method": "GET",
+        "path": "/api/v1/core/reports",
+        "role": "system_manager",
+        "allowNotFound": false
+      }
+    },
+    {
+      "route": "profile",
+      "module": "shell",
+      "apiHint": "/v1/core/users/me",
+      "e2ePath": "profile",
+      "e2eAuth": true,
+      "component": "ProfilePageView",
+      "apiSmoke": {
+        "method": "GET",
+        "path": "/api/v1/core/auth/user",
+        "role": "system_manager",
+        "allowNotFound": false
+      }
+    },
+    {
+      "route": "hrm/staff",
+      "module": "hrm",
+      "apiHint": "/v1/hrm/employees",
+      "e2ePath": "hrm/staff",
+      "e2eAuth": true,
+      "component": "StaffPage",
+      "apiSmoke": {
+        "method": "GET",
+        "path": "/api/v1/hrm/employees",
+        "role": "system_manager",
+        "allowNotFound": false
+      },
+      "featureTest": true
+    },
+    {
+      "route": "hrm/staff/:id",
+      "module": "hrm",
+      "apiHint": "/v1/hrm/employees/{id}",
+      "e2ePath": "hrm/staff/1",
+      "e2eAuth": true,
+      "component": "StaffDetailPage",
+      "apiSmoke": {
+        "method": "GET",
+        "path": "/api/v1/hrm/employees/1",
+        "role": "system_manager",
+        "allowNotFound": true
+      }
+    },
+    {
+      "route": "hrm/attendance",
+      "module": "hrm",
+      "apiHint": "/v1/hrm/attendance",
+      "e2ePath": "hrm/attendance",
+      "e2eAuth": true,
+      "component": "AttendancePage",
+      "apiSmoke": {
+        "method": "GET",
+        "path": "/api/v1/hrm/attendance",
+        "role": "system_manager",
+        "allowNotFound": false
+      }
+    },
+    {
+      "route": "hrm/leave",
+      "module": "hrm",
+      "apiHint": "/v1/hrm/leave",
+      "e2ePath": "hrm/leave",
+      "e2eAuth": true,
+      "component": "LeavePage",
+      "apiSmoke": {
+        "method": "GET",
+        "path": "/api/v1/hrm/leave",
+        "role": "system_manager",
+        "allowNotFound": false
+      }
+    },
+    {
+      "route": "hrm/payroll",
+      "module": "hrm",
+      "apiHint": "/v1/hrm/payroll",
+      "e2ePath": "hrm/payroll",
+      "e2eAuth": true,
+      "component": "PayrollPage",
+      "apiSmoke": {
+        "method": "GET",
+        "path": "/api/v1/hrm/payroll",
+        "role": "system_manager",
+        "allowNotFound": false
+      }
+    },
+    {
+      "route": "hrm/payroll/:id",
+      "module": "hrm",
+      "apiHint": "/v1/hrm/payroll/runs/{id}",
+      "e2ePath": "hrm/payroll/1",
+      "e2eAuth": true,
+      "component": "PayrollRunDetailPage",
+      "apiSmoke": {
+        "method": "GET",
+        "path": "/api/v1/hrm/payroll/runs/1",
+        "role": "system_manager",
+        "allowNotFound": true
+      }
+    },
+    {
+      "route": "hrm/recruitment",
+      "module": "hrm",
+      "apiHint": "/v1/hrm/recruitment",
+      "e2ePath": "hrm/recruitment",
+      "e2eAuth": true,
+      "component": "RecruitmentPage",
+      "apiSmoke": {
+        "method": "GET",
+        "path": "/api/v1/hrm/recruitment",
+        "role": "system_manager",
+        "allowNotFound": false
+      }
+    },
+    {
+      "route": "hrm/performance",
+      "module": "hrm",
+      "apiHint": "/v1/hrm/performance",
+      "e2ePath": "hrm/performance",
+      "e2eAuth": true,
+      "component": "PerformancePage",
+      "apiSmoke": {
+        "method": "GET",
+        "path": "/api/v1/hrm/performance",
+        "role": "system_manager",
+        "allowNotFound": false
+      }
+    },
+    {
+      "route": "hrm/training",
+      "module": "hrm",
+      "apiHint": "/v1/hrm/training",
+      "e2ePath": "hrm/training",
+      "e2eAuth": true,
+      "component": "TrainingPage",
+      "apiSmoke": {
+        "method": "GET",
+        "path": "/api/v1/hrm/training",
+        "role": "system_manager",
+        "allowNotFound": false
+      }
+    },
+    {
+      "route": "finance",
+      "module": "finance",
+      "apiHint": "/v1/accounting/summary",
+      "e2ePath": "finance",
+      "e2eAuth": true,
+      "component": "AccountingDashboardPage",
+      "apiSmoke": {
+        "method": "GET",
+        "path": "/api/v1/accounting/summary",
+        "role": "finance_manager",
+        "allowNotFound": false
+      }
+    },
+    {
+      "route": "finance/persons",
+      "module": "finance",
+      "apiHint": "/v1/accounting/persons",
+      "e2ePath": "finance/persons",
+      "e2eAuth": true,
+      "component": "PersonsPage",
+      "apiSmoke": {
+        "method": "GET",
+        "path": "/api/v1/accounting/persons",
+        "role": "finance_manager",
+        "allowNotFound": false
+      }
+    },
+    {
+      "route": "finance/products",
+      "module": "finance",
+      "apiHint": "/v1/accounting/products",
+      "e2ePath": "finance/products",
+      "e2eAuth": true,
+      "component": "FinanceProductsPage",
+      "apiSmoke": {
+        "method": "GET",
+        "path": "/api/v1/accounting/products",
+        "role": "finance_manager",
+        "allowNotFound": false
+      }
+    },
+    {
+      "route": "finance/invoices",
+      "module": "finance",
+      "apiHint": "/v1/accounting/invoices",
+      "e2ePath": "finance/invoices",
+      "e2eAuth": true,
+      "component": "FinanceInvoicesPage",
+      "apiSmoke": {
+        "method": "GET",
+        "path": "/api/v1/accounting/invoices",
+        "role": "finance_manager",
+        "allowNotFound": false
+      }
+    },
+    {
+      "route": "finance/cash-accounts",
+      "module": "finance",
+      "apiHint": "/v1/accounting/cash-accounts",
+      "e2ePath": "finance/cash-accounts",
+      "e2eAuth": true,
+      "component": "CashAccountsPage",
+      "apiSmoke": {
+        "method": "GET",
+        "path": "/api/v1/accounting/cash-accounts",
+        "role": "finance_manager",
+        "allowNotFound": false
+      }
+    },
+    {
+      "route": "finance/receipts",
+      "module": "finance",
+      "apiHint": "/v1/accounting/receipts",
+      "e2ePath": "finance/receipts",
+      "e2eAuth": true,
+      "component": "ReceiptsPage",
+      "apiSmoke": {
+        "method": "GET",
+        "path": "/api/v1/accounting/receipts",
+        "role": "finance_manager",
+        "allowNotFound": false
+      }
+    },
+    {
+      "route": "finance/checks",
+      "module": "finance",
+      "apiHint": "/v1/accounting/checks",
+      "e2ePath": "finance/checks",
+      "e2eAuth": true,
+      "component": "ChecksPage",
+      "apiSmoke": {
+        "method": "GET",
+        "path": "/api/v1/accounting/checks",
+        "role": "finance_manager",
+        "allowNotFound": false
+      }
+    },
+    {
+      "route": "finance/chart",
+      "module": "finance",
+      "apiHint": "/v1/accounting/chart",
+      "e2ePath": "finance/chart",
+      "e2eAuth": true,
+      "component": "ChartOfAccountsPage",
+      "apiSmoke": {
+        "method": "GET",
+        "path": "/api/v1/accounting/chart",
+        "role": "finance_manager",
+        "allowNotFound": false
+      }
+    },
+    {
+      "route": "finance/journals",
+      "module": "finance",
+      "apiHint": "/v1/accounting/journals",
+      "e2ePath": "finance/journals",
+      "e2eAuth": true,
+      "component": "JournalsPage",
+      "apiSmoke": {
+        "method": "GET",
+        "path": "/api/v1/accounting/journals",
+        "role": "finance_manager",
+        "allowNotFound": false
+      },
+      "featureTest": true
+    },
+    {
+      "route": "finance/ledger",
+      "module": "finance",
+      "apiHint": "/v1/accounting/ledger",
+      "e2ePath": "finance/ledger",
+      "e2eAuth": true,
+      "component": "LedgerPage",
+      "apiSmoke": {
+        "method": "GET",
+        "path": "/api/v1/accounting/ledger",
+        "role": "finance_manager",
+        "allowNotFound": false
+      }
+    },
+    {
+      "route": "finance/reports",
+      "module": "finance",
+      "apiHint": "/v1/accounting/reports",
+      "e2ePath": "finance/reports",
+      "e2eAuth": true,
+      "component": "AccountingReportsPage",
+      "apiSmoke": {
+        "method": "GET",
+        "path": "/api/v1/accounting/reports",
+        "role": "finance_manager",
+        "allowNotFound": false
+      }
+    },
+    {
+      "route": "finance/fiscal-year",
+      "module": "finance",
+      "apiHint": "/v1/accounting/fiscal-years",
+      "e2ePath": "finance/fiscal-year",
+      "e2eAuth": true,
+      "component": "FiscalYearPage",
+      "apiSmoke": {
+        "method": "GET",
+        "path": "/api/v1/accounting/fiscal-years",
+        "role": "finance_manager",
+        "allowNotFound": false
+      }
+    },
+    {
+      "route": "finance/settings",
+      "module": "finance",
+      "apiHint": "/v1/accounting/settings",
+      "e2ePath": "finance/settings",
+      "e2eAuth": true,
+      "component": "AccountingSettingsPage",
+      "apiSmoke": {
+        "method": "GET",
+        "path": "/api/v1/accounting/settings",
+        "role": "finance_manager",
+        "allowNotFound": false
+      }
+    },
+    {
+      "route": "crm/leads",
+      "module": "crm",
+      "apiHint": "/v1/crm/leads",
+      "e2ePath": "crm/leads",
+      "e2eAuth": true,
+      "component": "LeadsListPage",
+      "apiSmoke": {
+        "method": "GET",
+        "path": "/api/v1/crm/leads",
+        "role": "system_manager",
+        "allowNotFound": false
+      }
+    },
+    {
+      "route": "crm/customers",
+      "module": "crm",
+      "apiHint": "/v1/crm/accounts",
+      "e2ePath": "crm/customers",
+      "e2eAuth": true,
+      "component": "CustomersListPage",
+      "apiSmoke": {
+        "method": "GET",
+        "path": "/api/v1/crm/accounts",
+        "role": "system_manager",
+        "allowNotFound": false
+      }
+    },
+    {
+      "route": "crm/customers/:id",
+      "module": "crm",
+      "apiHint": "/v1/crm/accounts/{id}",
+      "e2ePath": "crm/customers/1",
+      "e2eAuth": true,
+      "component": "EntityDetailPage",
+      "apiSmoke": {
+        "method": "GET",
+        "path": "/api/v1/crm/accounts/1",
+        "role": "system_manager",
+        "allowNotFound": true
+      }
+    },
+    {
+      "route": "crm/tickets",
+      "module": "crm",
+      "apiHint": "/v1/projects/tickets",
+      "e2ePath": "crm/tickets",
+      "e2eAuth": true,
+      "component": "TicketsListPage",
+      "apiSmoke": {
+        "method": "GET",
+        "path": "/api/v1/projects/tickets",
+        "role": "system_manager",
+        "allowNotFound": false
+      }
+    },
+    {
+      "route": "crm/consultations",
+      "module": "crm",
+      "apiHint": "/v1/crm/consultations",
+      "e2ePath": "crm/consultations",
+      "e2eAuth": true,
+      "component": "ConsultationsListPage",
+      "apiSmoke": {
+        "method": "GET",
+        "path": "/api/v1/crm/consultations",
+        "role": "system_manager",
+        "allowNotFound": false
+      }
+    },
+    {
+      "route": "crm/deals",
+      "module": "crm",
+      "apiHint": "/v1/crm/deals",
+      "e2ePath": "crm/deals",
+      "e2eAuth": true,
+      "component": "DealsKanbanPage",
+      "apiSmoke": {
+        "method": "GET",
+        "path": "/api/v1/crm/deals",
+        "role": "system_manager",
+        "allowNotFound": false
+      },
+      "featureTest": true
+    },
+    {
+      "route": "crm/pipelines",
+      "module": "crm",
+      "apiHint": "/v1/crm/pipelines",
+      "e2ePath": "crm/pipelines",
+      "e2eAuth": true,
+      "component": "PipelinesPage",
+      "apiSmoke": {
+        "method": "GET",
+        "path": "/api/v1/crm/pipelines",
+        "role": "system_manager",
+        "allowNotFound": false
+      }
+    },
+    {
+      "route": "pm/projects",
+      "module": "pm",
+      "apiHint": "/v1/projects/projects",
+      "e2ePath": "pm/projects",
+      "e2eAuth": true,
+      "component": "ProjectsListPage",
+      "apiSmoke": {
+        "method": "GET",
+        "path": "/api/v1/projects/projects",
+        "role": "system_manager",
+        "allowNotFound": false
+      },
+      "featureTest": true
+    },
+    {
+      "route": "pm/projects/:id",
+      "module": "pm",
+      "apiHint": "/v1/projects/projects/{id}/details",
+      "e2ePath": "pm/projects/1",
+      "e2eAuth": true,
+      "component": "EntityDetailPage",
+      "apiSmoke": {
+        "method": "GET",
+        "path": "/api/v1/projects/projects/1/details",
+        "role": "system_manager",
+        "allowNotFound": true
+      }
+    },
+    {
+      "route": "pm/tasks",
+      "module": "pm",
+      "apiHint": "/v1/projects/tasks",
+      "e2ePath": "pm/tasks",
+      "e2eAuth": true,
+      "component": "TasksKanbanPage",
+      "apiSmoke": {
+        "method": "GET",
+        "path": "/api/v1/projects/tasks",
+        "role": "system_manager",
+        "allowNotFound": false
+      }
+    },
+    {
+      "route": "pm/chat",
+      "module": "pm",
+      "apiHint": "/v1/core/chat/*",
+      "e2ePath": "pm/chat",
+      "e2eAuth": true,
+      "component": "ChatPage",
+      "apiSmoke": {
+        "method": "GET",
+        "path": "/api/v1/core/chat/channels",
+        "role": "system_manager",
+        "allowNotFound": false
+      }
+    },
+    {
+      "route": "pm/time-tracking",
+      "module": "pm",
+      "apiHint": "/v1/projects/time-entries",
+      "e2ePath": "pm/time-tracking",
+      "e2eAuth": true,
+      "component": "TimeTrackingPage",
+      "apiSmoke": {
+        "method": "GET",
+        "path": "/api/v1/projects/time-entries",
+        "role": "system_manager",
+        "allowNotFound": false
+      }
+    },
+    {
+      "route": "pm/appointments",
+      "module": "pm",
+      "apiHint": "/v1/projects/appointments",
+      "e2ePath": "pm/appointments",
+      "e2eAuth": true,
+      "component": "AppointmentsListPage",
+      "apiSmoke": {
+        "method": "GET",
+        "path": "/api/v1/projects/appointments",
+        "role": "system_manager",
+        "allowNotFound": false
+      }
+    },
+    {
+      "route": "scm/warehouses",
+      "module": "scm",
+      "apiHint": "/v1/scm/warehouses",
+      "e2ePath": "scm/warehouses",
+      "e2eAuth": true,
+      "component": "WarehousesPage",
+      "apiSmoke": {
+        "method": "GET",
+        "path": "/api/v1/scm/warehouses",
+        "role": "system_manager",
+        "allowNotFound": false
+      }
+    },
+    {
+      "route": "scm/stock",
+      "module": "scm",
+      "apiHint": "/v1/scm/stock",
+      "e2ePath": "scm/stock",
+      "e2eAuth": true,
+      "component": "StockPage",
+      "apiSmoke": {
+        "method": "GET",
+        "path": "/api/v1/scm/stock",
+        "role": "system_manager",
+        "allowNotFound": false
+      }
+    },
+    {
+      "route": "scm/inbound",
+      "module": "scm",
+      "apiHint": "/v1/scm/inbound",
+      "e2ePath": "scm/inbound",
+      "e2eAuth": true,
+      "component": "InboundPage",
+      "apiSmoke": {
+        "method": "GET",
+        "path": "/api/v1/scm/inbound",
+        "role": "system_manager",
+        "allowNotFound": false
+      },
+      "featureTest": true
+    },
+    {
+      "route": "scm/outbound",
+      "module": "scm",
+      "apiHint": "/v1/scm/outbound",
+      "e2ePath": "scm/outbound",
+      "e2eAuth": true,
+      "component": "OutboundPage",
+      "apiSmoke": {
+        "method": "GET",
+        "path": "/api/v1/scm/outbound",
+        "role": "system_manager",
+        "allowNotFound": false
+      }
+    },
+    {
+      "route": "scm/audit",
+      "module": "scm",
+      "apiHint": "/v1/scm/audit",
+      "e2ePath": "scm/audit",
+      "e2eAuth": true,
+      "component": "AuditPage",
+      "apiSmoke": {
+        "method": "GET",
+        "path": "/api/v1/scm/audit",
+        "role": "system_manager",
+        "allowNotFound": false
+      }
+    },
+    {
+      "route": "sales/invoices",
+      "module": "sales",
+      "apiHint": "/v1/sales/invoices",
+      "e2ePath": "sales/invoices",
+      "e2eAuth": true,
+      "component": "SalesInvoicesPage",
+      "apiSmoke": {
+        "method": "GET",
+        "path": "/api/v1/sales/invoices",
+        "role": "system_manager",
+        "allowNotFound": false
+      },
+      "featureTest": true
+    },
+    {
+      "route": "sales/catalog",
+      "module": "sales",
+      "apiHint": "/v1/sales/catalog",
+      "e2ePath": "sales/catalog",
+      "e2eAuth": true,
+      "component": "CatalogPage",
+      "apiSmoke": {
+        "method": "GET",
+        "path": "/api/v1/sales/catalog",
+        "role": "system_manager",
+        "allowNotFound": false
+      }
+    },
+    {
+      "route": "sales/campaigns",
+      "module": "sales",
+      "apiHint": "/v1/sales/campaigns",
+      "e2ePath": "sales/campaigns",
+      "e2eAuth": true,
+      "component": "CampaignsPage",
+      "apiSmoke": {
+        "method": "GET",
+        "path": "/api/v1/sales/campaigns",
+        "role": "system_manager",
+        "allowNotFound": false
+      }
+    },
+    {
+      "route": "admin/integrations/modirpayamak",
+      "module": "sales/modirpayamak",
+      "apiHint": "/v1/integrations/modirpayamak/admin/dashboard",
+      "e2ePath": "admin/integrations/modirpayamak",
+      "e2eAuth": true,
+      "component": "ModirpayamakPage",
+      "apiSmoke": {
+        "method": "GET",
+        "path": "/api/v1/integrations/modirpayamak/admin/dashboard",
+        "role": "system_manager",
+        "allowNotFound": false
+      },
+      "featureTest": true
+    },
+    {
+      "route": "admin/integrations/modirpayamak/send",
+      "module": "sales/modirpayamak",
+      "apiHint": "/v1/integrations/modirpayamak/send",
+      "e2ePath": "admin/integrations/modirpayamak/send",
+      "e2eAuth": true,
+      "component": "ModirpayamakSendPage",
+      "apiSmoke": {
+        "method": "GET",
+        "path": "/api/v1/integrations/modirpayamak/send",
+        "role": "system_manager",
+        "allowNotFound": false
+      },
+      "featureTest": true
+    },
+    {
+      "route": "admin/integrations/modirpayamak/reports",
+      "module": "sales/modirpayamak",
+      "apiHint": "/v1/integrations/modirpayamak/reports",
+      "e2ePath": "admin/integrations/modirpayamak/reports",
+      "e2eAuth": true,
+      "component": "ModirpayamakReportsPage",
+      "apiSmoke": {
+        "method": "GET",
+        "path": "/api/v1/integrations/modirpayamak/reports",
+        "role": "system_manager",
+        "allowNotFound": false
+      }
+    },
+    {
+      "route": "admin/integrations/modirpayamak/customers",
+      "module": "sales/modirpayamak",
+      "apiHint": "/v1/integrations/modirpayamak/admin/customers",
+      "e2ePath": "admin/integrations/modirpayamak/customers",
+      "e2eAuth": true,
+      "component": "ModirpayamakCustomersPage",
+      "apiSmoke": {
+        "method": "GET",
+        "path": "/api/v1/integrations/modirpayamak/admin/customers",
+        "role": "system_manager",
+        "allowNotFound": false
+      }
+    },
+    {
+      "route": "admin/integrations/modirpayamak/packages",
+      "module": "sales/modirpayamak",
+      "apiHint": "/v1/integrations/modirpayamak/packages",
+      "e2ePath": "admin/integrations/modirpayamak/packages",
+      "e2eAuth": true,
+      "component": "ModirpayamakPackagesPage",
+      "apiSmoke": {
+        "method": "GET",
+        "path": "/api/v1/integrations/modirpayamak/admin/packages",
+        "role": "system_manager",
+        "allowNotFound": false
+      }
+    },
+    {
+      "route": "admin/integrations/modirpayamak/orders",
+      "module": "sales/modirpayamak",
+      "apiHint": "/v1/integrations/modirpayamak/orders",
+      "e2ePath": "admin/integrations/modirpayamak/orders",
+      "e2eAuth": true,
+      "component": "ModirpayamakOrdersPage",
+      "apiSmoke": {
+        "method": "GET",
+        "path": "/api/v1/integrations/modirpayamak/admin/orders",
+        "role": "system_manager",
+        "allowNotFound": false
+      }
+    },
+    {
+      "route": "admin/integrations/modirpayamak/patterns",
+      "module": "sales/modirpayamak",
+      "apiHint": "/v1/integrations/modirpayamak/patterns",
+      "e2ePath": "admin/integrations/modirpayamak/patterns",
+      "e2eAuth": true,
+      "component": "ModirpayamakPatternsPage",
+      "apiSmoke": {
+        "method": "GET",
+        "path": "/api/v1/integrations/modirpayamak/patterns",
+        "role": "system_manager",
+        "allowNotFound": false
+      }
+    },
+    {
+      "route": "admin/integrations/modirpayamak/phonebooks",
+      "module": "sales/modirpayamak",
+      "apiHint": "/v1/integrations/modirpayamak/phonebooks",
+      "e2ePath": "admin/integrations/modirpayamak/phonebooks",
+      "e2eAuth": true,
+      "component": "ModirpayamakPhonebooksPage",
+      "apiSmoke": {
+        "method": "GET",
+        "path": "/api/v1/integrations/modirpayamak/phonebooks",
+        "role": "system_manager",
+        "allowNotFound": false
+      }
+    },
+    {
+      "route": "admin/integrations/modirpayamak/numbers",
+      "module": "sales/modirpayamak",
+      "apiHint": "/v1/integrations/modirpayamak/numbers",
+      "e2ePath": "admin/integrations/modirpayamak/numbers",
+      "e2eAuth": true,
+      "component": "ModirpayamakNumbersPage",
+      "apiSmoke": {
+        "method": "GET",
+        "path": "/api/v1/integrations/modirpayamak/numbers",
+        "role": "system_manager",
+        "allowNotFound": false
+      }
+    },
+    {
+      "route": "admin/integrations/modirpayamak/settings",
+      "module": "sales/modirpayamak",
+      "apiHint": "/v1/integrations/modirpayamak/settings",
+      "e2ePath": "admin/integrations/modirpayamak/settings",
+      "e2eAuth": true,
+      "component": "ModirpayamakSettingsPage",
+      "apiSmoke": {
+        "method": "GET",
+        "path": "/api/v1/integrations/modirpayamak/settings",
+        "role": "system_manager",
+        "allowNotFound": false
+      }
+    },
+    {
+      "route": "admin/integrations/modirpayamak/users",
+      "module": "sales/modirpayamak",
+      "apiHint": "/v1/integrations/modirpayamak/users",
+      "e2ePath": "admin/integrations/modirpayamak/users",
+      "e2eAuth": true,
+      "component": "ModirpayamakUsersPage",
+      "apiSmoke": {
+        "method": "GET",
+        "path": "/api/v1/integrations/modirpayamak/admin/dashboard",
+        "role": "system_manager",
+        "allowNotFound": false
+      },
+      "featureTest": true
+    },
+    {
+      "route": "admin/integrations/modirpayamak/tickets",
+      "module": "sales/modirpayamak",
+      "apiHint": "/v1/integrations/modirpayamak/tickets",
+      "e2ePath": "admin/integrations/modirpayamak/tickets",
+      "e2eAuth": true,
+      "component": "ModirpayamakTicketsPage",
+      "apiSmoke": {
+        "method": "GET",
+        "path": "/api/v1/integrations/modirpayamak/admin/dashboard",
+        "role": "system_manager",
+        "allowNotFound": false
+      },
+      "featureTest": true
+    },
+    {
+      "route": "admin/integrations/modirpayamak/drafts",
+      "module": "sales/modirpayamak",
+      "apiHint": "/v1/integrations/modirpayamak/drafts",
+      "e2ePath": "admin/integrations/modirpayamak/drafts",
+      "e2eAuth": true,
+      "component": "ModirpayamakDraftsPage",
+      "apiSmoke": {
+        "method": "GET",
+        "path": "/api/v1/integrations/modirpayamak/admin/dashboard",
+        "role": "system_manager",
+        "allowNotFound": false
+      },
+      "featureTest": true
+    },
+    {
+      "route": "admin/integrations/bale",
+      "module": "sales/bale",
+      "apiHint": "/v1/integrations/bale/*",
+      "e2ePath": "admin/integrations/bale",
+      "e2eAuth": true,
+      "component": "BaleBusinessDashboard",
+      "apiSmoke": {
+        "method": "GET",
+        "path": "/api/webinocrm/v1/bale/settings",
+        "role": "system_manager",
+        "allowNotFound": false
+      },
+      "featureTest": true
+    },
+    {
+      "route": "docs/contracts",
+      "module": "docs",
+      "apiHint": "/v1/docs/contracts",
+      "e2ePath": "docs/contracts",
+      "e2eAuth": true,
+      "component": "ContractsPage",
+      "apiSmoke": {
+        "method": "GET",
+        "path": "/api/v1/docs/contracts",
+        "role": "system_manager",
+        "allowNotFound": false
+      },
+      "featureTest": true
+    },
+    {
+      "route": "docs/contracts/:id",
+      "module": "docs",
+      "apiHint": "/v1/docs/contracts/{id}",
+      "e2ePath": "docs/contracts/1",
+      "e2eAuth": true,
+      "component": "EntityDetailPage",
+      "apiSmoke": {
+        "method": "GET",
+        "path": "/api/v1/docs/contracts/1",
+        "role": "system_manager",
+        "allowNotFound": true
+      }
+    },
+    {
+      "route": "docs/files",
+      "module": "docs",
+      "apiHint": "/v1/docs/files",
+      "e2ePath": "docs/files",
+      "e2eAuth": true,
+      "component": "FilesPage",
+      "apiSmoke": {
+        "method": "GET",
+        "path": "/api/v1/docs/files",
+        "role": "system_manager",
+        "allowNotFound": false
+      }
+    },
+    {
+      "route": "admin/marketplace/products",
+      "module": "distribution",
+      "apiHint": "/v1/marketplace/products",
+      "e2ePath": "admin/marketplace/products",
+      "e2eAuth": true,
+      "component": "ProductsPage",
+      "apiSmoke": {
+        "method": "GET",
+        "path": "/api/v1/marketplace/products",
+        "role": "system_manager",
+        "allowNotFound": false
+      }
+    },
+    {
+      "route": "admin/marketplace/categories",
+      "module": "distribution",
+      "apiHint": "/v1/marketplace/categories",
+      "e2ePath": "admin/marketplace/categories",
+      "e2eAuth": true,
+      "component": "CategoriesPage",
+      "apiSmoke": {
+        "method": "GET",
+        "path": "/api/v1/marketplace/categories",
+        "role": "system_manager",
+        "allowNotFound": false
+      }
+    },
+    {
+      "route": "admin/marketplace/orders",
+      "module": "distribution",
+      "apiHint": "/v1/marketplace/orders",
+      "e2ePath": "admin/marketplace/orders",
+      "e2eAuth": true,
+      "component": "OrdersPage",
+      "apiSmoke": {
+        "method": "GET",
+        "path": "/api/v1/marketplace/orders",
+        "role": "system_manager",
+        "allowNotFound": false
+      }
+    },
+    {
+      "route": "admin/marketplace/gitea",
+      "module": "distribution",
+      "apiHint": "/v1/marketplace/gitea",
+      "e2ePath": "admin/marketplace/gitea",
+      "e2eAuth": true,
+      "component": "GiteaPage",
+      "apiSmoke": {
+        "method": "GET",
+        "path": "/api/v1/marketplace/gitea/settings",
+        "role": "system_manager",
+        "allowNotFound": false
+      }
+    },
+    {
+      "route": "admin/marketplace/modules/new",
+      "module": "distribution",
+      "apiHint": "/v1/marketplace/modules",
+      "e2ePath": "admin/marketplace/modules/new",
+      "e2eAuth": true,
+      "component": "ModuleDetailPage (new)",
+      "apiSmoke": {
+        "method": "GET",
+        "path": "/api/v1/marketplace/modules",
+        "role": "system_manager",
+        "allowNotFound": false
+      },
+      "featureTest": true
+    },
+    {
+      "route": "admin/marketplace/modules/:id",
+      "module": "distribution",
+      "apiHint": "/v1/marketplace/modules/{id}",
+      "e2ePath": "admin/marketplace/modules/1",
+      "e2eAuth": true,
+      "component": "ModuleDetailPage",
+      "apiSmoke": {
+        "method": "GET",
+        "path": "/api/v1/marketplace/modules/1",
+        "role": "system_manager",
+        "allowNotFound": true
+      }
+    },
+    {
+      "route": "admin/licenses",
+      "module": "distribution",
+      "apiHint": "/v1/core/licenses",
+      "e2ePath": "admin/licenses",
+      "e2eAuth": true,
+      "component": "LicensesPageView",
+      "apiSmoke": {
+        "method": "GET",
+        "path": "/api/v1/core/licenses",
+        "role": "system_manager",
+        "allowNotFound": false
+      },
+      "featureTest": true
+    },
+    {
+      "route": "admin/logs",
+      "module": "admin",
+      "apiHint": "/v1/core/logs",
+      "e2ePath": "admin/logs",
+      "e2eAuth": true,
+      "component": "LogsPageView",
+      "apiSmoke": {
+        "method": "GET",
+        "path": "/api/v1/core/logs",
+        "role": "system_manager",
+        "allowNotFound": false
+      }
+    },
+    {
+      "route": "admin/analytics/visitors",
+      "module": "admin",
+      "apiHint": "/v1/core/visitor-stats",
+      "e2ePath": "admin/analytics/visitors",
+      "e2eAuth": true,
+      "component": "VisitorStatsPageView",
+      "apiSmoke": {
+        "method": "GET",
+        "path": "/api/v1/core/visitor-stats",
+        "role": "system_manager",
+        "allowNotFound": false
+      }
+    },
+    {
+      "route": "admin/settings",
+      "module": "admin",
+      "apiHint": "/v1/core/settings",
+      "e2ePath": "admin/settings",
+      "e2eAuth": true,
+      "component": "SettingsHubPage",
+      "apiSmoke": {
+        "method": "GET",
+        "path": "/api/v1/core/settings",
+        "role": "system_manager",
+        "allowNotFound": false
+      },
+      "featureTest": true
+    },
+    {
+      "route": "admin/settings/general/:tab?",
+      "module": "admin",
+      "apiHint": "/v1/core/settings",
+      "e2ePath": "admin/settings/general/general",
+      "e2eAuth": true,
+      "component": "SettingsHubPage",
+      "apiSmoke": {
+        "method": "GET",
+        "path": "/api/v1/core/settings",
+        "role": "system_manager",
+        "allowNotFound": false
+      }
+    },
+    {
+      "route": "admin/settings/projects/:tab?",
+      "module": "admin",
+      "apiHint": "/v1/core/settings",
+      "e2ePath": "admin/settings/projects/general",
+      "e2eAuth": true,
+      "component": "SettingsHubPage",
+      "apiSmoke": {
+        "method": "GET",
+        "path": "/api/v1/core/settings",
+        "role": "system_manager",
+        "allowNotFound": false
+      }
+    },
+    {
+      "route": "admin/settings/crm/:tab?",
+      "module": "admin",
+      "apiHint": "/v1/core/settings",
+      "e2ePath": "admin/settings/crm/general",
+      "e2eAuth": true,
+      "component": "SettingsHubPage",
+      "apiSmoke": {
+        "method": "GET",
+        "path": "/api/v1/core/settings",
+        "role": "system_manager",
+        "allowNotFound": false
+      }
+    },
+    {
+      "route": "admin/settings/bots",
+      "module": "admin",
+      "apiHint": "/v1/core/settings",
+      "e2ePath": "admin/settings/bots",
+      "e2eAuth": true,
+      "component": "SettingsHubPage",
+      "apiSmoke": {
+        "method": "GET",
+        "path": "/api/v1/core/settings",
+        "role": "system_manager",
+        "allowNotFound": false
+      }
+    },
+    {
+      "route": "admin/settings/accounting/:tab?",
+      "module": "admin",
+      "apiHint": "/v1/core/settings",
+      "e2ePath": "admin/settings/accounting/general",
+      "e2eAuth": true,
+      "component": "SettingsHubPage",
+      "apiSmoke": {
+        "method": "GET",
+        "path": "/api/v1/core/settings",
+        "role": "system_manager",
+        "allowNotFound": false
+      }
+    },
+    {
+      "route": "mfg",
+      "module": "mfg",
+      "apiHint": "/v1/mfg/overview",
+      "e2ePath": "mfg",
+      "e2eAuth": true,
+      "component": "mfg",
+      "apiSmoke": {
+        "method": "GET",
+        "path": "/api/v1/mfg/overview",
+        "role": "system_manager",
+        "allowNotFound": false,
+        "requiresModules": [
+          "mfg"
+        ]
+      },
+      "featureTest": true
+    },
+    {
+      "route": "mfg/boms",
+      "module": "mfg",
+      "apiHint": "/v1/mfg/boms",
+      "e2ePath": "mfg/boms",
+      "e2eAuth": true,
+      "component": "mfg/boms",
+      "apiSmoke": {
+        "method": "GET",
+        "path": "/api/v1/mfg/boms",
+        "role": "system_manager",
+        "allowNotFound": false,
+        "requiresModules": [
+          "mfg"
+        ]
+      },
+      "featureTest": true
+    },
+    {
+      "route": "mfg/work-orders",
+      "module": "mfg",
+      "apiHint": "/v1/mfg/work-orders",
+      "e2ePath": "mfg/work-orders",
+      "e2eAuth": true,
+      "component": "mfg/work-orders",
+      "apiSmoke": {
+        "method": "GET",
+        "path": "/api/v1/mfg/work-orders",
+        "role": "system_manager",
+        "allowNotFound": false,
+        "requiresModules": [
+          "mfg"
+        ]
+      },
+      "featureTest": true
+    },
+    {
+      "route": "mfg/quality",
+      "module": "mfg",
+      "apiHint": "/v1/mfg/inspections",
+      "e2ePath": "mfg/quality",
+      "e2eAuth": true,
+      "component": "mfg/quality",
+      "apiSmoke": {
+        "method": "GET",
+        "path": "/api/v1/mfg/inspections",
+        "role": "system_manager",
+        "allowNotFound": false,
+        "requiresModules": [
+          "mfg"
+        ]
+      },
+      "featureTest": true
+    },
+    {
+      "route": "mfg/planning",
+      "module": "mfg",
+      "apiHint": "/v1/mfg/planning/mrp",
+      "e2ePath": "mfg/planning",
+      "e2eAuth": true,
+      "component": "mfg/planning",
+      "apiSmoke": {
+        "method": "GET",
+        "path": "/api/v1/mfg/planning/mrp",
+        "role": "system_manager",
+        "allowNotFound": false,
+        "requiresModules": [
+          "mfg"
+        ]
+      },
+      "featureTest": true
+    },
+    {
+      "route": "admin/hosting-infra",
+      "module": "admin",
+      "apiHint": "/webinocrm/v1/hosting/*",
+      "e2ePath": "admin/hosting-infra",
+      "e2eAuth": true,
+      "component": "HostingInfraPageView",
+      "apiSmoke": {
+        "method": "GET",
+        "path": "/api/webinocrm/v1/hosting/settings",
+        "role": "system_manager",
+        "allowNotFound": false
+      },
+      "featureTest": true
+    }
+  ]
+}

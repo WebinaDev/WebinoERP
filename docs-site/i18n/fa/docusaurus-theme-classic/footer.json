@@ -1,0 +1,38 @@
+{
+  "link.title.Docs": {
+    "message": "مستندات",
+    "description": "The title of the footer links column with title=Docs in the footer"
+  },
+  "link.title.API": {
+    "message": "API",
+    "description": "The title of the footer links column with title=API in the footer"
+  },
+  "link.item.label.Getting Started": {
+    "message": "شروع کار",
+    "description": "The label of footer link with label=Getting Started"
+  },
+  "link.item.label.Authentication": {
+    "message": "احراز هویت",
+    "description": "The label of footer link with label=Authentication"
+  },
+  "link.item.label.Architecture": {
+    "message": "معماری",
+    "description": "The label of footer link with label=Architecture"
+  },
+  "link.item.label.API Explorer": {
+    "message": "مرورگر API",
+    "description": "The label of footer link with label=API Explorer"
+  },
+  "link.item.label.API Guides": {
+    "message": "راهنمای API",
+    "description": "The label of footer link with label=API Guides"
+  },
+  "link.item.label.OpenAPI Spec": {
+    "message": "فایل OpenAPI",
+    "description": "The label of footer link with label=OpenAPI Spec"
+  },
+  "copyright": {
+    "message": "حق نشر © {year} وبینا.",
+    "description": "The footer copyright"
+  }
+}

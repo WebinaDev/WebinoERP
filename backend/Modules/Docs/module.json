@@ -1,0 +1,13 @@
+{
+    "name": "Docs",
+    "alias": "docs",
+    "description": "Contracts and document files",
+    "keywords": [],
+    "priority": 17,
+    "providers": [
+        "Modules\\Docs\\Providers\\DocsServiceProvider"
+    ],
+    "aliases": {},
+    "files": [],
+    "requires": []
+}

@@ -1,0 +1,13 @@
+{
+    "name": "Mfg",
+    "alias": "mfg",
+    "description": "Manufacturing — BOM, work orders, quality control, MRP",
+    "keywords": [],
+    "priority": 17,
+    "providers": [
+        "Modules\\Mfg\\Providers\\MfgServiceProvider"
+    ],
+    "aliases": {},
+    "files": [],
+    "requires": []
+}

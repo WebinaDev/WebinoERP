@@ -1,0 +1,13 @@
+{
+    "name": "Marketing",
+    "alias": "marketing",
+    "description": "Public marketing site CMS for Webina corporate website",
+    "keywords": [],
+    "priority": 15,
+    "providers": [
+        "Modules\\Marketing\\Providers\\MarketingServiceProvider"
+    ],
+    "aliases": {},
+    "files": [],
+    "requires": []
+}

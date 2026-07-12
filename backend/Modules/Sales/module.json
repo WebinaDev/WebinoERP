@@ -1,0 +1,13 @@
+{
+    "name": "Sales",
+    "alias": "sales",
+    "description": "Sales campaigns and product/service catalog",
+    "keywords": [],
+    "priority": 16,
+    "providers": [
+        "Modules\\Sales\\Providers\\SalesServiceProvider"
+    ],
+    "aliases": {},
+    "files": [],
+    "requires": []
+}

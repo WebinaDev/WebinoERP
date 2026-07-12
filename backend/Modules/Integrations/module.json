@@ -1,0 +1,13 @@
+{
+    "name": "Integrations",
+    "alias": "integrations",
+    "description": "SMS, payments, Telegram, Bale",
+    "keywords": [],
+    "priority": 40,
+    "providers": [
+        "Modules\\Integrations\\Providers\\IntegrationsServiceProvider"
+    ],
+    "aliases": {},
+    "files": [],
+    "requires": []
+}

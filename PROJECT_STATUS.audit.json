@@ -1,0 +1,255 @@
+{
+  "generatedAt": "2026-07-08T22:15:00Z",
+  "generator": "audit-routes.mjs (phase 6 sync)",
+  "counts": {
+    "registryMenuPaths": 64,
+    "pageMapExact": 52,
+    "legacyRedirects": 60,
+    "routeInventoryRows": 87
+  },
+  "missingFromPageMap": [
+    "mfg"
+  ],
+  "redirects": [
+    {
+      "from": "staff",
+      "to": "hrm/staff"
+    },
+    {
+      "from": "staff/*",
+      "to": "hrm/staff"
+    },
+    {
+      "from": "accounting",
+      "to": "finance"
+    },
+    {
+      "from": "accounting/*",
+      "to": "finance"
+    },
+    {
+      "from": "accounting/chart",
+      "to": "finance/chart"
+    },
+    {
+      "from": "accounting/journals",
+      "to": "finance/journals"
+    },
+    {
+      "from": "accounting/ledger",
+      "to": "finance/ledger"
+    },
+    {
+      "from": "accounting/reports",
+      "to": "finance/reports"
+    },
+    {
+      "from": "accounting/fiscal-year",
+      "to": "finance/fiscal-year"
+    },
+    {
+      "from": "accounting/settings",
+      "to": "finance/settings"
+    },
+    {
+      "from": "accounting/persons",
+      "to": "finance/persons"
+    },
+    {
+      "from": "accounting/products",
+      "to": "finance/products"
+    },
+    {
+      "from": "accounting/invoices",
+      "to": "finance/invoices"
+    },
+    {
+      "from": "accounting/cash-accounts",
+      "to": "finance/cash-accounts"
+    },
+    {
+      "from": "accounting/receipts",
+      "to": "finance/receipts"
+    },
+    {
+      "from": "accounting/checks",
+      "to": "finance/checks"
+    },
+    {
+      "from": "accounting/warehouses",
+      "to": "scm/warehouses"
+    },
+    {
+      "from": "accounting/warehouse-stock",
+      "to": "scm/stock"
+    },
+    {
+      "from": "accounting/warehouse-inbound",
+      "to": "scm/inbound"
+    },
+    {
+      "from": "accounting/warehouse-outbound",
+      "to": "scm/outbound"
+    },
+    {
+      "from": "accounting/warehouse-audit",
+      "to": "scm/audit"
+    },
+    {
+      "from": "settings/accounting/:tab?",
+      "to": "admin/settings/accounting/:tab?"
+    },
+    {
+      "from": "settings/payment",
+      "to": "admin/settings/accounting/payment"
+    },
+    {
+      "from": "leads",
+      "to": "crm/leads"
+    },
+    {
+      "from": "customers",
+      "to": "crm/customers"
+    },
+    {
+      "from": "tickets",
+      "to": "crm/tickets"
+    },
+    {
+      "from": "tickets/*",
+      "to": "crm/tickets"
+    },
+    {
+      "from": "consultations",
+      "to": "crm/consultations"
+    },
+    {
+      "from": "projects",
+      "to": "pm/projects"
+    },
+    {
+      "from": "projects/*",
+      "to": "pm/projects"
+    },
+    {
+      "from": "tasks",
+      "to": "pm/tasks"
+    },
+    {
+      "from": "tasks/*",
+      "to": "pm/tasks"
+    },
+    {
+      "from": "chat",
+      "to": "pm/chat"
+    },
+    {
+      "from": "time-tracking",
+      "to": "pm/time-tracking"
+    },
+    {
+      "from": "appointments",
+      "to": "pm/appointments"
+    },
+    {
+      "from": "appointments/*",
+      "to": "pm/appointments"
+    },
+    {
+      "from": "invoices",
+      "to": "sales/invoices"
+    },
+    {
+      "from": "invoices/*",
+      "to": "sales/invoices"
+    },
+    {
+      "from": "services",
+      "to": "sales/catalog"
+    },
+    {
+      "from": "services/*",
+      "to": "sales/catalog"
+    },
+    {
+      "from": "campaigns",
+      "to": "sales/campaigns"
+    },
+    {
+      "from": "campaigns/*",
+      "to": "sales/campaigns"
+    },
+    {
+      "from": "contracts",
+      "to": "docs/contracts"
+    },
+    {
+      "from": "contracts/*",
+      "to": "docs/contracts"
+    },
+    {
+      "from": "documents",
+      "to": "docs/files"
+    },
+    {
+      "from": "marketplace/*",
+      "to": "admin/marketplace"
+    },
+    {
+      "from": "marketplace/products",
+      "to": "admin/marketplace/products"
+    },
+    {
+      "from": "marketplace/categories",
+      "to": "admin/marketplace/categories"
+    },
+    {
+      "from": "marketplace/gitea",
+      "to": "admin/marketplace/gitea"
+    },
+    {
+      "from": "marketplace/orders",
+      "to": "admin/marketplace/orders"
+    },
+    {
+      "from": "marketplace/modules/:id",
+      "to": "admin/marketplace/modules/:id"
+    },
+    {
+      "from": "licenses",
+      "to": "admin/licenses"
+    },
+    {
+      "from": "bale-business",
+      "to": "admin/integrations/bale"
+    },
+    {
+      "from": "bots/business",
+      "to": "admin/integrations/bale"
+    },
+    {
+      "from": "modirpayamak",
+      "to": "admin/integrations/modirpayamak"
+    },
+    {
+      "from": "modirpayamak/*",
+      "to": "admin/integrations/modirpayamak"
+    },
+    {
+      "from": "logs",
+      "to": "admin/logs"
+    },
+    {
+      "from": "visitor-statistics",
+      "to": "admin/analytics/visitors"
+    },
+    {
+      "from": "settings",
+      "to": "admin/settings"
+    },
+    {
+      "from": "settings/*",
+      "to": "admin/settings"
+    }
+  ]
+}

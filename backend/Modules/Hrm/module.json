@@ -1,0 +1,13 @@
+{
+    "name": "Hrm",
+    "alias": "hrm",
+    "description": "Human Resource Management: staff, attendance, leave, payroll",
+    "keywords": [],
+    "priority": 15,
+    "providers": [
+        "Modules\\Hrm\\Providers\\HrmServiceProvider"
+    ],
+    "aliases": {},
+    "files": [],
+    "requires": []
+}

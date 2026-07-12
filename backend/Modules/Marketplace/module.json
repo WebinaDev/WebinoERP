@@ -1,0 +1,13 @@
+{
+    "name": "Marketplace",
+    "alias": "marketplace",
+    "description": "Marketplace products, categories, orders, and modules",
+    "keywords": [],
+    "priority": 18,
+    "providers": [
+        "Modules\\Marketplace\\Providers\\MarketplaceServiceProvider"
+    ],
+    "aliases": {},
+    "files": [],
+    "requires": []
+}
