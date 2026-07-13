@@ -1,8 +1,11 @@
 import { apiServer } from '@/src/lib/api-server';
 export const revalidate = 60;
+
+type ServiceDetail = { title: string; excerpt?: string | null; body?: string | null };
+
 export default async function ServicePage({ params: { slug } }: { params: { slug: string } }) {
-  let service: { title: string; excerpt?: string | null; body?: string | null } | null = null;
-  try { const res = await apiServer<{ data: typeof service }>(`/v1/public/services/${slug}`); service = res.data; } catch {}
+  let service: ServiceDetail | null = null;
+  try { const res = await apiServer<{ data: ServiceDetail }>(`/v1/public/services/${slug}`); service = res.data; } catch {}
   if (!service) return <div className="container mx-auto px-4 py-12">یافت نشد.</div>;
   return (
     <div className="container mx-auto max-w-3xl px-4 py-12">

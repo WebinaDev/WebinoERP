@@ -1,9 +1,12 @@
 import Link from 'next/link';
 import { apiServer, siteHref } from '@/src/lib/api-server';
 export const revalidate = 60;
+
+type ServiceCategory = { id: number; slug: string; name: string; children?: { slug: string; name: string }[]; services?: { slug: string; title: string }[] };
+
 export default async function ServicesPage({ params: { locale } }: { params: { locale: string } }) {
-  let categories: { id: number; slug: string; name: string; children?: { slug: string; name: string }[]; services?: { slug: string; title: string }[] }[] = [];
-  try { const res = await apiServer<{ data: typeof categories }>('/v1/public/services'); categories = res.data ?? []; } catch {}
+  let categories: ServiceCategory[] = [];
+  try { const res = await apiServer<{ data: ServiceCategory[] }>('/v1/public/services'); categories = res.data ?? []; } catch {}
   return (
     <div className="container mx-auto px-4 py-12">
       <h1 className="text-3xl font-bold">خدمات</h1>

@@ -1,12 +1,15 @@
 import Link from 'next/link';
 import { apiServer, siteHref } from '@/src/lib/api-server';
 export const revalidate = 60;
+
+type PortfolioSummary = { id: number; slug: string; title: string; description?: string | null };
+
 export default async function PortfolioPage({ params: { locale }, searchParams }: { params: { locale: string }; searchParams: { service?: string; industry?: string } }) {
   const qs = new URLSearchParams();
   if (searchParams.service) qs.set('service', searchParams.service);
   if (searchParams.industry) qs.set('industry', searchParams.industry);
-  let items: { id: number; slug: string; title: string; description?: string | null }[] = [];
-  try { const res = await apiServer<{ data: typeof items }>(`/v1/public/portfolio?${qs}`); items = res.data ?? []; } catch {}
+  let items: PortfolioSummary[] = [];
+  try { const res = await apiServer<{ data: PortfolioSummary[] }>(`/v1/public/portfolio?${qs}`); items = res.data ?? []; } catch {}
   return (
     <div className="container mx-auto px-4 py-12">
       <h1 className="text-3xl font-bold">نمونه‌کارها</h1>

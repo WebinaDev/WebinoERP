@@ -2,10 +2,12 @@ import { apiServer } from '@/src/lib/api-server';
 
 export const revalidate = 60;
 
+type AnnouncementItem = { id: number; title: string; body?: string | null };
+
 export default async function AnnouncementsPage() {
-  let items: { id: number; title: string; body?: string | null }[] = [];
+  let items: AnnouncementItem[] = [];
   try {
-    const res = await apiServer<{ data: typeof items }>('/v1/public/announcements');
+    const res = await apiServer<{ data: AnnouncementItem[] }>('/v1/public/announcements');
     items = res.data ?? [];
   } catch {
     /* empty */

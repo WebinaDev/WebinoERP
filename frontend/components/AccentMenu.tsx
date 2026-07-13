@@ -1,7 +1,7 @@
 import { useQueryClient } from '@tanstack/react-query'
 import { Check, Palette } from 'lucide-react'
+import { useLocale, useTranslations } from 'next-intl'
 import { useCallback, useEffect, useState } from 'react'
-import { useTranslation } from 'react-i18next'
 
 import { Button } from '@/components/ui/button'
 import {
@@ -21,10 +21,11 @@ import {
 import { patchBootstrapQuery } from '@/lib/bootstrapQuery'
 
 export function AccentMenu() {
-  const { t, i18n } = useTranslation()
+  const t = useTranslations()
+  const locale = useLocale()
   const qc = useQueryClient()
   const bq = useBootstrapQuery()
-  const dir = i18n.dir()
+  const dir = locale === 'fa' ? 'rtl' : 'ltr'
 
   const [accent, setAccent] = useState<AccentPreset>('default')
 

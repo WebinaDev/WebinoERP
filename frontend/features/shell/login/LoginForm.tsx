@@ -2,6 +2,7 @@
 
 import type { ComponentProps } from 'react';
 import { useState } from 'react';
+import Image from 'next/image';
 import { useParams, useRouter } from 'next/navigation';
 import { useTranslations } from 'next-intl';
 import { Button } from '@/components/ui/button';
@@ -105,8 +106,16 @@ export function LoginForm({ className, ...props }: ComponentProps<'div'>) {
       <Card className="overflow-hidden shadow-sm">
         <CardContent className="grid p-0 md:grid-cols-2">
           <div className="flex flex-col gap-6 p-6 md:p-8">
-            <div className="flex flex-col items-center gap-2 text-center">
-              <h1 className="text-2xl font-bold">{t('login.title')}</h1>
+          <div className="flex flex-col items-center gap-2 text-center">
+            <Image
+              src="/brand/logo.png"
+              alt=""
+              width={40}
+              height={40}
+              className="size-10 rounded-md"
+              priority
+            />
+            <h1 className="text-2xl font-bold">{t('login.title')}</h1>
               <p className="text-balance text-sm text-muted-foreground">{t('login.subtitle')}</p>
             </div>
 
@@ -208,9 +217,13 @@ export function LoginForm({ className, ...props }: ComponentProps<'div'>) {
               <p className="text-sm leading-relaxed text-muted-foreground">{t('login.heroHint')}</p>
               <p className="mt-4 font-semibold">{t('app.title')}</p>
             </div>
-            <div className="mx-auto flex size-24 items-center justify-center rounded-lg bg-background/80 text-2xl font-semibold shadow-sm">
-              W
-            </div>
+            <Image
+              src="/brand/logo.png"
+              alt=""
+              width={96}
+              height={96}
+              className="mx-auto size-24 rounded-lg object-contain shadow-sm"
+            />
           </div>
         </CardContent>
       </Card>

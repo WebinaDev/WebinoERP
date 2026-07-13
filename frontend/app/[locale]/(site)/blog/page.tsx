@@ -3,10 +3,12 @@ import { apiServer, siteHref } from '@/src/lib/api-server';
 
 export const revalidate = 60;
 
+type BlogPostSummary = { id: number; slug: string; title: string; excerpt?: string | null };
+
 export default async function BlogIndexPage({ params: { locale } }: { params: { locale: string } }) {
-  let posts: { id: number; slug: string; title: string; excerpt?: string | null }[] = [];
+  let posts: BlogPostSummary[] = [];
   try {
-    const res = await apiServer<{ data: typeof posts }>('/v1/public/blog?per_page=12');
+    const res = await apiServer<{ data: BlogPostSummary[] }>('/v1/public/blog?per_page=12');
     posts = res.data ?? [];
   } catch { /* empty */ }
 

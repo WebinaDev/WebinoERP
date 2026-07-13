@@ -1,8 +1,10 @@
 import { apiServer } from '@/src/lib/api-server';
 export const revalidate = 60;
+type PortfolioItem = { title: string; description?: string | null; client?: string | null };
+
 export default async function PortfolioDetailPage({ params: { slug } }: { params: { slug: string } }) {
-  let item: { title: string; description?: string | null; client?: string | null } | null = null;
-  try { const res = await apiServer<{ data: typeof item }>(`/v1/public/portfolio/${slug}`); item = res.data; } catch {}
+  let item: PortfolioItem | null = null;
+  try { const res = await apiServer<{ data: PortfolioItem }>(`/v1/public/portfolio/${slug}`); item = res.data; } catch {}
   if (!item) return <div className="container mx-auto px-4 py-12">یافت نشد.</div>;
   return (
     <div className="container mx-auto max-w-3xl px-4 py-12">

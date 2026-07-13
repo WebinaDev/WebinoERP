@@ -2,10 +2,12 @@ import { apiServer } from '@/src/lib/api-server';
 
 export const revalidate = 60;
 
+type TestimonialItem = { id: number; author: string; quote: string; company?: string | null; rating?: number | null };
+
 export default async function TestimonialsPage() {
-  let items: { id: number; author: string; quote: string; company?: string | null; rating?: number | null }[] = [];
+  let items: TestimonialItem[] = [];
   try {
-    const res = await apiServer<{ data: typeof items }>('/v1/public/testimonials');
+    const res = await apiServer<{ data: TestimonialItem[] }>('/v1/public/testimonials');
     items = res.data ?? [];
   } catch {
     /* empty */

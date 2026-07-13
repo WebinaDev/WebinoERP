@@ -1,9 +1,12 @@
 import Link from 'next/link';
 import { apiServer, siteHref } from '@/src/lib/api-server';
 export const revalidate = 60;
+
+type SolutionIndustrySummary = { slug: string; name: string; pages?: { slug: string; title: string }[] };
+
 export default async function SolutionsPage({ params: { locale } }: { params: { locale: string } }) {
-  let industries: { slug: string; name: string; pages?: { slug: string; title: string }[] }[] = [];
-  try { const res = await apiServer<{ data: typeof industries }>('/v1/public/solutions'); industries = res.data ?? []; } catch {}
+  let industries: SolutionIndustrySummary[] = [];
+  try { const res = await apiServer<{ data: SolutionIndustrySummary[] }>('/v1/public/solutions'); industries = res.data ?? []; } catch {}
   return (
     <div className="container mx-auto px-4 py-12">
       <h1 className="text-3xl font-bold">راهکارها</h1>

@@ -1,4 +1,6 @@
-import { useLocation } from 'react-router-dom'
+'use client'
+
+import { usePathname } from 'next/navigation'
 
 import { CardGridSkeleton } from './CardGridSkeleton'
 import { CardListSkeleton } from './CardListSkeleton'
@@ -12,7 +14,7 @@ import { ReportsSkeleton } from './ReportsSkeleton'
 import { resolveSkeletonVariant } from './resolveSkeletonVariant'
 
 export function RoutePageSkeleton() {
-  const { pathname } = useLocation()
+  const pathname = usePathname() ?? ''
   const variant = resolveSkeletonVariant(pathname)
 
   switch (variant) {

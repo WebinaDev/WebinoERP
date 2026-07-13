@@ -2,10 +2,12 @@ import { apiServer } from '@/src/lib/api-server';
 
 export const revalidate = 60;
 
+type TeamMember = { id: number; name: string; role?: string | null; bio?: string | null; photo_url?: string | null };
+
 export default async function TeamPage() {
-  let members: { id: number; name: string; role?: string | null; bio?: string | null; photo_url?: string | null }[] = [];
+  let members: TeamMember[] = [];
   try {
-    const res = await apiServer<{ data: typeof members }>('/v1/public/team');
+    const res = await apiServer<{ data: TeamMember[] }>('/v1/public/team');
     members = res.data ?? [];
   } catch {
     /* empty */

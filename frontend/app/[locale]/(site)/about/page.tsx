@@ -2,10 +2,12 @@ import { apiServer } from '@/src/lib/api-server';
 
 export const revalidate = 60;
 
+type AboutPageData = { title_fa?: string; body_fa?: string | null };
+
 export default async function AboutPage() {
-  let page: { title_fa?: string; body_fa?: string | null } | null = null;
+  let page: AboutPageData | null = null;
   try {
-    const res = await apiServer<{ data: typeof page }>('/v1/public/pages/about');
+    const res = await apiServer<{ data: AboutPageData }>('/v1/public/pages/about');
     page = res.data;
   } catch {
     /* empty */

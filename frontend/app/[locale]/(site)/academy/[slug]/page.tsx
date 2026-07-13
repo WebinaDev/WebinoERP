@@ -1,8 +1,15 @@
 import { apiServer } from '@/src/lib/api-server';
 export const revalidate = 60;
+
+type AcademyCourse = {
+  title: string
+  description?: string | null
+  lessons?: { title: string; slug: string }[]
+}
+
 export default async function AcademyCoursePage({ params: { slug } }: { params: { slug: string } }) {
-  let course: { title: string; description?: string | null; lessons?: { title: string; slug: string }[] } | null = null;
-  try { const res = await apiServer<{ data: typeof course }>(`/v1/public/academy/${slug}`); course = res.data; } catch {}
+  let course: AcademyCourse | null = null;
+  try { const res = await apiServer<{ data: AcademyCourse }>(`/v1/public/academy/${slug}`); course = res.data; } catch {}
   if (!course) return <div className="container mx-auto px-4 py-12">یافت نشد.</div>;
   return (
     <div className="container mx-auto max-w-3xl px-4 py-12">

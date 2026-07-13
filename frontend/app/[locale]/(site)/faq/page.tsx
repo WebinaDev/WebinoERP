@@ -2,10 +2,12 @@ import { apiServer } from '@/src/lib/api-server';
 
 export const revalidate = 60;
 
+type FaqItem = { id: number; question: string; answer: string; group?: string | null };
+
 export default async function FaqPage() {
-  let items: { id: number; question: string; answer: string; group?: string | null }[] = [];
+  let items: FaqItem[] = [];
   try {
-    const res = await apiServer<{ data: typeof items }>('/v1/public/faq');
+    const res = await apiServer<{ data: FaqItem[] }>('/v1/public/faq');
     items = res.data ?? [];
   } catch {
     /* empty */

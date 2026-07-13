@@ -2,10 +2,12 @@ import { apiServer } from '@/src/lib/api-server';
 
 export const revalidate = 60;
 
+type DownloadItem = { id: number; title: string; category?: string | null; file?: { public_url?: string | null } | null };
+
 export default async function DownloadsPage() {
-  let items: { id: number; title: string; category?: string | null; file?: { public_url?: string | null } | null }[] = [];
+  let items: DownloadItem[] = [];
   try {
-    const res = await apiServer<{ data: typeof items }>('/v1/public/downloads');
+    const res = await apiServer<{ data: DownloadItem[] }>('/v1/public/downloads');
     items = res.data ?? [];
   } catch {
     /* empty */

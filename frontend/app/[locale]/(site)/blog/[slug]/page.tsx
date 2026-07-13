@@ -2,10 +2,12 @@ import { apiServer } from '@/src/lib/api-server';
 
 export const revalidate = 60;
 
+type BlogPost = { title: string; body?: string | null; published_at?: string };
+
 export default async function BlogPostPage({ params: { slug } }: { params: { locale: string; slug: string } }) {
-  let post: { title: string; body?: string | null; published_at?: string } | null = null;
+  let post: BlogPost | null = null;
   try {
-    const res = await apiServer<{ data: typeof post }>(`/v1/public/blog/${slug}`);
+    const res = await apiServer<{ data: BlogPost }>(`/v1/public/blog/${slug}`);
     post = res.data;
   } catch { /* empty */ }
 

@@ -5,7 +5,7 @@ import { useCallback, useEffect, useState } from 'react';
 import { useLocale, useTranslations } from 'next-intl';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { dashboardHref } from '@/lib/dashboard-href';
+import { dashboardHref } from '@/lib/route-resolver';
 import { fetchProvisions, type SiteProvision } from '@/lib/api/site-builder';
 import apiClient from '@/lib/api-client';
 
