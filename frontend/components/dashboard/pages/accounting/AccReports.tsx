@@ -5,7 +5,7 @@ import apiClient from '@/lib/api-client';
 import { unwrapData, getAxiosMessage } from '@/lib/api-helpers';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { JalaliDatePicker } from '@/components/ui/date-picker-jalali';
+import { LocaleDatePicker } from '@/components/ui/locale-date-picker';
 
 type TrialRow = { code: string; name: string; debit: number; credit: number; balance: number };
 type BSRow = { code: string; name: string; balance: number };
@@ -56,11 +56,11 @@ export default function AccReports() {
         <div className="mt-4 flex flex-wrap items-end gap-3">
           <div className="w-44">
             <label className="mb-1 block text-sm font-medium">از تاریخ</label>
-            <JalaliDatePicker value={from} onChange={setFrom} />
+            <LocaleDatePicker value={from} onChange={setFrom} />
           </div>
           <div className="w-44">
             <label className="mb-1 block text-sm font-medium">تا تاریخ</label>
-            <JalaliDatePicker value={to} onChange={setTo} />
+            <LocaleDatePicker value={to} onChange={setTo} />
           </div>
           <Button onClick={() => void load()} disabled={loading}>
             {loading ? 'در حال بارگذاری…' : 'نمایش گزارش'}

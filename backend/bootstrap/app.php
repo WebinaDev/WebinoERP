@@ -39,10 +39,19 @@ return Application::configure(basePath: dirname(__DIR__))
             'fieldsec' => \Modules\Core\Http\Middleware\ApplyFieldPermissions::class,
         ]);
         
+        $middleware->encryptCookies(except: [
+            env('AUTH_COOKIE_NAME', 'webino_auth_token'),
+        ]);
+
         $middleware->api(prepend: [
             \App\Http\Middleware\ForceJsonResponse::class,
             \App\Http\Middleware\ApiResponseFormatter::class,
+            \Laravel\Sanctum\Http\Middleware\EnsureFrontendRequestsAreStateful::class,
+            \App\Http\Middleware\AuthenticateFromCookie::class,
             \App\Http\Middleware\UpdateTokenLastActivity::class,
+        ]);
+        $middleware->api(append: [
+            \App\Http\Middleware\ThrottleApiToken::class,
         ]);
     })
     ->withExceptions(function (Exceptions $exceptions) {

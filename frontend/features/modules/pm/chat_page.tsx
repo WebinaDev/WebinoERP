@@ -29,17 +29,10 @@ export function ChatPage() {
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [text, setText] = useState('');
   const [typingUserId, setTypingUserId] = useState<number | null>(null);
-  const [token, setToken] = useState('');
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const typingTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const reverb = getReverbConfig();
-
-  useEffect(() => {
-    if (typeof window !== 'undefined') {
-      setToken(localStorage.getItem('auth_token') ?? '');
-    }
-  }, []);
 
   const loadChannels = useCallback(async () => {
     try {
@@ -72,7 +65,6 @@ export function ChatPage() {
 
   useChat({
     channelId: channelId ?? 0,
-    token,
     apiUrl: reverb.apiUrl,
     wsHost: reverb.wsHost,
     wsPort: reverb.wsPort,

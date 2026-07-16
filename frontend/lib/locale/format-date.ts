@@ -1,4 +1,5 @@
 import moment from 'moment-jalaali';
+import { isRtlLocale as isRtlLocaleShared } from '@webina/ui';
 import type { Locale } from '@/i18n';
 
 moment.loadPersian({ dialect: 'persian-modern', usePersianDigits: true });
@@ -40,5 +41,7 @@ export function getCalendarConfig(locale: Locale) {
 }
 
 export function isRtlLocale(locale: Locale): boolean {
-  return locale === 'fa';
+  return isRtlLocaleShared(locale);
 }
+
+export { toLocaleDigits, toLatinDigits } from '@webina/ui';

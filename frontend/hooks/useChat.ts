@@ -28,8 +28,6 @@ export type ChatBroadcastHandlers = {
 
 export type UseChatOptions = {
   channelId: number;
-  /** Sanctum bearer token */
-  token: string;
   /** API origin for REST + `/broadcasting/auth`, e.g. https://api.example.com */
   apiUrl: string;
   /** WebSocket host (Reverb / Pusher-compatible) */
@@ -43,12 +41,11 @@ export type UseChatOptions = {
 
 /**
  * Subscribes to private channel `chat.{channelId}` (Echo: `private-chat.{id}`).
- * Uses pusher-js driver against a Reverb-compatible server.
+ * Auth uses HttpOnly session cookie (`credentials: include`), not a JS-readable Bearer token.
  */
 export function useChat(options: UseChatOptions) {
   const {
     channelId,
-    token,
     apiUrl,
     wsHost,
     wsPort = 8080,
@@ -71,7 +68,7 @@ export function useChat(options: UseChatOptions) {
   }, [channelId]);
 
   useEffect(() => {
-    if (typeof window === "undefined" || !token || !channelId) return;
+    if (typeof window === "undefined" || !channelId) return;
 
     window.Pusher = Pusher;
 
@@ -88,12 +85,33 @@ export function useChat(options: UseChatOptions) {
       disableStats: true,
       enabledTransports: wsScheme === "https" ? ["wss"] : ["ws"],
       authEndpoint,
-      auth: {
-        headers: {
-          Authorization: `Bearer ${token}`,
-          Accept: "application/json",
+      authorizer: (channel: { name: string }) => ({
+        authorize: (
+          socketId: string,
+          callback: (error: Error | null, data: unknown) => void,
+        ) => {
+          fetch(authEndpoint, {
+            method: "POST",
+            credentials: "include",
+            headers: {
+              Accept: "application/json",
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify({
+              socket_id: socketId,
+              channel_name: channel.name,
+            }),
+          })
+            .then(async (res) => {
+              if (!res.ok) {
+                throw new Error(`broadcasting auth failed (${res.status})`);
+              }
+              return res.json();
+            })
+            .then((data) => callback(null, data))
+            .catch((err: Error) => callback(err, null));
         },
-      },
+      }),
     });
 
     echoRef.current = echo;
@@ -121,7 +139,7 @@ export function useChat(options: UseChatOptions) {
       echo.disconnect();
       if (echoRef.current === echo) echoRef.current = null;
     };
-  }, [channelId, token, apiUrl, wsHost, wsPort, wsScheme, key]);
+  }, [channelId, apiUrl, wsHost, wsPort, wsScheme, key]);
 
   return { disconnect };
 }

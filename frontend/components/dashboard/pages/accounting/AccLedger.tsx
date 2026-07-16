@@ -7,7 +7,7 @@ import { Button } from '@/components/ui/button';
 import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from '@/components/ui/select';
-import { JalaliDatePicker } from '@/components/ui/date-picker-jalali';
+import { LocaleDatePicker } from '@/components/ui/locale-date-picker';
 
 type Account = { id: number; code: string; name: string };
 
@@ -84,11 +84,11 @@ export default function AccLedger() {
         </div>
         <div className="w-44">
           <label className="mb-1 block text-sm font-medium">از تاریخ</label>
-          <JalaliDatePicker value={from} onChange={setFrom} />
+          <LocaleDatePicker value={from} onChange={setFrom} />
         </div>
         <div className="w-44">
           <label className="mb-1 block text-sm font-medium">تا تاریخ</label>
-          <JalaliDatePicker value={to} onChange={setTo} />
+          <LocaleDatePicker value={to} onChange={setTo} />
         </div>
         <Button onClick={() => void load()} disabled={!accountId || loading}>
           {loading ? 'در حال بارگذاری…' : 'نمایش'}

@@ -18,7 +18,8 @@ class EnforceModulePermission
 
         if (! $user) {
             return response()->json([
-                'error' => ['code' => 'UNAUTHORIZED', 'message' => 'Authentication required.'],
+                'message' => __('api.authentication_required'),
+                'errors' => ['code' => 'UNAUTHORIZED'],
             ], 401);
         }
 
@@ -30,9 +31,9 @@ class EnforceModulePermission
 
         if ($permission && ! $user->can($permission)) {
             return response()->json([
-                'error' => [
+                'message' => __('api.permission_denied'),
+                'errors' => [
                     'code' => 'FORBIDDEN',
-                    'message' => 'You do not have permission to perform this action.',
                     'permission' => $permission,
                 ],
             ], 403);

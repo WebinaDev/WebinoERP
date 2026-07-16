@@ -6,17 +6,22 @@ import type { DashboardRouteMeta } from '@/lib/dashboard-routes';
 import { normalizeDashboardPath } from '@/lib/route-resolver';
 import { resolveRoutePermission } from '@/lib/route-guards';
 import { ModuleRouteGuard } from '@/features/shared/auth/ModuleRouteGuard';
+import {
+  InitialDashboardStatsProvider,
+  type InitialDashboardStats,
+} from '@/lib/initial-dashboard-context';
 
 type Props = {
   path: string;
   meta: DashboardRouteMeta;
+  initialStats?: InitialDashboardStats | null;
 };
 
 export function renderDashboardPage(path: string, _meta: DashboardRouteMeta) {
   return resolveDashboardPage(path);
 }
 
-export function DashboardPageContent({ path, meta }: Props) {
+export function DashboardPageContent({ path, meta, initialStats = null }: Props) {
   const params = useParams();
   const locale = (params?.locale as string) || 'fa';
   const normalized = normalizeDashboardPath(path);
@@ -24,7 +29,8 @@ export function DashboardPageContent({ path, meta }: Props) {
   const subtitle = locale === 'fa' ? meta.titleEn : meta.titleFa;
 
   return (
-    <div className="space-y-6">
+    <InitialDashboardStatsProvider value={initialStats}>
+      <div className="space-y-6">
       <div className="space-y-1">
         <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
           {meta.group ?? 'ERP'}
@@ -35,6 +41,7 @@ export function DashboardPageContent({ path, meta }: Props) {
       <ModuleRouteGuard permission={resolveRoutePermission(normalized)}>
         {renderDashboardPage(normalized, meta)}
       </ModuleRouteGuard>
-    </div>
+      </div>
+    </InitialDashboardStatsProvider>
   );
 }

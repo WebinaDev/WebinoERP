@@ -16,15 +16,7 @@ export interface User {
 export interface AuthResponse {
   data: {
     user: User;
-    token?: string;
   };
-}
-
-function persistTokenFromPayload(payload: { data?: { token?: string } }): void {
-  const t = payload?.data?.token;
-  if (typeof t === 'string' && t.length > 0) {
-    localStorage.setItem('auth_token', t);
-  }
 }
 
 export async function login(email: string, password: string): Promise<AuthResponse> {
@@ -32,9 +24,11 @@ export async function login(email: string, password: string): Promise<AuthRespon
     email,
     password,
   });
+  return response.data;
+}
 
-  persistTokenFromPayload(response.data);
-
+export async function refreshSession(): Promise<AuthResponse> {
+  const response = await apiClient.post<AuthResponse>('/v1/core/auth/refresh');
   return response.data;
 }
 
@@ -46,12 +40,11 @@ export async function sendLoginOtp(mobile: string): Promise<{ sent?: boolean; me
   return response.data.data;
 }
 
-export async function verifyLoginOtp(mobile: string, code: string): Promise<{ verified?: boolean; token?: string }> {
-  const response = await apiClient.post<{ data: { verified?: boolean; token?: string } }>(
+export async function verifyLoginOtp(mobile: string, code: string): Promise<{ verified?: boolean }> {
+  const response = await apiClient.post<{ data: { verified?: boolean } }>(
     '/v1/core/auth/otp/verify',
     { mobile, code }
   );
-  persistTokenFromPayload(response.data);
   return response.data.data;
 }
 
@@ -69,11 +62,7 @@ export async function registerUser(body: {
 }
 
 export async function logout(): Promise<void> {
-  try {
-    await apiClient.post('/v1/core/auth/logout');
-  } finally {
-    localStorage.removeItem('auth_token');
-  }
+  await apiClient.post('/v1/core/auth/logout');
 }
 
 export async function getCurrentUser(): Promise<User | null> {
@@ -101,4 +90,3 @@ export async function getCurrentUser(): Promise<User | null> {
     return null;
   }
 }
-

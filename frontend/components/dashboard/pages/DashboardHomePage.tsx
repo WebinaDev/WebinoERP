@@ -10,6 +10,8 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Progress } from '@/components/ui/progress';
 import { Badge } from '@/components/ui/badge';
+import { AccentBarChart, AccentDonutChart } from '@/components/charts/AccentCharts';
+import { useInitialDashboardStats } from '@/lib/initial-dashboard-context';
 
 type Stats = {
   leads_total?: number;
@@ -25,57 +27,12 @@ type FullDash = {
   widgets?: { id: string; title: string; type: string; items?: WidgetItem[] }[];
 };
 
-function DonutDistribution({
-  segments,
-}: {
-  segments: { label: string; value: number; color: string }[];
-}) {
-  const total = segments.reduce((a, s) => a + s.value, 0) || 1;
-  const totalCount = segments.reduce((a, s) => a + s.value, 0);
-  let acc = 0;
-  const gradientStops = segments
-    .map((s) => {
-      const startPct = (acc / total) * 100;
-      acc += s.value;
-      const endPct = (acc / total) * 100;
-      return `${s.color} ${startPct}% ${endPct}%`;
-    })
-    .join(', ');
-
-  return (
-    <div className="flex flex-col items-center gap-4 sm:flex-row sm:items-center sm:gap-8">
-      <div
-        className="relative h-40 w-40 shrink-0 rounded-full shadow-inner"
-        style={{
-          background: `conic-gradient(${gradientStops})`,
-        }}
-      >
-        <div className="absolute inset-6 flex items-center justify-center rounded-full bg-background shadow-sm">
-          <span className="text-center text-xs text-muted-foreground">{totalCount}</span>
-        </div>
-      </div>
-      <ul className="flex flex-col gap-2 text-sm">
-        {segments.map((seg) => {
-          const pct = Math.round((seg.value / total) * 100);
-          return (
-            <li key={seg.label} className="flex items-center gap-2">
-              <span className="h-3 w-3 shrink-0 rounded-full" style={{ backgroundColor: seg.color }} />
-              <span>
-                {seg.label}: {pct}% ({seg.value})
-              </span>
-            </li>
-          );
-        })}
-      </ul>
-    </div>
-  );
-}
-
 export function DashboardHomePage() {
   const t = useTranslations('dashboard');
   const tCommon = useTranslations('common');
+  const initialStats = useInitialDashboardStats();
   const [user, setUser] = useState<User | null>(null);
-  const [stats, setStats] = useState<Stats | null>(null);
+  const [stats, setStats] = useState<Stats | null>(initialStats);
   const [full, setFull] = useState<FullDash | null>(null);
   const [teamMember, setTeamMember] = useState<{ tasks_assigned?: number; tickets_assigned?: number } | null>(null);
   const [clientDash, setClientDash] = useState<{ projects?: number } | null>(null);
@@ -97,7 +54,9 @@ export function DashboardHomePage() {
       const showTeamTab = role !== 'client';
 
       const requests: Promise<unknown>[] = [
-        apiClient.get('/v1/core/dashboard/stats'),
+        initialStats
+          ? Promise.resolve({ data: initialStats })
+          : apiClient.get('/v1/core/dashboard/stats'),
         apiClient.get('/v1/core/dashboard'),
         apiClient.get('/v1/projects/projects', { params: { per_page: 8 } }),
       ];
@@ -164,7 +123,7 @@ export function DashboardHomePage() {
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [initialStats]);
 
   useEffect(() => {
     void load();
@@ -324,23 +283,15 @@ export function DashboardHomePage() {
               <CardTitle className="text-base">{t('charts.monthlyActivity')}</CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="flex h-40 items-end gap-2">
-                {[
-                  { label: t('stats.users'), v: merged.leads },
-                  { label: t('stats.projects'), v: merged.projects },
-                  { label: t('stats.tasks'), v: merged.tasks },
-                  { label: t('stats.tickets'), v: merged.tickets },
-                  { label: t('stats.revenue'), v: merged.contracts },
-                ].map((b) => (
-                  <div key={b.label} className="flex flex-1 flex-col items-center gap-2">
-                    <div
-                      className="w-full max-w-[40px] rounded-t-md bg-primary/80 transition-all"
-                      style={{ height: `${Math.max(8, (b.v / maxBar) * 120)}px` }}
-                    />
-                    <span className="text-xs text-muted-foreground">{b.label}</span>
-                  </div>
-                ))}
-              </div>
+              <AccentBarChart
+                data={[
+                  { label: t('stats.users'), value: merged.leads },
+                  { label: t('stats.projects'), value: merged.projects },
+                  { label: t('stats.tasks'), value: merged.tasks },
+                  { label: t('stats.tickets'), value: merged.tickets },
+                  { label: t('stats.revenue'), value: merged.contracts },
+                ]}
+              />
             </CardContent>
           </Card>
           ) : null}
@@ -351,7 +302,7 @@ export function DashboardHomePage() {
               <CardTitle className="text-base">{t('charts.statusDistribution')}</CardTitle>
             </CardHeader>
             <CardContent>
-              <DonutDistribution segments={donutSegments} />
+              <AccentDonutChart segments={donutSegments} />
             </CardContent>
           </Card>
           ) : null}

@@ -35,13 +35,13 @@ cp backend/.env.example backend/.env
 cp frontend/.env.example frontend/.env
 
 # Start services
-docker-compose up -d
+docker compose up -d
 
 # Run migrations
-docker-compose exec app php artisan migrate
+docker compose exec backend php artisan migrate
 
 # Seed database
-docker-compose exec app php artisan db:seed
+docker compose exec backend php artisan db:seed
 ```
 
 ### بدون Docker (Development)

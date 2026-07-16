@@ -231,11 +231,14 @@ class SiteProvisionOrchestrator
     {
         $settings = CoreHostingSetting::current();
         $secret = (string) ($settings->provision_webhook_secret ?? '');
-        $body = json_encode(['seed' => $seed], JSON_UNESCAPED_UNICODE);
-        $headers = ['X-Provision-Token' => $token];
-        if ($secret !== '') {
-            $headers['X-Provision-Signature'] = hash_hmac('sha256', $body, $secret);
+        if ($secret === '') {
+            throw new \RuntimeException('Provision HMAC secret is not configured');
         }
+        $body = json_encode(['seed' => $seed], JSON_UNESCAPED_UNICODE);
+        $headers = [
+            'X-Provision-Token' => $token,
+            'X-Provision-Signature' => hash_hmac('sha256', $body, $secret),
+        ];
 
         Http::withHeaders($headers)
             ->withBody($body, 'application/json')

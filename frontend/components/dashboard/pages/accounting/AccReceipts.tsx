@@ -9,7 +9,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { Pagination } from '@/components/ui/pagination';
-import { JalaliDatePicker } from '@/components/ui/date-picker-jalali';
+import { LocaleDatePicker } from '@/components/ui/locale-date-picker';
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter,
 } from '@/components/ui/dialog';
@@ -250,7 +250,7 @@ export default function AccReceipts() {
             </div>
             <div>
               <label className="mb-1 block text-sm font-medium">تاریخ</label>
-              <JalaliDatePicker value={form.date || null} onChange={v => setForm({ ...form, date: v ?? '' })} />
+              <LocaleDatePicker value={form.date || undefined} onChange={v => setForm({ ...form, date: v })} />
             </div>
             <div>
               <label className="mb-1 block text-sm font-medium">مبلغ</label>

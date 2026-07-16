@@ -12,9 +12,6 @@ use Modules\Core\Services\DashboardNavigationService;
 
 class AuthController extends Controller
 {
-    /**
-     * Handle login request
-     */
     public function login(Request $request): JsonResponse
     {
         $request->validate([
@@ -24,61 +21,64 @@ class AuthController extends Controller
 
         $user = User::where('email', $request->email)->first();
 
-        if (!$user || !Hash::check($request->password, $user->password)) {
+        if (! $user || ! Hash::check($request->password, $user->password)) {
             throw ValidationException::withMessages([
-                'email' => ['The provided credentials are incorrect.'],
+                'email' => [__('api.unauthorized')],
             ]);
         }
 
-        if (!$user->is_active) {
+        if (! $user->is_active) {
             return response()->json([
-                'error' => [
-                    'code' => 'ACCOUNT_DISABLED',
-                    'message' => 'Your account has been disabled.',
-                ],
+                'message' => __('api.forbidden'),
+                'errors' => ['code' => 'ACCOUNT_DISABLED'],
             ], 403);
         }
 
-        // Update last login
         $user->update(['last_login_at' => now()]);
 
-        // Create token for API or session for web
-        if ($request->wantsJson()) {
-            $tokenObj = $user->createToken('api-token');
-            $tokenObj->accessToken->forceFill([
-                'device_name' => substr((string) $request->header('X-Device-Name', 'web'), 0, 120),
-                'ip' => $request->ip(),
-                'user_agent' => substr((string) $request->userAgent(), 0, 2000),
-                'last_activity_at' => now(),
-            ])->save();
-            $token = $tokenObj->plainTextToken;
-            
-            return response()->json([
-                'data' => [
-                    'user' => $user,
-                    'token' => $token,
-                ],
-            ]);
-        }
+        $tokenObj = $user->createToken('spa');
+        $tokenObj->accessToken->forceFill([
+            'device_name' => substr((string) $request->header('X-Device-Name', 'web'), 0, 120),
+            'ip' => $request->ip(),
+            'user_agent' => substr((string) $request->userAgent(), 0, 2000),
+            'last_activity_at' => now(),
+        ])->save();
+        $token = $tokenObj->plainTextToken;
 
-        // Web session-based authentication
-        Auth::login($user, $request->boolean('remember'));
-
-        return response()->json([
+        $response = response()->json([
             'data' => [
                 'user' => $user,
             ],
         ]);
+
+        return $this->attachAuthCookie($response, $token);
     }
 
-    /**
-     * Handle logout request
-     */
+    public function refresh(Request $request): JsonResponse
+    {
+        $user = $request->user();
+        if (! $user) {
+            return response()->json(['message' => __('api.unauthorized')], 401);
+        }
+
+        $request->user()?->currentAccessToken()?->delete();
+
+        $tokenObj = $user->createToken('spa');
+        $token = $tokenObj->plainTextToken;
+
+        $response = response()->json([
+            'data' => [
+                'user' => $user,
+                'refreshed' => true,
+            ],
+        ]);
+
+        return $this->attachAuthCookie($response, $token);
+    }
+
     public function logout(Request $request): JsonResponse
     {
-        if ($request->user()) {
-            $request->user()->tokens()->delete();
-        }
+        $request->user()?->currentAccessToken()?->delete();
 
         Auth::logout();
 
@@ -87,24 +87,19 @@ class AuthController extends Controller
             $request->session()->regenerateToken();
         }
 
-        return response()->json([
-            'message' => 'Logged out successfully',
-        ]);
+        return $this->clearAuthCookie(response()->json([
+            'message' => __('api.logged_out'),
+        ]));
     }
 
-    /**
-     * Get authenticated user
-     */
     public function user(Request $request, DashboardNavigationService $navigation): JsonResponse
     {
         $user = $request->user();
 
         if (! $user) {
             return response()->json([
-                'error' => [
-                    'code' => 'UNAUTHORIZED',
-                    'message' => 'Not authenticated',
-                ],
+                'message' => __('api.unauthorized'),
+                'errors' => ['code' => 'UNAUTHORIZED'],
             ], 401);
         }
 
@@ -120,16 +115,40 @@ class AuthController extends Controller
         ]);
     }
 
-    /**
-     * Get active modules for user
-     */
     private function getLicensedModules(): array
     {
-        $modules = \Modules\Core\Entities\SystemModule::where('is_active', true)
+        return \Modules\Core\Entities\SystemModule::where('is_active', true)
             ->pluck('slug')
             ->toArray();
+    }
 
-        return $modules;
+    private function attachAuthCookie(JsonResponse $response, string $token): JsonResponse
+    {
+        return $response->cookie(
+            config('auth.cookie_name', 'webino_auth_token'),
+            $token,
+            config('auth.cookie_max_minutes', 60 * 24 * 7),
+            '/',
+            null,
+            app()->environment('production'),
+            true,
+            false,
+            'lax'
+        );
+    }
+
+    private function clearAuthCookie(JsonResponse $response): JsonResponse
+    {
+        return $response->cookie(
+            config('auth.cookie_name', 'webino_auth_token'),
+            '',
+            -1,
+            '/',
+            null,
+            app()->environment('production'),
+            true,
+            false,
+            'lax'
+        );
     }
 }
-

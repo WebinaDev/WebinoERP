@@ -18,11 +18,11 @@ class CheckModuleLicense
     {
         $module = SystemModule::where('slug', $moduleSlug)->first();
 
-        if (!$module || !$module->isLicensed()) {
+        if (! $module || ! $module->isLicensed()) {
             return response()->json([
-                'error' => [
+                'message' => __('api.module_not_active'),
+                'errors' => [
                     'code' => 'MODULE_NOT_ACTIVE',
-                    'message' => 'This feature is not enabled. Please activate the module license.',
                 ],
             ], 403);
         }

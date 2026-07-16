@@ -129,70 +129,11 @@ final class ErrorCodes
     /**
      * @var array<string,string>
      */
-    private static array $messages = [
-        self::PRJ_ERR_NONCE_FAILED => 'خطای امنیتی: توکن امنیتی نامعتبر. درخواست رد شد.',
-        self::PRJ_ERR_ACCESS_DENIED => 'خطای دسترسی: شما اجازهٔ انجام این عملیات را ندارید.',
-        self::PRJ_ERR_MISSING_CONTRACT_DATA => 'اطلاعات ضروری قرارداد (مشتری / تاریخ شروع) ناقص است.',
-        self::PRJ_ERR_INVALID_CUSTOMER => 'مشتری انتخاب‌شده معتبر نیست.',
-        self::PRJ_ERR_INVALID_START_DATE => 'فرمت تاریخ شروع قرارداد نامعتبر است.',
-        self::PRJ_ERR_CONTRACT_SAVE_FAILED => 'ذخیرهٔ قرارداد با خطا مواجه شد.',
-        self::PRJ_ERR_INVALID_INSTALLMENT_DATE => 'تاریخ یکی از اقساط نامعتبر است.',
-        self::PRJ_ERR_CONTRACT_NOT_FOUND => 'قرارداد مورد نظر یافت نشد.',
-        self::PRJ_ERR_CONTRACT_DELETE_FAILED => 'حذف قرارداد با شکست مواجه شد.',
-        self::PRJ_ERR_CANCEL_CONTRACT_FAILED => 'لغو قرارداد با مشکل مواجه شد.',
-
-        self::PRJ_ERR_MISSING_PROJECT_DATA => 'عنوان پروژه یا اطلاعات قرارداد برای ایجاد پروژه الزامی است.',
-        self::PRJ_ERR_CONTRACT_INVALID => 'قرارداد مرتبط انتخاب‌شده معتبر نیست.',
-        self::PRJ_ERR_PROJECT_SAVE_FAILED => 'ذخیرهٔ پروژه با خطا مواجه شد.',
-        self::PRJ_ERR_PROJECT_NOT_FOUND => 'پروژه مورد نظر یافت نشد.',
-        self::PRJ_ERR_PROJECT_DELETE_FAILED => 'حذف پروژه با شکست مواجه شد.',
-
-        self::PRJ_ERR_PRODUCT_WOC_INACTIVE => 'ماژول محصولات فعال نیست.',
-        self::PRJ_ERR_MISSING_PRODUCT_DATA => 'شناسهٔ قرارداد یا محصول ناقص است.',
-        self::PRJ_ERR_PRODUCT_NOT_FOUND => 'قرارداد یا محصول انتخابی یافت نشد.',
-        self::PRJ_ERR_PRODUCT_PROJECT_FAILED => 'هیچ پروژه‌ای از محصول ایجاد نشد.',
-
-        self::CRM_ERR_LEAD_NOT_FOUND => 'سرنخ مورد نظر یافت نشد.',
-        self::CRM_ERR_STATUS_INVALID => 'وضعیت انتخابی معتبر نیست.',
-        self::CRM_ERR_SOURCE_INVALID => 'منبع انتخابی معتبر نیست.',
-        self::CRM_ERR_ASSIGN_FAILED => 'واگذاری سرنخ با خطا مواجه شد.',
-        self::CRM_ERR_CONVERT_FAILED => 'تبدیل سرنخ به مشتری با خطا مواجه شد.',
-        self::CRM_ERR_ACCOUNT_NOT_FOUND => 'مشتری (حساب) یافت نشد.',
-        self::CRM_ERR_DUPLICATE_ACCOUNT_CODE => 'کد حساب تکراری است.',
-        self::CRM_ERR_CONSULTATION_NOT_FOUND => 'درخواست مشاوره یافت نشد.',
-
-        self::CORE_ERR_AUTH_INVALID => 'نام کاربری یا رمز عبور نادرست است.',
-        self::CORE_ERR_OTP_INVALID => 'کد تأیید نادرست است.',
-        self::CORE_ERR_OTP_EXPIRED => 'کد تأیید منقضی شده است.',
-        self::CORE_ERR_TOKEN_CONSUMED => 'توکن مصرف‌شده یا نامعتبر است.',
-        self::CORE_ERR_PERMISSION_DENIED => 'دسترسی لازم وجود ندارد.',
-        self::CORE_ERR_VALIDATION => 'داده‌های ورودی معتبر نیستند.',
-        self::CORE_ERR_RATE_LIMIT => 'تعداد درخواست‌ها بیش از حد مجاز است. کمی صبر کنید.',
-        self::CORE_ERR_LICENSE_EXPIRED => 'لایسنس سامانه منقضی شده است.',
-
-        self::ACC_ERR_JOURNAL_UNBALANCED => 'ثبت سند حسابداری متوازن نیست (بدهکار ≠ بستانکار).',
-        self::ACC_ERR_FISCAL_CLOSED => 'سال مالی بسته است.',
-        self::ACC_ERR_INVOICE_NOT_FOUND => 'فاکتور یافت نشد.',
-        self::ACC_ERR_RECEIPT_NOT_FOUND => 'رسید دریافت/پرداخت یافت نشد.',
-        self::ACC_ERR_CHECK_STATUS_INVALID => 'وضعیت چک مجاز نیست.',
-        self::ACC_ERR_STOCK_INSUFFICIENT => 'موجودی انبار کافی نیست.',
-        self::ACC_ERR_CHART_INVALID => 'حساب سرفصل نامعتبر است.',
-
-        self::INT_ERR_SMS_PROVIDER => 'ارائه‌دهندهٔ پیامک پیکربندی نشده است.',
-        self::INT_ERR_SMS_SEND => 'ارسال پیامک ناموفق بود.',
-        self::INT_ERR_ZARINPAL_INIT => 'ایجاد تراکنش زرین‌پال با خطا مواجه شد.',
-        self::INT_ERR_ZARINPAL_VERIFY => 'تأیید تراکنش زرین‌پال با خطا مواجه شد.',
-        self::INT_ERR_BALE_SEND => 'ارسال پیام بله با خطا مواجه شد.',
-        self::INT_ERR_TELEGRAM_SEND => 'ارسال پیام تلگرام با خطا مواجه شد.',
-
-        self::SYS_ERR_UNKNOWN => 'خطای ناشناخته سرور رخ داد.',
-        self::SYS_ERR_SERVER => 'خطای داخلی سرور.',
-        self::SYS_ERR_NOT_FOUND => 'مورد درخواستی یافت نشد.',
-    ];
+    private static array $messages = [];
 
     public static function message(string $code): string
     {
-        return self::$messages[$code] ?? self::$messages[self::SYS_ERR_UNKNOWN];
+        return __('errors.'.strtolower($code));
     }
 
     /**
@@ -210,10 +151,12 @@ final class ErrorCodes
         ]));
 
         return response()->json([
+            'success' => false,
             'data' => null,
-            'error' => [
+            'message' => $text,
+            'meta' => null,
+            'errors' => [
                 'code' => $code,
-                'message' => $text,
                 'context' => $context,
             ],
         ], $status);

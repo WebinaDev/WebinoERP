@@ -7,7 +7,7 @@ import { getAxiosMessage } from '@/lib/api-helpers';
 import { normalizeListPayload } from '@/lib/list-utils';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { JalaliDatePicker } from '@/components/ui/date-picker-jalali';
+import { LocaleDatePicker } from '@/components/ui/locale-date-picker';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
@@ -373,7 +373,7 @@ export function AppointmentsListPage() {
             <div className="grid gap-2 sm:grid-cols-2">
               <div>
                 <p className="mb-1 text-xs text-muted-foreground">تاریخ شروع</p>
-                <JalaliDatePicker value={startDay} onChange={setStartDay} />
+                <LocaleDatePicker value={startDay} onChange={setStartDay} />
               </div>
               <div>
                 <p className="mb-1 text-xs text-muted-foreground">ساعت شروع</p>
@@ -383,7 +383,7 @@ export function AppointmentsListPage() {
             <div className="grid gap-2 sm:grid-cols-2">
               <div>
                 <p className="mb-1 text-xs text-muted-foreground">تاریخ پایان</p>
-                <JalaliDatePicker value={endDay} onChange={setEndDay} />
+                <LocaleDatePicker value={endDay} onChange={setEndDay} />
               </div>
               <div>
                 <p className="mb-1 text-xs text-muted-foreground">ساعت پایان</p>

@@ -8,7 +8,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { JalaliDatePicker } from '@/components/ui/date-picker-jalali';
+import { LocaleDatePicker } from '@/components/ui/locale-date-picker';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { getCurrentUser } from '@/lib/auth';
@@ -148,8 +148,8 @@ export function ReportsPage() {
       </CardHeader>
       <CardContent className="space-y-4">
         <div className="flex flex-wrap gap-3">
-          <div className="w-48"><p className="mb-1 text-xs">{t('fromDate')}</p><JalaliDatePicker value={from} onChange={setFrom} /></div>
-          <div className="w-48"><p className="mb-1 text-xs">{t('toDate')}</p><JalaliDatePicker value={to} onChange={setTo} /></div>
+          <div className="w-48"><p className="mb-1 text-xs">{t('fromDate')}</p><LocaleDatePicker value={from} onChange={setFrom} /></div>
+          <div className="w-48"><p className="mb-1 text-xs">{t('toDate')}</p><LocaleDatePicker value={to} onChange={setTo} /></div>
           <Button type="button" className="self-end" onClick={() => void load()} disabled={loading}>{t('load')}</Button>
         </div>
         <div className="flex flex-wrap gap-2">

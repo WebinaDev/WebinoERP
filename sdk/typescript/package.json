@@ -1,0 +1,17 @@
+{
+  "name": "@webina/erp-sdk",
+  "version": "1.0.0",
+  "description": "TypeScript client for WebinoERP API",
+  "type": "module",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "scripts": {
+    "generate": "openapi-typescript ../../docs-site/openapi/openapi.json -o src/schema.d.ts",
+    "build": "tsc",
+    "prepublishOnly": "npm run generate && npm run build"
+  },
+  "devDependencies": {
+    "openapi-typescript": "^7.4.0",
+    "typescript": "^5.6.0"
+  }
+}

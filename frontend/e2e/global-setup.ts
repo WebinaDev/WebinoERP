@@ -2,6 +2,26 @@ import { chromium, type FullConfig } from '@playwright/test';
 import * as fs from 'fs';
 import * as path from 'path';
 
+const COOKIE_NAME = process.env.AUTH_COOKIE_NAME ?? 'webino_auth_token';
+
+function cookieValueFromSetCookie(headers: Headers, name: string): string | null {
+  const raw =
+    typeof headers.getSetCookie === 'function'
+      ? headers.getSetCookie()
+      : (() => {
+          const single = headers.get('set-cookie');
+          return single ? [single] : [];
+        })();
+
+  for (const line of raw) {
+    const match = line.match(new RegExp(`(?:^|,\\s*)${name}=([^;]+)`));
+    if (match?.[1]) {
+      return decodeURIComponent(match[1]);
+    }
+  }
+  return null;
+}
+
 async function globalSetup(config: FullConfig) {
   const baseURL = process.env.PLAYWRIGHT_BASE_URL ?? config.projects[0]?.use?.baseURL ?? 'http://localhost:3000';
   const apiURL = process.env.PLAYWRIGHT_API_URL ?? 'http://localhost/api';
@@ -25,18 +45,45 @@ async function globalSetup(config: FullConfig) {
       return;
     }
 
-    const json = (await loginRes.json()) as { data?: { token?: string } };
-    const token = json?.data?.token;
+    const token = cookieValueFromSetCookie(loginRes.headers, COOKIE_NAME);
     if (!token) {
+      console.warn('globalSetup: auth cookie missing from Set-Cookie');
       fs.writeFileSync(authFile, JSON.stringify(emptyState));
       return;
     }
 
+    const apiHost = new URL(apiURL).hostname;
+    const frontHost = new URL(baseURL).hostname;
+
     const browser = await chromium.launch();
-    const page = await browser.newPage();
+    const context = await browser.newContext();
+    await context.addCookies([
+      {
+        name: COOKIE_NAME,
+        value: token,
+        domain: apiHost,
+        path: '/',
+        httpOnly: true,
+        secure: false,
+        sameSite: 'Lax',
+      },
+      ...(apiHost !== frontHost
+        ? [
+            {
+              name: COOKIE_NAME,
+              value: token,
+              domain: frontHost,
+              path: '/',
+              httpOnly: true,
+              secure: false,
+              sameSite: 'Lax' as const,
+            },
+          ]
+        : []),
+    ]);
+    const page = await context.newPage();
     await page.goto(`${baseURL}/login`);
-    await page.evaluate((t) => localStorage.setItem('auth_token', t), token);
-    await page.context().storageState({ path: authFile });
+    await context.storageState({ path: authFile });
     await browser.close();
   } catch (err) {
     console.warn('globalSetup: could not seed auth storageState', err);

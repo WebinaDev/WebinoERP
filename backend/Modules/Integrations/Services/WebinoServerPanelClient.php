@@ -68,10 +68,26 @@ class WebinoServerPanelClient
             ->throw()->json();
     }
 
+    /**
+     * Expected Sanctum abilities on the panel token (operators must grant these when creating the token).
+     *
+     * @return list<string>
+     */
+    public function requiredAbilities(): array
+    {
+        /** @var list<string> $abilities */
+        $abilities = config('services.webinoserver.required_abilities', ['platform.manage', 'domains.manage']);
+
+        return $abilities;
+    }
+
     protected function request(): PendingRequest
     {
         $s = CoreHostingSetting::current();
         $base = rtrim((string) $s->webinoserver_panel_url, '/');
+        // Use the stored Sanctum personal access token as-is (plain text). Do not wrap,
+        // hash, or rewrite it — EnforceTokenAbilities on the panel expects the raw token
+        // with abilities such as platform.manage + domains.manage (see config services.webinoserver.required_abilities).
         $token = (string) $s->webinoserver_api_token;
 
         if ($base === '' || $token === '') {

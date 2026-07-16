@@ -32,4 +32,8 @@ return [
 
     'password_timeout' => env('AUTH_PASSWORD_TIMEOUT', 10800),
 
+    'cookie_name' => env('AUTH_COOKIE_NAME', 'webino_auth_token'),
+
+    'cookie_max_minutes' => (int) env('AUTH_COOKIE_MAX_MINUTES', 60 * 24 * 7),
+
 ];

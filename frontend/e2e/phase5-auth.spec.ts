@@ -1,16 +1,67 @@
 import { test, expect } from '@playwright/test';
 
 const API_URL = process.env.PLAYWRIGHT_API_URL ?? 'http://localhost/api';
+const COOKIE_NAME = process.env.AUTH_COOKIE_NAME ?? 'webino_auth_token';
+const BASE_URL = process.env.PLAYWRIGHT_BASE_URL ?? 'http://localhost:3000';
 
-async function apiLogin(email: string, password: string): Promise<string | null> {
+function cookieValueFromSetCookie(headers: Headers, name: string): string | null {
+  const raw =
+    typeof headers.getSetCookie === 'function'
+      ? headers.getSetCookie()
+      : (() => {
+          const single = headers.get('set-cookie');
+          return single ? [single] : [];
+        })();
+
+  for (const line of raw) {
+    const match = line.match(new RegExp(`(?:^|,\\s*)${name}=([^;]+)`));
+    if (match?.[1]) {
+      return decodeURIComponent(match[1]);
+    }
+  }
+  return null;
+}
+
+async function apiLoginCookie(email: string, password: string): Promise<string | null> {
   const res = await fetch(`${API_URL}/v1/core/auth/login`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
     body: JSON.stringify({ email, password }),
   });
   if (!res.ok) return null;
-  const json = (await res.json()) as { data?: { token?: string } };
-  return json?.data?.token ?? null;
+  return cookieValueFromSetCookie(res.headers, COOKIE_NAME);
+}
+
+async function seedAuthCookies(
+  page: import('@playwright/test').Page,
+  token: string,
+): Promise<void> {
+  const apiHost = new URL(API_URL).hostname;
+  const frontHost = new URL(BASE_URL).hostname;
+  await page.context().addCookies([
+    {
+      name: COOKIE_NAME,
+      value: token,
+      domain: apiHost,
+      path: '/',
+      httpOnly: true,
+      secure: false,
+      sameSite: 'Lax',
+    },
+    ...(apiHost !== frontHost
+      ? [
+          {
+            name: COOKIE_NAME,
+            value: token,
+            domain: frontHost,
+            path: '/',
+            httpOnly: true,
+            secure: false,
+            sameSite: 'Lax' as const,
+          },
+        ]
+      : []),
+  ]);
 }
 
 test.describe('Phase 5 authenticated flows', () => {
@@ -95,7 +146,7 @@ test.describe('Phase 5 authenticated flows', () => {
 
 test.describe('Phase 5 auth flows', () => {
   test('login password → dashboard visible', async ({ page }) => {
-    const token = await apiLogin('admin@webina.local', 'password');
+    const token = await apiLoginCookie('admin@webina.local', 'password');
     test.skip(!token, 'API not available for login');
 
     await page.goto('/login');
@@ -107,21 +158,19 @@ test.describe('Phase 5 auth flows', () => {
   });
 
   test('admin settings hidden or redirects for client role', async ({ page }) => {
-    const token = await apiLogin('sales@webina.local', 'password');
+    const token = await apiLoginCookie('sales@webina.local', 'password');
     test.skip(!token, 'API not available');
 
-    await page.goto('/login');
-    await page.evaluate((t) => localStorage.setItem('auth_token', t), token!);
+    await seedAuthCookies(page, token!);
     await page.goto('/dashboard/admin/settings');
     await expect(page).toHaveURL(/dashboard(?!.*admin\/settings)|admin\/settings/, { timeout: 10000 });
   });
 
   test('logout redirects to login', async ({ page }) => {
-    const token = await apiLogin('admin@webina.local', 'password');
+    const token = await apiLoginCookie('admin@webina.local', 'password');
     test.skip(!token, 'API not available');
 
-    await page.goto('/login');
-    await page.evaluate((t) => localStorage.setItem('auth_token', t), token!);
+    await seedAuthCookies(page, token!);
     await page.goto('/dashboard');
     await page.getByRole('button', { name: /خروج|logout/i }).click();
     await expect(page).toHaveURL(/login/, { timeout: 15000 });

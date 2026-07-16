@@ -2,32 +2,36 @@
     "name": "webina/enterprise-crm",
     "type": "project",
     "description": "Webina Enterprise CRM - Modular Monolith System",
-    "keywords": ["laravel", "crm", "modular"],
+    "keywords": [
+        "laravel",
+        "crm",
+        "modular"
+    ],
     "license": "proprietary",
     "require": {
-        "php": "^8.2",
+        "php": "^8.3",
+        "dedoc/scramble": "^0.13",
         "guzzlehttp/guzzle": "^7.2",
-        "laravel/framework": "^12.0",
+        "laravel/framework": "^13.7",
         "laravel/reverb": "^1.0",
-        "laravel/sanctum": "^4.0",
-        "laravel/tinker": "^2.10",
-        "nwidart/laravel-modules": "^12.0",
-        "spatie/laravel-permission": "^6.0",
-        "spatie/laravel-query-builder": "^6.0",
-        "spatie/laravel-backup": "^9.0"
+        "laravel/sanctum": "*",
+        "laravel/tinker": "^3.0",
+        "nwidart/laravel-modules": "^13.0",
+        "spatie/laravel-permission": "^7.2",
+        "spatie/laravel-query-builder": "^7.0",
+        "spatie/laravel-backup": "^10.0"
     },
     "suggest": {
         "barryvdh/laravel-dompdf": "PDF generation for contracts/invoices (requires PHP ext-dom)",
         "elasticsearch/elasticsearch": "Optional full-text search when ELASTICSEARCH_HOSTS is set"
     },
     "require-dev": {
-        "dedoc/scramble": "^0.13.0",
         "fakerphp/faker": "^1.23",
-        "laravel/pint": "^1.13",
+        "laravel/pint": "^1.27",
         "laravel/sail": "^1.26",
         "mockery/mockery": "^1.6",
-        "nunomaduro/collision": "^8.0",
-        "phpunit/phpunit": "^11.0",
+        "nunomaduro/collision": "^8.6",
+        "phpunit/phpunit": "^12.5",
         "spatie/laravel-ignition": "^2.4",
         "laravel/telescope": "^5.0"
     },
@@ -59,6 +63,9 @@
         ],
         "post-create-project-cmd": [
             "@php artisan key:generate --ansi"
+        ],
+        "openapi": [
+            "@export-openapi"
         ]
     },
     "extra": {
@@ -74,9 +81,11 @@
             "pestphp/pest": true,
             "php-http/discovery": true,
             "wikimedia/composer-merge-plugin": true
+        },
+        "platform": {
+            "php": "8.3.32"
         }
     },
     "minimum-stability": "stable",
     "prefer-stable": true
 }
-

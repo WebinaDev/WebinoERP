@@ -10,7 +10,7 @@ import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { Textarea } from '@/components/ui/textarea';
 import { Pagination } from '@/components/ui/pagination';
-import { JalaliDatePicker } from '@/components/ui/date-picker-jalali';
+import { LocaleDatePicker } from '@/components/ui/locale-date-picker';
 import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from '@/components/ui/select';
@@ -375,7 +375,7 @@ export default function AccInvoices() {
             </div>
             <div className="space-y-1">
               <label className="text-sm font-medium">تاریخ</label>
-              <JalaliDatePicker value={formDate} onChange={setFormDate} />
+              <LocaleDatePicker value={formDate} onChange={setFormDate} />
             </div>
             <div className="space-y-1">
               <label className="text-sm font-medium">شناسه شخص</label>

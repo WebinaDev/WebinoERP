@@ -1,6 +1,11 @@
 'use client';
 
+/**
+ * LocaleDatePicker — switches Jalali (`fa`) / Gregorian (`en`).
+ * **Always stores ISO Gregorian strings** (`YYYY-MM-DD`) via `onChange`.
+ */
 import { useParams } from 'next/navigation';
+import { useTranslations } from 'next-intl';
 import { JalaliDatePicker } from '@/components/ui/date-picker-jalali';
 import { Button } from '@/components/ui/button';
 import { Calendar } from '@/components/ui/calendar';
@@ -11,7 +16,9 @@ import { CalendarIcon } from 'lucide-react';
 import { useState } from 'react';
 
 type Props = {
+  /** ISO date `YYYY-MM-DD` */
   value?: string;
+  /** Receives ISO Gregorian `YYYY-MM-DD` */
   onChange?: (iso: string) => void;
   placeholder?: string;
   className?: string;
@@ -20,19 +27,29 @@ type Props = {
 export function LocaleDatePicker({ value, onChange, placeholder, className }: Props) {
   const params = useParams();
   const locale = (params?.locale as string) || 'fa';
+  const t = useTranslations('date');
 
   if (locale === 'fa') {
     return (
       <JalaliDatePicker
         value={value}
-        onChange={(iso) => onChange?.(iso ?? undefined)}
+        onChange={(iso) => {
+          if (iso) onChange?.(iso);
+        }}
         placeholder={placeholder}
         className={className}
       />
     );
   }
 
-  return <GregorianDatePicker value={value} onChange={onChange} placeholder={placeholder} className={className} />;
+  return (
+    <GregorianDatePicker
+      value={value}
+      onChange={onChange}
+      placeholder={placeholder ?? t('pickDate')}
+      className={className}
+    />
+  );
 }
 
 function GregorianDatePicker({ value, onChange, placeholder, className }: Props) {
@@ -47,7 +64,7 @@ function GregorianDatePicker({ value, onChange, placeholder, className }: Props)
           className={cn('w-full justify-start text-start font-normal', !value && 'text-muted-foreground', className)}
         >
           <CalendarIcon className="me-2 size-4" />
-          {value ? formatDate(value, { locale: 'en' }) : placeholder ?? 'Pick a date'}
+          {value ? formatDate(value, { locale: 'en' }) : placeholder}
         </Button>
       </PopoverTrigger>
       <PopoverContent className="w-auto p-0" align="start">

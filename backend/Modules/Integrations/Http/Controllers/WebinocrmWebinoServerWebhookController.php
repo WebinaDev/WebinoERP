@@ -13,13 +13,16 @@ class WebinocrmWebinoServerWebhookController extends Controller
     {
         $settings = CoreHostingSetting::current();
         $secret = (string) ($settings->provision_webhook_secret ?? '');
-        if ($secret !== '') {
-            $sig = (string) $request->header('X-Webhook-Signature', '');
-            $body = $request->getContent();
-            $expected = hash_hmac('sha256', $body, $secret);
-            if (! hash_equals($expected, $sig)) {
-                return response()->json(['message' => 'Invalid signature'], 403);
-            }
+        if ($secret === '') {
+            return response()->json(['message' => 'Webhook secret not configured'], 503);
+        }
+
+        $sig = (string) ($request->header('X-Webino-Signature')
+            ?: $request->header('X-Webhook-Signature', ''));
+        $body = $request->getContent();
+        $expected = hash_hmac('sha256', $body, $secret);
+        if ($sig === '' || ! hash_equals($expected, $sig)) {
+            return response()->json(['message' => 'Invalid signature'], 403);
         }
 
         $event = (string) $request->input('event', '');

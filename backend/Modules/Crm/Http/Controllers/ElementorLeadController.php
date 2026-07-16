@@ -14,7 +14,10 @@ class ElementorLeadController extends Controller
         $secret = (string) config('integrations.elementor.secret', env('WEBINOCRM_ELEMENTOR_SECRET', ''));
         $sig = (string) $request->header('X-Webino-Signature', '');
         $raw = $request->getContent();
-        if ($secret !== '' && ! hash_equals(hash_hmac('sha256', $raw, $secret), $sig)) {
+        if ($secret === '') {
+            return response()->json(['message' => 'HMAC secret not configured'], 503);
+        }
+        if ($sig === '' || ! hash_equals(hash_hmac('sha256', $raw, $secret), $sig)) {
             return response()->json(['message' => 'Invalid signature'], 403);
         }
 

@@ -26,7 +26,7 @@ export function useLocale() {
     formatNumber: (n: number) => formatNumber(n, lang),
     formatCurrency: (n: number) => formatCurrency(n, lang),
     formatDate: (iso: string, opts?: { includeTime?: boolean }) =>
-      formatDate(iso, { lang, includeTime: opts?.includeTime }),
+      formatDate(iso, { locale: lang, includeTime: opts?.includeTime }),
     formatDateTime: (iso: string) => formatDateTime(iso, lang),
     formatDisplayDate: (iso?: string | null, jalali?: string | null) =>
       formatDisplayDate(iso, jalali, lang),

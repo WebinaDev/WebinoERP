@@ -1,41 +1,46 @@
-version: '3.8'
+version: "3.8"
+
+# Architecture §13: web | frontend | backend | worker | scheduler | db | redis | ws | docs
+# Only `web` publishes ports to the host.
 
 services:
-  # وب‌سرور اصلی و پروکسی
-  nginx:
+  web:
     image: nginx:alpine
-    container_name: webina_nginx
+    container_name: webina_erp_web
     env_file:
       - .env
     ports:
-      - "${NGINX_HTTP_PORT:-80}:80"
-      - "${NGINX_HTTPS_PORT:-443}:443"
+      - "${WEB_HTTP_PORT:-80}:80"
+      - "${WEB_HTTPS_PORT:-443}:443"
     volumes:
-      - ./docker/nginx/conf.d:/etc/nginx/conf.d
+      - ./docker/nginx/conf.d:/etc/nginx/conf.d:ro
       - ./backend:/var/www/html/backend
       - ./frontend:/var/www/html/frontend
       - ./backend/storage:/var/www/html/backend/storage
     depends_on:
-      app:
+      backend:
         condition: service_started
-      web:
+      frontend:
         condition: service_started
     healthcheck:
-      test: ['CMD-SHELL', 'wget -qO- http://127.0.0.1/api/v1/core/health/readiness > /dev/null 2>&1 || exit 1']
+      test:
+        [
+          "CMD-SHELL",
+          "wget -qO- http://127.0.0.1/api/v1/core/health/readiness > /dev/null 2>&1 || exit 1",
+        ]
       interval: 30s
       timeout: 10s
       retries: 5
       start_period: 60s
     networks:
-      - internal
+      - webino_erp
     restart: unless-stopped
 
-  # لاراول (Backend API)
-  app:
+  backend:
     build:
       context: ./backend
       dockerfile: Dockerfile
-    container_name: webina_backend
+    container_name: webina_erp_backend
     env_file:
       - .env
     environment:
@@ -47,52 +52,54 @@ services:
       REDIS_HOST: redis
       REDIS_PORT: 6379
       APP_ENV: local
-      APP_DEBUG: true
+      APP_DEBUG: "true"
       QUEUE_CONNECTION: redis
       BROADCAST_CONNECTION: reverb
     volumes:
       - ./backend:/var/www/html
       - ./backend/storage:/var/www/html/storage
     networks:
-      - internal
+      - webino_erp
     depends_on:
       db:
         condition: service_healthy
       redis:
         condition: service_healthy
     healthcheck:
-      test: ['CMD-SHELL', 'php artisan route:list --path=health > /dev/null 2>&1 || exit 1']
+      test:
+        [
+          "CMD-SHELL",
+          "php artisan route:list --path=health > /dev/null 2>&1 || exit 1",
+        ]
       interval: 30s
       timeout: 10s
       retries: 5
       start_period: 40s
     restart: unless-stopped
 
-  # نکست جی‌اس (Frontend Dashboard)
-  web:
+  frontend:
     build:
       context: ./frontend
       dockerfile: Dockerfile
-    container_name: webina_frontend
+    container_name: webina_erp_frontend
     env_file:
       - .env
     environment:
-      NEXT_PUBLIC_API_URL: http://nginx/api
+      NEXT_PUBLIC_API_URL: http://web/api
       NODE_ENV: development
     volumes:
       - ./frontend:/app
       - /app/node_modules
       - /app/.next
     networks:
-      - internal
+      - webino_erp
     depends_on:
-      - app
+      - backend
     restart: unless-stopped
 
-  # دیتابیس
   db:
     image: postgres:15-alpine
-    container_name: webina_db
+    container_name: webina_erp_db
     env_file:
       - .env
     environment:
@@ -102,36 +109,35 @@ services:
     volumes:
       - pgdata:/var/lib/postgresql/data
     networks:
-      - internal
-    ports:
-      - "5432:5432"
+      - webino_erp
     healthcheck:
-      test: ['CMD-SHELL', 'pg_isready -U ${POSTGRES_USER:-postgres} -d ${POSTGRES_DB:-webina_crm}']
+      test:
+        [
+          "CMD-SHELL",
+          "pg_isready -U ${POSTGRES_USER:-postgres} -d ${POSTGRES_DB:-webina_crm}",
+        ]
       interval: 5s
       timeout: 5s
       retries: 10
     restart: unless-stopped
 
-  # ردیس (کش و صف)
   redis:
     image: redis:alpine
-    container_name: webina_redis
+    container_name: webina_erp_redis
     networks:
-      - internal
-    ports:
-      - "6379:6379"
+      - webino_erp
     healthcheck:
-      test: ['CMD', 'redis-cli', 'ping']
+      test: ["CMD", "redis-cli", "ping"]
       interval: 5s
       timeout: 3s
       retries: 10
     restart: unless-stopped
 
-  queue:
+  worker:
     build:
       context: ./backend
       dockerfile: Dockerfile
-    container_name: webina_queue
+    container_name: webina_erp_worker
     env_file:
       - .env
     environment:
@@ -149,7 +155,7 @@ services:
       - ./backend:/var/www/html
       - ./backend/storage:/var/www/html/storage
     networks:
-      - internal
+      - webino_erp
     depends_on:
       db:
         condition: service_healthy
@@ -159,11 +165,41 @@ services:
     command: >
       sh -c "php artisan queue:work redis --sleep=3 --tries=3 --max-time=3600"
 
-  reverb:
+  scheduler:
     build:
       context: ./backend
       dockerfile: Dockerfile
-    container_name: webina_reverb
+    container_name: webina_erp_scheduler
+    env_file:
+      - .env
+    environment:
+      DB_HOST: db
+      DB_PORT: 5432
+      DB_DATABASE: ${POSTGRES_DB:-webina_crm}
+      DB_USERNAME: ${POSTGRES_USER:-postgres}
+      DB_PASSWORD: ${POSTGRES_PASSWORD:-postgres}
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+      APP_ENV: local
+      QUEUE_CONNECTION: redis
+    volumes:
+      - ./backend:/var/www/html
+      - ./backend/storage:/var/www/html/storage
+    networks:
+      - webino_erp
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    restart: unless-stopped
+    command: ["php", "artisan", "schedule:work"]
+
+  ws:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: webina_erp_ws
     env_file:
       - .env
     environment:
@@ -174,29 +210,26 @@ services:
     volumes:
       - ./backend:/var/www/html
     networks:
-      - internal
+      - webino_erp
     depends_on:
       redis:
         condition: service_healthy
-    ports:
-      - "8080:8080"
     restart: unless-stopped
     command: >
       sh -c "php artisan reverb:start --host=0.0.0.0 --port=8080"
 
   docs:
+    profiles: ["docs", "dev"]
     build:
       context: ./docs-site
       dockerfile: Dockerfile
-    container_name: webina_docs
+    container_name: webina_erp_docs
     networks:
-      - internal
-    ports:
-      - "3001:80"
+      - webino_erp
     restart: unless-stopped
 
 networks:
-  internal:
+  webino_erp:
     driver: bridge
 
 volumes:

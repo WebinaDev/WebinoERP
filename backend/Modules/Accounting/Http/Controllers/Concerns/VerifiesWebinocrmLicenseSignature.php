@@ -15,13 +15,13 @@ trait VerifiesWebinocrmLicenseSignature
     {
         $secret = $this->licenseHmacSecret();
         if ($secret === '') {
-            return true;
+            return false;
         }
         $domain = (string) $request->input('domain', '');
         $key = (string) $request->input('license_key', '');
         $ts = (int) $request->input('ts', 0);
         $sig = (string) $request->input('signature', '');
-        if (abs(time() - $ts) > 600) {
+        if ($sig === '' || abs(time() - $ts) > 600) {
             return false;
         }
         $payload = $domain.'|'.$key.'|'.$ts;
