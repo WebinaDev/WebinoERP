@@ -1,0 +1,17 @@
+{
+  "slug": "site-builder",
+  "name_fa": "سایت‌ساز",
+  "name_en": "Site Builder",
+  "submodules": [
+    "catalog",
+    "provisions"
+  ],
+  "admin_nav": {
+    "section": "site-builder",
+    "order": 80
+  },
+  "site_types": [
+    "erp"
+  ],
+  "public_routes": []
+}

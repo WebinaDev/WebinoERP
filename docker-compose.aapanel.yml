@@ -1,0 +1,153 @@
+# Standalone production stack for aaPanel / VPS.
+# Run from WebinoERP directory:
+#   docker compose -f docker-compose.aapanel.yml up -d --build
+
+name: webino-erp
+
+services:
+  db:
+    image: postgres:15-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-webina_crm}
+      POSTGRES_USER: ${POSTGRES_USER:-webino}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD in .env}
+    volumes:
+      - db_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-webino} -d ${POSTGRES_DB:-webina_crm}"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+    networks:
+      - webino
+
+  redis:
+    image: redis:7-alpine
+    restart: unless-stopped
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+    networks:
+      - webino
+
+  backend:
+    build:
+      context: .
+      dockerfile: docker/php/Dockerfile.platform
+    image: webino-erp-backend:latest
+    restart: unless-stopped
+    env_file:
+      - ./backend/.env
+    environment:
+      APP_ENV: production
+      APP_DEBUG: "false"
+      DB_CONNECTION: pgsql
+      DB_HOST: db
+      REDIS_HOST: redis
+      QUEUE_CONNECTION: redis
+      OCTANE_SERVER: frankenphp
+    volumes:
+      - backend_storage:/var/www/html/storage
+      - ./backend/.env:/var/www/html/.env:ro
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    command: php artisan octane:start --server=frankenphp --host=0.0.0.0 --port=8080
+    networks:
+      - webino
+
+  worker:
+    image: webino-erp-backend:latest
+    restart: unless-stopped
+    env_file:
+      - ./backend/.env
+    environment:
+      APP_ENV: production
+      QUEUE_CONNECTION: redis
+      DB_HOST: db
+      REDIS_HOST: redis
+    volumes:
+      - backend_storage:/var/www/html/storage
+      - ./backend/.env:/var/www/html/.env:ro
+    command: php artisan queue:work redis --sleep=3 --tries=3
+    networks:
+      - webino
+
+  scheduler:
+    image: webino-erp-backend:latest
+    restart: unless-stopped
+    env_file:
+      - ./backend/.env
+    environment:
+      APP_ENV: production
+      DB_HOST: db
+      REDIS_HOST: redis
+    volumes:
+      - backend_storage:/var/www/html/storage
+      - ./backend/.env:/var/www/html/.env:ro
+    command: php artisan schedule:work
+    networks:
+      - webino
+
+  ws:
+    image: webino-erp-backend:latest
+    restart: unless-stopped
+    env_file:
+      - ./backend/.env
+    environment:
+      BROADCAST_CONNECTION: reverb
+      REDIS_HOST: redis
+    volumes:
+      - ./backend/.env:/var/www/html/.env:ro
+    command: php artisan reverb:start --host=0.0.0.0 --port=8081
+    networks:
+      - webino
+
+  frontend:
+    build:
+      context: ..
+      dockerfile: WebinoERP/docker/next/Dockerfile
+    image: webino-erp-frontend:latest
+    restart: unless-stopped
+    environment:
+      NODE_ENV: production
+      NEXT_PUBLIC_API_URL: ""
+      INTERNAL_API_URL: http://backend:8080
+      API_PROXY_TARGET: http://backend:8080
+      AUTH_COOKIE_NAME: webino_auth_token
+      NEXT_PUBLIC_REVERB_PORT: "8081"
+    depends_on:
+      - backend
+    networks:
+      - webino
+
+  web:
+    image: caddy:2-alpine
+    restart: unless-stopped
+    ports:
+      - "${WEB_HTTP_PORT:-3080}:80"
+      - "${WEB_HTTPS_PORT:-3443}:443"
+    volumes:
+      - ./docker/caddy/Caddyfile:/etc/caddy/Caddyfile:ro
+    depends_on:
+      - backend
+      - frontend
+      - ws
+    networks:
+      - webino
+
+networks:
+  webino:
+    driver: bridge
+
+volumes:
+  db_data:
+  redis_data:
+  backend_storage:

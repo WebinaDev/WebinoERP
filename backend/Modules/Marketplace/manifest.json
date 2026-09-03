@@ -1,0 +1,20 @@
+{
+  "slug": "marketplace",
+  "name_fa": "مارکت‌پلیس",
+  "name_en": "Marketplace",
+  "submodules": [
+    "products",
+    "themes",
+    "categories",
+    "orders",
+    "gitea"
+  ],
+  "admin_nav": {
+    "section": "marketplace",
+    "order": 110
+  },
+  "site_types": [
+    "erp"
+  ],
+  "public_routes": []
+}

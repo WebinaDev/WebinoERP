@@ -5,6 +5,7 @@ namespace Modules\SiteBuilder\Services;
 use Illuminate\Support\Str;
 use Modules\Core\Entities\CoreLicense;
 use Modules\Core\Services\CoreLicenseMetaNormalizer;
+use Modules\Platform\Support\SiteTypeProfiles;
 use Modules\SiteBuilder\Entities\WebinoPackage;
 
 class LicenseProvisionerService
@@ -23,9 +24,14 @@ class LicenseProvisionerService
         $type = $package->businessType;
         $category = $type?->category;
 
+        $siteType = (string) ($context['site_type'] ?? $context['site_type_slug'] ?? $type?->slug ?? 'corporate');
+        if (! SiteTypeProfiles::isValid($siteType)) {
+            $siteType = 'corporate';
+        }
+
+        $profileModules = SiteTypeProfiles::moduleSlugsFor($siteType);
         $modules = array_values(array_unique(array_filter(array_merge(
-            $type?->default_module_slugs ?? [],
-            $package->features->pluck('module_slug')->filter()->values()->all(),
+            $profileModules,
             $context['extra_module_slugs'] ?? [],
         ))));
 
@@ -36,13 +42,15 @@ class LicenseProvisionerService
 
         $meta = CoreLicenseMetaNormalizer::validateForStorage([
             'modules' => $modules,
-            'vertical' => $type?->slug,
+            'vertical' => $siteType,
+            'site_type' => $siteType,
             'sku' => $package->sku,
             'business_category' => $category?->slug,
             'business_type' => $type?->slug,
             'features' => $features,
-            'theme_preset' => $type?->theme_preset,
+            'theme_preset' => SiteTypeProfiles::all()[$siteType]['theme'] ?? $type?->theme_preset,
             'nav_preset' => $type?->nav_preset,
+            'module_matrix' => SiteTypeProfiles::modulesFor($siteType),
         ]) ?? [];
 
         $licenseKey = $this->generateLicenseKey();

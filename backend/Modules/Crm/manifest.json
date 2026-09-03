@@ -1,0 +1,21 @@
+{
+  "slug": "crm",
+  "name_fa": "CRM",
+  "name_en": "CRM",
+  "submodules": [
+    "leads",
+    "customers",
+    "deals",
+    "pipelines",
+    "tickets",
+    "consultations"
+  ],
+  "admin_nav": {
+    "section": "crm",
+    "order": 30
+  },
+  "site_types": [
+    "erp"
+  ],
+  "public_routes": []
+}

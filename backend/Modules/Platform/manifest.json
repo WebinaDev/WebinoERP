@@ -1,0 +1,36 @@
+{
+  "slug": "platform",
+  "name_fa": "پلتفرم",
+  "name_en": "Platform",
+  "submodules": [
+    "dashboard",
+    "servers",
+    "projects",
+    "applications",
+    "databases",
+    "services",
+    "destinations",
+    "domains",
+    "ssl",
+    "sources",
+    "backups",
+    "storages",
+    "notifications",
+    "keys",
+    "tags",
+    "variables",
+    "tokens",
+    "metrics",
+    "terminal",
+    "settings",
+    "webino"
+  ],
+  "admin_nav": {
+    "section": "platform",
+    "order": 5
+  },
+  "site_types": [
+    "erp"
+  ],
+  "public_routes": []
+}

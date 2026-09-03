@@ -68,77 +68,77 @@ test.describe('Phase 5 authenticated flows', () => {
   test.use({ storageState: 'e2e/.auth/admin.json' });
 
   test('CRM leads list loads', async ({ page }) => {
-    await page.goto('/dashboard/crm/leads');
+    await page.goto('/admin/crm/leads');
     await expect(page).toHaveURL(/crm\/leads/);
     await expect(page.locator('h1').first()).toBeVisible();
   });
 
   test('finance journals page loads', async ({ page }) => {
-    await page.goto('/dashboard/finance/journals');
+    await page.goto('/admin/finance/journals');
     await expect(page).toHaveURL(/finance\/journals/);
     await expect(page.locator('h1').first()).toBeVisible();
   });
 
   test('HRM staff list loads', async ({ page }) => {
-    await page.goto('/dashboard/hrm/staff');
+    await page.goto('/admin/hrm/staff');
     await expect(page).toHaveURL(/hrm\/staff/);
     await expect(page.locator('h1').first()).toBeVisible();
   });
 
   test('SCM inbound workflow page loads', async ({ page }) => {
-    await page.goto('/dashboard/scm/inbound');
+    await page.goto('/admin/scm/inbound');
     await expect(page).toHaveURL(/scm\/inbound/);
     await expect(page.locator('h1').first()).toBeVisible();
   });
 
   test('ModirPayamak send form loads', async ({ page }) => {
-    await page.goto('/dashboard/admin/integrations/modirpayamak/send');
+    await page.goto('/admin/admin/integrations/modirpayamak/send');
     await expect(page).toHaveURL(/modirpayamak\/send/);
     await expect(page.locator('h1').first()).toBeVisible();
   });
 
   test('ModirPayamak tickets page loads', async ({ page }) => {
-    await page.goto('/dashboard/admin/integrations/modirpayamak/tickets');
+    await page.goto('/admin/admin/integrations/modirpayamak/tickets');
     await expect(page).toHaveURL(/modirpayamak\/tickets/);
     await expect(page.locator('h1').first()).toBeVisible();
     await expect(page.getByText(/تیکت|ticket/i).first()).toBeVisible();
   });
 
   test('ModirPayamak users page loads', async ({ page }) => {
-    await page.goto('/dashboard/admin/integrations/modirpayamak/users');
+    await page.goto('/admin/admin/integrations/modirpayamak/users');
     await expect(page).toHaveURL(/modirpayamak\/users/);
     await expect(page.locator('h1').first()).toBeVisible();
     await expect(page.getByText(/کاربر|user/i).first()).toBeVisible();
   });
 
   test('ModirPayamak drafts page loads', async ({ page }) => {
-    await page.goto('/dashboard/admin/integrations/modirpayamak/drafts');
+    await page.goto('/admin/admin/integrations/modirpayamak/drafts');
     await expect(page).toHaveURL(/modirpayamak\/drafts/);
     await expect(page.locator('h1').first()).toBeVisible();
     await expect(page.getByText(/پیش‌نویس|draft/i).first()).toBeVisible();
   });
 
   test('hosting infrastructure page loads', async ({ page }) => {
-    await page.goto('/dashboard/admin/hosting-infra');
+    await page.goto('/admin/admin/hosting-infra');
     await expect(page).toHaveURL(/hosting-infra/);
     await expect(page.locator('h1').first()).toBeVisible();
     await expect(page.getByText(/میزبانی|Hosting/i).first()).toBeVisible();
   });
 
   test('admin settings general hub loads', async ({ page }) => {
-    await page.goto('/dashboard/admin/settings/general');
+    await page.goto('/admin/admin/settings/general');
     await expect(page).toHaveURL(/admin\/settings\/general/);
     await expect(page.getByText(/عمومی|General/i).first()).toBeVisible();
   });
 
   test('PM chat page loads', async ({ page }) => {
-    await page.goto('/dashboard/pm/chat');
+    await page.goto('/admin/pm/chat');
     await expect(page).toHaveURL(/pm\/chat/);
     await expect(page.locator('h1').first()).toBeVisible();
   });
 
   test('CRM customers page shows translated title', async ({ page }) => {
-    await page.goto('/dashboard/crm/customers');
+    await page.goto('/admin/crm/customers');
     await expect(page).toHaveURL(/crm\/customers/);
     await expect(page.getByText('مشتریان').first()).toBeVisible();
   });
@@ -153,7 +153,7 @@ test.describe('Phase 5 auth flows', () => {
     await page.getByLabel(/email|ایمیل/i).fill('admin@webina.local');
     await page.locator('#dashboard-login-password').fill('password');
     await page.getByRole('button', { name: /ورود|login|sign in/i }).click();
-    await expect(page).toHaveURL(/dashboard/, { timeout: 15000 });
+    await expect(page).toHaveURL(/admin/, { timeout: 15000 });
     await expect(page.locator('h1').first()).toBeVisible();
   });
 
@@ -162,8 +162,8 @@ test.describe('Phase 5 auth flows', () => {
     test.skip(!token, 'API not available');
 
     await seedAuthCookies(page, token!);
-    await page.goto('/dashboard/admin/settings');
-    await expect(page).toHaveURL(/dashboard(?!.*admin\/settings)|admin\/settings/, { timeout: 10000 });
+    await page.goto('/admin/admin/settings');
+    await expect(page).toHaveURL(/admin(?!.*admin\/settings)|admin\/settings/, { timeout: 10000 });
   });
 
   test('logout redirects to login', async ({ page }) => {
@@ -171,7 +171,7 @@ test.describe('Phase 5 auth flows', () => {
     test.skip(!token, 'API not available');
 
     await seedAuthCookies(page, token!);
-    await page.goto('/dashboard');
+    await page.goto('/admin');
     await page.getByRole('button', { name: /خروج|logout/i }).click();
     await expect(page).toHaveURL(/login/, { timeout: 15000 });
   });

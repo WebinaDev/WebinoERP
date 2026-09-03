@@ -1,0 +1,18 @@
+{
+  "slug": "sales",
+  "name_fa": "فروش",
+  "name_en": "Sales",
+  "submodules": [
+    "invoices",
+    "catalog",
+    "campaigns"
+  ],
+  "admin_nav": {
+    "section": "sales",
+    "order": 60
+  },
+  "site_types": [
+    "erp"
+  ],
+  "public_routes": []
+}

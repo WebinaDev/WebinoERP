@@ -4,14 +4,15 @@ WebinoERM is a **containerized modular monolith**:
 
 | Container | Role |
 |-----------|------|
-| **nginx** | Reverse proxy (`/`, `/api`, `/docs`) |
-| **frontend** | Next.js 14 SSR dashboard |
-| **backend** | Laravel 12 API (`nwidart/laravel-modules`) |
+| **web** | Caddy reverse proxy (`/`, `/api`, `/app` WebSocket, `/docs`) |
+| **frontend** | Next.js 15 SSR (`/admin`) |
+| **backend** | Laravel 13 API + Octane/FrankenPHP (`nwidart/laravel-modules`) |
 | **docs** | Docusaurus 3 static API docs (FA/EN) |
-| **postgres** | Primary database |
+| **db** | Postgres 15 |
 | **redis** | Cache, queue, sessions |
-| **queue** | Laravel queue worker |
-| **reverb** | WebSocket server (PM chat) |
+| **worker** | Laravel queue worker |
+| **scheduler** | `schedule:work` |
+| **ws** | Laravel Reverb WebSocket (`:8081`, PM chat) |
 
 ## Module boundaries
 

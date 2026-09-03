@@ -1,0 +1,49 @@
+---
+description: Modules, submodules, kernel registry, dashboard settings
+globs: frontend/modules/**,backend/Modules/**,frontend/src/themes/**
+alwaysApply: false
+---
+
+# Modules & kernel (shared with WebinoDashboard)
+
+## Module / submodule standard
+
+- Every feature is a **module** or **submodule** with a manifest (frontend `modules/*/manifest.ts`, backend nwidart package + `manifest.json`).
+- Register in the kernel registry (`frontend/src/kernel/registry.ts` + nwidart service provider). Enable/disable via license/activations — do not hard-wire routes that ignore activations.
+- Admin page: `modules/{slug}/admin/{submodule}-page`.
+- Public page: `modules/{slug}/site/{submodule}-page`.
+
+```text
+❌ BAD — dump a new page under features/ or src/views with no module/activation
+✅ GOOD — manifest route + activation check + admin settings
+```
+
+Frontend module layout must match WebinoDashboard so UIs can be shared across products. Backend stays nwidart (`backend/Modules/{Name}/`).
+
+## ERP domains
+
+Canonical frontend slugs: `core`, `crm`, `accounting`, `hrm`, `projects`, `sales`, `scm`, `mfg`, `docs`, `integrations`, `marketplace`, `marketing`, `site-builder`.
+
+## Public marketing site
+
+- Marketing CMS lives in the `marketing` module (public `site/` pages).
+- Theme chrome (if used) lives under `frontend/src/themes/{slug}/` and consumes branding from the API — never hard-code brand assets as the only option.
+
+## Shared vs product-specific
+
+- **Shared contract:** `ModuleManifest` types, kernel registry, shadcn shell, `@webina/ui`.
+- **ERP-only:** Accounting, HRM, CRM, SiteBuilder provisioning, Integrations.
+- Do not fork payment/SMS gateways per page — keep them in `integrations`.
+
+## Everything configurable
+
+- Logo, favicon, accent, colors, fonts, nav labels, contact info → admin settings / branding API.
+- Front-end reads branding from the config/branding API, never embeds fixed brand assets as the only option.
+
+```tsx
+// ❌ BAD — fixed logo path with no settings
+<img src="/brand/logo-fixed.png" />
+
+// ✅ GOOD — from branding payload with fallback only for empty state
+<SiteLogo logoUrl={branding.logo_url} siteName={siteName} />
+```

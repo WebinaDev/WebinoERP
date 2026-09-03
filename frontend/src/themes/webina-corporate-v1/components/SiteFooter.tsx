@@ -1,5 +1,5 @@
 import Link from 'next/link';
-import { siteHref } from '@/src/lib/api-server';
+import { siteHref } from '@/lib/public-api-server';
 
 const LEGAL = [
   { slug: 'terms', label: 'قوانین و مقررات' },

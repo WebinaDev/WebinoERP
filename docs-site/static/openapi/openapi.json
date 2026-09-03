@@ -6408,6 +6408,397 @@
           }
         }
       }
+    },
+    "/api/v1/platform/dashboard": {
+      "get": {
+        "tags": [
+          "Platform"
+        ],
+        "summary": "Platform dashboard summary",
+        "security": [
+          {
+            "sanctum": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/v1/platform/servers": {
+      "get": {
+        "tags": [
+          "Platform"
+        ],
+        "summary": "List servers",
+        "security": [
+          {
+            "sanctum": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "Platform"
+        ],
+        "summary": "Create server",
+        "security": [
+          {
+            "sanctum": []
+          }
+        ],
+        "responses": {
+          "201": {
+            "description": "Created"
+          }
+        }
+      }
+    },
+    "/api/v1/platform/servers/{server}": {
+      "get": {
+        "tags": [
+          "Platform"
+        ],
+        "summary": "Show server",
+        "security": [
+          {
+            "sanctum": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "server",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/v1/platform/servers/{server}/validate": {
+      "post": {
+        "tags": [
+          "Platform"
+        ],
+        "summary": "Validate SSH",
+        "security": [
+          {
+            "sanctum": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "server",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/v1/platform/servers/{server}/bootstrap": {
+      "post": {
+        "tags": [
+          "Platform"
+        ],
+        "summary": "Bootstrap Docker+Caddy",
+        "security": [
+          {
+            "sanctum": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "server",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/v1/platform/projects": {
+      "get": {
+        "tags": [
+          "Platform"
+        ],
+        "summary": "List projects",
+        "security": [
+          {
+            "sanctum": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "Platform"
+        ],
+        "summary": "Create project",
+        "security": [
+          {
+            "sanctum": []
+          }
+        ],
+        "responses": {
+          "201": {
+            "description": "Created"
+          }
+        }
+      }
+    },
+    "/api/v1/platform/resources": {
+      "get": {
+        "tags": [
+          "Platform"
+        ],
+        "summary": "List resources",
+        "security": [
+          {
+            "sanctum": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "Platform"
+        ],
+        "summary": "Create resource",
+        "security": [
+          {
+            "sanctum": []
+          }
+        ],
+        "responses": {
+          "201": {
+            "description": "Created"
+          }
+        }
+      }
+    },
+    "/api/v1/platform/resources/{resource}/deploy": {
+      "post": {
+        "tags": [
+          "Platform"
+        ],
+        "summary": "Deploy resource",
+        "security": [
+          {
+            "sanctum": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "resource",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "202": {
+            "description": "Queued"
+          }
+        }
+      }
+    },
+    "/api/v1/platform/resources/{resource}/clone": {
+      "post": {
+        "tags": [
+          "Platform"
+        ],
+        "summary": "Clone resource",
+        "security": [
+          {
+            "sanctum": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "resource",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "201": {
+            "description": "Created"
+          }
+        }
+      }
+    },
+    "/api/v1/platform/webhooks/deploy/{token}": {
+      "post": {
+        "tags": [
+          "Platform"
+        ],
+        "summary": "Push-to-deploy webhook",
+        "parameters": [
+          {
+            "name": "token",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "202": {
+            "description": "Queued"
+          }
+        }
+      }
+    },
+    "/api/v1/platform/backups/{backup}/restore": {
+      "post": {
+        "tags": [
+          "Platform"
+        ],
+        "summary": "Restore backup",
+        "security": [
+          {
+            "sanctum": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "backup",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "202": {
+            "description": "Queued"
+          }
+        }
+      }
+    },
+    "/api/v1/platform/webino/launch": {
+      "post": {
+        "tags": [
+          "Platform"
+        ],
+        "summary": "Launch Webino Dashboard site",
+        "security": [
+          {
+            "sanctum": []
+          }
+        ],
+        "responses": {
+          "201": {
+            "description": "Created"
+          }
+        }
+      }
+    },
+    "/api/v1/platform/crm/{accountId}/sites": {
+      "get": {
+        "tags": [
+          "Platform"
+        ],
+        "summary": "CRM account sites 360",
+        "security": [
+          {
+            "sanctum": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "accountId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/v1/platform/settings": {
+      "get": {
+        "tags": [
+          "Platform"
+        ],
+        "summary": "Platform settings",
+        "security": [
+          {
+            "sanctum": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      },
+      "put": {
+        "tags": [
+          "Platform"
+        ],
+        "summary": "Update platform settings",
+        "security": [
+          {
+            "sanctum": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
     }
   },
   "tags": [
@@ -6421,6 +6812,10 @@
     "MARKETPLACE",
     "PROJECTS",
     "SALES",
-    "SCM"
+    "SCM",
+    {
+      "name": "Platform",
+      "description": "Coolify-class control plane inside WebinoERP"
+    }
   ]
 }

@@ -11,5 +11,6 @@
     "Projects": true,
     "Sales": true,
     "Scm": true,
-    "SiteBuilder": true
+    "SiteBuilder": true,
+    "Platform": true
 }

@@ -7,7 +7,7 @@ test.describe('Webino ERP smoke', () => {
   });
 
   test('dashboard redirects unauthenticated users', async ({ page }) => {
-    await page.goto('/dashboard');
+    await page.goto('/admin');
     await expect(page).toHaveURL(/login/);
   });
 });

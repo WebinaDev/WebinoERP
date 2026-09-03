@@ -1,0 +1,43 @@
+---
+description: Laravel API-first, auth, and Docusaurus documentation rules
+globs: backend/**
+alwaysApply: false
+---
+
+# Backend (Laravel)
+
+## API-first
+
+- Every public and admin action has a proper JSON API under `/api/v1/{module}/...`.
+- Controllers return the standard envelope (`success`, `data`, `message`, `meta`, `errors`). Do not invent ad-hoc shapes.
+- New features: migrations + models + policies/middleware + routes + feature tests. No “controller-only” shortcuts.
+
+## Auth
+
+- Sanctum/cookie auth for dashboard (`webino_auth_token` HttpOnly).
+- Never skip auth checks for convenience. Gate admin and setup flows consistently with middleware.
+- RBAC via `spatie/laravel-permission` plus module license middleware (`module` / `module.permission`).
+
+## Modules (nwidart)
+
+- Backend code for a product area lives under `backend/Modules/{Name}/` (nwidart 13.x). Do **not** migrate to WebinoDashboard `TenantModule`.
+- Each module ships `module.json` (nwidart) **and** a Dashboard-compatible `manifest.json` (`slug`, `name_fa`, `name_en`, `submodules`, `admin_nav`, `site_types`, `public_routes`).
+- Third-party APIs (SMS, payments, Bale, Portainer, Gitea) stay inside `Modules/Integrations` (or that integration’s submodule) — not in a global “helpers dump”.
+
+## Documentation (mandatory)
+
+- Every new or changed endpoint must be documented in Docusaurus:
+  - English: `docs-site/docs/`
+  - Persian: `docs-site/i18n/fa/docusaurus-plugin-content-docs/current/`
+- Document method, path, auth, request/response examples, and error codes.
+
+```text
+❌ BAD — merge API without docs
+✅ GOOD — OpenAPI/docs page + FA translation for the same endpoint
+```
+
+## Docker
+
+- Dev PHP image: `docker/php/Dockerfile` (Octane / FrankenPHP).
+- Production PHP image: `docker/php/Dockerfile.platform`.
+- Keep `.env` secrets out of images; compose mounts `backend/.env`.

@@ -14,24 +14,25 @@
 | API عمومی | `/api/v1/public/*` | خواندن محتوا |
 | API مدیریت | `/api/v1/marketing/*` | CRUD با `auth:sanctum` |
 
-## نصب با WebinoServer
+## نصب و پروویژن (از WebinoERP Platform)
+
+پروویژن سایت شرکتی از **Site Builder** در WebinoERP انجام می‌شود. ماژول **Platform** (SSH + Docker + Caddy) تصویر `WebinoERM` را deploy می‌کند.
 
 ```bash
-webina product install WebinoERM --channel Dev
-webina product rebuild WebinoERM
-
-webina site create --slug webina --domain webina.dev --product WebinoERM
+# از UI: admin/site-builder/provisions/new
+# یا API: POST /api/v1/platform/sites
 ```
 
 Bootstrap خودکار شامل: `migrate`, `db:seed` (شامل `MarketingSiteSeeder`), `storage:link`.
 
 ورود پیش‌فرض: `admin@webina.local` / `password`
 
-### مهاجرت اختیاری WordPress هنگام نصب
+### مهاجرت اختیاری WordPress هنگام پروویژن
 
-```bash
-webina site create --slug webina --domain webina.dev --product WebinoERM \
-  --env-patch-base64 "$(echo '{"MARKETING_IMPORT_WORDPRESS_URL":"https://webina.dev"}' | base64)"
+از Site Builder یا env-patch در `POST /api/v1/platform/sites` استفاده کنید:
+
+```json
+{"MARKETING_IMPORT_WORDPRESS_URL":"https://webina.dev"}
 ```
 
 ## ماژول Laravel

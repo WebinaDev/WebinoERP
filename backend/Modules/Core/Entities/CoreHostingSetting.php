@@ -16,8 +16,6 @@ use Illuminate\Database\Eloquent\Model;
  * @property string|null $portainer_tls_fingerprint
  * @property int|null $portainer_endpoint_id
  * @property string|null $git_webhook_secret
- * @property string|null $webinoserver_panel_url
- * @property string|null $webinoserver_api_token
  * @property string|null $platform_base_domain
  * @property string|null $default_product_channel
  * @property string|null $provision_webhook_secret
@@ -36,8 +34,6 @@ class CoreHostingSetting extends Model
         'portainer_tls_fingerprint',
         'portainer_endpoint_id',
         'git_webhook_secret',
-        'webinoserver_panel_url',
-        'webinoserver_api_token',
         'platform_base_domain',
         'default_product_channel',
         'provision_webhook_secret',
@@ -49,7 +45,6 @@ class CoreHostingSetting extends Model
             'git_pat' => 'encrypted',
             'portainer_api_token' => 'encrypted',
             'git_webhook_secret' => 'encrypted',
-            'webinoserver_api_token' => 'encrypted',
             'provision_webhook_secret' => 'encrypted',
             'portainer_endpoint_id' => 'integer',
         ];

@@ -1,0 +1,20 @@
+{
+  "slug": "projects",
+  "name_fa": "پروژه‌ها",
+  "name_en": "Projects",
+  "submodules": [
+    "projects",
+    "tasks",
+    "chat",
+    "time-tracking",
+    "appointments"
+  ],
+  "admin_nav": {
+    "section": "projects",
+    "order": 40
+  },
+  "site_types": [
+    "erp"
+  ],
+  "public_routes": []
+}

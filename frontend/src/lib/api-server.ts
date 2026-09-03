@@ -1,56 +1,51 @@
-const API_BASE = process.env.INTERNAL_API_URL ?? process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost/api';
+import { cookies } from 'next/headers';
 
-export type ApiServerOptions = {
-  revalidate?: number | false;
-  json?: unknown;
-  method?: string;
-};
+import { unwrapApiData } from '@webina/ui';
 
-export async function apiServer<T>(path: string, opts: ApiServerOptions = {}): Promise<T> {
-  const init: RequestInit = {
-    method: opts.method ?? (opts.json !== undefined ? 'POST' : 'GET'),
+const API_BASE = process.env.NEXT_PUBLIC_API_URL ?? '';
+
+async function serverFetch(path: string, init?: RequestInit): Promise<unknown | null> {
+  if (!API_BASE) {
+    return null;
+  }
+
+  const jar = await cookies();
+  const cookieHeader = jar
+    .getAll()
+    .map((c) => `${c.name}=${c.value}`)
+    .join('; ');
+
+  const res = await fetch(`${API_BASE}${path}`, {
+    ...init,
     headers: {
       Accept: 'application/json',
-      ...(opts.json !== undefined ? { 'Content-Type': 'application/json' } : {}),
+      ...(cookieHeader ? { Cookie: cookieHeader } : {}),
+      ...(init?.headers ?? {}),
     },
-    ...(opts.json !== undefined ? { body: JSON.stringify(opts.json) } : {}),
-  };
-
-  if (opts.revalidate === false) {
-    init.cache = 'no-store';
-  } else if (typeof opts.revalidate === 'number') {
-    init.next = { revalidate: opts.revalidate };
-  } else {
-    init.next = { revalidate: 60 };
-  }
-
-  const res = await fetch(`${API_BASE}${path}`, init);
-  const text = await res.text();
-  const data = text ? JSON.parse(text) : null;
+    cache: 'no-store',
+  });
 
   if (!res.ok) {
-    const msg = typeof data?.message === 'string' ? data.message : `HTTP ${res.status}`;
-    throw new Error(msg);
+    return null;
   }
 
-  return data as T;
+  const text = await res.text();
+  if (!text) {
+    return null;
+  }
+
+  return JSON.parse(text) as unknown;
 }
 
-export async function getPublicSite() {
-  return apiServer<{
-    data: {
-      name: string;
-      logo_url?: string | null;
-      favicon_url?: string | null;
-      active_theme_slug?: string | null;
-      branding?: Record<string, unknown> | null;
-      nav?: unknown;
-      social_links?: unknown;
-    };
-  }>('/v1/public/site');
-}
-
-export function siteHref(_locale?: string, path = ''): string {
-  if (!path) return '/';
-  return path.startsWith('/') ? path : `/${path}`;
+/** Unwrapped API `data` payload (authenticated dashboard home). */
+export async function apiServer<T>(path: string): Promise<T | null> {
+  try {
+    const raw = await serverFetch(path);
+    if (raw == null) {
+      return null;
+    }
+    return unwrapApiData<T>(raw);
+  } catch {
+    return null;
+  }
 }

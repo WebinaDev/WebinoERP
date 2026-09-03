@@ -54,6 +54,7 @@ Route::middleware('throttle:auth-public')->group(function () {
     Route::post('/auth/register', [AuthParityController::class, 'register']);
 });
 
+Route::get('/auth/gate', [AuthController::class, 'gate']);
 Route::post('/auth/refresh', [AuthController::class, 'refresh'])->middleware('auth:sanctum');
 Route::post('/auth/logout', [AuthController::class, 'logout'])->middleware('auth:sanctum');
 Route::get('/auth/user', [AuthController::class, 'user'])->middleware('auth:sanctum');

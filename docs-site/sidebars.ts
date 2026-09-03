@@ -41,6 +41,7 @@ const sidebars: SidebarsConfig = {
             'api/modules/docs',
             'api/modules/marketplace',
             'api/modules/integrations',
+            'api/modules/platform',
           ],
         },
         {

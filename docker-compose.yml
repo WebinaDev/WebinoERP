@@ -1,236 +1,201 @@
-version: "3.8"
-
-# Architecture §13: web | frontend | backend | worker | scheduler | db | redis | ws | docs
-# Only `web` publishes ports to the host.
+# WebinoERP — Architecture §13 service names.
+# Only `web` publishes host ports. Reverb stays on `ws` (not used by Dashboard).
 
 services:
-  web:
-    image: nginx:alpine
-    container_name: webina_erp_web
-    env_file:
-      - .env
-    ports:
-      - "${WEB_HTTP_PORT:-80}:80"
-      - "${WEB_HTTPS_PORT:-443}:443"
-    volumes:
-      - ./docker/nginx/conf.d:/etc/nginx/conf.d:ro
-      - ./backend:/var/www/html/backend
-      - ./frontend:/var/www/html/frontend
-      - ./backend/storage:/var/www/html/backend/storage
-    depends_on:
-      backend:
-        condition: service_started
-      frontend:
-        condition: service_started
-    healthcheck:
-      test:
-        [
-          "CMD-SHELL",
-          "wget -qO- http://127.0.0.1/api/v1/core/health/readiness > /dev/null 2>&1 || exit 1",
-        ]
-      interval: 30s
-      timeout: 10s
-      retries: 5
-      start_period: 60s
-    networks:
-      - webino_erp
-    restart: unless-stopped
-
-  backend:
-    build:
-      context: ./backend
-      dockerfile: Dockerfile
-    container_name: webina_erp_backend
-    env_file:
-      - .env
-    environment:
-      DB_HOST: db
-      DB_PORT: 5432
-      DB_DATABASE: ${POSTGRES_DB:-webina_crm}
-      DB_USERNAME: ${POSTGRES_USER:-postgres}
-      DB_PASSWORD: ${POSTGRES_PASSWORD:-postgres}
-      REDIS_HOST: redis
-      REDIS_PORT: 6379
-      APP_ENV: local
-      APP_DEBUG: "true"
-      QUEUE_CONNECTION: redis
-      BROADCAST_CONNECTION: reverb
-    volumes:
-      - ./backend:/var/www/html
-      - ./backend/storage:/var/www/html/storage
-    networks:
-      - webino_erp
-    depends_on:
-      db:
-        condition: service_healthy
-      redis:
-        condition: service_healthy
-    healthcheck:
-      test:
-        [
-          "CMD-SHELL",
-          "php artisan route:list --path=health > /dev/null 2>&1 || exit 1",
-        ]
-      interval: 30s
-      timeout: 10s
-      retries: 5
-      start_period: 40s
-    restart: unless-stopped
-
-  frontend:
-    build:
-      context: ./frontend
-      dockerfile: Dockerfile
-    container_name: webina_erp_frontend
-    env_file:
-      - .env
-    environment:
-      NEXT_PUBLIC_API_URL: http://web/api
-      NODE_ENV: development
-    volumes:
-      - ./frontend:/app
-      - /app/node_modules
-      - /app/.next
-    networks:
-      - webino_erp
-    depends_on:
-      - backend
-    restart: unless-stopped
-
   db:
     image: postgres:15-alpine
-    container_name: webina_erp_db
-    env_file:
-      - .env
     environment:
       POSTGRES_DB: ${POSTGRES_DB:-webina_crm}
-      POSTGRES_USER: ${POSTGRES_USER:-postgres}
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-postgres}
+      POSTGRES_USER: ${POSTGRES_USER:-webino}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-webino}
     volumes:
-      - pgdata:/var/lib/postgresql/data
-    networks:
-      - webino_erp
+      - db_data:/var/lib/postgresql/data
     healthcheck:
-      test:
-        [
-          "CMD-SHELL",
-          "pg_isready -U ${POSTGRES_USER:-postgres} -d ${POSTGRES_DB:-webina_crm}",
-        ]
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-webino} -d ${POSTGRES_DB:-webina_crm}"]
       interval: 5s
       timeout: 5s
       retries: 10
-    restart: unless-stopped
-
-  redis:
-    image: redis:alpine
-    container_name: webina_erp_redis
     networks:
       - webino_erp
+
+  redis:
+    image: redis:7-alpine
+    volumes:
+      - redis_data:/data
     healthcheck:
       test: ["CMD", "redis-cli", "ping"]
       interval: 5s
       timeout: 3s
-      retries: 10
-    restart: unless-stopped
+      retries: 5
+    networks:
+      - webino_erp
+
+  backend:
+    build:
+      context: .
+      dockerfile: docker/php/Dockerfile
+    working_dir: /var/www/html
+    entrypoint: ["/entrypoint.sh"]
+    volumes:
+      - ./backend:/var/www/html
+      - ./docker/php/entrypoint.sh:/entrypoint.sh:ro
+    env_file:
+      - ./backend/.env
+    environment:
+      APP_ENV: local
+      APP_DEBUG: "true"
+      DB_CONNECTION: pgsql
+      DB_HOST: db
+      DB_PORT: 5432
+      DB_DATABASE: ${POSTGRES_DB:-webina_crm}
+      DB_USERNAME: ${POSTGRES_USER:-webino}
+      DB_PASSWORD: ${POSTGRES_PASSWORD:-webino}
+      REDIS_HOST: redis
+      CACHE_STORE: redis
+      SESSION_DRIVER: redis
+      QUEUE_CONNECTION: redis
+      BROADCAST_CONNECTION: reverb
+      OCTANE_SERVER: frankenphp
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    command: php artisan octane:start --server=frankenphp --host=0.0.0.0 --port=8080
+    networks:
+      - webino_erp
 
   worker:
     build:
-      context: ./backend
-      dockerfile: Dockerfile
-    container_name: webina_erp_worker
+      context: .
+      dockerfile: docker/php/Dockerfile
+    working_dir: /var/www/html
+    entrypoint: ["/entrypoint.sh"]
+    volumes:
+      - ./backend:/var/www/html
+      - ./docker/php/entrypoint.sh:/entrypoint.sh:ro
     env_file:
-      - .env
+      - ./backend/.env
     environment:
+      APP_ENV: local
+      DB_CONNECTION: pgsql
       DB_HOST: db
       DB_PORT: 5432
       DB_DATABASE: ${POSTGRES_DB:-webina_crm}
-      DB_USERNAME: ${POSTGRES_USER:-postgres}
-      DB_PASSWORD: ${POSTGRES_PASSWORD:-postgres}
+      DB_USERNAME: ${POSTGRES_USER:-webino}
+      DB_PASSWORD: ${POSTGRES_PASSWORD:-webino}
       REDIS_HOST: redis
-      REDIS_PORT: 6379
-      APP_ENV: local
-      APP_DEBUG: "true"
       QUEUE_CONNECTION: redis
-    volumes:
-      - ./backend:/var/www/html
-      - ./backend/storage:/var/www/html/storage
-    networks:
-      - webino_erp
+      RUN_MIGRATIONS: "0"
     depends_on:
       db:
         condition: service_healthy
       redis:
         condition: service_healthy
-    restart: unless-stopped
-    command: >
-      sh -c "php artisan queue:work redis --sleep=3 --tries=3 --max-time=3600"
+      backend:
+        condition: service_started
+    command: php artisan queue:work redis --sleep=3 --tries=3
+    networks:
+      - webino_erp
 
   scheduler:
     build:
-      context: ./backend
-      dockerfile: Dockerfile
-    container_name: webina_erp_scheduler
+      context: .
+      dockerfile: docker/php/Dockerfile
+    working_dir: /var/www/html
+    entrypoint: ["/entrypoint.sh"]
+    volumes:
+      - ./backend:/var/www/html
+      - ./docker/php/entrypoint.sh:/entrypoint.sh:ro
     env_file:
-      - .env
+      - ./backend/.env
     environment:
+      APP_ENV: local
+      DB_CONNECTION: pgsql
       DB_HOST: db
       DB_PORT: 5432
       DB_DATABASE: ${POSTGRES_DB:-webina_crm}
-      DB_USERNAME: ${POSTGRES_USER:-postgres}
-      DB_PASSWORD: ${POSTGRES_PASSWORD:-postgres}
+      DB_USERNAME: ${POSTGRES_USER:-webino}
+      DB_PASSWORD: ${POSTGRES_PASSWORD:-webino}
       REDIS_HOST: redis
-      REDIS_PORT: 6379
-      APP_ENV: local
       QUEUE_CONNECTION: redis
-    volumes:
-      - ./backend:/var/www/html
-      - ./backend/storage:/var/www/html/storage
-    networks:
-      - webino_erp
+      RUN_MIGRATIONS: "0"
     depends_on:
       db:
         condition: service_healthy
       redis:
         condition: service_healthy
-    restart: unless-stopped
-    command: ["php", "artisan", "schedule:work"]
+      backend:
+        condition: service_started
+    command: php artisan schedule:work
+    networks:
+      - webino_erp
 
   ws:
     build:
-      context: ./backend
-      dockerfile: Dockerfile
-    container_name: webina_erp_ws
-    env_file:
-      - .env
-    environment:
-      DB_HOST: db
-      REDIS_HOST: redis
-      APP_ENV: local
-      BROADCAST_CONNECTION: reverb
+      context: .
+      dockerfile: docker/php/Dockerfile
+    working_dir: /var/www/html
+    entrypoint: ["/entrypoint.sh"]
     volumes:
       - ./backend:/var/www/html
-    networks:
-      - webino_erp
+      - ./docker/php/entrypoint.sh:/entrypoint.sh:ro
+    env_file:
+      - ./backend/.env
+    environment:
+      APP_ENV: local
+      DB_HOST: db
+      REDIS_HOST: redis
+      BROADCAST_CONNECTION: reverb
     depends_on:
       redis:
         condition: service_healthy
-    restart: unless-stopped
-    command: >
-      sh -c "php artisan reverb:start --host=0.0.0.0 --port=8080"
+    command: php artisan reverb:start --host=0.0.0.0 --port=8081
+    networks:
+      - webino_erp
+
+  frontend:
+    build:
+      context: ..
+      dockerfile: WebinoERP/docker/next/Dockerfile
+    environment:
+      NODE_ENV: production
+      NEXT_PUBLIC_API_URL: ""
+      INTERNAL_API_URL: http://backend:8080
+      API_PROXY_TARGET: http://backend:8080
+      AUTH_COOKIE_NAME: webino_auth_token
+      NEXT_PUBLIC_REVERB_PORT: "8081"
+    depends_on:
+      - backend
+    networks:
+      - webino_erp
+
+  web:
+    image: caddy:2-alpine
+    ports:
+      - "${WEB_HTTP_PORT:-3080}:80"
+      - "${WEB_HTTPS_PORT:-3443}:443"
+    volumes:
+      - ./docker/caddy/Caddyfile:/etc/caddy/Caddyfile:ro
+    depends_on:
+      - backend
+      - frontend
+      - ws
+    networks:
+      - webino_erp
 
   docs:
     profiles: ["docs", "dev"]
     build:
       context: ./docs-site
       dockerfile: Dockerfile
-    container_name: webina_erp_docs
     networks:
       - webino_erp
-    restart: unless-stopped
 
 networks:
   webino_erp:
     driver: bridge
 
 volumes:
-  pgdata:
+  redis_data:
+  db_data:

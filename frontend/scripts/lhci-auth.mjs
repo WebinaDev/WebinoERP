@@ -6,7 +6,7 @@ const apiUrl = process.env.PLAYWRIGHT_API_URL || process.env.NEXT_PUBLIC_API_URL
  */
 module.exports = async (page) => {
   const url = page.url();
-  if (!url.includes('/dashboard')) {
+  if (!url.includes('/admin')) {
     return;
   }
 

@@ -1,6 +1,6 @@
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
-import { siteHref } from '@/src/lib/api-server';
+import { siteHref } from '@/lib/public-api-server';
 
 type HomeData = {
   site: { name: string; branding?: Record<string, unknown> | null };

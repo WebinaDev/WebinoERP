@@ -1,0 +1,33 @@
+{
+  "slug": "marketing",
+  "name_fa": "بازاریابی",
+  "name_en": "Marketing",
+  "submodules": [
+    "pages",
+    "blog",
+    "magazine",
+    "academy",
+    "portfolio",
+    "media"
+  ],
+  "admin_nav": {
+    "section": "marketing",
+    "order": 90
+  },
+  "site_types": [
+    "erp",
+    "corporate"
+  ],
+  "public_routes": [
+    "blog",
+    "blog/:slug",
+    "academy",
+    "magazine",
+    "portfolio",
+    "services",
+    "solutions",
+    "about",
+    "contact",
+    "consultation"
+  ]
+}

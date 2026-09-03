@@ -14,7 +14,7 @@ test.describe('Dashboard keyboard', () => {
   test.use({ storageState: 'e2e/.auth/admin.json' });
 
   test('dashboard shows main heading', async ({ page }) => {
-    await page.goto('/dashboard');
+    await page.goto('/admin');
     await expect(page.locator('h1').first()).toBeVisible({ timeout: 15_000 });
   });
 });

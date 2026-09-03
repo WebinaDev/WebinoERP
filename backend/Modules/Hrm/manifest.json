@@ -1,0 +1,22 @@
+{
+  "slug": "hrm",
+  "name_fa": "منابع انسانی",
+  "name_en": "HRM",
+  "submodules": [
+    "staff",
+    "attendance",
+    "leave",
+    "payroll",
+    "recruitment",
+    "performance",
+    "training"
+  ],
+  "admin_nav": {
+    "section": "hrm",
+    "order": 10
+  },
+  "site_types": [
+    "erp"
+  ],
+  "public_routes": []
+}

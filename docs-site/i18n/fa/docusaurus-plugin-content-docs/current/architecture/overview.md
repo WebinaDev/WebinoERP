@@ -4,14 +4,15 @@
 
 | کانتینر | نقش |
 |---------|-----|
-| **nginx** | پروکسی معکوس (`/`, `/api`, `/docs`) |
-| **frontend** | داشبورد Next.js 14 |
-| **backend** | API Laravel 12 |
+| **web** | پروکسی Caddy (`/`, `/api`, `/app`، `/docs`) |
+| **frontend** | Next.js 15 SSR (`/admin`) |
+| **backend** | API Laravel 13 + Octane/FrankenPHP |
 | **docs** | مستندات Docusaurus 3 (FA/EN) |
-| **postgres** | پایگاه داده |
+| **db** | Postgres 15 |
 | **redis** | کش، صف، نشست |
-| **queue** | worker صف Laravel |
-| **reverb** | WebSocket (چت PM) |
+| **worker** | worker صف Laravel |
+| **scheduler** | `schedule:work` |
+| **ws** | Laravel Reverb (`:8081`، چت PM) |
 
 ## مرزهای ماژول
 

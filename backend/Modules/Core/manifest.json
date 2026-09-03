@@ -1,0 +1,20 @@
+{
+  "slug": "core",
+  "name_fa": "هسته",
+  "name_en": "Core",
+  "submodules": [
+    "auth",
+    "dashboard",
+    "settings",
+    "navigation",
+    "license"
+  ],
+  "admin_nav": {
+    "section": "core",
+    "order": 0
+  },
+  "site_types": [
+    "erp"
+  ],
+  "public_routes": []
+}

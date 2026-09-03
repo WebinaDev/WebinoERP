@@ -6,7 +6,6 @@ use Illuminate\Support\Facades\Route;
 use Illuminate\Support\ServiceProvider;
 use Modules\Integrations\Http\Controllers\WebinocrmBaleRestController;
 use Modules\Integrations\Http\Controllers\WebinocrmGitWebhookController;
-use Modules\Integrations\Http\Controllers\WebinocrmWebinoServerWebhookController;
 use Modules\Integrations\Http\Controllers\WoobaleCompatController;
 use Modules\Integrations\Services\Bale\BaleAutomationEngine;
 use Modules\Integrations\Services\Bale\BaleSettingsStore;
@@ -51,10 +50,6 @@ class IntegrationsServiceProvider extends ServiceProvider
         Route::prefix('api/webinocrm/v1')
             ->middleware('api')
             ->post('/git/webhook', [WebinocrmGitWebhookController::class, 'handle']);
-
-        Route::prefix('api/webinocrm/v1')
-            ->middleware('api')
-            ->post('/hosting/webinoserver/webhook', [WebinocrmWebinoServerWebhookController::class, 'handle']);
 
         Route::prefix('api/webinocrm/v1')
             ->middleware('api')

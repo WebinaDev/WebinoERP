@@ -1,0 +1,22 @@
+{
+  "slug": "accounting",
+  "name_fa": "حسابداری",
+  "name_en": "Accounting",
+  "submodules": [
+    "dashboard",
+    "persons",
+    "products",
+    "invoices",
+    "journals",
+    "ledger",
+    "reports"
+  ],
+  "admin_nav": {
+    "section": "accounting",
+    "order": 20
+  },
+  "site_types": [
+    "erp"
+  ],
+  "public_routes": []
+}

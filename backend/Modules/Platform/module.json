@@ -1,0 +1,13 @@
+{
+    "name": "Platform",
+    "alias": "platform",
+    "description": "Coolify-class control plane: servers, projects, apps, databases, services, domains, backups",
+    "keywords": ["platform", "coolify", "docker", "ssh"],
+    "priority": 5,
+    "providers": [
+        "Modules\Platform\Providers\PlatformServiceProvider"
+    ],
+    "aliases": {},
+    "files": [],
+    "requires": []
+}

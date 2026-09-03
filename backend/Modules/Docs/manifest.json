@@ -1,0 +1,17 @@
+{
+  "slug": "docs",
+  "name_fa": "اسناد",
+  "name_en": "Documents",
+  "submodules": [
+    "contracts",
+    "files"
+  ],
+  "admin_nav": {
+    "section": "docs",
+    "order": 100
+  },
+  "site_types": [
+    "erp"
+  ],
+  "public_routes": []
+}

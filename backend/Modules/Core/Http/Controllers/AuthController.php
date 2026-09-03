@@ -92,6 +92,25 @@ class AuthController extends Controller
         ]));
     }
 
+    public function gate(Request $request): JsonResponse
+    {
+        $user = $request->user('sanctum');
+        $setupCompleted = null;
+        if ($user) {
+            $raw = \Modules\Core\Entities\SystemSetting::query()
+                ->where('key', 'setup_completed')
+                ->value('value');
+            $setupCompleted = filter_var($raw ?? 'true', FILTER_VALIDATE_BOOLEAN);
+        }
+
+        return response()->json([
+            'data' => [
+                'authenticated' => $user !== null,
+                'setup_completed' => $setupCompleted,
+            ],
+        ]);
+    }
+
     public function user(Request $request, DashboardNavigationService $navigation): JsonResponse
     {
         $user = $request->user();

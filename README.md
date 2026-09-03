@@ -4,13 +4,11 @@
 
 ## ساختار پروژه
 
-این پروژه از ساختار **Monorepo** استفاده می‌کند:
-
 ```
 webina-enterprise/
-├── backend/          # Laravel 11.x Application
-├── frontend/         # Next.js 14+ Application
-├── docker/           # Docker configurations
+├── backend/          # Laravel 13 + Octane/FrankenPHP (nwidart Modules/)
+├── frontend/         # Next.js 15 App Router (`src/app`, `/admin`)
+├── docker/           # Caddy, PHP, Next Dockerfiles
 └── docker-compose.yml
 ```
 
@@ -68,8 +66,9 @@ npm run dev
 
 ## دسترسی
 
-- **Frontend:** http://localhost:3000
-- **Backend API:** http://localhost/api (پیشوند ماژول‌ها: `/api/v1/core`, `/api/v1/crm`, `/api/v1/projects`, …)
+- **Frontend:** http://localhost:3080 (یا `WEB_HTTP_PORT`)
+- **Admin:** http://localhost:3080/admin
+- **Backend API:** http://localhost:3080/api (پیشوند ماژول‌ها: `/api/v1/core`, `/api/v1/crm`, `/api/v1/projects`, …)
 
 ## مستندات
 

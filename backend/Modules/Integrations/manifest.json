@@ -1,0 +1,21 @@
+{
+  "slug": "integrations",
+  "name_fa": "یکپارچه‌سازی",
+  "name_en": "Integrations",
+  "submodules": [
+    "sms",
+    "payments",
+    "bale",
+    "modirpayamak",
+    "portainer",
+    "gitea"
+  ],
+  "admin_nav": {
+    "section": "integrations",
+    "order": 120
+  },
+  "site_types": [
+    "erp"
+  ],
+  "public_routes": []
+}

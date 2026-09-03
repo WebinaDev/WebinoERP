@@ -23,7 +23,8 @@ RUN set -eux; \
     apt-get update; \
     apt-get install -y --no-install-recommends \
         $PHPIZE_DEPS \
-        git unzip libzip-dev libpq-dev libpng-dev libonig-dev libxml2-dev libsqlite3-dev curl; \
+        git unzip libzip-dev libpq-dev libpng-dev libonig-dev libxml2-dev libsqlite3-dev \
+        libbrotli-dev curl; \
     docker-php-ext-install dom xml zip pdo_sqlite pdo_pgsql pgsql mbstring pcntl bcmath gd opcache; \
     chmod +x /tmp/install-redis.sh; \
     REDIS_PECL_VERSION="$REDIS_PECL_VERSION" /tmp/install-redis.sh; \
@@ -37,6 +38,8 @@ RUN echo "opcache.enable=1" >> /usr/local/etc/php/conf.d/opcache.ini \
     && echo "opcache.validate_timestamps=0" >> /usr/local/etc/php/conf.d/opcache.ini
 
 COPY --from=composer:2 /usr/bin/composer /usr/bin/composer
+COPY --from=dunglas/frankenphp:1-php8.3-bookworm /usr/local/bin/frankenphp /usr/local/bin/frankenphp
+RUN chmod +x /usr/local/bin/frankenphp
 
 WORKDIR /var/www/html
 
@@ -59,4 +62,4 @@ RUN chmod +x /entrypoint.sh
 
 EXPOSE 8080
 ENTRYPOINT ["/entrypoint.sh"]
-CMD ["php", "artisan", "serve", "--host=0.0.0.0", "--port=8080"]
+CMD ["php", "artisan", "octane:start", "--server=frankenphp", "--host=0.0.0.0", "--port=8080"]

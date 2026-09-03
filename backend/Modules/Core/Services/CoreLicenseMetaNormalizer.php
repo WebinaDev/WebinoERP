@@ -23,6 +23,7 @@ class CoreLicenseMetaNormalizer
     public const ALLOWED_META_KEYS = [
         'modules', 'vertical', 'sku', 'module_repos', 'git',
         'business_category', 'business_type', 'features', 'theme_preset', 'nav_preset',
+        'site_type', 'module_matrix',
     ];
 
     /**
@@ -265,6 +266,27 @@ class CoreLicenseMetaNormalizer
 
         if (isset($meta['nav_preset']) && is_array($meta['nav_preset'])) {
             $clean['nav_preset'] = $meta['nav_preset'];
+        }
+
+        if (isset($meta['site_type']) && is_string($meta['site_type']) && strlen($meta['site_type']) <= 64) {
+            $clean['site_type'] = $meta['site_type'];
+        }
+
+        if (isset($meta['module_matrix']) && is_array($meta['module_matrix'])) {
+            $matrix = [];
+            foreach ($meta['module_matrix'] as $mod => $subs) {
+                if (! is_string($mod) || ! preg_match('/^[a-z0-9_]{1,64}$/', $mod) || ! is_array($subs)) {
+                    continue;
+                }
+                $cleanSubs = [];
+                foreach ($subs as $sub) {
+                    if (is_string($sub) && preg_match('/^[a-z0-9_]{1,64}$/', $sub)) {
+                        $cleanSubs[] = $sub;
+                    }
+                }
+                $matrix[$mod] = array_values(array_unique($cleanSubs));
+            }
+            $clean['module_matrix'] = $matrix;
         }
 
         return count($clean) > 0 ? $clean : [];

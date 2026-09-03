@@ -1,7 +1,9 @@
 # مستند معماری فنی سیستم جامع Webina Enterprise CRM
-**نسخه:** 1.0.0
+**نسخه:** 1.1.0
 **توسعه‌دهنده:** شرکت توسعه کسب و کار وبینا
-**تاریخ تدوین:** ژانویه 2026
+**تاریخ تدوین:** ژانویه 2026 · **به‌روزرسانی استک:** سپتامبر 2026
+
+> **استک فعلی (الزامی، هم‌تراز WebinoDashboard):** Laravel 13 + Octane/FrankenPHP · nwidart `backend/Modules/` + `manifest.json` · Next.js 15 App Router (`src/app`، بدون `[locale]`) · shadcn login-04 / sidebar-07 · i18n کوکی `NEXT_LOCALE` بدون `next-intl/plugin` · ادمین `/admin` · کرنل `frontend/modules` + `src/kernel` · Caddy + `@webina/ui`. قوانین Cursor: `.cursor/rules/`.
 
 ---
 
@@ -14,9 +16,10 @@
 ## ۲. پشته تکنولوژی (Technology Stack)
 
 ### Backend (Server-side)
-* **Framework:** Laravel 11.x
-* **Architecture:** Modular Monolith (via `nwidart/laravel-modules`)
-* **API Standard:** RESTful API (JSON)
+* **Framework:** Laravel 13.x
+* **Architecture:** Modular Monolith (via `nwidart/laravel-modules` 13.x)
+* **Runtime:** Laravel Octane + FrankenPHP
+* **API Standard:** RESTful API (JSON) `/api/v1/{module}/...`
 * **Database:** PostgreSQL 15+
 * **Cache & Queue:** Redis
 * **Authentication:** Laravel Sanctum (Stateful for Web / Token for Mobile)
@@ -24,17 +27,19 @@
 * **Documentation:** Scramble / Swagger
 
 ### Frontend (Client-side)
-* **Framework:** Next.js 14+ (App Router)
+* **Framework:** Next.js 15 (App Router)
 * **Language:** TypeScript
-* **UI Component Library:** shadcn/ui
-* **Styling:** Tailwind CSS (با قابلیت تغییر متغیرها در Runtime)
+* **UI Component Library:** official shadcn/ui (`login-04`, `sidebar-07`)
+* **Styling:** Tailwind CSS 4 (با قابلیت تغییر متغیرها در Runtime)
 * **State Management/Data Fetching:** TanStack Query (React Query)
-* **Internationalization (i18n):** `next-intl` (پشتیبانی کامل RTL/LTR)
+* **Internationalization (i18n):** `next-intl` با کوکی `NEXT_LOCALE` (بدون plugin؛ سازگار با Docker standalone)
 * **Icons:** Lucide React
+* **Admin path:** `/admin` (redirect از `/dashboard`)
 
 ### DevOps & Infrastructure
 * **Containerization:** Docker & Docker Compose
-* **Web Server:** Nginx (Reverse Proxy)
+* **Web Server:** Caddy (reverse proxy؛ تنها `web` به هاست publish می‌شود)
+* **PHP image:** `docker/php/Dockerfile` (Octane/FrankenPHP)
 
 ---
 
@@ -116,7 +121,7 @@ useEffect(() => {
   }
 }, [config]);
 ۵.۲ کامپوننت فوتر اجباری (Mandatory Footer)
-در فایل Layout اصلی (app/[locale]/layout.tsx)، فوتر به صورت ثابت قرار می‌گیرد و از دیتابیس خوانده نمی‌شود تا غیرقابل تغییر باشد.
+در فایل Layout اصلی (`src/app/layout.tsx`)، فوتر به صورت ثابت قرار می‌گیرد و از دیتابیس خوانده نمی‌شود تا غیرقابل تغییر باشد.
 
 TypeScript
 
@@ -136,9 +141,11 @@ export function Footer() {
   );
 }
 ۵.۳ چندزبانه و راست‌چین (i18n & RTL)
-استفاده از next-intl.
+استفاده از next-intl **بدون** `next-intl/plugin`.
 
-پوشه‌بندی: app/[locale]/page.tsx
+locale از کوکی `NEXT_LOCALE`؛ هلپر `getServerTranslations` برای Server Components.
+
+ساختار مسیر: `src/app/login`، `src/app/admin/[...slug]`، `src/app/(site)/...` — بدون `[locale]`.
 
 تشخیص زبان: اگر locale === 'fa' باشد، تگ HTML به صورت <html dir="rtl" lang="fa"> رندر می‌شود.
 
@@ -195,73 +202,19 @@ Route::middleware(['auth:sanctum', 'module:crm'])->group(function () {
 اگر CRM فعال بود، آیتم‌های منوی "مشتریان"، "فرصت‌ها" را رندر می‌کند.
 
 ۸. زیرساخت داکر (Docker Infrastructure)
-فایل docker-compose.yml نهایی برای محیط Production:
 
-YAML
+استک فعلی (هم‌تراز WebinoDashboard؛ منبع حقیقت: `docker-compose.yml`):
 
-version: '3.8'
+- `web` — Caddy؛ تنها سرویسی که به هاست publish می‌شود (`3080`/`3443`)
+- `frontend` — Next.js standalone
+- `backend` — Laravel Octane + FrankenPHP روی `:8080`
+- `worker` / `scheduler`
+- `db` — Postgres 15 · `redis`
+- `ws` — Laravel Reverb روی `:8081` (چت/realtime؛ Dashboard این سرویس را ندارد)
 
-services:
-  # وب‌سرور اصلی و پروکسی
-  nginx:
-    image: nginx:alpine
-    ports:
-      - "80:80"
-      - "443:443"
-    volumes:
-      - ./docker/nginx/conf.d:/etc/nginx/conf.d
-      - ./backend:/var/www/html
-    depends_on:
-      - app
-      - web
+تصاویر: `docker/php/Dockerfile`، `docker/next/Dockerfile`، `docker/caddy/Caddyfile`.
+پروداکشن: `docker-compose.prod.yml` · aaPanel: `docker-compose.aapanel.yml`.
 
-  # لاراول (Backend API)
-  app:
-    build:
-      context: ./backend
-      dockerfile: Dockerfile
-    environment:
-      DB_HOST: db
-      REDIS_HOST: redis
-    volumes:
-      - ./backend:/var/www/html
-    networks:
-      - internal
-
-  # نکست جی‌اس (Frontend Dashboard)
-  web:
-    build:
-      context: ./frontend
-      dockerfile: Dockerfile
-    environment:
-      NEXT_PUBLIC_API_URL: http://nginx/api
-    networks:
-      - internal
-
-  # دیتابیس
-  db:
-    image: postgres:15-alpine
-    environment:
-      POSTGRES_DB: webina_crm
-      POSTGRES_USER: user
-      POSTGRES_PASSWORD: password
-    volumes:
-      - pgdata:/var/lib/postgresql/data
-    networks:
-      - internal
-
-  # ردیس (کش و صف)
-  redis:
-    image: redis:alpine
-    networks:
-      - internal
-
-networks:
-  internal:
-    driver: bridge
-
-volumes:
-  pgdata:
 ۹. امنیت و سطوح دسترسی (RBAC)
 از پکیج spatie/laravel-permission استفاده می‌شود.
 

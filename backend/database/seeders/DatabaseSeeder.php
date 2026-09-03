@@ -17,6 +17,7 @@ class DatabaseSeeder extends Seeder
             SystemSettingsSeeder::class,
             \Modules\Crm\Database\Seeders\CrmLookupSeeder::class,
             \Modules\SiteBuilder\Database\Seeders\SiteBuilderSeeder::class,
+            \Modules\Platform\Database\Seeders\PlatformServiceTemplatesSeeder::class,
             \Modules\Marketplace\Database\Seeders\SiteThemeSeeder::class,
             \Modules\Marketing\Database\Seeders\MarketingSiteSeeder::class,
             DemoUserSeeder::class,

@@ -24,8 +24,6 @@ class WebinocrmHostingSettingsController extends Controller
                 'portainer_endpoint_id' => $s->portainer_endpoint_id,
                 'git_webhook_secret_configured' => filled($s->git_webhook_secret),
                 'license_hmac_configured' => ((string) config('app.webinocrm_license_hmac_secret')) !== '',
-                'webinoserver_panel_url' => $s->webinoserver_panel_url,
-                'webinoserver_api_token_configured' => filled($s->webinoserver_api_token),
                 'platform_base_domain' => $s->platform_base_domain,
                 'default_product_channel' => $s->default_product_channel ?? 'LTS',
                 'provision_webhook_secret_configured' => filled($s->provision_webhook_secret),
@@ -45,8 +43,6 @@ class WebinocrmHostingSettingsController extends Controller
             'portainer_tls_fingerprint' => 'nullable|string|max:128',
             'portainer_endpoint_id' => 'nullable|integer|min:0',
             'git_webhook_secret' => 'nullable|string|max:4000',
-            'webinoserver_panel_url' => 'nullable|string|max:512',
-            'webinoserver_api_token' => 'nullable|string|max:4000',
             'platform_base_domain' => 'nullable|string|max:255',
             'default_product_channel' => 'nullable|string|max:16|in:Dev,LTS,Beta',
             'provision_webhook_secret' => 'nullable|string|max:4000',
@@ -57,7 +53,7 @@ class WebinocrmHostingSettingsController extends Controller
         foreach ([
             'public_crm_url', 'git_provider', 'git_base_url',
             'portainer_url', 'portainer_tls_fingerprint',
-            'webinoserver_panel_url', 'platform_base_domain', 'default_product_channel',
+            'platform_base_domain', 'default_product_channel',
         ] as $k) {
             if (array_key_exists($k, $data)) {
                 $s->{$k} = $data[$k] !== '' ? $data[$k] : null;
@@ -68,7 +64,7 @@ class WebinocrmHostingSettingsController extends Controller
             $s->portainer_endpoint_id = $data['portainer_endpoint_id'];
         }
 
-        foreach (['git_pat', 'portainer_api_token', 'git_webhook_secret', 'webinoserver_api_token', 'provision_webhook_secret'] as $secretKey) {
+        foreach (['git_pat', 'portainer_api_token', 'git_webhook_secret', 'provision_webhook_secret'] as $secretKey) {
             if (! array_key_exists($secretKey, $data)) {
                 continue;
             }

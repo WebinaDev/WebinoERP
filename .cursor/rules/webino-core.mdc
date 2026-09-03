@@ -1,0 +1,49 @@
+---
+description: Core WebinoERP architecture and non-negotiable product rules
+alwaysApply: true
+---
+
+# WebinoERP — Core Rules
+
+## Stack (mandatory)
+
+- **Backend:** Laravel (latest stable). API-first only. Modular monolith via `nwidart/laravel-modules` under `backend/Modules/`.
+- **Frontend:** Next.js App Router + official [shadcn/ui](https://ui.shadcn.com/).
+- **Deploy:** Dockerized microservices — separate `frontend` and `backend` containers (`docker-compose.yml` / `docker-compose.aapanel.yml`). Never merge them into one runtime image for production.
+- **Runtime:** Laravel Octane + FrankenPHP; reverse proxy Caddy (`web` is the only host-published service). Keep Reverb (`ws`) for realtime.
+
+## Quality bar
+
+- No placeholders, stubs, “TODO UI”, or fake data in shipped paths.
+- Auth must be complete: no gaps in cookie/session/Sanctum, middleware gates, or setup redirects.
+- No hard-coded user-facing strings (UI, errors, nav, empty states) — use i18n keys.
+- Every visible site/admin setting (logo, colors, accent, copy, fonts) must be editable from the dashboard. Never ship a front-end value the operator cannot change.
+
+## Architecture
+
+- Modular: every feature and every third-party integration lives inside its own module/submodule (frontend `manifest.ts` + nwidart backend routes + frontend pages).
+- Frontend kernel matches WebinoDashboard (`frontend/modules/*/manifest.ts` + `frontend/src/kernel`) so module UIs can be shared across products.
+- Public and admin UIs are **SSR**. Target first meaningful paint / LCP under **1 second** on a typical VPS path (cache public GETs, avoid client waterfalls).
+- Mobile-first and responsive for all breakpoints (sm/md/lg/xl). Do not ship desktop-only layouts.
+
+## Pages (official shadcn blocks)
+
+```bash
+npx shadcn@latest add login-04
+npx shadcn@latest add sidebar-07
+```
+
+Never hand-draw login or sidebar “inspired by” shadcn. Always add from the official CLI and import the generated components.
+
+Admin shell lives under `/admin`. Keep `/dashboard` → `/admin` redirects for compatibility.
+
+## Forbidden
+
+```tsx
+// ❌ BAD — hard-coded copy / placeholder
+<button>ثبت نام</button>
+<div>Coming soon</div>
+
+// ✅ GOOD — translation key + real implementation
+<button>{t("auth.register")}</button>
+```

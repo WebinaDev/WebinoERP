@@ -1,0 +1,20 @@
+{
+  "slug": "mfg",
+  "name_fa": "تولید",
+  "name_en": "Manufacturing",
+  "submodules": [
+    "overview",
+    "boms",
+    "work-orders",
+    "quality",
+    "planning"
+  ],
+  "admin_nav": {
+    "section": "mfg",
+    "order": 70
+  },
+  "site_types": [
+    "erp"
+  ],
+  "public_routes": []
+}
