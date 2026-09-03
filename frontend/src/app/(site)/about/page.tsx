@@ -19,7 +19,7 @@ export default async function AboutPage() {
     <div className="container mx-auto max-w-3xl px-4 py-12">
       <h1 className="text-3xl font-bold">{page?.title_fa ?? t('auto.remaining.s_02b1718b')}</h1>
       <div
-        className="prose mt-8 max-w-none"
+        className="prose prose-invert mt-8 max-w-none"
         dangerouslySetInnerHTML={{ __html: page?.body_fa ?? `<p>${t('auto._site__about_page.s_904c7507')}</p>` }}
       />
     </div>

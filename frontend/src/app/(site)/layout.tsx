@@ -21,7 +21,7 @@ export default async function SiteLayout({
   }
 
   return (
-    <div className="flex min-h-svh flex-col bg-background text-foreground [--brand-primary:#0066FF]">
+    <div className="flex min-h-svh flex-col bg-[#07070a] text-white [--brand-primary:#0066FF]">
       <SiteHeader siteName={siteName} logoUrl={logoUrl} />
       <main className="flex-1">{children}</main>
       <SiteFooter siteName={siteName} />
