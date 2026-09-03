@@ -91,14 +91,25 @@ class DockerRemoteService
         ];
     }
 
-    public function composeUp(PlatformServer $server, string $dir): array
+    public function composeUp(PlatformServer $server, string $dir, ?string $project = null): array
     {
-        return $this->ssh->run($server, 'cd '.escapeshellarg($dir).' && docker compose up -d --build', 900);
+        $p = $project ? ' -p '.escapeshellarg($project) : '';
+
+        return $this->ssh->run($server, 'cd '.escapeshellarg($dir).' && docker compose'.$p.' up -d --build', 900);
     }
 
-    public function composeDown(PlatformServer $server, string $dir): array
+    public function composeDown(PlatformServer $server, string $dir, ?string $project = null): array
     {
-        return $this->ssh->run($server, 'cd '.escapeshellarg($dir).' && docker compose down', 300);
+        $p = $project ? ' -p '.escapeshellarg($project) : '';
+
+        return $this->ssh->run($server, 'cd '.escapeshellarg($dir).' && docker compose'.$p.' down', 300);
+    }
+
+    public function composeStop(PlatformServer $server, string $dir, ?string $project = null): array
+    {
+        $p = $project ? ' -p '.escapeshellarg($project) : '';
+
+        return $this->ssh->run($server, 'cd '.escapeshellarg($dir).' && docker compose'.$p.' stop', 300);
     }
 
     public function sshRun(PlatformServer $server, string $command, int $timeout = 120): array

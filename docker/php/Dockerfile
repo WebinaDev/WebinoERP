@@ -23,6 +23,12 @@ RUN echo "opcache.enable=1" >> /usr/local/etc/php/conf.d/opcache.ini \
 
 COPY --from=composer:2 /usr/bin/composer /usr/bin/composer
 COPY --from=dunglas/frankenphp:1-php8.3-bookworm /usr/local/bin/frankenphp /usr/local/bin/frankenphp
-RUN chmod +x /usr/local/bin/frankenphp
+# Host Docker for LocalSameVpsProvisioner (docker.sock mounted at runtime).
+COPY --from=docker:27-cli /usr/local/bin/docker /usr/local/bin/docker
+COPY --from=docker:27-cli /usr/local/libexec/docker/cli-plugins/docker-compose /usr/local/libexec/docker/cli-plugins/docker-compose
+RUN chmod +x /usr/local/bin/frankenphp /usr/local/bin/docker \
+    && mkdir -p /usr/local/lib/docker/cli-plugins \
+    && ln -sf /usr/local/libexec/docker/cli-plugins/docker-compose /usr/local/lib/docker/cli-plugins/docker-compose \
+    && chmod +x /usr/local/libexec/docker/cli-plugins/docker-compose
 
 WORKDIR /var/www/html

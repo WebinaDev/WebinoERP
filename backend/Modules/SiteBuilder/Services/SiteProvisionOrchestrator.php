@@ -3,9 +3,9 @@
 namespace Modules\SiteBuilder\Services;
 
 use Illuminate\Support\Facades\Http;
-use Illuminate\Support\Str;
 use Modules\Core\Entities\CoreHostingSetting;
 use Modules\Platform\Entities\PlatformServer;
+use Modules\Platform\Services\LocalSameVpsProvisioner;
 use Modules\Platform\Services\WebinoDashboardProvisioner;
 use Modules\SiteBuilder\Entities\WebinoSiteProvision;
 use Throwable;
@@ -13,7 +13,8 @@ use Throwable;
 class SiteProvisionOrchestrator
 {
     public function __construct(
-        private readonly WebinoDashboardProvisioner $platform,
+        private readonly WebinoDashboardProvisioner $remote,
+        private readonly LocalSameVpsProvisioner $local,
         private readonly LicenseProvisionerService $licenses,
         private readonly SiteProvisionAuditLogger $audit,
     ) {}
@@ -23,9 +24,12 @@ class SiteProvisionOrchestrator
         $provision->load(['package.businessType.category', 'package.features', 'crmAccount']);
 
         $serverId = (int) (($provision->wizard_payload['server_id'] ?? 0) ?: 0);
-        $server = $serverId
-            ? PlatformServer::query()->find($serverId)
-            : PlatformServer::query()->where('status', 'ready')->orderBy('id')->first();
+        $server = $serverId ? PlatformServer::query()->find($serverId) : null;
+
+        $useRemote = $server && ! $this->isLocalhostServer($server);
+        if (! $useRemote) {
+            $server = $this->ensureLocalhostServer();
+        }
 
         if (! $server) {
             return $this->fail($provision, 'platform.no_ready_server');
@@ -36,13 +40,50 @@ class SiteProvisionOrchestrator
             ?? 'corporate';
 
         try {
-            $this->platform->provisionFromSiteBuilder($provision, $server, $siteType);
+            if ($useRemote) {
+                $this->remote->provisionFromSiteBuilder($provision, $server, $siteType);
+            } else {
+                $this->local->provisionFromSiteBuilder($provision, $server, $siteType);
+            }
             $this->audit->log($provision->created_by, 'provision.launched', $provision->fresh());
         } catch (Throwable $e) {
             return $this->fail($provision, $e->getMessage());
         }
 
         return $provision->fresh(['license', 'package', 'crmAccount']);
+    }
+
+    /**
+     * @return array{exit_code:int,stdout:string,stderr:string}
+     */
+    public function start(WebinoSiteProvision $provision): array
+    {
+        if ($this->shouldUseLocal($provision)) {
+            return $this->local->start($provision);
+        }
+
+        return $this->remote->start($provision);
+    }
+
+    /**
+     * @return array{exit_code:int,stdout:string,stderr:string}
+     */
+    public function stop(WebinoSiteProvision $provision): array
+    {
+        if ($this->shouldUseLocal($provision)) {
+            return $this->local->stop($provision);
+        }
+
+        return $this->remote->stop($provision);
+    }
+
+    public function logs(WebinoSiteProvision $provision, int $tail = 200): string
+    {
+        if ($this->shouldUseLocal($provision)) {
+            return $this->local->logs($provision, $tail);
+        }
+
+        return $this->remote->logs($provision, $tail);
     }
 
     public function poll(WebinoSiteProvision $provision): WebinoSiteProvision
@@ -78,6 +119,54 @@ class SiteProvisionOrchestrator
         ]);
 
         return $provision->fresh();
+    }
+
+    protected function shouldUseLocal(WebinoSiteProvision $provision): bool
+    {
+        $serverId = (int) (($provision->wizard_payload['server_id'] ?? 0) ?: 0);
+        if (! $serverId) {
+            return true;
+        }
+        $server = PlatformServer::query()->find($serverId);
+
+        return ! $server || $this->isLocalhostServer($server);
+    }
+
+    protected function isLocalhostServer(PlatformServer $server): bool
+    {
+        return (bool) $server->is_localhost
+            || in_array($server->ip, ['127.0.0.1', 'localhost', '::1'], true)
+            || strcasecmp((string) $server->name, 'localhost') === 0;
+    }
+
+    protected function ensureLocalhostServer(): PlatformServer
+    {
+        $settings = CoreHostingSetting::current();
+        $dirty = false;
+        if (! filled($settings->platform_base_domain)) {
+            $settings->platform_base_domain = 'webinaagency.ir';
+            $dirty = true;
+        }
+        if (! filled($settings->provision_webhook_secret)) {
+            $settings->provision_webhook_secret = bin2hex(random_bytes(32));
+            $dirty = true;
+        }
+        if ($dirty) {
+            $settings->save();
+        }
+
+        return PlatformServer::query()->firstOrCreate(
+            ['name' => 'localhost'],
+            [
+                'ip' => '127.0.0.1',
+                'port' => 22,
+                'user' => 'root',
+                'status' => 'ready',
+                'is_localhost' => true,
+                'proxy_type' => 'caddy',
+                'meta' => ['managed_by' => 'site_builder'],
+            ]
+        );
     }
 
     /**

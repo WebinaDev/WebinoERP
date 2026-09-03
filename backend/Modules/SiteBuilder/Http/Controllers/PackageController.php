@@ -44,17 +44,17 @@ class PackageController extends Controller
         return response()->json(['data' => $row], 201);
     }
 
-    public function show(WebinoPackage $package): JsonResponse
+    public function show(WebinoPackage $sitePackage): JsonResponse
     {
-        $package->load(['businessType.category', 'features']);
+        $sitePackage->load(['businessType.category', 'features']);
 
-        return response()->json(['data' => $package]);
+        return response()->json(['data' => $sitePackage]);
     }
 
-    public function update(Request $request, WebinoPackage $package): JsonResponse
+    public function update(Request $request, WebinoPackage $sitePackage): JsonResponse
     {
         $data = $request->validate([
-            'sku' => 'sometimes|string|max:128|regex:/^[a-zA-Z0-9._-]+$/|unique:webino_packages,sku,'.$package->id,
+            'sku' => 'sometimes|string|max:128|regex:/^[a-zA-Z0-9._-]+$/|unique:webino_packages,sku,'.$sitePackage->id,
             'name_fa' => 'sometimes|string|max:191',
             'name_en' => 'sometimes|string|max:191',
             'business_type_id' => 'sometimes|exists:webino_business_types,id',
@@ -68,18 +68,18 @@ class PackageController extends Controller
         $featureIds = $data['feature_ids'] ?? null;
         unset($data['feature_ids']);
 
-        $package->update($data);
+        $sitePackage->update($data);
         if (is_array($featureIds)) {
-            $package->features()->sync($featureIds);
+            $sitePackage->features()->sync($featureIds);
         }
-        $package->load(['businessType.category', 'features']);
+        $sitePackage->load(['businessType.category', 'features']);
 
-        return response()->json(['data' => $package]);
+        return response()->json(['data' => $sitePackage]);
     }
 
-    public function destroy(WebinoPackage $package): JsonResponse
+    public function destroy(WebinoPackage $sitePackage): JsonResponse
     {
-        $package->delete();
+        $sitePackage->delete();
 
         return response()->json(['message' => 'Deleted']);
     }

@@ -62,14 +62,14 @@ class BusinessTypeController extends Controller
         return response()->json(['data' => $row], 201);
     }
 
-    public function show(WebinoBusinessType $type): JsonResponse
+    public function show(WebinoBusinessType $siteType): JsonResponse
     {
-        $type->load(['category', 'features', 'packages']);
+        $siteType->load(['category', 'features', 'packages']);
 
-        return response()->json(['data' => $type]);
+        return response()->json(['data' => $siteType]);
     }
 
-    public function update(Request $request, WebinoBusinessType $type): JsonResponse
+    public function update(Request $request, WebinoBusinessType $siteType): JsonResponse
     {
         $data = $request->validate([
             'category_id' => 'sometimes|exists:webino_business_categories,id',
@@ -92,32 +92,32 @@ class BusinessTypeController extends Controller
         unset($data['feature_ids']);
 
         if (isset($data['slug']) || isset($data['category_id'])) {
-            $catId = $data['category_id'] ?? $type->category_id;
-            $slug = $data['slug'] ?? $type->slug;
+            $catId = $data['category_id'] ?? $siteType->category_id;
+            $slug = $data['slug'] ?? $siteType->slug;
             $exists = WebinoBusinessType::query()
                 ->where('category_id', $catId)
                 ->where('slug', $slug)
-                ->where('id', '!=', $type->id)
+                ->where('id', '!=', $siteType->id)
                 ->exists();
             if ($exists) {
                 return response()->json(['message' => 'Slug already exists for this category.'], 422);
             }
         }
 
-        $type->update($data);
+        $siteType->update($data);
         if (is_array($featureIds)) {
-            $type->features()->sync(collect($featureIds)->mapWithKeys(fn ($id) => [
+            $siteType->features()->sync(collect($featureIds)->mapWithKeys(fn ($id) => [
                 $id => ['is_required' => false, 'default_selected' => true],
             ])->all());
         }
-        $type->load(['category', 'features']);
+        $siteType->load(['category', 'features']);
 
-        return response()->json(['data' => $type]);
+        return response()->json(['data' => $siteType]);
     }
 
-    public function destroy(WebinoBusinessType $type): JsonResponse
+    public function destroy(WebinoBusinessType $siteType): JsonResponse
     {
-        $type->delete();
+        $siteType->delete();
 
         return response()->json(['message' => 'Deleted']);
     }

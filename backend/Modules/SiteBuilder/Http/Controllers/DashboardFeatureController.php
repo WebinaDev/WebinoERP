@@ -33,15 +33,15 @@ class DashboardFeatureController extends Controller
         return response()->json(['data' => $row], 201);
     }
 
-    public function show(WebinoDashboardFeature $feature): JsonResponse
+    public function show(WebinoDashboardFeature $siteFeature): JsonResponse
     {
-        return response()->json(['data' => $feature]);
+        return response()->json(['data' => $siteFeature]);
     }
 
-    public function update(Request $request, WebinoDashboardFeature $feature): JsonResponse
+    public function update(Request $request, WebinoDashboardFeature $siteFeature): JsonResponse
     {
         $data = $request->validate([
-            'slug' => 'sometimes|string|max:64|regex:/^[a-z0-9_]+$/|unique:webino_dashboard_features,slug,'.$feature->id,
+            'slug' => 'sometimes|string|max:64|regex:/^[a-z0-9_]+$/|unique:webino_dashboard_features,slug,'.$siteFeature->id,
             'name_fa' => 'sometimes|string|max:191',
             'name_en' => 'sometimes|string|max:191',
             'module_slug' => 'nullable|string|max:64',
@@ -51,14 +51,14 @@ class DashboardFeatureController extends Controller
             'is_active' => 'nullable|boolean',
         ]);
 
-        $feature->update($data);
+        $siteFeature->update($data);
 
-        return response()->json(['data' => $feature->fresh()]);
+        return response()->json(['data' => $siteFeature->fresh()]);
     }
 
-    public function destroy(WebinoDashboardFeature $feature): JsonResponse
+    public function destroy(WebinoDashboardFeature $siteFeature): JsonResponse
     {
-        $feature->delete();
+        $siteFeature->delete();
 
         return response()->json(['message' => 'Deleted']);
     }

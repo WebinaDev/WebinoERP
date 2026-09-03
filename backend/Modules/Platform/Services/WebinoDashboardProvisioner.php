@@ -15,7 +15,13 @@ use RuntimeException;
 use Throwable;
 
 /**
- * Deploys an isolated WebinoDashboard stack on a Platform server (Coolify-style).
+ * Deploys an isolated WebinoDashboard stack on a remote Platform server via SSH.
+ *
+ * Compose uses published images only (no build context):
+ *   - webino-backend:latest
+ *   - webino-next:latest
+ * Those images must already exist on the target host (build/push/pull before provision).
+ * Same-VPS installs use LocalSameVpsProvisioner instead.
  */
 class WebinoDashboardProvisioner
 {
@@ -64,7 +70,19 @@ class WebinoDashboardProvisioner
         $envFile = $this->envFile($provision, $siteType, $token);
         $this->docker->writeFile($server, $dir.'/.env', $envFile);
 
-        $up = $this->docker->composeUp($server, $dir);
+        // Ensure external compose network + published images exist on remote host.
+        $preflight = $this->docker->sshRun(
+            $server,
+            'docker network inspect webino >/dev/null 2>&1 || docker network create webino; '
+            .'docker image inspect webino-backend:latest >/dev/null 2>&1 && docker image inspect webino-next:latest >/dev/null 2>&1 '
+            .'|| { echo "platform.dashboard_images_missing: pull or load webino-backend:latest and webino-next:latest on this host" >&2; exit 1; }',
+            120
+        );
+        if ($preflight['exit_code'] !== 0) {
+            throw new RuntimeException(trim($preflight['stderr'] ?: $preflight['stdout']) ?: 'platform.dashboard_images_missing');
+        }
+
+        $up = $this->docker->composeUp($server, $dir, $provision->slug);
         if ($up['exit_code'] !== 0) {
             throw new RuntimeException(trim($up['stderr'] ?: $up['stdout']) ?: 'platform.compose_up_failed');
         }
@@ -147,10 +165,67 @@ class WebinoDashboardProvisioner
         );
     }
 
+    /**
+     * @return array{exit_code:int,stdout:string,stderr:string}
+     */
+    public function start(WebinoSiteProvision $provision): array
+    {
+        $server = $this->serverFor($provision);
+        $dir = '/var/lib/webino/sites/'.$provision->slug;
+        $result = $this->docker->composeUp($server, $dir, $provision->slug);
+        PlatformResource::query()->where('provision_id', $provision->id)->update(['status' => 'running']);
+
+        return $result;
+    }
+
+    /**
+     * @return array{exit_code:int,stdout:string,stderr:string}
+     */
+    public function stop(WebinoSiteProvision $provision): array
+    {
+        $server = $this->serverFor($provision);
+        $dir = '/var/lib/webino/sites/'.$provision->slug;
+        $result = $this->docker->composeStop($server, $dir, $provision->slug);
+        PlatformResource::query()->where('provision_id', $provision->id)->update(['status' => 'stopped']);
+
+        return $result;
+    }
+
+    public function logs(WebinoSiteProvision $provision, int $tail = 200): string
+    {
+        $server = $this->serverFor($provision);
+        $dir = '/var/lib/webino/sites/'.$provision->slug;
+        $r = $this->docker->sshRun(
+            $server,
+            'cd '.escapeshellarg($dir).' && docker compose -p '.escapeshellarg($provision->slug).' logs --tail '.((int) $tail).' 2>&1',
+            60
+        );
+
+        return trim($r['stdout'].$r['stderr']);
+    }
+
+    protected function serverFor(WebinoSiteProvision $provision): PlatformServer
+    {
+        $resource = PlatformResource::query()->where('provision_id', $provision->id)->first();
+        $serverId = $resource?->server_id ?: (int) (($provision->wizard_payload['server_id'] ?? 0) ?: 0);
+        $server = $serverId ? PlatformServer::query()->find($serverId) : null;
+        if (! $server) {
+            throw new RuntimeException('platform.no_ready_server');
+        }
+
+        return $server;
+    }
+
+    /**
+     * Uses published images only — no Dockerfile build on the target host.
+     * Images webino-backend:latest and webino-next:latest must already exist remotely.
+     */
     protected function composeYaml(WebinoSiteProvision $provision, string $siteType, string $token): string
     {
         $slug = $provision->slug;
         return <<<YAML
+# Published images required on this host: webino-backend:latest, webino-next:latest
+# No host port publish — reverse proxy via host Caddy to {slug}-*-1 containers.
 services:
   db:
     image: postgres:15-alpine

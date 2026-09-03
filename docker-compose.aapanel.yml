@@ -138,6 +138,7 @@ services:
       CADDY_ACME_EMAIL: "${CADDY_ACME_EMAIL:-admin@localhost}"
     volumes:
       - ./docker/caddy/Caddyfile:/etc/caddy/Caddyfile:ro
+      - ./docker/caddy/sites:/etc/caddy/sites:ro
       - caddy_data:/data
       - caddy_config:/config
     depends_on:

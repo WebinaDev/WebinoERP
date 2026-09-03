@@ -34,17 +34,17 @@ class BusinessCategoryController extends Controller
         return response()->json(['data' => $row], 201);
     }
 
-    public function show(WebinoBusinessCategory $category): JsonResponse
+    public function show(WebinoBusinessCategory $siteCategory): JsonResponse
     {
-        $category->load('types.features');
+        $siteCategory->load('types.features');
 
-        return response()->json(['data' => $category]);
+        return response()->json(['data' => $siteCategory]);
     }
 
-    public function update(Request $request, WebinoBusinessCategory $category): JsonResponse
+    public function update(Request $request, WebinoBusinessCategory $siteCategory): JsonResponse
     {
         $data = $request->validate([
-            'slug' => 'sometimes|string|max:64|regex:/^[a-z0-9_-]+$/|unique:webino_business_categories,slug,'.$category->id,
+            'slug' => 'sometimes|string|max:64|regex:/^[a-z0-9_-]+$/|unique:webino_business_categories,slug,'.$siteCategory->id,
             'name_fa' => 'sometimes|string|max:191',
             'name_en' => 'sometimes|string|max:191',
             'icon' => 'nullable|string|max:64',
@@ -52,14 +52,14 @@ class BusinessCategoryController extends Controller
             'is_active' => 'nullable|boolean',
         ]);
 
-        $category->update($data);
+        $siteCategory->update($data);
 
-        return response()->json(['data' => $category->fresh()]);
+        return response()->json(['data' => $siteCategory->fresh()]);
     }
 
-    public function destroy(WebinoBusinessCategory $category): JsonResponse
+    public function destroy(WebinoBusinessCategory $siteCategory): JsonResponse
     {
-        $category->delete();
+        $siteCategory->delete();
 
         return response()->json(['message' => 'Deleted']);
     }

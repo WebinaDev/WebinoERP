@@ -52,3 +52,6 @@ webinaagency.ir, www.webinaagency.ir {
 	import security_headers
 	import app_routes
 }
+
+# Per-tenant site snippets written by LocalSameVpsProvisioner
+import /etc/caddy/sites/*.caddy

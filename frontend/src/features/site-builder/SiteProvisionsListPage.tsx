@@ -6,21 +6,30 @@ import { useLocale, useTranslations } from 'next-intl';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { dashboardHref } from '@/lib/route-resolver';
-import { fetchProvisions, type SiteProvision } from '@/lib/api/site-builder';
-import apiClient from '@/lib/api-client';
+import { getAxiosMessage } from '@/lib/api-helpers';
+import {
+  fetchProvisionLogs,
+  fetchProvisions,
+  retryProvision,
+  startProvision,
+  stopProvision,
+  type SiteProvision,
+} from '@/lib/api/site-builder';
 
 export function SiteProvisionsListPage() {
   const t = useTranslations('siteBuilder');
   const locale = useLocale();
   const [rows, setRows] = useState<SiteProvision[]>([]);
   const [error, setError] = useState<string | null>(null);
+  const [busyId, setBusyId] = useState<number | null>(null);
+  const [logsById, setLogsById] = useState<Record<number, string>>({});
 
   const load = useCallback(async () => {
     setError(null);
     try {
       setRows(await fetchProvisions());
     } catch (e) {
-      setError(e instanceof Error ? e.message : t('loadError'));
+      setError(getAxiosMessage(e) || t('loadError'));
     }
   }, [t]);
 
@@ -28,13 +37,26 @@ export function SiteProvisionsListPage() {
     void load();
   }, [load]);
 
-  async function retryProvision(id: number) {
+  async function runAction(id: number, action: 'retry' | 'start' | 'stop' | 'logs') {
     setError(null);
+    setBusyId(id);
     try {
-      await apiClient.post(`/site-builder/provisions/${id}/retry`);
-      await load();
+      if (action === 'retry') await retryProvision(id);
+      else if (action === 'start') await startProvision(id);
+      else if (action === 'stop') await stopProvision(id);
+      else if (action === 'logs') {
+        const raw = await fetchProvisionLogs(id);
+        const text =
+          typeof raw === 'string'
+            ? raw
+            : raw.logs ?? raw.error_log ?? JSON.stringify(raw);
+        setLogsById((prev) => ({ ...prev, [id]: text }));
+      }
+      if (action !== 'logs') await load();
     } catch (e) {
-      setError(e instanceof Error ? e.message : t('loadError'));
+      setError(getAxiosMessage(e) || t('loadError'));
+    } finally {
+      setBusyId(null);
     }
   }
 
@@ -56,11 +78,24 @@ export function SiteProvisionsListPage() {
             <CardHeader className="pb-2">
               <CardTitle className="text-base">{row.domain}</CardTitle>
             </CardHeader>
-            <CardContent className="text-sm text-muted-foreground space-y-1">
-              <div>{t('status')}: {row.status}</div>
+            <CardContent className="text-muted-foreground space-y-1 text-sm">
+              <div>
+                {t('status')}: {row.status}
+              </div>
               <div className="font-mono">{row.slug}</div>
               {row.license?.license_key ? (
                 <div className="font-mono text-xs">{row.license.license_key}</div>
+              ) : null}
+              {row.status === 'failed' && row.error_log ? (
+                <pre className="bg-muted max-h-28 overflow-auto rounded p-2 text-xs whitespace-pre-wrap">
+                  {row.error_log.slice(0, 500)}
+                  {row.error_log.length > 500 ? '…' : ''}
+                </pre>
+              ) : null}
+              {logsById[row.id] ? (
+                <pre className="bg-muted max-h-40 overflow-auto rounded p-2 text-xs whitespace-pre-wrap">
+                  {logsById[row.id].slice(0, 2000)}
+                </pre>
               ) : null}
               <div className="flex flex-wrap gap-2 pt-2">
                 {row.status === 'ready' && row.domain ? (
@@ -71,10 +106,43 @@ export function SiteProvisionsListPage() {
                   </Button>
                 ) : null}
                 {row.status === 'failed' ? (
-                  <Button size="sm" variant="secondary" type="button" onClick={() => void retryProvision(row.id)}>
+                  <Button
+                    size="sm"
+                    variant="secondary"
+                    type="button"
+                    disabled={busyId === row.id}
+                    onClick={() => void runAction(row.id, 'retry')}
+                  >
                     {t('retry')}
                   </Button>
                 ) : null}
+                <Button
+                  size="sm"
+                  variant="outline"
+                  type="button"
+                  disabled={busyId === row.id}
+                  onClick={() => void runAction(row.id, 'start')}
+                >
+                  {t('start')}
+                </Button>
+                <Button
+                  size="sm"
+                  variant="outline"
+                  type="button"
+                  disabled={busyId === row.id}
+                  onClick={() => void runAction(row.id, 'stop')}
+                >
+                  {t('stop')}
+                </Button>
+                <Button
+                  size="sm"
+                  variant="ghost"
+                  type="button"
+                  disabled={busyId === row.id}
+                  onClick={() => void runAction(row.id, 'logs')}
+                >
+                  {t('logs')}
+                </Button>
               </div>
             </CardContent>
           </Card>

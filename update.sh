@@ -189,6 +189,8 @@ for i in $(seq 1 30); do
   fi
 done
 compose_cli exec -T backend php artisan migrate --force
+compose_cli exec -T backend php artisan db:seed --class='Modules\\SiteBuilder\\Database\\Seeders\\SiteBuilderSeeder' --force || true
+compose_cli exec -T backend php artisan site-builder:ensure-hosting-defaults || true
 compose_cli exec -T backend php artisan config:clear || true
 compose_cli exec -T backend php artisan cache:clear || true
 compose_cli exec -T backend php artisan config:cache || true

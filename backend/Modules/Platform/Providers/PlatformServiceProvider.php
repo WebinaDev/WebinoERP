@@ -6,6 +6,7 @@ use Illuminate\Support\Facades\Route;
 use Illuminate\Support\ServiceProvider;
 use Modules\Platform\Http\Controllers\DeployWebhookController;
 use Modules\Platform\Services\DockerRemoteService;
+use Modules\Platform\Services\LocalSameVpsProvisioner;
 use Modules\Platform\Services\SshExecutor;
 use Modules\Platform\Services\WebinoDashboardProvisioner;
 
@@ -18,6 +19,7 @@ class PlatformServiceProvider extends ServiceProvider
         $this->app->singleton(SshExecutor::class);
         $this->app->singleton(DockerRemoteService::class);
         $this->app->singleton(WebinoDashboardProvisioner::class);
+        $this->app->singleton(LocalSameVpsProvisioner::class);
     }
 
     public function boot(): void

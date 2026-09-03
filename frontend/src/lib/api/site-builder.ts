@@ -1,7 +1,7 @@
 import apiClient from '@/lib/api-client';
 import { unwrapData } from '@/lib/api-helpers';
 
-const BASE = '/site-builder';
+const BASE = '/v1/site-builder';
 
 export type BusinessCategory = {
   id: number;
@@ -102,6 +102,26 @@ export async function launchProvision(id: number) {
 export async function pollProvisionStatus(id: number) {
   const res = await apiClient.get(`${BASE}/provisions/${id}/status`);
   return unwrapData<SiteProvision>(res);
+}
+
+export async function retryProvision(id: number) {
+  const res = await apiClient.post(`${BASE}/provisions/${id}/retry`);
+  return unwrapData<SiteProvision>(res);
+}
+
+export async function startProvision(id: number) {
+  const res = await apiClient.post(`${BASE}/provisions/${id}/start`);
+  return unwrapData<SiteProvision>(res);
+}
+
+export async function stopProvision(id: number) {
+  const res = await apiClient.post(`${BASE}/provisions/${id}/stop`);
+  return unwrapData<SiteProvision>(res);
+}
+
+export async function fetchProvisionLogs(id: number) {
+  const res = await apiClient.get(`${BASE}/provisions/${id}/logs`);
+  return unwrapData<{ logs?: string; error_log?: string } | string>(res);
 }
 
 export async function saveCategory(body: Partial<BusinessCategory> & { id?: number }) {

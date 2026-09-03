@@ -38,7 +38,7 @@ class SiteProvisionController extends Controller
 
         $slug = $data['slug'] ?? Str::slug($data['wizard_payload']['site_name'] ?? 'site-'.Str::random(6));
         $settings = CoreHostingSetting::current();
-        $baseDomain = $settings->platform_base_domain ?: 'webina.local';
+        $baseDomain = $settings->platform_base_domain ?: 'webinaagency.ir';
         $usesCustom = (bool) ($data['wizard_payload']['uses_custom_domain'] ?? false);
         $domain = $usesCustom
             ? ($data['wizard_payload']['custom_domain'] ?? $slug.'.'.$baseDomain)
@@ -88,7 +88,7 @@ class SiteProvisionController extends Controller
 
         if (isset($data['slug']) || isset($data['uses_custom_domain']) || isset($wizard['uses_custom_domain'])) {
             $settings = CoreHostingSetting::current();
-            $baseDomain = $settings->platform_base_domain ?: 'webina.local';
+            $baseDomain = $settings->platform_base_domain ?: 'webinaagency.ir';
             $slug = $data['slug'] ?? $siteProvision->slug;
             $usesCustom = $data['uses_custom_domain'] ?? $wizard['uses_custom_domain'] ?? $siteProvision->uses_custom_domain;
             $data['domain'] = $usesCustom
@@ -177,6 +177,54 @@ class SiteProvisionController extends Controller
         ProvisionWebinoSiteJob::dispatch($siteProvision->id);
 
         return response()->json(['data' => $siteProvision, 'message' => 'Retry queued.']);
+    }
+
+    public function start(WebinoSiteProvision $siteProvision, SiteProvisionOrchestrator $orchestrator): JsonResponse
+    {
+        try {
+            $result = $orchestrator->start($siteProvision);
+
+            return response()->json([
+                'data' => $siteProvision->fresh(['license', 'package']),
+                'compose' => $result,
+                'message' => $result['exit_code'] === 0 ? 'Started' : 'Start failed',
+            ], $result['exit_code'] === 0 ? 200 : 422);
+        } catch (\Throwable $e) {
+            return response()->json(['message' => $e->getMessage()], 422);
+        }
+    }
+
+    public function stop(WebinoSiteProvision $siteProvision, SiteProvisionOrchestrator $orchestrator): JsonResponse
+    {
+        try {
+            $result = $orchestrator->stop($siteProvision);
+
+            return response()->json([
+                'data' => $siteProvision->fresh(['license', 'package']),
+                'compose' => $result,
+                'message' => $result['exit_code'] === 0 ? 'Stopped' : 'Stop failed',
+            ], $result['exit_code'] === 0 ? 200 : 422);
+        } catch (\Throwable $e) {
+            return response()->json(['message' => $e->getMessage()], 422);
+        }
+    }
+
+    public function logs(WebinoSiteProvision $siteProvision, SiteProvisionOrchestrator $orchestrator, Request $request): JsonResponse
+    {
+        try {
+            $tail = max(1, min(2000, $request->integer('tail', 200)));
+            $logs = $orchestrator->logs($siteProvision, $tail);
+
+            return response()->json([
+                'data' => [
+                    'provision_id' => $siteProvision->id,
+                    'slug' => $siteProvision->slug,
+                    'logs' => $logs,
+                ],
+            ]);
+        } catch (\Throwable $e) {
+            return response()->json(['message' => $e->getMessage()], 422);
+        }
     }
 
     public function destroy(WebinoSiteProvision $siteProvision, SiteProvisionOrchestrator $orchestrator): JsonResponse

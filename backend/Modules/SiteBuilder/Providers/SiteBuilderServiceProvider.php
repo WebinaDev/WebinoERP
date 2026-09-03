@@ -4,6 +4,11 @@ namespace Modules\SiteBuilder\Providers;
 
 use Illuminate\Support\Facades\Route;
 use Illuminate\Support\ServiceProvider;
+use Modules\SiteBuilder\Entities\WebinoBusinessCategory;
+use Modules\SiteBuilder\Entities\WebinoBusinessType;
+use Modules\SiteBuilder\Entities\WebinoDashboardFeature;
+use Modules\SiteBuilder\Entities\WebinoPackage;
+use Modules\SiteBuilder\Entities\WebinoSiteProvision;
 
 class SiteBuilderServiceProvider extends ServiceProvider
 {
@@ -13,25 +18,12 @@ class SiteBuilderServiceProvider extends ServiceProvider
     {
         $this->loadMigrationsFrom(module_path($this->moduleName, 'Database/Migrations'));
 
-        \Illuminate\Support\Facades\Route::bind('siteProvision', function (string $value) {
-            return \Modules\SiteBuilder\Entities\WebinoSiteProvision::query()->findOrFail($value);
-        });
-
-        \Illuminate\Support\Facades\Route::bind('category', function (string $value) {
-            return \Modules\SiteBuilder\Entities\WebinoBusinessCategory::query()->findOrFail($value);
-        });
-
-        \Illuminate\Support\Facades\Route::bind('type', function (string $value) {
-            return \Modules\SiteBuilder\Entities\WebinoBusinessType::query()->findOrFail($value);
-        });
-
-        \Illuminate\Support\Facades\Route::bind('feature', function (string $value) {
-            return \Modules\SiteBuilder\Entities\WebinoDashboardFeature::query()->findOrFail($value);
-        });
-
-        \Illuminate\Support\Facades\Route::bind('package', function (string $value) {
-            return \Modules\SiteBuilder\Entities\WebinoPackage::query()->findOrFail($value);
-        });
+        // Scoped names only — do not bind generic {category}/{type}/{package} globally.
+        Route::bind('siteProvision', fn (string $value) => WebinoSiteProvision::query()->findOrFail($value));
+        Route::bind('siteCategory', fn (string $value) => WebinoBusinessCategory::query()->findOrFail($value));
+        Route::bind('siteType', fn (string $value) => WebinoBusinessType::query()->findOrFail($value));
+        Route::bind('siteFeature', fn (string $value) => WebinoDashboardFeature::query()->findOrFail($value));
+        Route::bind('sitePackage', fn (string $value) => WebinoPackage::query()->findOrFail($value));
 
         Route::prefix('api/v1/site-builder')
             ->middleware(['api', 'auth:sanctum', 'module:site_builder', 'module.permission:site_builder,site-builder', 'throttle:60,1'])
@@ -40,6 +32,8 @@ class SiteBuilderServiceProvider extends ServiceProvider
 
     public function register(): void
     {
-        //
+        $this->commands([
+            \Modules\SiteBuilder\Console\EnsureHostingDefaultsCommand::class,
+        ]);
     }
 }

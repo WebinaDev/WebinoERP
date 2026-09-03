@@ -125,7 +125,7 @@ class PlatformApiTest extends TestCase
         $this->assertSame(SiteTypeProfiles::modulesFor('cafe'), $meta['module_matrix'] ?? null);
     }
 
-    public function test_orchestrator_requires_platform_server(): void
+    public function test_orchestrator_defaults_to_local_same_vps(): void
     {
         $this->seed(SiteBuilderSeeder::class);
         $package = WebinoPackage::query()->first();
@@ -137,11 +137,25 @@ class PlatformApiTest extends TestCase
             'wizard_payload' => ['site_type_slug' => 'cafe', 'site_name' => 'Cafe'],
         ]);
 
+        $local = \Mockery::mock(\Modules\Platform\Services\LocalSameVpsProvisioner::class);
+        $local->shouldReceive('provisionFromSiteBuilder')
+            ->once()
+            ->andReturnUsing(function ($p, $server) {
+                $this->assertTrue((bool) $server->is_localhost);
+                $p->update(['status' => \Modules\SiteBuilder\Entities\WebinoSiteProvision::STATUS_READY]);
+
+                return new \Modules\Platform\Entities\PlatformResource([
+                    'name' => $p->slug,
+                    'type' => 'webino_dashboard',
+                ]);
+            });
+        $this->app->instance(\Modules\Platform\Services\LocalSameVpsProvisioner::class, $local);
+
         /** @var SiteProvisionOrchestrator $orch */
         $orch = $this->app->make(SiteProvisionOrchestrator::class);
         $result = $orch->launch($provision);
-        $this->assertSame(\Modules\SiteBuilder\Entities\WebinoSiteProvision::STATUS_FAILED, $result->status);
-        $this->assertStringContainsString('platform.no_ready_server', (string) $result->error_log);
+        $this->assertSame(\Modules\SiteBuilder\Entities\WebinoSiteProvision::STATUS_READY, $result->status);
+        $this->assertDatabaseHas('platform_servers', ['name' => 'localhost', 'is_localhost' => true]);
     }
 
     public function test_service_templates_list(): void

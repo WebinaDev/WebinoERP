@@ -32,7 +32,7 @@ class SiteBuilderApiTest extends TestCase
 
         $this->getJson('/api/v1/site-builder/catalog')
             ->assertOk()
-            ->assertJsonPath('data.0.slug', 'retail');
+            ->assertJsonPath('data.0.slug', 'site_types');
 
         $package = WebinoPackage::query()->first();
         $this->assertNotNull($package);
@@ -54,15 +54,22 @@ class SiteBuilderApiTest extends TestCase
 
         $this->getJson("/api/v1/site-builder/provisions/{$id}/status")->assertOk();
 
-        $this->postJson("/api/v1/site-builder/provisions/{$id}/prepare-license")
+        $this->postJson('/api/v1/site-builder/provisions/'.$id.'/prepare-license')
             ->assertOk()
             ->assertJsonStructure(['data' => ['license' => ['license_key']]]);
+
+        $this->postJson('/api/v1/site-builder/categories', [
+            'slug' => 'test_cat',
+            'name_fa' => 'تست',
+            'name_en' => 'Test',
+            'sort_order' => 99,
+        ])->assertCreated()->assertJsonPath('data.slug', 'test_cat');
     }
 
     public function test_license_meta_includes_business_fields(): void
     {
         $this->seed(SiteBuilderSeeder::class);
-        $category = WebinoBusinessCategory::query()->where('slug', 'retail')->first();
+        $category = WebinoBusinessCategory::query()->where('slug', 'site_types')->first();
         $this->assertNotNull($category);
 
         $user = $this->actingAsRole('system_manager');

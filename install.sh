@@ -450,6 +450,8 @@ compose_cli exec -T backend php artisan migrate --force
 
 log "Seeding database"
 compose_cli exec -T backend php artisan db:seed --force
+compose_cli exec -T backend php artisan db:seed --class='Modules\\SiteBuilder\\Database\\Seeders\\SiteBuilderSeeder' --force || true
+compose_cli exec -T backend php artisan site-builder:ensure-hosting-defaults || true
 
 compose_cli exec -T backend php artisan storage:link 2>/dev/null || true
 
