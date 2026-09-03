@@ -20,26 +20,46 @@ webina-enterprise/
 
 ## راه‌اندازی سریع
 
-### با Docker (توصیه می‌شود)
+### نصب روی سرور (یک دستور)
+
+پیش‌نیاز: `git` + Docker Compose v2. پوشهٔ نصب پیش‌فرض `/opt/webina` است (کلون باید داخل پوشه‌ای به‌نام `WebinoERP` باشد تا بیلد فرانت درست شود).
 
 ```bash
-# Clone repository
-git clone <repository-url>
-cd Webino
+curl -fsSL https://raw.githubusercontent.com/WebinaDev/WebinoERP/main/install.sh | bash
+```
 
-# Copy environment files
+یا با پورت/مسیر سفارشی:
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/WebinaDev/WebinoERP/main/install.sh \
+  | INSTALL_DIR=/opt/webina WEB_HTTP_PORT=3080 APP_URL=http://YOUR_SERVER_IP:3080 bash
+```
+
+اگر `install.sh` هنوز روی `main` نیست، همان اسکریپت را از کلون محلی اجرا کنید:
+
+```bash
+sudo mkdir -p /opt/webina && sudo chown "$USER" /opt/webina
+git clone --depth 1 https://github.com/WebinaDev/WebinoERP.git /tmp/WebinoERP-src
+bash /tmp/WebinoERP-src/install.sh
+```
+
+بعد از نصب: **Admin** `http://SERVER:3080/admin` — ورود `admin@webina.local` / `password`
+
+### با Docker (دستی)
+
+```bash
+git clone https://github.com/WebinaDev/WebinoERP.git
+cd WebinoERP
+
 cp .env.example .env
 cp backend/.env.example backend/.env
 cp frontend/.env.example frontend/.env
 
-# Start services
-docker compose up -d
-
-# Run migrations
-docker compose exec backend php artisan migrate
-
-# Seed database
-docker compose exec backend php artisan db:seed
+docker compose run --rm --no-deps --entrypoint composer backend install --no-interaction
+docker compose run --rm --no-deps --entrypoint php backend artisan key:generate --force
+docker compose up -d --build
+docker compose exec backend php artisan migrate --force
+docker compose exec backend php artisan db:seed --force
 ```
 
 ### بدون Docker (Development)
