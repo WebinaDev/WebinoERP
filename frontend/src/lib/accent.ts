@@ -20,7 +20,7 @@ export const ACCENT_MENU_ITEMS = [
 export const ACCENT_SWATCH: Record<string, string> = {
   zinc: "#71717a",
   slate: "#64748b",
-  blue: "#3b82f6",
+  blue: "#0066d6",
   green: "#22c55e",
   rose: "#f43f5e",
   orange: "#f97316",
