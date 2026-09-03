@@ -125,6 +125,11 @@ log "Restoring env and Caddyfile"
 [ -f "${BACKUP_DIR}/frontend/.env" ] && cp -a "${BACKUP_DIR}/frontend/.env" "${ERP_DIR}/frontend/.env"
 [ -f "${BACKUP_DIR}/frontend/.env.local" ] && cp -a "${BACKUP_DIR}/frontend/.env.local" "${ERP_DIR}/frontend/.env.local"
 [ -f "${BACKUP_DIR}/docker/caddy/Caddyfile" ] && cp -a "${BACKUP_DIR}/docker/caddy/Caddyfile" "${ERP_DIR}/docker/caddy/Caddyfile"
+# Chrome ERR_SSL_PROTOCOL_ERROR when Caddy advertises h3 but UDP/443 is not published
+if [ -f "${ERP_DIR}/docker/caddy/Caddyfile" ]; then
+  sed -i.bak 's/protocols h1 h2 h3/protocols h1 h2/g' "${ERP_DIR}/docker/caddy/Caddyfile" || true
+  rm -f "${ERP_DIR}/docker/caddy/Caddyfile.bak"
+fi
 
 PARENT_DIR="$(dirname "${ERP_DIR}")"
 UI_PKG="${PARENT_DIR}/packages/webina-ui/package.json"

@@ -1,7 +1,10 @@
 {
+	# Do not enable h3 unless UDP/443 is published on the host.
+	# Otherwise Chrome often fails with ERR_SSL_PROTOCOL_ERROR.
 	servers {
-		protocols h1 h2 h3
+		protocols h1 h2
 	}
+	email {$CADDY_ACME_EMAIL:admin@localhost}
 }
 
 (security_headers) {
@@ -13,8 +16,7 @@
 	}
 }
 
-:80 {
-	import security_headers
+(app_routes) {
 	encode zstd gzip
 
 	@nextStatic path /_next/static/*
@@ -47,41 +49,18 @@
 	}
 }
 
-# HTTPS — enable with a real domain via CADDY_DOMAIN, or use tls internal for lab installs.
-# When CADDY_DOMAIN is unset, this block still listens so WEB_HTTPS_PORT mapping works with
-# a self-signed cert (browsers will warn until a proper certificate is configured).
+# Lab / behind external SSL (aaPanel): HTTP only is enough if proxy → :80.
+:80 {
+	import security_headers
+	import app_routes
+}
+
+# Direct HTTPS on host :443 (self-signed). For Let's Encrypt on a real domain,
+# replace this block with:  webina.dev, www.webina.dev { import security_headers; import app_routes }
+# and set APP_URL=https://webina.dev — keep caddy_data volume so certs persist.
 :443 {
 	import security_headers
 	header Strict-Transport-Security "max-age=31536000; includeSubDomains"
 	tls internal
-	encode zstd gzip
-
-	@nextStatic path /_next/static/*
-	header @nextStatic Cache-Control "public, max-age=31536000, immutable"
-
-	@publicStatic path /fonts/* /brand/*
-	header @publicStatic Cache-Control "public, max-age=31536000, immutable"
-
-	@api path /api/*
-	header @api Cache-Control "no-store"
-
-	handle /api/* {
-		reverse_proxy backend:8080 {
-			header_up Host {host}
-			header_up X-Forwarded-Host {host}
-			header_up X-Forwarded-Proto https
-		}
-	}
-
-	handle /app/* {
-		reverse_proxy ws:8081
-	}
-
-	handle /docs* {
-		reverse_proxy docs:80
-	}
-
-	handle {
-		reverse_proxy frontend:3000
-	}
+	import app_routes
 }

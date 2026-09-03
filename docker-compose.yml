@@ -202,8 +202,12 @@ services:
     ports:
       - "${WEB_HTTP_PORT:-3080}:80"
       - "${WEB_HTTPS_PORT:-3443}:443"
+    environment:
+      CADDY_ACME_EMAIL: ${CADDY_ACME_EMAIL:-admin@localhost}
     volumes:
       - ./docker/caddy/Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy_data:/data
+      - caddy_config:/config
     depends_on:
       frontend:
         condition: service_started
@@ -229,3 +233,5 @@ networks:
 volumes:
   redis_data:
   db_data:
+  caddy_data:
+  caddy_config:
