@@ -13,39 +13,41 @@ export interface User {
   permissions?: string[];
 }
 
-export interface AuthResponse {
-  data: {
-    user: User;
-  };
+export interface LoginResult {
+  user: User;
+  requires_2fa?: boolean;
 }
 
-export async function login(email: string, password: string): Promise<AuthResponse> {
-  const response = await apiClient.post<AuthResponse>('/v1/core/auth/login', {
+function asRecord(value: unknown): Record<string, unknown> {
+  return value && typeof value === 'object' ? (value as Record<string, unknown>) : {};
+}
+
+export async function login(email: string, password: string): Promise<LoginResult> {
+  const response = await apiClient.post('/v1/core/auth/login', {
     email,
     password,
   });
-  return response.data;
+  const payload = asRecord(response.data);
+  return {
+    user: (payload.user ?? payload) as User,
+    requires_2fa: Boolean(payload.requires_2fa),
+  };
 }
 
-export async function refreshSession(): Promise<AuthResponse> {
-  const response = await apiClient.post<AuthResponse>('/v1/core/auth/refresh');
-  return response.data;
+export async function refreshSession(): Promise<{ user: User }> {
+  const response = await apiClient.post('/v1/core/auth/refresh');
+  const payload = asRecord(response.data);
+  return { user: (payload.user ?? payload) as User };
 }
 
 export async function sendLoginOtp(mobile: string): Promise<{ sent?: boolean; message?: string }> {
-  const response = await apiClient.post<{ data: { sent?: boolean; message?: string } }>(
-    '/v1/core/auth/otp/send',
-    { mobile }
-  );
-  return response.data.data;
+  const response = await apiClient.post('/v1/core/auth/otp/send', { mobile });
+  return asRecord(response.data) as { sent?: boolean; message?: string };
 }
 
 export async function verifyLoginOtp(mobile: string, code: string): Promise<{ verified?: boolean }> {
-  const response = await apiClient.post<{ data: { verified?: boolean } }>(
-    '/v1/core/auth/otp/verify',
-    { mobile, code }
-  );
-  return response.data.data;
+  const response = await apiClient.post('/v1/core/auth/otp/verify', { mobile, code });
+  return asRecord(response.data) as { verified?: boolean };
 }
 
 export async function registerUser(body: {
@@ -54,11 +56,8 @@ export async function registerUser(body: {
   password: string;
   password_confirmation: string;
 }): Promise<{ user_id?: number | null }> {
-  const response = await apiClient.post<{ data: { user_id?: number | null } }>(
-    '/v1/core/auth/register',
-    body
-  );
-  return response.data.data;
+  const response = await apiClient.post('/v1/core/auth/register', body);
+  return asRecord(response.data) as { user_id?: number | null };
 }
 
 export async function logout(): Promise<void> {
@@ -67,24 +66,26 @@ export async function logout(): Promise<void> {
 
 export async function getCurrentUser(): Promise<User | null> {
   try {
-    const response = await apiClient.get<{
-      data: {
-        user: User;
-        dashboard_role?: string;
-        licensed_modules?: string[];
-        active_modules?: string[];
-        roles?: string[];
-        permissions?: string[];
-      };
-    }>('/v1/core/auth/user');
-    const { user, dashboard_role, licensed_modules, active_modules, roles, permissions } = response.data.data;
+    const response = await apiClient.get('/v1/core/auth/user');
+    const payload = asRecord(response.data);
+    const nested = asRecord(payload.user);
+    const user = (nested.id ? nested : payload) as User;
+    if (!user?.id) {
+      return null;
+    }
     return {
       ...user,
-      dashboard_role,
-      licensed_modules: licensed_modules ?? active_modules ?? user.active_modules,
-      active_modules: active_modules ?? licensed_modules ?? user.active_modules,
-      roles: roles ?? user.roles,
-      permissions: permissions ?? user.permissions,
+      dashboard_role: (payload.dashboard_role as string | undefined) ?? user.dashboard_role,
+      licensed_modules:
+        (payload.licensed_modules as string[] | undefined) ??
+        (payload.active_modules as string[] | undefined) ??
+        user.active_modules,
+      active_modules:
+        (payload.active_modules as string[] | undefined) ??
+        (payload.licensed_modules as string[] | undefined) ??
+        user.active_modules,
+      roles: (payload.roles as string[] | undefined) ?? user.roles,
+      permissions: (payload.permissions as string[] | undefined) ?? user.permissions,
     };
   } catch {
     return null;

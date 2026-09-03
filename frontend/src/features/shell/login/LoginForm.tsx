@@ -3,7 +3,6 @@
 import type { ComponentProps } from 'react';
 import { useState } from 'react';
 import Image from 'next/image';
-import { useRouter } from 'next/navigation';
 import { useTranslations } from 'next-intl';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
@@ -18,7 +17,6 @@ import { toast } from 'sonner';
 
 export function LoginForm({ className, ...props }: ComponentProps<'div'>) {
   const t = useTranslations();
-  const router = useRouter();
 
   const [tab, setTab] = useState<'password' | 'otp' | 'register'>('password');
   const [identifier, setIdentifier] = useState('');
@@ -33,8 +31,9 @@ export function LoginForm({ className, ...props }: ComponentProps<'div'>) {
   const [pending, setPending] = useState(false);
 
   function goDashboard() {
-    router.push('/admin');
-    router.refresh();
+    const next = new URLSearchParams(window.location.search).get('next');
+    const dest = next && next.startsWith('/') ? next : '/admin';
+    window.location.assign(dest);
   }
 
   async function onPasswordSubmit(e: React.FormEvent) {

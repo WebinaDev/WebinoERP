@@ -9,6 +9,7 @@ use Illuminate\Support\Facades\Hash;
 use Illuminate\Validation\ValidationException;
 use App\Models\User;
 use Modules\Core\Services\DashboardNavigationService;
+use Modules\Core\Support\AuthCookie;
 
 class AuthController extends Controller
 {
@@ -57,7 +58,7 @@ class AuthController extends Controller
             ],
         ]);
 
-        return $this->attachAuthCookie($response, $token);
+        return AuthCookie::attach($response, $token, $request);
     }
 
     public function refresh(Request $request): JsonResponse
@@ -79,7 +80,7 @@ class AuthController extends Controller
             ],
         ]);
 
-        return $this->attachAuthCookie($response, $token);
+        return AuthCookie::attach($response, $token, $request);
     }
 
     public function logout(Request $request): JsonResponse
@@ -93,9 +94,9 @@ class AuthController extends Controller
             $request->session()->regenerateToken();
         }
 
-        return $this->clearAuthCookie(response()->json([
+        return AuthCookie::clear(response()->json([
             'message' => __('api.logged_out'),
-        ]));
+        ]), $request);
     }
 
     public function gate(Request $request): JsonResponse
@@ -147,37 +148,4 @@ class AuthController extends Controller
             ->toArray();
     }
 
-    private function attachAuthCookie(JsonResponse $response, string $token): JsonResponse
-    {
-        $secure = (bool) config('session.secure', false);
-
-        return $response->cookie(
-            config('auth.cookie_name', 'webino_auth_token'),
-            $token,
-            config('auth.cookie_max_minutes', 60 * 24 * 7),
-            '/',
-            null,
-            $secure,
-            true,
-            false,
-            'strict'
-        );
-    }
-
-    private function clearAuthCookie(JsonResponse $response): JsonResponse
-    {
-        $secure = (bool) config('session.secure', false);
-
-        return $response->cookie(
-            config('auth.cookie_name', 'webino_auth_token'),
-            '',
-            -1,
-            '/',
-            null,
-            $secure,
-            true,
-            false,
-            'strict'
-        );
-    }
 }

@@ -30,6 +30,10 @@ class RequireTwoFactor
             'api/v1/core/auth/user',
             'api/v1/core/auth/gate',
             'api/v1/core/auth/refresh',
+            'api/v1/core/auth/login',
+            'api/v1/core/auth/otp/send',
+            'api/v1/core/auth/otp/verify',
+            'api/v1/core/auth/register',
         ];
         if (in_array($path, $exempt, true)) {
             return $next($request);

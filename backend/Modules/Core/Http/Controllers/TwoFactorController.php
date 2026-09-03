@@ -9,6 +9,7 @@ use Illuminate\Support\Facades\Log;
 use Modules\Core\Database\Seeders\RolesAndPermissionsSeeder;
 use Modules\Integrations\Entities\IntegrationSetting;
 use Modules\Integrations\Http\Controllers\SmsIntegrationController;
+use Modules\Core\Support\AuthCookie;
 
 class TwoFactorController extends Controller
 {
@@ -60,20 +61,9 @@ class TwoFactorController extends Controller
             'last_activity_at' => now(),
         ])->save();
 
-        $secure = (bool) config('session.secure', false);
         $response = response()->json(['data' => ['verified' => true]]);
 
-        return $response->cookie(
-            config('auth.cookie_name', 'webino_auth_token'),
-            $tokenObj->plainTextToken,
-            config('auth.cookie_max_minutes', 60 * 24 * 7),
-            '/',
-            null,
-            $secure,
-            true,
-            false,
-            'strict'
-        );
+        return AuthCookie::attach($response, $tokenObj->plainTextToken, $request);
     }
 
     public function send(Request $request): JsonResponse

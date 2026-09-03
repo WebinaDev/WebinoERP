@@ -51,7 +51,19 @@ class ApiResponseFormatter
             $formatted = $this->formatError($content, $status);
         }
 
-        return response()->json($formatted, $status, $response->headers->all());
+        $formattedResponse = response()->json($formatted, $status);
+        foreach ($response->headers->all() as $name => $values) {
+            $lower = strtolower((string) $name);
+            if ($lower === 'content-type' || $lower === 'content-length' || $lower === 'set-cookie') {
+                continue;
+            }
+            $formattedResponse->headers->set($name, $values);
+        }
+        foreach ($response->headers->getCookies() as $cookie) {
+            $formattedResponse->headers->setCookie($cookie);
+        }
+
+        return $formattedResponse;
     }
 
     private function shouldFormat(Request $request, Response $response): bool

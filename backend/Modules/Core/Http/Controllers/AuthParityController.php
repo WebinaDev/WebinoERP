@@ -12,6 +12,7 @@ use Illuminate\Support\Str;
 use Modules\Integrations\Entities\IntegrationSetting;
 use Modules\Core\Database\Seeders\RolesAndPermissionsSeeder;
 use Modules\Integrations\Http\Controllers\SmsIntegrationController;
+use Modules\Core\Support\AuthCookie;
 
 /**
  * Parity for webinocrm login flows: OTP (cache-backed) and password registration.
@@ -111,13 +112,14 @@ class AuthParityController extends Controller
         ])->save();
         $token = $tokenObj->plainTextToken;
 
-        return response()->json([
+        $response = response()->json([
             'data' => [
                 'verified' => true,
-                'token' => $token,
                 'user' => $user->fresh(['roles']),
             ],
         ]);
+
+        return AuthCookie::attach($response, $token, $request);
     }
 
     public function setPassword(Request $request): JsonResponse

@@ -11,22 +11,32 @@ type GateData = {
 }
 
 async function fetchGate(request: NextRequest): Promise<GateData | null> {
+  const origins: string[] = []
   const apiBase = getServerApiBase()
-  if (!apiBase) return null
-  try {
-    const res = await fetch(`${apiBase}/api/v1/core/auth/gate`, {
-      headers: {
-        Accept: "application/json",
-        Cookie: request.headers.get("cookie") ?? "",
-      },
-      cache: "no-store",
-    })
-    if (!res.ok) return null
-    const json = (await res.json()) as { data?: GateData }
-    return json.data ?? null
-  } catch {
-    return null
+  if (apiBase) origins.push(apiBase)
+  const self = request.nextUrl.origin
+  if (self && !origins.includes(self)) origins.push(self)
+
+  for (const origin of origins) {
+    try {
+      const res = await fetch(`${origin}/api/v1/core/auth/gate`, {
+        headers: {
+          Accept: "application/json",
+          Cookie: request.headers.get("cookie") ?? "",
+        },
+        cache: "no-store",
+      })
+      if (!res.ok) continue
+      const json = (await res.json()) as { data?: GateData; authenticated?: boolean }
+      const data = json.data ?? json
+      if (data && typeof data.authenticated === "boolean") {
+        return { authenticated: data.authenticated, setup_completed: data.setup_completed }
+      }
+    } catch {
+      /* try next origin */
+    }
   }
+  return null
 }
 
 export async function middleware(request: NextRequest) {

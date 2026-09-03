@@ -7,7 +7,7 @@ services:
     environment:
       APP_ENV: production
       APP_DEBUG: "false"
-      SESSION_SECURE_COOKIE: "${SESSION_SECURE_COOKIE:-true}"
+      SESSION_SECURE_COOKIE: "${SESSION_SECURE_COOKIE:-false}"
       QUEUE_CONNECTION: redis
       REDIS_PASSWORD: ${REDIS_PASSWORD:-}
       REVERB_APP_SECRET: ${REVERB_APP_SECRET:-}
