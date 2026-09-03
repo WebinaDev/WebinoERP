@@ -156,7 +156,8 @@ else
 fi
 
 cd "${ERP_DIR}"
-log "Rebuilding containers (named volumes db_data / redis_data are untouched)"
+log "Rebuilding containers (named volumes db_data / redis_data / caddy_data are untouched)"
+# Never add -v / --volumes here — wiping caddy_data re-triggers Let's Encrypt and hits rate limits.
 compose_cli up -d --build --force-recreate --remove-orphans
 
 log "Waiting for Postgres…"
@@ -181,10 +182,23 @@ for i in $(seq 1 60); do
 done
 
 log "Applying migrations only (no seed, no fresh)"
+# Wait for backend container to be running (force-recreate can race)
+for i in $(seq 1 30); do
+  if compose_cli exec -T backend php -v >/dev/null 2>&1; then
+    break
+  fi
+  sleep 2
+  if [ "${i}" -eq 30 ]; then
+    echo "ERROR: backend is not running." >&2
+    compose_cli ps -a
+    compose_cli logs --tail=80 backend
+    exit 1
+  fi
+done
 compose_cli exec -T backend php artisan migrate --force
 compose_cli exec -T backend php artisan config:clear || true
 compose_cli exec -T backend php artisan cache:clear || true
 compose_cli exec -T backend php artisan config:cache || true
 
-log "Done. Data volumes were not removed."
+log "Done. Data volumes (db/redis/caddy certs) were not removed."
 compose_cli ps
