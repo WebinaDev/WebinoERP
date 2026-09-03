@@ -1,8 +1,11 @@
 #!/usr/bin/env bash
-# WebinoERP server install — clone from GitHub and run with Docker.
+# WebinoERP server install — installs dependencies, clones from GitHub, runs Docker.
+#
 # Usage:
 #   curl -fsSL https://raw.githubusercontent.com/WebinaDev/WebinoERP/main/install.sh | bash
-#   INSTALL_DIR=/opt/webina WEB_HTTP_PORT=3080 bash install.sh
+#   curl -fsSL ... | INSTALL_DIR=/opt/webina WEB_HTTP_PORT=3080 APP_URL=http://1.2.3.4:3080 bash
+#
+# Installs when missing: git, curl, ca-certificates, Docker Engine + Compose plugin.
 set -euo pipefail
 
 ERP_REPO="${ERP_REPO:-https://github.com/WebinaDev/WebinoERP.git}"
@@ -11,40 +14,204 @@ UI_REPO="${UI_REPO:-https://github.com/WebinaDev/WebinoDashboard.git}"
 INSTALL_DIR="${INSTALL_DIR:-/opt/webina}"
 WEB_HTTP_PORT="${WEB_HTTP_PORT:-3080}"
 WEB_HTTPS_PORT="${WEB_HTTPS_PORT:-3443}"
-APP_URL="${APP_URL:-http://$(hostname -I 2>/dev/null | awk '{print $1}'):${WEB_HTTP_PORT}}"
-APP_URL="${APP_URL:-http://127.0.0.1:${WEB_HTTP_PORT}}"
+SKIP_DEPS="${SKIP_DEPS:-0}"
 
-need() {
-  command -v "$1" >/dev/null 2>&1 || {
-    echo "Missing dependency: $1" >&2
+if [ -z "${APP_URL:-}" ]; then
+  HOST_IP="$(hostname -I 2>/dev/null | awk '{print $1}' || true)"
+  if [ -n "${HOST_IP}" ]; then
+    APP_URL="http://${HOST_IP}:${WEB_HTTP_PORT}"
+  else
+    APP_URL="http://127.0.0.1:${WEB_HTTP_PORT}"
+  fi
+fi
+
+if [ "$(id -u)" -eq 0 ]; then
+  SUDO=""
+else
+  SUDO="sudo"
+  if ! command -v sudo >/dev/null 2>&1; then
+    echo "Run as root or install sudo first." >&2
     exit 1
-  }
+  fi
+fi
+
+log() { echo "==> $*"; }
+
+has_cmd() { command -v "$1" >/dev/null 2>&1; }
+
+docker_cli() {
+  if has_cmd docker && docker info >/dev/null 2>&1; then
+    docker "$@"
+  elif has_cmd docker; then
+    ${SUDO} docker "$@"
+  else
+    echo "Docker is not available." >&2
+    exit 1
+  fi
 }
 
-need git
-need docker
-docker compose version >/dev/null 2>&1 || {
-  echo "Docker Compose v2 is required (docker compose)." >&2
-  exit 1
+compose_cli() {
+  if has_cmd docker && docker compose version >/dev/null 2>&1 && docker info >/dev/null 2>&1; then
+    docker compose "$@"
+  elif has_cmd docker && docker compose version >/dev/null 2>&1; then
+    ${SUDO} docker compose "$@"
+  else
+    echo "Docker Compose v2 is not available." >&2
+    exit 1
+  fi
 }
 
-echo "==> Install dir: ${INSTALL_DIR}"
-echo "==> App URL:     ${APP_URL}"
+detect_os() {
+  if [ -f /etc/os-release ]; then
+    # shellcheck disable=SC1091
+    . /etc/os-release
+    OS_ID="${ID:-unknown}"
+    OS_ID_LIKE="${ID_LIKE:-}"
+    OS_VERSION="${VERSION_ID:-}"
+  else
+    OS_ID="unknown"
+    OS_ID_LIKE=""
+  fi
+}
+
+install_base_packages() {
+  detect_os
+  log "Installing base packages (git, curl, ca-certificates)…"
+  case "${OS_ID}" in
+    ubuntu|debian|linuxmint|pop)
+      ${SUDO} apt-get update -qq
+      ${SUDO} DEBIAN_FRONTEND=noninteractive apt-get install -y \
+        ca-certificates curl git gnupg lsb-release apt-transport-https
+      ;;
+    fedora)
+      ${SUDO} dnf install -y ca-certificates curl git
+      ;;
+    rhel|centos|rocky|almalinux|ol)
+      ${SUDO} dnf install -y ca-certificates curl git || \
+        ${SUDO} yum install -y ca-certificates curl git
+      ;;
+    opensuse*|sles)
+      ${SUDO} zypper -n install ca-certificates curl git
+      ;;
+    arch|manjaro)
+      ${SUDO} pacman -Sy --noconfirm ca-certificates curl git
+      ;;
+    *)
+      log "Unknown OS (${OS_ID}). Install git and curl manually if this step fails."
+      ;;
+  esac
+}
+
+install_docker_engine() {
+  if has_cmd docker && docker compose version >/dev/null 2>&1; then
+    log "Docker + Compose already installed"
+    return 0
+  fi
+
+  log "Installing Docker Engine + Compose plugin…"
+  detect_os
+
+  case "${OS_ID}" in
+    ubuntu|debian|linuxmint|pop)
+      ${SUDO} install -m 0755 -d /etc/apt/keyrings
+      curl -fsSL "https://download.docker.com/linux/${OS_ID}/gpg" | ${SUDO} gpg --dearmor -o /etc/apt/keyrings/docker.gpg
+      ${SUDO} chmod a+r /etc/apt/keyrings/docker.gpg
+      echo "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/docker.gpg] https://download.docker.com/linux/${OS_ID} \
+$(. /etc/os-release && echo "${VERSION_CODENAME}") stable" | \
+        ${SUDO} tee /etc/apt/sources.list.d/docker.list >/dev/null
+      ${SUDO} apt-get update -qq
+      ${SUDO} DEBIAN_FRONTEND=noninteractive apt-get install -y \
+        docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin
+      ;;
+    fedora|rhel|centos|rocky|almalinux|ol)
+      ${SUDO} dnf -y install dnf-plugins-core 2>/dev/null || true
+      ${SUDO} dnf config-manager --add-repo https://download.docker.com/linux/centos/docker-ce.repo 2>/dev/null || \
+        curl -fsSL https://get.docker.com | ${SUDO} sh
+      if ! has_cmd docker; then
+        ${SUDO} dnf install -y docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin || \
+          ${SUDO} yum install -y docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin
+      fi
+      ;;
+    *)
+      log "Using Docker convenience script (get.docker.com)…"
+      curl -fsSL https://get.docker.com | ${SUDO} sh
+      ;;
+  esac
+}
+
+ensure_docker_running() {
+  if ${SUDO} systemctl is-active docker >/dev/null 2>&1; then
+    :
+  else
+    log "Starting Docker service…"
+    ${SUDO} systemctl enable --now docker 2>/dev/null || ${SUDO} service docker start 2>/dev/null || true
+  fi
+
+  if [ "$(id -u)" -ne 0 ] && ! docker info >/dev/null 2>&1; then
+    log "Adding $(whoami) to docker group (re-login may be required)…"
+    ${SUDO} usermod -aG docker "$(whoami)" 2>/dev/null || true
+    if ! docker info >/dev/null 2>&1; then
+      log "Using sudo for docker commands in this session…"
+    fi
+  fi
+
+  if ! compose_cli version >/dev/null 2>&1; then
+    echo "Docker Compose plugin missing after install." >&2
+    exit 1
+  fi
+}
+
+ensure_dependencies() {
+  if [ "${SKIP_DEPS}" = "1" ]; then
+    return 0
+  fi
+
+  if ! has_cmd git || ! has_cmd curl; then
+    install_base_packages
+  fi
+
+  if ! has_cmd git; then
+    echo "git is still missing after install attempt." >&2
+    exit 1
+  fi
+
+  if ! has_cmd docker || ! docker compose version >/dev/null 2>&1; then
+    install_docker_engine
+  fi
+
+  ensure_docker_running
+}
+
+ensure_install_dir() {
+  if [ ! -d "${INSTALL_DIR}" ]; then
+    ${SUDO} mkdir -p "${INSTALL_DIR}"
+  fi
+  if [ ! -w "${INSTALL_DIR}" ]; then
+    ${SUDO} chown -R "$(id -u):$(id -g)" "${INSTALL_DIR}"
+  fi
+}
+
+ensure_dependencies
+ensure_install_dir
+
+log "Install dir: ${INSTALL_DIR}"
+log "App URL:     ${APP_URL}"
+
 mkdir -p "${INSTALL_DIR}/packages"
 cd "${INSTALL_DIR}"
 
 if [ ! -d WebinoERP/.git ]; then
-  echo "==> Cloning WebinoERP (${ERP_REF})"
+  log "Cloning WebinoERP (${ERP_REF})"
   git clone --branch "${ERP_REF}" --depth 1 "${ERP_REPO}" WebinoERP
 else
-  echo "==> Updating WebinoERP"
-  git -C WebinoERP fetch --depth 1 origin "${ERP_REF}"
-  git -C WebinoERP checkout "${ERP_REF}"
-  git -C WebinoERP pull --ff-only origin "${ERP_REF}" || true
+  log "Updating WebinoERP"
+  git -C WebinoERP fetch --depth 1 origin "${ERP_REF}" || true
+  git -C WebinoERP checkout "${ERP_REF}" || true
+  git -C WebinoERP pull --ff-only origin "${ERP_REF}" 2>/dev/null || true
 fi
 
 if [ ! -f packages/webina-ui/package.json ]; then
-  echo "==> Fetching @webina/ui (needed by the frontend Docker build)"
+  log "Fetching @webina/ui (frontend build dependency)"
   tmp="$(mktemp -d)"
   git clone --filter=blob:none --sparse --depth 1 "${UI_REPO}" "${tmp}/dash"
   git -C "${tmp}/dash" sparse-checkout set packages/webina-ui
@@ -52,7 +219,6 @@ if [ ! -f packages/webina-ui/package.json ]; then
     cp -a "${tmp}/dash/packages/webina-ui" "${INSTALL_DIR}/packages/webina-ui"
   else
     echo "Could not find packages/webina-ui in ${UI_REPO}" >&2
-    echo "Place @webina/ui at ${INSTALL_DIR}/packages/webina-ui and re-run." >&2
     rm -rf "${tmp}"
     exit 1
   fi
@@ -66,7 +232,7 @@ cd "${INSTALL_DIR}/WebinoERP"
 [ -f frontend/.env ] || cp frontend/.env.example frontend/.env
 [ -f frontend/.env.local ] || cp frontend/.env.example frontend/.env.local
 
-PASS="$(tr -dc 'A-Za-z0-9' </dev/urandom | head -c 24 || true)"
+PASS="$(tr -dc 'A-Za-z0-9' </dev/urandom | head -c 24 2>/dev/null || true)"
 PASS="${PASS:-webinoChangeMe}"
 
 if grep -q '^POSTGRES_PASSWORD=postgres$' .env 2>/dev/null || grep -q '^POSTGRES_PASSWORD=$' .env 2>/dev/null; then
@@ -79,8 +245,11 @@ if grep -q '^POSTGRES_DB=' .env; then
   sed -i.bak 's/^POSTGRES_DB=.*/POSTGRES_DB=webina_crm/' .env
 fi
 
-grep -q '^WEB_HTTP_PORT=' .env && sed -i.bak "s/^WEB_HTTP_PORT=.*/WEB_HTTP_PORT=${WEB_HTTP_PORT}/" .env \
-  || printf '\nWEB_HTTP_PORT=%s\nWEB_HTTPS_PORT=%s\n' "${WEB_HTTP_PORT}" "${WEB_HTTPS_PORT}" >> .env
+if grep -q '^WEB_HTTP_PORT=' .env; then
+  sed -i.bak "s/^WEB_HTTP_PORT=.*/WEB_HTTP_PORT=${WEB_HTTP_PORT}/" .env
+else
+  printf '\nWEB_HTTP_PORT=%s\nWEB_HTTPS_PORT=%s\n' "${WEB_HTTP_PORT}" "${WEB_HTTPS_PORT}" >> .env
+fi
 
 DB_PASS="$(grep '^POSTGRES_PASSWORD=' .env | cut -d= -f2-)"
 DB_USER="$(grep '^POSTGRES_USER=' .env | cut -d= -f2-)"
@@ -95,30 +264,30 @@ sed -i.bak \
   -e "s|^REDIS_HOST=.*|REDIS_HOST=redis|" \
   backend/.env
 
-echo "==> Installing PHP dependencies"
-docker compose run --rm --no-deps --entrypoint composer backend install --no-interaction --prefer-dist --no-dev || \
-  docker compose run --rm --no-deps --entrypoint composer backend install --no-interaction --prefer-dist
+log "Installing PHP dependencies (Composer via Docker)"
+compose_cli run --rm --no-deps --entrypoint composer backend install --no-interaction --prefer-dist --no-dev 2>/dev/null || \
+  compose_cli run --rm --no-deps --entrypoint composer backend install --no-interaction --prefer-dist
 
 if ! grep -q '^APP_KEY=base64:' backend/.env; then
-  echo "==> Generating APP_KEY"
-  docker compose run --rm --no-deps --entrypoint php backend artisan key:generate --force
+  log "Generating APP_KEY"
+  compose_cli run --rm --no-deps --entrypoint php backend artisan key:generate --force
 fi
 
-echo "==> Building and starting Docker services"
-docker compose up -d --build
+log "Building and starting Docker services (may take several minutes)"
+compose_cli up -d --build
 
-echo "==> Waiting for database"
-for i in $(seq 1 30); do
-  if docker compose exec -T db pg_isready -U "${DB_USER}" -d "${DB_NAME}" >/dev/null 2>&1; then
+log "Waiting for database"
+for _ in $(seq 1 45); do
+  if compose_cli exec -T db pg_isready -U "${DB_USER}" -d "${DB_NAME}" >/dev/null 2>&1; then
     break
   fi
   sleep 2
 done
 
-echo "==> Migrating and seeding"
-docker compose exec -T backend php artisan migrate --force
-docker compose exec -T backend php artisan db:seed --force
-docker compose exec -T backend php artisan storage:link >/dev/null 2>&1 || true
+log "Migrating and seeding"
+compose_cli exec -T backend php artisan migrate --force
+compose_cli exec -T backend php artisan db:seed --force
+compose_cli exec -T backend php artisan storage:link >/dev/null 2>&1 || true
 
 echo
 echo "WebinoERP is up."
@@ -127,4 +296,7 @@ echo "  API:    ${APP_URL}/api/v1"
 echo "  Login:  admin@webina.local / password"
 echo
 echo "Change the demo password immediately."
-echo "Compose project: ${INSTALL_DIR}/WebinoERP"
+echo "Project path: ${INSTALL_DIR}/WebinoERP"
+if ! docker info >/dev/null 2>&1 && groups | grep -q docker; then
+  echo "Note: log out and back in (or run: newgrp docker) to use docker without sudo."
+fi

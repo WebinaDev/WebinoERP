@@ -22,7 +22,7 @@ webina-enterprise/
 
 ### نصب روی سرور (یک دستور)
 
-پیش‌نیاز: `git` + Docker Compose v2. پوشهٔ نصب پیش‌فرض `/opt/webina` است (کلون باید داخل پوشه‌ای به‌نام `WebinoERP` باشد تا بیلد فرانت درست شود).
+پیش‌نیاز: **Linux** با `sudo`. اسکریپت خودش نصب می‌کند: `git`, `curl`, **Docker Engine**, **Compose plugin** — سپس ERP را کلون و بالا می‌آورد.
 
 ```bash
 curl -fsSL https://raw.githubusercontent.com/WebinaDev/WebinoERP/main/install.sh | bash
@@ -35,7 +35,7 @@ curl -fsSL https://raw.githubusercontent.com/WebinaDev/WebinoERP/main/install.sh
   | INSTALL_DIR=/opt/webina WEB_HTTP_PORT=3080 APP_URL=http://YOUR_SERVER_IP:3080 bash
 ```
 
-اگر `install.sh` هنوز روی `main` نیست، همان اسکریپت را از کلون محلی اجرا کنید:
+اگر `install.sh` هنوز روی `main` نیست:
 
 ```bash
 sudo mkdir -p /opt/webina && sudo chown "$USER" /opt/webina
