@@ -1,3 +1,5 @@
+"use client"
+
 import { useQueryClient } from '@tanstack/react-query'
 import { Check, Laptop, Moon, Sun } from 'lucide-react'
 import { useCallback, useMemo } from 'react'

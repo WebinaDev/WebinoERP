@@ -1,3 +1,5 @@
+"use client"
+
 import { useQueryClient } from '@tanstack/react-query'
 import { Check, Palette } from 'lucide-react'
 import { useLocale, useTranslations } from 'next-intl'
