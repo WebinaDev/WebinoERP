@@ -1,16 +1,22 @@
-import { useTranslation } from 'react-i18next'
+"use client"
+
+import { useTranslations } from 'next-intl'
 
 type LoginThemeControlsProps = {
   isRtl?: boolean
 }
 
 export function LoginThemeControls({ isRtl = false }: LoginThemeControlsProps) {
-  const { t } = useTranslation()
-  const siteName = window.webinoDashboard?.siteName?.trim() || t('app.title')
+  const t = useTranslations()
+  const siteName =
+    (typeof window !== 'undefined' &&
+      (window as unknown as { webinoDashboard?: { siteName?: string } })
+        .webinoDashboard?.siteName?.trim()) ||
+    t('app.title')
 
   return (
     <div className="absolute top-4 z-20">
-      <div className={`text-xs text-muted-foreground ${isRtl ? "right-4" : "left-4"}`}>
+      <div className={`text-xs text-muted-foreground ${isRtl ? 'right-4' : 'left-4'}`}>
         {siteName}
       </div>
     </div>

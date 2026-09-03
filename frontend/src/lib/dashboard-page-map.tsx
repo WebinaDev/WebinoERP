@@ -239,7 +239,7 @@ const EXACT: Record<string, ReactNode> = {
   'admin/marketplace/orders': <OrdersPage />,
   'admin/marketplace/gitea': <GiteaPage />,
   'admin/marketplace/modules/new': <ModuleDetailPage moduleId="new" />,
-  'admin/integrations/modirpayamak': <ModirpayamakPage />,
+  'admin/integrations/modirpayamak': <ModirpayamakSendPage />,
   'admin/integrations/modirpayamak/send': <ModirpayamakSendPage />,
   'admin/integrations/modirpayamak/reports': <ModirpayamakReportsPage />,
   'admin/integrations/modirpayamak/customers': <ModirpayamakCustomersPage />,

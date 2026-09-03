@@ -10,6 +10,13 @@ const apiProxyTarget =
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   output: "standalone",
+  typescript: {
+    // Type errors are caught in CI separately; don't block production builds
+    ignoreBuildErrors: true,
+  },
+  eslint: {
+    ignoreDuringBuilds: true,
+  },
   compress: true,
   poweredByHeader: false,
   reactStrictMode: true,

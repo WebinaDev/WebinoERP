@@ -27,7 +27,7 @@ export function AccentMenu() {
   const bq = useBootstrapQuery()
   const dir = locale === 'fa' ? 'rtl' : 'ltr'
 
-  const [accent, setAccent] = useState<AccentPreset>('default')
+  const [accent, setAccent] = useState<AccentPreset>('zinc')
 
   useEffect(() => {
     setAccent(normalizeAccent(bq.data?.uiAccent))

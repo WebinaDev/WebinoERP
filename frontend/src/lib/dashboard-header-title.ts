@@ -1,5 +1,5 @@
-import type { TFunction } from 'i18next'
-import { matchPath } from 'react-router-dom'
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+type TFunction = (key: string, params?: Record<string, string>) => string
 
 import type { DashboardRouteDef } from '@/routes/routes.config'
 import { dashboardRoutes } from '@/routes/routes.config'
@@ -24,6 +24,32 @@ function withLeadingSlash(p: string): string {
 
 function stripSlashes(p: string): string {
   return p.replace(/^\/+|\/+$/g, '')
+}
+
+/**
+ * Simple path pattern matcher (replaces react-router-dom's matchPath).
+ * Returns matched params or null if no match.
+ */
+function matchPattern(
+  pattern: string,
+  pathname: string,
+): Record<string, string> | null {
+  const patternParts = pattern.split('/').filter(Boolean)
+  const pathParts = pathname.split('/').filter(Boolean)
+
+  if (patternParts.length !== pathParts.length) return null
+
+  const params: Record<string, string> = {}
+  for (let i = 0; i < patternParts.length; i++) {
+    const pp = patternParts[i]
+    const vp = pathParts[i]
+    if (pp.startsWith(':')) {
+      params[pp.slice(1)] = vp
+    } else if (pp !== vp) {
+      return null
+    }
+  }
+  return params
 }
 
 export function navTitleForPath(pathname: string, items: { to: string; label: string }[]): string | null {
@@ -51,13 +77,13 @@ export function resolveSiteHeaderTitle(
   for (const def of routesByMatchOrder) {
     if (!def.headerTitleKey) continue
     const pattern = withLeadingSlash(def.path)
-    const m = matchPath({ path: pattern, end: true }, path)
-    if (!m) continue
+    const params = matchPattern(pattern, path)
+    if (params === null) continue
 
-    if (def.headerParamKeys && m.params) {
+    if (def.headerParamKeys && params) {
       const interp: Record<string, string> = {}
       for (const [paramName, i18nKey] of Object.entries(def.headerParamKeys)) {
-        const v = m.params[paramName]
+        const v = params[paramName]
         if (v != null && v !== '') interp[i18nKey] = v
       }
       return t(def.headerTitleKey, interp)
