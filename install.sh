@@ -229,9 +229,10 @@ if [ ! -d WebinoERP/.git ]; then
   git clone --branch "${ERP_REF}" --depth 1 "${ERP_REPO}" WebinoERP
 else
   log "Updating WebinoERP"
-  git -C WebinoERP fetch --depth 1 origin "${ERP_REF}" || true
+  git -C WebinoERP fetch origin "${ERP_REF}" || git -C WebinoERP fetch --depth 1 origin "${ERP_REF}" || true
   git -C WebinoERP checkout "${ERP_REF}" || true
-  git -C WebinoERP pull --ff-only origin "${ERP_REF}" 2>/dev/null || true
+  git -C WebinoERP reset --hard "origin/${ERP_REF}" || git -C WebinoERP pull --ff-only origin "${ERP_REF}" || true
+  git -C WebinoERP clean -fd
 fi
 
 if [ ! -f packages/webina-ui/package.json ]; then

@@ -5,7 +5,7 @@
     "keywords": ["platform", "coolify", "docker", "ssh"],
     "priority": 5,
     "providers": [
-        "Modules\Platform\Providers\PlatformServiceProvider"
+        "Modules\\Platform\\Providers\\PlatformServiceProvider"
     ],
     "aliases": {},
     "files": [],
