@@ -98,7 +98,7 @@ cleanup_backup() { rm -rf "${BACKUP_DIR}"; }
 trap 'cleanup_backup' EXIT
 trap 'echo "ERROR: update.sh failed at line ${LINENO} (exit $?)" >&2' ERR
 
-log "Backing up env files (secrets stay; Caddyfile comes from git + CADDY_DOMAINS in .env)"
+log "Backing up env files (secrets stay; Caddyfile comes from git)"
 mkdir -p "${BACKUP_DIR}/backend" "${BACKUP_DIR}/frontend"
 [ -f "${ERP_DIR}/.env" ] && cp -a "${ERP_DIR}/.env" "${BACKUP_DIR}/.env"
 [ -f "${ERP_DIR}/backend/.env" ] && cp -a "${ERP_DIR}/backend/.env" "${BACKUP_DIR}/backend/.env"

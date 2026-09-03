@@ -1,9 +1,8 @@
 {
-	# Never enable h3 unless host publishes UDP/443 — causes ERR_SSL_PROTOCOL_ERROR.
 	servers {
 		protocols h1 h2
 	}
-	email {$CADDY_ACME_EMAIL:admin@localhost}
+	email {$CADDY_ACME_EMAIL:admin@webinaagency.ir}
 }
 
 (security_headers) {
@@ -11,6 +10,7 @@
 		X-Content-Type-Options "nosniff"
 		X-Frame-Options "SAMEORIGIN"
 		Referrer-Policy "strict-origin-when-cross-origin"
+		Strict-Transport-Security "max-age=31536000; includeSubDomains"
 		-Server
 	}
 }
@@ -46,16 +46,9 @@
 	}
 }
 
-# Site address from env CADDY_DOMAINS (compose).
-# Production example: webinaagency.ir, www.webinaagency.ir  → auto Let's Encrypt on :443
-# Lab / aaPanel-behind-proxy: :80  → HTTP only (no new ACME certs)
-#
-# Certificates live in Docker named volume `caddy_data` (/data). Never run:
-#   docker compose down -v
-#   docker volume rm …caddy_data
-# or Let's Encrypt will re-issue and you will hit rate limits.
-{$CADDY_DOMAINS::80} {
+# Domains are fixed here (env placeholders were expanding to ":80" and skipping HTTPS).
+# Change hostnames only when intentionally moving the site — keep caddy_data volume forever.
+webinaagency.ir, www.webinaagency.ir {
 	import security_headers
-	header Strict-Transport-Security "max-age=31536000; includeSubDomains"
 	import app_routes
 }

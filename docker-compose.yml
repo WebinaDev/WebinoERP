@@ -203,9 +203,7 @@ services:
       - "${WEB_HTTP_PORT:-3080}:80"
       - "${WEB_HTTPS_PORT:-3443}:443"
     environment:
-      # Comma-separated hostnames for ACME, or ":80" for HTTP-only (behind aaPanel).
-      CADDY_DOMAINS: ${CADDY_DOMAINS:-:80}
-      CADDY_ACME_EMAIL: ${CADDY_ACME_EMAIL:-admin@localhost}
+      CADDY_ACME_EMAIL: "${CADDY_ACME_EMAIL:-admin@localhost}"
     volumes:
       - ./docker/caddy/Caddyfile:/etc/caddy/Caddyfile:ro
       # Persist Let's Encrypt certs across recreate/update — never delete this volume.
