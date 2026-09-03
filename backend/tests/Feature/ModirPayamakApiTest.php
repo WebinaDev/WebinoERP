@@ -56,6 +56,40 @@ class ModirPayamakApiTest extends TestCase
         ])->assertStatus(422);
     }
 
+    public function test_settings_persist_without_echoing_api_key(): void
+    {
+        $user = $this->actingAsRole('system_manager');
+        Sanctum::actingAs($user);
+
+        $this->putJson('/api/v1/integrations/modirpayamak/settings', [
+            'api_key' => 'secret-live-key-xyz',
+            'default_from' => '3000500',
+            'enabled' => true,
+        ])->assertOk()
+            ->assertJsonPath('data.has_api_key', true)
+            ->assertJsonPath('data.default_from', '3000500')
+            ->assertJsonPath('data.enabled', true)
+            ->assertJsonMissingPath('data.api_key');
+
+        $show = $this->getJson('/api/v1/integrations/modirpayamak/settings')
+            ->assertOk()
+            ->assertJsonPath('data.has_api_key', true)
+            ->assertJsonPath('data.default_from', '3000500')
+            ->assertJsonPath('data.enabled', true);
+
+        $this->assertNotEmpty($show->json('data.api_key_masked'));
+        $this->assertNull($show->json('data.api_key'));
+
+        // Empty api_key on update must not wipe the stored secret.
+        $this->putJson('/api/v1/integrations/modirpayamak/settings', [
+            'default_from' => '3000501',
+            'enabled' => true,
+        ])->assertOk()->assertJsonPath('data.has_api_key', true);
+
+        $this->assertSame('secret-live-key-xyz', IntegrationSetting::getString('modirpayamak', 'api_key', ''));
+        $this->assertSame('3000501', IntegrationSetting::getString('modirpayamak', 'default_from', ''));
+    }
+
     public function test_admin_proxy_tickets_users_drafts_with_mock(): void
     {
         putenv('MODIRPAYAMAK_MOCK=true');
