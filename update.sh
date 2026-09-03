@@ -109,8 +109,9 @@ cd "${ERP_DIR}"
 run_cmd git -C "${ERP_DIR}" remote set-url origin "${ERP_REPO}" || true
 log "Fetching ${ERP_REF}…"
 run_cmd git -C "${ERP_DIR}" fetch origin "${ERP_REF}"
-run_cmd git -C "${ERP_DIR}" checkout -B "${ERP_REF}" "origin/${ERP_REF}"
+# Discard local tracked edits (e.g. hand-edited Caddyfile). Secrets live in .env backups only.
 run_cmd git -C "${ERP_DIR}" reset --hard "origin/${ERP_REF}"
+run_cmd git -C "${ERP_DIR}" checkout -f -B "${ERP_REF}" "origin/${ERP_REF}"
 run_cmd git -C "${ERP_DIR}" clean -fd \
   -e .env \
   -e backend/.env \
