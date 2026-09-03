@@ -29,4 +29,13 @@ if ! grep -q '^APP_KEY=base64:' .env || [ -z "${APP_KEY:-}" ] || [ "${APP_KEY}" 
   echo "[webinoerp] Generated APP_KEY"
 fi
 
+# Copied frankenphp is missing libwatcher-c.so.0 — Octane dies with exit 127.
+# Intercept so even an old compose command still boots.
+case " $* " in
+  *" octane:start "*|*" octane:start")
+    echo "[webinoerp] Skipping Octane/FrankenPHP; starting artisan serve on :8080"
+    exec php artisan serve --host=0.0.0.0 --port=8080
+    ;;
+esac
+
 exec "$@"

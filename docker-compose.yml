@@ -68,10 +68,7 @@ services:
         condition: service_healthy
       redis:
         condition: service_healthy
-    # FrankenPHP/Octane is optional; artisan serve is enough to finish first install.
-    command: >
-      sh -c "php artisan octane:start --server=frankenphp --host=0.0.0.0 --port=8080
-      || php artisan serve --host=0.0.0.0 --port=8080"
+    command: php artisan serve --host=0.0.0.0 --port=8080
     networks:
       - webino_erp
 
@@ -176,7 +173,8 @@ services:
       AUTH_COOKIE_NAME: webino_auth_token
       NEXT_PUBLIC_REVERB_PORT: "8081"
     healthcheck:
-      test: ["CMD-SHELL", "wget -qO- http://127.0.0.1:3000/ >/dev/null || node -e \"require('http').get('http://127.0.0.1:3000/',r=>process.exit(r.statusCode<500?0:1)).on('error',()=>process.exit(1))\""]
+      # Any HTTP response means Next is listening (SSR may 500 while backend is down).
+      test: ["CMD-SHELL", "node -e \"require('http').get('http://127.0.0.1:3000/',()=>process.exit(0)).on('error',()=>process.exit(1))\""]
       interval: 10s
       timeout: 5s
       retries: 18
