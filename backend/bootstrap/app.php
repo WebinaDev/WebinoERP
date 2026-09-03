@@ -43,10 +43,16 @@ return Application::configure(basePath: dirname(__DIR__))
             env('AUTH_COOKIE_NAME', 'webino_auth_token'),
         ]);
 
+        // Cookie+Bearer SPA — not Sanctum session auth. CSRF on /api/* blocks login
+        // when APP_URL host is treated as a stateful domain.
+        $middleware->validateCsrfTokens(except: [
+            'api/*',
+            'sanctum/csrf-cookie',
+        ]);
+
         $middleware->api(prepend: [
             \App\Http\Middleware\ForceJsonResponse::class,
             \App\Http\Middleware\ApiResponseFormatter::class,
-            \Laravel\Sanctum\Http\Middleware\EnsureFrontendRequestsAreStateful::class,
             \App\Http\Middleware\AuthenticateFromCookie::class,
             \App\Http\Middleware\UpdateTokenLastActivity::class,
         ]);

@@ -53,6 +53,8 @@ services:
       REDIS_HOST: redis
       CACHE_STORE: redis
       SESSION_DRIVER: redis
+      SESSION_SECURE_COOKIE: "false"
+      SANCTUM_STATEFUL_DOMAINS: "localhost,localhost:3000,127.0.0.1,127.0.0.1:8000"
       QUEUE_CONNECTION: redis
       BROADCAST_CONNECTION: reverb
       OCTANE_SERVER: frankenphp

@@ -143,13 +143,15 @@ class AuthController extends Controller
 
     private function attachAuthCookie(JsonResponse $response, string $token): JsonResponse
     {
+        $secure = (bool) config('session.secure', false);
+
         return $response->cookie(
             config('auth.cookie_name', 'webino_auth_token'),
             $token,
             config('auth.cookie_max_minutes', 60 * 24 * 7),
             '/',
             null,
-            app()->environment('production'),
+            $secure,
             true,
             false,
             'lax'
@@ -158,13 +160,15 @@ class AuthController extends Controller
 
     private function clearAuthCookie(JsonResponse $response): JsonResponse
     {
+        $secure = (bool) config('session.secure', false);
+
         return $response->cookie(
             config('auth.cookie_name', 'webino_auth_token'),
             '',
             -1,
             '/',
             null,
-            app()->environment('production'),
+            $secure,
             true,
             false,
             'lax'
