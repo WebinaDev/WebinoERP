@@ -7,7 +7,8 @@ import { useTranslations } from 'next-intl';
 import { CrmPageLayout } from '@/features/shared/layout/CrmPageLayout';
 import { useCrmFeedback } from '@/features/shared/hooks/useCrmFeedback';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
+import { Input } from '@/components/ui/input'
+import { LocaleDatePicker } from '@/components/ui/locale-date-picker';
 import { Card, CardContent } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import {
@@ -269,7 +270,7 @@ export function StaffPage() {
             <Input dir="ltr" placeholder={t('mobile')} value={form.mobile} onChange={(e) => setForm((f) => ({ ...f, mobile: e.target.value }))} />
             <Input placeholder={t('department')} value={form.department} onChange={(e) => setForm((f) => ({ ...f, department: e.target.value }))} />
             <Input placeholder={t('position')} value={form.position} onChange={(e) => setForm((f) => ({ ...f, position: e.target.value }))} />
-            <Input type="date" value={form.hire_date} onChange={(e) => setForm((f) => ({ ...f, hire_date: e.target.value }))} />
+            <LocaleDatePicker value={form.hire_date} onChange={(v) => setForm((f) => ({ ...f, hire_date: v }))} />
             <Input type="number" placeholder={t('baseSalary')} value={form.base_salary} onChange={(e) => setForm((f) => ({ ...f, base_salary: e.target.value }))} />
           </div>
           <DialogFooter>

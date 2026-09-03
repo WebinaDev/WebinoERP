@@ -7,6 +7,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { cn } from '@/lib/utils';
 import { useLocale } from '@/hooks/use-locale';
+import { buildMonthGrid } from '@/lib/locale/month-grid';
 
 export type CalendarAppointment = {
   id: number;
@@ -56,7 +57,7 @@ export function AppointmentsCalendarPanel({
   draggingEventId,
 }: Props) {
   const t = useTranslations('pm.appointments');
-  const { formatDisplayDate } = useLocale();
+  const { formatDisplayDate, locale } = useLocale();
   const [selectedKey, setSelectedKey] = useState(() => toYmd(new Date()));
 
   const weekdayLabels = useMemo(
@@ -72,20 +73,10 @@ export function AppointmentsCalendarPanel({
     [t],
   );
 
-  const calendarWeeks = useMemo(() => {
-    const y = viewMonth.getFullYear();
-    const m = viewMonth.getMonth();
-    const first = new Date(y, m, 1);
-    const startWeekday = (first.getDay() + 1) % 7;
-    const daysInMonth = new Date(y, m + 1, 0).getDate();
-    const cells: (number | null)[] = [];
-    for (let i = 0; i < startWeekday; i++) cells.push(null);
-    for (let d = 1; d <= daysInMonth; d++) cells.push(d);
-    while (cells.length % 7 !== 0) cells.push(null);
-    const weeks: (number | null)[][] = [];
-    for (let i = 0; i < cells.length; i += 7) weeks.push(cells.slice(i, i + 7));
-    return weeks;
-  }, [viewMonth]);
+  const calendarWeeks = useMemo(
+    () => buildMonthGrid(viewMonth, locale, { weekStartsOnSat: true }),
+    [viewMonth, locale],
+  );
 
   const eventsByDate = useMemo(() => {
     const map: Record<string, CalendarAppointment[]> = {};
@@ -99,7 +90,11 @@ export function AppointmentsCalendarPanel({
   }, [events]);
 
   const dayEvents = eventsByDate[selectedKey] ?? [];
-  const monthTitle = viewMonth.toLocaleDateString(undefined, { month: 'long', year: 'numeric' });
+  const monthTitle = formatDisplayDate(
+    calendarWeeks.flat().find((c) => c.day === 15)?.iso ||
+      calendarWeeks.flat().find((c) => c.day > 0)?.iso ||
+      '',
+  );
 
   return (
     <div className="space-y-4">
@@ -116,7 +111,7 @@ export function AppointmentsCalendarPanel({
       <div className="grid gap-4 lg:grid-cols-[1.4fr_1fr]">
         <Card>
           <CardContent className="space-y-1 pt-6">
-            <div className="grid grid-cols-7 gap-1 text-center text-xs text-muted-foreground">
+            <div className="text-muted-foreground grid grid-cols-7 gap-1 text-center text-xs">
               {weekdayLabels.map((d) => (
                 <div key={d} className="py-1 font-medium">
                   {d}
@@ -126,8 +121,8 @@ export function AppointmentsCalendarPanel({
             <div className="space-y-1">
               {calendarWeeks.map((week, wi) => (
                 <div key={wi} className="grid grid-cols-7 gap-1">
-                  {week.map((day, di) => {
-                    if (!day) {
+                  {week.map((cell, di) => {
+                    if (!cell.day) {
                       return (
                         <div
                           key={`${wi}-${di}`}
@@ -135,9 +130,7 @@ export function AppointmentsCalendarPanel({
                         />
                       );
                     }
-                    const y = viewMonth.getFullYear();
-                    const m = viewMonth.getMonth();
-                    const iso = toYmd(new Date(y, m, day));
+                    const iso = cell.iso;
                     const dayAppts = eventsByDate[iso] ?? [];
                     const isSelected = iso === selectedKey;
                     return (
@@ -146,7 +139,7 @@ export function AppointmentsCalendarPanel({
                         role="button"
                         tabIndex={0}
                         className={cn(
-                          'min-h-[72px] cursor-pointer rounded-md border border-border/60 bg-muted/20 p-1 text-start align-top',
+                          'border-border/60 bg-muted/20 min-h-[72px] cursor-pointer rounded-md border p-1 text-start align-top',
                           isSelected && 'ring-2 ring-primary',
                         )}
                         onClick={() => {
@@ -167,7 +160,7 @@ export function AppointmentsCalendarPanel({
                           onDayDrop(iso);
                         }}
                       >
-                        <div className="mb-1 text-xs font-medium text-muted-foreground">{day}</div>
+                        <div className="text-muted-foreground mb-1 text-xs font-medium">{cell.day}</div>
                         <div className="flex max-h-[48px] flex-col gap-0.5 overflow-y-auto">
                           {dayAppts.slice(0, 3).map((ap) => (
                             <button
@@ -175,8 +168,8 @@ export function AppointmentsCalendarPanel({
                               type="button"
                               draggable
                               className={cn(
-                                'truncate rounded bg-primary/15 px-1 py-0.5 text-[10px] leading-tight hover:bg-primary/25',
-                                draggingEventId === ap.id && 'opacity-50 ring-1 ring-primary',
+                                'bg-primary/15 hover:bg-primary/25 truncate rounded px-1 py-0.5 text-[10px] leading-tight',
+                                draggingEventId === ap.id && 'ring-primary opacity-50 ring-1',
                               )}
                               title={ap.title}
                               onClick={(e) => {
@@ -192,7 +185,7 @@ export function AppointmentsCalendarPanel({
                             </button>
                           ))}
                           {dayAppts.length > 3 ? (
-                            <span className="text-[10px] text-muted-foreground">+{dayAppts.length - 3}</span>
+                            <span className="text-muted-foreground text-[10px]">+{dayAppts.length - 3}</span>
                           ) : null}
                         </div>
                       </div>

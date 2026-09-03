@@ -5,7 +5,8 @@ import { useTranslations } from 'next-intl';
 import { CrmPageLayout } from '@/features/shared/layout/CrmPageLayout';
 import { useCrmFeedback } from '@/features/shared/hooks/useCrmFeedback';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
+import { Input } from '@/components/ui/input'
+import { LocaleDatePicker } from '@/components/ui/locale-date-picker';
 import { Card, CardContent } from '@/components/ui/card';
 import { PageLoadingState } from '@/features/shared/ui/PageStates';
 import { getPayrollDecrees, savePayrollDecree } from '@/lib/api/hrm';
@@ -77,11 +78,10 @@ export function PayrollDecreesPage() {
             onChange={(e) => setJobCode(e.target.value)}
             placeholder={t('portal.jobCode')}
           />
-          <Input
+          <LocaleDatePicker
             className="max-w-[12rem]"
-            type="date"
             value={effectiveFrom}
-            onChange={(e) => setEffectiveFrom(e.target.value)}
+            onChange={setEffectiveFrom}
           />
           <Button onClick={() => void create()} disabled={!userId}>
             {t('portal.issueDecree')}

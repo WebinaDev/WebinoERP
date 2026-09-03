@@ -2,10 +2,12 @@
 
 import { useCallback, useEffect, useState } from 'react';
 import { useTranslations } from 'next-intl';
+import { useLocale } from '@/hooks/use-locale-next';
 import { CrmPageLayout } from '@/features/shared/layout/CrmPageLayout';
 import { useCrmFeedback } from '@/features/shared/hooks/useCrmFeedback';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
+import { Input } from '@/components/ui/input'
+import { LocaleDatePicker } from '@/components/ui/locale-date-picker';
 import { Textarea } from '@/components/ui/textarea';
 import { Card, CardContent } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
@@ -39,6 +41,7 @@ import { normalizeListPayload } from '@/lib/list-utils';
 export function TrainingPage() {
   const t = useTranslations('hrm');
   const tNav = useTranslations();
+  const { formatDate } = useLocale();
   const { layoutProps, setSuccess, applyAxiosError } = useCrmFeedback();
   const [tab, setTab] = useState('courses');
   const [courses, setCourses] = useState<Record<string, unknown>[]>([]);
@@ -202,8 +205,8 @@ export function TrainingPage() {
                     courses.map((r) => (
                       <TableRow key={String(r.id)}>
                         <TableCell>{String(r.title ?? r.name ?? '')}</TableCell>
-                        <TableCell>{String(r.start_date ?? '').slice(0, 10)}</TableCell>
-                        <TableCell>{String(r.end_date ?? '').slice(0, 10)}</TableCell>
+                        <TableCell>{formatDate(String(r.start_date ?? '')) || '—'}</TableCell>
+                        <TableCell>{formatDate(String(r.end_date ?? '')) || '—'}</TableCell>
                         <TableCell>{String(r.status ?? '')}</TableCell>
                       </TableRow>
                     ))
@@ -288,8 +291,8 @@ export function TrainingPage() {
           <div className="space-y-3 py-2">
             <Input placeholder={t('courseTitle')} value={courseForm.title} onChange={(e) => setCourseForm((f) => ({ ...f, title: e.target.value }))} />
             <Textarea placeholder={t('description')} value={courseForm.description} onChange={(e) => setCourseForm((f) => ({ ...f, description: e.target.value }))} />
-            <Input type="date" value={courseForm.start_date} onChange={(e) => setCourseForm((f) => ({ ...f, start_date: e.target.value }))} />
-            <Input type="date" value={courseForm.end_date} onChange={(e) => setCourseForm((f) => ({ ...f, end_date: e.target.value }))} />
+            <LocaleDatePicker value={courseForm.start_date} onChange={(v) => setCourseForm((f) => ({ ...f, start_date: v }))} />
+            <LocaleDatePicker value={courseForm.end_date} onChange={(v) => setCourseForm((f) => ({ ...f, end_date: v }))} />
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setCourseOpen(false)}>{tNav('common.cancel')}</Button>

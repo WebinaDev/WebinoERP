@@ -132,7 +132,7 @@ export async function getModirPayamakOrders(page = 1) {
 }
 
 export async function modirPayamakSend(payload: Record<string, unknown>) {
-  const res = await apiClient.post(`${BASE}/send`, payload);
+  const res = await apiClient.post(`${BASE}/admin/send`, payload);
   return unwrapData(res);
 }
 
@@ -142,42 +142,42 @@ export async function modirPayamakCalculatePrice(payload: Record<string, unknown
 }
 
 export async function getModirPayamakOutbox(params?: Record<string, unknown>) {
-  const res = await apiClient.get(`${BASE}/reports/outbox`, { params });
+  const res = await apiClient.get(`${BASE}/admin/reports/outbox`, { params });
   return unwrapData(res);
 }
 
 export async function getModirPayamakOutboxDetail(id: string | number) {
-  const res = await apiClient.get(`${BASE}/reports/outbox/${id}`);
+  const res = await apiClient.get(`${BASE}/admin/reports/outbox/${id}`);
   return unwrapData(res);
 }
 
 export async function getModirPayamakPatterns() {
-  const res = await apiClient.get(`${BASE}/patterns`);
+  const res = await apiClient.get(`${BASE}/admin/patterns`);
   return unwrapData(res);
 }
 
 export async function getModirPayamakNumbers() {
-  const res = await apiClient.get(`${BASE}/numbers`);
+  const res = await apiClient.get(`${BASE}/admin/numbers`);
   return unwrapData(res);
 }
 
 export async function getModirPayamakPhonebooks() {
-  const res = await apiClient.get(`${BASE}/phonebooks`);
+  const res = await apiClient.get(`${BASE}/admin/phonebooks`);
   return unwrapData(res);
 }
 
 export async function saveModirPayamakPhonebook(data: Record<string, unknown>) {
-  const res = await apiClient.post(`${BASE}/phonebooks`, data);
+  const res = await apiClient.post(`${BASE}/admin/phonebooks`, data);
   return unwrapData(res);
 }
 
 export async function getModirPayamakPhonebookContacts(id: number | string) {
-  const res = await apiClient.get(`${BASE}/phonebooks/${id}/contacts`);
+  const res = await apiClient.get(`${BASE}/admin/phonebooks/${id}/contacts`);
   return unwrapData(res);
 }
 
 export async function saveModirPayamakPhonebookContact(id: number | string, data: Record<string, unknown>) {
-  const res = await apiClient.post(`${BASE}/phonebooks/${id}/contacts`, data);
+  const res = await apiClient.post(`${BASE}/admin/phonebooks/${id}/contacts`, data);
   return unwrapData(res);
 }
 

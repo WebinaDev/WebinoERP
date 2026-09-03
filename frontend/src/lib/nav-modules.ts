@@ -186,10 +186,14 @@ export type Sidebar08MainNavItem = {
   items?: Sidebar08NavSubItem[]
 }
 
-function pathIsActive(pathname: string, to: string): boolean {
+/** Shared active-route matcher. Dashboard roots (`/`, `/admin`) are exact-only. */
+export function pathIsActive(pathname: string, to: string): boolean {
   const p = pathname.replace(/\/$/, '') || '/'
-  if (to === '/') return p === '/'
-  const t = to.replace(/\/$/, '')
+  const t = (to || '/').replace(/\/$/, '') || '/'
+  // Dashboard home is `/admin` after shell rewrite; must not prefix-match `/admin/*`.
+  if (t === '/' || t === '/admin') {
+    return p === t
+  }
   return p === t || p.startsWith(`${t}/`)
 }
 

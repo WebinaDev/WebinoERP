@@ -1,6 +1,7 @@
 'use client';
 
 import { useTranslations } from 'next-intl';
+import { useLocale } from '@/hooks/use-locale-next';
 
 import { useCallback, useEffect, useState } from 'react';
 import apiClient from '@/lib/api-client';
@@ -38,6 +39,7 @@ type Row = Record<string, unknown>;
 type Meta = { current_page?: number; last_page?: number; total?: number };
 
 export function ContractsListPage() {
+  const { formatDate } = useLocale();
   const t = useTranslations();
   const { isRtl } = useLocale();
 
@@ -368,8 +370,8 @@ export function ContractsListPage() {
                         {(detailFull.installments as Record<string, unknown>[]).map((inst, idx) => (
                           <tr key={idx} className="border-b border-border/60">
                             <td className="px-2 py-1">{String(inst.amount ?? '—')}</td>
-                            <td className="px-2 py-1">{String(inst.due_date ?? '—')}</td>
-                            <td className="px-2 py-1">{String(inst.paid_at ?? '—')}</td>
+                            <td className="px-2 py-1">{inst.due_date ? formatDate(String(inst.due_date)) || '—' : '—'}</td>
+                            <td className="px-2 py-1">{inst.paid_at ? formatDate(String(inst.paid_at)) || '—' : '—'}</td>
                           </tr>
                         ))}
                       </tbody>

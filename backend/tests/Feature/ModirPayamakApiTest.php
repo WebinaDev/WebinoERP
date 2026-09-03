@@ -90,6 +90,27 @@ class ModirPayamakApiTest extends TestCase
         $this->assertSame('3000501', IntegrationSetting::getString('modirpayamak', 'default_from', ''));
     }
 
+    public function test_admin_edge_lists_do_not_require_domain(): void
+    {
+        putenv('MODIRPAYAMAK_MOCK=true');
+        $user = $this->actingAsRole('system_manager');
+        Sanctum::actingAs($user);
+
+        $this->getJson('/api/v1/integrations/modirpayamak/admin/reports/outbox')
+            ->assertOk();
+        $this->getJson('/api/v1/integrations/modirpayamak/admin/patterns')
+            ->assertOk();
+        $this->getJson('/api/v1/integrations/modirpayamak/admin/numbers')
+            ->assertOk();
+        $this->getJson('/api/v1/integrations/modirpayamak/admin/phonebooks')
+            ->assertOk();
+
+        $this->postJson('/api/v1/integrations/modirpayamak/admin/send', [
+            'message' => 'Hello reseller',
+            'recipients' => ['09120000000'],
+        ])->assertOk();
+    }
+
     public function test_admin_proxy_tickets_users_drafts_with_mock(): void
     {
         putenv('MODIRPAYAMAK_MOCK=true');

@@ -6,7 +6,8 @@ import { CrmPageLayout } from '@/features/shared/layout/CrmPageLayout';
 import { useCrmFeedback } from '@/features/shared/hooks/useCrmFeedback';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Input } from '@/components/ui/input';
+import { Input } from '@/components/ui/input'
+import { LocaleDatePicker } from '@/components/ui/locale-date-picker';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { AiContentShell } from '../components/AiContentShell';
@@ -77,7 +78,7 @@ export function AiCalendarPage() {
           <CardContent className="grid gap-3 md:grid-cols-2">
             <div className="space-y-1">
               <Label>{t('fieldDate')}</Label>
-              <Input type="date" value={date} onChange={(e) => setDate(e.target.value)} />
+              <LocaleDatePicker value={date} onChange={setDate} />
             </div>
             <div className="space-y-1">
               <Label>{t('fieldType')}</Label>

@@ -18,6 +18,7 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog';
 import { Textarea } from '@/components/ui/textarea';
+import { LocaleDatePicker } from '@/components/ui/locale-date-picker';
 import { useLocale } from '@/hooks/use-locale-next';
 
 export type EntityField = {
@@ -260,9 +261,14 @@ export function EntityCrudPage({
                     value={form[f.name] ?? ''}
                     onChange={(e) => setForm((s) => ({ ...s, [f.name]: e.target.value }))}
                   />
+                ) : f.type === 'date' ? (
+                  <LocaleDatePicker
+                    value={form[f.name] ?? ''}
+                    onChange={(v) => setForm((s) => ({ ...s, [f.name]: v }))}
+                  />
                 ) : (
                   <Input
-                    type={f.type === 'number' ? 'number' : f.type === 'date' ? 'date' : 'text'}
+                    type={f.type === 'number' ? 'number' : 'text'}
                     value={form[f.name] ?? ''}
                     required={f.required}
                     onChange={(e) => setForm((s) => ({ ...s, [f.name]: e.target.value }))}

@@ -6,6 +6,7 @@ import { CrmPageLayout } from '@/features/shared/layout/CrmPageLayout';
 import { useCrmFeedback } from '@/features/shared/hooks/useCrmFeedback';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { LocaleDatePicker } from '@/components/ui/locale-date-picker';
 import { Textarea } from '@/components/ui/textarea';
 import { Card, CardContent } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
@@ -24,6 +25,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
+import { useLocale } from '@/hooks/use-locale-next';
 import { PageEmptyState, PageLoadingState } from '@/features/shared/ui/PageStates';
 import {
   approveLeaveRequest,
@@ -39,6 +41,7 @@ import { normalizeListPayload } from '@/lib/list-utils';
 export function LeavePage() {
   const t = useTranslations('hrm');
   const tNav = useTranslations();
+  const { formatDate } = useLocale();
   const { layoutProps, setSuccess, applyAxiosError } = useCrmFeedback();
   const [tab, setTab] = useState('mine');
   const [allRows, setAllRows] = useState<Record<string, unknown>[]>([]);
@@ -150,8 +153,8 @@ export function LeavePage() {
             <TableRow key={String(r.id)}>
               <TableCell>{employeeLabel(r)}</TableCell>
               <TableCell>{String(r.type ?? r.leave_type_id ?? '')}</TableCell>
-              <TableCell>{String(r.start_date ?? '').slice(0, 10)}</TableCell>
-              <TableCell>{String(r.end_date ?? '').slice(0, 10)}</TableCell>
+              <TableCell>{formatDate(String(r.start_date ?? '')) || '—'}</TableCell>
+              <TableCell>{formatDate(String(r.end_date ?? '')) || '—'}</TableCell>
               <TableCell>{String(r.status ?? '')}</TableCell>
               {showActions && String(r.status) === 'pending' ? (
                 <TableCell className="flex gap-2">
@@ -267,8 +270,8 @@ export function LeavePage() {
                 ))}
               </SelectContent>
             </Select>
-            <Input type="date" value={form.start_date} onChange={(e) => setForm((f) => ({ ...f, start_date: e.target.value }))} />
-            <Input type="date" value={form.end_date} onChange={(e) => setForm((f) => ({ ...f, end_date: e.target.value }))} />
+            <LocaleDatePicker value={form.start_date} onChange={(v) => setForm((f) => ({ ...f, start_date: v }))} />
+            <LocaleDatePicker value={form.end_date} onChange={(v) => setForm((f) => ({ ...f, end_date: v }))} />
             <Textarea placeholder={t('reason')} value={form.reason} onChange={(e) => setForm((f) => ({ ...f, reason: e.target.value }))} />
           </div>
           <DialogFooter>

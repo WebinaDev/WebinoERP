@@ -59,6 +59,12 @@ Route::prefix('modirpayamak')->middleware(['auth:sanctum', 'module:integrations'
         Route::get('/orders', [ModirPayamakAdminController::class, 'orders']);
         Route::post('/send', [ModirPayamakAdminController::class, 'adminSend']);
         Route::get('/messages', [ModirPayamakAdminController::class, 'messages']);
+        Route::get('/reports/outbox', [ModirPayamakAdminController::class, 'reportsOutbox']);
+        Route::get('/reports/outbox/{id}', [ModirPayamakAdminController::class, 'reportOutboxDetail']);
+        Route::get('/patterns', [ModirPayamakAdminController::class, 'patterns']);
+        Route::get('/numbers', [ModirPayamakAdminController::class, 'numbers']);
+        Route::match(['get', 'post'], '/phonebooks', [ModirPayamakAdminController::class, 'phonebooks']);
+        Route::match(['get', 'post'], '/phonebooks/{id}/contacts', [ModirPayamakAdminController::class, 'phonebookContacts'])->whereNumber('id');
     });
 
     // Settings

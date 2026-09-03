@@ -1,6 +1,7 @@
 'use client';
 
 import { useTranslations } from 'next-intl';
+import { useLocale } from '@/hooks/use-locale-next';
 
 import { useState, useCallback, useEffect } from 'react';
 import apiClient from '@/lib/api-client';
@@ -180,7 +181,7 @@ export default function AccWarehouseAudit() {
                     {doc.status === 'posted' ? t('auto.accounting_AccWarehouseAudit.s_47ddb105') : t('auto.accounting_AccWarehouseAudit.s_7d739ea1')}
                   </Badge>
                 </td>
-                <td className="px-3 py-1.5">{doc.created_at ?? '—'}</td>
+                <td className="px-3 py-1.5">{doc.created_at ? formatDateTime(String(doc.created_at)) : '—'}</td>
                 <td className="px-3 py-1.5">
                   {doc.status === 'draft' && (
                     <Button variant="outline" size="sm" onClick={() => void handlePost(doc.id)}>

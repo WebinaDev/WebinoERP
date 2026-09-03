@@ -9,42 +9,13 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { LocaleDatePicker } from '@/components/ui/locale-date-picker';
-import { Avatar, AvatarFallback } from '@/components/ui/avatar';
-import { Progress } from '@/components/ui/progress';
-import { getCurrentUser } from '@/lib/auth';
 import { normalizeListPayload } from '@/lib/list-utils';
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from '@/components/ui/dropdown-menu';
-import { MoreHorizontal } from 'lucide-react';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import {
-  Dialog,
-  DialogContent,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from '@/components/ui/dialog';
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-} from '@/components/ui/alert-dialog';
-import { Textarea } from '@/components/ui/textarea';
 import { SettingsPageView } from '@/components/dashboard/pages/settings-view';
 
 export { SettingsPageView };
 
 export { ProfilePage as ProfilePageView, ReportsPage as ReportsPageView } from '@/features/modules/core/core_pages';
+export { LicensesPageView } from '@/features/modules/core/licenses/LicensesPage';
 
 export function LogsPageView() {
   const t = useTranslations();
@@ -181,350 +152,6 @@ function formatCell(v: unknown): string {
   return String(v);
 }
 
-type LicenseRow = {
-  id?: number;
-  license_key?: string;
-  domain?: string;
-  status?: string;
-  expires_at?: string;
-  created_at?: string;
-  max_users?: number;
-  meta?: Record<string, unknown> | null;
-};
-
-function licenseModulesSummary(lic: LicenseRow): string {
-  const m = lic.meta;
-  if (!m || typeof m !== 'object') {
-    return '—';
-  }
-  const mods = (m.modules ?? m.licensed_modules) as unknown;
-  if (Array.isArray(mods)) {
-    return mods.filter((x) => typeof x === 'string').join(', ');
-  }
-  return '—';
-}
-
-function licenseProgress(lic: LicenseRow): number {
-  if (!lic.expires_at) {
-    return 0;
-  }
-  const exp = new Date(String(lic.expires_at)).getTime();
-  const start = lic.created_at ? new Date(String(lic.created_at)).getTime() : exp - 365 * 86400000;
-  const now = Date.now();
-  if (exp <= start) {
-    return 50;
-  }
-  const t = (exp - now) / (exp - start);
-  return Math.max(0, Math.min(100, Math.round(t * 100)));
-}
-
-export function LicensesPageView() {
-  const t = useTranslations();
-
-  const [rows, setRows] = useState<LicenseRow[]>([]);
-  const [error, setError] = useState<string | null>(null);
-  const [loading, setLoading] = useState(true);
-
-  const [addOpen, setAddOpen] = useState(false);
-  const [renewId, setRenewId] = useState<number | null>(null);
-  const [cancelId, setCancelId] = useState<number | null>(null);
-  const [deleteId, setDeleteId] = useState<number | null>(null);
-
-  const [editMetaRow, setEditMetaRow] = useState<LicenseRow | null>(null);
-  const [metaModules, setMetaModules] = useState('');
-  const [metaVertical, setMetaVertical] = useState('');
-  const [metaSku, setMetaSku] = useState('');
-  const [metaModuleReposJson, setMetaModuleReposJson] = useState('[]');
-  const [metaGitJson, setMetaGitJson] = useState('');
-  const [metaErr, setMetaErr] = useState<string | null>(null);
-
-  const [formKey, setFormKey] = useState('');
-  const [formDomain, setFormDomain] = useState('');
-  const [formErr, setFormErr] = useState<string | null>(null);
-
-  const load = useCallback(async () => {
-    setLoading(true);
-    try {
-      const res = await apiClient.get('/v1/core/licenses');
-      setRows(normalizeListPayload(unwrapData<unknown>(res)) as LicenseRow[]);
-      setError(null);
-    } catch (e) {
-      setError(getAxiosMessage(e));
-    } finally {
-      setLoading(false);
-    }
-  }, []);
-
-  useEffect(() => {
-    void load();
-  }, [load]);
-
-  async function addLicense() {
-    setFormErr(null);
-    try {
-      await apiClient.post('/v1/core/licenses', {
-        license_key: formKey,
-        domain: formDomain || null,
-        status: 'active',
-      });
-      setAddOpen(false);
-      setFormKey('');
-      setFormDomain('');
-      void load();
-    } catch (e) {
-      setFormErr(getAxiosMessage(e));
-    }
-  }
-
-  async function renew() {
-    if (!renewId) {
-      return;
-    }
-    try {
-      await apiClient.post(`/v1/core/licenses/${renewId}/renew`);
-      setRenewId(null);
-      void load();
-    } catch (e) {
-      setError(getAxiosMessage(e));
-    }
-  }
-
-  async function cancelLic() {
-    if (!cancelId) {
-      return;
-    }
-    try {
-      await apiClient.post(`/v1/core/licenses/${cancelId}/cancel`);
-      setCancelId(null);
-      void load();
-    } catch (e) {
-      setError(getAxiosMessage(e));
-    }
-  }
-
-  function openEditMeta(lic: LicenseRow) {
-    setMetaErr(null);
-    setEditMetaRow(lic);
-    const meta = (lic.meta ?? {}) as Record<string, unknown>;
-    const mods = meta.modules ?? meta.licensed_modules;
-    if (Array.isArray(mods)) {
-      setMetaModules(mods.filter((x) => typeof x === 'string').join(', '));
-    } else {
-      setMetaModules('');
-    }
-    setMetaVertical(typeof meta.vertical === 'string' ? meta.vertical : '');
-    setMetaSku(typeof meta.sku === 'string' ? meta.sku : '');
-    const repos = meta.module_repos;
-    try {
-      setMetaModuleReposJson(JSON.stringify(Array.isArray(repos) ? repos : [], null, 2));
-    } catch {
-      setMetaModuleReposJson('[]');
-    }
-    const git = meta.git;
-    try {
-      setMetaGitJson(git && typeof git === 'object' ? JSON.stringify(git, null, 2) : '');
-    } catch {
-      setMetaGitJson('');
-    }
-  }
-
-  async function saveMeta() {
-    if (!editMetaRow?.id) {
-      return;
-    }
-    setMetaErr(null);
-    let moduleRepos: unknown = [];
-    try {
-      moduleRepos = JSON.parse(metaModuleReposJson || '[]') as unknown;
-    } catch {
-      setMetaErr(t('common.invalidModuleReposDot'));
-      return;
-    }
-    let gitVal: unknown = undefined;
-    if (metaGitJson.trim()) {
-      try {
-        gitVal = JSON.parse(metaGitJson) as unknown;
-      } catch {
-        setMetaErr(t('common.invalidGitDot'));
-        return;
-      }
-    }
-    const modules = metaModules
-      .split(',')
-      .map((s) => s.trim())
-      .filter(Boolean);
-    const metaPayload: Record<string, unknown> = {};
-    if (modules.length) {
-      metaPayload.modules = modules;
-    }
-    if (metaVertical.trim()) {
-      metaPayload.vertical = metaVertical.trim();
-    }
-    if (metaSku.trim()) {
-      metaPayload.sku = metaSku.trim();
-    }
-    if (Array.isArray(moduleRepos) && moduleRepos.length > 0) {
-      metaPayload.module_repos = moduleRepos;
-    }
-    if (gitVal !== undefined && gitVal !== null && typeof gitVal === 'object') {
-      metaPayload.git = gitVal;
-    }
-    try {
-      await apiClient.patch(`/v1/core/licenses/${editMetaRow.id}`, {
-        replace_meta: true,
-        meta: metaPayload,
-      });
-      setEditMetaRow(null);
-      void load();
-    } catch (e) {
-      setMetaErr(getAxiosMessage(e));
-    }
-  }
-
-  async function destroyLic() {
-    if (!deleteId) {
-      return;
-    }
-    try {
-      await apiClient.delete(`/v1/core/licenses/${deleteId}`);
-      setDeleteId(null);
-      void load();
-    } catch (e) {
-      setError(getAxiosMessage(e));
-    }
-  }
-
-  return (
-    <div className="space-y-4">
-      <div className="flex justify-end">
-        <Button type="button" size="sm" onClick={() => setAddOpen(true)}>
-          {t('auto.CoreStaticPages.s_9d253e7e')}
-        </Button>
-      </div>
-      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-        {loading ? <p className="text-sm text-muted-foreground">{t('auto.CoreStaticPages.s_fbac73dc')}</p> : null}
-        {error ? <p className="text-destructive">{error}</p> : null}
-        {rows.map((lic) => (
-          <Card key={String(lic.id ?? lic.license_key)}>
-            <CardHeader className="flex flex-row items-start justify-between gap-2 space-y-0">
-              <div>
-                <CardTitle className="text-base font-mono">{String(lic.domain ?? lic.license_key ?? '—')}</CardTitle>
-                <CardDescription>{String(lic.status ?? '')}</CardDescription>
-              </div>
-              <DropdownMenu>
-                <DropdownMenuTrigger asChild>
-                  <Button type="button" variant="ghost" size="icon" aria-label="actions">
-                    <MoreHorizontal className="h-4 w-4" />
-                  </Button>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent align="end">
-                  <DropdownMenuItem onClick={() => openEditMeta(lic)}>{t('auto.CoreStaticPages.s_4c174063')}</DropdownMenuItem>
-                  <DropdownMenuItem onClick={() => lic.id && setRenewId(lic.id)}>{t('auto.CoreStaticPages.s_6185b1fa')}</DropdownMenuItem>
-                  <DropdownMenuItem onClick={() => lic.id && setCancelId(lic.id)}>{t('auto.CoreStaticPages.s_e409bf47')}</DropdownMenuItem>
-                  <DropdownMenuItem className="text-destructive" onClick={() => lic.id && setDeleteId(lic.id)}>
-                    {t('auto.CoreStaticPages.s_2d2bbdc2')}
-                  </DropdownMenuItem>
-                </DropdownMenuContent>
-              </DropdownMenu>
-            </CardHeader>
-            <CardContent className="space-y-2">
-              <p className="text-xs text-muted-foreground">{t('common.licenseKey', { key: String(lic.license_key ?? '—') })}</p>
-              <p className="text-xs text-muted-foreground">{t('common.licenseExpires', { date: String(lic.expires_at ?? '—') })}</p>
-              <p className="text-xs text-muted-foreground line-clamp-2">{t('common.licenseModules', { modules: licenseModulesSummary(lic) })}</p>
-              <Progress value={licenseProgress(lic)} />
-            </CardContent>
-          </Card>
-        ))}
-        {!rows.length && !loading ? <p className="text-sm text-muted-foreground">{t('auto.CoreStaticPages.s_c52e5a4b')}</p> : null}
-      </div>
-
-      <Dialog open={editMetaRow !== null} onOpenChange={(o) => !o && setEditMetaRow(null)}>
-        <DialogContent className="max-h-[90vh] overflow-y-auto">
-          <DialogHeader>
-            <DialogTitle>{t('auto.CoreStaticPages.s_51e45215')}</DialogTitle>
-          </DialogHeader>
-          <div className="space-y-2 text-sm">
-            <p className="text-xs text-muted-foreground">{t('auto.CoreStaticPages.s_2ab1793a')}</p>
-            <Input value={metaModules} onChange={(e) => setMetaModules(e.target.value)} dir="ltr" className="font-mono text-xs" />
-            <p className="text-xs text-muted-foreground">vertical</p>
-            <Input value={metaVertical} onChange={(e) => setMetaVertical(e.target.value)} dir="ltr" className="font-mono text-xs" />
-            <p className="text-xs text-muted-foreground">sku</p>
-            <Input value={metaSku} onChange={(e) => setMetaSku(e.target.value)} dir="ltr" className="font-mono text-xs" />
-            <p className="text-xs text-muted-foreground">{t('auto.CoreStaticPages.s_6a3a326f')}</p>
-            <Textarea value={metaModuleReposJson} onChange={(e) => setMetaModuleReposJson(e.target.value)} rows={6} dir="ltr" className="font-mono text-xs" />
-            <p className="text-xs text-muted-foreground">{t('auto.CoreStaticPages.s_8c5d0413')}</p>
-            <Textarea value={metaGitJson} onChange={(e) => setMetaGitJson(e.target.value)} rows={5} dir="ltr" className="font-mono text-xs" />
-            {metaErr ? <p className="text-sm text-destructive">{metaErr}</p> : null}
-          </div>
-          <DialogFooter>
-            <Button type="button" variant="secondary" onClick={() => setEditMetaRow(null)}>
-              {t('auto.CoreStaticPages.s_106dfb4e')}
-            </Button>
-            <Button type="button" onClick={() => void saveMeta()}>
-              {t('auto.CoreStaticPages.s_752c4df6')}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-
-      <Dialog open={addOpen} onOpenChange={setAddOpen}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>{t('auto.CoreStaticPages.s_e8bc192e')}</DialogTitle>
-          </DialogHeader>
-          <div className="space-y-2">
-            <Input placeholder={t('auto.CoreStaticPages.s_f2c9dba3')} value={formKey} onChange={(e) => setFormKey(e.target.value)} dir="ltr" />
-            <Input placeholder={t('auto.CoreStaticPages.s_ecb3db89')} value={formDomain} onChange={(e) => setFormDomain(e.target.value)} dir="ltr" />
-            {formErr ? <p className="text-sm text-destructive">{formErr}</p> : null}
-          </div>
-          <DialogFooter>
-            <Button type="button" onClick={() => void addLicense()}>
-              {t('auto.CoreStaticPages.s_28fa93e8')}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-
-      <AlertDialog open={renewId !== null} onOpenChange={(o) => !o && setRenewId(null)}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>{t('auto.CoreStaticPages.s_60b849f3')}</AlertDialogTitle>
-            <AlertDialogDescription>{t('auto.CoreStaticPages.s_75c7af6a')}</AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel>{t('auto.CoreStaticPages.s_a7b8355e')}</AlertDialogCancel>
-            <AlertDialogAction onClick={() => void renew()}>{t('auto.CoreStaticPages.s_afcb410b')}</AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
-
-      <AlertDialog open={cancelId !== null} onOpenChange={(o) => !o && setCancelId(null)}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>{t('auto.CoreStaticPages.s_ba140482')}</AlertDialogTitle>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel>{t('auto.CoreStaticPages.s_a7b8355e')}</AlertDialogCancel>
-            <AlertDialogAction onClick={() => void cancelLic()}>{t('auto.CoreStaticPages.s_afcb410b')}</AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
-
-      <AlertDialog open={deleteId !== null} onOpenChange={(o) => !o && setDeleteId(null)}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>{t('auto.CoreStaticPages.s_a451a2a8')}</AlertDialogTitle>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel>{t('auto.CoreStaticPages.s_a7b8355e')}</AlertDialogCancel>
-            <AlertDialogAction onClick={() => void destroyLic()}>{t('auto.CoreStaticPages.s_2d2bbdc2')}</AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
-    </div>
-  );
-}
-
 type VisitorPayload = {
   total_visits?: number;
   unique_visitors?: number;
@@ -575,7 +202,7 @@ export function VisitorStatsPageView() {
       <CardContent className="space-y-4">
         <div className="flex flex-wrap items-end gap-3">
           <div>
-            <p className="mb-1 text-xs text-muted-foreground">{t('auto.CoreStaticPages.s_f3514c21')}</p>
+            <p className="text-muted-foreground mb-1 text-xs">{t('auto.CoreStaticPages.s_f3514c21')}</p>
             <Input
               type="number"
               min={1}
@@ -593,7 +220,7 @@ export function VisitorStatsPageView() {
         <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
           <Card>
             <CardHeader className="py-3">
-              <CardTitle className="text-sm text-muted-foreground">{t('auto.CoreStaticPages.s_c4a2d62a')}</CardTitle>
+              <CardTitle className="text-muted-foreground text-sm">{t('auto.CoreStaticPages.s_c4a2d62a')}</CardTitle>
             </CardHeader>
             <CardContent className="text-2xl font-semibold tabular-nums">
               {loading ? '…' : data?.total_visits ?? '—'}
@@ -601,7 +228,7 @@ export function VisitorStatsPageView() {
           </Card>
           <Card>
             <CardHeader className="py-3">
-              <CardTitle className="text-sm text-muted-foreground">{t('auto.CoreStaticPages.s_13097bf2')}</CardTitle>
+              <CardTitle className="text-muted-foreground text-sm">{t('auto.CoreStaticPages.s_13097bf2')}</CardTitle>
             </CardHeader>
             <CardContent className="text-2xl font-semibold tabular-nums">
               {loading ? '…' : data?.unique_visitors ?? '—'}
@@ -609,7 +236,7 @@ export function VisitorStatsPageView() {
           </Card>
           <Card>
             <CardHeader className="py-3">
-              <CardTitle className="text-sm text-muted-foreground">{t('auto.CoreStaticPages.s_68b6c85d')}</CardTitle>
+              <CardTitle className="text-muted-foreground text-sm">{t('auto.CoreStaticPages.s_68b6c85d')}</CardTitle>
             </CardHeader>
             <CardContent className="text-2xl font-semibold tabular-nums">
               {loading ? '…' : data?.bounce_rate != null ? `${data.bounce_rate}%` : '—'}
@@ -617,7 +244,7 @@ export function VisitorStatsPageView() {
           </Card>
           <Card>
             <CardHeader className="py-3">
-              <CardTitle className="text-sm text-muted-foreground">{t('auto.CoreStaticPages.s_053abf8d')}</CardTitle>
+              <CardTitle className="text-muted-foreground text-sm">{t('auto.CoreStaticPages.s_053abf8d')}</CardTitle>
             </CardHeader>
             <CardContent className="text-2xl font-semibold tabular-nums">
               {t('common.periodDays', { days: loading ? '…' : data?.period_days ?? '—' })}
@@ -631,10 +258,10 @@ export function VisitorStatsPageView() {
             {byDay.map((d, i) => (
               <div key={String(d.day ?? i)} className="flex min-w-[20px] flex-1 flex-col items-center gap-1">
                 <div
-                  className="w-full max-w-[24px] rounded-t bg-primary/80"
+                  className="bg-primary/80 w-full max-w-[24px] rounded-t"
                   style={{ height: `${Math.max(4, (Number(d.visits ?? 0) / maxV) * 120)}px` }}
                 />
-                <span className="max-w-[48px] truncate text-[10px] text-muted-foreground" dir="ltr">
+                <span className="text-muted-foreground max-w-[48px] truncate text-[10px]" dir="ltr">
                   {String(d.day ?? '').slice(5)}
                 </span>
               </div>
@@ -648,7 +275,7 @@ export function VisitorStatsPageView() {
             <div className="overflow-x-auto rounded-md border">
               <table className="w-full text-xs">
                 <thead>
-                  <tr className="border-b bg-muted/40">
+                  <tr className="bg-muted/40 border-b">
                     <th className="px-2 py-2 text-start">{t('auto.CoreStaticPages.s_a2a1682c')}</th>
                     <th className="px-2 py-2 text-start">{t('auto.CoreStaticPages.s_61746c26')}</th>
                   </tr>
@@ -671,7 +298,7 @@ export function VisitorStatsPageView() {
             <div className="overflow-x-auto rounded-md border">
               <table className="w-full text-xs">
                 <thead>
-                  <tr className="border-b bg-muted/40">
+                  <tr className="bg-muted/40 border-b">
                     <th className="px-2 py-2 text-start">{t('auto.CoreStaticPages.s_0890e940')}</th>
                     <th className="px-2 py-2 text-start">{t('auto.CoreStaticPages.s_a2a1682c')}</th>
                   </tr>
@@ -698,10 +325,18 @@ export function VisitorStatsPageView() {
             <p className="mb-2 text-sm font-medium">{t('auto.CoreStaticPages.s_c89f27ef')}</p>
             <div className="overflow-x-auto rounded-md border">
               <table className="w-full text-xs">
-                <thead><tr className="border-b bg-muted/40"><th className="px-2 py-2 text-start">{t('auto.CoreStaticPages.s_16258912')}</th><th className="px-2 py-2 text-start">{t('auto.CoreStaticPages.s_687f8df3')}</th></tr></thead>
+                <thead>
+                  <tr className="bg-muted/40 border-b">
+                    <th className="px-2 py-2 text-start">{t('auto.CoreStaticPages.s_16258912')}</th>
+                    <th className="px-2 py-2 text-start">{t('auto.CoreStaticPages.s_687f8df3')}</th>
+                  </tr>
+                </thead>
                 <tbody>
                   {(data?.browsers ?? []).map((r, i) => (
-                    <tr key={i} className="border-b"><td className="px-2 py-1">{String(r.name)}</td><td className="px-2 py-1">{String(r.count)}</td></tr>
+                    <tr key={i} className="border-b">
+                      <td className="px-2 py-1">{String(r.name)}</td>
+                      <td className="px-2 py-1">{String(r.count)}</td>
+                    </tr>
                   ))}
                 </tbody>
               </table>
@@ -711,10 +346,18 @@ export function VisitorStatsPageView() {
             <p className="mb-2 text-sm font-medium">{t('auto.CoreStaticPages.s_248ebe85')}</p>
             <div className="overflow-x-auto rounded-md border">
               <table className="w-full text-xs">
-                <thead><tr className="border-b bg-muted/40"><th className="px-2 py-2 text-start">{t('auto.CoreStaticPages.s_248ebe85')}</th><th className="px-2 py-2 text-start">{t('auto.CoreStaticPages.s_687f8df3')}</th></tr></thead>
+                <thead>
+                  <tr className="bg-muted/40 border-b">
+                    <th className="px-2 py-2 text-start">{t('auto.CoreStaticPages.s_248ebe85')}</th>
+                    <th className="px-2 py-2 text-start">{t('auto.CoreStaticPages.s_687f8df3')}</th>
+                  </tr>
+                </thead>
                 <tbody>
                   {(data?.os ?? []).map((r, i) => (
-                    <tr key={i} className="border-b"><td className="px-2 py-1">{String(r.name)}</td><td className="px-2 py-1">{String(r.count)}</td></tr>
+                    <tr key={i} className="border-b">
+                      <td className="px-2 py-1">{String(r.name)}</td>
+                      <td className="px-2 py-1">{String(r.count)}</td>
+                    </tr>
                   ))}
                 </tbody>
               </table>
@@ -724,10 +367,18 @@ export function VisitorStatsPageView() {
             <p className="mb-2 text-sm font-medium">{t('auto.CoreStaticPages.s_4a31c9d7')}</p>
             <div className="overflow-x-auto rounded-md border">
               <table className="w-full text-xs">
-                <thead><tr className="border-b bg-muted/40"><th className="px-2 py-2 text-start">{t('auto.CoreStaticPages.s_7df5687d')}</th><th className="px-2 py-2 text-start">{t('auto.CoreStaticPages.s_687f8df3')}</th></tr></thead>
+                <thead>
+                  <tr className="bg-muted/40 border-b">
+                    <th className="px-2 py-2 text-start">{t('auto.CoreStaticPages.s_7df5687d')}</th>
+                    <th className="px-2 py-2 text-start">{t('auto.CoreStaticPages.s_687f8df3')}</th>
+                  </tr>
+                </thead>
                 <tbody>
                   {(data?.devices ?? []).map((r, i) => (
-                    <tr key={i} className="border-b"><td className="px-2 py-1">{String(r.name)}</td><td className="px-2 py-1">{String(r.count)}</td></tr>
+                    <tr key={i} className="border-b">
+                      <td className="px-2 py-1">{String(r.name)}</td>
+                      <td className="px-2 py-1">{String(r.count)}</td>
+                    </tr>
                   ))}
                 </tbody>
               </table>

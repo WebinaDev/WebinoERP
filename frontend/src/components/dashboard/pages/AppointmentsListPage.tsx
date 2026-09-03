@@ -10,6 +10,8 @@ import { useCrmFeedback } from '@/features/shared/hooks/useCrmFeedback';
 import { PmViewToggle } from '@/features/shared/pm';
 import { AccountSelect } from '@/features/shared/crm/AccountSelect';
 import { LocaleDatePicker } from '@/components/ui/locale-date-picker';
+import { useLocale } from '@/hooks/use-locale-next';
+import { shiftMonth } from '@/lib/locale/month-grid';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
@@ -72,6 +74,7 @@ export function AppointmentsListPage() {
   const t = useTranslations('pm.appointments');
   const tNav = useTranslations();
   const tCommon = useTranslations('common');
+  const { locale } = useLocale();
   const { layoutProps, setError, setSuccess, applyAxiosError } = useCrmFeedback();
 
   const [view, setView] = useState<'list' | 'calendar'>('calendar');
@@ -311,8 +314,8 @@ export function AppointmentsListPage() {
           <AppointmentsCalendarPanel
             events={calendarEvents}
             viewMonth={viewMonth}
-            onPrevMonth={() => setViewMonth((d) => new Date(d.getFullYear(), d.getMonth() - 1, 1))}
-            onNextMonth={() => setViewMonth((d) => new Date(d.getFullYear(), d.getMonth() + 1, 1))}
+            onPrevMonth={() => setViewMonth((d) => shiftMonth(d, -1, locale))}
+            onNextMonth={() => setViewMonth((d) => shiftMonth(d, 1, locale))}
             onDayClick={(iso) => openCreate(iso)}
             onEventClick={openEditById}
             onEventDragStart={setDraggingEventId}

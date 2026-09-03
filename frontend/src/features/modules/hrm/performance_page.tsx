@@ -2,10 +2,12 @@
 
 import { useCallback, useEffect, useState } from 'react';
 import { useTranslations } from 'next-intl';
+import { useLocale } from '@/hooks/use-locale-next';
 import { CrmPageLayout } from '@/features/shared/layout/CrmPageLayout';
 import { useCrmFeedback } from '@/features/shared/hooks/useCrmFeedback';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
+import { Input } from '@/components/ui/input'
+import { LocaleDatePicker } from '@/components/ui/locale-date-picker';
 import { Textarea } from '@/components/ui/textarea';
 import { Card, CardContent } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
@@ -39,6 +41,7 @@ import { normalizeListPayload } from '@/lib/list-utils';
 export function PerformancePage() {
   const t = useTranslations('hrm');
   const tNav = useTranslations();
+  const { formatDate } = useLocale();
   const { layoutProps, setSuccess, applyAxiosError } = useCrmFeedback();
   const [tab, setTab] = useState('templates');
   const [templates, setTemplates] = useState<Record<string, unknown>[]>([]);
@@ -218,8 +221,8 @@ export function PerformancePage() {
                     cycles.map((r) => (
                       <TableRow key={String(r.id)}>
                         <TableCell>{String(r.name ?? '')}</TableCell>
-                        <TableCell>{String(r.start_date ?? '').slice(0, 10)}</TableCell>
-                        <TableCell>{String(r.end_date ?? '').slice(0, 10)}</TableCell>
+                        <TableCell>{formatDate(String(r.start_date ?? '')) || '—'}</TableCell>
+                        <TableCell>{formatDate(String(r.end_date ?? '')) || '—'}</TableCell>
                         <TableCell>{String(r.status ?? '')}</TableCell>
                       </TableRow>
                     ))
@@ -288,8 +291,8 @@ export function PerformancePage() {
           <DialogHeader><DialogTitle>{t('newCycle')}</DialogTitle></DialogHeader>
           <div className="space-y-3 py-2">
             <Input placeholder={t('cycleName')} value={cycleForm.name} onChange={(e) => setCycleForm((f) => ({ ...f, name: e.target.value }))} />
-            <Input type="date" value={cycleForm.start_date} onChange={(e) => setCycleForm((f) => ({ ...f, start_date: e.target.value }))} />
-            <Input type="date" value={cycleForm.end_date} onChange={(e) => setCycleForm((f) => ({ ...f, end_date: e.target.value }))} />
+            <LocaleDatePicker value={cycleForm.start_date} onChange={(v) => setCycleForm((f) => ({ ...f, start_date: v }))} />
+            <LocaleDatePicker value={cycleForm.end_date} onChange={(v) => setCycleForm((f) => ({ ...f, end_date: v }))} />
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setCycleOpen(false)}>{tNav('common.cancel')}</Button>

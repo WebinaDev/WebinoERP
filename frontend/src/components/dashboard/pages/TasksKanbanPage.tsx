@@ -1,6 +1,7 @@
 'use client';
 
 import { useTranslations } from 'next-intl';
+import { useLocale } from '@/hooks/use-locale-next';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import {
   DndContext,
@@ -163,6 +164,7 @@ function toGanttItems(rows: TaskRow[]): TaskGanttItem[] {
 }
 
 export function TasksKanbanPage() {
+  const { formatDate } = useLocale();
   const t = useTranslations('pm.tasks');
   const tc = useTranslations('common');
 
@@ -640,7 +642,7 @@ export function TasksKanbanPage() {
                         <TableCell>{String(row.label ?? '—')}</TableCell>
                         <TableCell>{u?.name ?? (row.assignee_id ? String(row.assignee_id) : '—')}</TableCell>
                         <TableCell>
-                          {row.due_at ? String(row.due_at).slice(0, 10) : '—'}
+                          {row.due_at ? formatDate(String(row.due_at)) || '—' : '—'}
                         </TableCell>
                       </TableRow>
                     );

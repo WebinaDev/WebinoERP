@@ -57,8 +57,11 @@ class LicenseProvisionerService
 
         return CoreLicense::query()->create([
             'license_key' => $licenseKey,
+            'project_name' => (string) ($context['project_name'] ?? $context['site_name'] ?? $domain),
             'domain' => $domain,
+            'logo_url' => $context['logo_url'] ?? null,
             'status' => 'active',
+            'start_date' => $context['start_date'] ?? now()->toDateString(),
             'expires_at' => $context['expires_at'] ?? now()->addYear(),
             'max_users' => $context['max_users'] ?? null,
             'meta' => $meta,

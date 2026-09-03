@@ -250,21 +250,112 @@ class ModirPayamakAdminController extends Controller
     public function adminSend(Request $request): JsonResponse
     {
         $data = $request->validate([
-            'domain' => 'required|string|max:255',
+            'domain' => 'nullable|string|max:255',
             'message' => 'required|string',
             'recipients' => 'required|array|min:1',
             'from_number' => 'nullable|string',
+            'debit_tenant' => 'nullable|boolean',
         ]);
-        $domain = $this->manager->normalizeDomain($data['domain']);
+        if (! $this->edge->isConfigured()) {
+            abort(503, 'ModirPayamak is not configured');
+        }
         $from = $data['from_number'] ?? $this->edge->defaultFrom();
         $result = $this->edge->sendWebservice($from, $data['message'], $data['recipients']);
         if (! $result['ok']) {
             return response()->json(['message' => $result['message'] ?: 'Send failed'], 422);
         }
-        $cost = count($data['recipients']) * $this->manager->pricePerUnit();
-        $account = $this->manager->debit($domain, $cost, 'send');
+
+        $account = null;
+        $debit = (bool) ($data['debit_tenant'] ?? false);
+        $domain = $this->manager->normalizeDomain((string) ($data['domain'] ?? ''));
+        if ($debit) {
+            if ($domain === '') {
+                return response()->json(['message' => 'Domain is required'], 422);
+            }
+            $cost = count($data['recipients']) * $this->manager->pricePerUnit();
+            $account = $this->manager->debit($domain, $cost, 'send');
+        }
 
         return response()->json(['data' => ['edge' => $result['data'], 'account' => $account]]);
+    }
+
+    public function reportsOutbox(Request $request): JsonResponse
+    {
+        if (! $this->edge->isConfigured()) {
+            abort(503, 'ModirPayamak is not configured');
+        }
+        $result = $this->edge->reportOutbox(
+            (int) $request->query('page', 1),
+            (int) $request->query('limit', 20),
+            (array) $request->query('filters', [])
+        );
+
+        return response()->json(['data' => $result['data'], 'meta' => $result['meta']], $result['ok'] ? 200 : 422);
+    }
+
+    public function reportOutboxDetail(string $id): JsonResponse
+    {
+        if (! $this->edge->isConfigured()) {
+            abort(503, 'ModirPayamak is not configured');
+        }
+        $result = $this->edge->reportOutboxById($id);
+
+        return response()->json(['data' => $result['data']], $result['ok'] ? 200 : 422);
+    }
+
+    public function patterns(Request $request): JsonResponse
+    {
+        if (! $this->edge->isConfigured()) {
+            abort(503, 'ModirPayamak is not configured');
+        }
+        $result = $this->edge->listPatterns($request->query());
+
+        return response()->json(['data' => $result['data']], $result['ok'] ? 200 : 422);
+    }
+
+    public function numbers(Request $request): JsonResponse
+    {
+        if (! $this->edge->isConfigured()) {
+            abort(503, 'ModirPayamak is not configured');
+        }
+        $result = $this->edge->listNumbers($request->query());
+
+        return response()->json(['data' => $result['data']], $result['ok'] ? 200 : 422);
+    }
+
+    public function phonebooks(Request $request): JsonResponse
+    {
+        if (! $this->edge->isConfigured()) {
+            abort(503, 'ModirPayamak is not configured');
+        }
+        if ($request->isMethod('post')) {
+            $payload = $request->validate(['name' => 'required|string|max:150']);
+            $result = $this->edge->createPhonebook($payload);
+
+            return response()->json(['data' => $result['data']], $result['ok'] ? 201 : 422);
+        }
+        $result = $this->edge->listPhonebooks($request->query());
+
+        return response()->json(['data' => $result['data']], $result['ok'] ? 200 : 422);
+    }
+
+    public function phonebookContacts(Request $request, int $id): JsonResponse
+    {
+        if (! $this->edge->isConfigured()) {
+            abort(503, 'ModirPayamak is not configured');
+        }
+        if ($request->isMethod('post')) {
+            $payload = $request->validate([
+                'number' => 'required|string|max:40',
+                'name' => 'nullable|string|max:150',
+            ]);
+            $result = $this->edge->createPhonebookContact($id, $payload);
+
+            return response()->json(['data' => $result['data']], $result['ok'] ? 201 : 422);
+        }
+        $result = $this->edge->listPhonebookContacts($id, $request->query());
+
+        return response()->json(['data' => $result['data']], $result['ok'] ? 200 : 422);
     }
 
     public function messages(Request $request): JsonResponse

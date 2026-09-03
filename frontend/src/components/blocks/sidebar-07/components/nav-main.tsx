@@ -21,15 +21,8 @@ import {
   SidebarMenuSubButton,
   SidebarMenuSubItem,
 } from '@/components/ui/sidebar'
-import type { Sidebar08MainNavItem, Sidebar08NavSubItem } from '@/lib/nav-modules'
+import { pathIsActive, type Sidebar08MainNavItem, type Sidebar08NavSubItem } from '@/lib/nav-modules'
 import { renderIcon } from '@/lib/react-icon'
-
-function pathIsActive(pathname: string, to: string): boolean {
-  const p = pathname.replace(/\/$/, '') || '/'
-  if (to === '/') return p === '/' || p.endsWith('/admin') || p.endsWith('/dashboard')
-  const t = to.replace(/\/$/, '')
-  return p === t || p.startsWith(`${t}/`)
-}
 
 function subItemIsActive(item: Sidebar08NavSubItem, pathname: string): boolean {
   if (item.items?.length) {

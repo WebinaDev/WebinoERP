@@ -7,7 +7,8 @@ import { useTranslations } from 'next-intl';
 import { CrmPageLayout } from '@/features/shared/layout/CrmPageLayout';
 import { useCrmFeedback } from '@/features/shared/hooks/useCrmFeedback';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
+import { Input } from '@/components/ui/input'
+import { LocaleDatePicker } from '@/components/ui/locale-date-picker';
 import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -156,11 +157,18 @@ export function StaffDetailPage({ id }: Props) {
                 {PROFILE_FIELDS.map((f) => (
                   <div key={f.name} className={f.name === 'address' ? 'space-y-1 md:col-span-2' : 'space-y-1'}>
                     <label className="text-sm text-muted-foreground">{t(f.labelKey)}</label>
-                    <Input
-                      type={f.type === 'date' ? 'date' : 'text'}
-                      value={values[f.name] ?? ''}
-                      onChange={(e) => setValues({ ...values, [f.name]: e.target.value })}
-                    />
+                    {f.type === 'date' ? (
+                      <LocaleDatePicker
+                        value={values[f.name] ?? ''}
+                        onChange={(v) => setValues({ ...values, [f.name]: v })}
+                      />
+                    ) : (
+                      <Input
+                        type="text"
+                        value={values[f.name] ?? ''}
+                        onChange={(e) => setValues({ ...values, [f.name]: e.target.value })}
+                      />
+                    )}
                   </div>
                 ))}
               </CardContent>

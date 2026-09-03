@@ -1,6 +1,7 @@
 'use client';
 
 import { useTranslations } from 'next-intl';
+import { useLocale } from '@/hooks/use-locale-next';
 
 import { Fragment, useState, useCallback, useEffect } from 'react';
 import apiClient from '@/lib/api-client';
@@ -213,7 +214,7 @@ export default function AccWarehouseInbound() {
                       {doc.status === 'posted' ? t('auto.accounting_AccWarehouseInbound.s_1223f269') : t('auto.accounting_AccWarehouseInbound.s_7d739ea1')}
                     </Badge>
                   </td>
-                  <td className="px-3 py-1.5">{doc.created_at ?? '—'}</td>
+                  <td className="px-3 py-1.5">{doc.created_at ? formatDateTime(String(doc.created_at)) : '—'}</td>
                   <td className="px-3 py-1.5">
                     <div className="flex gap-1">
                       {doc.status === 'draft' && (

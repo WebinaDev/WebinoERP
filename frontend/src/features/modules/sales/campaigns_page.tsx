@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useState } from 'react';
 import { useTranslations } from 'next-intl';
+import { useLocale } from '@/hooks/use-locale-next';
 import { Loader2, Pencil, Plus, Trash2 } from 'lucide-react';
 import apiClient from '@/lib/api-client';
 import { normalizeListPayload } from '@/lib/list-utils';
@@ -79,6 +80,7 @@ const STATUS_VARIANT: Record<string, 'default' | 'secondary' | 'outline' | 'dest
 export function CampaignsPage() {
   const t = useTranslations('sales.campaigns');
   const tNav = useTranslations();
+  const { formatDate } = useLocale();
   const { layoutProps, setSuccess, setError, applyAxiosError } = useCrmFeedback();
   const [rows, setRows] = useState<Campaign[]>([]);
   const [loading, setLoading] = useState(true);
@@ -266,8 +268,8 @@ export function CampaignsPage() {
                         {c.status ? t(`status_${String(c.status)}`) : '—'}
                       </Badge>
                     </TableCell>
-                    <TableCell>{String(c.starts_at ?? '').slice(0, 10) || '—'}</TableCell>
-                    <TableCell>{String(c.ends_at ?? '').slice(0, 10) || '—'}</TableCell>
+                    <TableCell>{formatDate(String(c.starts_at ?? '')) || '—'}</TableCell>
+                    <TableCell>{formatDate(String(c.ends_at ?? '')) || '—'}</TableCell>
                     <TableCell className="text-end">
                       <div className="flex justify-end gap-2">
                         <Button size="sm" variant="outline" onClick={() => openEdit(c)}>

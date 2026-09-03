@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useTranslations } from 'next-intl';
 import { CrmPageLayout } from '@/features/shared/layout/CrmPageLayout';
 import { useCrmFeedback } from '@/features/shared/hooks/useCrmFeedback';
@@ -17,12 +17,12 @@ import {
 } from '@/components/ui/select';
 import {
   deleteModirPayamakDomainSecretary,
-  getModirPayamakCustomers,
   getModirPayamakDomainSecretaries,
   saveModirPayamakDomainSecretary,
 } from '@/lib/api/modirpayamak';
 import { getAxiosMessage } from '@/lib/api-helpers';
 import { ModirPayamakBreadcrumb } from './components/shared';
+import { useModirPayamakTenantDomain } from './hooks/useModirPayamakTenantDomain';
 
 const TYPES = ['auto_reply', 'inbox_forward', 'code_reader', 'membership'] as const;
 
@@ -31,8 +31,7 @@ export function ModirpayamakSecretariesPage() {
   const tNav = useTranslations();
   const tCommon = useTranslations('common');
   const { layoutProps, setError, setSuccess } = useCrmFeedback();
-  const [domain, setDomain] = useState('');
-  const [domains, setDomains] = useState<string[]>([]);
+  const { domain, setDomain, domains } = useModirPayamakTenantDomain();
   const [rows, setRows] = useState<Array<Record<string, unknown>>>([]);
   const [loading, setLoading] = useState(false);
   const [name, setName] = useState('');
@@ -40,15 +39,6 @@ export function ModirpayamakSecretariesPage() {
   const [keywords, setKeywords] = useState('*');
   const [replyBody, setReplyBody] = useState('');
   const [forwardTo, setForwardTo] = useState('');
-
-  const loadDomains = async () => {
-    try {
-      const accounts = await getModirPayamakCustomers();
-      setDomains(accounts.map((a) => a.domain).filter(Boolean));
-    } catch {
-      /* ignore */
-    }
-  };
 
   const load = async (d: string) => {
     if (!d.trim()) return;
@@ -63,6 +53,10 @@ export function ModirpayamakSecretariesPage() {
       setLoading(false);
     }
   };
+
+  useEffect(() => {
+    if (domain.trim()) void load(domain);
+  }, [domain]);
 
   const remove = async (id: number) => {
     try {
@@ -122,8 +116,8 @@ export function ModirpayamakSecretariesPage() {
             className="mt-1 min-w-[220px]"
             list="mp-sec-domains"
             value={domain}
-            onFocus={() => void loadDomains()}
             onChange={(e) => setDomain(e.target.value)}
+            dir="ltr"
           />
           <datalist id="mp-sec-domains">
             {domains.map((d) => (
@@ -191,11 +185,11 @@ export function ModirpayamakSecretariesPage() {
                 <p className="font-medium">
                   {String(r.name || r.type)} · {typeLabel(String(r.type || ''))}
                 </p>
-                <p className="font-mono text-xs text-muted-foreground" dir="ltr">
+                <p className="text-muted-foreground font-mono text-xs" dir="ltr">
                   {String(r.keywords || '')}
                 </p>
                 {r.reply_body ? (
-                  <p className="mt-1 text-xs text-muted-foreground">{String(r.reply_body)}</p>
+                  <p className="text-muted-foreground mt-1 text-xs">{String(r.reply_body)}</p>
                 ) : null}
               </div>
               <Button type="button" size="sm" variant="outline" onClick={() => void remove(id)}>
@@ -206,7 +200,7 @@ export function ModirpayamakSecretariesPage() {
         })}
       </ul>
       {!loading && !rows.length ? (
-        <p className="mt-4 text-sm text-muted-foreground">{t('secretariesEmpty')}</p>
+        <p className="text-muted-foreground mt-4 text-sm">{t('secretariesEmpty')}</p>
       ) : null}
     </CrmPageLayout>
   );
