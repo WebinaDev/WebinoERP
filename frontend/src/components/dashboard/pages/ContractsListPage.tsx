@@ -1,5 +1,7 @@
 'use client';
 
+import { useTranslations } from 'next-intl';
+
 import { useCallback, useEffect, useState } from 'react';
 import apiClient from '@/lib/api-client';
 import { getAxiosMessage } from '@/lib/api-helpers';
@@ -34,6 +36,8 @@ type Row = Record<string, unknown>;
 type Meta = { current_page?: number; last_page?: number; total?: number };
 
 export function ContractsListPage() {
+  const t = useTranslations();
+
   const pathname = usePathname();
   const locale = pathname.split('/')[1] || 'fa';
   const [rows, setRows] = useState<Row[]>([]);
@@ -99,7 +103,7 @@ export function ContractsListPage() {
     try {
       installmentsData = form.installments.trim() ? (JSON.parse(form.installments) as unknown[]) : undefined;
     } catch {
-      setError('JSON اقساط نامعتبر است');
+      setError(t('common.invalidInstallmentsJson'));
       return;
     }
     try {
@@ -133,24 +137,24 @@ export function ContractsListPage() {
     <div className="space-y-4">
       <Card>
         <CardHeader className="flex flex-row flex-wrap items-center justify-between gap-2 space-y-0">
-          <CardTitle className="text-base">قراردادها</CardTitle>
+          <CardTitle className="text-base">{t('auto.ContractsListPage.s_1fb3fcaa')}</CardTitle>
           <div className="flex flex-wrap items-center gap-2">
             <Select value={statusFilter || 'all'} onValueChange={(v) => setStatusFilter(v === 'all' ? '' : v)}>
               <SelectTrigger className="w-[160px]">
-                <SelectValue placeholder="وضعیت" />
+                <SelectValue placeholder={t('auto.ContractsListPage.s_55518965')} />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="all">همه</SelectItem>
-                <SelectItem value="draft">پیش‌نویس</SelectItem>
-                <SelectItem value="active">فعال</SelectItem>
-                <SelectItem value="cancelled">لغو شده</SelectItem>
+                <SelectItem value="all">{t('auto.ContractsListPage.s_bf742c5a')}</SelectItem>
+                <SelectItem value="draft">{t('auto.ContractsListPage.s_7d739ea1')}</SelectItem>
+                <SelectItem value="active">{t('auto.ContractsListPage.s_6f637966')}</SelectItem>
+                <SelectItem value="cancelled">{t('auto.ContractsListPage.s_eba946ea')}</SelectItem>
               </SelectContent>
             </Select>
             <Button type="button" size="sm" variant="secondary" onClick={() => void load()}>
-              اعمال فیلتر
+              {t('auto.ContractsListPage.s_e0cd6db1')}
             </Button>
             <Button type="button" size="sm" onClick={() => setWizard(true)}>
-              قرارداد جدید (ویزارد)
+              {t('auto.ContractsListPage.s_56de94cf')}
             </Button>
           </div>
         </CardHeader>
@@ -161,17 +165,17 @@ export function ContractsListPage() {
               <thead>
                 <tr className="border-b bg-muted/40">
                   <th className="px-3 py-2 text-start">#</th>
-                  <th className="px-3 py-2 text-start">عنوان</th>
-                  <th className="px-3 py-2 text-start">مبلغ</th>
-                  <th className="px-3 py-2 text-start">وضعیت</th>
-                  <th className="px-3 py-2 text-start">عملیات</th>
+                  <th className="px-3 py-2 text-start">{t('auto.ContractsListPage.s_1a9bdb20')}</th>
+                  <th className="px-3 py-2 text-start">{t('auto.ContractsListPage.s_f5668e5b')}</th>
+                  <th className="px-3 py-2 text-start">{t('auto.ContractsListPage.s_55518965')}</th>
+                  <th className="px-3 py-2 text-start">{t('auto.ContractsListPage.s_8d1cc546')}</th>
                 </tr>
               </thead>
               <tbody>
                 {loading ? (
                   <tr>
                     <td colSpan={5} className="px-3 py-8 text-center text-muted-foreground">
-                      بارگذاری…
+                      {t('auto.ContractsListPage.s_fbac73dc')}
                     </td>
                   </tr>
                 ) : (
@@ -184,7 +188,7 @@ export function ContractsListPage() {
                       <td className="px-3 py-2">
                         <div className="flex flex-wrap gap-1">
                           <Button type="button" variant="outline" size="sm" onClick={() => void openDetail(r)}>
-                            جزئیات
+                            {t('auto.ContractsListPage.s_5bccf844')}
                           </Button>
                           <Button
                             type="button"
@@ -207,12 +211,12 @@ export function ContractsListPage() {
                             onClick={() => {
                               setDetail(r);
                               setEmailOpen(true);
-                            }}
-                          >
-                            ایمیل
+                            }}>
+                          
+                            {t('auto.ContractsListPage.s_f1ad423d')}
                           </Button>
                           <Button type="button" variant="destructive" size="sm" onClick={() => setCancelId(Number(r.id))}>
-                            لغو
+                            {t('auto.ContractsListPage.s_e409bf47')}
                           </Button>
                         </div>
                       </td>
@@ -229,31 +233,31 @@ export function ContractsListPage() {
       <Dialog open={wizard} onOpenChange={setWizard}>
         <DialogContent className="max-w-lg">
           <DialogHeader>
-            <DialogTitle>ویزارد قرارداد — مرحله {step} از ۴</DialogTitle>
+            <DialogTitle>{t('common.wizardContract', { step: step })}</DialogTitle>
           </DialogHeader>
           <Tabs value={String(step)} onValueChange={(v) => setStep(Number(v))}>
             <TabsList className="grid w-full grid-cols-4">
-              <TabsTrigger value="1">اطلاعات</TabsTrigger>
-              <TabsTrigger value="2">اقساط</TabsTrigger>
-              <TabsTrigger value="3">محصول</TabsTrigger>
-              <TabsTrigger value="4">پروژه</TabsTrigger>
+              <TabsTrigger value="1">{t('auto.ContractsListPage.s_b874f93c')}</TabsTrigger>
+              <TabsTrigger value="2">{t('auto.ContractsListPage.s_5e82aa42')}</TabsTrigger>
+              <TabsTrigger value="3">{t('auto.ContractsListPage.s_2e05931c')}</TabsTrigger>
+              <TabsTrigger value="4">{t('auto.ContractsListPage.s_55da48c5')}</TabsTrigger>
             </TabsList>
             <TabsContent value="1" className="space-y-3 pt-4">
               <div>
-                <label className="text-sm">عنوان</label>
+                <label className="text-sm">{t('auto.ContractsListPage.s_1a9bdb20')}</label>
                 <Input value={form.title} onChange={(e) => setForm((f) => ({ ...f, title: e.target.value }))} />
               </div>
               <div>
-                <label className="text-sm">مبلغ</label>
+                <label className="text-sm">{t('auto.ContractsListPage.s_f5668e5b')}</label>
                 <Input type="number" value={form.amount} onChange={(e) => setForm((f) => ({ ...f, amount: e.target.value }))} />
               </div>
               <div>
-                <label className="text-sm">وضعیت</label>
+                <label className="text-sm">{t('auto.ContractsListPage.s_55518965')}</label>
                 <Input value={form.status} onChange={(e) => setForm((f) => ({ ...f, status: e.target.value }))} />
               </div>
             </TabsContent>
             <TabsContent value="2" className="space-y-3 pt-4">
-              <p className="text-xs text-muted-foreground">آرایه JSON اقساط — نمونه در placeholder</p>
+              <p className="text-xs text-muted-foreground">{t('auto.ContractsListPage.s_bdb58d91')}</p>
               <Textarea
                 rows={6}
                 className="font-mono text-xs"
@@ -266,14 +270,14 @@ export function ContractsListPage() {
             <TabsContent value="3" className="space-y-3 pt-4">
               <Textarea
                 rows={4}
-                placeholder="یادداشت محصول / سرویس مرتبط"
+                placeholder={t('auto.ContractsListPage.s_03778d07')}
                 value={form.product_note}
                 onChange={(e) => setForm((f) => ({ ...f, product_note: e.target.value }))}
               />
             </TabsContent>
             <TabsContent value="4" className="space-y-3 pt-4">
               <div>
-                <label className="text-sm">شناسه پروژه (اختیاری)</label>
+                <label className="text-sm">{t('auto.ContractsListPage.s_8a4cf981')}</label>
                 <Input value={form.project_id} onChange={(e) => setForm((f) => ({ ...f, project_id: e.target.value }))} />
               </div>
             </TabsContent>
@@ -281,16 +285,16 @@ export function ContractsListPage() {
           <DialogFooter className="gap-2">
             {step > 1 ? (
               <Button type="button" variant="outline" onClick={() => setStep((s) => Math.max(1, s - 1))}>
-                قبلی
+                {t('auto.ContractsListPage.s_1a592f6b')}
               </Button>
             ) : null}
             {step < 4 ? (
               <Button type="button" onClick={() => setStep((s) => Math.min(4, s + 1))}>
-                بعدی
+                {t('auto.ContractsListPage.s_54ee927e')}
               </Button>
             ) : (
               <Button type="button" onClick={() => void saveContract()} disabled={!form.title.trim()}>
-                ذخیره قرارداد
+                {t('auto.ContractsListPage.s_a8ba0698')}
               </Button>
             )}
           </DialogFooter>
@@ -300,53 +304,53 @@ export function ContractsListPage() {
       <Dialog open={!!detail && !emailOpen} onOpenChange={(o) => { if (!o) { setDetail(null); setDetailFull(null); } }}>
         <DialogContent className="max-w-lg max-h-[80vh] overflow-y-auto">
           <DialogHeader>
-            <DialogTitle>جزئیات قرارداد</DialogTitle>
+            <DialogTitle>{t('auto.ContractsListPage.s_c6b8881a')}</DialogTitle>
           </DialogHeader>
           {detail ? (
             <div className="space-y-3 text-sm">
               <p>
-                <strong>عنوان:</strong> {String(detail.title)}
+                <strong>{t('auto.ContractsListPage.s_659bbbd1')}</strong> {String(detail.title)}
               </p>
               <p>
-                <strong>مبلغ:</strong> {String(detail.amount ?? '—')}
+                <strong>{t('auto.ContractsListPage.s_752c66d7')}</strong> {String(detail.amount ?? '—')}
               </p>
               <p>
-                <strong>وضعیت:</strong> {String(detail.status ?? '—')}
+                <strong>{t('auto.ContractsListPage.s_372c3f95')}</strong> {String(detail.status ?? '—')}
               </p>
               <p>
-                <strong>یادداشت محصول:</strong> {String(detail.notes ?? '—')}
+                <strong>{t('auto.ContractsListPage.s_3f3bb2b4')}</strong> {String(detail.notes ?? '—')}
               </p>
               <p>
-                <strong>پروژه:</strong>{' '}
+                <strong>{t('auto.ContractsListPage.s_1cf3b496')}</strong>{' '}
                 {(detailFull ?? detail)?.project_id ? (
                   <a
                     href={`/dashboard/projects/${String((detailFull ?? detail)?.project_id)}`}
                     className="text-primary underline"
                   >
-                    پروژه #{String((detailFull ?? detail)?.project_id)}
+                    {t('common.projectHash', { id: String((detailFull ?? detail)?.project_id) })}
                   </a>
                 ) : '—'}
               </p>
 
               {detailFull?.lead && typeof detailFull.lead === 'object' ? (
                 <div className="rounded-md border p-3 space-y-1">
-                  <p className="font-semibold text-xs text-muted-foreground">اطلاعات لید</p>
-                  <p><strong>موضوع:</strong> {String((detailFull.lead as Record<string, unknown>).topic ?? '—')}</p>
-                  <p><strong>ایمیل:</strong> {String((detailFull.lead as Record<string, unknown>).email ?? '—')}</p>
-                  <p><strong>موبایل:</strong> {String((detailFull.lead as Record<string, unknown>).mobile ?? '—')}</p>
+                  <p className="font-semibold text-xs text-muted-foreground">{t('auto.ContractsListPage.s_ad8f339e')}</p>
+                  <p><strong>{t('auto.ContractsListPage.s_20974cc2')}</strong> {String((detailFull.lead as Record<string, unknown>).topic ?? '—')}</p>
+                  <p><strong>{t('auto.ContractsListPage.s_8b5dcef4')}</strong> {String((detailFull.lead as Record<string, unknown>).email ?? '—')}</p>
+                  <p><strong>{t('auto.ContractsListPage.s_c583452b')}</strong> {String((detailFull.lead as Record<string, unknown>).mobile ?? '—')}</p>
                 </div>
               ) : null}
 
               {Array.isArray(detailFull?.installments) && (detailFull.installments as unknown[]).length > 0 ? (
                 <div className="space-y-1">
-                  <p className="font-semibold text-xs text-muted-foreground">اقساط</p>
+                  <p className="font-semibold text-xs text-muted-foreground">{t('auto.ContractsListPage.s_5e82aa42')}</p>
                   <div className="overflow-x-auto rounded-md border">
                     <table className="w-full text-xs">
                       <thead>
                         <tr className="border-b bg-muted/40">
-                          <th className="px-2 py-1 text-start">مبلغ</th>
-                          <th className="px-2 py-1 text-start">تاریخ سررسید</th>
-                          <th className="px-2 py-1 text-start">تاریخ پرداخت</th>
+                          <th className="px-2 py-1 text-start">{t('auto.ContractsListPage.s_f5668e5b')}</th>
+                          <th className="px-2 py-1 text-start">{t('auto.ContractsListPage.s_f1f03406')}</th>
+                          <th className="px-2 py-1 text-start">{t('auto.ContractsListPage.s_a8b128af')}</th>
                         </tr>
                       </thead>
                       <tbody>
@@ -366,10 +370,10 @@ export function ContractsListPage() {
           ) : null}
           <DialogFooter className="gap-2">
             <Button type="button" variant="destructive" size="sm" onClick={() => { if (detail?.id) setDeleteId(Number(detail.id)); }}>
-              حذف قرارداد
+              {t('auto.ContractsListPage.s_c57a9b40')}
             </Button>
             <Button type="button" variant="outline" size="sm" onClick={() => { setDetail(null); setDetailFull(null); }}>
-              بستن
+              {t('auto.ContractsListPage.s_4a0f283e')}
             </Button>
           </DialogFooter>
         </DialogContent>
@@ -378,11 +382,11 @@ export function ContractsListPage() {
       <Dialog open={emailOpen} onOpenChange={setEmailOpen}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>ارسال ایمیل قرارداد</DialogTitle>
+            <DialogTitle>{t('auto.ContractsListPage.s_30eec346')}</DialogTitle>
           </DialogHeader>
           <Input
             type="email"
-            placeholder="ایمیل گیرنده"
+            placeholder={t('auto.ContractsListPage.s_c2331cdf')}
             value={emailTo}
             onChange={(e) => setEmailTo(e.target.value)}
             dir="ltr"
@@ -400,9 +404,9 @@ export function ContractsListPage() {
                 } catch (e) {
                   setError(getAxiosMessage(e));
                 }
-              }}
-            >
-              ارسال
+              }}>
+            
+              {t('auto.ContractsListPage.s_f26c55d9')}
             </Button>
           </DialogFooter>
         </DialogContent>
@@ -411,11 +415,11 @@ export function ContractsListPage() {
       <AlertDialog open={cancelId !== null} onOpenChange={(o) => !o && setCancelId(null)}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>لغو قرارداد؟</AlertDialogTitle>
-            <AlertDialogDescription>وضعیت به cancelled تغییر می‌کند.</AlertDialogDescription>
+            <AlertDialogTitle>{t('auto.ContractsListPage.s_18f1fd37')}</AlertDialogTitle>
+            <AlertDialogDescription>{t('auto.ContractsListPage.s_38f544f3')}</AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel>انصراف</AlertDialogCancel>
+            <AlertDialogCancel>{t('auto.ContractsListPage.s_106dfb4e')}</AlertDialogCancel>
             <AlertDialogAction
               onClick={async () => {
                 if (!cancelId) return;
@@ -426,9 +430,9 @@ export function ContractsListPage() {
                 } catch (e) {
                   setError(getAxiosMessage(e));
                 }
-              }}
-            >
-              تأیید لغو
+              }}>
+            
+              {t('auto.ContractsListPage.s_4f47b8c9')}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
@@ -437,11 +441,11 @@ export function ContractsListPage() {
       <AlertDialog open={deleteId !== null} onOpenChange={(o) => !o && setDeleteId(null)}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>حذف قرارداد؟</AlertDialogTitle>
-            <AlertDialogDescription>این عملیات غیرقابل بازگشت است.</AlertDialogDescription>
+            <AlertDialogTitle>{t('auto.ContractsListPage.s_a9a5eb07')}</AlertDialogTitle>
+            <AlertDialogDescription>{t('auto.ContractsListPage.s_e52ae4a7')}</AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel>انصراف</AlertDialogCancel>
+            <AlertDialogCancel>{t('auto.ContractsListPage.s_106dfb4e')}</AlertDialogCancel>
             <AlertDialogAction
               onClick={async () => {
                 if (!deleteId) return;
@@ -454,9 +458,9 @@ export function ContractsListPage() {
                 } catch (e) {
                   setError(getAxiosMessage(e));
                 }
-              }}
-            >
-              تأیید حذف
+              }}>
+            
+              {t('auto.ContractsListPage.s_481e8243')}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

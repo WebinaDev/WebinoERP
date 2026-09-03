@@ -3,14 +3,14 @@ import { SiteFooter } from '@/themes/webina-corporate-v1/components/SiteFooter';
 import { SiteHeader } from '@/themes/webina-corporate-v1/components/SiteHeader';
 import { getPublicSite } from '@/lib/public-api-server';
 
-export const dynamic = 'force-dynamic';
+export const revalidate = 60;
 
 export default async function SiteLayout({
   children,
 }: {
   children: ReactNode;
 }) {
-  let siteName = 'وبینا';
+  let siteName = 'Webina';
   let logoUrl: string | null = null;
   try {
     const res = await getPublicSite();

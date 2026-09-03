@@ -4,7 +4,17 @@
 	}
 }
 
+(security_headers) {
+	header {
+		X-Content-Type-Options "nosniff"
+		X-Frame-Options "SAMEORIGIN"
+		Referrer-Policy "strict-origin-when-cross-origin"
+		-Server
+	}
+}
+
 :80 {
+	import security_headers
 	encode zstd gzip
 
 	@nextStatic path /_next/static/*
@@ -21,6 +31,45 @@
 			header_up Host {host}
 			header_up X-Forwarded-Host {host}
 			header_up X-Forwarded-Proto {scheme}
+		}
+	}
+
+	handle /app/* {
+		reverse_proxy ws:8081
+	}
+
+	handle /docs* {
+		reverse_proxy docs:80
+	}
+
+	handle {
+		reverse_proxy frontend:3000
+	}
+}
+
+# HTTPS — enable with a real domain via CADDY_DOMAIN, or use tls internal for lab installs.
+# When CADDY_DOMAIN is unset, this block still listens so WEB_HTTPS_PORT mapping works with
+# a self-signed cert (browsers will warn until a proper certificate is configured).
+:443 {
+	import security_headers
+	header Strict-Transport-Security "max-age=31536000; includeSubDomains"
+	tls internal
+	encode zstd gzip
+
+	@nextStatic path /_next/static/*
+	header @nextStatic Cache-Control "public, max-age=31536000, immutable"
+
+	@publicStatic path /fonts/* /brand/*
+	header @publicStatic Cache-Control "public, max-age=31536000, immutable"
+
+	@api path /api/*
+	header @api Cache-Control "no-store"
+
+	handle /api/* {
+		reverse_proxy backend:8080 {
+			header_up Host {host}
+			header_up X-Forwarded-Host {host}
+			header_up X-Forwarded-Proto https
 		}
 	}
 

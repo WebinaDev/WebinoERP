@@ -1,5 +1,7 @@
 'use client';
 
+import { useTranslations } from 'next-intl';
+
 import { useCallback, useEffect, useState } from 'react';
 import apiClient from '@/lib/api-client';
 import { unwrapData, getAxiosMessage } from '@/lib/api-helpers';
@@ -16,6 +18,8 @@ type Settings = { currency: string; fiscal_year_id: number | null };
 type FiscalYear = { id: number; title: string };
 
 export default function AccSettings() {
+  const t = useTranslations();
+
   const [currency, setCurrency] = useState('');
   const [fyId, setFyId] = useState('');
   const [fys, setFys] = useState<FiscalYear[]>([]);
@@ -57,7 +61,7 @@ export default function AccSettings() {
         currency,
         fiscal_year_id: fyId ? Number(fyId) : null,
       });
-      setMessage('تنظیمات ذخیره شد');
+      setMessage(t('auto.accounting_AccSettings.s_60a1c115'));
     } catch (e) {
       setError(getAxiosMessage(e));
     } finally {
@@ -71,7 +75,7 @@ export default function AccSettings() {
     setMessage(null);
     try {
       await accountingWpAction('seed_chart');
-      setMessage('نمودار حساب‌ها با موفقیت ایجاد شد');
+      setMessage(t('auto.accounting_AccSettings.s_666b5c29'));
     } catch (e) {
       setError(getAxiosMessage(e));
     } finally {
@@ -82,38 +86,38 @@ export default function AccSettings() {
   if (loading) {
     return (
       <div className="space-y-6">
-        <h2 className="text-lg font-semibold">تنظیمات حسابداری</h2>
-        <p className="text-sm text-muted-foreground">در حال بارگذاری…</p>
+        <h2 className="text-lg font-semibold">{t('auto.accounting_AccSettings.s_f6b960d1')}</h2>
+        <p className="text-sm text-muted-foreground">{t('auto.accounting_AccSettings.s_51617f69')}</p>
       </div>
     );
   }
 
   return (
     <div className="space-y-6">
-      <h2 className="text-lg font-semibold">تنظیمات حسابداری</h2>
+      <h2 className="text-lg font-semibold">{t('auto.accounting_AccSettings.s_f6b960d1')}</h2>
 
       {error && <p className="text-sm text-destructive">{error}</p>}
       {message && <p className="text-sm text-green-600">{message}</p>}
 
       <Card>
         <CardHeader>
-          <CardTitle className="text-base">تنظیمات پیش‌فرض</CardTitle>
+          <CardTitle className="text-base">{t('auto.accounting_AccSettings.s_ba2d3e64')}</CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
           <div>
-            <label className="mb-1 block text-sm font-medium">واحد پول</label>
+            <label className="mb-1 block text-sm font-medium">{t('auto.accounting_AccSettings.s_f2c4117d')}</label>
             <Input
               value={currency}
               onChange={(e) => setCurrency(e.target.value)}
-              placeholder="مثلاً ریال"
+              placeholder={t('auto.accounting_AccSettings.s_947f6087')}
               className="max-w-xs"
             />
           </div>
           <div>
-            <label className="mb-1 block text-sm font-medium">سال مالی پیش‌فرض</label>
+            <label className="mb-1 block text-sm font-medium">{t('auto.accounting_AccSettings.s_432be630')}</label>
             <Select value={fyId} onValueChange={setFyId}>
               <SelectTrigger className="max-w-xs">
-                <SelectValue placeholder="انتخاب سال مالی" />
+                <SelectValue placeholder={t('auto.accounting_AccSettings.s_3edc0e6d')} />
               </SelectTrigger>
               <SelectContent>
                 {fys.map((f) => (
@@ -123,21 +127,21 @@ export default function AccSettings() {
             </Select>
           </div>
           <Button onClick={() => void handleSave()} disabled={saving}>
-            {saving ? 'در حال ذخیره…' : 'ذخیره تنظیمات'}
+            {saving ? t('auto.accounting_AccSettings.s_4b7554d6') : t('auto.accounting_AccSettings.s_5613d348')}
           </Button>
         </CardContent>
       </Card>
 
       <Card>
         <CardHeader>
-          <CardTitle className="text-base">ایجاد نمودار حساب‌ها</CardTitle>
+          <CardTitle className="text-base">{t('auto.accounting_AccSettings.s_77ef7b9f')}</CardTitle>
         </CardHeader>
         <CardContent>
           <p className="mb-3 text-sm text-muted-foreground">
-            با کلیک بر دکمه زیر، نمودار حساب‌های پیش‌فرض ایجاد خواهد شد.
+            {t('auto.accounting_AccSettings.s_1c800a91')}
           </p>
           <Button variant="outline" onClick={() => void handleSeed()} disabled={seeding}>
-            {seeding ? 'در حال ایجاد…' : 'ایجاد نمودار حساب‌ها'}
+            {seeding ? t('auto.accounting_AccSettings.s_043809bf') : t('auto.accounting_AccSettings.s_77ef7b9f')}
           </Button>
         </CardContent>
       </Card>

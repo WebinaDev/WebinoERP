@@ -1,5 +1,7 @@
 'use client';
 
+import { useTranslations } from 'next-intl';
+
 import { useState, useCallback, useEffect } from 'react';
 import apiClient from '@/lib/api-client';
 import { normalizeListPayload } from '@/lib/list-utils';
@@ -43,6 +45,8 @@ const BLANK = {
 };
 
 export default function AccProducts() {
+  const t = useTranslations();
+
   const [rows, setRows] = useState<Product[]>([]);
   const [page, setPage] = useState(1);
   const [pageCount, setPageCount] = useState(1);
@@ -154,29 +158,29 @@ export default function AccProducts() {
       <div className="flex flex-wrap items-center gap-2">
         <Input
           className="max-w-xs"
-          placeholder="جستجوی کالا..."
+          placeholder={t('auto.accounting_AccProducts.s_f1b2b906')}
           value={searchInput}
           onChange={e => setSearchInput(e.target.value)}
           onKeyDown={e => e.key === 'Enter' && setQuery(searchInput)}
         />
-        <Button variant="outline" size="sm" onClick={() => setQuery(searchInput)}>جستجو</Button>
+        <Button variant="outline" size="sm" onClick={() => setQuery(searchInput)}>{t('auto.accounting_AccProducts.s_1fc039e0')}</Button>
         <div className="flex-1" />
-        <Button size="sm" onClick={openCreate}>+ ایجاد</Button>
+        <Button size="sm" onClick={openCreate}>{t('auto.accounting_AccProducts.s_e34fff4e')}</Button>
       </div>
 
       {error && <p className="text-sm text-destructive">{error}</p>}
-      {loading && <p className="text-sm text-muted-foreground">در حال بارگذاری…</p>}
+      {loading && <p className="text-sm text-muted-foreground">{t('auto.accounting_AccProducts.s_51617f69')}</p>}
 
       <div className="overflow-x-auto rounded-md border">
         <table className="w-full text-sm">
           <thead>
             <tr className="border-b bg-muted/40">
-              <th className="px-3 py-2 text-start font-medium">شناسه</th>
-              <th className="px-3 py-2 text-start font-medium">نام</th>
-              <th className="px-3 py-2 text-start font-medium">بارکد</th>
-              <th className="px-3 py-2 text-start font-medium">قیمت خرید</th>
-              <th className="px-3 py-2 text-start font-medium">قیمت فروش</th>
-              <th className="px-3 py-2 text-start font-medium">عملیات</th>
+              <th className="px-3 py-2 text-start font-medium">{t('auto.accounting_AccProducts.s_acc84041')}</th>
+              <th className="px-3 py-2 text-start font-medium">{t('auto.accounting_AccProducts.s_45dd06ba')}</th>
+              <th className="px-3 py-2 text-start font-medium">{t('auto.accounting_AccProducts.s_60b7dd5f')}</th>
+              <th className="px-3 py-2 text-start font-medium">{t('auto.accounting_AccProducts.s_299e3b7b')}</th>
+              <th className="px-3 py-2 text-start font-medium">{t('auto.accounting_AccProducts.s_d8daa96f')}</th>
+              <th className="px-3 py-2 text-start font-medium">{t('auto.accounting_AccProducts.s_8d1cc546')}</th>
             </tr>
           </thead>
           <tbody>
@@ -187,14 +191,14 @@ export default function AccProducts() {
                 <td className="px-3 py-2">{row.barcode}</td>
                 <td className="px-3 py-2">{Number(row.buy_price).toLocaleString()}</td>
                 <td className="px-3 py-2">{Number(row.sell_price).toLocaleString()}</td>
-                <td className="px-3 py-2 space-x-1 rtl:space-x-reverse">
-                  <Button variant="ghost" size="sm" onClick={() => openEdit(row)}>ویرایش</Button>
-                  <Button variant="ghost" size="sm" className="text-destructive" onClick={() => setDeleteTarget(row)}>حذف</Button>
+                <td className="px-3 py-2 gap-x-1 rtl:gap-x-reverse">
+                  <Button variant="ghost" size="sm" onClick={() => openEdit(row)}>{t('auto.accounting_AccProducts.s_ac60ae7a')}</Button>
+                  <Button variant="ghost" size="sm" className="text-destructive" onClick={() => setDeleteTarget(row)}>{t('auto.accounting_AccProducts.s_2d2bbdc2')}</Button>
                 </td>
               </tr>
             ))}
             {!loading && rows.length === 0 && (
-              <tr><td colSpan={6} className="px-3 py-4 text-center text-muted-foreground">موردی یافت نشد</td></tr>
+              <tr><td colSpan={6} className="px-3 py-4 text-center text-muted-foreground">{t('auto.accounting_AccProducts.s_35e7797d')}</td></tr>
             )}
           </tbody>
         </table>
@@ -207,18 +211,18 @@ export default function AccProducts() {
       <Dialog open={formOpen} onOpenChange={setFormOpen}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>{editing ? 'ویرایش کالا' : 'ایجاد کالا'}</DialogTitle>
-            <DialogDescription>{editing ? 'اطلاعات کالا را ویرایش کنید' : 'اطلاعات کالای جدید را وارد کنید'}</DialogDescription>
+            <DialogTitle>{editing ? t('auto.accounting_AccProducts.s_0bc110e9') : t('auto.accounting_AccProducts.s_3e1b42a7')}</DialogTitle>
+            <DialogDescription>{editing ? t('auto.accounting_AccProducts.s_669b9961') : t('auto.accounting_AccProducts.s_16a87097')}</DialogDescription>
           </DialogHeader>
           <div className="grid gap-3">
             <div>
-              <label className="mb-1 block text-sm font-medium">نام</label>
+              <label className="mb-1 block text-sm font-medium">{t('auto.accounting_AccProducts.s_45dd06ba')}</label>
               <Input value={form.name} onChange={e => setForm({ ...form, name: e.target.value })} />
             </div>
             <div>
-              <label className="mb-1 block text-sm font-medium">واحد</label>
+              <label className="mb-1 block text-sm font-medium">{t('auto.accounting_AccProducts.s_91bd5660')}</label>
               <Select value={form.unit_id || undefined} onValueChange={v => setForm({ ...form, unit_id: v })}>
-                <SelectTrigger><SelectValue placeholder="انتخاب واحد" /></SelectTrigger>
+                <SelectTrigger><SelectValue placeholder={t('auto.accounting_AccProducts.s_5e139c5b')} /></SelectTrigger>
                 <SelectContent>
                   {units.map(u => (
                     <SelectItem key={u.id} value={String(u.id)}>{u.name}</SelectItem>
@@ -227,13 +231,13 @@ export default function AccProducts() {
               </Select>
             </div>
             <div>
-              <label className="mb-1 block text-sm font-medium">بارکد</label>
+              <label className="mb-1 block text-sm font-medium">{t('auto.accounting_AccProducts.s_60b7dd5f')}</label>
               <Input value={form.barcode} onChange={e => setForm({ ...form, barcode: e.target.value })} />
             </div>
             <div>
-              <label className="mb-1 block text-sm font-medium">دسته‌بندی</label>
+              <label className="mb-1 block text-sm font-medium">{t('auto.accounting_AccProducts.s_a4dfaeb7')}</label>
               <Select value={form.category_id || undefined} onValueChange={v => setForm({ ...form, category_id: v })}>
-                <SelectTrigger><SelectValue placeholder="انتخاب دسته‌بندی" /></SelectTrigger>
+                <SelectTrigger><SelectValue placeholder={t('auto.accounting_AccProducts.s_315c72ae')} /></SelectTrigger>
                 <SelectContent>
                   {categories.map(c => (
                     <SelectItem key={c.id} value={String(c.id)}>{c.name}</SelectItem>
@@ -243,11 +247,11 @@ export default function AccProducts() {
             </div>
             <div className="grid grid-cols-2 gap-3">
               <div>
-                <label className="mb-1 block text-sm font-medium">قیمت خرید</label>
+                <label className="mb-1 block text-sm font-medium">{t('auto.accounting_AccProducts.s_299e3b7b')}</label>
                 <Input type="number" value={form.buy_price} onChange={e => setForm({ ...form, buy_price: e.target.value })} />
               </div>
               <div>
-                <label className="mb-1 block text-sm font-medium">قیمت فروش</label>
+                <label className="mb-1 block text-sm font-medium">{t('auto.accounting_AccProducts.s_d8daa96f')}</label>
                 <Input type="number" value={form.sell_price} onChange={e => setForm({ ...form, sell_price: e.target.value })} />
               </div>
             </div>
@@ -257,14 +261,13 @@ export default function AccProducts() {
                 checked={form.inventory_controlled}
                 onChange={e => setForm({ ...form, inventory_controlled: e.target.checked })}
                 className="h-4 w-4 rounded border-input"
-              />
-              کنترل موجودی
+              /> {t('auto.accounting_AccProducts.s_490ffd8e')}
             </label>
             {formError && <p className="text-sm text-destructive">{formError}</p>}
           </div>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setFormOpen(false)}>انصراف</Button>
-            <Button onClick={save} disabled={saving}>{saving ? 'در حال ذخیره…' : 'ذخیره'}</Button>
+            <Button variant="outline" onClick={() => setFormOpen(false)}>{t('auto.accounting_AccProducts.s_106dfb4e')}</Button>
+            <Button onClick={save} disabled={saving}>{saving ? t('auto.accounting_AccProducts.s_4b7554d6') : t('auto.accounting_AccProducts.s_08545fb6')}</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
@@ -272,12 +275,12 @@ export default function AccProducts() {
       <AlertDialog open={!!deleteTarget} onOpenChange={open => { if (!open) setDeleteTarget(null); }}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>حذف کالا</AlertDialogTitle>
-            <AlertDialogDescription>آیا از حذف «{deleteTarget?.name}» اطمینان دارید؟</AlertDialogDescription>
+            <AlertDialogTitle>{t('auto.accounting_AccProducts.s_e9a9c15e')}</AlertDialogTitle>
+            <AlertDialogDescription>{t('common.confirmDeleteNamed', { name: deleteTarget?.name })}</AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel>انصراف</AlertDialogCancel>
-            <AlertDialogAction onClick={handleDelete}>حذف</AlertDialogAction>
+            <AlertDialogCancel>{t('auto.accounting_AccProducts.s_106dfb4e')}</AlertDialogCancel>
+            <AlertDialogAction onClick={handleDelete}>{t('auto.accounting_AccProducts.s_2d2bbdc2')}</AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>

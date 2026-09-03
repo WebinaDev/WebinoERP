@@ -1,3 +1,4 @@
+import { getTranslations } from 'next-intl/server';
 import Link from 'next/link';
 import { apiServer, siteHref } from '@/lib/public-api-server';
 
@@ -6,6 +7,8 @@ export const revalidate = 60;
 type BlogPostSummary = { id: number; slug: string; title: string; excerpt?: string | null };
 
 export default async function BlogIndexPage({ params }: { params?: Promise<Record<string, string>> }) {
+  const t = await getTranslations();
+
   let posts: BlogPostSummary[] = [];
   try {
     const res = await apiServer<{ data: BlogPostSummary[] }>('/v1/public/blog?per_page=12');
@@ -14,7 +17,7 @@ export default async function BlogIndexPage({ params }: { params?: Promise<Recor
 
   return (
     <div className="container mx-auto px-4 py-12">
-      <h1 className="text-3xl font-bold">وبلاگ</h1>
+      <h1 className="text-3xl font-bold">{t('auto._site__blog_page.s_fb5e9fd5')}</h1>
       <ul className="mt-8 grid gap-6 md:grid-cols-2 lg:grid-cols-3">
         {posts.map((p) => (
           <li key={p.id} className="rounded-xl border p-5 hover:shadow-md">

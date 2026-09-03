@@ -1,5 +1,7 @@
 'use client';
 
+import { useTranslations } from 'next-intl';
+
 import { useState, useCallback, useEffect } from 'react';
 import apiClient from '@/lib/api-client';
 import { normalizeListPayload } from '@/lib/list-utils';
@@ -34,11 +36,11 @@ type Check = {
   description: string;
 };
 
-const STATUS_LABELS: Record<string, string> = {
-  pending: 'در انتظار',
-  collected: 'وصول شده',
-  spent: 'خرج شده',
-  returned: 'برگشت شده',
+const STATUS_KEYS: Record<string, string> = {
+  pending: 'auto.accounting_AccChecks.s_c6fa28c3',
+  collected: 'auto.accounting_AccChecks.s_8954fe24',
+  spent: 'auto.accounting_AccChecks.s_ba976954',
+  returned: 'auto.accounting_AccChecks.s_5000ce20',
 };
 
 const BLANK = {
@@ -54,6 +56,8 @@ const BLANK = {
 };
 
 export default function AccChecks() {
+  const t = useTranslations();
+
   const [rows, setRows] = useState<Check[]>([]);
   const [page, setPage] = useState(1);
   const [pageCount, setPageCount] = useState(1);
@@ -170,41 +174,41 @@ export default function AccChecks() {
     <div className="space-y-4">
       <div className="flex flex-wrap items-center gap-2">
         <Select value={filterType || 'all'} onValueChange={v => setFilterType(v === 'all' ? '' : v)}>
-          <SelectTrigger className="w-36"><SelectValue placeholder="نوع" /></SelectTrigger>
+          <SelectTrigger className="w-36"><SelectValue placeholder={t('auto.accounting_AccChecks.s_d2e35a1f')} /></SelectTrigger>
           <SelectContent>
-            <SelectItem value="all">همه انواع</SelectItem>
-            <SelectItem value="receivable">دریافتنی</SelectItem>
-            <SelectItem value="payable">پرداختنی</SelectItem>
+            <SelectItem value="all">{t('auto.accounting_AccChecks.s_9e3d846e')}</SelectItem>
+            <SelectItem value="receivable">{t('auto.accounting_AccChecks.s_ad2af77b')}</SelectItem>
+            <SelectItem value="payable">{t('auto.accounting_AccChecks.s_d89924d9')}</SelectItem>
           </SelectContent>
         </Select>
         <Select value={filterStatus || 'all'} onValueChange={v => setFilterStatus(v === 'all' ? '' : v)}>
-          <SelectTrigger className="w-36"><SelectValue placeholder="وضعیت" /></SelectTrigger>
+          <SelectTrigger className="w-36"><SelectValue placeholder={t('auto.accounting_AccChecks.s_55518965')} /></SelectTrigger>
           <SelectContent>
-            <SelectItem value="all">همه وضعیت‌ها</SelectItem>
-            <SelectItem value="pending">در انتظار</SelectItem>
-            <SelectItem value="collected">وصول شده</SelectItem>
-            <SelectItem value="spent">خرج شده</SelectItem>
-            <SelectItem value="returned">برگشت شده</SelectItem>
+            <SelectItem value="all">{t('auto.accounting_AccChecks.s_7552ab35')}</SelectItem>
+            <SelectItem value="pending">{t('auto.accounting_AccChecks.s_c6fa28c3')}</SelectItem>
+            <SelectItem value="collected">{t('auto.accounting_AccChecks.s_8954fe24')}</SelectItem>
+            <SelectItem value="spent">{t('auto.accounting_AccChecks.s_ba976954')}</SelectItem>
+            <SelectItem value="returned">{t('auto.accounting_AccChecks.s_5000ce20')}</SelectItem>
           </SelectContent>
         </Select>
         <div className="flex-1" />
-        <Button size="sm" onClick={openCreate}>+ ایجاد</Button>
+        <Button size="sm" onClick={openCreate}>{t('auto.accounting_AccChecks.s_e34fff4e')}</Button>
       </div>
 
       {error && <p className="text-sm text-destructive">{error}</p>}
-      {loading && <p className="text-sm text-muted-foreground">در حال بارگذاری…</p>}
+      {loading && <p className="text-sm text-muted-foreground">{t('auto.accounting_AccChecks.s_51617f69')}</p>}
 
       <div className="overflow-x-auto rounded-md border">
         <table className="w-full text-sm">
           <thead>
             <tr className="border-b bg-muted/40">
-              <th className="px-3 py-2 text-start font-medium">شناسه</th>
-              <th className="px-3 py-2 text-start font-medium">شماره</th>
-              <th className="px-3 py-2 text-start font-medium">تاریخ</th>
-              <th className="px-3 py-2 text-start font-medium">مبلغ</th>
-              <th className="px-3 py-2 text-start font-medium">بانک</th>
-              <th className="px-3 py-2 text-start font-medium">وضعیت</th>
-              <th className="px-3 py-2 text-start font-medium">عملیات</th>
+              <th className="px-3 py-2 text-start font-medium">{t('auto.accounting_AccChecks.s_acc84041')}</th>
+              <th className="px-3 py-2 text-start font-medium">{t('auto.accounting_AccChecks.s_987584a3')}</th>
+              <th className="px-3 py-2 text-start font-medium">{t('auto.accounting_AccChecks.s_217c8491')}</th>
+              <th className="px-3 py-2 text-start font-medium">{t('auto.accounting_AccChecks.s_f5668e5b')}</th>
+              <th className="px-3 py-2 text-start font-medium">{t('auto.accounting_AccChecks.s_809f5e77')}</th>
+              <th className="px-3 py-2 text-start font-medium">{t('auto.accounting_AccChecks.s_55518965')}</th>
+              <th className="px-3 py-2 text-start font-medium">{t('auto.accounting_AccChecks.s_8d1cc546')}</th>
             </tr>
           </thead>
           <tbody>
@@ -216,25 +220,25 @@ export default function AccChecks() {
                 <td className="px-3 py-2">{Number(row.amount).toLocaleString()}</td>
                 <td className="px-3 py-2">{row.bank_name}</td>
                 <td className="px-3 py-2">
-                  <Badge variant="outline">{STATUS_LABELS[row.status] ?? row.status}</Badge>
+                  <Badge variant="outline">{STATUS_KEYS[row.status] ? t(STATUS_KEYS[row.status]) : row.status}</Badge>
                 </td>
-                <td className="px-3 py-2 space-x-1 rtl:space-x-reverse">
+                <td className="px-3 py-2 gap-x-1 rtl:gap-x-reverse">
                   {row.status !== 'collected' && (
-                    <Button variant="outline" size="sm" onClick={() => setCheckStatus(row.id, 'collected')}>وصول</Button>
+                    <Button variant="outline" size="sm" onClick={() => setCheckStatus(row.id, 'collected')}>{t('auto.accounting_AccChecks.s_b7b5acc6')}</Button>
                   )}
                   {row.status !== 'spent' && (
-                    <Button variant="outline" size="sm" onClick={() => setCheckStatus(row.id, 'spent')}>خرج</Button>
+                    <Button variant="outline" size="sm" onClick={() => setCheckStatus(row.id, 'spent')}>{t('auto.accounting_AccChecks.s_b0c4ca04')}</Button>
                   )}
                   {row.status !== 'returned' && (
-                    <Button variant="outline" size="sm" onClick={() => setCheckStatus(row.id, 'returned')}>برگشت</Button>
+                    <Button variant="outline" size="sm" onClick={() => setCheckStatus(row.id, 'returned')}>{t('auto.accounting_AccChecks.s_ca2b10ca')}</Button>
                   )}
-                  <Button variant="ghost" size="sm" onClick={() => openEdit(row)}>ویرایش</Button>
-                  <Button variant="ghost" size="sm" className="text-destructive" onClick={() => setDeleteTarget(row)}>حذف</Button>
+                  <Button variant="ghost" size="sm" onClick={() => openEdit(row)}>{t('auto.accounting_AccChecks.s_ac60ae7a')}</Button>
+                  <Button variant="ghost" size="sm" className="text-destructive" onClick={() => setDeleteTarget(row)}>{t('auto.accounting_AccChecks.s_2d2bbdc2')}</Button>
                 </td>
               </tr>
             ))}
             {!loading && rows.length === 0 && (
-              <tr><td colSpan={7} className="px-3 py-4 text-center text-muted-foreground">موردی یافت نشد</td></tr>
+              <tr><td colSpan={7} className="px-3 py-4 text-center text-muted-foreground">{t('auto.accounting_AccChecks.s_35e7797d')}</td></tr>
             )}
           </tbody>
         </table>
@@ -247,65 +251,65 @@ export default function AccChecks() {
       <Dialog open={formOpen} onOpenChange={setFormOpen}>
         <DialogContent className="max-h-[90vh] overflow-y-auto">
           <DialogHeader>
-            <DialogTitle>{editing ? 'ویرایش چک' : 'ایجاد چک'}</DialogTitle>
-            <DialogDescription>{editing ? 'اطلاعات چک را ویرایش کنید' : 'اطلاعات چک جدید را وارد کنید'}</DialogDescription>
+            <DialogTitle>{editing ? t('auto.accounting_AccChecks.s_3ba9b9e5') : t('auto.accounting_AccChecks.s_264f8341')}</DialogTitle>
+            <DialogDescription>{editing ? t('auto.accounting_AccChecks.s_179d10b5') : t('auto.accounting_AccChecks.s_78cc130a')}</DialogDescription>
           </DialogHeader>
           <div className="grid gap-3">
             <div>
-              <label className="mb-1 block text-sm font-medium">نوع</label>
+              <label className="mb-1 block text-sm font-medium">{t('auto.accounting_AccChecks.s_d2e35a1f')}</label>
               <Select value={form.type} onValueChange={v => setForm({ ...form, type: v })}>
                 <SelectTrigger><SelectValue /></SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="receivable">دریافتنی</SelectItem>
-                  <SelectItem value="payable">پرداختنی</SelectItem>
+                  <SelectItem value="receivable">{t('auto.accounting_AccChecks.s_ad2af77b')}</SelectItem>
+                  <SelectItem value="payable">{t('auto.accounting_AccChecks.s_d89924d9')}</SelectItem>
                 </SelectContent>
               </Select>
             </div>
             <div>
-              <label className="mb-1 block text-sm font-medium">شماره</label>
+              <label className="mb-1 block text-sm font-medium">{t('auto.accounting_AccChecks.s_987584a3')}</label>
               <Input value={form.number} onChange={e => setForm({ ...form, number: e.target.value })} />
             </div>
             <div>
-              <label className="mb-1 block text-sm font-medium">تاریخ</label>
+              <label className="mb-1 block text-sm font-medium">{t('auto.accounting_AccChecks.s_217c8491')}</label>
               <LocaleDatePicker value={form.date || undefined} onChange={v => setForm({ ...form, date: v })} />
             </div>
             <div>
-              <label className="mb-1 block text-sm font-medium">مبلغ</label>
+              <label className="mb-1 block text-sm font-medium">{t('auto.accounting_AccChecks.s_f5668e5b')}</label>
               <Input type="number" value={form.amount} onChange={e => setForm({ ...form, amount: e.target.value })} />
             </div>
             <div>
-              <label className="mb-1 block text-sm font-medium">شخص (شناسه)</label>
+              <label className="mb-1 block text-sm font-medium">{t('auto.accounting_AccChecks.s_8c1d4b9c')}</label>
               <Input value={form.person_id} onChange={e => setForm({ ...form, person_id: e.target.value })} />
             </div>
             <div>
-              <label className="mb-1 block text-sm font-medium">حساب بانکی (شناسه)</label>
+              <label className="mb-1 block text-sm font-medium">{t('auto.accounting_AccChecks.s_e0f7e29a')}</label>
               <Input value={form.cash_account_id} onChange={e => setForm({ ...form, cash_account_id: e.target.value })} />
             </div>
             <div>
-              <label className="mb-1 block text-sm font-medium">نام بانک</label>
+              <label className="mb-1 block text-sm font-medium">{t('auto.accounting_AccChecks.s_0481ee91')}</label>
               <Input value={form.bank_name} onChange={e => setForm({ ...form, bank_name: e.target.value })} />
             </div>
             <div>
-              <label className="mb-1 block text-sm font-medium">وضعیت</label>
+              <label className="mb-1 block text-sm font-medium">{t('auto.accounting_AccChecks.s_55518965')}</label>
               <Select value={form.status} onValueChange={v => setForm({ ...form, status: v })}>
                 <SelectTrigger><SelectValue /></SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="pending">در انتظار</SelectItem>
-                  <SelectItem value="collected">وصول شده</SelectItem>
-                  <SelectItem value="spent">خرج شده</SelectItem>
-                  <SelectItem value="returned">برگشت شده</SelectItem>
+                  <SelectItem value="pending">{t('auto.accounting_AccChecks.s_c6fa28c3')}</SelectItem>
+                  <SelectItem value="collected">{t('auto.accounting_AccChecks.s_8954fe24')}</SelectItem>
+                  <SelectItem value="spent">{t('auto.accounting_AccChecks.s_ba976954')}</SelectItem>
+                  <SelectItem value="returned">{t('auto.accounting_AccChecks.s_5000ce20')}</SelectItem>
                 </SelectContent>
               </Select>
             </div>
             <div>
-              <label className="mb-1 block text-sm font-medium">توضیحات</label>
+              <label className="mb-1 block text-sm font-medium">{t('auto.accounting_AccChecks.s_55bbd4b9')}</label>
               <Input value={form.description} onChange={e => setForm({ ...form, description: e.target.value })} />
             </div>
             {formError && <p className="text-sm text-destructive">{formError}</p>}
           </div>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setFormOpen(false)}>انصراف</Button>
-            <Button onClick={save} disabled={saving}>{saving ? 'در حال ذخیره…' : 'ذخیره'}</Button>
+            <Button variant="outline" onClick={() => setFormOpen(false)}>{t('auto.accounting_AccChecks.s_106dfb4e')}</Button>
+            <Button onClick={save} disabled={saving}>{saving ? t('auto.accounting_AccChecks.s_4b7554d6') : t('auto.accounting_AccChecks.s_08545fb6')}</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
@@ -313,12 +317,14 @@ export default function AccChecks() {
       <AlertDialog open={!!deleteTarget} onOpenChange={open => { if (!open) setDeleteTarget(null); }}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>حذف چک</AlertDialogTitle>
-            <AlertDialogDescription>آیا از حذف چک شماره «{deleteTarget?.number}» اطمینان دارید؟</AlertDialogDescription>
+            <AlertDialogTitle>{t('auto.accounting_AccChecks.s_25f16044')}</AlertDialogTitle>
+            <AlertDialogDescription>
+              {t('auto.accounting_AccChecks.s_delete_check', { number: deleteTarget?.number ?? '' })}
+            </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel>انصراف</AlertDialogCancel>
-            <AlertDialogAction onClick={handleDelete}>حذف</AlertDialogAction>
+            <AlertDialogCancel>{t('auto.accounting_AccChecks.s_106dfb4e')}</AlertDialogCancel>
+            <AlertDialogAction onClick={handleDelete}>{t('auto.accounting_AccChecks.s_2d2bbdc2')}</AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>

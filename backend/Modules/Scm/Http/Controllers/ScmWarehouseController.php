@@ -25,9 +25,15 @@ class ScmWarehouseController extends Controller
 
     public function updateWarehouse(Request $request, ScmWarehouse $warehouse): JsonResponse
     {
-        $data = $this->warehouse->updateWarehouse(['id' => $warehouse->id, ...$request->all()]);
+        $data = $request->validate([
+            'name' => 'sometimes|string|max:191',
+            'address' => 'nullable|string',
+            'is_default' => 'nullable|boolean',
+            'is_active' => 'nullable|boolean',
+        ]);
+        $result = $this->warehouse->updateWarehouse(['id' => $warehouse->id, ...$data]);
 
-        return response()->json(['data' => $data]);
+        return response()->json(['data' => $result]);
     }
 
     public function destroyWarehouse(ScmWarehouse $warehouse): JsonResponse
@@ -66,9 +72,17 @@ class ScmWarehouseController extends Controller
 
     public function storeInbound(Request $request): JsonResponse
     {
-        $data = $this->warehouse->createDocument($request->all(), 'inbound', $request->user()?->id);
+        $data = $request->validate([
+            'warehouse_id' => 'required|exists:scm_warehouses,id',
+            'number' => 'nullable|string|max:50',
+            'document_date' => 'nullable|date',
+            'reference' => 'nullable|string|max:191',
+            'notes' => 'nullable|string',
+            'items' => 'nullable|array',
+        ]);
+        $result = $this->warehouse->createDocument($data, 'inbound', $request->user()?->id);
 
-        return response()->json(['data' => $data, 'message' => 'Inbound draft created'], 201);
+        return response()->json(['data' => $result, 'message' => 'Inbound draft created'], 201);
     }
 
     public function postInbound(Request $request): JsonResponse
@@ -93,9 +107,17 @@ class ScmWarehouseController extends Controller
 
     public function storeOutbound(Request $request): JsonResponse
     {
-        $data = $this->warehouse->createDocument($request->all(), 'outbound', $request->user()?->id);
+        $data = $request->validate([
+            'warehouse_id' => 'required|exists:scm_warehouses,id',
+            'number' => 'nullable|string|max:50',
+            'document_date' => 'nullable|date',
+            'reference' => 'nullable|string|max:191',
+            'notes' => 'nullable|string',
+            'items' => 'nullable|array',
+        ]);
+        $result = $this->warehouse->createDocument($data, 'outbound', $request->user()?->id);
 
-        return response()->json(['data' => $data, 'message' => 'Outbound draft created'], 201);
+        return response()->json(['data' => $result, 'message' => 'Outbound draft created'], 201);
     }
 
     public function postOutbound(Request $request): JsonResponse
@@ -120,16 +142,29 @@ class ScmWarehouseController extends Controller
 
     public function storeAudit(Request $request): JsonResponse
     {
-        $data = $this->warehouse->createAudit($request->all(), $request->user()?->id);
+        $data = $request->validate([
+            'warehouse_id' => 'required|exists:scm_warehouses,id',
+            'number' => 'nullable|string|max:50',
+            'document_date' => 'nullable|date',
+            'reference' => 'nullable|string|max:191',
+            'notes' => 'nullable|string',
+            'items' => 'nullable|array',
+        ]);
+        $result = $this->warehouse->createAudit($data, $request->user()?->id);
 
-        return response()->json(['data' => $data, 'message' => 'Audit draft created'], 201);
+        return response()->json(['data' => $result, 'message' => 'Audit draft created'], 201);
     }
 
     public function recordAudit(Request $request): JsonResponse
     {
-        $data = $this->warehouse->recordAuditItem($request->all());
+        $data = $request->validate([
+            'document_id' => 'required|exists:scm_warehouse_documents,id',
+            'product_id' => 'required|exists:acc_products,id',
+            'counted' => 'required|numeric|min:0',
+        ]);
+        $result = $this->warehouse->recordAuditItem($data);
 
-        return response()->json(['data' => $data]);
+        return response()->json(['data' => $result]);
     }
 
     public function completeAudit(Request $request): JsonResponse

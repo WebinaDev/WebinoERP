@@ -11,7 +11,8 @@ import apiClient from '@/lib/api-client';
 import { normalizeListPayload } from '@/lib/list-utils';
 
 export function FilesPage() {
-  const tNav = useTranslations();
+
+  const t = useTranslations();  const tNav = useTranslations();
   const { layoutProps, setSuccess, applyAxiosError } = useCrmFeedback();
   const [rows, setRows] = useState<Record<string, unknown>[]>([]);
   const fileRef = useRef<HTMLInputElement>(null);

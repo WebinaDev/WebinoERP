@@ -1,3 +1,4 @@
+import { getTranslations } from 'next-intl/server';
 import { apiServer } from '@/lib/public-api-server';
 
 export const revalidate = 60;
@@ -5,6 +6,8 @@ export const revalidate = 60;
 type TeamMember = { id: number; name: string; role?: string | null; bio?: string | null; photo_url?: string | null };
 
 export default async function TeamPage() {
+  const t = await getTranslations();
+
   let members: TeamMember[] = [];
   try {
     const res = await apiServer<{ data: TeamMember[] }>('/v1/public/team');
@@ -15,7 +18,7 @@ export default async function TeamPage() {
 
   return (
     <div className="container mx-auto px-4 py-12">
-      <h1 className="text-3xl font-bold">تیم ما</h1>
+      <h1 className="text-3xl font-bold">{t('auto._site__team_page.s_b725507d')}</h1>
       <div className="mt-8 grid gap-6 md:grid-cols-3">
         {members.map((m) => (
           <div key={m.id} className="rounded-xl border p-5">

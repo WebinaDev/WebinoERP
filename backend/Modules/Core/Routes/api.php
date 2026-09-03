@@ -45,12 +45,9 @@ Route::get('/manifest.json', [PwaManifestController::class, 'json']);
 
 Route::middleware('throttle:auth-public')->group(function () {
     Route::post('/auth/login', [AuthController::class, 'login']);
-    Route::post('/auth/otp/send', [AuthParityController::class, 'sendLoginOtp']);
-    Route::post('/auth/otp/verify', [AuthParityController::class, 'verifyLoginOtp']);
-    Route::post('/auth/password/set', [AuthParityController::class, 'setPassword']);
+    Route::post('/auth/otp/send', [AuthParityController::class, 'sendLoginOtp'])->middleware('throttle:otp-send');
+    Route::post('/auth/otp/verify', [AuthParityController::class, 'verifyLoginOtp'])->middleware('throttle:otp-verify');
     Route::post('/auth/auto-login', [AuthParityController::class, 'autoLogin']);
-    Route::post('/auth/email-otp/send', [AuthParityController::class, 'sendEmailOtp']);
-    Route::post('/auth/email-otp/verify', [AuthParityController::class, 'verifyEmailOtp']);
     Route::post('/auth/register', [AuthParityController::class, 'register']);
 });
 
@@ -59,6 +56,7 @@ Route::post('/auth/refresh', [AuthController::class, 'refresh'])->middleware('au
 Route::post('/auth/logout', [AuthController::class, 'logout'])->middleware('auth:sanctum');
 Route::get('/auth/user', [AuthController::class, 'user'])->middleware('auth:sanctum');
 Route::middleware('auth:sanctum')->group(function () {
+    Route::post('/auth/password/set', [AuthParityController::class, 'setPassword']);
     Route::get('/auth/2fa/status', [TwoFactorController::class, 'status']);
     Route::post('/auth/2fa/send', [TwoFactorController::class, 'send']);
     Route::post('/auth/2fa/verify', [TwoFactorController::class, 'verify']);

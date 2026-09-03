@@ -14,7 +14,8 @@ import { dashboardHref } from '@/lib/route-resolver';
 import { normalizeListPayload } from '@/lib/list-utils';
 
 export function ContractsPage() {
-  const tNav = useTranslations();
+
+  const t = useTranslations();  const tNav = useTranslations();
   const params = useParams();
   const locale = (params?.locale as string) || 'fa';
   const { layoutProps, setSuccess, applyAxiosError } = useCrmFeedback();

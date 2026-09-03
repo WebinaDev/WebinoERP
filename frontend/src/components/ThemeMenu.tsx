@@ -3,7 +3,7 @@
 import { useQueryClient } from '@tanstack/react-query'
 import { Check, Laptop, Moon, Sun } from 'lucide-react'
 import { useCallback, useMemo } from 'react'
-import { useLocale, useTranslations } from 'next-intl'
+import { useTranslations } from 'next-intl'
 import { useTheme } from 'next-themes'
 
 import { Button } from '@/components/ui/button'
@@ -15,6 +15,7 @@ import {
 } from '@/components/ui/dropdown-menu'
 import { apiFetch } from '@/lib/api'
 import { patchBootstrapQuery } from '@/lib/bootstrapQuery'
+import { useTextDirection } from '@/hooks/use-text-direction'
 
 const THEME_MENU_ITEMS = [
   { value: 'light' as const, labelKey: 'settings.themeLight', Icon: Sun },
@@ -24,11 +25,10 @@ const THEME_MENU_ITEMS = [
 
 export function ThemeMenu() {
   const t = useTranslations()
-  const locale = useLocale()
+  const dir = useTextDirection()
   const { theme, setTheme, resolvedTheme } = useTheme()
   const qc = useQueryClient()
   const themeValue = theme ?? 'system'
-  const dir = locale === 'fa' ? 'rtl' : 'ltr'
 
   const themeIcon = useMemo(() => {
     if (resolvedTheme === 'dark') return <Moon className="size-4" />

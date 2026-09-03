@@ -34,7 +34,7 @@ class SiteBuilderServiceProvider extends ServiceProvider
         });
 
         Route::prefix('api/v1/site-builder')
-            ->middleware(['api', 'auth:sanctum', 'module:site_builder', 'module.permission:site_builder', 'throttle:60,1'])
+            ->middleware(['api', 'auth:sanctum', 'module:site_builder', 'module.permission:site_builder,site-builder', 'throttle:60,1'])
             ->group(module_path($this->moduleName, 'Routes/api.php'));
     }
 

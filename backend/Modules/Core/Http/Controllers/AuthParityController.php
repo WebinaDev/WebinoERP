@@ -26,9 +26,10 @@ class AuthParityController extends Controller
         $code = (string) random_int(100000, 999999);
         Cache::put('otp_login:'.$data['mobile'], $code, now()->addMinutes(5));
 
+        // Never log the OTP itself — only a request fingerprint for support.
         Log::info('auth.otp.login.generated', [
-            'mobile' => $data['mobile'],
-            'code' => $code,
+            'mobile_hash' => hash('sha256', $data['mobile']),
+            'request_id' => substr(hash('sha256', $data['mobile'].'|'.now()->timestamp), 0, 12),
         ]);
 
         $smsSettings = IntegrationSetting::getJson('sms', 'settings', []);
@@ -45,8 +46,8 @@ class AuthParityController extends Controller
         } else {
             Log::channel('single')->info('sms.otp.login', [
                 'provider' => $provider,
-                'to' => $data['mobile'],
-                'message' => 'کد ورود شما: '.$code,
+                'mobile_hash' => hash('sha256', $data['mobile']),
+                // Code intentionally omitted from logs.
             ]);
         }
 
@@ -68,23 +69,37 @@ class AuthParityController extends Controller
             'code' => 'required|string|size:6',
         ]);
         $key = 'otp_login:'.$data['mobile'];
+        $attemptsKey = 'otp_login_attempts:'.$data['mobile'];
         $expected = Cache::get($key);
-        if (! $expected || $expected !== $data['code']) {
+
+        if (! is_string($expected) || ! hash_equals($expected, $data['code'])) {
+            $attempts = (int) Cache::increment($attemptsKey);
+            if ($attempts === 1) {
+                Cache::put($attemptsKey, 1, now()->addMinutes(10));
+            }
+            if ($attempts >= 5) {
+                Cache::forget($key);
+                Cache::forget($attemptsKey);
+            }
+
             return response()->json([
                 'data' => ['verified' => false, 'message' => 'Invalid code'],
             ], 422);
         }
         Cache::forget($key);
+        Cache::forget($attemptsKey);
 
         $user = User::query()->where('phone', $data['mobile'])->first();
         if (! $user) {
-            $user = User::query()->create([
-                'name' => 'User '.$data['mobile'],
-                'email' => 'u'.$data['mobile'].'@phone.local',
-                'phone' => $data['mobile'],
-                'password' => Hash::make(Str::random(32)),
-            ]);
-            $user->assignRole(RolesAndPermissionsSeeder::ROLE_CLIENT);
+            return response()->json([
+                'data' => ['verified' => false, 'message' => 'User not found'],
+            ], 404);
+        }
+
+        if ($user->is_active === false) {
+            return response()->json([
+                'data' => ['verified' => false, 'message' => 'User inactive'],
+            ], 403);
         }
 
         $tokenObj = $user->createToken('otp-login');
@@ -108,10 +123,16 @@ class AuthParityController extends Controller
     public function setPassword(Request $request): JsonResponse
     {
         $request->validate([
+            'current_password' => ['required', 'current_password'],
             'password' => 'required|string|min:8|confirmed',
         ]);
         $user = $request->user();
+        abort_unless($user, 401);
+
         $user->update(['password' => Hash::make($request->input('password'))]);
+
+        $currentId = $user->currentAccessToken()?->id;
+        $user->tokens()->when($currentId, fn ($q) => $q->where('id', '!=', $currentId))->delete();
 
         return response()->json(['data' => ['ok' => true]]);
     }
@@ -257,10 +278,22 @@ class AuthParityController extends Controller
             'code' => 'required|string|size:6',
         ]);
         $key = 'otp_email:'.$data['email'];
-        if (Cache::get($key) !== $data['code']) {
+        $attemptsKey = 'otp_email_attempts:'.$data['email'];
+        $expected = Cache::get($key);
+        if (! is_string($expected) || ! hash_equals($expected, $data['code'])) {
+            $attempts = (int) Cache::increment($attemptsKey);
+            if ($attempts === 1) {
+                Cache::put($attemptsKey, 1, now()->addMinutes(10));
+            }
+            if ($attempts >= 5) {
+                Cache::forget($key);
+                Cache::forget($attemptsKey);
+            }
+
             return response()->json(['data' => ['verified' => false]], 422);
         }
         Cache::forget($key);
+        Cache::forget($attemptsKey);
 
         return response()->json(['data' => ['verified' => true]]);
     }

@@ -42,7 +42,10 @@ Route::get('servers/{server}/proxy', [ServerController::class, 'proxy']);
 Route::post('servers/{server}/proxy/reload', [ServerController::class, 'proxyReload']);
 Route::get('servers/{server}/destinations', [ServerController::class, 'destinations']);
 Route::delete('servers/{server}/destinations/{destination}', [ServerController::class, 'destroyDestination']);
-Route::post('servers/{server}/terminal', [ServerController::class, 'terminalExec']);
+
+// Terminal is RCE-capable — system_manager only (not module.permission alone).
+Route::post('servers/{server}/terminal', [ServerController::class, 'terminalExec'])
+    ->middleware('role:system_manager');
 
 Route::apiResource('ssh-keys', SshKeyController::class)->only(['index', 'store', 'destroy']);
 Route::apiResource('tokens', ApiTokenController::class)->only(['index', 'store', 'destroy']);

@@ -34,9 +34,14 @@ class AuthController extends Controller
             ], 403);
         }
 
-        $user->update(['last_login_at' => now()]);
+        $user->forceFill(['last_login_at' => now()])->save();
+        \Illuminate\Support\Facades\Cache::forget('2fa:verified:'.$user->id);
 
-        $tokenObj = $user->createToken('spa');
+        $abilities = $user->hasRole(\Modules\Core\Database\Seeders\RolesAndPermissionsSeeder::ROLE_SYSTEM_MANAGER)
+            ? ['2fa-pending']
+            : ['*'];
+
+        $tokenObj = $user->createToken('spa', $abilities);
         $tokenObj->accessToken->forceFill([
             'device_name' => substr((string) $request->header('X-Device-Name', 'web'), 0, 120),
             'ip' => $request->ip(),
@@ -48,6 +53,7 @@ class AuthController extends Controller
         $response = response()->json([
             'data' => [
                 'user' => $user,
+                'requires_2fa' => in_array('2fa-pending', $abilities, true),
             ],
         ]);
 
@@ -154,7 +160,7 @@ class AuthController extends Controller
             $secure,
             true,
             false,
-            'lax'
+            'strict'
         );
     }
 
@@ -171,7 +177,7 @@ class AuthController extends Controller
             $secure,
             true,
             false,
-            'lax'
+            'strict'
         );
     }
 }

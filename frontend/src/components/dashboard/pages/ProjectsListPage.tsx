@@ -28,12 +28,14 @@ import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Pagination } from '@/components/ui/pagination';
 import Link from 'next/link';
-import { useLocale } from 'next-intl';
+import {useLocale, useTranslations} from 'next-intl';
 
 type ProjectRow = Record<string, unknown>;
 type Meta = { current_page?: number; last_page?: number; total?: number };
 
 export function ProjectsListPage() {
+  const t = useTranslations();
+
   const locale = useLocale();
   const [rows, setRows] = useState<ProjectRow[]>([]);
   const [meta, setMeta] = useState<Meta>({});
@@ -133,23 +135,23 @@ export function ProjectsListPage() {
     <div className="space-y-4">
       <div className="flex flex-wrap items-center justify-between gap-2">
         <div>
-          <h2 className="text-lg font-semibold">پروژه‌ها</h2>
-          <p className="text-xs text-muted-foreground">Grid + ویزارد دو مرحله‌ای ساخت پروژه</p>
+          <h2 className="text-lg font-semibold">{t('auto.ProjectsListPage.s_0165e84a')}</h2>
+          <p className="text-xs text-muted-foreground">{t('auto.ProjectsListPage.s_9593f7de')}</p>
         </div>
         <div className="flex flex-wrap gap-2">
-          <Input placeholder="جستجو نام…" className="w-48" value={search} onChange={(e) => setSearch(e.target.value)} />
+          <Input placeholder={t('auto.ProjectsListPage.s_f9d45081')} className="w-48" value={search} onChange={(e) => setSearch(e.target.value)} />
           <Button type="button" variant="secondary" size="sm" onClick={() => void load()}>
-            جستجو
+            {t('auto.ProjectsListPage.s_1fc039e0')}
           </Button>
           <Button type="button" size="sm" onClick={() => setWizardOpen(true)}>
-            پروژه جدید
+            {t('auto.ProjectsListPage.s_2b1929ed')}
           </Button>
         </div>
       </div>
       {error ? <p className="text-sm text-destructive">{error}</p> : null}
 
       {loading ? (
-        <p className="text-sm text-muted-foreground">در حال بارگذاری…</p>
+        <p className="text-sm text-muted-foreground">{t('auto.ProjectsListPage.s_51617f69')}</p>
       ) : (
         <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
           {rows.map((p) => (
@@ -162,14 +164,14 @@ export function ProjectsListPage() {
                 <span className="rounded-full bg-muted px-2 py-0.5 text-xs">{String(p.status ?? '—')}</span>
                 <Link href={`/dashboard/projects/${String(p.id)}`}>
                   <Button variant="outline" size="sm">
-                    جزئیات و تسک‌ها
+                    {t('auto.ProjectsListPage.s_69ee70d8')}
                   </Button>
                 </Link>
                 <Button type="button" variant="secondary" size="sm" onClick={() => openEdit(p)}>
-                  ویرایش
+                  {t('auto.ProjectsListPage.s_ac60ae7a')}
                 </Button>
                 <Button type="button" variant="destructive" size="sm" onClick={() => setDeleteId(Number(p.id))}>
-                  حذف
+                  {t('auto.ProjectsListPage.s_2d2bbdc2')}
                 </Button>
               </CardContent>
             </Card>
@@ -187,36 +189,36 @@ export function ProjectsListPage() {
       <Dialog open={wizardOpen} onOpenChange={setWizardOpen}>
         <DialogContent className="max-w-md">
           <DialogHeader>
-            <DialogTitle>پروژه جدید — مرحله {step} از ۲</DialogTitle>
+            <DialogTitle>{t('common.wizardProject', { step: step })}</DialogTitle>
           </DialogHeader>
           {step === 1 ? (
             <div className="space-y-3 py-2">
               <div>
-                <label className="text-sm">نام پروژه</label>
+                <label className="text-sm">{t('auto.ProjectsListPage.s_a2479994')}</label>
                 <Input value={form.name} onChange={(e) => setForm((f) => ({ ...f, name: e.target.value }))} />
               </div>
               <div>
-                <label className="text-sm">توضیحات</label>
+                <label className="text-sm">{t('auto.ProjectsListPage.s_55bbd4b9')}</label>
                 <Textarea value={form.description} onChange={(e) => setForm((f) => ({ ...f, description: e.target.value }))} />
               </div>
             </div>
           ) : (
             <div className="space-y-3 py-2">
               <div>
-                <label className="text-sm">وضعیت</label>
+                <label className="text-sm">{t('auto.ProjectsListPage.s_55518965')}</label>
                 <Select value={form.status} onValueChange={(v) => setForm((f) => ({ ...f, status: v }))}>
                   <SelectTrigger>
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="active">فعال</SelectItem>
-                    <SelectItem value="on_hold">متوقف</SelectItem>
-                    <SelectItem value="completed">تکمیل</SelectItem>
+                    <SelectItem value="active">{t('auto.ProjectsListPage.s_6f637966')}</SelectItem>
+                    <SelectItem value="on_hold">{t('auto.ProjectsListPage.s_bafc4458')}</SelectItem>
+                    <SelectItem value="completed">{t('auto.ProjectsListPage.s_cdd58561')}</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
               <div>
-                <label className="text-sm">شناسه حساب مشتری (اختیاری)</label>
+                <label className="text-sm">{t('auto.ProjectsListPage.s_13ba534c')}</label>
                 <Input
                   type="number"
                   value={form.customer_account_id}
@@ -229,16 +231,16 @@ export function ProjectsListPage() {
           <DialogFooter className="gap-2 sm:gap-0">
             {step === 2 ? (
               <Button type="button" variant="outline" onClick={() => setStep(1)}>
-                قبلی
+                {t('auto.ProjectsListPage.s_1a592f6b')}
               </Button>
             ) : null}
             {step === 1 ? (
               <Button type="button" onClick={() => setStep(2)} disabled={!form.name.trim()}>
-                بعدی
+                {t('auto.ProjectsListPage.s_54ee927e')}
               </Button>
             ) : (
               <Button type="button" onClick={() => void submitProject()}>
-                ذخیره
+                {t('auto.ProjectsListPage.s_08545fb6')}
               </Button>
             )}
           </DialogFooter>
@@ -248,32 +250,32 @@ export function ProjectsListPage() {
       <Dialog open={editOpen} onOpenChange={setEditOpen}>
         <DialogContent className="max-w-md">
           <DialogHeader>
-            <DialogTitle>ویرایش پروژه</DialogTitle>
+            <DialogTitle>{t('auto.ProjectsListPage.s_a837cfcb')}</DialogTitle>
           </DialogHeader>
           <div className="space-y-3 py-2">
             <div>
-              <label className="text-sm">نام</label>
+              <label className="text-sm">{t('auto.ProjectsListPage.s_45dd06ba')}</label>
               <Input value={form.name} onChange={(e) => setForm((f) => ({ ...f, name: e.target.value }))} />
             </div>
             <div>
-              <label className="text-sm">توضیحات</label>
+              <label className="text-sm">{t('auto.ProjectsListPage.s_55bbd4b9')}</label>
               <Textarea value={form.description} onChange={(e) => setForm((f) => ({ ...f, description: e.target.value }))} />
             </div>
             <div>
-              <label className="text-sm">وضعیت</label>
+              <label className="text-sm">{t('auto.ProjectsListPage.s_55518965')}</label>
               <Select value={form.status} onValueChange={(v) => setForm((f) => ({ ...f, status: v }))}>
                 <SelectTrigger>
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="active">فعال</SelectItem>
-                  <SelectItem value="on_hold">متوقف</SelectItem>
-                  <SelectItem value="completed">تکمیل</SelectItem>
+                  <SelectItem value="active">{t('auto.ProjectsListPage.s_6f637966')}</SelectItem>
+                  <SelectItem value="on_hold">{t('auto.ProjectsListPage.s_bafc4458')}</SelectItem>
+                  <SelectItem value="completed">{t('auto.ProjectsListPage.s_cdd58561')}</SelectItem>
                 </SelectContent>
               </Select>
             </div>
             <div>
-              <label className="text-sm">شناسه حساب مشتری</label>
+              <label className="text-sm">{t('auto.ProjectsListPage.s_bd067580')}</label>
               <Input
                 type="number"
                 value={form.customer_account_id}
@@ -283,7 +285,7 @@ export function ProjectsListPage() {
           </div>
           <DialogFooter>
             <Button type="button" onClick={() => void submitEdit()}>
-              ذخیره
+              {t('auto.ProjectsListPage.s_08545fb6')}
             </Button>
           </DialogFooter>
         </DialogContent>
@@ -292,12 +294,12 @@ export function ProjectsListPage() {
       <AlertDialog open={deleteId !== null} onOpenChange={(o) => !o && setDeleteId(null)}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>حذف پروژه؟</AlertDialogTitle>
-            <AlertDialogDescription>این عمل قابل بازگشت نیست.</AlertDialogDescription>
+            <AlertDialogTitle>{t('auto.ProjectsListPage.s_348933e3')}</AlertDialogTitle>
+            <AlertDialogDescription>{t('auto.ProjectsListPage.s_23c56c8e')}</AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel>انصراف</AlertDialogCancel>
-            <AlertDialogAction onClick={() => void confirmDelete()}>حذف</AlertDialogAction>
+            <AlertDialogCancel>{t('auto.ProjectsListPage.s_106dfb4e')}</AlertDialogCancel>
+            <AlertDialogAction onClick={() => void confirmDelete()}>{t('auto.ProjectsListPage.s_2d2bbdc2')}</AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>

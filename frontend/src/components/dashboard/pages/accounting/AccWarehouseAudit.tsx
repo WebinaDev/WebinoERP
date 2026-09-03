@@ -1,5 +1,7 @@
 'use client';
 
+import { useTranslations } from 'next-intl';
+
 import { useState, useCallback, useEffect } from 'react';
 import apiClient from '@/lib/api-client';
 import { getAxiosMessage } from '@/lib/api-helpers';
@@ -49,6 +51,8 @@ function parsePaginated<T>(axiosData: unknown) {
 }
 
 export default function AccWarehouseAudit() {
+  const t = useTranslations();
+
   const [warehouses, setWarehouses] = useState<Warehouse[]>([]);
   const [rows, setRows] = useState<WarehouseDoc[]>([]);
   const [page, setPage] = useState(1);
@@ -144,24 +148,24 @@ export default function AccWarehouseAudit() {
   return (
     <div className="space-y-4">
       <div className="flex flex-wrap items-center justify-between gap-2">
-        <h2 className="text-lg font-semibold">انبارگردانی</h2>
+        <h2 className="text-lg font-semibold">{t('auto.accounting_AccWarehouseAudit.s_dc7c2b32')}</h2>
         <Button size="sm" onClick={openCreate}>
-          <Plus className="ml-1 h-4 w-4" /> انبارگردانی جدید
+          <Plus className="ms-1 h-4 w-4" /> {t('auto.accounting_AccWarehouseAudit.s_f41179a8')}
         </Button>
       </div>
 
       {error && <p className="text-sm text-destructive">{error}</p>}
-      {loading && <p className="text-sm text-muted-foreground">در حال بارگذاری…</p>}
+      {loading && <p className="text-sm text-muted-foreground">{t('auto.accounting_AccWarehouseAudit.s_51617f69')}</p>}
 
       <div className="overflow-x-auto rounded-md border">
         <table className="w-full min-w-[500px] text-sm">
           <thead>
             <tr className="border-b bg-muted/40">
-              <th className="px-3 py-2 text-start font-medium">شناسه</th>
-              <th className="px-3 py-2 text-start font-medium">انبار</th>
-              <th className="px-3 py-2 text-start font-medium">وضعیت</th>
-              <th className="px-3 py-2 text-start font-medium">تاریخ ثبت</th>
-              <th className="px-3 py-2 text-start font-medium">عملیات</th>
+              <th className="px-3 py-2 text-start font-medium">{t('auto.accounting_AccWarehouseAudit.s_acc84041')}</th>
+              <th className="px-3 py-2 text-start font-medium">{t('auto.accounting_AccWarehouseAudit.s_3aeb36b5')}</th>
+              <th className="px-3 py-2 text-start font-medium">{t('auto.accounting_AccWarehouseAudit.s_55518965')}</th>
+              <th className="px-3 py-2 text-start font-medium">{t('auto.accounting_AccWarehouseAudit.s_6a67beb8')}</th>
+              <th className="px-3 py-2 text-start font-medium">{t('auto.accounting_AccWarehouseAudit.s_8d1cc546')}</th>
             </tr>
           </thead>
           <tbody>
@@ -171,14 +175,14 @@ export default function AccWarehouseAudit() {
                 <td className="px-3 py-1.5">{doc.warehouse?.name ?? '—'}</td>
                 <td className="px-3 py-1.5">
                   <Badge variant={doc.status === 'posted' ? 'default' : 'secondary'}>
-                    {doc.status === 'posted' ? 'تکمیل شده' : 'پیش‌نویس'}
+                    {doc.status === 'posted' ? t('auto.accounting_AccWarehouseAudit.s_47ddb105') : t('auto.accounting_AccWarehouseAudit.s_7d739ea1')}
                   </Badge>
                 </td>
                 <td className="px-3 py-1.5">{doc.created_at ?? '—'}</td>
                 <td className="px-3 py-1.5">
                   {doc.status === 'draft' && (
                     <Button variant="outline" size="sm" onClick={() => void handlePost(doc.id)}>
-                      تکمیل و ثبت
+                      {t('auto.accounting_AccWarehouseAudit.s_7f1b4518')}
                     </Button>
                   )}
                 </td>
@@ -187,7 +191,7 @@ export default function AccWarehouseAudit() {
             {!loading && rows.length === 0 && (
               <tr>
                 <td colSpan={5} className="px-3 py-6 text-center text-muted-foreground">
-                  سند انبارگردانی یافت نشد.
+                  {t('auto.accounting_AccWarehouseAudit.s_8445891d')}
                 </td>
               </tr>
             )}
@@ -201,21 +205,21 @@ export default function AccWarehouseAudit() {
         <DialogContent className="max-w-xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>
-              {step === 1 ? 'انبارگردانی — ثبت شمارش' : 'انبارگردانی — بررسی نهایی'}
+              {step === 1 ? t('auto.accounting_AccWarehouseAudit.s_e3be9b4d') : t('auto.accounting_AccWarehouseAudit.s_ecdd2846')}
             </DialogTitle>
             <DialogDescription>
               {step === 1
-                ? 'انبار و اقلام شمارش‌شده را وارد کنید.'
-                : 'اطلاعات واردشده را بررسی و در صورت صحت ثبت کنید.'}
+                ? t('auto.accounting_AccWarehouseAudit.s_45d62897')
+                : t('auto.accounting_AccWarehouseAudit.s_1a3a1e69')}
             </DialogDescription>
           </DialogHeader>
 
           {step === 1 && (
             <div className="space-y-3">
               <div className="space-y-1">
-                <label className="text-sm font-medium">انبار</label>
+                <label className="text-sm font-medium">{t('auto.accounting_AccWarehouseAudit.s_3aeb36b5')}</label>
                 <Select value={formWarehouseId} onValueChange={setFormWarehouseId}>
-                  <SelectTrigger><SelectValue placeholder="انتخاب انبار…" /></SelectTrigger>
+                  <SelectTrigger><SelectValue placeholder={t('auto.accounting_AccWarehouseAudit.s_d3c3902f')} /></SelectTrigger>
                   <SelectContent>
                     {warehouses.map((w) => (
                       <SelectItem key={w.id} value={String(w.id)}>{w.name}</SelectItem>
@@ -226,19 +230,19 @@ export default function AccWarehouseAudit() {
 
               <div className="space-y-2">
                 <div className="flex items-center justify-between">
-                  <label className="text-sm font-medium">اقلام شمارش‌شده</label>
+                  <label className="text-sm font-medium">{t('auto.accounting_AccWarehouseAudit.s_5247e28a')}</label>
                   <Button type="button" variant="outline" size="sm" onClick={addItem}>
-                    <Plus className="ml-1 h-3.5 w-3.5" /> سطر جدید
+                    <Plus className="ms-1 h-3.5 w-3.5" /> {t('auto.accounting_AccWarehouseAudit.s_ffd73187')}
                   </Button>
                 </div>
                 {formItems.map((item, idx) => (
                   <div key={idx} className="flex items-end gap-2 rounded-md border p-2">
                     <div className="flex-1 space-y-1">
-                      <label className="text-xs text-muted-foreground">شناسه کالا</label>
+                      <label className="text-xs text-muted-foreground">{t('auto.accounting_AccWarehouseAudit.s_9865e1d5')}</label>
                       <Input value={item.product_id} onChange={(e) => updateItem(idx, 'product_id', e.target.value)} />
                     </div>
                     <div className="w-28 space-y-1">
-                      <label className="text-xs text-muted-foreground">تعداد شمارش‌شده</label>
+                      <label className="text-xs text-muted-foreground">{t('auto.accounting_AccWarehouseAudit.s_4738e4a8')}</label>
                       <Input value={item.quantity} onChange={(e) => updateItem(idx, 'quantity', e.target.value)} />
                     </div>
                     <Button variant="ghost" size="sm" className="text-destructive" onClick={() => removeItem(idx)} disabled={formItems.length <= 1}>
@@ -253,17 +257,17 @@ export default function AccWarehouseAudit() {
           {step === 2 && (
             <div className="space-y-3">
               <div className="rounded-md border p-3 text-sm">
-                <p><span className="font-medium">انبار:</span> {selectedWarehouseName}</p>
-                <p className="mt-1"><span className="font-medium">تعداد اقلام:</span> {formItems.length}</p>
+                <p><span className="font-medium">{t('auto.accounting_AccWarehouseAudit.s_1bdb4802')}</span> {selectedWarehouseName}</p>
+                <p className="mt-1"><span className="font-medium">{t('auto.accounting_AccWarehouseAudit.s_e332a853')}</span> {formItems.length}</p>
               </div>
 
               <div className="overflow-x-auto rounded-md border">
                 <table className="w-full text-sm">
                   <thead>
                     <tr className="border-b bg-muted/40">
-                      <th className="px-3 py-2 text-start font-medium">ردیف</th>
-                      <th className="px-3 py-2 text-start font-medium">شناسه کالا</th>
-                      <th className="px-3 py-2 text-start font-medium">تعداد شمارش‌شده</th>
+                      <th className="px-3 py-2 text-start font-medium">{t('auto.accounting_AccWarehouseAudit.s_c9ce1c29')}</th>
+                      <th className="px-3 py-2 text-start font-medium">{t('auto.accounting_AccWarehouseAudit.s_9865e1d5')}</th>
+                      <th className="px-3 py-2 text-start font-medium">{t('auto.accounting_AccWarehouseAudit.s_4738e4a8')}</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -283,17 +287,17 @@ export default function AccWarehouseAudit() {
           <DialogFooter className="gap-2">
             {step === 2 && (
               <Button variant="outline" onClick={() => setStep(1)}>
-                بازگشت
+                {t('auto.accounting_AccWarehouseAudit.s_972515c4')}
               </Button>
             )}
             {step === 1 && (
               <Button onClick={() => setStep(2)} disabled={!formWarehouseId || formItems.every((it) => !it.product_id)}>
-                مرحله بعد
+                {t('auto.accounting_AccWarehouseAudit.s_751903bd')}
               </Button>
             )}
             {step === 2 && (
               <Button onClick={handleSubmit} disabled={saving}>
-                {saving ? 'در حال ذخیره…' : 'ثبت انبارگردانی'}
+                {saving ? t('auto.accounting_AccWarehouseAudit.s_4b7554d6') : t('auto.accounting_AccWarehouseAudit.s_5ebdadbd')}
               </Button>
             )}
           </DialogFooter>

@@ -1,5 +1,7 @@
 'use client';
 
+import { useTranslations } from 'next-intl';
+
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import {
   DndContext,
@@ -42,6 +44,7 @@ function DraggableTask({
   title: string;
   onDelete?: (taskId: number) => void;
 }) {
+  const t = useTranslations();
   const { attributes, listeners, setNodeRef, transform, isDragging } = useDraggable({ id: `task-${id}` });
   const style = transform
     ? {
@@ -69,9 +72,9 @@ function DraggableTask({
             onClick={(e) => {
               e.stopPropagation();
               onDelete(id);
-            }}
-          >
-            حذف
+            }}>
+          
+            {t('auto.TasksKanbanPage.s_2d2bbdc2')}
           </button>
         ) : null}
       </div>
@@ -80,6 +83,8 @@ function DraggableTask({
 }
 
 function ColumnDrop({ colId, children, name, color }: { colId: number; children: React.ReactNode; name: string; color?: string | null }) {
+  const t = useTranslations();
+
   const { setNodeRef, isOver } = useDroppable({ id: `col-${colId}` });
   return (
     <div
@@ -94,6 +99,8 @@ function ColumnDrop({ colId, children, name, color }: { colId: number; children:
 }
 
 export function TasksKanbanPage() {
+  const t = useTranslations();
+
   const [data, setData] = useState<KanbanData | null>(null);
   const [listRows, setListRows] = useState<Record<string, unknown>[]>([]);
   const [error, setError] = useState<string | null>(null);
@@ -222,7 +229,7 @@ export function TasksKanbanPage() {
   }
 
   async function deleteTask(taskId: number) {
-    if (!confirm('حذف این وظیفه؟')) return;
+    if (!confirm(t('auto.TasksKanbanPage.s_c0c85c20'))) return;
     setError(null);
     try {
       await apiClient.delete(`/v1/projects/tasks/${taskId}`);
@@ -254,14 +261,14 @@ export function TasksKanbanPage() {
     <div className="space-y-3">
       <Card>
         <CardHeader>
-          <CardTitle className="text-base mb-2">فیلترها</CardTitle>
+          <CardTitle className="text-base mb-2">{t('auto.TasksKanbanPage.s_d8691424')}</CardTitle>
           <div className="flex flex-wrap gap-2">
             <Select value={filterProject || '__all__'} onValueChange={(v) => setFilterProject(v === '__all__' ? '' : v)}>
               <SelectTrigger className="w-[160px]">
-                <SelectValue placeholder="پروژه" />
+                <SelectValue placeholder={t('auto.TasksKanbanPage.s_55da48c5')} />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="__all__">همه پروژه‌ها</SelectItem>
+                <SelectItem value="__all__">{t('auto.TasksKanbanPage.s_1d87b745')}</SelectItem>
                 {projectOpts.map((p) => (
                   <SelectItem key={p.id} value={String(p.id)}>{p.name}</SelectItem>
                 ))}
@@ -269,10 +276,10 @@ export function TasksKanbanPage() {
             </Select>
             <Select value={filterAssignee || '__all__'} onValueChange={(v) => setFilterAssignee(v === '__all__' ? '' : v)}>
               <SelectTrigger className="w-[160px]">
-                <SelectValue placeholder="مسئول" />
+                <SelectValue placeholder={t('auto.TasksKanbanPage.s_173f3982')} />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="__all__">همه کاربران</SelectItem>
+                <SelectItem value="__all__">{t('auto.TasksKanbanPage.s_b15e3c7c')}</SelectItem>
                 {userOpts.map((u) => (
                   <SelectItem key={u.id} value={String(u.id)}>{u.name}</SelectItem>
                 ))}
@@ -280,23 +287,23 @@ export function TasksKanbanPage() {
             </Select>
             <Select value={filterPriority || '__all__'} onValueChange={(v) => setFilterPriority(v === '__all__' ? '' : v)}>
               <SelectTrigger className="w-[140px]">
-                <SelectValue placeholder="اولویت" />
+                <SelectValue placeholder={t('auto.TasksKanbanPage.s_390db738')} />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="__all__">همه</SelectItem>
-                <SelectItem value="low">کم</SelectItem>
-                <SelectItem value="normal">عادی</SelectItem>
-                <SelectItem value="high">زیاد</SelectItem>
-                <SelectItem value="urgent">فوری</SelectItem>
+                <SelectItem value="__all__">{t('auto.TasksKanbanPage.s_bf742c5a')}</SelectItem>
+                <SelectItem value="low">{t('auto.TasksKanbanPage.s_5e68b373')}</SelectItem>
+                <SelectItem value="normal">{t('auto.TasksKanbanPage.s_1a959366')}</SelectItem>
+                <SelectItem value="high">{t('auto.TasksKanbanPage.s_c29858d4')}</SelectItem>
+                <SelectItem value="urgent">{t('auto.TasksKanbanPage.s_2c942301')}</SelectItem>
               </SelectContent>
             </Select>
-            <Input placeholder="برچسب" className="w-32" value={filterLabel} onChange={(e) => setFilterLabel(e.target.value)} />
+            <Input placeholder={t('auto.TasksKanbanPage.s_84f4cc5c')} className="w-32" value={filterLabel} onChange={(e) => setFilterLabel(e.target.value)} />
             <Button type="button" size="sm" variant="secondary" onClick={() => { void loadKanban(); void loadList(); }}>
-              اعمال
+              {t('auto.TasksKanbanPage.s_72513b9f')}
             </Button>
           </div>
           <p className="text-xs text-muted-foreground mt-2">
-            جمع وظایف: {stats.total} — per column:{' '}
+{t('common.tasksPerColumn', { count: stats.total })}{' '}
             {columns.map((c) => (
               <span key={c.id} className="ms-2">
                 {c.name}: {stats.byCol.get(c.id) ?? 0}
@@ -308,25 +315,25 @@ export function TasksKanbanPage() {
       <Tabs defaultValue="kanban">
         <TabsList>
           <TabsTrigger value="kanban">Kanban</TabsTrigger>
-          <TabsTrigger value="list">لیست</TabsTrigger>
+          <TabsTrigger value="list">{t('auto.TasksKanbanPage.s_11fe927c')}</TabsTrigger>
         </TabsList>
         <TabsContent value="kanban" className="space-y-3">
         <Card>
           <CardHeader className="flex flex-row items-center justify-between gap-2 space-y-0">
-            <CardTitle className="text-base">تابلو Kanban</CardTitle>
+            <CardTitle className="text-base">{t('auto.TasksKanbanPage.s_cf402635')}</CardTitle>
             <div className="flex gap-2">
-              <Input placeholder="افزودن سریع (ستون اول)" value={quickTitle} onChange={(e) => setQuickTitle(e.target.value)} className="w-56" />
+              <Input placeholder={t('auto.TasksKanbanPage.s_1b3a57d8')} value={quickTitle} onChange={(e) => setQuickTitle(e.target.value)} className="w-56" />
               <Button type="button" size="sm" variant="secondary" onClick={() => columns[0] && void quickAdd(columns[0].id)} disabled={!columns.length}>
-                افزودن
+                {t('auto.TasksKanbanPage.s_15f2d066')}
               </Button>
               <Button type="button" size="sm" variant="outline" onClick={() => void loadKanban()}>
-                بروزرسانی
+                {t('auto.TasksKanbanPage.s_182b1c89')}
               </Button>
             </div>
           </CardHeader>
           <CardContent>
             {error ? <p className="mb-2 text-sm text-destructive">{error}</p> : null}
-            {loading ? <p className="text-sm text-muted-foreground">در حال بارگذاری…</p> : null}
+            {loading ? <p className="text-sm text-muted-foreground">{t('auto.TasksKanbanPage.s_51617f69')}</p> : null}
             <DndContext sensors={sensors} collisionDetection={closestCorners} onDragEnd={onDragEnd}>
               <div className="flex gap-3 overflow-x-auto pb-2">
                 {columns.map((col) => (
@@ -348,19 +355,19 @@ export function TasksKanbanPage() {
         </TabsContent>
         <TabsContent value="list">
           <ResourceListCard
-            title="وظایف (لیست)"
+            title={t('auto.TasksKanbanPage.s_5a1f46f0')}
             description="GET /api/v1/projects/tasks"
             loading={false}
             error={null}
             rows={listRows}
             columns={[
-              { header: 'شناسه', cell: (r) => String(r.id ?? '—') },
-              { header: 'عنوان', cell: (r) => String(r.title ?? '—') },
-              { header: 'اولویت', cell: (r) => String(r.priority ?? '—') },
-              { header: 'وضعیت', cell: (r) => String(r.status ?? '—') },
-              { header: 'برچسب', cell: (r) => String(r.label ?? '—') },
+              { header: t('auto.TasksKanbanPage.s_acc84041'), cell: (r) => String(r.id ?? '—') },
+              { header: t('auto.TasksKanbanPage.s_1a9bdb20'), cell: (r) => String(r.title ?? '—') },
+              { header: t('auto.TasksKanbanPage.s_390db738'), cell: (r) => String(r.priority ?? '—') },
+              { header: t('auto.TasksKanbanPage.s_55518965'), cell: (r) => String(r.status ?? '—') },
+              { header: t('auto.TasksKanbanPage.s_84f4cc5c'), cell: (r) => String(r.label ?? '—') },
               {
-                header: 'مسئول',
+                header: t('auto.TasksKanbanPage.s_173f3982'),
                 cell: (r) => {
                   const uid = Number(r.assignee_id);
                   const u = userOpts.find((o) => o.id === uid);

@@ -1,5 +1,7 @@
 'use client';
 
+import { useTranslations } from 'next-intl';
+
 import { useState, useCallback, useEffect } from 'react';
 import apiClient from '@/lib/api-client';
 import { normalizeListPayload } from '@/lib/list-utils';
@@ -32,10 +34,10 @@ type CashAccount = {
   is_default: boolean;
 };
 
-const TYPE_LABELS: Record<string, string> = {
-  bank: 'بانکی',
-  cash: 'صندوق',
-  petty_cash: 'تنخواه',
+const TYPE_KEYS: Record<string, string> = {
+  bank: 'auto.accounting_AccCashAccounts.s_4e7ba293',
+  cash: 'auto.accounting_AccCashAccounts.s_c9138ef5',
+  petty_cash: 'auto.accounting_AccCashAccounts.s_e101ceae',
 };
 
 const BLANK = {
@@ -50,6 +52,8 @@ const BLANK = {
 };
 
 export default function AccCashAccounts() {
+  const t = useTranslations();
+
   const [rows, setRows] = useState<CashAccount[]>([]);
   const [page, setPage] = useState(1);
   const [pageCount, setPageCount] = useState(1);
@@ -139,24 +143,24 @@ export default function AccCashAccounts() {
   return (
     <div className="space-y-4">
       <div className="flex flex-wrap items-center justify-end gap-2">
-        <Button size="sm" onClick={openCreate}>+ ایجاد</Button>
+        <Button size="sm" onClick={openCreate}>{t('auto.accounting_AccCashAccounts.s_e34fff4e')}</Button>
       </div>
 
       {error && <p className="text-sm text-destructive">{error}</p>}
-      {loading && <p className="text-sm text-muted-foreground">در حال بارگذاری…</p>}
+      {loading && <p className="text-sm text-muted-foreground">{t('auto.accounting_AccCashAccounts.s_51617f69')}</p>}
 
       <div className="overflow-x-auto rounded-md border">
         <table className="w-full text-sm">
           <thead>
             <tr className="border-b bg-muted/40">
-              <th className="px-3 py-2 text-start font-medium">شناسه</th>
-              <th className="px-3 py-2 text-start font-medium">نام</th>
-              <th className="px-3 py-2 text-start font-medium">نوع</th>
-              <th className="px-3 py-2 text-start font-medium">نام بانک</th>
-              <th className="px-3 py-2 text-start font-medium">شماره حساب</th>
-              <th className="px-3 py-2 text-start font-medium">فعال</th>
-              <th className="px-3 py-2 text-start font-medium">پیش‌فرض</th>
-              <th className="px-3 py-2 text-start font-medium">عملیات</th>
+              <th className="px-3 py-2 text-start font-medium">{t('auto.accounting_AccCashAccounts.s_acc84041')}</th>
+              <th className="px-3 py-2 text-start font-medium">{t('auto.accounting_AccCashAccounts.s_45dd06ba')}</th>
+              <th className="px-3 py-2 text-start font-medium">{t('auto.accounting_AccCashAccounts.s_d2e35a1f')}</th>
+              <th className="px-3 py-2 text-start font-medium">{t('auto.accounting_AccCashAccounts.s_0481ee91')}</th>
+              <th className="px-3 py-2 text-start font-medium">{t('auto.accounting_AccCashAccounts.s_7d8e887c')}</th>
+              <th className="px-3 py-2 text-start font-medium">{t('auto.accounting_AccCashAccounts.s_6f637966')}</th>
+              <th className="px-3 py-2 text-start font-medium">{t('auto.accounting_AccCashAccounts.s_523e2d7c')}</th>
+              <th className="px-3 py-2 text-start font-medium">{t('auto.accounting_AccCashAccounts.s_8d1cc546')}</th>
             </tr>
           </thead>
           <tbody>
@@ -164,23 +168,23 @@ export default function AccCashAccounts() {
               <tr key={row.id} className="border-b">
                 <td className="px-3 py-2">{row.id}</td>
                 <td className="px-3 py-2">{row.name}</td>
-                <td className="px-3 py-2">{TYPE_LABELS[row.type] ?? row.type}</td>
+                <td className="px-3 py-2">{TYPE_KEYS[row.type] ? t(TYPE_KEYS[row.type]) : row.type}</td>
                 <td className="px-3 py-2">{row.bank_name}</td>
                 <td className="px-3 py-2">{row.account_number}</td>
                 <td className="px-3 py-2">
-                  <Badge variant={row.is_active ? 'default' : 'outline'}>{row.is_active ? 'بله' : 'خیر'}</Badge>
+                  <Badge variant={row.is_active ? 'default' : 'outline'}>{row.is_active ? t('auto.accounting_AccCashAccounts.s_afcb410b') : t('auto.accounting_AccCashAccounts.s_a7b8355e')}</Badge>
                 </td>
                 <td className="px-3 py-2">
-                  <Badge variant={row.is_default ? 'default' : 'outline'}>{row.is_default ? 'بله' : 'خیر'}</Badge>
+                  <Badge variant={row.is_default ? 'default' : 'outline'}>{row.is_default ? t('auto.accounting_AccCashAccounts.s_afcb410b') : t('auto.accounting_AccCashAccounts.s_a7b8355e')}</Badge>
                 </td>
-                <td className="px-3 py-2 space-x-1 rtl:space-x-reverse">
-                  <Button variant="ghost" size="sm" onClick={() => openEdit(row)}>ویرایش</Button>
-                  <Button variant="ghost" size="sm" className="text-destructive" onClick={() => setDeleteTarget(row)}>حذف</Button>
+                <td className="px-3 py-2 gap-x-1 rtl:gap-x-reverse">
+                  <Button variant="ghost" size="sm" onClick={() => openEdit(row)}>{t('auto.accounting_AccCashAccounts.s_ac60ae7a')}</Button>
+                  <Button variant="ghost" size="sm" className="text-destructive" onClick={() => setDeleteTarget(row)}>{t('auto.accounting_AccCashAccounts.s_2d2bbdc2')}</Button>
                 </td>
               </tr>
             ))}
             {!loading && rows.length === 0 && (
-              <tr><td colSpan={8} className="px-3 py-4 text-center text-muted-foreground">موردی یافت نشد</td></tr>
+              <tr><td colSpan={8} className="px-3 py-4 text-center text-muted-foreground">{t('auto.accounting_AccCashAccounts.s_35e7797d')}</td></tr>
             )}
           </tbody>
         </table>
@@ -193,56 +197,56 @@ export default function AccCashAccounts() {
       <Dialog open={formOpen} onOpenChange={setFormOpen}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>{editing ? 'ویرایش حساب' : 'ایجاد حساب'}</DialogTitle>
-            <DialogDescription>{editing ? 'اطلاعات حساب را ویرایش کنید' : 'اطلاعات حساب جدید را وارد کنید'}</DialogDescription>
+            <DialogTitle>{editing ? t('auto.accounting_AccCashAccounts.s_28453caf') : t('auto.accounting_AccCashAccounts.s_8d844b40')}</DialogTitle>
+            <DialogDescription>{editing ? t('auto.accounting_AccCashAccounts.s_4b293939') : t('auto.accounting_AccCashAccounts.s_c6b15b0d')}</DialogDescription>
           </DialogHeader>
           <div className="grid gap-3">
             <div>
-              <label className="mb-1 block text-sm font-medium">نام</label>
+              <label className="mb-1 block text-sm font-medium">{t('auto.accounting_AccCashAccounts.s_45dd06ba')}</label>
               <Input value={form.name} onChange={e => setForm({ ...form, name: e.target.value })} />
             </div>
             <div>
-              <label className="mb-1 block text-sm font-medium">نوع</label>
+              <label className="mb-1 block text-sm font-medium">{t('auto.accounting_AccCashAccounts.s_d2e35a1f')}</label>
               <Select value={form.type} onValueChange={v => setForm({ ...form, type: v })}>
                 <SelectTrigger><SelectValue /></SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="bank">بانکی</SelectItem>
-                  <SelectItem value="cash">صندوق</SelectItem>
-                  <SelectItem value="petty_cash">تنخواه</SelectItem>
+                  <SelectItem value="bank">{t('auto.accounting_AccCashAccounts.s_4e7ba293')}</SelectItem>
+                  <SelectItem value="cash">{t('auto.accounting_AccCashAccounts.s_c9138ef5')}</SelectItem>
+                  <SelectItem value="petty_cash">{t('auto.accounting_AccCashAccounts.s_e101ceae')}</SelectItem>
                 </SelectContent>
               </Select>
             </div>
             <div>
-              <label className="mb-1 block text-sm font-medium">نام بانک</label>
+              <label className="mb-1 block text-sm font-medium">{t('auto.accounting_AccCashAccounts.s_0481ee91')}</label>
               <Input value={form.bank_name} onChange={e => setForm({ ...form, bank_name: e.target.value })} />
             </div>
             <div>
-              <label className="mb-1 block text-sm font-medium">شماره حساب</label>
+              <label className="mb-1 block text-sm font-medium">{t('auto.accounting_AccCashAccounts.s_7d8e887c')}</label>
               <Input value={form.account_number} onChange={e => setForm({ ...form, account_number: e.target.value })} />
             </div>
             <div>
-              <label className="mb-1 block text-sm font-medium">شبا</label>
+              <label className="mb-1 block text-sm font-medium">{t('auto.accounting_AccCashAccounts.s_3253f77a')}</label>
               <Input value={form.sheba} onChange={e => setForm({ ...form, sheba: e.target.value })} />
             </div>
             <div>
-              <label className="mb-1 block text-sm font-medium">شماره کارت</label>
+              <label className="mb-1 block text-sm font-medium">{t('auto.accounting_AccCashAccounts.s_a6d8db07')}</label>
               <Input value={form.card_number} onChange={e => setForm({ ...form, card_number: e.target.value })} />
             </div>
             <div className="flex gap-4">
               <label className="flex items-center gap-2 text-sm">
                 <input type="checkbox" checked={form.is_active} onChange={e => setForm({ ...form, is_active: e.target.checked })} className="h-4 w-4 rounded border-input" />
-                فعال
+                {t('auto.accounting_AccCashAccounts.s_6f637966')}
               </label>
               <label className="flex items-center gap-2 text-sm">
                 <input type="checkbox" checked={form.is_default} onChange={e => setForm({ ...form, is_default: e.target.checked })} className="h-4 w-4 rounded border-input" />
-                پیش‌فرض
+                {t('auto.accounting_AccCashAccounts.s_523e2d7c')}
               </label>
             </div>
             {formError && <p className="text-sm text-destructive">{formError}</p>}
           </div>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setFormOpen(false)}>انصراف</Button>
-            <Button onClick={save} disabled={saving}>{saving ? 'در حال ذخیره…' : 'ذخیره'}</Button>
+            <Button variant="outline" onClick={() => setFormOpen(false)}>{t('auto.accounting_AccCashAccounts.s_106dfb4e')}</Button>
+            <Button onClick={save} disabled={saving}>{saving ? t('auto.accounting_AccCashAccounts.s_4b7554d6') : t('auto.accounting_AccCashAccounts.s_08545fb6')}</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
@@ -250,12 +254,12 @@ export default function AccCashAccounts() {
       <AlertDialog open={!!deleteTarget} onOpenChange={open => { if (!open) setDeleteTarget(null); }}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>حذف حساب</AlertDialogTitle>
-            <AlertDialogDescription>آیا از حذف «{deleteTarget?.name}» اطمینان دارید؟</AlertDialogDescription>
+            <AlertDialogTitle>{t('auto.accounting_AccCashAccounts.s_a00b2048')}</AlertDialogTitle>
+            <AlertDialogDescription>{t('common.confirmDeleteNamed', { name: deleteTarget?.name })}</AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel>انصراف</AlertDialogCancel>
-            <AlertDialogAction onClick={handleDelete}>حذف</AlertDialogAction>
+            <AlertDialogCancel>{t('auto.accounting_AccCashAccounts.s_106dfb4e')}</AlertDialogCancel>
+            <AlertDialogAction onClick={handleDelete}>{t('auto.accounting_AccCashAccounts.s_2d2bbdc2')}</AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>

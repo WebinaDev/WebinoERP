@@ -1,5 +1,7 @@
 'use client';
 
+import { useTranslations } from 'next-intl';
+
 import { useCallback, useEffect, useState } from 'react';
 import apiClient from '@/lib/api-client';
 import { getAxiosMessage, unwrapData } from '@/lib/api-helpers';
@@ -23,6 +25,8 @@ type Meta = { current_page?: number; last_page?: number; total?: number };
 type IdName = { id: number; name?: string; email?: string };
 
 export function InvoicesListPage() {
+  const t = useTranslations();
+
   const [rows, setRows] = useState<Row[]>([]);
   const [meta, setMeta] = useState<Meta>({});
   const [page, setPage] = useState(1);
@@ -162,19 +166,19 @@ export function InvoicesListPage() {
   return (
     <Card>
       <CardHeader className="flex flex-row flex-wrap items-center justify-between gap-2">
-        <CardTitle>پیش‌فاکتورها (CRM)</CardTitle>
+        <CardTitle>{t('auto.InvoicesListPage.s_d7f5e7a3')}</CardTitle>
         <Button type="button" size="sm" onClick={() => openCreate()}>
-          فاکتور جدید
+          {t('auto.InvoicesListPage.s_1cdb64af')}
         </Button>
       </CardHeader>
       <CardContent className="space-y-4">
         <div className="flex flex-wrap gap-2">
           <Select value={filterStatus || 'all'} onValueChange={(v) => setFilterStatus(v === 'all' ? '' : v)}>
             <SelectTrigger className="w-[140px]">
-              <SelectValue placeholder="وضعیت" />
+              <SelectValue placeholder={t('auto.InvoicesListPage.s_55518965')} />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="all">همه</SelectItem>
+              <SelectItem value="all">{t('auto.InvoicesListPage.s_bf742c5a')}</SelectItem>
               <SelectItem value="draft">draft</SelectItem>
               <SelectItem value="sent">sent</SelectItem>
               <SelectItem value="paid">paid</SelectItem>
@@ -183,10 +187,10 @@ export function InvoicesListPage() {
           </Select>
           <Select value={customerUserId || 'all'} onValueChange={(v) => setCustomerUserId(v === 'all' ? '' : v)}>
             <SelectTrigger className="w-[200px]">
-              <SelectValue placeholder="مشتری (کاربر)" />
+              <SelectValue placeholder={t('auto.InvoicesListPage.s_3fda58af')} />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="all">همه مشتریان</SelectItem>
+              <SelectItem value="all">{t('auto.InvoicesListPage.s_f3a8f70d')}</SelectItem>
               {users.map((u) => (
                 <SelectItem key={u.id} value={String(u.id)}>
                   {u.name ?? u.email ?? u.id}
@@ -196,10 +200,10 @@ export function InvoicesListPage() {
           </Select>
           <Select value={projectId || 'all'} onValueChange={(v) => setProjectId(v === 'all' ? '' : v)}>
             <SelectTrigger className="w-[200px]">
-              <SelectValue placeholder="پروژه" />
+              <SelectValue placeholder={t('auto.InvoicesListPage.s_55da48c5')} />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="all">همه پروژه‌ها</SelectItem>
+              <SelectItem value="all">{t('auto.InvoicesListPage.s_1d87b745')}</SelectItem>
               {projects.map((p) => (
                 <SelectItem key={p.id} value={String(p.id)}>
                   {String(p.name ?? p.id)}
@@ -208,7 +212,7 @@ export function InvoicesListPage() {
             </SelectContent>
           </Select>
           <Button type="button" size="sm" variant="secondary" onClick={() => void load()}>
-            اعمال فیلتر
+            {t('auto.InvoicesListPage.s_e0cd6db1')}
           </Button>
         </div>
 
@@ -218,9 +222,9 @@ export function InvoicesListPage() {
             <thead>
               <tr className="border-b bg-muted/40">
                 <th className="px-2 py-2 text-start">#</th>
-                <th className="px-2 py-2 text-start">شماره</th>
-                <th className="px-2 py-2 text-start">وضعیت</th>
-                <th className="px-2 py-2 text-start">جمع</th>
+                <th className="px-2 py-2 text-start">{t('auto.InvoicesListPage.s_987584a3')}</th>
+                <th className="px-2 py-2 text-start">{t('auto.InvoicesListPage.s_55518965')}</th>
+                <th className="px-2 py-2 text-start">{t('auto.InvoicesListPage.s_b1f76dbb')}</th>
                 <th className="px-2 py-2 text-start"> </th>
               </tr>
             </thead>
@@ -242,7 +246,7 @@ export function InvoicesListPage() {
                     <td className="px-2 py-2">{String(r.total ?? '—')}</td>
                     <td className="px-2 py-2">
                       <Button type="button" variant="ghost" size="sm" onClick={() => openEdit(r)}>
-                        ویرایش
+                        {t('auto.InvoicesListPage.s_ac60ae7a')}
                       </Button>
                     </td>
                   </tr>
@@ -265,13 +269,13 @@ export function InvoicesListPage() {
       <Dialog open={open} onOpenChange={setOpen}>
         <DialogContent className="max-w-lg">
           <DialogHeader>
-            <DialogTitle>{editingId ? 'ویرایش فاکتور' : 'فاکتور با اقلام'}</DialogTitle>
+            <DialogTitle>{editingId ? t('auto.InvoicesListPage.s_ce6168ea') : t('auto.InvoicesListPage.s_4bef3f5a')}</DialogTitle>
           </DialogHeader>
           <div className="space-y-2">
             <div className="grid gap-2 sm:grid-cols-2">
               <Select value={formStatus} onValueChange={setFormStatus}>
                 <SelectTrigger>
-                  <SelectValue placeholder="وضعیت" />
+                  <SelectValue placeholder={t('auto.InvoicesListPage.s_55518965')} />
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="draft">draft</SelectItem>
@@ -282,7 +286,7 @@ export function InvoicesListPage() {
               </Select>
               <Select value={formCustomer || '__none'} onValueChange={(v) => setFormCustomer(v === '__none' ? '' : v)}>
                 <SelectTrigger>
-                  <SelectValue placeholder="مشتری (کاربر)" />
+                  <SelectValue placeholder={t('auto.InvoicesListPage.s_3fda58af')} />
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="__none">—</SelectItem>
@@ -296,7 +300,7 @@ export function InvoicesListPage() {
             </div>
             <Select value={formProject || '__none'} onValueChange={(v) => setFormProject(v === '__none' ? '' : v)}>
               <SelectTrigger>
-                <SelectValue placeholder="پروژه" />
+                <SelectValue placeholder={t('auto.InvoicesListPage.s_55da48c5')} />
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="__none">—</SelectItem>
@@ -310,7 +314,7 @@ export function InvoicesListPage() {
             {items.map((it, idx) => (
               <div key={idx} className="grid grid-cols-3 gap-2">
                 <Input
-                  placeholder="شرح"
+                  placeholder={t('auto.InvoicesListPage.s_b11813ac')}
                   value={it.desc}
                   onChange={(e) => {
                     const n = [...items];
@@ -319,7 +323,7 @@ export function InvoicesListPage() {
                   }}
                 />
                 <Input
-                  placeholder="تعداد"
+                  placeholder={t('auto.InvoicesListPage.s_687f8df3')}
                   value={it.qty}
                   onChange={(e) => {
                     const n = [...items];
@@ -328,7 +332,7 @@ export function InvoicesListPage() {
                   }}
                 />
                 <Input
-                  placeholder="قیمت"
+                  placeholder={t('auto.InvoicesListPage.s_3b7bf19f')}
                   value={it.price}
                   onChange={(e) => {
                     const n = [...items];
@@ -338,16 +342,14 @@ export function InvoicesListPage() {
                 />
               </div>
             ))}
-            <Button type="button" variant="outline" size="sm" onClick={() => setItems([...items, { desc: '', qty: '1', price: '0' }])}>
-              + ردیف
-            </Button>
-            <Input placeholder="یادداشت" value={notes} onChange={(e) => setNotes(e.target.value)} />
-            <p className="font-medium">جمع: {total}</p>
+            <Button type="button" variant="outline" size="sm" onClick={() => setItems([...items, { desc: '', qty: '1', price: '0' }])}>{t('auto.InvoicesListPage.s_883fd254')}</Button>
+            <Input placeholder={t('auto.InvoicesListPage.s_2c09d41c')} value={notes} onChange={(e) => setNotes(e.target.value)} />
+            <p className="font-medium">{t('common.totalLabel', { total: total })}</p>
             {formErr ? <p className="text-sm text-destructive">{formErr}</p> : null}
           </div>
           <DialogFooter>
             <Button type="button" onClick={() => void save()}>
-              ذخیره
+              {t('auto.InvoicesListPage.s_08545fb6')}
             </Button>
           </DialogFooter>
         </DialogContent>

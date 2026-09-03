@@ -1,5 +1,7 @@
 'use client';
 
+import { useTranslations } from 'next-intl';
+
 import { useCallback, useEffect, useState } from 'react';
 import apiClient from '@/lib/api-client';
 import { getAxiosMessage } from '@/lib/api-helpers';
@@ -24,6 +26,8 @@ type Row = Record<string, unknown>;
 type Meta = { current_page?: number; last_page?: number; total?: number };
 
 export function TicketsListPage() {
+  const t = useTranslations();
+
   const [rows, setRows] = useState<Row[]>([]);
   const [meta, setMeta] = useState<Meta>({});
   const [page, setPage] = useState(1);
@@ -146,9 +150,9 @@ export function TicketsListPage() {
     <div className="space-y-4">
       <Card>
         <CardHeader className="flex flex-row flex-wrap items-center justify-between gap-2 space-y-0">
-          <CardTitle className="text-base">تیکت‌ها</CardTitle>
+          <CardTitle className="text-base">{t('auto.TicketsListPage.s_6a9b440c')}</CardTitle>
           <Button type="button" size="sm" onClick={() => setNewOpen(true)}>
-            تیکت جدید
+            {t('auto.TicketsListPage.s_468d34cd')}
           </Button>
         </CardHeader>
         <CardContent className="space-y-4">
@@ -156,10 +160,10 @@ export function TicketsListPage() {
           <div className="flex flex-wrap gap-2">
             <Select value={filterStatus || 'all'} onValueChange={(v) => setFilterStatus(v === 'all' ? '' : v)}>
               <SelectTrigger className="w-[140px]">
-                <SelectValue placeholder="وضعیت" />
+                <SelectValue placeholder={t('auto.TicketsListPage.s_55518965')} />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="all">همه</SelectItem>
+                <SelectItem value="all">{t('auto.TicketsListPage.s_bf742c5a')}</SelectItem>
                 <SelectItem value="open">open</SelectItem>
                 <SelectItem value="pending">pending</SelectItem>
                 <SelectItem value="closed">closed</SelectItem>
@@ -167,24 +171,24 @@ export function TicketsListPage() {
             </Select>
             <Select value={filterDept || 'all'} onValueChange={(v) => setFilterDept(v === 'all' ? '' : v)}>
               <SelectTrigger className="w-[160px]">
-                <SelectValue placeholder="دپارتمان" />
+                <SelectValue placeholder={t('auto.TicketsListPage.s_910f57b7')} />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="all">همه دپارتمان‌ها</SelectItem>
+                <SelectItem value="all">{t('auto.TicketsListPage.s_1367be4a')}</SelectItem>
                 <SelectItem value="sales">sales</SelectItem>
                 <SelectItem value="support">support</SelectItem>
                 <SelectItem value="technical">technical</SelectItem>
               </SelectContent>
             </Select>
             <Input
-              placeholder="جستجو موضوع/متن…"
+              placeholder={t('auto.TicketsListPage.s_a49a9093')}
               className="max-w-xs"
               value={search}
               onChange={(e) => setSearch(e.target.value)}
               onKeyDown={(e) => e.key === 'Enter' && void load()}
             />
             <Button type="button" size="sm" variant="secondary" onClick={() => void load()}>
-              اعمال
+              {t('auto.TicketsListPage.s_72513b9f')}
             </Button>
           </div>
           <div className="overflow-x-auto rounded-md border">
@@ -192,17 +196,17 @@ export function TicketsListPage() {
               <thead>
                 <tr className="border-b bg-muted/40 text-muted-foreground">
                   <th className="px-3 py-2 text-start">#</th>
-                  <th className="px-3 py-2 text-start">موضوع</th>
-                  <th className="px-3 py-2 text-start">وضعیت</th>
-                  <th className="px-3 py-2 text-start">اولویت</th>
-                  <th className="px-3 py-2 text-start">عملیات</th>
+                  <th className="px-3 py-2 text-start">{t('auto.TicketsListPage.s_3931f207')}</th>
+                  <th className="px-3 py-2 text-start">{t('auto.TicketsListPage.s_55518965')}</th>
+                  <th className="px-3 py-2 text-start">{t('auto.TicketsListPage.s_390db738')}</th>
+                  <th className="px-3 py-2 text-start">{t('auto.TicketsListPage.s_8d1cc546')}</th>
                 </tr>
               </thead>
               <tbody>
                 {loading ? (
                   <tr>
                     <td colSpan={5} className="px-3 py-8 text-center text-muted-foreground">
-                      بارگذاری…
+                      {t('auto.TicketsListPage.s_fbac73dc')}
                     </td>
                   </tr>
                 ) : (
@@ -216,7 +220,7 @@ export function TicketsListPage() {
                       <td className="px-3 py-2">{String(r.priority ?? '—')}</td>
                       <td className="px-3 py-2">
                         <Button type="button" variant="outline" size="sm" onClick={() => void openDetail(r)}>
-                          مشاهده
+                          {t('auto.TicketsListPage.s_661938f4')}
                         </Button>
                       </td>
                     </tr>
@@ -233,20 +237,20 @@ export function TicketsListPage() {
         <DialogContent>
           <form onSubmit={submitTicket}>
             <DialogHeader>
-              <DialogTitle>تیکت جدید</DialogTitle>
+              <DialogTitle>{t('auto.TicketsListPage.s_468d34cd')}</DialogTitle>
             </DialogHeader>
             <div className="space-y-3 py-2">
               <div>
-                <label className="text-sm">موضوع</label>
+                <label className="text-sm">{t('auto.TicketsListPage.s_3931f207')}</label>
                 <Input value={subject} onChange={(e) => setSubject(e.target.value)} required />
               </div>
               <div>
-                <label className="text-sm">متن</label>
+                <label className="text-sm">{t('auto.TicketsListPage.s_40b31215')}</label>
                 <Textarea value={body} onChange={(e) => setBody(e.target.value)} rows={4} />
               </div>
             </div>
             <DialogFooter>
-              <Button type="submit">ارسال</Button>
+              <Button type="submit">{t('auto.TicketsListPage.s_f26c55d9')}</Button>
             </DialogFooter>
           </form>
         </DialogContent>
@@ -282,7 +286,7 @@ export function TicketsListPage() {
                   onValueChange={(v) => void updateTicket({ department: v === '__none' ? '' : v })}
                 >
                   <SelectTrigger className="w-[160px]">
-                    <SelectValue placeholder="دپارتمان" />
+                    <SelectValue placeholder={t('auto.TicketsListPage.s_910f57b7')} />
                   </SelectTrigger>
                   <SelectContent>
                     <SelectItem value="__none">—</SelectItem>
@@ -292,11 +296,11 @@ export function TicketsListPage() {
                   </SelectContent>
                 </Select>
                 <Button type="button" variant="secondary" size="sm" onClick={() => void convertTask()}>
-                  تبدیل به تسک
+                  {t('auto.TicketsListPage.s_5cb6d3a1')}
                 </Button>
               </div>
               <div className="space-y-2 border-t pt-3">
-                <p className="font-medium">پاسخ‌ها</p>
+                <p className="font-medium">{t('auto.TicketsListPage.s_4ae35036')}</p>
                 {replies.map((rep) => (
                   <div key={String(rep.id)} className="rounded-md bg-muted/50 p-2 text-xs">
                     <p className="text-muted-foreground">{String(rep.created_at ?? '')}</p>
@@ -307,9 +311,9 @@ export function TicketsListPage() {
                   </div>
                 ))}
               </div>
-              <Textarea placeholder="پاسخ شما…" value={replyBody} onChange={(e) => setReplyBody(e.target.value)} rows={3} />
+              <Textarea placeholder={t('auto.TicketsListPage.s_32664da7')} value={replyBody} onChange={(e) => setReplyBody(e.target.value)} rows={3} />
               <Button type="button" onClick={() => void submitReply()}>
-                ارسال پاسخ
+                {t('auto.TicketsListPage.s_e3b8b71d')}
               </Button>
             </div>
           ) : null}

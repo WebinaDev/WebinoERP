@@ -2,6 +2,8 @@
 
 namespace App\Providers;
 
+use App\Models\User;
+use App\Observers\UserObserver;
 use Dedoc\Scramble\Scramble;
 use Dedoc\Scramble\Support\Generator\OpenApi;
 use Dedoc\Scramble\Support\Generator\Operation;
@@ -48,6 +50,20 @@ class AppServiceProvider extends ServiceProvider
         RateLimiter::for('auth-public', function (Request $request) {
             return Limit::perMinute(20)->by($request->ip());
         });
+
+        RateLimiter::for('otp-send', function (Request $request) {
+            $mobile = (string) $request->input('mobile', $request->input('email', ''));
+
+            return Limit::perMinute(3)->by('otp-send:'.($mobile !== '' ? $mobile : $request->ip()));
+        });
+
+        RateLimiter::for('otp-verify', function (Request $request) {
+            $mobile = (string) $request->input('mobile', $request->input('email', ''));
+
+            return Limit::perMinute(5)->by('otp-verify:'.($mobile !== '' ? $mobile : '').'|'.$request->ip());
+        });
+
+        User::observe(UserObserver::class);
 
         if (env('SENTRY_LARAVEL_DSN') && class_exists(\Sentry\SentrySdk::class)) {
             \Sentry\init(['dsn' => env('SENTRY_LARAVEL_DSN'), 'environment' => config('app.env')]);

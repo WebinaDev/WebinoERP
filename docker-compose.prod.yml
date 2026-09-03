@@ -1,13 +1,17 @@
 # Production overlay:
 #   docker compose -f docker-compose.yml -f docker-compose.prod.yml up -d --build
-# Only `web` remains published.
+# install.sh always applies this overlay. Only `web` remains published.
 
 services:
   backend:
     environment:
       APP_ENV: production
       APP_DEBUG: "false"
+      SESSION_SECURE_COOKIE: "${SESSION_SECURE_COOKIE:-true}"
       QUEUE_CONNECTION: redis
+      REDIS_PASSWORD: ${REDIS_PASSWORD:-}
+      REVERB_APP_SECRET: ${REVERB_APP_SECRET:-}
+      REVERB_APP_KEY: ${REVERB_APP_KEY:-}
 
   frontend:
     environment:
@@ -18,11 +22,21 @@ services:
       APP_ENV: production
       APP_DEBUG: "false"
       QUEUE_CONNECTION: redis
+      REDIS_PASSWORD: ${REDIS_PASSWORD:-}
 
   scheduler:
     environment:
       APP_ENV: production
       APP_DEBUG: "false"
+      REDIS_PASSWORD: ${REDIS_PASSWORD:-}
+
+  ws:
+    environment:
+      APP_ENV: production
+      APP_DEBUG: "false"
+      REDIS_PASSWORD: ${REDIS_PASSWORD:-}
+      REVERB_APP_SECRET: ${REVERB_APP_SECRET:-}
+      REVERB_APP_KEY: ${REVERB_APP_KEY:-}
 
   web:
     ports:

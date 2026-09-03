@@ -58,8 +58,26 @@ class WebinocrmGitWebhookController extends Controller
     {
         $data = $request->validate([
             'module_slug' => ['required', 'string', 'max:64', 'regex:/^[a-z0-9_]+$/'],
-            'repo_url' => ['required', 'string', 'max:2048'],
+            'repo_url' => ['required', 'url', 'max:2048', 'starts_with:https://'],
         ]);
+
+        $host = strtolower((string) parse_url($data['repo_url'], PHP_URL_HOST));
+        $allowed = array_filter(array_map('trim', explode(',', (string) env(
+            'GIT_WEBHOOK_ALLOWED_HOSTS',
+            'github.com,gitlab.com,bitbucket.org,gitea.com,codeberg.org'
+        ))));
+        $allowed = array_map('strtolower', $allowed);
+        $hostOk = in_array($host, $allowed, true)
+            || collect($allowed)->contains(fn (string $a) => str_ends_with($host, '.'.$a));
+
+        if ($host === '' || ! $hostOk) {
+            return response()->json(['message' => 'Repository host not allowed'], 422);
+        }
+
+        // Reject userinfo / odd schemes that survived url validation.
+        if (parse_url($data['repo_url'], PHP_URL_USER) || parse_url($data['repo_url'], PHP_URL_PASS)) {
+            return response()->json(['message' => 'Repository URL must not include credentials'], 422);
+        }
 
         ModuleGitSource::query()->updateOrCreate(
             ['slug' => $data['module_slug']],

@@ -1,0 +1,16 @@
+{
+  "extends": ["next/core-web-vitals"],
+  "rules": {
+    "no-restricted-syntax": [
+      "warn",
+      {
+        "selector": "Literal[value=/(?:^|\\s)(?:ml|mr|pl|pr)-[0-9]/]",
+        "message": "Use logical Tailwind classes (ms-/me-/ps-/pe-) instead of physical ml-/mr-/pl-/pr-."
+      },
+      {
+        "selector": "Literal[value=/(?:^|\\s)text-(?:left|right)(?:\\s|$)/]",
+        "message": "Use text-start/text-end instead of text-left/text-right."
+      }
+    ]
+  }
+}

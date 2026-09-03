@@ -1,3 +1,4 @@
+import { getTranslations } from 'next-intl/server';
 import { resolveServerLocale } from '@/lib/server-translations';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
@@ -19,6 +20,8 @@ type HomeData = {
 };
 
 export default async function SiteHomePage({ params }: { params?: Promise<Record<string, string>> }) {
+  const t = await getTranslations();
+
   const locale = await resolveServerLocale();
 
   let home: HomeData['data'] | null = null;
@@ -29,18 +32,18 @@ export default async function SiteHomePage({ params }: { params?: Promise<Record
     home = null;
   }
 
-  const name = home?.site?.name ?? 'وبینا';
+  const name = home?.site?.name ?? t('auto.remaining.s_b5d4c8e9');
 
   return (
     <div>
       <HomeBlocks locale={locale} data={home} />
       <section className="container mx-auto px-4 py-16 text-center">
-        <h2 className="text-2xl font-semibold">آماده همکاری هستید؟</h2>
+        <h2 className="text-2xl font-semibold">{t('auto.app__site__page.s_9d9c5687')}</h2>
         <p className="text-muted-foreground mx-auto mt-2 max-w-lg text-sm">
-          تیم {name} آماده پاسخگویی به سوالات شماست.
+          {t('common.teamReadyPeriod', { name })}
         </p>
         <Button asChild className="mt-6 bg-[#0066FF] hover:bg-[#0052cc]">
-          <Link href={siteHref(undefined, 'consultation')}>درخواست مشاوره</Link>
+          <Link href={siteHref(undefined, 'consultation')}>{t('auto.app__site__page.s_9ae4aff1')}</Link>
         </Button>
       </section>
     </div>

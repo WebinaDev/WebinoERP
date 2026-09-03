@@ -1,3 +1,4 @@
+import { getTranslations } from 'next-intl/server';
 import { apiServer } from '@/lib/public-api-server';
 
 export const revalidate = 60;
@@ -5,6 +6,8 @@ export const revalidate = 60;
 type BlogPost = { title: string; body?: string | null; published_at?: string };
 
 export default async function BlogPostPage({ params }: { params: Promise<{ slug: string }> }) {
+  const t = await getTranslations();
+
   const { slug } = await params;
 
   let post: BlogPost | null = null;
@@ -13,7 +16,7 @@ export default async function BlogPostPage({ params }: { params: Promise<{ slug:
     post = res.data;
   } catch { /* empty */ }
 
-  if (!post) return <div className="container mx-auto px-4 py-12">مطلب یافت نشد.</div>;
+  if (!post) return <div className="container mx-auto px-4 py-12">{t('auto.blog__slug__page.s_7ccc3cc0')}</div>;
 
   return (
     <article className="container mx-auto max-w-3xl px-4 py-12">

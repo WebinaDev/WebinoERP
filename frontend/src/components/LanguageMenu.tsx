@@ -11,7 +11,7 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
-import { htmlDir, normalizeUiLocale } from '@/lib/locale';
+import { normalizeUiLocale } from '@/lib/locale';
 
 const LANGS = [
   { code: 'fa' as const, labelKey: 'settings.langFa', flag: '🇮🇷' },
@@ -25,10 +25,9 @@ export function LanguageMenu() {
   const current = LANGS.find((l) => l.code === locale) ?? LANGS[0];
 
   function select(nextLocale: 'fa' | 'en') {
+    // Cookie is the only source of truth; useLocaleSync updates lang/dir after refresh.
     document.cookie = `NEXT_LOCALE=${nextLocale};path=/;max-age=31536000`;
     localStorage.setItem('locale', nextLocale);
-    document.documentElement.lang = nextLocale;
-    document.documentElement.dir = htmlDir(nextLocale);
     void normalizeUiLocale(nextLocale);
     router.refresh();
   }

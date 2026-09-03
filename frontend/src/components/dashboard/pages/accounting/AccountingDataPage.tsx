@@ -1,5 +1,7 @@
 'use client';
 
+import { useTranslations } from 'next-intl';
+
 import { useMemo, type ReactNode } from 'react';
 import { usePathname } from 'next/navigation';
 import { normalizeListPayload } from '@/lib/list-utils';
@@ -15,6 +17,8 @@ type Props = {
 };
 
 export function AccountingDataPage({ title, apiPath, description }: Props) {
+  const t = useTranslations();
+
   const pathname = usePathname();
   const locale = pathname?.match(/^\/(fa|en)/)?.[1] ?? 'fa';
   const { data, error, loading, reload } = useAccountingGet(apiPath);
@@ -53,17 +57,15 @@ export function AccountingDataPage({ title, apiPath, description }: Props) {
             GET {apiPath}
           </p>
           <p className="text-xs text-muted-foreground">
-            <a className="underline" href={`/dashboard/accounting`}>
-              ← داشبورد حسابداری
-            </a>
+            <a className="underline" href={`/dashboard/accounting`}>{t('auto.accounting_AccountingDataPage.s_3f300be4')}</a>
           </p>
         </div>
         <Button type="button" variant="outline" size="sm" onClick={() => void reload()} disabled={loading}>
-          بروزرسانی
+          {t('auto.accounting_AccountingDataPage.s_182b1c89')}
         </Button>
       </div>
       {error ? <p className="text-sm text-destructive">{error}</p> : null}
-      {loading ? <p className="text-sm text-muted-foreground">در حال بارگذاری…</p> : null}
+      {loading ? <p className="text-sm text-muted-foreground">{t('auto.accounting_AccountingDataPage.s_51617f69')}</p> : null}
 
       {cards && !loading ? (
         <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
@@ -108,7 +110,7 @@ export function AccountingDataPage({ title, apiPath, description }: Props) {
       {!loading && !error && !rows?.length && !cards && raw !== null && raw !== undefined ? (
         <Card>
           <CardHeader>
-            <CardTitle className="text-base">داده خام</CardTitle>
+            <CardTitle className="text-base">{t('auto.accounting_AccountingDataPage.s_7eaed62e')}</CardTitle>
           </CardHeader>
           <CardContent>
             <pre className="max-h-[420px] overflow-auto rounded-md bg-muted p-3 text-xs" dir="ltr">

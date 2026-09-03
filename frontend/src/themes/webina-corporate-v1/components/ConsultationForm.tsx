@@ -1,5 +1,6 @@
 'use client';
 
+import { useTranslations } from 'next-intl';
 import { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -15,7 +16,11 @@ type FormProps = {
   submitLabel?: string;
 };
 
-export function ConsultationForm({ source, title = 'درخواست مشاوره', submitLabel = 'ارسال درخواست' }: FormProps) {
+export function ConsultationForm({ source, title, submitLabel }: FormProps) {
+  const t = useTranslations();
+  const resolvedTitle = title ?? t('auto.themes_webina_corporate_v1_ConsultationForm.s_9ae4aff1');
+  const resolvedSubmit =
+    submitLabel ?? t('auto.themes_webina_corporate_v1_ConsultationForm.s_fb836859');
   const [pending, setPending] = useState(false);
 
   async function onSubmit(e: React.FormEvent<HTMLFormElement>) {
@@ -32,15 +37,15 @@ export function ConsultationForm({ source, title = 'درخواست مشاوره'
           phone: fd.get('phone'),
           company: fd.get('company'),
           message: fd.get('message'),
-          subject: title,
+          subject: resolvedTitle,
           source,
         }),
       });
-      if (!res.ok) throw new Error('خطا در ارسال');
-      toast.success('درخواست شما ثبت شد. به زودی با شما تماس می‌گیریم.');
+      if (!res.ok) throw new Error(t('auto.themes_webina_corporate_v1_ConsultationForm.s_38719c26'));
+      toast.success(t('auto.themes_webina_corporate_v1_ConsultationForm.s_edd88a15'));
       e.currentTarget.reset();
     } catch {
-      toast.error('ارسال ناموفق بود. لطفاً دوباره تلاش کنید.');
+      toast.error(t('auto.themes_webina_corporate_v1_ConsultationForm.s_b1505eb0'));
     } finally {
       setPending(false);
     }
@@ -48,38 +53,52 @@ export function ConsultationForm({ source, title = 'درخواست مشاوره'
 
   return (
     <form onSubmit={onSubmit} className="mx-auto max-w-lg space-y-4 rounded-xl border p-6">
-      <h2 className="text-xl font-semibold">{title}</h2>
+      <h2 className="text-xl font-semibold">{resolvedTitle}</h2>
       <div className="space-y-2">
-        <Label htmlFor="name">نام</Label>
+        <Label htmlFor="name">{t('auto.themes_webina_corporate_v1_ConsultationForm.s_45dd06ba')}</Label>
         <Input id="name" name="name" required />
       </div>
       <div className="space-y-2">
-        <Label htmlFor="email">ایمیل</Label>
+        <Label htmlFor="email">{t('auto.themes_webina_corporate_v1_ConsultationForm.s_f1ad423d')}</Label>
         <Input id="email" name="email" type="email" required />
       </div>
       <div className="space-y-2">
-        <Label htmlFor="phone">تلفن</Label>
+        <Label htmlFor="phone">{t('auto.themes_webina_corporate_v1_ConsultationForm.s_ddeae4dd')}</Label>
         <Input id="phone" name="phone" />
       </div>
       <div className="space-y-2">
-        <Label htmlFor="company">شرکت</Label>
+        <Label htmlFor="company">{t('auto.themes_webina_corporate_v1_ConsultationForm.s_bb7fa7e8')}</Label>
         <Input id="company" name="company" />
       </div>
       <div className="space-y-2">
-        <Label htmlFor="message">پیام</Label>
+        <Label htmlFor="message">{t('auto.themes_webina_corporate_v1_ConsultationForm.s_8cd47c67')}</Label>
         <Textarea id="message" name="message" rows={4} />
       </div>
       <Button type="submit" disabled={pending} className="w-full bg-[#0066FF] hover:bg-[#0052cc]">
-        {pending ? 'در حال ارسال…' : submitLabel}
+        {pending ? t('auto.themes_webina_corporate_v1_ConsultationForm.s_775273e4') : resolvedSubmit}
       </Button>
     </form>
   );
 }
 
 export function ProposalForm() {
-  return <ConsultationForm source="proposal" title="درخواست پروپوزال" submitLabel="درخواست پروپوزال" />;
+  const t = useTranslations();
+  return (
+    <ConsultationForm
+      source="proposal"
+      title={t('auto.themes_webina_corporate_v1_ConsultationForm.s_7e02e335')}
+      submitLabel={t('auto.themes_webina_corporate_v1_ConsultationForm.s_7e02e335')}
+    />
+  );
 }
 
 export function ContactForm() {
-  return <ConsultationForm source="contact" title="تماس با ما" submitLabel="ارسال پیام" />;
+  const t = useTranslations();
+  return (
+    <ConsultationForm
+      source="contact"
+      title={t('auto.themes_webina_corporate_v1_ConsultationForm.s_a4a1bacc')}
+      submitLabel={t('auto.themes_webina_corporate_v1_ConsultationForm.s_a2c91b74')}
+    />
+  );
 }

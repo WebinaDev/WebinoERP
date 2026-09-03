@@ -33,7 +33,33 @@ class TelegramIntegrationController extends Controller
 
     public function webhook(Request $request): JsonResponse
     {
-        Log::channel('single')->info('telegram.webhook', $request->all());
+        $secret = (string) config('integrations.telegram.webhook_secret', env('TELEGRAM_WEBHOOK_SECRET', ''));
+        if ($secret === '') {
+            return response()->json(['message' => 'Webhook secret not configured'], 503);
+        }
+
+        $raw = $request->getContent();
+        $sigHeader = (string) ($request->header('X-Telegram-Bot-Api-Secret-Token')
+            ?: $request->header('X-Webhook-Secret')
+            ?: $request->header('X-Webino-Signature')
+            ?: '');
+        if (str_starts_with($sigHeader, 'sha256=')) {
+            $sigHeader = substr($sigHeader, 7);
+        }
+
+        $validPlain = $sigHeader !== '' && hash_equals($secret, $sigHeader);
+        $expectedHmac = hash_hmac('sha256', $raw, $secret);
+        $validHmac = $sigHeader !== '' && hash_equals($expectedHmac, $sigHeader);
+
+        if (! $validPlain && ! $validHmac) {
+            return response()->json(['message' => 'Invalid signature'], 401);
+        }
+
+        $payload = json_decode($raw, true);
+        Log::channel('single')->info('telegram.webhook', [
+            'keys' => is_array($payload) ? array_keys($payload) : [],
+            'bytes' => strlen($raw),
+        ]);
 
         return response()->json(['ok' => true]);
     }

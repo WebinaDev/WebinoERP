@@ -1,5 +1,7 @@
 'use client';
 
+import { useTranslations } from 'next-intl';
+
 import { useEffect, useState } from 'react';
 import apiClient from '@/lib/api-client';
 import { unwrapData, getAxiosMessage } from '@/lib/api-helpers';
@@ -27,6 +29,8 @@ type LedgerData = {
 };
 
 export default function AccLedger() {
+  const t = useTranslations();
+
   const [accounts, setAccounts] = useState<Account[]>([]);
   const [accountId, setAccountId] = useState('');
   const [from, setFrom] = useState<string | null>(null);
@@ -64,14 +68,14 @@ export default function AccLedger() {
 
   return (
     <div className="space-y-6">
-      <h2 className="text-lg font-semibold">دفتر کل / معین</h2>
+      <h2 className="text-lg font-semibold">{t('auto.accounting_AccLedger.s_8b0100b7')}</h2>
 
       <div className="flex flex-wrap items-end gap-3">
         <div className="w-56">
-          <label className="mb-1 block text-sm font-medium">حساب</label>
+          <label className="mb-1 block text-sm font-medium">{t('auto.accounting_AccLedger.s_fdadd003')}</label>
           <Select value={accountId} onValueChange={setAccountId}>
             <SelectTrigger>
-              <SelectValue placeholder="انتخاب حساب" />
+              <SelectValue placeholder={t('auto.accounting_AccLedger.s_d37d351d')} />
             </SelectTrigger>
             <SelectContent>
               {accounts.map((a) => (
@@ -83,15 +87,15 @@ export default function AccLedger() {
           </Select>
         </div>
         <div className="w-44">
-          <label className="mb-1 block text-sm font-medium">از تاریخ</label>
+          <label className="mb-1 block text-sm font-medium">{t('auto.accounting_AccLedger.s_46e7250c')}</label>
           <LocaleDatePicker value={from} onChange={setFrom} />
         </div>
         <div className="w-44">
-          <label className="mb-1 block text-sm font-medium">تا تاریخ</label>
+          <label className="mb-1 block text-sm font-medium">{t('auto.accounting_AccLedger.s_1669071d')}</label>
           <LocaleDatePicker value={to} onChange={setTo} />
         </div>
         <Button onClick={() => void load()} disabled={!accountId || loading}>
-          {loading ? 'در حال بارگذاری…' : 'نمایش'}
+          {loading ? t('auto.accounting_AccLedger.s_51617f69') : t('auto.accounting_AccLedger.s_5b4caa8a')}
         </Button>
       </div>
 
@@ -102,14 +106,14 @@ export default function AccLedger() {
           <table className="w-full min-w-[800px] text-sm">
             <thead>
               <tr className="border-b bg-muted/40">
-                <th className="px-2 py-2 text-start font-medium">شماره سند</th>
-                <th className="px-2 py-2 text-start font-medium">ردیف</th>
-                <th className="px-2 py-2 text-start font-medium">تاریخ</th>
-                <th className="px-2 py-2 text-start font-medium">حساب</th>
-                <th className="px-2 py-2 text-end font-medium">بدهکار</th>
-                <th className="px-2 py-2 text-end font-medium">بستانکار</th>
-                <th className="px-2 py-2 text-end font-medium">مانده</th>
-                <th className="px-2 py-2 text-start font-medium">شرح</th>
+                <th className="px-2 py-2 text-start font-medium">{t('auto.accounting_AccLedger.s_2a97e3c5')}</th>
+                <th className="px-2 py-2 text-start font-medium">{t('auto.accounting_AccLedger.s_c9ce1c29')}</th>
+                <th className="px-2 py-2 text-start font-medium">{t('auto.accounting_AccLedger.s_217c8491')}</th>
+                <th className="px-2 py-2 text-start font-medium">{t('auto.accounting_AccLedger.s_fdadd003')}</th>
+                <th className="px-2 py-2 text-end font-medium">{t('auto.accounting_AccLedger.s_7146b67c')}</th>
+                <th className="px-2 py-2 text-end font-medium">{t('auto.accounting_AccLedger.s_15f88fc8')}</th>
+                <th className="px-2 py-2 text-end font-medium">{t('auto.accounting_AccLedger.s_64f59511')}</th>
+                <th className="px-2 py-2 text-start font-medium">{t('auto.accounting_AccLedger.s_b11813ac')}</th>
               </tr>
             </thead>
             <tbody>
@@ -132,7 +136,7 @@ export default function AccLedger() {
                 </tr>
               ))}
               <tr className="bg-muted/40 font-medium">
-                <td colSpan={4} className="px-2 py-2 text-start">جمع</td>
+                <td colSpan={4} className="px-2 py-2 text-start">{t('auto.accounting_AccLedger.s_b1f76dbb')}</td>
                 <td className="px-2 py-2 text-end tabular-nums">
                   {Number(data.totals.debit).toLocaleString()}
                 </td>
@@ -150,7 +154,7 @@ export default function AccLedger() {
       )}
 
       {!loading && !error && !data && (
-        <p className="text-sm text-muted-foreground">حساب مورد نظر را انتخاب و نمایش دهید</p>
+        <p className="text-sm text-muted-foreground">{t('auto.accounting_AccLedger.s_59566367')}</p>
       )}
     </div>
   );

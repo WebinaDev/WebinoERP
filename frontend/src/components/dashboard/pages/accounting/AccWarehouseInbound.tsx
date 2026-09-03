@@ -1,5 +1,7 @@
 'use client';
 
+import { useTranslations } from 'next-intl';
+
 import { Fragment, useState, useCallback, useEffect } from 'react';
 import apiClient from '@/lib/api-client';
 import { getAxiosMessage } from '@/lib/api-helpers';
@@ -52,6 +54,8 @@ function parsePaginated<T>(axiosData: unknown) {
 }
 
 export default function AccWarehouseInbound() {
+  const t = useTranslations();
+
   const [warehouses, setWarehouses] = useState<Warehouse[]>([]);
   const [filterStatus, setFilterStatus] = useState<'all' | 'draft' | 'posted'>('all');
   const [filterWarehouseId, setFilterWarehouseId] = useState('all');
@@ -152,29 +156,29 @@ export default function AccWarehouseInbound() {
   return (
     <div className="space-y-4">
       <div className="flex flex-wrap items-center justify-between gap-2">
-        <h2 className="text-lg font-semibold">ورود کالا به انبار</h2>
+        <h2 className="text-lg font-semibold">{t('auto.accounting_AccWarehouseInbound.s_b266288a')}</h2>
         <Button size="sm" onClick={openCreate}>
-          <Plus className="ml-1 h-4 w-4" /> سند جدید
+          <Plus className="ms-1 h-4 w-4" /> {t('auto.accounting_AccWarehouseInbound.s_6e20659f')}
         </Button>
       </div>
 
       <div className="flex flex-wrap gap-3">
         <Select value={filterStatus} onValueChange={(v) => setFilterStatus(v as 'all' | 'draft' | 'posted')}>
           <SelectTrigger className="w-40">
-            <SelectValue placeholder="وضعیت" />
+            <SelectValue placeholder={t('auto.accounting_AccWarehouseInbound.s_55518965')} />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value="all">همه وضعیت‌ها</SelectItem>
-            <SelectItem value="draft">پیش‌نویس</SelectItem>
-            <SelectItem value="posted">ثبت شده</SelectItem>
+            <SelectItem value="all">{t('auto.accounting_AccWarehouseInbound.s_7552ab35')}</SelectItem>
+            <SelectItem value="draft">{t('auto.accounting_AccWarehouseInbound.s_7d739ea1')}</SelectItem>
+            <SelectItem value="posted">{t('auto.accounting_AccWarehouseInbound.s_1223f269')}</SelectItem>
           </SelectContent>
         </Select>
         <Select value={filterWarehouseId} onValueChange={setFilterWarehouseId}>
           <SelectTrigger className="w-56">
-            <SelectValue placeholder="انبار" />
+            <SelectValue placeholder={t('auto.accounting_AccWarehouseInbound.s_3aeb36b5')} />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value="all">همه انبارها</SelectItem>
+            <SelectItem value="all">{t('auto.accounting_AccWarehouseInbound.s_0a7f24b0')}</SelectItem>
             {warehouses.map((w) => (
               <SelectItem key={w.id} value={String(w.id)}>{w.name}</SelectItem>
             ))}
@@ -183,18 +187,18 @@ export default function AccWarehouseInbound() {
       </div>
 
       {error && <p className="text-sm text-destructive">{error}</p>}
-      {loading && <p className="text-sm text-muted-foreground">در حال بارگذاری…</p>}
+      {loading && <p className="text-sm text-muted-foreground">{t('auto.accounting_AccWarehouseInbound.s_51617f69')}</p>}
 
       <div className="overflow-x-auto rounded-md border">
         <table className="w-full min-w-[600px] text-sm">
           <thead>
             <tr className="border-b bg-muted/40">
-              <th className="px-3 py-2 text-start font-medium">شناسه</th>
-              <th className="px-3 py-2 text-start font-medium">انبار</th>
-              <th className="px-3 py-2 text-start font-medium">یادداشت</th>
-              <th className="px-3 py-2 text-start font-medium">وضعیت</th>
-              <th className="px-3 py-2 text-start font-medium">تاریخ ثبت</th>
-              <th className="px-3 py-2 text-start font-medium">عملیات</th>
+              <th className="px-3 py-2 text-start font-medium">{t('auto.accounting_AccWarehouseInbound.s_acc84041')}</th>
+              <th className="px-3 py-2 text-start font-medium">{t('auto.accounting_AccWarehouseInbound.s_3aeb36b5')}</th>
+              <th className="px-3 py-2 text-start font-medium">{t('auto.accounting_AccWarehouseInbound.s_2c09d41c')}</th>
+              <th className="px-3 py-2 text-start font-medium">{t('auto.accounting_AccWarehouseInbound.s_55518965')}</th>
+              <th className="px-3 py-2 text-start font-medium">{t('auto.accounting_AccWarehouseInbound.s_6a67beb8')}</th>
+              <th className="px-3 py-2 text-start font-medium">{t('auto.accounting_AccWarehouseInbound.s_8d1cc546')}</th>
             </tr>
           </thead>
           <tbody>
@@ -206,7 +210,7 @@ export default function AccWarehouseInbound() {
                   <td className="px-3 py-1.5 max-w-[200px] truncate">{doc.notes ?? '—'}</td>
                   <td className="px-3 py-1.5">
                     <Badge variant={doc.status === 'posted' ? 'default' : 'secondary'}>
-                      {doc.status === 'posted' ? 'ثبت شده' : 'پیش‌نویس'}
+                      {doc.status === 'posted' ? t('auto.accounting_AccWarehouseInbound.s_1223f269') : t('auto.accounting_AccWarehouseInbound.s_7d739ea1')}
                     </Badge>
                   </td>
                   <td className="px-3 py-1.5">{doc.created_at ?? '—'}</td>
@@ -214,7 +218,7 @@ export default function AccWarehouseInbound() {
                     <div className="flex gap-1">
                       {doc.status === 'draft' && (
                         <Button variant="outline" size="sm" onClick={() => void handlePost(doc.id)}>
-                          ثبت نهایی
+                          {t('auto.accounting_AccWarehouseInbound.s_0c801ba8')}
                         </Button>
                       )}
                       <Button
@@ -234,13 +238,13 @@ export default function AccWarehouseInbound() {
                     <td colSpan={6} className="px-6 py-3">
                       {doc.items && doc.items.length > 0 ? (
                         <>
-                          <p className="mb-1.5 text-xs font-medium text-muted-foreground">اقلام سند:</p>
+                          <p className="mb-1.5 text-xs font-medium text-muted-foreground">{t('auto.accounting_AccWarehouseInbound.s_16d8617a')}</p>
                           <table className="w-full text-xs">
                             <thead>
                               <tr>
-                                <th className="px-2 py-1 text-start font-medium">شناسه کالا</th>
-                                <th className="px-2 py-1 text-start font-medium">تعداد</th>
-                                <th className="px-2 py-1 text-start font-medium">قیمت واحد</th>
+                                <th className="px-2 py-1 text-start font-medium">{t('auto.accounting_AccWarehouseInbound.s_9865e1d5')}</th>
+                                <th className="px-2 py-1 text-start font-medium">{t('auto.accounting_AccWarehouseInbound.s_687f8df3')}</th>
+                                <th className="px-2 py-1 text-start font-medium">{t('auto.accounting_AccWarehouseInbound.s_3709c4a6')}</th>
                               </tr>
                             </thead>
                             <tbody>
@@ -255,7 +259,7 @@ export default function AccWarehouseInbound() {
                           </table>
                         </>
                       ) : (
-                        <p className="text-xs text-muted-foreground">اقلام در دسترس نیست.</p>
+                        <p className="text-xs text-muted-foreground">{t('auto.accounting_AccWarehouseInbound.s_8b121c6a')}</p>
                       )}
                     </td>
                   </tr>
@@ -265,7 +269,7 @@ export default function AccWarehouseInbound() {
             {!loading && rows.length === 0 && (
               <tr>
                 <td colSpan={6} className="px-3 py-6 text-center text-muted-foreground">
-                  سندی یافت نشد.
+                  {t('auto.accounting_AccWarehouseInbound.s_a8a405d5')}
                 </td>
               </tr>
             )}
@@ -278,15 +282,15 @@ export default function AccWarehouseInbound() {
       <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
         <DialogContent className="max-w-xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
-            <DialogTitle>سند ورود کالا</DialogTitle>
-            <DialogDescription>اطلاعات سند ورودی را وارد کنید.</DialogDescription>
+            <DialogTitle>{t('auto.accounting_AccWarehouseInbound.s_50530cae')}</DialogTitle>
+            <DialogDescription>{t('auto.accounting_AccWarehouseInbound.s_920b0040')}</DialogDescription>
           </DialogHeader>
 
           <div className="space-y-3">
             <div className="space-y-1">
-              <label className="text-sm font-medium">انبار</label>
+              <label className="text-sm font-medium">{t('auto.accounting_AccWarehouseInbound.s_3aeb36b5')}</label>
               <Select value={formWarehouseId} onValueChange={setFormWarehouseId}>
-                <SelectTrigger><SelectValue placeholder="انتخاب انبار…" /></SelectTrigger>
+                <SelectTrigger><SelectValue placeholder={t('auto.accounting_AccWarehouseInbound.s_d3c3902f')} /></SelectTrigger>
                 <SelectContent>
                   {warehouses.map((w) => (
                     <SelectItem key={w.id} value={String(w.id)}>{w.name}</SelectItem>
@@ -297,23 +301,23 @@ export default function AccWarehouseInbound() {
 
             <div className="space-y-2">
               <div className="flex items-center justify-between">
-                <label className="text-sm font-medium">اقلام</label>
+                <label className="text-sm font-medium">{t('auto.accounting_AccWarehouseInbound.s_101ca9b8')}</label>
                 <Button type="button" variant="outline" size="sm" onClick={addItem}>
-                  <Plus className="ml-1 h-3.5 w-3.5" /> سطر جدید
+                  <Plus className="ms-1 h-3.5 w-3.5" /> {t('auto.accounting_AccWarehouseInbound.s_ffd73187')}
                 </Button>
               </div>
               {formItems.map((item, idx) => (
                 <div key={idx} className="flex items-end gap-2 rounded-md border p-2">
                   <div className="flex-1 space-y-1">
-                    <label className="text-xs text-muted-foreground">شناسه کالا</label>
+                    <label className="text-xs text-muted-foreground">{t('auto.accounting_AccWarehouseInbound.s_9865e1d5')}</label>
                     <Input value={item.product_id} onChange={(e) => updateItem(idx, 'product_id', e.target.value)} />
                   </div>
                   <div className="w-24 space-y-1">
-                    <label className="text-xs text-muted-foreground">تعداد</label>
+                    <label className="text-xs text-muted-foreground">{t('auto.accounting_AccWarehouseInbound.s_687f8df3')}</label>
                     <Input value={item.quantity} onChange={(e) => updateItem(idx, 'quantity', e.target.value)} />
                   </div>
                   <div className="w-28 space-y-1">
-                    <label className="text-xs text-muted-foreground">قیمت واحد</label>
+                    <label className="text-xs text-muted-foreground">{t('auto.accounting_AccWarehouseInbound.s_3709c4a6')}</label>
                     <Input value={item.unit_price} onChange={(e) => updateItem(idx, 'unit_price', e.target.value)} />
                   </div>
                   <Button variant="ghost" size="sm" className="text-destructive" onClick={() => removeItem(idx)} disabled={formItems.length <= 1}>
@@ -324,14 +328,14 @@ export default function AccWarehouseInbound() {
             </div>
 
             <div className="space-y-1">
-              <label className="text-sm font-medium">یادداشت</label>
+              <label className="text-sm font-medium">{t('auto.accounting_AccWarehouseInbound.s_2c09d41c')}</label>
               <Textarea value={formNotes} onChange={(e) => setFormNotes(e.target.value)} rows={2} />
             </div>
           </div>
 
           <DialogFooter>
             <Button onClick={handleCreate} disabled={saving}>
-              {saving ? 'در حال ذخیره…' : 'ثبت سند'}
+              {saving ? t('auto.accounting_AccWarehouseInbound.s_4b7554d6') : t('auto.accounting_AccWarehouseInbound.s_f14ef897')}
             </Button>
           </DialogFooter>
         </DialogContent>

@@ -1,5 +1,7 @@
 'use client';
 
+import { useTranslations } from 'next-intl';
+
 import { useCallback, useEffect, useState } from 'react';
 import apiClient from '@/lib/api-client';
 import { unwrapData, getAxiosMessage } from '@/lib/api-helpers';
@@ -45,6 +47,8 @@ export { SettingsPageView };
 export { ProfilePage as ProfilePageView, ReportsPage as ReportsPageView } from '@/features/modules/core/core_pages';
 
 export function LogsPageView() {
+  const t = useTranslations();
+
   const [tab, setTab] = useState<'events' | 'system' | 'user' | 'bale'>('events');
   const [rows, setRows] = useState<Record<string, unknown>[]>([]);
   const [page, setPage] = useState(1);
@@ -100,16 +104,16 @@ export function LogsPageView() {
   return (
     <Card>
       <CardHeader>
-        <CardTitle>لاگ‌ها</CardTitle>
-        <CardDescription>رویدادها، سیستم، کاربر، بله</CardDescription>
+        <CardTitle>{t('auto.CoreStaticPages.s_11a3752a')}</CardTitle>
+        <CardDescription>{t('auto.CoreStaticPages.s_ec15de8f')}</CardDescription>
       </CardHeader>
       <CardContent>
         <Tabs value={tab} onValueChange={(v) => setTab(v as typeof tab)}>
           <TabsList>
-            <TabsTrigger value="events">رویدادها</TabsTrigger>
-            <TabsTrigger value="system">سیستم</TabsTrigger>
-            <TabsTrigger value="user">کاربر</TabsTrigger>
-            <TabsTrigger value="bale">بله</TabsTrigger>
+            <TabsTrigger value="events">{t('auto.CoreStaticPages.s_8d1d1dfc')}</TabsTrigger>
+            <TabsTrigger value="system">{t('auto.CoreStaticPages.s_483ec0ff')}</TabsTrigger>
+            <TabsTrigger value="user">{t('auto.CoreStaticPages.s_32398f04')}</TabsTrigger>
+            <TabsTrigger value="bale">{t('auto.CoreStaticPages.s_afcb410b')}</TabsTrigger>
           </TabsList>
         </Tabs>
         <p className="mt-2 text-xs text-muted-foreground" dir="ltr">
@@ -151,14 +155,14 @@ export function LogsPageView() {
         </div>
         <div className="mt-3 flex items-center justify-between gap-2 text-sm">
           <span className="text-muted-foreground">
-            {rows.length} ردیف — صفحه {page} / {pageCount}
+            {t('common.rowsPage', { rows: rows.length, page, pageCount })}
           </span>
           <div className="flex gap-1">
             <Button type="button" size="sm" variant="outline" disabled={page <= 1} onClick={() => setPage((p) => p - 1)}>
-              قبلی
+              {t('auto.CoreStaticPages.s_1a592f6b')}
             </Button>
             <Button type="button" size="sm" variant="outline" disabled={page >= pageCount} onClick={() => setPage((p) => p + 1)}>
-              بعدی
+              {t('auto.CoreStaticPages.s_54ee927e')}
             </Button>
           </div>
         </div>
@@ -215,6 +219,8 @@ function licenseProgress(lic: LicenseRow): number {
 }
 
 export function LicensesPageView() {
+  const t = useTranslations();
+
   const [rows, setRows] = useState<LicenseRow[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
@@ -331,7 +337,7 @@ export function LicensesPageView() {
     try {
       moduleRepos = JSON.parse(metaModuleReposJson || '[]') as unknown;
     } catch {
-      setMetaErr('module_repos JSON نامعتبر است.');
+      setMetaErr(t('common.invalidModuleReposDot'));
       return;
     }
     let gitVal: unknown = undefined;
@@ -339,7 +345,7 @@ export function LicensesPageView() {
       try {
         gitVal = JSON.parse(metaGitJson) as unknown;
       } catch {
-        setMetaErr('git JSON نامعتبر است.');
+        setMetaErr(t('common.invalidGitDot'));
         return;
       }
     }
@@ -392,11 +398,11 @@ export function LicensesPageView() {
     <div className="space-y-4">
       <div className="flex justify-end">
         <Button type="button" size="sm" onClick={() => setAddOpen(true)}>
-          افزودن لایسنس
+          {t('auto.CoreStaticPages.s_9d253e7e')}
         </Button>
       </div>
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-        {loading ? <p className="text-sm text-muted-foreground">بارگذاری…</p> : null}
+        {loading ? <p className="text-sm text-muted-foreground">{t('auto.CoreStaticPages.s_fbac73dc')}</p> : null}
         {error ? <p className="text-destructive">{error}</p> : null}
         {rows.map((lic) => (
           <Card key={String(lic.id ?? lic.license_key)}>
@@ -412,50 +418,50 @@ export function LicensesPageView() {
                   </Button>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent align="end">
-                  <DropdownMenuItem onClick={() => openEditMeta(lic)}>ویرایش meta</DropdownMenuItem>
-                  <DropdownMenuItem onClick={() => lic.id && setRenewId(lic.id)}>تمدید</DropdownMenuItem>
-                  <DropdownMenuItem onClick={() => lic.id && setCancelId(lic.id)}>لغو</DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => openEditMeta(lic)}>{t('auto.CoreStaticPages.s_4c174063')}</DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => lic.id && setRenewId(lic.id)}>{t('auto.CoreStaticPages.s_6185b1fa')}</DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => lic.id && setCancelId(lic.id)}>{t('auto.CoreStaticPages.s_e409bf47')}</DropdownMenuItem>
                   <DropdownMenuItem className="text-destructive" onClick={() => lic.id && setDeleteId(lic.id)}>
-                    حذف
+                    {t('auto.CoreStaticPages.s_2d2bbdc2')}
                   </DropdownMenuItem>
                 </DropdownMenuContent>
               </DropdownMenu>
             </CardHeader>
             <CardContent className="space-y-2">
-              <p className="text-xs text-muted-foreground">کلید: {String(lic.license_key ?? '—')}</p>
-              <p className="text-xs text-muted-foreground">انقضا: {String(lic.expires_at ?? '—')}</p>
-              <p className="text-xs text-muted-foreground line-clamp-2">ماژول‌ها: {licenseModulesSummary(lic)}</p>
+              <p className="text-xs text-muted-foreground">{t('common.licenseKey', { key: String(lic.license_key ?? '—') })}</p>
+              <p className="text-xs text-muted-foreground">{t('common.licenseExpires', { date: String(lic.expires_at ?? '—') })}</p>
+              <p className="text-xs text-muted-foreground line-clamp-2">{t('common.licenseModules', { modules: licenseModulesSummary(lic) })}</p>
               <Progress value={licenseProgress(lic)} />
             </CardContent>
           </Card>
         ))}
-        {!rows.length && !loading ? <p className="text-sm text-muted-foreground">لاینسسی ثبت نشده</p> : null}
+        {!rows.length && !loading ? <p className="text-sm text-muted-foreground">{t('auto.CoreStaticPages.s_c52e5a4b')}</p> : null}
       </div>
 
       <Dialog open={editMetaRow !== null} onOpenChange={(o) => !o && setEditMetaRow(null)}>
         <DialogContent className="max-h-[90vh] overflow-y-auto">
           <DialogHeader>
-            <DialogTitle>قرارداد meta لایسنس</DialogTitle>
+            <DialogTitle>{t('auto.CoreStaticPages.s_51e45215')}</DialogTitle>
           </DialogHeader>
           <div className="space-y-2 text-sm">
-            <p className="text-xs text-muted-foreground">ماژول‌ها (با ویرگول)</p>
+            <p className="text-xs text-muted-foreground">{t('auto.CoreStaticPages.s_2ab1793a')}</p>
             <Input value={metaModules} onChange={(e) => setMetaModules(e.target.value)} dir="ltr" className="font-mono text-xs" />
             <p className="text-xs text-muted-foreground">vertical</p>
             <Input value={metaVertical} onChange={(e) => setMetaVertical(e.target.value)} dir="ltr" className="font-mono text-xs" />
             <p className="text-xs text-muted-foreground">sku</p>
             <Input value={metaSku} onChange={(e) => setMetaSku(e.target.value)} dir="ltr" className="font-mono text-xs" />
-            <p className="text-xs text-muted-foreground">module_repos (JSON آرایه)</p>
+            <p className="text-xs text-muted-foreground">{t('auto.CoreStaticPages.s_6a3a326f')}</p>
             <Textarea value={metaModuleReposJson} onChange={(e) => setMetaModuleReposJson(e.target.value)} rows={6} dir="ltr" className="font-mono text-xs" />
-            <p className="text-xs text-muted-foreground">git (آبجکت تکی، اختیاری — خالی برای حذف)</p>
+            <p className="text-xs text-muted-foreground">{t('auto.CoreStaticPages.s_8c5d0413')}</p>
             <Textarea value={metaGitJson} onChange={(e) => setMetaGitJson(e.target.value)} rows={5} dir="ltr" className="font-mono text-xs" />
             {metaErr ? <p className="text-sm text-destructive">{metaErr}</p> : null}
           </div>
           <DialogFooter>
             <Button type="button" variant="secondary" onClick={() => setEditMetaRow(null)}>
-              انصراف
+              {t('auto.CoreStaticPages.s_106dfb4e')}
             </Button>
             <Button type="button" onClick={() => void saveMeta()}>
-              ذخیره (replace_meta)
+              {t('auto.CoreStaticPages.s_752c4df6')}
             </Button>
           </DialogFooter>
         </DialogContent>
@@ -464,16 +470,16 @@ export function LicensesPageView() {
       <Dialog open={addOpen} onOpenChange={setAddOpen}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>لایسنس جدید</DialogTitle>
+            <DialogTitle>{t('auto.CoreStaticPages.s_e8bc192e')}</DialogTitle>
           </DialogHeader>
           <div className="space-y-2">
-            <Input placeholder="کلید لایسنس" value={formKey} onChange={(e) => setFormKey(e.target.value)} dir="ltr" />
-            <Input placeholder="دامنه" value={formDomain} onChange={(e) => setFormDomain(e.target.value)} dir="ltr" />
+            <Input placeholder={t('auto.CoreStaticPages.s_f2c9dba3')} value={formKey} onChange={(e) => setFormKey(e.target.value)} dir="ltr" />
+            <Input placeholder={t('auto.CoreStaticPages.s_ecb3db89')} value={formDomain} onChange={(e) => setFormDomain(e.target.value)} dir="ltr" />
             {formErr ? <p className="text-sm text-destructive">{formErr}</p> : null}
           </div>
           <DialogFooter>
             <Button type="button" onClick={() => void addLicense()}>
-              ثبت
+              {t('auto.CoreStaticPages.s_28fa93e8')}
             </Button>
           </DialogFooter>
         </DialogContent>
@@ -482,12 +488,12 @@ export function LicensesPageView() {
       <AlertDialog open={renewId !== null} onOpenChange={(o) => !o && setRenewId(null)}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>تمدید یک سال؟</AlertDialogTitle>
-            <AlertDialogDescription>تاریخ انقضا به‌روز می‌شود.</AlertDialogDescription>
+            <AlertDialogTitle>{t('auto.CoreStaticPages.s_60b849f3')}</AlertDialogTitle>
+            <AlertDialogDescription>{t('auto.CoreStaticPages.s_75c7af6a')}</AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel>خیر</AlertDialogCancel>
-            <AlertDialogAction onClick={() => void renew()}>بله</AlertDialogAction>
+            <AlertDialogCancel>{t('auto.CoreStaticPages.s_a7b8355e')}</AlertDialogCancel>
+            <AlertDialogAction onClick={() => void renew()}>{t('auto.CoreStaticPages.s_afcb410b')}</AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
@@ -495,11 +501,11 @@ export function LicensesPageView() {
       <AlertDialog open={cancelId !== null} onOpenChange={(o) => !o && setCancelId(null)}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>لغو لایسنس؟</AlertDialogTitle>
+            <AlertDialogTitle>{t('auto.CoreStaticPages.s_ba140482')}</AlertDialogTitle>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel>خیر</AlertDialogCancel>
-            <AlertDialogAction onClick={() => void cancelLic()}>بله</AlertDialogAction>
+            <AlertDialogCancel>{t('auto.CoreStaticPages.s_a7b8355e')}</AlertDialogCancel>
+            <AlertDialogAction onClick={() => void cancelLic()}>{t('auto.CoreStaticPages.s_afcb410b')}</AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
@@ -507,11 +513,11 @@ export function LicensesPageView() {
       <AlertDialog open={deleteId !== null} onOpenChange={(o) => !o && setDeleteId(null)}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>حذف قطعی؟</AlertDialogTitle>
+            <AlertDialogTitle>{t('auto.CoreStaticPages.s_a451a2a8')}</AlertDialogTitle>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel>خیر</AlertDialogCancel>
-            <AlertDialogAction onClick={() => void destroyLic()}>حذف</AlertDialogAction>
+            <AlertDialogCancel>{t('auto.CoreStaticPages.s_a7b8355e')}</AlertDialogCancel>
+            <AlertDialogAction onClick={() => void destroyLic()}>{t('auto.CoreStaticPages.s_2d2bbdc2')}</AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
@@ -533,6 +539,8 @@ type VisitorPayload = {
 };
 
 export function VisitorStatsPageView() {
+  const t = useTranslations();
+
   const [days, setDays] = useState(14);
   const [data, setData] = useState<VisitorPayload | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -561,13 +569,13 @@ export function VisitorStatsPageView() {
   return (
     <Card>
       <CardHeader>
-        <CardTitle>آمار بازدید</CardTitle>
-        <CardDescription>رویدادهای core_visitor_events</CardDescription>
+        <CardTitle>{t('auto.CoreStaticPages.s_af3ad14d')}</CardTitle>
+        <CardDescription>{t('auto.CoreStaticPages.s_dfc493da')}</CardDescription>
       </CardHeader>
       <CardContent className="space-y-4">
         <div className="flex flex-wrap items-end gap-3">
           <div>
-            <p className="mb-1 text-xs text-muted-foreground">بازه (روز)</p>
+            <p className="mb-1 text-xs text-muted-foreground">{t('auto.CoreStaticPages.s_f3514c21')}</p>
             <Input
               type="number"
               min={1}
@@ -579,13 +587,13 @@ export function VisitorStatsPageView() {
             />
           </div>
           <Button type="button" onClick={() => void load()} disabled={loading}>
-            اعمال
+            {t('auto.CoreStaticPages.s_72513b9f')}
           </Button>
         </div>
         <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
           <Card>
             <CardHeader className="py-3">
-              <CardTitle className="text-sm text-muted-foreground">کل بازدید</CardTitle>
+              <CardTitle className="text-sm text-muted-foreground">{t('auto.CoreStaticPages.s_c4a2d62a')}</CardTitle>
             </CardHeader>
             <CardContent className="text-2xl font-semibold tabular-nums">
               {loading ? '…' : data?.total_visits ?? '—'}
@@ -593,7 +601,7 @@ export function VisitorStatsPageView() {
           </Card>
           <Card>
             <CardHeader className="py-3">
-              <CardTitle className="text-sm text-muted-foreground">بازدیدکنندهٔ یکتا (IP)</CardTitle>
+              <CardTitle className="text-sm text-muted-foreground">{t('auto.CoreStaticPages.s_13097bf2')}</CardTitle>
             </CardHeader>
             <CardContent className="text-2xl font-semibold tabular-nums">
               {loading ? '…' : data?.unique_visitors ?? '—'}
@@ -601,7 +609,7 @@ export function VisitorStatsPageView() {
           </Card>
           <Card>
             <CardHeader className="py-3">
-              <CardTitle className="text-sm text-muted-foreground">نرخ پرش (تقریبی)</CardTitle>
+              <CardTitle className="text-sm text-muted-foreground">{t('auto.CoreStaticPages.s_68b6c85d')}</CardTitle>
             </CardHeader>
             <CardContent className="text-2xl font-semibold tabular-nums">
               {loading ? '…' : data?.bounce_rate != null ? `${data.bounce_rate}%` : '—'}
@@ -609,16 +617,16 @@ export function VisitorStatsPageView() {
           </Card>
           <Card>
             <CardHeader className="py-3">
-              <CardTitle className="text-sm text-muted-foreground">دوره</CardTitle>
+              <CardTitle className="text-sm text-muted-foreground">{t('auto.CoreStaticPages.s_053abf8d')}</CardTitle>
             </CardHeader>
             <CardContent className="text-2xl font-semibold tabular-nums">
-              {loading ? '…' : data?.period_days ?? '—'} روز
+              {t('common.periodDays', { days: loading ? '…' : data?.period_days ?? '—' })}
             </CardContent>
           </Card>
         </div>
 
         <div>
-          <p className="mb-2 text-sm font-medium">بازدید روزانه</p>
+          <p className="mb-2 text-sm font-medium">{t('auto.CoreStaticPages.s_e3e433b8')}</p>
           <div className="flex h-36 items-end gap-1 overflow-x-auto">
             {byDay.map((d, i) => (
               <div key={String(d.day ?? i)} className="flex min-w-[20px] flex-1 flex-col items-center gap-1">
@@ -636,13 +644,13 @@ export function VisitorStatsPageView() {
 
         <div className="grid gap-4 lg:grid-cols-2">
           <div>
-            <p className="mb-2 text-sm font-medium">صفحات پربازدید</p>
+            <p className="mb-2 text-sm font-medium">{t('auto.CoreStaticPages.s_3759241c')}</p>
             <div className="overflow-x-auto rounded-md border">
               <table className="w-full text-xs">
                 <thead>
                   <tr className="border-b bg-muted/40">
-                    <th className="px-2 py-2 text-start">مسیر</th>
-                    <th className="px-2 py-2 text-start">بازدید</th>
+                    <th className="px-2 py-2 text-start">{t('auto.CoreStaticPages.s_a2a1682c')}</th>
+                    <th className="px-2 py-2 text-start">{t('auto.CoreStaticPages.s_61746c26')}</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -659,13 +667,13 @@ export function VisitorStatsPageView() {
             </div>
           </div>
           <div>
-            <p className="mb-2 text-sm font-medium">آخرین بازدیدها</p>
+            <p className="mb-2 text-sm font-medium">{t('auto.CoreStaticPages.s_c63f6f4e')}</p>
             <div className="overflow-x-auto rounded-md border">
               <table className="w-full text-xs">
                 <thead>
                   <tr className="border-b bg-muted/40">
-                    <th className="px-2 py-2 text-start">زمان</th>
-                    <th className="px-2 py-2 text-start">مسیر</th>
+                    <th className="px-2 py-2 text-start">{t('auto.CoreStaticPages.s_0890e940')}</th>
+                    <th className="px-2 py-2 text-start">{t('auto.CoreStaticPages.s_a2a1682c')}</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -687,10 +695,10 @@ export function VisitorStatsPageView() {
 
         <div className="grid gap-4 lg:grid-cols-3">
           <div>
-            <p className="mb-2 text-sm font-medium">مرورگرها</p>
+            <p className="mb-2 text-sm font-medium">{t('auto.CoreStaticPages.s_c89f27ef')}</p>
             <div className="overflow-x-auto rounded-md border">
               <table className="w-full text-xs">
-                <thead><tr className="border-b bg-muted/40"><th className="px-2 py-2 text-start">مرورگر</th><th className="px-2 py-2 text-start">تعداد</th></tr></thead>
+                <thead><tr className="border-b bg-muted/40"><th className="px-2 py-2 text-start">{t('auto.CoreStaticPages.s_16258912')}</th><th className="px-2 py-2 text-start">{t('auto.CoreStaticPages.s_687f8df3')}</th></tr></thead>
                 <tbody>
                   {(data?.browsers ?? []).map((r, i) => (
                     <tr key={i} className="border-b"><td className="px-2 py-1">{String(r.name)}</td><td className="px-2 py-1">{String(r.count)}</td></tr>
@@ -700,10 +708,10 @@ export function VisitorStatsPageView() {
             </div>
           </div>
           <div>
-            <p className="mb-2 text-sm font-medium">سیستم‌عامل</p>
+            <p className="mb-2 text-sm font-medium">{t('auto.CoreStaticPages.s_248ebe85')}</p>
             <div className="overflow-x-auto rounded-md border">
               <table className="w-full text-xs">
-                <thead><tr className="border-b bg-muted/40"><th className="px-2 py-2 text-start">سیستم‌عامل</th><th className="px-2 py-2 text-start">تعداد</th></tr></thead>
+                <thead><tr className="border-b bg-muted/40"><th className="px-2 py-2 text-start">{t('auto.CoreStaticPages.s_248ebe85')}</th><th className="px-2 py-2 text-start">{t('auto.CoreStaticPages.s_687f8df3')}</th></tr></thead>
                 <tbody>
                   {(data?.os ?? []).map((r, i) => (
                     <tr key={i} className="border-b"><td className="px-2 py-1">{String(r.name)}</td><td className="px-2 py-1">{String(r.count)}</td></tr>
@@ -713,10 +721,10 @@ export function VisitorStatsPageView() {
             </div>
           </div>
           <div>
-            <p className="mb-2 text-sm font-medium">دستگاه‌ها</p>
+            <p className="mb-2 text-sm font-medium">{t('auto.CoreStaticPages.s_4a31c9d7')}</p>
             <div className="overflow-x-auto rounded-md border">
               <table className="w-full text-xs">
-                <thead><tr className="border-b bg-muted/40"><th className="px-2 py-2 text-start">دستگاه</th><th className="px-2 py-2 text-start">تعداد</th></tr></thead>
+                <thead><tr className="border-b bg-muted/40"><th className="px-2 py-2 text-start">{t('auto.CoreStaticPages.s_7df5687d')}</th><th className="px-2 py-2 text-start">{t('auto.CoreStaticPages.s_687f8df3')}</th></tr></thead>
                 <tbody>
                   {(data?.devices ?? []).map((r, i) => (
                     <tr key={i} className="border-b"><td className="px-2 py-1">{String(r.name)}</td><td className="px-2 py-1">{String(r.count)}</td></tr>

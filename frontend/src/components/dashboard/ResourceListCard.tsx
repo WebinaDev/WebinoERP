@@ -1,5 +1,7 @@
 'use client';
 
+import { useTranslations } from 'next-intl';
+
 import { ReactNode } from 'react';
 
 type Column = {
@@ -24,11 +26,13 @@ export function ResourceListCard({
   description,
   columns,
   rows,
-  emptyText = 'داده‌ای یافت نشد.',
+  emptyText,
   loading,
   error,
   footer,
 }: Props) {
+  const t = useTranslations();
+  const empty = emptyText ?? t('auto.ResourceListCard.s_52cd3d92');
   return (
     <div className="rounded-lg border bg-card text-card-foreground shadow-sm">
       <div className="border-b px-4 py-3">
@@ -39,16 +43,16 @@ export function ResourceListCard({
         {error ? (
           <p className="text-sm text-destructive">{error}</p>
         ) : loading ? (
-          <p className="text-sm text-muted-foreground">در حال بارگذاری…</p>
+          <p className="text-sm text-muted-foreground">{t('auto.ResourceListCard.s_51617f69')}</p>
         ) : rows.length === 0 ? (
-          <p className="text-sm text-muted-foreground">{emptyText}</p>
+          <p className="text-sm text-muted-foreground">{empty}</p>
         ) : (
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
               <thead>
-                <tr className="border-b text-right">
+                <tr className="border-b text-end">
                   {columns.map((c) => (
-                    <th key={c.header} className={`pb-2 pr-2 font-medium text-muted-foreground ${c.className ?? ''}`}>
+                    <th key={c.header} className={`pb-2 pe-2 font-medium text-muted-foreground ${c.className ?? ''}`}>
                       {c.header}
                     </th>
                   ))}
@@ -58,7 +62,7 @@ export function ResourceListCard({
                 {rows.map((row, i) => (
                   <tr key={i} className="border-b border-border/60 last:border-0">
                     {columns.map((c) => (
-                      <td key={c.header} className={`py-2 pr-2 align-top ${c.className ?? ''}`}>
+                      <td key={c.header} className={`py-2 pe-2 align-top ${c.className ?? ''}`}>
                         {c.cell(row)}
                       </td>
                     ))}

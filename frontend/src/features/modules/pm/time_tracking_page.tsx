@@ -10,7 +10,8 @@ import { Card, CardContent } from '@/components/ui/card';
 import apiClient from '@/lib/api-client';
 
 export function TimeTrackingPage() {
-  const tNav = useTranslations();
+
+  const t = useTranslations();  const tNav = useTranslations();
   const { layoutProps, setSuccess, applyAxiosError } = useCrmFeedback();
   const [projectId, setProjectId] = useState('');
   const [hours, setHours] = useState('');

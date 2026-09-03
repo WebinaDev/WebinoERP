@@ -478,7 +478,7 @@ export function ResourceDetailPage({ id }: Props) {
                   </div>
                   <p className="text-xs text-muted-foreground">{t('webhookManaged')}</p>
                 </div>
-                <div className="grid gap-2"><Label>{t('previewUrlTemplate')}</Label><Input value={String(resource.settings?.preview_url_template ?? 'https://pr-{PR_NUMBER}.{DOMAIN}')} onChange={(e) => patchSettings({ preview_url_template: e.target.value })} dir="ltr" className="font-mono" /></div>
+                <div className="grid gap-2"><Label>{t('previewUrlTemplate')}</Label><Input value={String(resource.settings?.preview_url_template ?? 'https://pe-{PR_NUMBER}.{DOMAIN}')} onChange={(e) => patchSettings({ preview_url_template: e.target.value })} dir="ltr" className="font-mono" /></div>
                 <Button disabled={pending} onClick={() => void saveGeneral()}>{tP('save')}</Button>
               </CardContent>
             </Card>

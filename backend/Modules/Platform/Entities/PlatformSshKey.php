@@ -17,6 +17,11 @@ class PlatformSshKey extends Model
         'created_by',
     ];
 
+    /** Never serialize the decrypted private key in JSON responses. */
+    protected $hidden = [
+        'private_key',
+    ];
+
     protected function casts(): array
     {
         return [

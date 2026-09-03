@@ -11,7 +11,8 @@ import apiClient from '@/lib/api-client';
 import { testGiteaConnection } from '@/lib/api/marketplace';
 
 export function GiteaPage() {
-  const tNav = useTranslations();
+
+  const t = useTranslations();  const tNav = useTranslations();
   const { layoutProps, setSuccess, applyAxiosError } = useCrmFeedback();
   const [form, setForm] = useState({ base_url: '', token: '', org: '' });
 

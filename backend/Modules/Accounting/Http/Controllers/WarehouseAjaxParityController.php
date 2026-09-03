@@ -35,7 +35,10 @@ class WarehouseAjaxParityController extends Controller
             ], 404);
         }
 
-        $p = $request->all();
+        $p = $request->except([
+            'password', 'token', 'authorization', 'cookie', 'current_password',
+            'private_key', 'secret', 'api_key', 'access_token',
+        ]);
 
         try {
             $data = match ($action) {

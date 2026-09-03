@@ -2,7 +2,7 @@
 
 import { useQueryClient } from '@tanstack/react-query'
 import { Check, Palette } from 'lucide-react'
-import { useLocale, useTranslations } from 'next-intl'
+import { useTranslations } from 'next-intl'
 import { useCallback, useEffect, useState } from 'react'
 
 import { Button } from '@/components/ui/button'
@@ -21,13 +21,13 @@ import {
   type AccentPreset,
 } from '@/lib/accent'
 import { patchBootstrapQuery } from '@/lib/bootstrapQuery'
+import { useTextDirection } from '@/hooks/use-text-direction'
 
 export function AccentMenu() {
   const t = useTranslations()
-  const locale = useLocale()
+  const dir = useTextDirection()
   const qc = useQueryClient()
   const bq = useBootstrapQuery()
-  const dir = locale === 'fa' ? 'rtl' : 'ltr'
 
   const [accent, setAccent] = useState<AccentPreset>('zinc')
 

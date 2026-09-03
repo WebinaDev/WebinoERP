@@ -1,3 +1,4 @@
+import { getTranslations } from 'next-intl/server';
 import { apiServer } from '@/lib/public-api-server';
 
 export const revalidate = 60;
@@ -5,6 +6,8 @@ export const revalidate = 60;
 type FaqItem = { id: number; question: string; answer: string; group?: string | null };
 
 export default async function FaqPage() {
+  const t = await getTranslations();
+
   let items: FaqItem[] = [];
   try {
     const res = await apiServer<{ data: FaqItem[] }>('/v1/public/faq');
@@ -15,7 +18,7 @@ export default async function FaqPage() {
 
   return (
     <div className="container mx-auto max-w-3xl px-4 py-12">
-      <h1 className="text-3xl font-bold">سوالات متداول</h1>
+      <h1 className="text-3xl font-bold">{t('auto._site__faq_page.s_3175c5a2')}</h1>
       <dl className="mt-8 space-y-6">
         {items.map((item) => (
           <div key={item.id} className="rounded-xl border p-5">

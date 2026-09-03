@@ -31,8 +31,6 @@ class User extends Authenticatable
         'phone',
         'bale_chat_id',
         'password',
-        'is_active',
-        'last_login_at',
         'avatar_path',
     ];
 

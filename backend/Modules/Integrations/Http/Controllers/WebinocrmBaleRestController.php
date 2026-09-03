@@ -24,10 +24,12 @@ class WebinocrmBaleRestController extends Controller
 
     public function updateSettings(Request $request): JsonResponse
     {
-        $body = $request->all();
-        if (! is_array($body)) {
-            return response()->json(['data' => ['message' => 'بدنهٔ درخواست JSON معتبر نیست.']], 400);
-        }
+        $body = $request->validate([
+            'token' => 'nullable|string|max:512',
+            'webhook_secret' => 'nullable|string|max:512',
+            'enabled' => 'nullable|boolean',
+            'settings' => 'nullable|array',
+        ]);
 
         return response()->json(['data' => $this->bale->updateSettings($body)]);
     }
@@ -73,12 +75,12 @@ class WebinocrmBaleRestController extends Controller
 
     public function sendMessage(Request $request): JsonResponse
     {
-        $payload = $request->all();
-        $userId = (int) ($payload['user_id'] ?? 0);
-        $message = trim((string) ($payload['message'] ?? ''));
-        if ($userId <= 0 || $message === '') {
-            return response()->json(['data' => ['message' => 'داده ارسال پیام نامعتبر است.']], 400);
-        }
+        $payload = $request->validate([
+            'user_id' => 'required|integer|min:1',
+            'message' => 'required|string|max:4096',
+        ]);
+        $userId = (int) $payload['user_id'];
+        $message = trim($payload['message']);
         $user = \App\Models\User::query()->find($userId);
         if (! $user || ! $user->bale_chat_id) {
             return response()->json(['data' => ['message' => 'این کاربر شناسه بله ثبت‌شده ندارد.']], 400);
@@ -93,11 +95,13 @@ class WebinocrmBaleRestController extends Controller
 
     public function sendBulkMessage(Request $request): JsonResponse
     {
-        $payload = $request->all();
-        $message = trim((string) ($payload['message'] ?? ''));
-        if ($message === '') {
-            return response()->json(['data' => ['message' => 'متن پیام الزامی است.']], 400);
-        }
+        $payload = $request->validate([
+            'message' => 'required|string|max:4096',
+            'mode' => 'nullable|string|in:all,roles',
+            'roles' => 'nullable|array',
+            'roles.*' => 'string|max:64',
+        ]);
+        $message = trim($payload['message']);
         $mode = (string) ($payload['mode'] ?? 'all');
         $roles = isset($payload['roles']) && is_array($payload['roles']) ? array_map('strval', $payload['roles']) : [];
         $res = $this->bale->sendBulkMessage($message, $mode, $roles);
@@ -132,7 +136,15 @@ class WebinocrmBaleRestController extends Controller
 
     public function createCampaign(Request $request): JsonResponse
     {
-        $id = $this->bale->createCampaign($request->all());
+        $data = $request->validate([
+            'name' => 'required|string|max:191',
+            'message' => 'required|string|max:4096',
+            'mode' => 'nullable|string|max:32',
+            'roles' => 'nullable|array',
+            'roles.*' => 'string|max:64',
+            'scheduled_at' => 'nullable|date',
+        ]);
+        $id = $this->bale->createCampaign($data);
         if ($id === null) {
             return response()->json(['data' => ['message' => 'نام کمپین و متن پیام الزامی است.']], 400);
         }

@@ -1,5 +1,7 @@
 'use client';
 
+import { useTranslations } from 'next-intl';
+
 import { useCallback, useEffect, useState } from 'react';
 import apiClient from '@/lib/api-client';
 import { unwrapData, getAxiosMessage } from '@/lib/api-helpers';
@@ -19,6 +21,8 @@ import { ResourceListCard } from '@/components/dashboard/ResourceListCard';
 type Row = Record<string, unknown>;
 
 export function ConsultationsListPage() {
+  const t = useTranslations();
+
   const [rows, setRows] = useState<Row[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
@@ -97,12 +101,12 @@ export function ConsultationsListPage() {
   }
 
   async function convertToProject(id: number) {
-    if (!confirm('این مشاوره به پروژه تبدیل شود؟')) return;
+    if (!confirm(t('auto.ConsultationsListPage.s_b0722d14'))) return;
     setBusy(true);
     try {
       const res = await apiClient.post(`/v1/crm/consultations/${id}/convert-project`);
       const data = unwrapData<{ project_id?: number }>(res);
-      alert(`پروژه ایجاد شد: #${String(data?.project_id ?? '')}`);
+      alert(t('common.projectCreated', { id: String(data?.project_id ?? '') }));
       void load();
     } catch (e) {
       alert(getAxiosMessage(e));
@@ -114,44 +118,44 @@ export function ConsultationsListPage() {
   return (
     <Card>
       <CardHeader className="flex flex-row flex-wrap items-center justify-between gap-2">
-        <CardTitle>مشاوره‌ها</CardTitle>
+        <CardTitle>{t('auto.ConsultationsListPage.s_47aa49fb')}</CardTitle>
         <Button type="button" size="sm" onClick={openCreate} disabled={busy}>
-          مشاوره جدید
+          {t('auto.ConsultationsListPage.s_bb4a3d56')}
         </Button>
       </CardHeader>
       <CardContent className="space-y-4">
         <ResourceListCard
-          title="لیست"
+          title={t('auto.ConsultationsListPage.s_11fe927c')}
           description="GET /api/v1/crm/consultations"
           loading={loading}
           error={error}
           rows={rows}
           columns={[
-            { header: 'شناسه', cell: (r) => String(r.id ?? '—') },
-            { header: 'عنوان', cell: (r) => String(r.title ?? '—') },
+            { header: t('auto.ConsultationsListPage.s_acc84041'), cell: (r) => String(r.id ?? '—') },
+            { header: t('auto.ConsultationsListPage.s_1a9bdb20'), cell: (r) => String(r.title ?? '—') },
             {
-              header: 'حساب',
+              header: t('auto.ConsultationsListPage.s_fdadd003'),
               cell: (r) => {
                 const acc = r.account as Record<string, unknown> | undefined;
                 return String(acc?.name ?? r.account_id ?? '—');
               },
             },
-            { header: 'وضعیت', cell: (r) => String(r.status ?? '—') },
+            { header: t('auto.ConsultationsListPage.s_55518965'), cell: (r) => String(r.status ?? '—') },
             {
-              header: 'عملیات',
+              header: t('auto.ConsultationsListPage.s_8d1cc546'),
               cell: (r) => (
                 <div className="flex flex-wrap gap-1">
                   <Button type="button" variant="outline" size="sm" onClick={() => openEdit(r)}>
-                    ویرایش
+                    {t('auto.ConsultationsListPage.s_ac60ae7a')}
                   </Button>
                   <Button
                     type="button"
                     variant="secondary"
                     size="sm"
                     disabled={busy}
-                    onClick={() => void convertToProject(Number(r.id))}
-                  >
-                    تبدیل به پروژه
+                    onClick={() => void convertToProject(Number(r.id))}>
+                  
+                    {t('auto.ConsultationsListPage.s_1e2039cf')}
                   </Button>
                 </div>
               ),
@@ -163,30 +167,30 @@ export function ConsultationsListPage() {
       <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
         <DialogContent className="max-w-md">
           <DialogHeader>
-            <DialogTitle>{editId ? 'ویرایش مشاوره' : 'مشاوره جدید'}</DialogTitle>
+            <DialogTitle>{editId ? t('auto.ConsultationsListPage.s_b3112c0c') : t('auto.ConsultationsListPage.s_bb4a3d56')}</DialogTitle>
           </DialogHeader>
           <div className="grid gap-3 py-2">
             {formErr ? <p className="text-sm text-destructive">{formErr}</p> : null}
-            <label className="text-sm font-medium">عنوان</label>
-            <Input value={title} onChange={(e) => setTitle(e.target.value)} placeholder="عنوان" />
-            <label className="text-sm font-medium">شناسه حساب (اختیاری)</label>
+            <label className="text-sm font-medium">{t('auto.ConsultationsListPage.s_1a9bdb20')}</label>
+            <Input value={title} onChange={(e) => setTitle(e.target.value)} placeholder={t('auto.ConsultationsListPage.s_1a9bdb20')} />
+            <label className="text-sm font-medium">{t('auto.ConsultationsListPage.s_abe20085')}</label>
             <Input
               value={accountId}
               onChange={(e) => setAccountId(e.target.value)}
               placeholder="crm_accounts.id"
               dir="ltr"
             />
-            <label className="text-sm font-medium">وضعیت</label>
+            <label className="text-sm font-medium">{t('auto.ConsultationsListPage.s_55518965')}</label>
             <Input value={status} onChange={(e) => setStatus(e.target.value)} />
-            <label className="text-sm font-medium">یادداشت</label>
+            <label className="text-sm font-medium">{t('auto.ConsultationsListPage.s_2c09d41c')}</label>
             <Textarea value={notes} onChange={(e) => setNotes(e.target.value)} rows={4} />
           </div>
           <DialogFooter>
             <Button type="button" variant="outline" onClick={() => setDialogOpen(false)}>
-              انصراف
+              {t('auto.ConsultationsListPage.s_106dfb4e')}
             </Button>
             <Button type="button" onClick={() => void saveConsultation()} disabled={busy || !title.trim()}>
-              ذخیره
+              {t('auto.ConsultationsListPage.s_08545fb6')}
             </Button>
           </DialogFooter>
         </DialogContent>

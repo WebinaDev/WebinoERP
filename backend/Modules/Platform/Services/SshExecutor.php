@@ -2,6 +2,7 @@
 
 namespace Modules\Platform\Services;
 
+use Modules\Core\Entities\CoreInfraAuditLog;
 use Modules\Platform\Entities\PlatformServer;
 use Modules\Platform\Entities\PlatformSshKey;
 use RuntimeException;
@@ -9,7 +10,7 @@ use Symfony\Component\Process\Process;
 
 /**
  * Coolify-style remote execution over SSH.
- * Localhost servers run commands without SSH.
+ * Localhost servers run commands without SSH — gated by PLATFORM_ALLOW_LOCAL_EXEC.
  */
 class SshExecutor
 {
@@ -18,7 +19,13 @@ class SshExecutor
      */
     public function run(PlatformServer $server, string $command, int $timeout = 120): array
     {
+        $this->audit($server, $command);
+
         if ($server->is_localhost || in_array($server->ip, ['127.0.0.1', 'localhost', '::1'], true)) {
+            if (! filter_var(env('PLATFORM_ALLOW_LOCAL_EXEC', false), FILTER_VALIDATE_BOOLEAN)) {
+                throw new RuntimeException('platform.local_exec_disabled');
+            }
+
             return $this->local($command, $timeout);
         }
 
@@ -123,7 +130,8 @@ SH;
      */
     protected function local(string $command, int $timeout): array
     {
-        $process = Process::fromShellCommandline($command);
+        // Array form avoids shell metacharacter surprises from Process::fromShellCommandline.
+        $process = new Process(['sh', '-c', $command]);
         $process->setTimeout($timeout);
         $process->run();
 
@@ -132,5 +140,25 @@ SH;
             'stdout' => $process->getOutput(),
             'stderr' => $process->getErrorOutput(),
         ];
+    }
+
+    protected function audit(PlatformServer $server, string $command): void
+    {
+        try {
+            CoreInfraAuditLog::query()->create([
+                'user_id' => auth()->id(),
+                'channel' => 'platform_ssh',
+                'action' => 'exec',
+                'subject_type' => PlatformServer::class,
+                'subject_id' => $server->id,
+                'payload' => [
+                    'server_ip' => $server->ip,
+                    'is_localhost' => (bool) $server->is_localhost,
+                    'command_preview' => mb_substr($command, 0, 500),
+                ],
+            ]);
+        } catch (\Throwable) {
+            // Audit must never block execution paths that already failed open historically.
+        }
     }
 }

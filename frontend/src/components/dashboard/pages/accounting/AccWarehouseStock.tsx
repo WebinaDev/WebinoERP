@@ -1,5 +1,7 @@
 'use client';
 
+import { useTranslations } from 'next-intl';
+
 import { useState, useCallback, useEffect } from 'react';
 import apiClient from '@/lib/api-client';
 import { getAxiosMessage } from '@/lib/api-helpers';
@@ -40,6 +42,8 @@ function parsePaginated<T>(axiosData: unknown) {
 }
 
 export default function AccWarehouseStock() {
+  const t = useTranslations();
+
   const [warehouses, setWarehouses] = useState<Warehouse[]>([]);
   const [filterWarehouse, setFilterWarehouse] = useState('all');
   const [lowOnly, setLowOnly] = useState(false);
@@ -81,13 +85,13 @@ export default function AccWarehouseStock() {
 
   return (
     <div className="space-y-4">
-      <h2 className="text-lg font-semibold">موجودی انبار</h2>
+      <h2 className="text-lg font-semibold">{t('auto.accounting_AccWarehouseStock.s_a747e3f6')}</h2>
 
       <div className="flex flex-wrap items-center gap-3">
         <Select value={filterWarehouse} onValueChange={setFilterWarehouse}>
-          <SelectTrigger className="w-48"><SelectValue placeholder="انبار" /></SelectTrigger>
+          <SelectTrigger className="w-48"><SelectValue placeholder={t('auto.accounting_AccWarehouseStock.s_3aeb36b5')} /></SelectTrigger>
           <SelectContent>
-            <SelectItem value="all">همه انبارها</SelectItem>
+            <SelectItem value="all">{t('auto.accounting_AccWarehouseStock.s_0a7f24b0')}</SelectItem>
             {warehouses.map((w) => (
               <SelectItem key={w.id} value={String(w.id)}>{w.name}</SelectItem>
             ))}
@@ -97,23 +101,23 @@ export default function AccWarehouseStock() {
         <Button
           variant={lowOnly ? 'default' : 'outline'}
           size="sm"
-          onClick={() => setLowOnly((v) => !v)}
-        >
-          فقط کم‌موجودی
+          onClick={() => setLowOnly((v) => !v)}>
+        
+          {t('auto.accounting_AccWarehouseStock.s_b6f68808')}
         </Button>
       </div>
 
       {error && <p className="text-sm text-destructive">{error}</p>}
-      {loading && <p className="text-sm text-muted-foreground">در حال بارگذاری…</p>}
+      {loading && <p className="text-sm text-muted-foreground">{t('auto.accounting_AccWarehouseStock.s_51617f69')}</p>}
 
       <div className="overflow-x-auto rounded-md border">
         <table className="w-full min-w-[500px] text-sm">
           <thead>
             <tr className="border-b bg-muted/40">
-              <th className="px-3 py-2 text-start font-medium">کالا</th>
-              <th className="px-3 py-2 text-start font-medium">انبار</th>
-              <th className="px-3 py-2 text-start font-medium">موجودی</th>
-              <th className="px-3 py-2 text-start font-medium">نقطه سفارش</th>
+              <th className="px-3 py-2 text-start font-medium">{t('auto.accounting_AccWarehouseStock.s_b764bbd3')}</th>
+              <th className="px-3 py-2 text-start font-medium">{t('auto.accounting_AccWarehouseStock.s_3aeb36b5')}</th>
+              <th className="px-3 py-2 text-start font-medium">{t('auto.accounting_AccWarehouseStock.s_55645b2c')}</th>
+              <th className="px-3 py-2 text-start font-medium">{t('auto.accounting_AccWarehouseStock.s_e8a43611')}</th>
             </tr>
           </thead>
           <tbody>
@@ -137,7 +141,7 @@ export default function AccWarehouseStock() {
             {!loading && rows.length === 0 && (
               <tr>
                 <td colSpan={4} className="px-3 py-6 text-center text-muted-foreground">
-                  موجودی‌ای یافت نشد.
+                  {t('auto.accounting_AccWarehouseStock.s_9d6557ea')}
                 </td>
               </tr>
             )}

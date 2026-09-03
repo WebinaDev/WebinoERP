@@ -1,6 +1,10 @@
 'use client';
 
+import { useTranslations } from 'next-intl';
+
 export function Footer() {
+  const t = useTranslations();
+
   const currentYear = new Date().getFullYear();
 
   return (
@@ -10,8 +14,8 @@ export function Footer() {
           © {currentYear} Webina. All rights reserved.
         </p>
         <p className="font-medium text-primary">
-          طراحی و توسعه توسط{' '}
-          <span className="font-bold">شرکت توسعه کسب و کار وبینا</span>
+          {t('common.developedBy')}{' '}
+          <span className="font-bold">{t('auto.layout_Footer.s_349ad4d2')}</span>
         </p>
       </div>
     </footer>

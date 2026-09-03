@@ -121,7 +121,7 @@ export function CustomersListPage() {
     setBaleErr(null);
     const uid = Number(baleUserId);
     if (!uid) {
-      setBaleErr('شناسه کاربر را وارد کنید.');
+      setBaleErr(t('auto.CustomersListPage.s_0014d034'));
       return;
     }
     try {
@@ -141,7 +141,7 @@ export function CustomersListPage() {
     const owners = rows.filter((r) => ids.includes(Number(r.id)) && r.owner_id).map((r) => Number(r.owner_id));
     const uniq = [...new Set(owners)];
     if (!uniq.length) {
-      setBaleErr('برای ردیف‌های انتخاب‌شده مالک (owner) تعریف نشده است.');
+      setBaleErr(t('auto.CustomersListPage.s_2d4f1263'));
       return;
     }
     try {
@@ -188,7 +188,7 @@ export function CustomersListPage() {
         });
       } else {
         await apiClient.post('/v1/crm/accounts', {
-          name: name || 'مشتری جدید',
+          name: name || t('auto.CustomersListPage.s_d56250b6'),
           type,
           website: website || null,
           description: description || null,
@@ -272,17 +272,17 @@ export function CustomersListPage() {
           />
           <Select value={typeFilter || 'all'} onValueChange={(v) => setTypeFilter(v === 'all' ? '' : v)}>
             <SelectTrigger className="w-[160px]">
-              <SelectValue placeholder="نوع" />
+              <SelectValue placeholder={t('auto.CustomersListPage.s_d2e35a1f')} />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="all">همه انواع</SelectItem>
+              <SelectItem value="all">{t('auto.CustomersListPage.s_9e3d846e')}</SelectItem>
               <SelectItem value="customer">customer</SelectItem>
               <SelectItem value="individual">individual</SelectItem>
               <SelectItem value="company">company</SelectItem>
             </SelectContent>
           </Select>
           <Button type="button" size="sm" variant="secondary" onClick={() => void load()}>
-            اعمال
+            {t('auto.CustomersListPage.s_72513b9f')}
           </Button>
         </div>
 
@@ -384,7 +384,7 @@ export function CustomersListPage() {
         ) : null}
 
         <p className="mt-2 text-xs text-muted-foreground">
-          پیام بله به شناسه کاربر (users) نیاز دارد؛ برای ارسال گروهی، مالک حساب باید تنظیم شده باشد.
+          {t('auto.CustomersListPage.s_4880b302')}
         </p>
       </CardContent>
 
@@ -394,13 +394,13 @@ export function CustomersListPage() {
             <DialogTitle>{t('sendSms')}</DialogTitle>
           </DialogHeader>
           <div className="space-y-2">
-            <Input placeholder="شماره" dir="ltr" value={smsTo} onChange={(e) => setSmsTo(e.target.value)} />
-            <Input placeholder="متن" value={smsBody} onChange={(e) => setSmsBody(e.target.value)} />
+            <Input placeholder={t('auto.CustomersListPage.s_987584a3')} dir="ltr" value={smsTo} onChange={(e) => setSmsTo(e.target.value)} />
+            <Input placeholder={t('auto.CustomersListPage.s_40b31215')} value={smsBody} onChange={(e) => setSmsBody(e.target.value)} />
             {smsErr ? <p className="text-sm text-destructive">{smsErr}</p> : null}
           </div>
           <DialogFooter>
             <Button type="button" onClick={() => void sendSms()}>
-              ارسال
+              {t('auto.CustomersListPage.s_f26c55d9')}
             </Button>
           </DialogFooter>
         </DialogContent>
@@ -409,24 +409,24 @@ export function CustomersListPage() {
       <Dialog open={baleOpen} onOpenChange={setBaleOpen}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>پیام در بله</DialogTitle>
+            <DialogTitle>{t('auto.CustomersListPage.s_27622547')}</DialogTitle>
           </DialogHeader>
           <div className="space-y-2">
             <Input
-              placeholder="شناسه کاربر (users.id)"
+              placeholder={t('auto.CustomersListPage.s_23fedb54')}
               dir="ltr"
               value={baleUserId}
               onChange={(e) => setBaleUserId(e.target.value)}
             />
-            <Textarea placeholder="متن پیام" value={baleMessage} onChange={(e) => setBaleMessage(e.target.value)} rows={3} />
+            <Textarea placeholder={t('auto.CustomersListPage.s_e783d89e')} value={baleMessage} onChange={(e) => setBaleMessage(e.target.value)} rows={3} />
             {baleErr ? <p className="text-sm text-destructive">{baleErr}</p> : null}
           </div>
           <DialogFooter className="gap-2 sm:justify-between">
             <Button type="button" variant="secondary" onClick={() => void sendBaleBulk()}>
-              ارسال به مالک‌های انتخاب‌شده
+              {t('auto.CustomersListPage.s_8b6833f0')}
             </Button>
             <Button type="button" onClick={() => void sendBale()}>
-              ارسال تکی
+              {t('auto.CustomersListPage.s_7f135198')}
             </Button>
           </DialogFooter>
         </DialogContent>
@@ -438,7 +438,7 @@ export function CustomersListPage() {
             <DialogTitle>{editing ? t('edit') : t('newCustomer')}</DialogTitle>
           </DialogHeader>
           <div className="space-y-2">
-            <Input placeholder="نام" value={name} onChange={(e) => setName(e.target.value)} />
+            <Input placeholder={t('auto.CustomersListPage.s_45dd06ba')} value={name} onChange={(e) => setName(e.target.value)} />
             <Select value={type} onValueChange={setType}>
               <SelectTrigger>
                 <SelectValue />
@@ -449,8 +449,8 @@ export function CustomersListPage() {
                 <SelectItem value="company">company</SelectItem>
               </SelectContent>
             </Select>
-            <Input placeholder="وب‌سایت" dir="ltr" value={website} onChange={(e) => setWebsite(e.target.value)} />
-            <Textarea placeholder="توضیحات" value={description} onChange={(e) => setDescription(e.target.value)} rows={3} />
+            <Input placeholder={t('auto.CustomersListPage.s_da1c39d2')} dir="ltr" value={website} onChange={(e) => setWebsite(e.target.value)} />
+            <Textarea placeholder={t('auto.CustomersListPage.s_55bbd4b9')} value={description} onChange={(e) => setDescription(e.target.value)} rows={3} />
             {formErr ? <p className="text-sm text-destructive">{formErr}</p> : null}
           </div>
           <DialogFooter>

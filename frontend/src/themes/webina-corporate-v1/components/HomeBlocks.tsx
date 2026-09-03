@@ -1,4 +1,5 @@
 import Link from 'next/link';
+import { getTranslations } from 'next-intl/server';
 import { Button } from '@/components/ui/button';
 import { siteHref } from '@/lib/public-api-server';
 
@@ -12,11 +13,12 @@ type HomeData = {
   services?: { id: number; slug: string; name: string }[];
 } | null;
 
-export function HomeBlocks({ locale, data }: { locale: string; data: HomeData }) {
-  const name = data?.site?.name ?? 'وبینا';
+export async function HomeBlocks({ locale, data }: { locale: string; data: HomeData }) {
+  const tr = await getTranslations();
+  const name = data?.site?.name ?? tr('site.home.defaultName');
   const desc =
     (data?.site?.branding?.description as string | undefined) ??
-    'راهکارهای دیجیتال برای رشد کسب‌وکار شما';
+    tr('site.home.defaultDesc');
 
   return (
     <>
@@ -26,10 +28,10 @@ export function HomeBlocks({ locale, data }: { locale: string; data: HomeData })
           <p className="text-white/70 mx-auto mt-4 max-w-2xl text-lg">{desc}</p>
           <div className="mt-8 flex flex-wrap justify-center gap-3">
             <Button asChild size="lg" className="bg-[#0066FF] hover:bg-[#0052cc]">
-              <Link href={siteHref(undefined, 'consultation')}>شروع همکاری</Link>
+              <Link href={siteHref(undefined, 'consultation')}>{tr('site.home.start')}</Link>
             </Button>
             <Button asChild variant="outline" size="lg" className="border-white/30 text-white hover:bg-white/10">
-              <Link href={siteHref(undefined, 'portfolio')}>مشاهده نمونه‌کارها</Link>
+              <Link href={siteHref(undefined, 'portfolio')}>{tr('site.home.viewPortfolio')}</Link>
             </Button>
           </div>
         </div>
@@ -38,9 +40,9 @@ export function HomeBlocks({ locale, data }: { locale: string; data: HomeData })
       {(data?.services?.length ?? 0) > 0 ? (
         <section className="container mx-auto px-4 py-16">
           <div className="flex items-end justify-between gap-4">
-            <h2 className="text-2xl font-semibold">خدمات ما</h2>
+            <h2 className="text-2xl font-semibold">{tr('site.home.ourServices')}</h2>
             <Link href={siteHref(undefined, 'services')} className="text-[#0066FF] text-sm hover:underline">
-              همه خدمات
+              {tr('site.home.allServices')}
             </Link>
           </div>
           <div className="mt-6 grid gap-4 md:grid-cols-4">
@@ -60,9 +62,9 @@ export function HomeBlocks({ locale, data }: { locale: string; data: HomeData })
       {(data?.portfolio?.length ?? 0) > 0 ? (
         <section className="container mx-auto px-4 py-16">
           <div className="flex items-end justify-between gap-4">
-            <h2 className="text-2xl font-semibold">نمونه‌کارها</h2>
+            <h2 className="text-2xl font-semibold">{tr('site.home.portfolio')}</h2>
             <Link href={siteHref(undefined, 'portfolio')} className="text-[#0066FF] text-sm hover:underline">
-              همه
+              {tr('site.home.all')}
             </Link>
           </div>
           <div className="mt-6 grid gap-4 md:grid-cols-3">
@@ -85,14 +87,14 @@ export function HomeBlocks({ locale, data }: { locale: string; data: HomeData })
       {(data?.testimonials?.length ?? 0) > 0 ? (
         <section className="bg-muted/30 py-16">
           <div className="container mx-auto px-4">
-            <h2 className="text-2xl font-semibold">نظرات مشتریان</h2>
+            <h2 className="text-2xl font-semibold">{tr('site.home.testimonials')}</h2>
             <div className="mt-6 grid gap-4 md:grid-cols-2">
-              {data!.testimonials.slice(0, 4).map((t) => (
-                <blockquote key={t.id} className="rounded-xl border bg-background p-5 text-sm">
-                  &ldquo;{t.quote}&rdquo;
+              {data!.testimonials.slice(0, 4).map((item) => (
+                <blockquote key={item.id} className="rounded-xl border bg-background p-5 text-sm">
+                  &ldquo;{item.quote}&rdquo;
                   <footer className="mt-3 font-medium">
-                    {t.author}
-                    {t.company ? ` — ${t.company}` : ''}
+                    {item.author}
+                    {item.company ? ` — ${item.company}` : ''}
                   </footer>
                 </blockquote>
               ))}
@@ -105,9 +107,9 @@ export function HomeBlocks({ locale, data }: { locale: string; data: HomeData })
         <section className="border-t py-16">
           <div className="container mx-auto px-4">
             <div className="flex items-end justify-between gap-4">
-              <h2 className="text-2xl font-semibold">آخرین مطالب</h2>
+              <h2 className="text-2xl font-semibold">{tr('site.home.blog')}</h2>
               <Link href={siteHref(undefined, 'blog')} className="text-[#0066FF] text-sm hover:underline">
-                وبلاگ
+                {tr('site.nav.blog')}
               </Link>
             </div>
             <ul className="mt-6 grid gap-4 md:grid-cols-3">

@@ -28,7 +28,10 @@ class AccountingWpActionService
 {
     public function handle(string $action, Request $request): array
     {
-        $p = $request->all();
+        $p = $request->except([
+            'password', 'token', 'authorization', 'cookie', 'current_password',
+            'private_key', 'secret', 'api_key', 'access_token',
+        ]);
 
         return match ($action) {
             'fiscal_years' => ['items' => AccFiscalYear::query()->orderByDesc('starts_on')->get()->all()],

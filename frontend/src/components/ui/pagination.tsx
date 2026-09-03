@@ -1,5 +1,7 @@
 'use client';
 
+import { useTranslations } from 'next-intl';
+
 import { ChevronLeft, ChevronRight } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
@@ -13,6 +15,8 @@ export type PaginationProps = {
 };
 
 export function Pagination({ page, pageCount, total, onPageChange, className }: PaginationProps) {
+  const t = useTranslations();
+
   const canPrev = page > 1;
   const canNext = page < pageCount;
 
@@ -21,20 +25,20 @@ export function Pagination({ page, pageCount, total, onPageChange, className }: 
       <p className="text-muted-foreground">
         {total != null ? (
           <>
-            نمایش صفحه {page} از {pageCount} — {total} مورد
+            {t('common.pageOfItems', { page, pageCount, total })}
           </>
         ) : (
           <>
-            صفحه {page} / {pageCount}
+            {t('common.pageSlash', { page, pageCount })}
           </>
         )}
       </p>
       <div className="flex gap-1">
-        <Button type="button" variant="outline" size="sm" disabled={!canPrev} onClick={() => onPageChange(page - 1)} aria-label="قبلی">
-          <ChevronRight className="h-4 w-4" />
+        <Button type="button" variant="outline" size="sm" disabled={!canPrev} onClick={() => onPageChange(page - 1)} aria-label={t('auto.pagination.s_1a592f6b')}>
+          <ChevronRight className="rtl:rotate-180 h-4 w-4" />
         </Button>
-        <Button type="button" variant="outline" size="sm" disabled={!canNext} onClick={() => onPageChange(page + 1)} aria-label="بعدی">
-          <ChevronLeft className="h-4 w-4" />
+        <Button type="button" variant="outline" size="sm" disabled={!canNext} onClick={() => onPageChange(page + 1)} aria-label={t('auto.pagination.s_54ee927e')}>
+          <ChevronLeft className="rtl:rotate-180 h-4 w-4" />
         </Button>
       </div>
     </div>

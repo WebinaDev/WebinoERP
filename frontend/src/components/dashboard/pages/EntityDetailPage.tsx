@@ -35,22 +35,24 @@ type Props = {
 };
 
 function ProjectDetailView({ data }: { data: Record<string, unknown> }) {
+  const t = useTranslations();
+
   const tasks = (Array.isArray(data.tasks) ? data.tasks : []) as Record<string, unknown>[];
 
   return (
     <div className="space-y-4">
       <Card>
         <CardHeader>
-          <CardTitle className="text-lg">{String(data.name ?? 'پروژه')}</CardTitle>
+          <CardTitle className="text-lg">{String(data.name ?? t('auto.EntityDetailPage.s_55da48c5'))}</CardTitle>
         </CardHeader>
         <CardContent className="space-y-2 text-sm">
           <p>
-            <span className="text-muted-foreground">وضعیت: </span>
+            <span className="text-muted-foreground">{t('auto.EntityDetailPage.s_372c3f95')} </span>
             <Badge variant="secondary">{String(data.status ?? '—')}</Badge>
           </p>
           {data.description ? (
             <p>
-              <span className="text-muted-foreground">توضیحات: </span>
+              <span className="text-muted-foreground">{t('auto.EntityDetailPage.s_d793c505')} </span>
               {String(data.description)}
             </p>
           ) : null}
@@ -58,15 +60,15 @@ function ProjectDetailView({ data }: { data: Record<string, unknown> }) {
       </Card>
       <Card>
         <CardHeader>
-          <CardTitle className="text-base">وظایف ({tasks.length})</CardTitle>
+          <CardTitle className="text-base">{t('common.tasksCount', { count: tasks.length })}</CardTitle>
         </CardHeader>
         <CardContent className="overflow-x-auto">
           <table className="w-full text-sm">
             <thead>
               <tr className="border-b text-muted-foreground">
-                <th className="py-2 text-start">عنوان</th>
-                <th className="py-2 text-start">وضعیت</th>
-                <th className="py-2 text-start">اولویت</th>
+                <th className="py-2 text-start">{t('auto.EntityDetailPage.s_1a9bdb20')}</th>
+                <th className="py-2 text-start">{t('auto.EntityDetailPage.s_55518965')}</th>
+                <th className="py-2 text-start">{t('auto.EntityDetailPage.s_390db738')}</th>
               </tr>
             </thead>
             <tbody>
@@ -80,7 +82,7 @@ function ProjectDetailView({ data }: { data: Record<string, unknown> }) {
               {!tasks.length ? (
                 <tr>
                   <td colSpan={3} className="py-4 text-center text-muted-foreground">
-                    وظیفی ثبت نشده
+                    {t('auto.EntityDetailPage.s_f0dce633')}
                   </td>
                 </tr>
               ) : null}
@@ -90,15 +92,15 @@ function ProjectDetailView({ data }: { data: Record<string, unknown> }) {
       </Card>
       <Card>
         <CardHeader>
-          <CardTitle className="text-base">قراردادها ({((Array.isArray(data.contracts) ? data.contracts : []) as Record<string, unknown>[]).length})</CardTitle>
+          <CardTitle className="text-base">{t('common.contractsCount', { count: ((Array.isArray(data.contracts) ? data.contracts : []) as Record<string, unknown>[]).length })}</CardTitle>
         </CardHeader>
         <CardContent className="overflow-x-auto">
           <table className="w-full text-sm">
             <thead>
               <tr className="border-b text-muted-foreground">
-                <th className="py-2 text-start">عنوان</th>
-                <th className="py-2 text-start">مبلغ</th>
-                <th className="py-2 text-start">وضعیت</th>
+                <th className="py-2 text-start">{t('auto.EntityDetailPage.s_1a9bdb20')}</th>
+                <th className="py-2 text-start">{t('auto.EntityDetailPage.s_f5668e5b')}</th>
+                <th className="py-2 text-start">{t('auto.EntityDetailPage.s_55518965')}</th>
               </tr>
             </thead>
             <tbody>
@@ -112,7 +114,7 @@ function ProjectDetailView({ data }: { data: Record<string, unknown> }) {
               {!((Array.isArray(data.contracts) ? data.contracts : []) as Record<string, unknown>[]).length ? (
                 <tr>
                   <td colSpan={3} className="py-4 text-center text-muted-foreground">
-                    قراردادی ثبت نشده
+                    {t('auto.EntityDetailPage.s_3db70cf0')}
                   </td>
                 </tr>
               ) : null}
@@ -122,15 +124,15 @@ function ProjectDetailView({ data }: { data: Record<string, unknown> }) {
       </Card>
       <Card>
         <CardHeader>
-          <CardTitle className="text-base">تیکت‌ها ({((Array.isArray(data.tickets) ? data.tickets : []) as Record<string, unknown>[]).length})</CardTitle>
+          <CardTitle className="text-base">{t('common.ticketsCount', { count: ((Array.isArray(data.tickets) ? data.tickets : []) as Record<string, unknown>[]).length })}</CardTitle>
         </CardHeader>
         <CardContent className="overflow-x-auto">
           <table className="w-full text-sm">
             <thead>
               <tr className="border-b text-muted-foreground">
-                <th className="py-2 text-start">موضوع</th>
-                <th className="py-2 text-start">وضعیت</th>
-                <th className="py-2 text-start">تاریخ ایجاد</th>
+                <th className="py-2 text-start">{t('auto.EntityDetailPage.s_3931f207')}</th>
+                <th className="py-2 text-start">{t('auto.EntityDetailPage.s_55518965')}</th>
+                <th className="py-2 text-start">{t('auto.EntityDetailPage.s_4b90b688')}</th>
               </tr>
             </thead>
             <tbody>
@@ -144,7 +146,7 @@ function ProjectDetailView({ data }: { data: Record<string, unknown> }) {
               {!((Array.isArray(data.tickets) ? data.tickets : []) as Record<string, unknown>[]).length ? (
                 <tr>
                   <td colSpan={3} className="py-4 text-center text-muted-foreground">
-                    تیکتی ثبت نشده
+                    {t('auto.EntityDetailPage.s_b7853e11')}
                   </td>
                 </tr>
               ) : null}
@@ -157,17 +159,19 @@ function ProjectDetailView({ data }: { data: Record<string, unknown> }) {
 }
 
 function ContractDetailView({ data }: { data: Record<string, unknown> }) {
+  const t = useTranslations();
+
   const installments = (Array.isArray(data.installments) ? data.installments : []) as Record<string, unknown>[];
 
   return (
     <div className="space-y-4">
       <Card>
         <CardHeader>
-          <CardTitle className="text-lg">{String(data.title ?? 'قرارداد')}</CardTitle>
+          <CardTitle className="text-lg">{String(data.title ?? t('auto.EntityDetailPage.s_9b539f3e'))}</CardTitle>
         </CardHeader>
         <CardContent className="space-y-2 text-sm">
           <p>
-            مبلغ: <strong>{String(data.amount ?? '—')}</strong> — وضعیت:{' '}
+            {t('auto.EntityDetailPage.s_752c66d7')} <strong>{String(data.amount ?? '—')}</strong> — {t('common.statusColon')}{' '}
             <Badge variant="secondary">{String(data.status ?? '—')}</Badge>
           </p>
         </CardContent>
@@ -175,15 +179,15 @@ function ContractDetailView({ data }: { data: Record<string, unknown> }) {
       {installments.length > 0 ? (
         <Card>
           <CardHeader>
-            <CardTitle className="text-base">اقساط</CardTitle>
+            <CardTitle className="text-base">{t('auto.EntityDetailPage.s_5e82aa42')}</CardTitle>
           </CardHeader>
           <CardContent className="overflow-x-auto">
             <table className="w-full text-sm">
               <thead>
                 <tr className="border-b">
-                  <th className="py-2 text-start">مبلغ</th>
-                  <th className="py-2 text-start">سررسید</th>
-                  <th className="py-2 text-start">پرداخت</th>
+                  <th className="py-2 text-start">{t('auto.EntityDetailPage.s_f5668e5b')}</th>
+                  <th className="py-2 text-start">{t('auto.EntityDetailPage.s_8b0f305f')}</th>
+                  <th className="py-2 text-start">{t('auto.EntityDetailPage.s_29444d5c')}</th>
                 </tr>
               </thead>
               <tbody>
@@ -205,19 +209,19 @@ function ContractDetailView({ data }: { data: Record<string, unknown> }) {
         return (
           <Card>
             <CardHeader>
-              <CardTitle className="text-base">اطلاعات سرنخ</CardTitle>
+              <CardTitle className="text-base">{t('auto.EntityDetailPage.s_0c9ad868')}</CardTitle>
             </CardHeader>
             <CardContent className="space-y-2 text-sm">
               <p>
-                <span className="text-muted-foreground">موضوع: </span>
+                <span className="text-muted-foreground">{t('auto.EntityDetailPage.s_20974cc2')} </span>
                 {String(lead.topic ?? '—')}
               </p>
               <p>
-                <span className="text-muted-foreground">ایمیل: </span>
+                <span className="text-muted-foreground">{t('auto.EntityDetailPage.s_8b5dcef4')} </span>
                 {String(lead.email ?? '—')}
               </p>
               <p>
-                <span className="text-muted-foreground">موبایل: </span>
+                <span className="text-muted-foreground">{t('auto.EntityDetailPage.s_c583452b')} </span>
                 {String(lead.mobile ?? '—')}
               </p>
             </CardContent>
@@ -272,7 +276,7 @@ export function EntityDetailPage({ root, id }: Props) {
     <div className="rounded-lg border bg-card shadow-sm">
       <div className="border-b px-4 py-3">
         <h2 className="text-sm font-medium">
-          {locale === 'fa' ? `جزئیات ${root} — شناسه ${id}` : `${root} #${id}`}
+          {locale === 'fa' ? t('common.detailTitleFa', { root, id }) : `${root} #${id}`}
         </h2>
         {path ? (
           <p className="text-xs text-muted-foreground mt-1" dir="ltr">

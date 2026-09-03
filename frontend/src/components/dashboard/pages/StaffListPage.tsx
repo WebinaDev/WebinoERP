@@ -1,5 +1,7 @@
 'use client';
 
+import { useTranslations } from 'next-intl';
+
 import { useMemo, useState } from 'react';
 import apiClient from '@/lib/api-client';
 import { getAxiosMessage } from '@/lib/api-helpers';
@@ -27,6 +29,8 @@ import {
 import { ResourceListCard } from '@/components/dashboard/ResourceListCard';
 
 export function StaffListPage() {
+  const t = useTranslations();
+
   const [search, setSearch] = useState('');
   const endpoint = useMemo(() => {
     const q = search.trim();
@@ -119,44 +123,44 @@ export function StaffListPage() {
   return (
     <Card>
       <CardHeader className="flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-center sm:justify-between">
-        <CardTitle>کارکنان</CardTitle>
+        <CardTitle>{t('auto.StaffListPage.s_d784fd69')}</CardTitle>
         <div className="flex w-full flex-col gap-2 sm:w-auto sm:flex-row sm:items-center">
           <Input
-            placeholder="جستجو نام یا ایمیل…"
+            placeholder={t('auto.StaffListPage.s_76963217')}
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             className="sm:w-56"
           />
           <Button type="button" size="sm" onClick={openCreate}>
-            کاربر جدید
+            {t('auto.StaffListPage.s_9e3d546d')}
           </Button>
         </div>
       </CardHeader>
       <CardContent>
         <ResourceListCard
-          title="لیست"
+          title={t('auto.StaffListPage.s_11fe927c')}
           description="GET /api/v1/core/users"
           loading={loading}
           error={error}
           rows={rows}
           columns={[
-            { header: 'شناسه', cell: (r) => String(r.id ?? '—') },
-            { header: 'نام', cell: (r) => String(r.name ?? '—') },
-            { header: 'ایمیل', cell: (r) => String(r.email ?? '—') },
+            { header: t('auto.StaffListPage.s_acc84041'), cell: (r) => String(r.id ?? '—') },
+            { header: t('auto.StaffListPage.s_45dd06ba'), cell: (r) => String(r.name ?? '—') },
+            { header: t('auto.StaffListPage.s_f1ad423d'), cell: (r) => String(r.email ?? '—') },
             {
-              header: 'عملیات',
+              header: t('auto.StaffListPage.s_8d1cc546'),
               cell: (r) => (
                 <div className="flex flex-wrap gap-1">
                   <Button type="button" variant="outline" size="sm" onClick={() => openEdit(r)}>
-                    ویرایش
+                    {t('auto.StaffListPage.s_ac60ae7a')}
                   </Button>
                   <Button
                     type="button"
                     variant="destructive"
                     size="sm"
-                    onClick={() => setDeleteId(Number(r.id))}
-                  >
-                    حذف
+                    onClick={() => setDeleteId(Number(r.id))}>
+                  
+                    {t('auto.StaffListPage.s_2d2bbdc2')}
                   </Button>
                 </div>
               ),
@@ -168,27 +172,27 @@ export function StaffListPage() {
       <Dialog open={createOpen} onOpenChange={setCreateOpen}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>کاربر جدید</DialogTitle>
+            <DialogTitle>{t('auto.StaffListPage.s_9e3d546d')}</DialogTitle>
           </DialogHeader>
           <div className="grid gap-2 py-2">
             {formErr ? <p className="text-sm text-destructive">{formErr}</p> : null}
-            <label className="text-sm font-medium">نام</label>
+            <label className="text-sm font-medium">{t('auto.StaffListPage.s_45dd06ba')}</label>
             <Input value={name} onChange={(e) => setName(e.target.value)} />
-            <label className="text-sm font-medium">ایمیل</label>
+            <label className="text-sm font-medium">{t('auto.StaffListPage.s_f1ad423d')}</label>
             <Input type="email" value={email} onChange={(e) => setEmail(e.target.value)} dir="ltr" />
-            <label className="text-sm font-medium">رمز عبور</label>
+            <label className="text-sm font-medium">{t('auto.StaffListPage.s_9cf5bce9')}</label>
             <Input type="password" value={password} onChange={(e) => setPassword(e.target.value)} dir="ltr" />
           </div>
           <DialogFooter>
             <Button type="button" variant="outline" onClick={() => setCreateOpen(false)}>
-              انصراف
+              {t('auto.StaffListPage.s_106dfb4e')}
             </Button>
             <Button
               type="button"
               onClick={() => void saveCreate()}
-              disabled={busy || !name.trim() || !email.trim() || password.length < 8}
-            >
-              ایجاد
+              disabled={busy || !name.trim() || !email.trim() || password.length < 8}>
+            
+              {t('auto.StaffListPage.s_15802062')}
             </Button>
           </DialogFooter>
         </DialogContent>
@@ -197,23 +201,23 @@ export function StaffListPage() {
       <Dialog open={editOpen} onOpenChange={setEditOpen}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>ویرایش کاربر</DialogTitle>
+            <DialogTitle>{t('auto.StaffListPage.s_f70d7961')}</DialogTitle>
           </DialogHeader>
           <div className="grid gap-2 py-2">
             {formErr ? <p className="text-sm text-destructive">{formErr}</p> : null}
-            <label className="text-sm font-medium">نام</label>
+            <label className="text-sm font-medium">{t('auto.StaffListPage.s_45dd06ba')}</label>
             <Input value={name} onChange={(e) => setName(e.target.value)} />
-            <label className="text-sm font-medium">ایمیل</label>
+            <label className="text-sm font-medium">{t('auto.StaffListPage.s_f1ad423d')}</label>
             <Input type="email" value={email} onChange={(e) => setEmail(e.target.value)} dir="ltr" />
-            <label className="text-sm font-medium">رمز جدید (اختیاری)</label>
+            <label className="text-sm font-medium">{t('auto.StaffListPage.s_9380940a')}</label>
             <Input type="password" value={password} onChange={(e) => setPassword(e.target.value)} dir="ltr" />
           </div>
           <DialogFooter>
             <Button type="button" variant="outline" onClick={() => setEditOpen(false)}>
-              انصراف
+              {t('auto.StaffListPage.s_106dfb4e')}
             </Button>
             <Button type="button" onClick={() => void saveEdit()} disabled={busy}>
-              ذخیره
+              {t('auto.StaffListPage.s_08545fb6')}
             </Button>
           </DialogFooter>
         </DialogContent>
@@ -222,12 +226,12 @@ export function StaffListPage() {
       <AlertDialog open={deleteId !== null} onOpenChange={(o) => !o && setDeleteId(null)}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>حذف کاربر؟</AlertDialogTitle>
-            <AlertDialogDescription>این عمل قابل بازگشت نیست.</AlertDialogDescription>
+            <AlertDialogTitle>{t('auto.StaffListPage.s_0aadf39a')}</AlertDialogTitle>
+            <AlertDialogDescription>{t('auto.StaffListPage.s_23c56c8e')}</AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel>انصراف</AlertDialogCancel>
-            <AlertDialogAction onClick={() => void confirmDelete()}>حذف</AlertDialogAction>
+            <AlertDialogCancel>{t('auto.StaffListPage.s_106dfb4e')}</AlertDialogCancel>
+            <AlertDialogAction onClick={() => void confirmDelete()}>{t('auto.StaffListPage.s_2d2bbdc2')}</AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>

@@ -1,5 +1,7 @@
 'use client';
 
+import { useTranslations } from 'next-intl';
+
 import { useCallback, useEffect, useState } from 'react';
 import apiClient from '@/lib/api-client';
 import { getAxiosMessage, unwrapData } from '@/lib/api-helpers';
@@ -22,6 +24,8 @@ import { Badge } from '@/components/ui/badge';
 type Row = Record<string, unknown>;
 
 export function ServicesListPage() {
+  const t = useTranslations();
+
   const [rows, setRows] = useState<Row[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -101,7 +105,7 @@ export function ServicesListPage() {
     try {
       parsed = JSON.parse(tplJson || '[]');
     } catch {
-      setTplErr('JSON نامعتبر است.');
+      setTplErr(t('common.invalidJsonDot'));
       return;
     }
     try {
@@ -134,13 +138,13 @@ export function ServicesListPage() {
   return (
     <Card>
       <CardHeader>
-        <CardTitle>خدمات و محصولات</CardTitle>
+        <CardTitle>{t('auto.ServicesListPage.s_b39526b6')}</CardTitle>
       </CardHeader>
       <CardContent>
         <Tabs defaultValue="products">
           <TabsList>
-            <TabsTrigger value="products">محصولات</TabsTrigger>
-            <TabsTrigger value="subscriptions">اشتراک (Woo)</TabsTrigger>
+            <TabsTrigger value="products">{t('auto.ServicesListPage.s_83cb78bb')}</TabsTrigger>
+            <TabsTrigger value="subscriptions">{t('auto.ServicesListPage.s_4cdca6e0')}</TabsTrigger>
           </TabsList>
           <TabsContent value="products" className="pt-4 space-y-4">
             <ResourceListCard
@@ -150,14 +154,14 @@ export function ServicesListPage() {
               error={error}
               rows={rows}
               columns={[
-                { header: 'شناسه', cell: (r) => String(r.id ?? '') },
-                { header: 'نام', cell: (r) => String(r.name ?? '') },
+                { header: t('auto.ServicesListPage.s_acc84041'), cell: (r) => String(r.id ?? '') },
+                { header: t('auto.ServicesListPage.s_45dd06ba'), cell: (r) => String(r.name ?? '') },
                 { header: 'SKU', cell: (r) => String(r.sku ?? '—') },
                 {
-                  header: 'الگو',
+                  header: t('auto.ServicesListPage.s_37372d67'),
                   cell: (r) => (
                     <Button type="button" variant="outline" size="sm" onClick={() => openTemplate(r)}>
-                      ویرایش JSON
+                      {t('auto.ServicesListPage.s_82a2f9d8')}
                     </Button>
                   ),
                 },
@@ -175,9 +179,9 @@ export function ServicesListPage() {
                 <thead>
                   <tr className="border-b bg-muted/40">
                     <th className="px-2 py-2 text-start">#</th>
-                    <th className="px-2 py-2 text-start">عنوان</th>
-                    <th className="px-2 py-2 text-start">مبلغ</th>
-                    <th className="px-2 py-2 text-start">وضعیت</th>
+                    <th className="px-2 py-2 text-start">{t('auto.ServicesListPage.s_1a9bdb20')}</th>
+                    <th className="px-2 py-2 text-start">{t('auto.ServicesListPage.s_f5668e5b')}</th>
+                    <th className="px-2 py-2 text-start">{t('auto.ServicesListPage.s_55518965')}</th>
                     <th className="px-2 py-2 text-start"> </th>
                   </tr>
                 </thead>
@@ -185,13 +189,13 @@ export function ServicesListPage() {
                   {subLoading ? (
                     <tr>
                       <td colSpan={5} className="py-6 text-center text-muted-foreground">
-                        بارگذاری…
+                        {t('auto.ServicesListPage.s_fbac73dc')}
                       </td>
                     </tr>
                   ) : subRows.length === 0 ? (
                     <tr>
                       <td colSpan={5} className="py-6 text-center text-muted-foreground">
-                        اشتراکی ثبت نشده (WooCommerce در این محیط فعال نیست)
+                        {t('auto.ServicesListPage.s_ea3cb77d')}
                       </td>
                     </tr>
                   ) : (
@@ -210,11 +214,11 @@ export function ServicesListPage() {
                             variant="secondary"
                             onClick={() => {
                               setConvertId(Number(r.id ?? idx));
-                              setConvertTitle(String(r.title ?? `اشتراک ${idx}`));
+                              setConvertTitle(String(r.title ?? t('common.subscriptionN', { n: idx })));
                               setConvertOpen(true);
-                            }}
-                          >
-                            تبدیل به قرارداد
+                            }}>
+                          
+                            {t('auto.ServicesListPage.s_a317ac98')}
                           </Button>
                         </td>
                       </tr>
@@ -230,9 +234,9 @@ export function ServicesListPage() {
       <Dialog open={tplOpen} onOpenChange={setTplOpen}>
         <DialogContent className="max-w-lg">
           <DialogHeader>
-            <DialogTitle>الگوی وظایف (task_template)</DialogTitle>
+            <DialogTitle>{t('auto.ServicesListPage.s_738dd09e')}</DialogTitle>
           </DialogHeader>
-          <p className="text-xs text-muted-foreground">محصول: {String(tplProduct?.name ?? '')}</p>
+          <p className="text-xs text-muted-foreground">{t('common.productLabel', { name: String(tplProduct?.name ?? '') })}</p>
           <Textarea
             dir="ltr"
             className="min-h-[200px] font-mono text-xs"
@@ -242,7 +246,7 @@ export function ServicesListPage() {
           {tplErr ? <p className="text-sm text-destructive">{tplErr}</p> : null}
           <DialogFooter>
             <Button type="button" onClick={() => void saveTemplate()}>
-              ذخیره
+              {t('auto.ServicesListPage.s_08545fb6')}
             </Button>
           </DialogFooter>
         </DialogContent>
@@ -251,13 +255,13 @@ export function ServicesListPage() {
       <Dialog open={convertOpen} onOpenChange={setConvertOpen}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>تبدیل اشتراک به قرارداد</DialogTitle>
+            <DialogTitle>{t('auto.ServicesListPage.s_bf9c16a3')}</DialogTitle>
           </DialogHeader>
-          <Input placeholder="عنوان قرارداد" value={convertTitle} onChange={(e) => setConvertTitle(e.target.value)} />
+          <Input placeholder={t('auto.ServicesListPage.s_7bae8ca7')} value={convertTitle} onChange={(e) => setConvertTitle(e.target.value)} />
           {convertErr ? <p className="text-sm text-destructive">{convertErr}</p> : null}
           <DialogFooter>
             <Button type="button" onClick={() => void convertSubscription()}>
-              ایجاد قرارداد
+              {t('auto.ServicesListPage.s_b19a8426')}
             </Button>
           </DialogFooter>
         </DialogContent>

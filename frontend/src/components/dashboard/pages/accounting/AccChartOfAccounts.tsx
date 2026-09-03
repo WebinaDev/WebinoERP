@@ -1,5 +1,7 @@
 'use client';
 
+import { useTranslations } from 'next-intl';
+
 import { useCallback, useEffect, useState } from 'react';
 import apiClient from '@/lib/api-client';
 import { unwrapData, getAxiosMessage } from '@/lib/api-helpers';
@@ -23,6 +25,8 @@ type Account = {
 type FiscalYear = { id: number; title: string };
 
 export default function AccChartOfAccounts() {
+  const t = useTranslations();
+
   const [accounts, setAccounts] = useState<Account[]>([]);
   const [fys, setFys] = useState<FiscalYear[]>([]);
   const [fyId, setFyId] = useState('all');
@@ -58,37 +62,37 @@ export default function AccChartOfAccounts() {
   return (
     <div className="space-y-6">
       <div className="flex flex-wrap items-center justify-between gap-2">
-        <h2 className="text-lg font-semibold">نمودار حساب‌ها</h2>
+        <h2 className="text-lg font-semibold">{t('auto.accounting_AccChartOfAccounts.s_a14f1ab2')}</h2>
         <div className="flex items-center gap-2">
           <Select value={fyId} onValueChange={setFyId}>
             <SelectTrigger className="w-48">
-              <SelectValue placeholder="سال مالی" />
+              <SelectValue placeholder={t('auto.accounting_AccChartOfAccounts.s_79432b0c')} />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="all">همه سال‌ها</SelectItem>
+              <SelectItem value="all">{t('auto.accounting_AccChartOfAccounts.s_55bf7b08')}</SelectItem>
               {fys.map((f) => (
                 <SelectItem key={f.id} value={String(f.id)}>{f.title}</SelectItem>
               ))}
             </SelectContent>
           </Select>
           <Button variant="outline" size="sm" onClick={() => void load()} disabled={loading}>
-            بروزرسانی
+            {t('auto.accounting_AccChartOfAccounts.s_182b1c89')}
           </Button>
         </div>
       </div>
 
       {error && <p className="text-sm text-destructive">{error}</p>}
-      {loading && <p className="text-sm text-muted-foreground">در حال بارگذاری…</p>}
+      {loading && <p className="text-sm text-muted-foreground">{t('auto.accounting_AccChartOfAccounts.s_51617f69')}</p>}
 
       {!loading && accounts.length > 0 && (
         <div className="overflow-x-auto rounded-md border">
           <table className="w-full min-w-[600px] text-sm">
             <thead>
               <tr className="border-b bg-muted/40">
-                <th className="px-2 py-2 text-start font-medium">کد</th>
-                <th className="px-2 py-2 text-start font-medium">نام حساب</th>
-                <th className="px-2 py-2 text-start font-medium">نوع</th>
-                <th className="px-2 py-2 text-start font-medium">قابل ثبت</th>
+                <th className="px-2 py-2 text-start font-medium">{t('auto.accounting_AccChartOfAccounts.s_022863c2')}</th>
+                <th className="px-2 py-2 text-start font-medium">{t('auto.accounting_AccChartOfAccounts.s_ddbef6fb')}</th>
+                <th className="px-2 py-2 text-start font-medium">{t('auto.accounting_AccChartOfAccounts.s_d2e35a1f')}</th>
+                <th className="px-2 py-2 text-start font-medium">{t('auto.accounting_AccChartOfAccounts.s_3d8c208d')}</th>
               </tr>
             </thead>
             <tbody>
@@ -101,7 +105,7 @@ export default function AccChartOfAccounts() {
                   <td className="px-2 py-1.5">{a.type}</td>
                   <td className="px-2 py-1.5">
                     <Badge variant={a.is_postable ? 'default' : 'outline'}>
-                      {a.is_postable ? 'بله' : 'خیر'}
+                      {a.is_postable ? t('auto.accounting_AccChartOfAccounts.s_afcb410b') : t('auto.accounting_AccChartOfAccounts.s_a7b8355e')}
                     </Badge>
                   </td>
                 </tr>
@@ -112,7 +116,7 @@ export default function AccChartOfAccounts() {
       )}
 
       {!loading && !error && accounts.length === 0 && (
-        <p className="text-sm text-muted-foreground">حسابی یافت نشد</p>
+        <p className="text-sm text-muted-foreground">{t('auto.accounting_AccChartOfAccounts.s_09a671d4')}</p>
       )}
     </div>
   );

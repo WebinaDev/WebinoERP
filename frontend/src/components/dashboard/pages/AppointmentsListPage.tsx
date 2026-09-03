@@ -190,7 +190,7 @@ export function AppointmentsListPage() {
     setFormErr(null);
     const starts = combineDateTime(startDay, startTime);
     if (!starts) {
-      setFormErr('تاریخ و زمان شروع را کامل کنید.');
+      setFormErr(t('auto.AppointmentsListPage.s_fcca97dd'));
       return;
     }
     const ends = combineDateTime(endDay || startDay, endTime);
@@ -244,29 +244,29 @@ export function AppointmentsListPage() {
       <CardHeader className="flex flex-row flex-wrap items-center justify-between gap-2">
         <CardTitle>{tNav('nav.erp.pm.appointments')}</CardTitle>
         <Button type="button" size="sm" onClick={() => openCreate()}>
-          قرار جدید
+          {t('auto.AppointmentsListPage.s_fa0662ae')}
         </Button>
       </CardHeader>
       <CardContent>
         <Tabs defaultValue="calendar">
           <TabsList>
-            <TabsTrigger value="calendar">تقویم</TabsTrigger>
-            <TabsTrigger value="list">لیست</TabsTrigger>
+            <TabsTrigger value="calendar">{t('auto.AppointmentsListPage.s_9a577560')}</TabsTrigger>
+            <TabsTrigger value="list">{t('auto.AppointmentsListPage.s_11fe927c')}</TabsTrigger>
           </TabsList>
 
           <TabsContent value="calendar" className="space-y-4 pt-4">
             {error ? <p className="text-sm text-destructive">{error}</p> : null}
             <div className="flex items-center justify-between gap-2">
               <Button type="button" variant="outline" size="sm" onClick={prevMonth}>
-                ماه قبل
+                {t('auto.AppointmentsListPage.s_07a098a7')}
               </Button>
               <p className="text-sm font-medium">{monthTitle}</p>
               <Button type="button" variant="outline" size="sm" onClick={nextMonth}>
-                ماه بعد
+                {t('auto.AppointmentsListPage.s_16244ea6')}
               </Button>
             </div>
             <div className="grid grid-cols-7 gap-1 text-center text-xs text-muted-foreground">
-              {['ش', 'ی', 'د', 'س', 'چ', 'پ', 'ج'].map((d) => (
+              {[t('auto.AppointmentsListPage.s_d42b280f'), t('auto.AppointmentsListPage.s_a5714dc8'), t('auto.AppointmentsListPage.s_5cff1093'), t('auto.AppointmentsListPage.s_499cc95f'), t('auto.AppointmentsListPage.s_80e86778'), t('auto.AppointmentsListPage.s_3f7feaa8'), t('auto.AppointmentsListPage.s_e2f45e16')].map((d) => (
                 <div key={d} className="py-1 font-medium">
                   {d}
                 </div>
@@ -305,7 +305,7 @@ export function AppointmentsListPage() {
                 </div>
               ))}
             </div>
-            {loading ? <p className="text-sm text-muted-foreground">بارگذاری…</p> : null}
+            {loading ? <p className="text-sm text-muted-foreground">{t('auto.AppointmentsListPage.s_fbac73dc')}</p> : null}
           </TabsContent>
 
           <TabsContent value="list" className="space-y-2 pt-4">
@@ -314,9 +314,9 @@ export function AppointmentsListPage() {
               <table className="w-full text-sm">
                 <thead>
                   <tr className="border-b bg-muted/40">
-                    <th className="px-2 py-2 text-start">عنوان</th>
-                    <th className="px-2 py-2 text-start">شروع</th>
-                    <th className="px-2 py-2 text-start">وضعیت</th>
+                    <th className="px-2 py-2 text-start">{t('auto.AppointmentsListPage.s_1a9bdb20')}</th>
+                    <th className="px-2 py-2 text-start">{t('auto.AppointmentsListPage.s_079a41a7')}</th>
+                    <th className="px-2 py-2 text-start">{t('auto.AppointmentsListPage.s_55518965')}</th>
                     <th className="px-2 py-2 text-start"> </th>
                   </tr>
                 </thead>
@@ -340,16 +340,16 @@ export function AppointmentsListPage() {
                         <td className="px-2 py-2">
                           <div className="flex flex-wrap gap-1">
                             <Button type="button" variant="ghost" size="sm" onClick={() => openEdit(r)}>
-                              ویرایش
+                              {t('auto.AppointmentsListPage.s_ac60ae7a')}
                             </Button>
                             <Button
                               type="button"
                               variant="ghost"
                               size="sm"
                               className="text-destructive"
-                              onClick={() => setDeleteId(Number(r.id))}
-                            >
-                              حذف
+                              onClick={() => setDeleteId(Number(r.id))}>
+                            
+                              {t('auto.AppointmentsListPage.s_2d2bbdc2')}
                             </Button>
                           </div>
                         </td>
@@ -366,33 +366,33 @@ export function AppointmentsListPage() {
       <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
         <DialogContent className="max-w-md">
           <DialogHeader>
-            <DialogTitle>{editingId ? 'ویرایش قرار' : 'قرار جدید'}</DialogTitle>
+            <DialogTitle>{editingId ? t('auto.AppointmentsListPage.s_161f8310') : t('auto.AppointmentsListPage.s_fa0662ae')}</DialogTitle>
           </DialogHeader>
           <div className="space-y-3">
-            <Input placeholder="عنوان" value={title} onChange={(e) => setTitle(e.target.value)} />
+            <Input placeholder={t('auto.AppointmentsListPage.s_1a9bdb20')} value={title} onChange={(e) => setTitle(e.target.value)} />
             <div className="grid gap-2 sm:grid-cols-2">
               <div>
-                <p className="mb-1 text-xs text-muted-foreground">تاریخ شروع</p>
+                <p className="mb-1 text-xs text-muted-foreground">{t('auto.AppointmentsListPage.s_7f1e4c29')}</p>
                 <LocaleDatePicker value={startDay} onChange={setStartDay} />
               </div>
               <div>
-                <p className="mb-1 text-xs text-muted-foreground">ساعت شروع</p>
+                <p className="mb-1 text-xs text-muted-foreground">{t('auto.AppointmentsListPage.s_e277a8b2')}</p>
                 <Input type="time" value={startTime} onChange={(e) => setStartTime(e.target.value)} dir="ltr" />
               </div>
             </div>
             <div className="grid gap-2 sm:grid-cols-2">
               <div>
-                <p className="mb-1 text-xs text-muted-foreground">تاریخ پایان</p>
+                <p className="mb-1 text-xs text-muted-foreground">{t('auto.AppointmentsListPage.s_d13a2741')}</p>
                 <LocaleDatePicker value={endDay} onChange={setEndDay} />
               </div>
               <div>
-                <p className="mb-1 text-xs text-muted-foreground">ساعت پایان</p>
+                <p className="mb-1 text-xs text-muted-foreground">{t('auto.AppointmentsListPage.s_949b4fda')}</p>
                 <Input type="time" value={endTime} onChange={(e) => setEndTime(e.target.value)} dir="ltr" />
               </div>
             </div>
             <Select value={status} onValueChange={setStatus}>
               <SelectTrigger>
-                <SelectValue placeholder="وضعیت" />
+                <SelectValue placeholder={t('auto.AppointmentsListPage.s_55518965')} />
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="scheduled">scheduled</SelectItem>
@@ -402,7 +402,7 @@ export function AppointmentsListPage() {
             </Select>
             <Select value={customerAccountId || '__none'} onValueChange={(v) => setCustomerAccountId(v === '__none' ? '' : v)}>
               <SelectTrigger>
-                <SelectValue placeholder="مشتری (حساب)" />
+                <SelectValue placeholder={t('auto.AppointmentsListPage.s_01752a0d')} />
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="__none">—</SelectItem>
@@ -413,12 +413,12 @@ export function AppointmentsListPage() {
                 ))}
               </SelectContent>
             </Select>
-            <Textarea placeholder="یادداشت" value={notes} onChange={(e) => setNotes(e.target.value)} rows={3} />
+            <Textarea placeholder={t('auto.AppointmentsListPage.s_2c09d41c')} value={notes} onChange={(e) => setNotes(e.target.value)} rows={3} />
             {formErr ? <p className="text-sm text-destructive">{formErr}</p> : null}
           </div>
           <DialogFooter>
             <Button type="button" onClick={() => void saveAppointment()}>
-              ذخیره
+              {t('auto.AppointmentsListPage.s_08545fb6')}
             </Button>
           </DialogFooter>
         </DialogContent>
@@ -427,12 +427,12 @@ export function AppointmentsListPage() {
       <AlertDialog open={deleteId !== null} onOpenChange={(o) => !o && setDeleteId(null)}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>حذف قرار؟</AlertDialogTitle>
-            <AlertDialogDescription>این عمل قابل بازگشت نیست.</AlertDialogDescription>
+            <AlertDialogTitle>{t('auto.AppointmentsListPage.s_013f7751')}</AlertDialogTitle>
+            <AlertDialogDescription>{t('auto.AppointmentsListPage.s_23c56c8e')}</AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel>انصراف</AlertDialogCancel>
-            <AlertDialogAction onClick={() => void confirmDelete()}>حذف</AlertDialogAction>
+            <AlertDialogCancel>{t('auto.AppointmentsListPage.s_106dfb4e')}</AlertDialogCancel>
+            <AlertDialogAction onClick={() => void confirmDelete()}>{t('auto.AppointmentsListPage.s_2d2bbdc2')}</AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>

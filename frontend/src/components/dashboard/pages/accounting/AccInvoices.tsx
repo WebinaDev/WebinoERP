@@ -1,5 +1,7 @@
 'use client';
 
+import { useTranslations } from 'next-intl';
+
 import { useState, useCallback, useEffect } from 'react';
 import apiClient from '@/lib/api-client';
 import { getAxiosMessage } from '@/lib/api-helpers';
@@ -72,6 +74,8 @@ function parsePaginated<T>(axiosData: unknown) {
 }
 
 export default function AccInvoices() {
+  const t = useTranslations();
+
   const [filterType, setFilterType] = useState('all');
   const [filterStatus, setFilterStatus] = useState('all');
   const [filterFiscalYear, setFilterFiscalYear] = useState('all');
@@ -257,36 +261,36 @@ export default function AccInvoices() {
   return (
     <div className="space-y-4">
       <div className="flex flex-wrap items-center justify-between gap-2">
-        <h2 className="text-lg font-semibold">فاکتورها</h2>
+        <h2 className="text-lg font-semibold">{t('auto.accounting_AccInvoices.s_841c3902')}</h2>
         <Button size="sm" onClick={openCreate}>
-          <Plus className="ml-1 h-4 w-4" />
-          فاکتور جدید
+          <Plus className="ms-1 h-4 w-4" />
+          {t('auto.accounting_AccInvoices.s_1cdb64af')}
         </Button>
       </div>
 
       <div className="flex flex-wrap gap-3">
         <Select value={filterType} onValueChange={setFilterType}>
-          <SelectTrigger className="w-36"><SelectValue placeholder="نوع" /></SelectTrigger>
+          <SelectTrigger className="w-36"><SelectValue placeholder={t('auto.accounting_AccInvoices.s_d2e35a1f')} /></SelectTrigger>
           <SelectContent>
-            <SelectItem value="all">همه</SelectItem>
-            <SelectItem value="sale">فروش</SelectItem>
-            <SelectItem value="purchase">خرید</SelectItem>
+            <SelectItem value="all">{t('auto.accounting_AccInvoices.s_bf742c5a')}</SelectItem>
+            <SelectItem value="sale">{t('auto.accounting_AccInvoices.s_2d4aba45')}</SelectItem>
+            <SelectItem value="purchase">{t('auto.accounting_AccInvoices.s_f0e8215b')}</SelectItem>
           </SelectContent>
         </Select>
 
         <Select value={filterStatus} onValueChange={setFilterStatus}>
-          <SelectTrigger className="w-36"><SelectValue placeholder="وضعیت" /></SelectTrigger>
+          <SelectTrigger className="w-36"><SelectValue placeholder={t('auto.accounting_AccInvoices.s_55518965')} /></SelectTrigger>
           <SelectContent>
-            <SelectItem value="all">همه</SelectItem>
-            <SelectItem value="draft">پیش‌نویس</SelectItem>
-            <SelectItem value="confirmed">تأیید شده</SelectItem>
+            <SelectItem value="all">{t('auto.accounting_AccInvoices.s_bf742c5a')}</SelectItem>
+            <SelectItem value="draft">{t('auto.accounting_AccInvoices.s_7d739ea1')}</SelectItem>
+            <SelectItem value="confirmed">{t('auto.accounting_AccInvoices.s_221e6dfe')}</SelectItem>
           </SelectContent>
         </Select>
 
         <Select value={filterFiscalYear} onValueChange={setFilterFiscalYear}>
-          <SelectTrigger className="w-44"><SelectValue placeholder="سال مالی" /></SelectTrigger>
+          <SelectTrigger className="w-44"><SelectValue placeholder={t('auto.accounting_AccInvoices.s_79432b0c')} /></SelectTrigger>
           <SelectContent>
-            <SelectItem value="all">همه سال‌ها</SelectItem>
+            <SelectItem value="all">{t('auto.accounting_AccInvoices.s_55bf7b08')}</SelectItem>
             {fiscalYears.map((fy) => (
               <SelectItem key={fy.id} value={String(fy.id)}>{fy.title}</SelectItem>
             ))}
@@ -295,19 +299,19 @@ export default function AccInvoices() {
       </div>
 
       {error && <p className="text-sm text-destructive">{error}</p>}
-      {loading && <p className="text-sm text-muted-foreground">در حال بارگذاری…</p>}
+      {loading && <p className="text-sm text-muted-foreground">{t('auto.accounting_AccInvoices.s_51617f69')}</p>}
 
       <div className="overflow-x-auto rounded-md border">
         <table className="w-full min-w-[700px] text-sm">
           <thead>
             <tr className="border-b bg-muted/40">
-              <th className="px-3 py-2 text-start font-medium">شناسه</th>
-              <th className="px-3 py-2 text-start font-medium">شماره</th>
-              <th className="px-3 py-2 text-start font-medium">تاریخ</th>
-              <th className="px-3 py-2 text-start font-medium">شخص</th>
-              <th className="px-3 py-2 text-start font-medium">وضعیت</th>
-              <th className="px-3 py-2 text-start font-medium">مبلغ کل</th>
-              <th className="px-3 py-2 text-start font-medium">عملیات</th>
+              <th className="px-3 py-2 text-start font-medium">{t('auto.accounting_AccInvoices.s_acc84041')}</th>
+              <th className="px-3 py-2 text-start font-medium">{t('auto.accounting_AccInvoices.s_987584a3')}</th>
+              <th className="px-3 py-2 text-start font-medium">{t('auto.accounting_AccInvoices.s_217c8491')}</th>
+              <th className="px-3 py-2 text-start font-medium">{t('auto.accounting_AccInvoices.s_664f8f19')}</th>
+              <th className="px-3 py-2 text-start font-medium">{t('auto.accounting_AccInvoices.s_55518965')}</th>
+              <th className="px-3 py-2 text-start font-medium">{t('auto.accounting_AccInvoices.s_a3510236')}</th>
+              <th className="px-3 py-2 text-start font-medium">{t('auto.accounting_AccInvoices.s_8d1cc546')}</th>
             </tr>
           </thead>
           <tbody>
@@ -319,16 +323,16 @@ export default function AccInvoices() {
                 <td className="px-3 py-1.5">{inv.person?.name ?? '—'}</td>
                 <td className="px-3 py-1.5">
                   <Badge variant={inv.status === 'confirmed' ? 'default' : 'secondary'}>
-                    {inv.status === 'confirmed' ? 'تأیید شده' : 'پیش‌نویس'}
+                    {inv.status === 'confirmed' ? t('auto.accounting_AccInvoices.s_221e6dfe') : t('auto.accounting_AccInvoices.s_7d739ea1')}
                   </Badge>
                 </td>
                 <td className="px-3 py-1.5 tabular-nums">{Number(inv.total).toLocaleString('fa-IR')}</td>
                 <td className="px-3 py-1.5">
                   <div className="flex gap-1">
-                    <Button variant="ghost" size="sm" onClick={() => void openEdit(inv)}>ویرایش</Button>
+                    <Button variant="ghost" size="sm" onClick={() => void openEdit(inv)}>{t('auto.accounting_AccInvoices.s_ac60ae7a')}</Button>
                     {inv.status === 'draft' && (
                       <Button variant="ghost" size="sm" onClick={() => void handleConfirm(inv.id)}>
-                        <Check className="ml-1 h-3.5 w-3.5" /> تأیید
+                        <Check className="ms-1 h-3.5 w-3.5" /> {t('auto.accounting_AccInvoices.s_c484a1fd')}
                       </Button>
                     )}
                     <Button variant="ghost" size="sm" className="text-destructive" onClick={() => setDeleteId(inv.id)}>
@@ -341,7 +345,7 @@ export default function AccInvoices() {
             {!loading && rows.length === 0 && (
               <tr>
                 <td colSpan={7} className="px-3 py-6 text-center text-muted-foreground">
-                  فاکتوری یافت نشد.
+                  {t('auto.accounting_AccInvoices.s_2b573547')}
                 </td>
               </tr>
             )}
@@ -354,37 +358,37 @@ export default function AccInvoices() {
       <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
         <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
-            <DialogTitle>{editingId ? 'ویرایش فاکتور' : 'فاکتور جدید'}</DialogTitle>
-            <DialogDescription>اطلاعات فاکتور را وارد کنید.</DialogDescription>
+            <DialogTitle>{editingId ? t('auto.accounting_AccInvoices.s_ce6168ea') : t('auto.accounting_AccInvoices.s_1cdb64af')}</DialogTitle>
+            <DialogDescription>{t('auto.accounting_AccInvoices.s_eb4e6792')}</DialogDescription>
           </DialogHeader>
 
           <div className="grid grid-cols-2 gap-3">
             <div className="space-y-1">
-              <label className="text-sm font-medium">نوع</label>
+              <label className="text-sm font-medium">{t('auto.accounting_AccInvoices.s_d2e35a1f')}</label>
               <Select value={formType} onValueChange={setFormType}>
                 <SelectTrigger><SelectValue /></SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="sale">فروش</SelectItem>
-                  <SelectItem value="purchase">خرید</SelectItem>
+                  <SelectItem value="sale">{t('auto.accounting_AccInvoices.s_2d4aba45')}</SelectItem>
+                  <SelectItem value="purchase">{t('auto.accounting_AccInvoices.s_f0e8215b')}</SelectItem>
                 </SelectContent>
               </Select>
             </div>
             <div className="space-y-1">
-              <label className="text-sm font-medium">شماره</label>
-              <Input value={formNumber} onChange={(e) => setFormNumber(e.target.value)} placeholder="شماره فاکتور" />
+              <label className="text-sm font-medium">{t('auto.accounting_AccInvoices.s_987584a3')}</label>
+              <Input value={formNumber} onChange={(e) => setFormNumber(e.target.value)} placeholder={t('auto.accounting_AccInvoices.s_60bcecba')} />
             </div>
             <div className="space-y-1">
-              <label className="text-sm font-medium">تاریخ</label>
+              <label className="text-sm font-medium">{t('auto.accounting_AccInvoices.s_217c8491')}</label>
               <LocaleDatePicker value={formDate} onChange={setFormDate} />
             </div>
             <div className="space-y-1">
-              <label className="text-sm font-medium">شناسه شخص</label>
-              <Input value={formPersonId} onChange={(e) => setFormPersonId(e.target.value)} placeholder="شناسه طرف حساب" />
+              <label className="text-sm font-medium">{t('auto.accounting_AccInvoices.s_31ba4f4a')}</label>
+              <Input value={formPersonId} onChange={(e) => setFormPersonId(e.target.value)} placeholder={t('auto.accounting_AccInvoices.s_891cdd44')} />
             </div>
             <div className="space-y-1">
-              <label className="text-sm font-medium">سال مالی</label>
+              <label className="text-sm font-medium">{t('auto.accounting_AccInvoices.s_79432b0c')}</label>
               <Select value={formFiscalYearId} onValueChange={setFormFiscalYearId}>
-                <SelectTrigger><SelectValue placeholder="انتخاب…" /></SelectTrigger>
+                <SelectTrigger><SelectValue placeholder={t('auto.accounting_AccInvoices.s_3ddd45eb')} /></SelectTrigger>
                 <SelectContent>
                   {fiscalYears.map((fy) => (
                     <SelectItem key={fy.id} value={String(fy.id)}>{fy.title}</SelectItem>
@@ -396,15 +400,15 @@ export default function AccInvoices() {
 
           <div className="space-y-2">
             <div className="flex items-center justify-between">
-              <label className="text-sm font-medium">اقلام فاکتور</label>
+              <label className="text-sm font-medium">{t('auto.accounting_AccInvoices.s_325f37bc')}</label>
               <Button type="button" variant="outline" size="sm" onClick={addItem}>
-                <Plus className="ml-1 h-3.5 w-3.5" /> سطر جدید
+                <Plus className="ms-1 h-3.5 w-3.5" /> {t('auto.accounting_AccInvoices.s_ffd73187')}
               </Button>
             </div>
             {formItems.map((item, idx) => (
               <div key={idx} className="flex items-end gap-2 rounded-md border p-2">
                 <div className="w-44 space-y-1">
-                  <label className="text-xs text-muted-foreground">کالا</label>
+                  <label className="text-xs text-muted-foreground">{t('auto.accounting_AccInvoices.s_b764bbd3')}</label>
                   <Select
                     value={item.product_id || 'none'}
                     onValueChange={(value) => {
@@ -420,10 +424,10 @@ export default function AccInvoices() {
                     }}
                   >
                     <SelectTrigger>
-                      <SelectValue placeholder="انتخاب کالا" />
+                      <SelectValue placeholder={t('auto.accounting_AccInvoices.s_3f2db1c8')} />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="none">بدون کالا</SelectItem>
+                      <SelectItem value="none">{t('auto.accounting_AccInvoices.s_f26988ba')}</SelectItem>
                       {products.map((p) => (
                         <SelectItem key={p.id} value={String(p.id)}>
                           {p.title ?? p.name ?? `#${p.id}`}
@@ -433,19 +437,19 @@ export default function AccInvoices() {
                   </Select>
                 </div>
                 <div className="flex-1 space-y-1">
-                  <label className="text-xs text-muted-foreground">شرح</label>
+                  <label className="text-xs text-muted-foreground">{t('auto.accounting_AccInvoices.s_b11813ac')}</label>
                   <Input value={item.description} onChange={(e) => updateItem(idx, 'description', e.target.value)} />
                 </div>
                 <div className="w-20 space-y-1">
-                  <label className="text-xs text-muted-foreground">تعداد</label>
+                  <label className="text-xs text-muted-foreground">{t('auto.accounting_AccInvoices.s_687f8df3')}</label>
                   <Input value={item.quantity} onChange={(e) => updateItem(idx, 'quantity', e.target.value)} />
                 </div>
                 <div className="w-28 space-y-1">
-                  <label className="text-xs text-muted-foreground">قیمت واحد</label>
+                  <label className="text-xs text-muted-foreground">{t('auto.accounting_AccInvoices.s_3709c4a6')}</label>
                   <Input value={item.unit_price} onChange={(e) => updateItem(idx, 'unit_price', e.target.value)} />
                 </div>
                 <div className="w-24 space-y-1">
-                  <label className="text-xs text-muted-foreground">تخفیف</label>
+                  <label className="text-xs text-muted-foreground">{t('auto.accounting_AccInvoices.s_27a37044')}</label>
                   <Input value={item.discount} onChange={(e) => updateItem(idx, 'discount', e.target.value)} />
                 </div>
                 <Button variant="ghost" size="sm" className="text-destructive" onClick={() => removeItem(idx)} disabled={formItems.length <= 1}>
@@ -454,18 +458,18 @@ export default function AccInvoices() {
               </div>
             ))}
             <p className="text-sm font-medium">
-              جمع کل: <span className="tabular-nums">{computedTotal.toLocaleString('fa-IR')}</span>
+              {t('auto.accounting_AccInvoices.s_3201170f')} <span className="tabular-nums">{computedTotal.toLocaleString('fa-IR')}</span>
             </p>
           </div>
 
           <div className="space-y-1">
-            <label className="text-sm font-medium">یادداشت</label>
+            <label className="text-sm font-medium">{t('auto.accounting_AccInvoices.s_2c09d41c')}</label>
             <Textarea value={formNotes} onChange={(e) => setFormNotes(e.target.value)} rows={2} />
           </div>
 
           <DialogFooter>
             <Button onClick={handleSave} disabled={saving}>
-              {saving ? 'در حال ذخیره…' : 'ذخیره'}
+              {saving ? t('auto.accounting_AccInvoices.s_4b7554d6') : t('auto.accounting_AccInvoices.s_08545fb6')}
             </Button>
           </DialogFooter>
         </DialogContent>
@@ -474,13 +478,13 @@ export default function AccInvoices() {
       <AlertDialog open={deleteId !== null} onOpenChange={(o) => { if (!o) setDeleteId(null); }}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>حذف فاکتور</AlertDialogTitle>
-            <AlertDialogDescription>آیا از حذف این فاکتور اطمینان دارید؟ این عمل قابل بازگشت نیست.</AlertDialogDescription>
+            <AlertDialogTitle>{t('auto.accounting_AccInvoices.s_7655633d')}</AlertDialogTitle>
+            <AlertDialogDescription>{t('auto.accounting_AccInvoices.s_c0471e97')}</AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel disabled={deleting}>انصراف</AlertDialogCancel>
+            <AlertDialogCancel disabled={deleting}>{t('auto.accounting_AccInvoices.s_106dfb4e')}</AlertDialogCancel>
             <AlertDialogAction onClick={handleDelete} disabled={deleting}>
-              {deleting ? 'در حال حذف…' : 'حذف'}
+              {deleting ? t('auto.accounting_AccInvoices.s_da0ab3a0') : t('auto.accounting_AccInvoices.s_2d2bbdc2')}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

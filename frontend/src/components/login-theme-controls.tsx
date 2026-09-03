@@ -16,7 +16,7 @@ export function LoginThemeControls({ isRtl = false }: LoginThemeControlsProps) {
 
   return (
     <div className="absolute top-4 z-20">
-      <div className={`text-xs text-muted-foreground ${isRtl ? 'right-4' : 'left-4'}`}>
+      <div className={`text-xs text-muted-foreground ${isRtl ? 'end-4' : 'start-4'}`}>
         {siteName}
       </div>
     </div>

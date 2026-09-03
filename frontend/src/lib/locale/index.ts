@@ -21,7 +21,6 @@ export {
   formatNumber,
   formatNumber as formatNumberShared,
   isRtlLocale,
-  isRtlLocale as isRtlLocaleShared,
   normalizeUiLocale,
   toLatinDigits,
   toLocaleDigits,
@@ -33,9 +32,12 @@ export function htmlDir(locale?: string | null): "rtl" | "ltr" {
 }
 
 /**
- * Physical side for shadcn Sidebar / Sheet / dropdowns.
- * Farsi: right. English: left.
+ * Physical side for libraries that only accept left/right (e.g. shadcn Sidebar).
+ * Prefer logical CSS elsewhere.
  */
-export function sidebarSide(locale?: string | null): "left" | "right" {
+export function physicalAlign(locale?: string | null): "left" | "right" {
   return isRtlLocale(locale) ? "right" : "left"
 }
+
+/** @deprecated Use physicalAlign */
+export const sidebarSide = physicalAlign;

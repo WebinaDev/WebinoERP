@@ -1,5 +1,7 @@
 'use client';
 
+import { useTranslations } from 'next-intl';
+
 import { useState, useCallback, useEffect } from 'react';
 import apiClient from '@/lib/api-client';
 import { normalizeListPayload } from '@/lib/list-utils';
@@ -45,6 +47,8 @@ const BLANK = {
 };
 
 export default function AccReceipts() {
+  const t = useTranslations();
+
   const [rows, setRows] = useState<Receipt[]>([]);
   const [page, setPage] = useState(1);
   const [pageCount, setPageCount] = useState(1);
@@ -159,39 +163,39 @@ export default function AccReceipts() {
     <div className="space-y-4">
       <div className="flex flex-wrap items-center gap-2">
         <Select value={filterType || 'all'} onValueChange={v => setFilterType(v === 'all' ? '' : v)}>
-          <SelectTrigger className="w-36"><SelectValue placeholder="نوع" /></SelectTrigger>
+          <SelectTrigger className="w-36"><SelectValue placeholder={t('auto.accounting_AccReceipts.s_d2e35a1f')} /></SelectTrigger>
           <SelectContent>
-            <SelectItem value="all">همه انواع</SelectItem>
-            <SelectItem value="receipt">دریافت</SelectItem>
-            <SelectItem value="payment">پرداخت</SelectItem>
+            <SelectItem value="all">{t('auto.accounting_AccReceipts.s_9e3d846e')}</SelectItem>
+            <SelectItem value="receipt">{t('auto.accounting_AccReceipts.s_6afda7e1')}</SelectItem>
+            <SelectItem value="payment">{t('auto.accounting_AccReceipts.s_29444d5c')}</SelectItem>
           </SelectContent>
         </Select>
         <Select value={filterStatus || 'all'} onValueChange={v => setFilterStatus(v === 'all' ? '' : v)}>
-          <SelectTrigger className="w-36"><SelectValue placeholder="وضعیت" /></SelectTrigger>
+          <SelectTrigger className="w-36"><SelectValue placeholder={t('auto.accounting_AccReceipts.s_55518965')} /></SelectTrigger>
           <SelectContent>
-            <SelectItem value="all">همه وضعیت‌ها</SelectItem>
-            <SelectItem value="draft">پیش‌نویس</SelectItem>
-            <SelectItem value="posted">ثبت شده</SelectItem>
+            <SelectItem value="all">{t('auto.accounting_AccReceipts.s_7552ab35')}</SelectItem>
+            <SelectItem value="draft">{t('auto.accounting_AccReceipts.s_7d739ea1')}</SelectItem>
+            <SelectItem value="posted">{t('auto.accounting_AccReceipts.s_1223f269')}</SelectItem>
           </SelectContent>
         </Select>
         <div className="flex-1" />
-        <Button size="sm" onClick={openCreate}>+ ایجاد</Button>
+        <Button size="sm" onClick={openCreate}>{t('auto.accounting_AccReceipts.s_e34fff4e')}</Button>
       </div>
 
       {error && <p className="text-sm text-destructive">{error}</p>}
-      {loading && <p className="text-sm text-muted-foreground">در حال بارگذاری…</p>}
+      {loading && <p className="text-sm text-muted-foreground">{t('auto.accounting_AccReceipts.s_51617f69')}</p>}
 
       <div className="overflow-x-auto rounded-md border">
         <table className="w-full text-sm">
           <thead>
             <tr className="border-b bg-muted/40">
-              <th className="px-3 py-2 text-start font-medium">شناسه</th>
-              <th className="px-3 py-2 text-start font-medium">شماره</th>
-              <th className="px-3 py-2 text-start font-medium">تاریخ</th>
-              <th className="px-3 py-2 text-start font-medium">نوع</th>
-              <th className="px-3 py-2 text-start font-medium">مبلغ</th>
-              <th className="px-3 py-2 text-start font-medium">وضعیت</th>
-              <th className="px-3 py-2 text-start font-medium">عملیات</th>
+              <th className="px-3 py-2 text-start font-medium">{t('auto.accounting_AccReceipts.s_acc84041')}</th>
+              <th className="px-3 py-2 text-start font-medium">{t('auto.accounting_AccReceipts.s_987584a3')}</th>
+              <th className="px-3 py-2 text-start font-medium">{t('auto.accounting_AccReceipts.s_217c8491')}</th>
+              <th className="px-3 py-2 text-start font-medium">{t('auto.accounting_AccReceipts.s_d2e35a1f')}</th>
+              <th className="px-3 py-2 text-start font-medium">{t('auto.accounting_AccReceipts.s_f5668e5b')}</th>
+              <th className="px-3 py-2 text-start font-medium">{t('auto.accounting_AccReceipts.s_55518965')}</th>
+              <th className="px-3 py-2 text-start font-medium">{t('auto.accounting_AccReceipts.s_8d1cc546')}</th>
             </tr>
           </thead>
           <tbody>
@@ -200,24 +204,24 @@ export default function AccReceipts() {
                 <td className="px-3 py-2">{row.id}</td>
                 <td className="px-3 py-2">{row.number}</td>
                 <td className="px-3 py-2">{row.date}</td>
-                <td className="px-3 py-2">{row.type === 'payment' ? 'پرداخت' : 'دریافت'}</td>
+                <td className="px-3 py-2">{row.type === 'payment' ? t('auto.accounting_AccReceipts.s_29444d5c') : t('auto.accounting_AccReceipts.s_6afda7e1')}</td>
                 <td className="px-3 py-2">{Number(row.amount).toLocaleString()}</td>
                 <td className="px-3 py-2">
                   <Badge variant={row.status === 'posted' ? 'default' : 'outline'}>
-                    {row.status === 'posted' ? 'ثبت شده' : 'پیش‌نویس'}
+                    {row.status === 'posted' ? t('auto.accounting_AccReceipts.s_1223f269') : t('auto.accounting_AccReceipts.s_7d739ea1')}
                   </Badge>
                 </td>
-                <td className="px-3 py-2 space-x-1 rtl:space-x-reverse">
+                <td className="px-3 py-2 gap-x-1 rtl:gap-x-reverse">
                   {row.status === 'draft' && (
-                    <Button variant="outline" size="sm" onClick={() => postReceipt(row.id)}>ثبت</Button>
+                    <Button variant="outline" size="sm" onClick={() => postReceipt(row.id)}>{t('auto.accounting_AccReceipts.s_28fa93e8')}</Button>
                   )}
-                  <Button variant="ghost" size="sm" onClick={() => openEdit(row)}>ویرایش</Button>
-                  <Button variant="ghost" size="sm" className="text-destructive" onClick={() => setDeleteTarget(row)}>حذف</Button>
+                  <Button variant="ghost" size="sm" onClick={() => openEdit(row)}>{t('auto.accounting_AccReceipts.s_ac60ae7a')}</Button>
+                  <Button variant="ghost" size="sm" className="text-destructive" onClick={() => setDeleteTarget(row)}>{t('auto.accounting_AccReceipts.s_2d2bbdc2')}</Button>
                 </td>
               </tr>
             ))}
             {!loading && rows.length === 0 && (
-              <tr><td colSpan={7} className="px-3 py-4 text-center text-muted-foreground">موردی یافت نشد</td></tr>
+              <tr><td colSpan={7} className="px-3 py-4 text-center text-muted-foreground">{t('auto.accounting_AccReceipts.s_35e7797d')}</td></tr>
             )}
           </tbody>
         </table>
@@ -230,59 +234,59 @@ export default function AccReceipts() {
       <Dialog open={formOpen} onOpenChange={setFormOpen}>
         <DialogContent className="max-h-[90vh] overflow-y-auto">
           <DialogHeader>
-            <DialogTitle>{editing ? 'ویرایش رسید' : 'ایجاد رسید'}</DialogTitle>
-            <DialogDescription>{editing ? 'اطلاعات رسید را ویرایش کنید' : 'اطلاعات رسید جدید را وارد کنید'}</DialogDescription>
+            <DialogTitle>{editing ? t('auto.accounting_AccReceipts.s_76bb9e81') : t('auto.accounting_AccReceipts.s_efdad094')}</DialogTitle>
+            <DialogDescription>{editing ? t('auto.accounting_AccReceipts.s_2eb8486e') : t('auto.accounting_AccReceipts.s_3e098575')}</DialogDescription>
           </DialogHeader>
           <div className="grid gap-3">
             <div>
-              <label className="mb-1 block text-sm font-medium">نوع</label>
+              <label className="mb-1 block text-sm font-medium">{t('auto.accounting_AccReceipts.s_d2e35a1f')}</label>
               <Select value={form.type} onValueChange={v => setForm({ ...form, type: v })}>
                 <SelectTrigger><SelectValue /></SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="receipt">دریافت</SelectItem>
-                  <SelectItem value="payment">پرداخت</SelectItem>
+                  <SelectItem value="receipt">{t('auto.accounting_AccReceipts.s_6afda7e1')}</SelectItem>
+                  <SelectItem value="payment">{t('auto.accounting_AccReceipts.s_29444d5c')}</SelectItem>
                 </SelectContent>
               </Select>
             </div>
             <div>
-              <label className="mb-1 block text-sm font-medium">شماره</label>
+              <label className="mb-1 block text-sm font-medium">{t('auto.accounting_AccReceipts.s_987584a3')}</label>
               <Input value={form.number} onChange={e => setForm({ ...form, number: e.target.value })} />
             </div>
             <div>
-              <label className="mb-1 block text-sm font-medium">تاریخ</label>
+              <label className="mb-1 block text-sm font-medium">{t('auto.accounting_AccReceipts.s_217c8491')}</label>
               <LocaleDatePicker value={form.date || undefined} onChange={v => setForm({ ...form, date: v })} />
             </div>
             <div>
-              <label className="mb-1 block text-sm font-medium">مبلغ</label>
+              <label className="mb-1 block text-sm font-medium">{t('auto.accounting_AccReceipts.s_f5668e5b')}</label>
               <Input type="number" value={form.amount} onChange={e => setForm({ ...form, amount: e.target.value })} />
             </div>
             <div>
-              <label className="mb-1 block text-sm font-medium">شخص (شناسه)</label>
+              <label className="mb-1 block text-sm font-medium">{t('auto.accounting_AccReceipts.s_8c1d4b9c')}</label>
               <Input value={form.person_id} onChange={e => setForm({ ...form, person_id: e.target.value })} />
             </div>
             <div>
-              <label className="mb-1 block text-sm font-medium">حساب بانکی (شناسه)</label>
+              <label className="mb-1 block text-sm font-medium">{t('auto.accounting_AccReceipts.s_e0f7e29a')}</label>
               <Input value={form.cash_account_id} onChange={e => setForm({ ...form, cash_account_id: e.target.value })} />
             </div>
             <div>
-              <label className="mb-1 block text-sm font-medium">توضیحات</label>
+              <label className="mb-1 block text-sm font-medium">{t('auto.accounting_AccReceipts.s_55bbd4b9')}</label>
               <Input value={form.description} onChange={e => setForm({ ...form, description: e.target.value })} />
             </div>
             <div>
-              <label className="mb-1 block text-sm font-medium">وضعیت</label>
+              <label className="mb-1 block text-sm font-medium">{t('auto.accounting_AccReceipts.s_55518965')}</label>
               <Select value={form.status} onValueChange={v => setForm({ ...form, status: v })}>
                 <SelectTrigger><SelectValue /></SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="draft">پیش‌نویس</SelectItem>
-                  <SelectItem value="posted">ثبت شده</SelectItem>
+                  <SelectItem value="draft">{t('auto.accounting_AccReceipts.s_7d739ea1')}</SelectItem>
+                  <SelectItem value="posted">{t('auto.accounting_AccReceipts.s_1223f269')}</SelectItem>
                 </SelectContent>
               </Select>
             </div>
             {formError && <p className="text-sm text-destructive">{formError}</p>}
           </div>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setFormOpen(false)}>انصراف</Button>
-            <Button onClick={save} disabled={saving}>{saving ? 'در حال ذخیره…' : 'ذخیره'}</Button>
+            <Button variant="outline" onClick={() => setFormOpen(false)}>{t('auto.accounting_AccReceipts.s_106dfb4e')}</Button>
+            <Button onClick={save} disabled={saving}>{saving ? t('auto.accounting_AccReceipts.s_4b7554d6') : t('auto.accounting_AccReceipts.s_08545fb6')}</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
@@ -290,12 +294,12 @@ export default function AccReceipts() {
       <AlertDialog open={!!deleteTarget} onOpenChange={open => { if (!open) setDeleteTarget(null); }}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>حذف رسید</AlertDialogTitle>
-            <AlertDialogDescription>آیا از حذف رسید شماره «{deleteTarget?.number}» اطمینان دارید؟</AlertDialogDescription>
+            <AlertDialogTitle>{t('auto.accounting_AccReceipts.s_aad2c499')}</AlertDialogTitle>
+            <AlertDialogDescription>{t('common.confirmDeleteReceipt', { number: deleteTarget?.number })}</AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel>انصراف</AlertDialogCancel>
-            <AlertDialogAction onClick={handleDelete}>حذف</AlertDialogAction>
+            <AlertDialogCancel>{t('auto.accounting_AccReceipts.s_106dfb4e')}</AlertDialogCancel>
+            <AlertDialogAction onClick={handleDelete}>{t('auto.accounting_AccReceipts.s_2d2bbdc2')}</AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>

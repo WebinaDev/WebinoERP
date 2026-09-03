@@ -1,3 +1,4 @@
+import { getTranslations } from 'next-intl/server';
 import { resolveServerLocale } from '@/lib/server-translations';
 import { apiServer } from '@/lib/public-api-server';
 export const revalidate = 60;
@@ -10,12 +11,14 @@ type CmsPageData = {
 }
 
 export default async function CmsPage({ params }: { params: Promise<{ slug: string }> }) {
+  const t = await getTranslations();
+
   const { slug } = await params;
   const locale = await resolveServerLocale();
 
   let page: CmsPageData | null = null;
   try { const res = await apiServer<{ data: CmsPageData }>(`/v1/public/pages/${slug}`); page = res.data; } catch {}
-  if (!page) return <div className="container mx-auto px-4 py-12">صفحه یافت نشد.</div>;
+  if (!page) return <div className="container mx-auto px-4 py-12">{t('auto._site___slug__page.s_3590a8c2')}</div>;
   const title = locale === 'en' && page.title_en ? page.title_en : page.title_fa ?? '';
   const body = locale === 'en' && page.body_en ? page.body_en : page.body_fa ?? '';
   return (

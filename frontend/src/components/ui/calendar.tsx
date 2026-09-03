@@ -14,11 +14,11 @@ function Calendar({ className, classNames, showOutsideDays = true, ...props }: C
       showOutsideDays={showOutsideDays}
       className={cn('p-3', className)}
       classNames={{
-        months: 'flex flex-col sm:flex-row space-y-4 sm:space-x-4 sm:space-y-0',
+        months: 'flex flex-col sm:flex-row space-y-4 sm:gap-x-4 sm:space-y-0',
         month: 'space-y-4',
         caption: 'flex justify-center pt-1 relative items-center',
         caption_label: 'text-sm font-medium',
-        nav: 'space-x-1 flex items-center',
+        nav: 'gap-x-1 flex items-center',
         nav_button: cn(buttonVariants({ variant: 'outline' }), 'h-7 w-7 bg-transparent p-0 opacity-50 hover:opacity-100'),
         nav_button_previous: 'absolute start-1',
         nav_button_next: 'absolute end-1',
@@ -38,8 +38,8 @@ function Calendar({ className, classNames, showOutsideDays = true, ...props }: C
         ...classNames,
       }}
       components={{
-        IconLeft: () => <ChevronLeft className="h-4 w-4" />,
-        IconRight: () => <ChevronRight className="h-4 w-4" />,
+        IconLeft: () => <ChevronLeft className="rtl:rotate-180 h-4 w-4" />,
+        IconRight: () => <ChevronRight className="rtl:rotate-180 h-4 w-4" />,
       }}
       {...props}
     />

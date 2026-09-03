@@ -18,9 +18,9 @@ Route::post('/payments/verify', [PaymentIntegrationController::class, 'verify'])
 
 Route::post('/bale/messages', [BaleIntegrationController::class, 'sendMessage'])->middleware(['auth:sanctum', 'module:integrations', 'module.permission:integrations']);
 Route::post('/bale/messages/bulk', [BaleIntegrationController::class, 'sendBulkMessage'])->middleware(['auth:sanctum', 'module:integrations', 'module.permission:integrations']);
-Route::post('/bale/webhook', [BaleIntegrationController::class, 'webhook']);
+Route::post('/bale/webhook', [BaleIntegrationController::class, 'webhook'])->middleware('throttle:60,1');
 
-Route::post('/telegram/webhook', [TelegramIntegrationController::class, 'webhook']);
+Route::post('/telegram/webhook', [TelegramIntegrationController::class, 'webhook'])->middleware('throttle:60,1');
 Route::post('/telegram/send', [TelegramIntegrationController::class, 'send'])->middleware(['auth:sanctum', 'module:integrations', 'module.permission:integrations']);
 
 Route::prefix('modirpayamak')->middleware(['auth:sanctum', 'module:integrations', 'module.permission:integrations'])->group(function () {

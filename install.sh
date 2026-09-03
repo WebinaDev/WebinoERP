@@ -56,14 +56,41 @@ run_apt_get() {
   fi
 }
 
+# Always apply production overlay for server installs (APP_ENV=production, APP_DEBUG=false).
+COMPOSE_FILES=(-f docker-compose.yml -f docker-compose.prod.yml)
+
 compose_cli() {
   if docker compose version >/dev/null 2>&1 && docker info >/dev/null 2>&1; then
-    docker compose "$@"
+    docker compose "${COMPOSE_FILES[@]}" "$@"
   elif docker compose version >/dev/null 2>&1; then
-    run_cmd docker compose "$@"
+    run_cmd docker compose "${COMPOSE_FILES[@]}" "$@"
   else
     echo "ERROR: Docker Compose v2 is not available." >&2
     exit 1
+  fi
+}
+
+rand_secret() {
+  local len="${1:-32}"
+  local out
+  out="$(openssl rand -hex "$((len / 2))" 2>/dev/null | tr -d '\n' || true)"
+  if [ -z "${out}" ]; then
+    out="$(tr -dc 'A-Za-z0-9' </dev/urandom | head -c "${len}" 2>/dev/null || true)"
+  fi
+  echo "${out:-webinoChangeMe$(date +%s)}"
+}
+
+ensure_env_key() {
+  # ensure_env_key FILE KEY VALUE — set KEY=VALUE if missing or empty/default
+  local file="$1" key="$2" value="$3"
+  if grep -qE "^${key}=(.+)$" "${file}" 2>/dev/null \
+    && ! grep -qE "^${key}=(CHANGE_ME|postgres|webino|webino-key|webino-secret|changeme)?$" "${file}" 2>/dev/null; then
+    return 0
+  fi
+  if grep -qE "^${key}=" "${file}" 2>/dev/null; then
+    sed -i.bak "s|^${key}=.*|${key}=${value}|" "${file}"
+  else
+    printf '\n%s=%s\n' "${key}" "${value}" >> "${file}"
   fi
 }
 
@@ -262,45 +289,80 @@ cd "${INSTALL_DIR}/WebinoERP"
 [ -f frontend/.env ]    || cp frontend/.env.example frontend/.env
 [ -f frontend/.env.local ] || cp frontend/.env.example frontend/.env.local
 
-# ── randomise DB password on first install ────────────────────────────────────
-PASS="$(tr -dc 'A-Za-z0-9' </dev/urandom | head -c 24 2>/dev/null || true)"
-PASS="${PASS:-webinoChangeMe999}"
+# ── randomise secrets on first install ────────────────────────────────────────
+PASS="$(rand_secret 24)"
+REDIS_PASS="$(rand_secret 32)"
+REVERB_SECRET="$(rand_secret 32)"
+REVERB_KEY="$(rand_secret 16)"
 
-_has_default_pass() {
-  grep -qE "^POSTGRES_PASSWORD=(postgres|webino|changeme)?$" .env 2>/dev/null
-}
-
-if _has_default_pass; then
-  sed -i.bak "s/^POSTGRES_PASSWORD=.*/POSTGRES_PASSWORD=${PASS}/" .env
-fi
+ensure_env_key .env POSTGRES_PASSWORD "${PASS}"
+ensure_env_key .env REDIS_PASSWORD "${REDIS_PASS}"
+ensure_env_key .env REVERB_APP_SECRET "${REVERB_SECRET}"
+ensure_env_key .env REVERB_APP_KEY "${REVERB_KEY}"
+ensure_env_key .env REVERB_APP_ID "webino"
 
 # Ensure sane default user / db name
 grep -q "^POSTGRES_USER=postgres$" .env && \
   sed -i.bak 's/^POSTGRES_USER=.*/POSTGRES_USER=webino/' .env
+ensure_env_key .env POSTGRES_USER "webino"
+ensure_env_key .env POSTGRES_DB "webina_crm"
 
-grep -q "^POSTGRES_DB=" .env && \
-  sed -i.bak 's/^POSTGRES_DB=.*/POSTGRES_DB=webina_crm/' .env
-
-# ── HTTP port in root .env ────────────────────────────────────────────────────
+# ── HTTP port in root .env (canonical names; keep NGINX_* aliases in sync) ────
 if grep -q "^WEB_HTTP_PORT=" .env; then
   sed -i.bak "s/^WEB_HTTP_PORT=.*/WEB_HTTP_PORT=${WEB_HTTP_PORT}/" .env
 else
   printf '\nWEB_HTTP_PORT=%s\nWEB_HTTPS_PORT=%s\n' "${WEB_HTTP_PORT}" "${WEB_HTTPS_PORT}" >> .env
+fi
+if grep -q "^WEB_HTTPS_PORT=" .env; then
+  sed -i.bak "s/^WEB_HTTPS_PORT=.*/WEB_HTTPS_PORT=${WEB_HTTPS_PORT}/" .env
+fi
+# Sync deprecated NGINX_* aliases so docs/.env.example stay coherent
+if grep -q "^NGINX_HTTP_PORT=" .env; then
+  sed -i.bak "s/^NGINX_HTTP_PORT=.*/NGINX_HTTP_PORT=${WEB_HTTP_PORT}/" .env
+fi
+if grep -q "^NGINX_HTTPS_PORT=" .env; then
+  sed -i.bak "s/^NGINX_HTTPS_PORT=.*/NGINX_HTTPS_PORT=${WEB_HTTPS_PORT}/" .env
 fi
 
 # ── sync credentials into backend/.env ───────────────────────────────────────
 DB_PASS="$(grep "^POSTGRES_PASSWORD=" .env | cut -d= -f2-)"
 DB_USER="$(grep "^POSTGRES_USER="     .env | cut -d= -f2-)"
 DB_NAME="$(grep "^POSTGRES_DB="       .env | cut -d= -f2-)"
+REDIS_PASS="$(grep "^REDIS_PASSWORD=" .env | cut -d= -f2-)"
+REVERB_SECRET="$(grep "^REVERB_APP_SECRET=" .env | cut -d= -f2-)"
+REVERB_KEY="$(grep "^REVERB_APP_KEY=" .env | cut -d= -f2-)"
+REVERB_ID="$(grep "^REVERB_APP_ID=" .env | cut -d= -f2-)"
+
+# Production defaults for server installs
+SESSION_SECURE="false"
+case "${APP_URL}" in
+  https://*) SESSION_SECURE="true" ;;
+esac
 
 sed -i.bak \
   -e "s|^APP_URL=.*|APP_URL=${APP_URL}|" \
+  -e "s|^APP_ENV=.*|APP_ENV=production|" \
+  -e "s|^APP_DEBUG=.*|APP_DEBUG=false|" \
   -e "s|^DB_DATABASE=.*|DB_DATABASE=${DB_NAME}|" \
   -e "s|^DB_USERNAME=.*|DB_USERNAME=${DB_USER}|" \
   -e "s|^DB_PASSWORD=.*|DB_PASSWORD=${DB_PASS}|" \
   -e "s|^DB_HOST=.*|DB_HOST=db|" \
   -e "s|^REDIS_HOST=.*|REDIS_HOST=redis|" \
+  -e "s|^REDIS_PASSWORD=.*|REDIS_PASSWORD=${REDIS_PASS}|" \
+  -e "s|^SESSION_SECURE_COOKIE=.*|SESSION_SECURE_COOKIE=${SESSION_SECURE}|" \
+  -e "s|^REVERB_APP_ID=.*|REVERB_APP_ID=${REVERB_ID}|" \
+  -e "s|^REVERB_APP_KEY=.*|REVERB_APP_KEY=${REVERB_KEY}|" \
+  -e "s|^REVERB_APP_SECRET=.*|REVERB_APP_SECRET=${REVERB_SECRET}|" \
+  -e "s|^LOG_LEVEL=.*|LOG_LEVEL=error|" \
   backend/.env
+
+# Ensure keys exist even if .env.example lacked them
+ensure_env_key backend/.env APP_ENV production
+ensure_env_key backend/.env APP_DEBUG false
+ensure_env_key backend/.env REDIS_PASSWORD "${REDIS_PASS}"
+ensure_env_key backend/.env SESSION_SECURE_COOKIE "${SESSION_SECURE}"
+ensure_env_key backend/.env REVERB_APP_SECRET "${REVERB_SECRET}"
+ensure_env_key backend/.env REVERB_APP_KEY "${REVERB_KEY}"
 
 # ── ensure required Laravel directories exist and are writable ────────────────
 log "Ensuring Laravel storage & cache directories…"
@@ -311,7 +373,14 @@ mkdir -p \
   backend/storage/framework/sessions \
   backend/storage/framework/views \
   backend/storage/logs
-chmod -R 777 backend/bootstrap/cache backend/storage 2>/dev/null || true
+chmod -R 775 backend/bootstrap/cache backend/storage 2>/dev/null || true
+# Match PHP container user (www-data = 33) when possible
+if id www-data >/dev/null 2>&1; then
+  run_cmd chown -R www-data:www-data backend/bootstrap/cache backend/storage 2>/dev/null || \
+    chown -R 33:33 backend/bootstrap/cache backend/storage 2>/dev/null || true
+else
+  chown -R 33:33 backend/bootstrap/cache backend/storage 2>/dev/null || true
+fi
 chmod +x docker/php/entrypoint.sh docker/php/entrypoint-platform.sh 2>/dev/null || true
 
 # ── build backend image first (needed for composer + key:generate) ────────────
@@ -321,7 +390,8 @@ compose_cli build backend
 # ── composer install (inside backend image, no network to db needed) ──────────
 log "Installing PHP dependencies (composer via Docker — no DB needed here)"
 compose_cli run --rm -T --no-deps \
-  -e APP_ENV=local \
+  -e APP_ENV=production \
+  -e APP_DEBUG=false \
   -e DB_HOST=localhost \
   --entrypoint composer backend \
   install --no-interaction --prefer-dist --no-dev </dev/null

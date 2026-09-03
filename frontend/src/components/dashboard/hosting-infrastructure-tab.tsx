@@ -388,7 +388,7 @@ export function HostingInfrastructureTab() {
                       <tr key={id} className="border-b">
                         <td className="px-2 py-2 font-mono">{id}</td>
                         <td className="px-2 py-2">{name}</td>
-                        <td className="px-2 py-2 space-x-1 whitespace-nowrap">
+                        <td className="px-2 py-2 gap-x-1 whitespace-nowrap">
                           <Button type="button" variant="outline" size="sm" onClick={() => void stackAct(id, 'start')}>
                             start
                           </Button>

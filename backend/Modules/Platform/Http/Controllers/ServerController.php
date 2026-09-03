@@ -32,12 +32,22 @@ class ServerController extends Controller
             'ssh_key_id' => 'nullable|exists:platform_ssh_keys,id',
             'is_localhost' => 'nullable|boolean',
         ]);
+
+        $isLocalhost = (bool) ($data['is_localhost'] ?? false)
+            || in_array($data['ip'], ['127.0.0.1', 'localhost', '::1'], true);
+
+        if ($isLocalhost && ! $request->user()?->hasRole('system_manager')) {
+            return $this->fail('platform.localhost_forbidden', 403);
+        }
+
         $server = PlatformServer::query()->create([
-            ...$data,
+            'name' => $data['name'],
+            'ip' => $data['ip'],
             'port' => $data['port'] ?? 22,
             'user' => $data['user'] ?? 'root',
+            'ssh_key_id' => $data['ssh_key_id'] ?? null,
             'status' => 'pending',
-            'is_localhost' => (bool) ($data['is_localhost'] ?? false),
+            'is_localhost' => $isLocalhost && $request->user()?->hasRole('system_manager'),
         ]);
         return $this->ok($server, status: 201);
     }
@@ -184,8 +194,14 @@ class ServerController extends Controller
 
     public function terminalExec(Request $request, PlatformServer $server): JsonResponse
     {
+        abort_unless($request->user()?->hasRole('system_manager'), 403);
+
         $cmd = $request->validate(['command' => 'required|string|max:2000'])['command'];
-        return $this->ok($this->ssh->run($server, $cmd, 60));
+        try {
+            return $this->ok($this->ssh->run($server, $cmd, 60));
+        } catch (Throwable $e) {
+            return $this->fail($e->getMessage(), 422);
+        }
     }
 
     protected function ok(mixed $data, int $status = 200): JsonResponse
