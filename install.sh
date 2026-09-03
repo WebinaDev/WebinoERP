@@ -7,6 +7,7 @@
 #
 # Auto-installs when missing: git, curl, ca-certificates, Docker Engine + Compose v2 plugin.
 set -euo pipefail
+trap 'echo "ERROR: install.sh failed at line ${LINENO} (exit $?)" >&2' ERR
 
 # ─────────────────────────── configuration ────────────────────────────────────
 ERP_REPO="${ERP_REPO:-https://github.com/WebinaDev/WebinoERP.git}"
@@ -318,24 +319,25 @@ compose_cli build backend
 
 # ── composer install (inside backend image, no network to db needed) ──────────
 log "Installing PHP dependencies (composer via Docker — no DB needed here)"
-compose_cli run --rm --no-deps \
+compose_cli run --rm -T --no-deps \
   -e APP_ENV=local \
   -e DB_HOST=localhost \
   --entrypoint composer backend \
-  install --no-interaction --prefer-dist --no-dev
+  install --no-interaction --prefer-dist --no-dev </dev/null
 
-# ── APP_KEY ───────────────────────────────────────────────────────────────────
+# ── APP_KEY (openssl — no artisan boot, no extra container) ───────────────────
 if ! grep -q "^APP_KEY=base64:" backend/.env; then
   log "Generating APP_KEY"
-  compose_cli run --rm --no-deps \
-    -e APP_ENV=local \
-    -e DB_HOST=localhost \
-    --entrypoint php backend artisan key:generate --force
+  KEY="$(openssl rand -base64 32 2>/dev/null | tr -d '\n' || true)"
+  if [ -z "${KEY}" ]; then
+    KEY="$(head -c 32 /dev/urandom | base64 | tr -d '\n')"
+  fi
+  sed -i.bak "s|^APP_KEY=.*|APP_KEY=base64:${KEY}|" backend/.env
 fi
 
 # ── build & start all containers ──────────────────────────────────────────────
 log "Building and starting all Docker services (this may take several minutes)…"
-compose_cli up -d --build --no-recreate 2>/dev/null || compose_cli up -d --build
+compose_cli up -d --build --remove-orphans
 
 # ── wait for Postgres to be healthy ──────────────────────────────────────────
 log "Waiting for database to become ready…"

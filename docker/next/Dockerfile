@@ -28,7 +28,9 @@ ENV NODE_ENV=production
 ENV NEXT_TELEMETRY_DISABLED=1
 ARG INTERNAL_API_URL=http://backend:8080
 ENV INTERNAL_API_URL=${INTERNAL_API_URL}
-RUN addgroup --system --gid 1001 nodejs && adduser --system --uid 1001 nextjs
+RUN apk add --no-cache wget \
+    && addgroup --system --gid 1001 nodejs \
+    && adduser --system --uid 1001 nextjs
 COPY --from=builder /src/WebinoERP/frontend/public ./public
 COPY --from=builder --chown=nextjs:nodejs /src/WebinoERP/frontend/.next/standalone ./
 COPY --from=builder --chown=nextjs:nodejs /src/WebinoERP/frontend/.next/static ./.next/static
