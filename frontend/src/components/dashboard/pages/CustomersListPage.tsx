@@ -72,6 +72,14 @@ export function CustomersListPage() {
 
   const [selected, setSelected] = useState<Record<number, boolean>>({});
 
+  function typeLabel(value: unknown): string {
+    const raw = String(value ?? '').toLowerCase();
+    if (raw === 'individual') return t('typeIndividual');
+    if (raw === 'company') return t('typeCompany');
+    if (raw === 'customer') return t('typeCustomer');
+    return raw || tCommon('emptyValue');
+  }
+
   const load = useCallback(async () => {
     setLoading(true);
     setError(null);
@@ -121,7 +129,7 @@ export function CustomersListPage() {
     setBaleErr(null);
     const uid = Number(baleUserId);
     if (!uid) {
-      setBaleErr(t('auto.CustomersListPage.s_0014d034'));
+      setBaleErr(t('userIdRequired'));
       return;
     }
     try {
@@ -141,7 +149,7 @@ export function CustomersListPage() {
     const owners = rows.filter((r) => ids.includes(Number(r.id)) && r.owner_id).map((r) => Number(r.owner_id));
     const uniq = [...new Set(owners)];
     if (!uniq.length) {
-      setBaleErr(t('auto.CustomersListPage.s_2d4f1263'));
+      setBaleErr(t('ownerRequired'));
       return;
     }
     try {
@@ -188,7 +196,7 @@ export function CustomersListPage() {
         });
       } else {
         await apiClient.post('/v1/crm/accounts', {
-          name: name || t('auto.CustomersListPage.s_d56250b6'),
+          name: name || t('newCustomer'),
           type,
           website: website || null,
           description: description || null,
@@ -233,7 +241,7 @@ export function CustomersListPage() {
             {t('sendSms')}
           </Button>
           <Button type="button" size="sm" onClick={() => setBaleOpen(true)}>
-            Bale
+            {t('bale')}
           </Button>
           <Button type="button" size="sm" onClick={() => openCreate()}>
             {t('newCustomer')}
@@ -272,17 +280,17 @@ export function CustomersListPage() {
           />
           <Select value={typeFilter || 'all'} onValueChange={(v) => setTypeFilter(v === 'all' ? '' : v)}>
             <SelectTrigger className="w-[160px]">
-              <SelectValue placeholder={t('auto.CustomersListPage.s_d2e35a1f')} />
+              <SelectValue placeholder={t('type')} />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="all">{t('auto.CustomersListPage.s_9e3d846e')}</SelectItem>
-              <SelectItem value="customer">customer</SelectItem>
-              <SelectItem value="individual">individual</SelectItem>
-              <SelectItem value="company">company</SelectItem>
+              <SelectItem value="all">{t('allTypes')}</SelectItem>
+              <SelectItem value="customer">{t('typeCustomer')}</SelectItem>
+              <SelectItem value="individual">{t('typeIndividual')}</SelectItem>
+              <SelectItem value="company">{t('typeCompany')}</SelectItem>
             </SelectContent>
           </Select>
           <Button type="button" size="sm" variant="secondary" onClick={() => void load()}>
-            {t('auto.CustomersListPage.s_72513b9f')}
+            {t('apply')}
           </Button>
         </div>
 
@@ -294,7 +302,7 @@ export function CustomersListPage() {
                 <th className="px-2 py-2 text-start">
                   <input
                     type="checkbox"
-                    aria-label="select all on page"
+                    aria-label={t('selectAll')}
                     onChange={(e) => {
                       const on = e.target.checked;
                       const next: Record<number, boolean> = { ...selected };
@@ -343,7 +351,7 @@ export function CustomersListPage() {
                         </Avatar>
                       </td>
                       <td className="px-3 py-2">{nameStr}</td>
-                      <td className="px-3 py-2">{String(r.type ?? '—')}</td>
+                      <td className="px-3 py-2">{typeLabel(r.type)}</td>
                       <td className="px-3 py-2">{String(r.owner_id ?? '—')}</td>
                       <td className="px-3 py-2">
                         <div className="flex flex-wrap gap-1">
@@ -384,7 +392,7 @@ export function CustomersListPage() {
         ) : null}
 
         <p className="mt-2 text-xs text-muted-foreground">
-          {t('auto.CustomersListPage.s_4880b302')}
+          {t('baleHint')}
         </p>
       </CardContent>
 
@@ -394,13 +402,13 @@ export function CustomersListPage() {
             <DialogTitle>{t('sendSms')}</DialogTitle>
           </DialogHeader>
           <div className="space-y-2">
-            <Input placeholder={t('auto.CustomersListPage.s_987584a3')} dir="ltr" value={smsTo} onChange={(e) => setSmsTo(e.target.value)} />
-            <Input placeholder={t('auto.CustomersListPage.s_40b31215')} value={smsBody} onChange={(e) => setSmsBody(e.target.value)} />
+            <Input placeholder={t('smsPhone')} dir="ltr" value={smsTo} onChange={(e) => setSmsTo(e.target.value)} />
+            <Input placeholder={t('message')} value={smsBody} onChange={(e) => setSmsBody(e.target.value)} />
             {smsErr ? <p className="text-sm text-destructive">{smsErr}</p> : null}
           </div>
           <DialogFooter>
             <Button type="button" onClick={() => void sendSms()}>
-              {t('auto.CustomersListPage.s_f26c55d9')}
+              {t('send')}
             </Button>
           </DialogFooter>
         </DialogContent>
@@ -409,24 +417,24 @@ export function CustomersListPage() {
       <Dialog open={baleOpen} onOpenChange={setBaleOpen}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>{t('auto.CustomersListPage.s_27622547')}</DialogTitle>
+            <DialogTitle>{t('baleTitle')}</DialogTitle>
           </DialogHeader>
           <div className="space-y-2">
             <Input
-              placeholder={t('auto.CustomersListPage.s_23fedb54')}
+              placeholder={t('baleUserId')}
               dir="ltr"
               value={baleUserId}
               onChange={(e) => setBaleUserId(e.target.value)}
             />
-            <Textarea placeholder={t('auto.CustomersListPage.s_e783d89e')} value={baleMessage} onChange={(e) => setBaleMessage(e.target.value)} rows={3} />
+            <Textarea placeholder={t('message')} value={baleMessage} onChange={(e) => setBaleMessage(e.target.value)} rows={3} />
             {baleErr ? <p className="text-sm text-destructive">{baleErr}</p> : null}
           </div>
           <DialogFooter className="gap-2 sm:justify-between">
             <Button type="button" variant="secondary" onClick={() => void sendBaleBulk()}>
-              {t('auto.CustomersListPage.s_8b6833f0')}
+              {t('sendSelected')}
             </Button>
             <Button type="button" onClick={() => void sendBale()}>
-              {t('auto.CustomersListPage.s_7f135198')}
+              {t('sendSingle')}
             </Button>
           </DialogFooter>
         </DialogContent>
@@ -438,19 +446,19 @@ export function CustomersListPage() {
             <DialogTitle>{editing ? t('edit') : t('newCustomer')}</DialogTitle>
           </DialogHeader>
           <div className="space-y-2">
-            <Input placeholder={t('auto.CustomersListPage.s_45dd06ba')} value={name} onChange={(e) => setName(e.target.value)} />
+            <Input placeholder={t('name')} value={name} onChange={(e) => setName(e.target.value)} />
             <Select value={type} onValueChange={setType}>
               <SelectTrigger>
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="customer">customer</SelectItem>
-                <SelectItem value="individual">individual</SelectItem>
-                <SelectItem value="company">company</SelectItem>
+                <SelectItem value="customer">{t('typeCustomer')}</SelectItem>
+                <SelectItem value="individual">{t('typeIndividual')}</SelectItem>
+                <SelectItem value="company">{t('typeCompany')}</SelectItem>
               </SelectContent>
             </Select>
-            <Input placeholder={t('auto.CustomersListPage.s_da1c39d2')} dir="ltr" value={website} onChange={(e) => setWebsite(e.target.value)} />
-            <Textarea placeholder={t('auto.CustomersListPage.s_55bbd4b9')} value={description} onChange={(e) => setDescription(e.target.value)} rows={3} />
+            <Input placeholder={t('website')} dir="ltr" value={website} onChange={(e) => setWebsite(e.target.value)} />
+            <Textarea placeholder={t('description')} value={description} onChange={(e) => setDescription(e.target.value)} rows={3} />
             {formErr ? <p className="text-sm text-destructive">{formErr}</p> : null}
           </div>
           <DialogFooter>

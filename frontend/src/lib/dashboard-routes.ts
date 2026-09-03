@@ -140,6 +140,57 @@ const EXACT: Record<string, DashboardRouteMeta> = {
     group: 'admin',
     apiHint: '/webinocrm/v1/hosting/settings',
   },
+  core: { titleFa: 'هسته سیستم', titleEn: 'Core', group: 'core' },
+  crm: { titleFa: 'ارتباط با مشتری', titleEn: 'CRM', group: 'crm' },
+  hrm: { titleFa: 'منابع انسانی', titleEn: 'HR', group: 'hrm' },
+  pm: { titleFa: 'مدیریت پروژه', titleEn: 'Projects', group: 'pm' },
+  scm: { titleFa: 'زنجیره تأمین', titleEn: 'Supply chain', group: 'scm' },
+  sales: { titleFa: 'فروش', titleEn: 'Sales', group: 'sales' },
+  docs: { titleFa: 'اسناد', titleEn: 'Documents', group: 'docs' },
+  admin: { titleFa: 'سیستم و تنظیمات', titleEn: 'Administration', group: 'admin' },
+  marketing: { titleFa: 'سایت عمومی', titleEn: 'Public site', group: 'core' },
+  accounting: { titleFa: 'حسابداری', titleEn: 'Accounting', group: 'accounting' },
+  integrations: { titleFa: 'یکپارچگی‌ها', titleEn: 'Integrations', group: 'integrations' },
+  'crm/deals': { titleFa: 'معاملات', titleEn: 'Deals', group: 'crm' },
+  'crm/pipelines': { titleFa: 'قیف‌های فروش', titleEn: 'Pipelines', group: 'crm' },
+  'admin/platform': { titleFa: 'پلتفرم', titleEn: 'Platform', group: 'admin' },
+  'admin/platform/servers': { titleFa: 'سرورها', titleEn: 'Servers', group: 'admin' },
+  'admin/platform/projects': { titleFa: 'پروژه‌های پلتفرم', titleEn: 'Platform projects', group: 'admin' },
+  'admin/platform/resources': { titleFa: 'منابع', titleEn: 'Resources', group: 'admin' },
+  'admin/platform/resources/new': { titleFa: 'منبع جدید', titleEn: 'New resource', group: 'admin' },
+  'admin/platform/services': { titleFa: 'سرویس‌ها', titleEn: 'Services', group: 'admin' },
+  'admin/platform/sources': { titleFa: 'منابع کد', titleEn: 'Sources', group: 'admin' },
+  'admin/platform/storages': { titleFa: 'ذخیره‌سازی', titleEn: 'Storages', group: 'admin' },
+  'admin/platform/backups': { titleFa: 'پشتیبان‌ها', titleEn: 'Backups', group: 'admin' },
+  'admin/platform/keys': { titleFa: 'کلیدها', titleEn: 'Keys', group: 'admin' },
+  'admin/platform/tokens': { titleFa: 'توکن‌ها', titleEn: 'Tokens', group: 'admin' },
+  'admin/platform/variables': { titleFa: 'متغیرها', titleEn: 'Variables', group: 'admin' },
+  'admin/platform/tags': { titleFa: 'برچسب‌ها', titleEn: 'Tags', group: 'admin' },
+  'admin/platform/notifications': { titleFa: 'اعلان‌ها', titleEn: 'Notifications', group: 'admin' },
+  'admin/platform/terminal': { titleFa: 'ترمینال', titleEn: 'Terminal', group: 'admin' },
+  'admin/platform/settings': { titleFa: 'تنظیمات پلتفرم', titleEn: 'Platform settings', group: 'admin' },
+  'admin/site-builder': { titleFa: 'سازنده سایت', titleEn: 'Site builder', group: 'admin' },
+  'admin/site-builder/catalog': { titleFa: 'کاتالوگ', titleEn: 'Catalog', group: 'admin' },
+  'admin/site-builder/provisions': { titleFa: 'سایت‌ها', titleEn: 'Sites', group: 'admin' },
+  'admin/site-builder/provisions/new': { titleFa: 'سایت جدید', titleEn: 'New site', group: 'admin' },
+  'admin/marketplace': { titleFa: 'بازارچه', titleEn: 'Marketplace', group: 'admin' },
+  'admin/marketplace/themes': { titleFa: 'پوسته‌ها', titleEn: 'Themes', group: 'admin' },
+  'admin/integrations': { titleFa: 'یکپارچگی‌ها', titleEn: 'Integrations', group: 'integrations' },
+  'admin/analytics': { titleFa: 'آمار', titleEn: 'Analytics', group: 'admin' },
+  'marketing/pages': { titleFa: 'برگه‌ها', titleEn: 'Pages', group: 'core' },
+  'marketing/magazine': { titleFa: 'مجله', titleEn: 'Magazine', group: 'core' },
+  'marketing/media': { titleFa: 'رسانه', titleEn: 'Media', group: 'core' },
+  'marketing/blog': { titleFa: 'بلاگ', titleEn: 'Blog', group: 'core' },
+  'marketing/academy': { titleFa: 'آکادمی', titleEn: 'Academy', group: 'core' },
+  'marketing/portfolio': { titleFa: 'نمونه کار', titleEn: 'Portfolio', group: 'core' },
+  'marketing/faq': { titleFa: 'پرسش‌ها', titleEn: 'FAQ', group: 'core' },
+  'marketing/services': { titleFa: 'خدمات', titleEn: 'Services', group: 'core' },
+  'marketing/solutions': { titleFa: 'راه‌حل‌ها', titleEn: 'Solutions', group: 'core' },
+  'marketing/team': { titleFa: 'تیم', titleEn: 'Team', group: 'core' },
+  'marketing/announcements': { titleFa: 'اطلاعیه‌ها', titleEn: 'Announcements', group: 'core' },
+  'marketing/testimonials': { titleFa: 'نظرات', titleEn: 'Testimonials', group: 'core' },
+  'marketing/downloads': { titleFa: 'دانلودها', titleEn: 'Downloads', group: 'core' },
+  documents: { titleFa: 'اسناد', titleEn: 'Documents', group: 'docs' },
 };
 
 const DETAIL_ROOTS: Record<string, DashboardRouteMeta> = {
@@ -188,12 +239,41 @@ export function resolveDashboardRoute(path: string): DashboardRouteMeta {
       }
     }
   }
+  const slug = parts[parts.length - 1] ?? normalized;
+  const prefix = PREFIX_LABELS[slug] ?? PREFIX_LABELS[parts[0] ?? ''];
+  if (prefix) {
+    return { ...prefix, apiHint: '—' };
+  }
   return {
-    titleFa: normalized || 'داشبورد',
-    titleEn: normalized || 'Dashboard',
+    titleFa: PREFIX_LABELS[normalized]?.titleFa ?? humanizeSlug(normalized),
+    titleEn: PREFIX_LABELS[normalized]?.titleEn ?? humanizeSlug(normalized),
     group: 'core',
     apiHint: '—',
   };
+}
+
+const PREFIX_LABELS: Record<string, DashboardRouteMeta> = {
+  core: { titleFa: 'هسته سیستم', titleEn: 'Core', group: 'core' },
+  crm: { titleFa: 'ارتباط با مشتری', titleEn: 'CRM', group: 'crm' },
+  hrm: { titleFa: 'منابع انسانی', titleEn: 'HR', group: 'hrm' },
+  pm: { titleFa: 'مدیریت پروژه', titleEn: 'Projects', group: 'pm' },
+  scm: { titleFa: 'زنجیره تأمین', titleEn: 'Supply chain', group: 'scm' },
+  sales: { titleFa: 'فروش', titleEn: 'Sales', group: 'sales' },
+  docs: { titleFa: 'اسناد', titleEn: 'Documents', group: 'docs' },
+  admin: { titleFa: 'سیستم و تنظیمات', titleEn: 'Administration', group: 'admin' },
+  marketing: { titleFa: 'سایت عمومی', titleEn: 'Public site', group: 'core' },
+  accounting: { titleFa: 'حسابداری', titleEn: 'Accounting', group: 'accounting' },
+  finance: { titleFa: 'حسابداری', titleEn: 'Finance', group: 'finance' },
+  integrations: { titleFa: 'یکپارچگی‌ها', titleEn: 'Integrations', group: 'integrations' },
+  platform: { titleFa: 'پلتفرم', titleEn: 'Platform', group: 'admin' },
+  marketplace: { titleFa: 'بازارچه', titleEn: 'Marketplace', group: 'admin' },
+  'site-builder': { titleFa: 'سازنده سایت', titleEn: 'Site builder', group: 'admin' },
+  mfg: { titleFa: 'تولید', titleEn: 'Manufacturing', group: 'core' },
+};
+
+function humanizeSlug(value: string): string {
+  const last = value.split('/').filter(Boolean).pop() ?? value;
+  return last.replace(/[-_]+/g, ' ').trim() || value;
 }
 
 export function listKnownPaths(): string[] {

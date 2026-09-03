@@ -38,6 +38,7 @@ type Row = Record<string, unknown>;
 
 export function SettingsPageView({ hub, initialTab }: { hub?: SettingsHubId; initialTab?: string } = {}) {
   const t = useTranslations('settings.tabs');
+  const tAuto = useTranslations();
   const tAuth = useTranslations('settings.tabs.authFields');
   const tHub = useTranslations('settings.hub');
   const tHosting = useTranslations('hosting');
@@ -315,7 +316,7 @@ export function SettingsPageView({ hub, initialTab }: { hub?: SettingsHubId; ini
           </TabsList>
 
           <TabsContent value="general" className="space-y-3 pt-4">
-            <p className="text-xs text-muted-foreground">{t('auto.settings_view.s_93292ef9')}</p>
+            <p className="text-xs text-muted-foreground">{tAuto('auto.settings_view.s_93292ef9')}</p>
             <div className="grid gap-2 sm:grid-cols-2">
               {Object.entries(editedGeneral).map(([k, v]) => (
                 <div key={k}>
@@ -330,41 +331,41 @@ export function SettingsPageView({ hub, initialTab }: { hub?: SettingsHubId; ini
               ))}
             </div>
             <Button type="button" size="sm" onClick={() => void saveGroup('general', editedGeneral)}>
-              {t('auto.settings_view.s_81d37fc7')}
+              {tAuto('auto.settings_view.s_81d37fc7')}
             </Button>
           </TabsContent>
 
           <TabsContent value="style" className="space-y-3 pt-4">
             <div className="grid gap-3 sm:grid-cols-2">
               <div>
-                <p className="mb-1 text-xs text-muted-foreground">{t('auto.settings_view.s_f2dd5cd5')}</p>
+                <p className="mb-1 text-xs text-muted-foreground">{tAuto('auto.settings_view.s_f2dd5cd5')}</p>
                 <Input value={wlApp} onChange={(e) => setWlApp(e.target.value)} />
               </div>
               <div>
-                <p className="mb-1 text-xs text-muted-foreground">{t('auto.settings_view.s_4c029f68')}</p>
+                <p className="mb-1 text-xs text-muted-foreground">{tAuto('auto.settings_view.s_4c029f68')}</p>
                 <Input value={wlLogo} onChange={(e) => setWlLogo(e.target.value)} dir="ltr" />
               </div>
               <div>
-                <p className="mb-1 text-xs text-muted-foreground">{t('auto.settings_view.s_7d9bff07')}</p>
+                <p className="mb-1 text-xs text-muted-foreground">{tAuto('auto.settings_view.s_7d9bff07')}</p>
                 <Input type="color" className="h-10 w-24 p-1" value={wlColor} onChange={(e) => setWlColor(e.target.value)} />
               </div>
             </div>
             <Button type="button" onClick={() => void saveWhiteLabel()}>
-              {t('auto.settings_view.s_801dead6')}
+              {tAuto('auto.settings_view.s_801dead6')}
             </Button>
           </TabsContent>
 
           <TabsContent value="notifications" className="space-y-3 pt-4">
             <label className="flex items-center gap-2 text-sm">
               <input type="checkbox" checked={notifEmail} onChange={(e) => setNotifEmail(e.target.checked)} />
-              {t('auto.settings_view.s_8a9fb6b4')}
+              {tAuto('auto.settings_view.s_8a9fb6b4')}
             </label>
             <label className="flex items-center gap-2 text-sm">
               <input type="checkbox" checked={notifTasks} onChange={(e) => setNotifTasks(e.target.checked)} />
-              {t('auto.settings_view.s_d9e95773')}
+              {tAuto('auto.settings_view.s_d9e95773')}
             </label>
             <Button type="button" variant="secondary" size="sm" onClick={() => void saveNotificationPrefs()}>
-              {t('auto.settings_view.s_2e8c970e')}
+              {tAuto('auto.settings_view.s_2e8c970e')}
             </Button>
           </TabsContent>
 
@@ -445,13 +446,13 @@ export function SettingsPageView({ hub, initialTab }: { hub?: SettingsHubId; ini
 
           <TabsContent value="canned" className="space-y-3 pt-4">
             <Button type="button" size="sm" onClick={() => openCreate('canned')}>
-              {t('auto.settings_view.s_15f2d066')}
+              {tAuto('auto.settings_view.s_15f2d066')}
             </Button>
             <div className="overflow-x-auto rounded-md border">
               <table className="w-full text-sm">
                 <thead>
                   <tr className="border-b bg-muted/40">
-                    <th className="px-2 py-2 text-start">{t('auto.settings_view.s_1a9bdb20')}</th>
+                    <th className="px-2 py-2 text-start">{tAuto('auto.settings_view.s_1a9bdb20')}</th>
                     <th className="px-2 py-2 text-start"> </th>
                   </tr>
                 </thead>
@@ -461,7 +462,7 @@ export function SettingsPageView({ hub, initialTab }: { hub?: SettingsHubId; ini
                       <td className="px-2 py-2">{String(r.title ?? '')}</td>
                       <td className="px-2 py-2">
                         <Button type="button" variant="ghost" size="sm" onClick={() => openEdit('canned', r)}>
-                          {t('auto.settings_view.s_ac60ae7a')}
+                          {tAuto('auto.settings_view.s_ac60ae7a')}
                         </Button>
                         <Button
                           type="button"
@@ -470,7 +471,7 @@ export function SettingsPageView({ hub, initialTab }: { hub?: SettingsHubId; ini
                           className="text-destructive"
                           onClick={() => setDeleteTarget({ kind: 'canned', id: Number(r.id) })}>
                         
-                          {t('auto.settings_view.s_2d2bbdc2')}
+                          {tAuto('auto.settings_view.s_2d2bbdc2')}
                         </Button>
                       </td>
                     </tr>
@@ -482,7 +483,7 @@ export function SettingsPageView({ hub, initialTab }: { hub?: SettingsHubId; ini
 
           <TabsContent value="positions" className="space-y-3 pt-4">
             <Button type="button" size="sm" onClick={() => openCreate('position')}>
-              {t('auto.settings_view.s_0f6b0b28')}
+              {tAuto('auto.settings_view.s_0f6b0b28')}
             </Button>
             <ul className="space-y-1">
               {positions.map((r) => (
@@ -490,7 +491,7 @@ export function SettingsPageView({ hub, initialTab }: { hub?: SettingsHubId; ini
                   <span>{String(r.title ?? '')}</span>
                   <span>
                     <Button type="button" variant="ghost" size="sm" onClick={() => openEdit('position', r)}>
-                      {t('auto.settings_view.s_ac60ae7a')}
+                      {tAuto('auto.settings_view.s_ac60ae7a')}
                     </Button>
                     <Button
                       type="button"
@@ -499,7 +500,7 @@ export function SettingsPageView({ hub, initialTab }: { hub?: SettingsHubId; ini
                       className="text-destructive"
                       onClick={() => setDeleteTarget({ kind: 'position', id: Number(r.id) })}>
                     
-                      {t('auto.settings_view.s_2d2bbdc2')}
+                      {tAuto('auto.settings_view.s_2d2bbdc2')}
                     </Button>
                   </span>
                 </li>
@@ -509,14 +510,14 @@ export function SettingsPageView({ hub, initialTab }: { hub?: SettingsHubId; ini
 
           <TabsContent value="taskcat" className="space-y-3 pt-4">
             <Button type="button" size="sm" onClick={() => openCreate('category')}>
-              {t('auto.settings_view.s_e39ce288')}
+              {tAuto('auto.settings_view.s_e39ce288')}
             </Button>
             <div className="overflow-x-auto rounded-md border">
               <table className="w-full text-sm">
                 <thead>
                   <tr className="border-b bg-muted/40">
-                    <th className="px-2 py-2 text-start">{t('auto.settings_view.s_45dd06ba')}</th>
-                    <th className="px-2 py-2 text-start">{t('auto.settings_view.s_3f13b5cf')}</th>
+                    <th className="px-2 py-2 text-start">{tAuto('auto.settings_view.s_45dd06ba')}</th>
+                    <th className="px-2 py-2 text-start">{tAuto('auto.settings_view.s_3f13b5cf')}</th>
                     <th className="px-2 py-2 text-start"> </th>
                   </tr>
                 </thead>
@@ -529,7 +530,7 @@ export function SettingsPageView({ hub, initialTab }: { hub?: SettingsHubId; ini
                       </td>
                       <td className="px-2 py-2">
                         <Button type="button" variant="ghost" size="sm" onClick={() => openEdit('category', r)}>
-                          {t('auto.settings_view.s_ac60ae7a')}
+                          {tAuto('auto.settings_view.s_ac60ae7a')}
                         </Button>
                         <Button
                           type="button"
@@ -538,7 +539,7 @@ export function SettingsPageView({ hub, initialTab }: { hub?: SettingsHubId; ini
                           className="text-destructive"
                           onClick={() => setDeleteTarget({ kind: 'category', id: Number(r.id) })}>
                         
-                          {t('auto.settings_view.s_2d2bbdc2')}
+                          {tAuto('auto.settings_view.s_2d2bbdc2')}
                         </Button>
                       </td>
                     </tr>
@@ -575,30 +576,30 @@ export function SettingsPageView({ hub, initialTab }: { hub?: SettingsHubId; ini
           <DialogHeader>
             <DialogTitle>
               {dialog?.kind === 'canned'
-                ? t('auto.settings_view.s_d43b8b9a')
+                ? tAuto('auto.settings_view.s_d43b8b9a')
                 : dialog?.kind === 'position'
-                  ? t('auto.settings_view.s_95cb3687')
-                  : t('auto.settings_view.s_cfb7155e')}
+                  ? tAuto('auto.settings_view.s_95cb3687')
+                  : tAuto('auto.settings_view.s_cfb7155e')}
             </DialogTitle>
           </DialogHeader>
           {dialog?.kind === 'canned' ? (
             <div className="space-y-2">
-              <Input placeholder={t('auto.settings_view.s_1a9bdb20')} value={formTitle} onChange={(e) => setFormTitle(e.target.value)} />
-              <Textarea placeholder={t('auto.settings_view.s_40b31215')} value={formBody} onChange={(e) => setFormBody(e.target.value)} rows={5} />
+              <Input placeholder={tAuto('auto.settings_view.s_1a9bdb20')} value={formTitle} onChange={(e) => setFormTitle(e.target.value)} />
+              <Textarea placeholder={tAuto('auto.settings_view.s_40b31215')} value={formBody} onChange={(e) => setFormBody(e.target.value)} rows={5} />
             </div>
           ) : dialog?.kind === 'position' ? (
-            <Input placeholder={t('auto.settings_view.s_12b6b438')} value={formTitle} onChange={(e) => setFormTitle(e.target.value)} />
+            <Input placeholder={tAuto('auto.settings_view.s_12b6b438')} value={formTitle} onChange={(e) => setFormTitle(e.target.value)} />
           ) : (
             <div className="space-y-2">
-              <Input placeholder={t('auto.settings_view.s_45dd06ba')} value={formName} onChange={(e) => setFormName(e.target.value)} />
+              <Input placeholder={tAuto('auto.settings_view.s_45dd06ba')} value={formName} onChange={(e) => setFormName(e.target.value)} />
               <Input type="color" value={formColor} onChange={(e) => setFormColor(e.target.value)} className="w-24 p-1" />
-              <Input placeholder={t('auto.settings_view.s_1444ee00')} value={formSort} onChange={(e) => setFormSort(e.target.value)} dir="ltr" />
+              <Input placeholder={tAuto('auto.settings_view.s_1444ee00')} value={formSort} onChange={(e) => setFormSort(e.target.value)} dir="ltr" />
             </div>
           )}
           {formErr ? <p className="text-sm text-destructive">{formErr}</p> : null}
           <DialogFooter>
             <Button type="button" onClick={() => void saveCrud()}>
-              {t('auto.settings_view.s_08545fb6')}
+              {tAuto('auto.settings_view.s_08545fb6')}
             </Button>
           </DialogFooter>
         </DialogContent>
@@ -607,12 +608,12 @@ export function SettingsPageView({ hub, initialTab }: { hub?: SettingsHubId; ini
       <AlertDialog open={deleteTarget !== null} onOpenChange={(o) => !o && setDeleteTarget(null)}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>{t('auto.settings_view.s_0851be6b')}</AlertDialogTitle>
-            <AlertDialogDescription>{t('auto.settings_view.s_36bf80bb')}</AlertDialogDescription>
+            <AlertDialogTitle>{tAuto('auto.settings_view.s_0851be6b')}</AlertDialogTitle>
+            <AlertDialogDescription>{tAuto('auto.settings_view.s_36bf80bb')}</AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel>{t('auto.settings_view.s_106dfb4e')}</AlertDialogCancel>
-            <AlertDialogAction onClick={() => void confirmDelete()}>{t('auto.settings_view.s_2d2bbdc2')}</AlertDialogAction>
+            <AlertDialogCancel>{tAuto('auto.settings_view.s_106dfb4e')}</AlertDialogCancel>
+            <AlertDialogAction onClick={() => void confirmDelete()}>{tAuto('auto.settings_view.s_2d2bbdc2')}</AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>

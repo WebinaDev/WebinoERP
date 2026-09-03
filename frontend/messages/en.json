@@ -314,7 +314,13 @@
     "marketing_menu": "Public site",
     "distribution_menu": "Distribution, marketplace & licenses",
     "modirpayamak": "ModirPayamak SMS",
-    "bale_business": "Business bot"
+    "bale_business": "Business bot",
+    "core": "Core",
+    "marketing": "Public site",
+    "accounting": "Accounting",
+    "integrations": "Integrations",
+    "site_builder": "Site builder",
+    "marketplace": "Marketplace"
   },
   "login": {
     "title": "Sign in",
@@ -2348,7 +2354,24 @@
       "owner": "Owner",
       "actions": "Actions",
       "saved": "Saved",
-      "created": "Customer created"
+      "created": "Customer created",
+      "allTypes": "All types",
+      "apply": "Apply",
+      "bale": "Bale",
+      "baleTitle": "Bale message",
+      "baleHint": "Bale messages need a user id; for bulk send, each account must have an owner.",
+      "baleUserId": "User ID",
+      "message": "Message",
+      "send": "Send",
+      "sendSelected": "Send to selected owners",
+      "sendSingle": "Send to one user",
+      "smsPhone": "Phone number",
+      "website": "Website",
+      "description": "Description",
+      "selectAll": "Select all on this page",
+      "typeCustomer": "Customer",
+      "typeIndividual": "Individual",
+      "typeCompany": "Company"
     }
   },
   "finance": {
@@ -2941,7 +2964,12 @@
     },
     "empty": "No data available",
     "recentProjects": "Recent projects",
-    "recentUsers": "Recent users"
+    "recentUsers": "Recent users",
+    "widgets": {
+      "recent_leads": "Latest leads",
+      "recent_tasks": "Latest tasks",
+      "recent_tickets": "Latest tickets"
+    }
   },
   "profile": {
     "title": "Profile",

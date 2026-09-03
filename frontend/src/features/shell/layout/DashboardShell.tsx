@@ -23,6 +23,7 @@ import { mapLicensedModulesToNavIds } from '@/lib/module-license-map';
 import { buildSidebarSections, navSectionsToSidebar08MainItems } from '@/lib/nav-modules';
 import { dashboardHref } from '@/lib/route-resolver';
 import { resolveDashboardRoute } from '@/lib/dashboard-routes';
+import { resolveLayoutNavKey } from '@/i18n/merge-locales';
 import { getCurrentUser, logout } from '@/lib/auth';
 import { htmlDir, sidebarSide } from '@/lib/locale';
 import { usePermissions } from '@/features/shared/hooks/usePermissions';
@@ -111,9 +112,11 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
     let acc = '';
     for (const part of parts) {
       acc = acc ? `${acc}/${part}` : part;
+      const layoutKey = `layout.${resolveLayoutNavKey(part)}`;
+      const fromLayout = t(layoutKey);
       const meta = resolveDashboardRoute(acc);
       out.push({
-        label: rtl ? meta.titleFa : meta.titleEn,
+        label: fromLayout !== layoutKey ? fromLayout : rtl ? meta.titleFa : meta.titleEn,
         href: dashboardHref(locale, acc),
       });
     }

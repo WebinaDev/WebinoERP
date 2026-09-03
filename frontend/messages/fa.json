@@ -314,7 +314,13 @@
     "marketing_menu": "سایت عمومی",
     "distribution_menu": "توزیع، بازارچه و لایسنس",
     "modirpayamak": "مدیرپیامک",
-    "bale_business": "ربات کسب‌وکار"
+    "bale_business": "ربات کسب‌وکار",
+    "core": "هسته سیستم",
+    "marketing": "سایت عمومی",
+    "accounting": "حسابداری",
+    "integrations": "یکپارچگی‌ها",
+    "site_builder": "سازنده سایت",
+    "marketplace": "بازارچه"
   },
   "login": {
     "title": "ورود به حساب",
@@ -2348,7 +2354,24 @@
       "owner": "مالک",
       "actions": "عملیات",
       "saved": "ذخیره شد",
-      "created": "مشتری ایجاد شد"
+      "created": "مشتری ایجاد شد",
+      "allTypes": "همه انواع",
+      "apply": "اعمال",
+      "bale": "بله",
+      "baleTitle": "پیام در بله",
+      "baleHint": "پیام بله به شناسه کاربر نیاز دارد؛ برای ارسال گروهی، مالک حساب باید تنظیم شده باشد.",
+      "baleUserId": "شناسه کاربر",
+      "message": "متن پیام",
+      "send": "ارسال",
+      "sendSelected": "ارسال به مالک‌های انتخاب‌شده",
+      "sendSingle": "ارسال تکی",
+      "smsPhone": "شماره",
+      "website": "وب‌سایت",
+      "description": "توضیحات",
+      "selectAll": "انتخاب همه در این صفحه",
+      "typeCustomer": "مشتری",
+      "typeIndividual": "حقیقی",
+      "typeCompany": "حقوقی"
     }
   },
   "finance": {
@@ -2941,7 +2964,12 @@
     },
     "empty": "داده‌ای موجود نیست",
     "recentProjects": "پروژه‌های اخیر",
-    "recentUsers": "کاربران اخیر"
+    "recentUsers": "کاربران اخیر",
+    "widgets": {
+      "recent_leads": "آخرین سرنخ‌ها",
+      "recent_tasks": "آخرین وظایف",
+      "recent_tickets": "آخرین تیکت‌ها"
+    }
   },
   "profile": {
     "title": "پروفایل",

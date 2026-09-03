@@ -31,9 +31,17 @@ function validChildren(m: DashboardModule): DashboardModule[] {
 
 export function moduleNavTitle(t: TranslateFn, id: string, fallback: string): string {
   const layoutKey = resolveLayoutNavKey(id)
-  const key = `layout.${layoutKey}`
-  const val = t(key)
-  return val === key ? fallback : val
+  const candidates = [`layout.${layoutKey}`, `nav.module.${layoutKey}`, `nav.module.${id}`]
+  for (const key of candidates) {
+    const val = t(key)
+    if (val && val !== key) {
+      return val
+    }
+  }
+  if (fallback && !fallback.startsWith('nav.') && !fallback.startsWith('layout.') && fallback !== id) {
+    return fallback
+  }
+  return layoutKey.replace(/_/g, ' ')
 }
 
 function mapNavChild(c: DashboardModule, parent: DashboardModule, t: TranslateFn): NavMainChild {

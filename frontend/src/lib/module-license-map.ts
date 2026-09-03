@@ -3,6 +3,7 @@
  */
 export const LICENSE_SLUG_TO_MODULE_ID: Record<string, string> = {
   dashboard: 'cat-dashboard',
+  core: 'admin',
   crm: 'crm',
   hrm: 'hrm',
   accounting: 'finance',

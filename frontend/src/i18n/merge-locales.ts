@@ -30,6 +30,23 @@ export function resolveLayoutNavKey(id: string): string {
     'marketing-menu': 'marketing_menu',
     'distribution-menu': 'distribution_menu',
     'bale-business': 'bale_business',
+    core: 'core',
+    crm: 'crm',
+    hrm: 'hrm',
+    finance: 'finance',
+    accounting: 'accounting',
+    pm: 'pm',
+    scm: 'scm',
+    sales: 'sales',
+    mfg: 'mfg',
+    docs: 'docs',
+    admin: 'admin',
+    platform: 'platform',
+    marketing: 'marketing',
+    marketplace: 'marketplace',
+    integrations: 'integrations',
+    'site-builder': 'site_builder',
+    site_builder: 'site_builder',
   };
   return map[id] ?? id.replace(/-/g, '_');
 }

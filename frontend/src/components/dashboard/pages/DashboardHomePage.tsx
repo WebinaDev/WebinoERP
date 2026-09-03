@@ -185,6 +185,12 @@ export function DashboardHomePage() {
     [merged, t],
   );
 
+  function widgetTitle(w: { id: string; title: string }): string {
+    const key = `widgets.${w.id}`;
+    const label = t(key as 'widgets.recent_leads');
+    return label === key ? w.title : label;
+  }
+
   function summarizeWidgetRow(it: WidgetItem): string {
     const title = (it.title ?? it.subject ?? it.name ?? it.label) as string | undefined;
     if (title) return String(title);
@@ -320,7 +326,7 @@ export function DashboardHomePage() {
               {visibleWidgets.map((w) => (
                 <Card key={w.id}>
                   <CardHeader>
-                    <CardTitle className="text-base">{w.title}</CardTitle>
+                    <CardTitle className="text-base">{widgetTitle(w)}</CardTitle>
                   </CardHeader>
                   <CardContent>
                     <ul className="space-y-2 text-sm">
