@@ -357,14 +357,22 @@ if [ "${READY}" -eq 0 ]; then
   exit 1
 fi
 
-# ── wait for backend to be healthy (Octane fully booted) ─────────────────────
-log "Waiting for backend to boot (Octane/FrankenPHP)…"
+# ── wait for backend HTTP (metrics — works before migrations) ────────────────
+log "Waiting for backend to boot…"
+BACKEND_READY=0
 for i in $(seq 1 60); do
-  if compose_cli exec -T backend curl -sf http://localhost:8080/api/v1/core/health/readiness >/dev/null 2>&1; then
+  if compose_cli exec -T backend curl -sf http://127.0.0.1:8080/api/v1/core/health/metrics >/dev/null 2>&1; then
+    BACKEND_READY=1
     break
   fi
   sleep 3
 done
+if [ "${BACKEND_READY}" -eq 0 ]; then
+  echo "ERROR: backend did not start. Last logs:" >&2
+  compose_cli logs backend --tail 80 >&2 || true
+  compose_cli ps -a >&2 || true
+  exit 1
+fi
 
 # ── migrate & seed ────────────────────────────────────────────────────────────
 log "Running database migrations"

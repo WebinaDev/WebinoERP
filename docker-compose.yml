@@ -57,17 +57,21 @@ services:
       BROADCAST_CONNECTION: reverb
       OCTANE_SERVER: frankenphp
     healthcheck:
-      test: ["CMD-SHELL", "curl -sf http://localhost:8080/api/v1/core/health/readiness >/dev/null || exit 1"]
+      # metrics does not require migrated tables (readiness returns 503 pre-migrate)
+      test: ["CMD-SHELL", "curl -sf http://127.0.0.1:8080/api/v1/core/health/metrics >/dev/null || exit 1"]
       interval: 10s
       timeout: 5s
       retries: 12
-      start_period: 30s
+      start_period: 40s
     depends_on:
       db:
         condition: service_healthy
       redis:
         condition: service_healthy
-    command: php artisan octane:start --server=frankenphp --host=0.0.0.0 --port=8080
+    # FrankenPHP/Octane is optional; artisan serve is enough to finish first install.
+    command: >
+      sh -c "php artisan octane:start --server=frankenphp --host=0.0.0.0 --port=8080
+      || php artisan serve --host=0.0.0.0 --port=8080"
     networks:
       - webino_erp
 
@@ -99,7 +103,7 @@ services:
       redis:
         condition: service_healthy
       backend:
-        condition: service_healthy
+        condition: service_started
     command: php artisan queue:work redis --sleep=3 --tries=3
     networks:
       - webino_erp
@@ -132,7 +136,7 @@ services:
       redis:
         condition: service_healthy
       backend:
-        condition: service_healthy
+        condition: service_started
     command: php artisan schedule:work
     networks:
       - webino_erp
@@ -191,7 +195,7 @@ services:
       - ./docker/caddy/Caddyfile:/etc/caddy/Caddyfile:ro
     depends_on:
       frontend:
-        condition: service_healthy
+        condition: service_started
       backend:
         condition: service_started
       ws:
