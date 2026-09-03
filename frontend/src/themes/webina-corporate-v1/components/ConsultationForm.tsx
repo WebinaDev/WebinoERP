@@ -7,7 +7,7 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { toast } from 'sonner';
 
-const API_BASE = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost/api';
+const API_BASE = process.env.NEXT_PUBLIC_API_URL?.trim() || '/api';
 
 type FormProps = {
   source: string;

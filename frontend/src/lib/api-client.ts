@@ -1,8 +1,19 @@
 import axios, { AxiosInstance, AxiosError } from 'axios';
 import { unwrapApiData } from '@webina/ui';
 
-/** Base URL without trailing slash; paths include `/v1/...` (e.g. `/v1/core/auth/login`). */
-const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost/api';
+/**
+ * Browser calls must be same-origin `/api` so Caddy can proxy to Laravel.
+ * `http://localhost/api` is wrong on a remote server and causes Axios "Network Error".
+ */
+function resolveApiBase(): string {
+  const raw = process.env.NEXT_PUBLIC_API_URL?.trim()
+  if (raw) {
+    return raw.replace(/\/$/, '')
+  }
+  return '/api'
+}
+
+const API_URL = resolveApiBase()
 
 export const apiClient: AxiosInstance = axios.create({
   baseURL: API_URL,

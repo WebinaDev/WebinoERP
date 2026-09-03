@@ -18,6 +18,9 @@ export function getAxiosMessage(err: unknown): string {
     }
   }
   if (err instanceof Error) {
+    if (err.message === 'Network Error') {
+      return 'اتصال به سرور برقرار نشد. آدرس API را بررسی کنید.';
+    }
     return err.message;
   }
   return 'خطای ناشناخته';
