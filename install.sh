@@ -288,6 +288,15 @@ sed -i.bak \
   -e "s|^REDIS_HOST=.*|REDIS_HOST=redis|" \
   backend/.env
 
+log "Ensuring backend cache and storage directories exist with write permissions"
+mkdir -p backend/bootstrap/cache \
+         backend/storage/app/public \
+         backend/storage/framework/cache/data \
+         backend/storage/framework/sessions \
+         backend/storage/framework/views \
+         backend/storage/logs
+chmod -R 777 backend/storage backend/bootstrap/cache 2>/dev/null || true
+
 log "Installing PHP dependencies (Composer via Docker)"
 compose_cli run --rm --no-deps --entrypoint composer backend install --no-interaction --prefer-dist --no-dev 2>/dev/null || \
   compose_cli run --rm --no-deps --entrypoint composer backend install --no-interaction --prefer-dist

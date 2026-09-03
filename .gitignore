@@ -13,12 +13,20 @@ frontend/.env.*.local
 
 # Build outputs
 backend/bootstrap/cache/*
+!backend/bootstrap/cache/.gitkeep
 backend/storage/*.key
 backend/storage/framework/cache/*
+!backend/storage/framework/cache/.gitkeep
+!backend/storage/framework/cache/data/
+!backend/storage/framework/cache/data/.gitkeep
 backend/storage/framework/sessions/*
+!backend/storage/framework/sessions/.gitkeep
 backend/storage/framework/views/*
+!backend/storage/framework/views/.gitkeep
 backend/storage/logs/*
+!backend/storage/logs/.gitkeep
 !backend/storage/.gitkeep
+!.gitkeep
 frontend/.next/
 frontend/out/
 frontend/dist/
