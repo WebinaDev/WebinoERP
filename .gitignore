@@ -15,6 +15,10 @@ frontend/.env.*.local
 backend/bootstrap/cache/*
 !backend/bootstrap/cache/.gitkeep
 backend/storage/*.key
+backend/storage/app/*
+!backend/storage/app/.gitkeep
+!backend/storage/app/public/
+!backend/storage/app/public/.gitkeep
 backend/storage/framework/cache/*
 !backend/storage/framework/cache/.gitkeep
 !backend/storage/framework/cache/data/
@@ -23,6 +27,11 @@ backend/storage/framework/sessions/*
 !backend/storage/framework/sessions/.gitkeep
 backend/storage/framework/views/*
 !backend/storage/framework/views/.gitkeep
+backend/storage/framework/*
+!backend/storage/framework/.gitkeep
+!backend/storage/framework/cache/
+!backend/storage/framework/sessions/
+!backend/storage/framework/views/
 backend/storage/logs/*
 !backend/storage/logs/.gitkeep
 !backend/storage/.gitkeep
