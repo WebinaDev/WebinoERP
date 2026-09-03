@@ -338,7 +338,15 @@
     "register": "ثبت‌نام",
     "registerSuccess": "ثبت‌نام انجام شد",
     "passwordMismatch": "رمزها یکسان نیستند",
-    "logout": "خروج"
+    "logout": "خروج",
+    "twoFactorTitle": "تأیید دو مرحله‌ای",
+    "twoFactorSubtitle": "کد ۶ رقمی ارسال‌شده را وارد کنید",
+    "twoFactorCode": "کد تأیید",
+    "twoFactorSubmit": "تأیید و ورود",
+    "twoFactorResend": "ارسال دوباره کد",
+    "twoFactorSent": "کد تأیید به شماره شما ارسال شد.",
+    "twoFactorGenerated": "کد آماده شد. اگر پیامک نرسید، تنظیمات پیامک را بررسی کنید.",
+    "twoFactorDevCode": "کد آزمایشی"
   },
   "home": {
     "welcome": "خوش آمدید",
@@ -486,6 +494,14 @@
       "style": "استایل / برند",
       "notifications": "اعلان‌ها",
       "auth": "احراز",
+      "authFields": {
+        "otpEnabled": "ورود با رمز یک‌بارمصرف",
+        "passwordMin": "حداقل طول رمز",
+        "twoFactor": "۲FA برای مدیر سیستم",
+        "twoFactorHint": "فقط وقتی روشن شود که شماره موبایل مدیر و ارائه‌دهنده پیامک واقعی تنظیم شده باشد. در غیر این صورت داشبورد قفل نمی‌شود.",
+        "on": "فعال",
+        "off": "غیرفعال"
+      },
       "sms": "پیامک",
       "payment": "پرداخت",
       "canned": "پاسخ‌های آماده",

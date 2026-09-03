@@ -33,12 +33,19 @@ apiClient.interceptors.response.use(
     return response;
   },
   (error: AxiosError) => {
-    if (error.response?.status === 401) {
-      if (typeof window !== 'undefined') {
-        const path = window.location.pathname;
-        if (!path.includes('/login')) {
-          window.location.href = '/login';
+    if (typeof window !== 'undefined') {
+      const path = window.location.pathname;
+      const body = error.response?.data as { errors?: { code?: string } } | undefined;
+      if (body?.errors?.code === '2FA_REQUIRED' && !path.includes('/login')) {
+        const flag = 'webino_2fa_redirect';
+        if (!sessionStorage.getItem(flag)) {
+          sessionStorage.setItem(flag, '1');
+          window.location.href = '/login?challenge=2fa';
         }
+        return Promise.reject(error);
+      }
+      if (error.response?.status === 401 && !path.includes('/login')) {
+        window.location.href = '/login';
       }
     }
     return Promise.reject(error);

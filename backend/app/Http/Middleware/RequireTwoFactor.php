@@ -5,25 +5,19 @@ namespace App\Http\Middleware;
 use Closure;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Cache;
-use Modules\Core\Database\Seeders\RolesAndPermissionsSeeder;
+use Modules\Core\Support\AdminTwoFactor;
 use Symfony\Component\HttpFoundation\Response;
 
 /**
- * system_manager must complete 2FA within the current window before accessing
- * privileged API routes. Auth + 2FA endpoints themselves are exempt.
+ * When admin 2FA is actually configured, system_manager must finish the
+ * challenge (full-ability token or verified cache) before privileged APIs.
  */
 class RequireTwoFactor
 {
     public function handle(Request $request, Closure $next): Response
     {
         $user = $request->user();
-        $isManager = false;
-        try {
-            $isManager = $user && $user->hasRole(RolesAndPermissionsSeeder::ROLE_SYSTEM_MANAGER);
-        } catch (\Throwable) {
-            $isManager = false;
-        }
-        if (! $user || ! $isManager) {
+        if (! $user || ! AdminTwoFactor::requiredFor($user)) {
             return $next($request);
         }
 
@@ -45,13 +39,18 @@ class RequireTwoFactor
             return $next($request);
         }
 
-        if (! Cache::get('2fa:verified:'.$user->id, false)) {
-            return response()->json([
-                'message' => 'Two-factor authentication required',
-                'errors' => ['code' => '2FA_REQUIRED'],
-            ], 403);
+        $token = $user->currentAccessToken();
+        if ($token && method_exists($token, 'can') && $token->can('*')) {
+            return $next($request);
         }
 
-        return $next($request);
+        if (Cache::get('2fa:verified:'.$user->id, false)) {
+            return $next($request);
+        }
+
+        return response()->json([
+            'message' => 'احراز هویت دو مرحله‌ای لازم است.',
+            'errors' => ['code' => '2FA_REQUIRED'],
+        ], 403);
     }
 }

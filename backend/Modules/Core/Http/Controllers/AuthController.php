@@ -8,7 +8,9 @@ use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Validation\ValidationException;
 use App\Models\User;
+use Illuminate\Support\Facades\Cache;
 use Modules\Core\Services\DashboardNavigationService;
+use Modules\Core\Support\AdminTwoFactor;
 use Modules\Core\Support\AuthCookie;
 
 class AuthController extends Controller
@@ -35,26 +37,36 @@ class AuthController extends Controller
             ], 403);
         }
 
-        $user->forceFill(['last_login_at' => now()])->save();
-        \Illuminate\Support\Facades\Cache::forget('2fa:verified:'.$user->id);
+        try {
+            $user->forceFill(['last_login_at' => now()])->save();
+        } catch (\Throwable) {
+            // last_login_at may be missing on older schemas.
+        }
 
-        $abilities = $user->hasRole(\Modules\Core\Database\Seeders\RolesAndPermissionsSeeder::ROLE_SYSTEM_MANAGER)
-            ? ['2fa-pending']
-            : ['*'];
+        $needs2fa = AdminTwoFactor::requiredFor($user);
+        if ($needs2fa) {
+            Cache::forget('2fa:verified:'.$user->id);
+        }
+
+        $abilities = $needs2fa ? ['2fa-pending'] : ['*'];
 
         $tokenObj = $user->createToken('spa', $abilities);
-        $tokenObj->accessToken->forceFill([
-            'device_name' => substr((string) $request->header('X-Device-Name', 'web'), 0, 120),
-            'ip' => $request->ip(),
-            'user_agent' => substr((string) $request->userAgent(), 0, 2000),
-            'last_activity_at' => now(),
-        ])->save();
+        try {
+            $tokenObj->accessToken->forceFill([
+                'device_name' => substr((string) $request->header('X-Device-Name', 'web'), 0, 120),
+                'ip' => $request->ip(),
+                'user_agent' => substr((string) $request->userAgent(), 0, 2000),
+                'last_activity_at' => now(),
+            ])->save();
+        } catch (\Throwable) {
+            // Token metadata columns may be missing on older schemas.
+        }
         $token = $tokenObj->plainTextToken;
 
         $response = response()->json([
             'data' => [
                 'user' => $user,
-                'requires_2fa' => in_array('2fa-pending', $abilities, true),
+                'requires_2fa' => $needs2fa,
             ],
         ]);
 

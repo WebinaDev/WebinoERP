@@ -6,22 +6,25 @@ use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Log;
-use Modules\Core\Database\Seeders\RolesAndPermissionsSeeder;
+use Modules\Core\Support\AdminTwoFactor;
+use Modules\Core\Support\AuthCookie;
 use Modules\Integrations\Entities\IntegrationSetting;
 use Modules\Integrations\Http\Controllers\SmsIntegrationController;
-use Modules\Core\Support\AuthCookie;
 
 class TwoFactorController extends Controller
 {
     public function status(Request $request): JsonResponse
     {
         $user = $request->user();
-        $required = $user->hasRole(RolesAndPermissionsSeeder::ROLE_SYSTEM_MANAGER);
+        $token = $user?->currentAccessToken();
+        $verified = (bool) Cache::get('2fa:verified:'.$user->id, false)
+            || ($token && method_exists($token, 'can') && $token->can('*'));
 
         return response()->json([
             'data' => [
-                'enabled' => (bool) Cache::get('2fa:verified:'.$user->id, false),
-                'required_for_admin' => $required,
+                'enabled' => $verified,
+                'required_for_admin' => AdminTwoFactor::requiredFor($user),
+                'setting_enabled' => AdminTwoFactor::isEnabled(),
             ],
         ]);
     }
@@ -54,12 +57,16 @@ class TwoFactorController extends Controller
         // Upgrade token from 2fa-pending → full access.
         $request->user()?->currentAccessToken()?->delete();
         $tokenObj = $user->createToken('spa', ['*']);
-        $tokenObj->accessToken->forceFill([
-            'device_name' => substr((string) $request->header('X-Device-Name', 'web'), 0, 120),
-            'ip' => $request->ip(),
-            'user_agent' => substr((string) $request->userAgent(), 0, 2000),
-            'last_activity_at' => now(),
-        ])->save();
+        try {
+            $tokenObj->accessToken->forceFill([
+                'device_name' => substr((string) $request->header('X-Device-Name', 'web'), 0, 120),
+                'ip' => $request->ip(),
+                'user_agent' => substr((string) $request->userAgent(), 0, 2000),
+                'last_activity_at' => now(),
+            ])->save();
+        } catch (\Throwable) {
+            // Token metadata columns may be missing on older schemas.
+        }
 
         $response = response()->json(['data' => ['verified' => true]]);
 
@@ -69,7 +76,7 @@ class TwoFactorController extends Controller
     public function send(Request $request): JsonResponse
     {
         $user = $request->user();
-        abort_unless($user->hasRole(RolesAndPermissionsSeeder::ROLE_SYSTEM_MANAGER), 403);
+        abort_unless(AdminTwoFactor::isSystemManager($user), 403);
 
         $code = (string) random_int(100000, 999999);
         Cache::put('otp_admin:'.$user->id, $code, now()->addMinutes(10));

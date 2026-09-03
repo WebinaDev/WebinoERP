@@ -38,6 +38,7 @@ type Row = Record<string, unknown>;
 
 export function SettingsPageView({ hub, initialTab }: { hub?: SettingsHubId; initialTab?: string } = {}) {
   const t = useTranslations('settings.tabs');
+  const tAuth = useTranslations('settings.tabs.authFields');
   const tHub = useTranslations('settings.hub');
   const tHosting = useTranslations('hosting');
   const tCommon = useTranslations('common');
@@ -370,17 +371,28 @@ export function SettingsPageView({ hub, initialTab }: { hub?: SettingsHubId; ini
           <TabsContent value="auth" className="space-y-3 pt-4">
             <div className="grid gap-3 sm:grid-cols-2">
               <div>
-                <p className="mb-1 text-xs text-muted-foreground">otp_enabled</p>
+                <p className="mb-1 text-xs text-muted-foreground">{tAuth('otpEnabled')}</p>
                 <Select value={String(auth.auth_otp_enabled ?? '0')} onValueChange={(v) => void saveGroup('auth', {...auth, auth_otp_enabled: v})}>
                   <SelectTrigger><SelectValue /></SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="1">{t('auto.settings_view.s_6f637966')}</SelectItem>
-                    <SelectItem value="0">{t('auto.settings_view.s_d9ba4168')}</SelectItem>
+                    <SelectItem value="1">{tAuth('on')}</SelectItem>
+                    <SelectItem value="0">{tAuth('off')}</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
               <div>
-                <p className="mb-1 text-xs text-muted-foreground">password_min_length</p>
+                <p className="mb-1 text-xs text-muted-foreground">{tAuth('twoFactor')}</p>
+                <Select value={String(auth.auth_2fa_required ?? '0')} onValueChange={(v) => void saveGroup('auth', {...auth, auth_2fa_required: v})}>
+                  <SelectTrigger><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="1">{tAuth('on')}</SelectItem>
+                    <SelectItem value="0">{tAuth('off')}</SelectItem>
+                  </SelectContent>
+                </Select>
+                <p className="mt-1 text-xs text-muted-foreground">{tAuth('twoFactorHint')}</p>
+              </div>
+              <div>
+                <p className="mb-1 text-xs text-muted-foreground">{tAuth('passwordMin')}</p>
                 <Input defaultValue={String(auth.auth_password_min_length ?? '8')} onBlur={(e) => void saveGroup('auth', {...auth, auth_password_min_length: e.target.value})} dir="ltr" />
               </div>
             </div>

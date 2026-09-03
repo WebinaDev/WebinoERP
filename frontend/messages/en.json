@@ -338,7 +338,15 @@
     "register": "Register",
     "registerSuccess": "Registration complete",
     "passwordMismatch": "Passwords do not match",
-    "logout": "Log out"
+    "logout": "Log out",
+    "twoFactorTitle": "Two-factor verification",
+    "twoFactorSubtitle": "Enter the 6-digit code that was sent to you",
+    "twoFactorCode": "Verification code",
+    "twoFactorSubmit": "Verify and continue",
+    "twoFactorResend": "Resend code",
+    "twoFactorSent": "A verification code was sent to your phone.",
+    "twoFactorGenerated": "A code was generated. If you did not receive SMS, check SMS settings.",
+    "twoFactorDevCode": "Dev code"
   },
   "home": {
     "welcome": "Welcome",
@@ -486,6 +494,14 @@
       "style": "Style / Brand",
       "notifications": "Notifications",
       "auth": "Authentication",
+      "authFields": {
+        "otpEnabled": "One-time password login",
+        "passwordMin": "Minimum password length",
+        "twoFactor": "Admin two-factor authentication",
+        "twoFactorHint": "Enable only after the system manager has a phone number and a real SMS provider. Otherwise the dashboard stays unlocked.",
+        "on": "On",
+        "off": "Off"
+      },
       "sms": "SMS",
       "payment": "Payment",
       "canned": "Canned responses",

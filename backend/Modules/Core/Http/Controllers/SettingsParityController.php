@@ -146,6 +146,7 @@ class SettingsParityController extends Controller
     {
         $data = $request->validate([
             'otp_enabled' => 'nullable|boolean',
+            '2fa_required' => 'nullable|boolean',
             'password_min_length' => 'nullable|integer|min:6',
         ]);
         foreach ($data as $k => $v) {

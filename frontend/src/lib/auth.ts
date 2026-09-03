@@ -50,6 +50,27 @@ export async function verifyLoginOtp(mobile: string, code: string): Promise<{ ve
   return asRecord(response.data) as { verified?: boolean };
 }
 
+export async function sendAdminTwoFactor(): Promise<{
+  sent?: boolean;
+  delivered?: boolean;
+  message?: string;
+  debug_code?: string;
+}> {
+  const response = await apiClient.post('/v1/core/auth/2fa/send');
+  const payload = asRecord(response.data);
+  return {
+    sent: Boolean(payload.sent ?? true),
+    delivered: Boolean(payload.delivered),
+    message: typeof payload.message === 'string' ? payload.message : undefined,
+    debug_code: typeof payload.debug_code === 'string' ? payload.debug_code : undefined,
+  };
+}
+
+export async function verifyAdminTwoFactor(code: string): Promise<{ verified?: boolean }> {
+  const response = await apiClient.post('/v1/core/auth/2fa/verify', { code });
+  return asRecord(response.data) as { verified?: boolean };
+}
+
 export async function registerUser(body: {
   name: string;
   email: string;

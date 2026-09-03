@@ -1,7 +1,7 @@
 'use client';
 
 import type { ComponentProps } from 'react';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import Image from 'next/image';
 import { useTranslations } from 'next-intl';
 import { Button } from '@/components/ui/button';
@@ -11,7 +11,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { cn } from '@/lib/utils';
-import { login, registerUser, sendLoginOtp, verifyLoginOtp } from '@/lib/auth';
+import { login, registerUser, sendAdminTwoFactor, sendLoginOtp, verifyAdminTwoFactor, verifyLoginOtp } from '@/lib/auth';
 import { getAxiosMessage } from '@/lib/api-helpers';
 import { toast } from 'sonner';
 
@@ -29,6 +29,20 @@ export function LoginForm({ className, ...props }: ComponentProps<'div'>) {
   const [regPassword, setRegPassword] = useState('');
   const [regPassword2, setRegPassword2] = useState('');
   const [pending, setPending] = useState(false);
+  const [step, setStep] = useState<'form' | '2fa'>('form');
+  const [twoFactorCode, setTwoFactorCode] = useState('');
+  const [twoFactorHint, setTwoFactorHint] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (typeof window === 'undefined') {
+      return;
+    }
+    if (new URLSearchParams(window.location.search).get('challenge') !== '2fa') {
+      return;
+    }
+    setStep('2fa');
+    void requestTwoFactorCode();
+  }, []);
 
   function goDashboard() {
     const next = new URLSearchParams(window.location.search).get('next');
@@ -36,11 +50,46 @@ export function LoginForm({ className, ...props }: ComponentProps<'div'>) {
     window.location.assign(dest);
   }
 
+  async function requestTwoFactorCode() {
+    try {
+      const r = await sendAdminTwoFactor();
+      sessionStorage.removeItem('webino_2fa_redirect');
+      if (r.debug_code) {
+        setTwoFactorHint(`${t('login.twoFactorDevCode')}: ${r.debug_code}`);
+      } else if (r.delivered) {
+        setTwoFactorHint(t('login.twoFactorSent'));
+      } else {
+        setTwoFactorHint(t('login.twoFactorGenerated'));
+      }
+    } catch (err) {
+      toast.error(getAxiosMessage(err));
+    }
+  }
+
   async function onPasswordSubmit(e: React.FormEvent) {
     e.preventDefault();
     setPending(true);
     try {
-      await login(identifier.trim(), password);
+      const result = await login(identifier.trim(), password);
+      if (result.requires_2fa) {
+        setStep('2fa');
+        await requestTwoFactorCode();
+        return;
+      }
+      goDashboard();
+    } catch (err) {
+      toast.error(getAxiosMessage(err));
+    } finally {
+      setPending(false);
+    }
+  }
+
+  async function onVerifyTwoFactor(e: React.FormEvent) {
+    e.preventDefault();
+    setPending(true);
+    try {
+      await verifyAdminTwoFactor(twoFactorCode.trim());
+      sessionStorage.removeItem('webino_2fa_redirect');
       goDashboard();
     } catch (err) {
       toast.error(getAxiosMessage(err));
@@ -112,10 +161,46 @@ export function LoginForm({ className, ...props }: ComponentProps<'div'>) {
               className="size-10 rounded-md"
               priority
             />
-            <h1 className="text-2xl font-bold">{t('login.title')}</h1>
-              <p className="text-balance text-sm text-muted-foreground">{t('login.subtitle')}</p>
+            <h1 className="text-2xl font-bold">
+              {step === '2fa' ? t('login.twoFactorTitle') : t('login.title')}
+            </h1>
+              <p className="text-balance text-sm text-muted-foreground">
+                {step === '2fa' ? t('login.twoFactorSubtitle') : t('login.subtitle')}
+              </p>
             </div>
 
+            {step === '2fa' ? (
+              <form className="flex flex-col gap-4" onSubmit={(e) => void onVerifyTwoFactor(e)}>
+                {twoFactorHint ? (
+                  <p className="text-sm text-muted-foreground">{twoFactorHint}</p>
+                ) : null}
+                <div className="grid gap-2">
+                  <Label htmlFor="dashboard-2fa-code">{t('login.twoFactorCode')}</Label>
+                  <Input
+                    id="dashboard-2fa-code"
+                    inputMode="numeric"
+                    autoComplete="one-time-code"
+                    maxLength={6}
+                    value={twoFactorCode}
+                    onChange={(e) => setTwoFactorCode(e.target.value)}
+                    required
+                    dir="ltr"
+                  />
+                </div>
+                <Button type="submit" className="w-full" disabled={pending || twoFactorCode.trim().length !== 6}>
+                  {pending ? t('login.pending') : t('login.twoFactorSubmit')}
+                </Button>
+                <Button
+                  type="button"
+                  variant="ghost"
+                  className="w-full"
+                  disabled={pending}
+                  onClick={() => void requestTwoFactorCode()}
+                >
+                  {t('login.twoFactorResend')}
+                </Button>
+              </form>
+            ) : (
             <Tabs value={tab} onValueChange={(v) => setTab(v as typeof tab)}>
               <TabsList className="grid w-full grid-cols-3">
                 <TabsTrigger value="password">{t('login.passwordTab')}</TabsTrigger>
@@ -208,6 +293,7 @@ export function LoginForm({ className, ...props }: ComponentProps<'div'>) {
                 </form>
               </TabsContent>
             </Tabs>
+            )}
           </div>
           <div className="relative hidden flex-col justify-between gap-4 bg-muted p-8 md:flex">
             <div>
