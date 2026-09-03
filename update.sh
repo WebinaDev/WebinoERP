@@ -155,15 +155,22 @@ log "Rebuilding containers (named volumes db_data / redis_data are untouched)"
 compose_cli up -d --build --force-recreate --remove-orphans
 
 log "Waiting for Postgres…"
+# Compose service is `db` (container webinoerm-db-1), not `postgres`.
+PG_USER="${POSTGRES_USER:-webino}"
+PG_DB="${POSTGRES_DB:-webina_crm}"
 for i in $(seq 1 60); do
-  if compose_cli exec -T postgres pg_isready -U webino >/dev/null 2>&1 \
-    || compose_cli exec -T postgres pg_isready -U postgres >/dev/null 2>&1; then
+  if compose_cli exec -T db pg_isready -U "${PG_USER}" -d "${PG_DB}" >/dev/null 2>&1 \
+    || compose_cli exec -T db pg_isready -U postgres >/dev/null 2>&1; then
+    break
+  fi
+  # Fallback: docker healthcheck already marked Healthy
+  if compose_cli ps db 2>/dev/null | grep -qi healthy; then
     break
   fi
   sleep 2
   if [ "${i}" -eq 60 ]; then
     echo "ERROR: Postgres did not become ready." >&2
-    compose_cli logs --tail=80 postgres
+    compose_cli logs --tail=80 db
     exit 1
   fi
 done
