@@ -1,17 +1,14 @@
 import type { Metadata, Viewport } from "next"
-import { cookies } from "next/headers"
 import { NextIntlClientProvider } from "next-intl"
+import { getLocale, getMessages, getTimeZone } from "next-intl/server"
 
-import enMessages from "../../messages/en.json"
-import faMessages from "../../messages/fa.json"
-
-import { defaultLocale, isLocale, type Locale } from "../../i18n"
 import { yekanBakh } from "@/lib/fonts/yekan-bakh"
 import { htmlDir } from "@/lib/locale"
 import { getApiOrigin } from "@/lib/api-origin"
 import { Toaster } from "@/components/ui/sonner"
 import { AppProviders } from "@/providers/AppProviders"
 import { QueryProvider } from "@/providers/QueryProvider"
+import type { Locale } from "../../i18n"
 
 import "./globals.css"
 
@@ -33,28 +30,16 @@ export const viewport: Viewport = {
   ],
 }
 
-const messageCatalog = {
-  fa: faMessages,
-  en: enMessages,
-} as const
-
-async function resolveLocale(): Promise<Locale> {
-  const jar = await cookies()
-  const value = jar.get("NEXT_LOCALE")?.value ?? jar.get("locale")?.value
-  return value && isLocale(value) ? value : defaultLocale
-}
-
 export default async function RootLayout({
   children,
 }: Readonly<{
   children: React.ReactNode
 }>) {
-  const locale = await resolveLocale()
-  const messages = messageCatalog[locale]
+  const locale = (await getLocale()) as Locale
+  const messages = await getMessages()
+  const timeZone = await getTimeZone()
   const dir = htmlDir(locale)
   const apiOrigin = getApiOrigin()
-  const timeZone =
-    process.env.NEXT_PUBLIC_DEFAULT_TIMEZONE?.trim() || "Asia/Tehran"
 
   return (
     <html lang={locale} dir={dir} className={yekanBakh.variable} suppressHydrationWarning>
@@ -67,13 +52,7 @@ export default async function RootLayout({
         ) : null}
       </head>
       <body className="min-h-svh font-sans antialiased">
-        <NextIntlClientProvider
-          locale={locale}
-          messages={messages}
-          timeZone={timeZone}
-          onError={() => undefined}
-          getMessageFallback={({ key }) => key}
-        >
+        <NextIntlClientProvider locale={locale} messages={messages} timeZone={timeZone}>
           <QueryProvider>
             <AppProviders>
               {children}
