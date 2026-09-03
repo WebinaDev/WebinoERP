@@ -39,11 +39,27 @@ log() { echo "==> $*"; }
 
 has_cmd() { command -v "$1" >/dev/null 2>&1; }
 
+run_cmd() {
+  if [ -n "${SUDO}" ]; then
+    ${SUDO} "$@"
+  else
+    "$@"
+  fi
+}
+
+run_apt_get() {
+  if [ -n "${SUDO}" ]; then
+    ${SUDO} env DEBIAN_FRONTEND=noninteractive apt-get "$@"
+  else
+    DEBIAN_FRONTEND=noninteractive apt-get "$@"
+  fi
+}
+
 docker_cli() {
   if has_cmd docker && docker info >/dev/null 2>&1; then
     docker "$@"
   elif has_cmd docker; then
-    ${SUDO} docker "$@"
+    run_cmd docker "$@"
   else
     echo "Docker is not available." >&2
     exit 1
@@ -54,7 +70,7 @@ compose_cli() {
   if has_cmd docker && docker compose version >/dev/null 2>&1 && docker info >/dev/null 2>&1; then
     docker compose "$@"
   elif has_cmd docker && docker compose version >/dev/null 2>&1; then
-    ${SUDO} docker compose "$@"
+    run_cmd docker compose "$@"
   else
     echo "Docker Compose v2 is not available." >&2
     exit 1
@@ -79,22 +95,22 @@ install_base_packages() {
   log "Installing base packages (git, curl, ca-certificates)…"
   case "${OS_ID}" in
     ubuntu|debian|linuxmint|pop)
-      ${SUDO} apt-get update -qq
-      ${SUDO} DEBIAN_FRONTEND=noninteractive apt-get install -y \
+      run_cmd apt-get update -qq
+      run_apt_get install -y \
         ca-certificates curl git gnupg lsb-release apt-transport-https
       ;;
     fedora)
-      ${SUDO} dnf install -y ca-certificates curl git
+      run_cmd dnf install -y ca-certificates curl git
       ;;
     rhel|centos|rocky|almalinux|ol)
-      ${SUDO} dnf install -y ca-certificates curl git || \
-        ${SUDO} yum install -y ca-certificates curl git
+      run_cmd dnf install -y ca-certificates curl git || \
+        run_cmd yum install -y ca-certificates curl git
       ;;
     opensuse*|sles)
-      ${SUDO} zypper -n install ca-certificates curl git
+      run_cmd zypper -n install ca-certificates curl git
       ;;
     arch|manjaro)
-      ${SUDO} pacman -Sy --noconfirm ca-certificates curl git
+      run_cmd pacman -Sy --noconfirm ca-certificates curl git
       ;;
     *)
       log "Unknown OS (${OS_ID}). Install git and curl manually if this step fails."
@@ -113,43 +129,51 @@ install_docker_engine() {
 
   case "${OS_ID}" in
     ubuntu|debian|linuxmint|pop)
-      ${SUDO} install -m 0755 -d /etc/apt/keyrings
-      curl -fsSL "https://download.docker.com/linux/${OS_ID}/gpg" | ${SUDO} gpg --dearmor -o /etc/apt/keyrings/docker.gpg
-      ${SUDO} chmod a+r /etc/apt/keyrings/docker.gpg
-      echo "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/docker.gpg] https://download.docker.com/linux/${OS_ID} \
-$(. /etc/os-release && echo "${VERSION_CODENAME}") stable" | \
-        ${SUDO} tee /etc/apt/sources.list.d/docker.list >/dev/null
-      ${SUDO} apt-get update -qq
-      ${SUDO} DEBIAN_FRONTEND=noninteractive apt-get install -y \
+      local docker_distro="${OS_ID}"
+      if [ "${OS_ID}" = "linuxmint" ] || [ "${OS_ID}" = "pop" ]; then
+        docker_distro="ubuntu"
+      fi
+      local codename=""
+      codename="$(. /etc/os-release && echo "${UBUNTU_CODENAME:-${VERSION_CODENAME:-}}")"
+      if [ -z "${codename}" ]; then
+        codename="$(lsb_release -cs 2>/dev/null || true)"
+      fi
+      run_cmd install -m 0755 -d /etc/apt/keyrings
+      curl -fsSL "https://download.docker.com/linux/${docker_distro}/gpg" | run_cmd gpg --dearmor -o /etc/apt/keyrings/docker.gpg
+      run_cmd chmod a+r /etc/apt/keyrings/docker.gpg
+      echo "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/docker.gpg] https://download.docker.com/linux/${docker_distro} ${codename} stable" | \
+        run_cmd tee /etc/apt/sources.list.d/docker.list >/dev/null
+      run_cmd apt-get update -qq
+      run_apt_get install -y \
         docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin
       ;;
     fedora|rhel|centos|rocky|almalinux|ol)
-      ${SUDO} dnf -y install dnf-plugins-core 2>/dev/null || true
-      ${SUDO} dnf config-manager --add-repo https://download.docker.com/linux/centos/docker-ce.repo 2>/dev/null || \
-        curl -fsSL https://get.docker.com | ${SUDO} sh
+      run_cmd dnf -y install dnf-plugins-core 2>/dev/null || true
+      run_cmd dnf config-manager --add-repo https://download.docker.com/linux/centos/docker-ce.repo 2>/dev/null || \
+        curl -fsSL https://get.docker.com | run_cmd sh
       if ! has_cmd docker; then
-        ${SUDO} dnf install -y docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin || \
-          ${SUDO} yum install -y docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin
+        run_cmd dnf install -y docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin || \
+          run_cmd yum install -y docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin
       fi
       ;;
     *)
       log "Using Docker convenience script (get.docker.com)…"
-      curl -fsSL https://get.docker.com | ${SUDO} sh
+      curl -fsSL https://get.docker.com | run_cmd sh
       ;;
   esac
 }
 
 ensure_docker_running() {
-  if ${SUDO} systemctl is-active docker >/dev/null 2>&1; then
+  if run_cmd systemctl is-active docker >/dev/null 2>&1; then
     :
   else
     log "Starting Docker service…"
-    ${SUDO} systemctl enable --now docker 2>/dev/null || ${SUDO} service docker start 2>/dev/null || true
+    run_cmd systemctl enable --now docker 2>/dev/null || run_cmd service docker start 2>/dev/null || true
   fi
 
   if [ "$(id -u)" -ne 0 ] && ! docker info >/dev/null 2>&1; then
     log "Adding $(whoami) to docker group (re-login may be required)…"
-    ${SUDO} usermod -aG docker "$(whoami)" 2>/dev/null || true
+    run_cmd usermod -aG docker "$(whoami)" 2>/dev/null || true
     if ! docker info >/dev/null 2>&1; then
       log "Using sudo for docker commands in this session…"
     fi
@@ -184,10 +208,10 @@ ensure_dependencies() {
 
 ensure_install_dir() {
   if [ ! -d "${INSTALL_DIR}" ]; then
-    ${SUDO} mkdir -p "${INSTALL_DIR}"
+    run_cmd mkdir -p "${INSTALL_DIR}"
   fi
   if [ ! -w "${INSTALL_DIR}" ]; then
-    ${SUDO} chown -R "$(id -u):$(id -g)" "${INSTALL_DIR}"
+    run_cmd chown -R "$(id -u):$(id -g)" "${INSTALL_DIR}"
   fi
 }
 
