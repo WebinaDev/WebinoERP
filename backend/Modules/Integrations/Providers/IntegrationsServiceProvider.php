@@ -33,7 +33,9 @@ class IntegrationsServiceProvider extends ServiceProvider
     public function boot(): void
     {
         $this->loadMigrationsFrom(module_path($this->moduleName, 'Database/Migrations'));
-        app(ModirPayamakManager::class)->seedDefaultPackages();
+
+        // Seed default packages only when DB is reachable (skip during composer install/package:discover)
+        rescue(fn () => app(ModirPayamakManager::class)->seedDefaultPackages(), null, false);
 
         Route::prefix('api/v1/integrations')
             ->middleware('api')
