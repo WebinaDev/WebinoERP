@@ -53,7 +53,6 @@ export default async function RootLayout({
   const messages = messageCatalog[locale]
   const dir = htmlDir(locale)
   const apiOrigin = getApiOrigin()
-  const now = new Date()
   const timeZone =
     process.env.NEXT_PUBLIC_DEFAULT_TIMEZONE?.trim() || "Asia/Tehran"
 
@@ -71,8 +70,9 @@ export default async function RootLayout({
         <NextIntlClientProvider
           locale={locale}
           messages={messages}
-          now={now}
           timeZone={timeZone}
+          onError={() => undefined}
+          getMessageFallback={({ key }) => key}
         >
           <QueryProvider>
             <AppProviders>

@@ -1,4 +1,14 @@
-const API_BASE = process.env.INTERNAL_API_URL ?? process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost/api';
+function apiRoot(): string {
+  const raw = (
+    process.env.INTERNAL_API_URL ??
+    process.env.NEXT_PUBLIC_API_URL ??
+    'http://backend:8080'
+  ).replace(/\/$/, '');
+  if (raw.endsWith('/api')) {
+    return raw;
+  }
+  return `${raw}/api`;
+}
 
 export type ApiServerOptions = {
   revalidate?: number | false;
@@ -24,12 +34,23 @@ export async function apiServer<T>(path: string, opts: ApiServerOptions = {}): P
     init.next = { revalidate: 60 };
   }
 
-  const res = await fetch(`${API_BASE}${path}`, init);
+  const url = `${apiRoot()}${path.startsWith('/') ? path : `/${path}`}`;
+  const res = await fetch(url, init);
   const text = await res.text();
-  const data = text ? JSON.parse(text) : null;
+  let data: unknown = null;
+  if (text) {
+    try {
+      data = JSON.parse(text);
+    } catch {
+      throw new Error(`Non-JSON response from ${url} (HTTP ${res.status})`);
+    }
+  }
 
   if (!res.ok) {
-    const msg = typeof data?.message === 'string' ? data.message : `HTTP ${res.status}`;
+    const msg =
+      data && typeof data === 'object' && 'message' in data && typeof (data as { message: unknown }).message === 'string'
+        ? (data as { message: string }).message
+        : `HTTP ${res.status}`;
     throw new Error(msg);
   }
 

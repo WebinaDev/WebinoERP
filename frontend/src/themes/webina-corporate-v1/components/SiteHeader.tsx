@@ -1,5 +1,4 @@
 import Link from 'next/link';
-import Image from 'next/image';
 import { Button } from '@/components/ui/button';
 import { LanguageMenu } from '@/components/LanguageMenu';
 import { siteHref } from '@/lib/public-api-server';
@@ -29,7 +28,8 @@ export function SiteHeader({
       <div className="container mx-auto flex h-16 items-center justify-between gap-4 px-4">
         <Link href={siteHref()} className="flex items-center gap-3">
           {logoUrl ? (
-            <Image src={logoUrl} alt={siteName} width={36} height={36} className="rounded-md" />
+            // eslint-disable-next-line @next/next/no-img-element
+            <img src={logoUrl} alt={siteName} width={36} height={36} className="size-9 rounded-md object-contain" />
           ) : null}
           <span className="text-lg font-semibold tracking-tight">{siteName}</span>
         </Link>

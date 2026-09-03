@@ -21,6 +21,9 @@ const nextConfig = {
   poweredByHeader: false,
   reactStrictMode: true,
   transpilePackages: ["@webina/ui"],
+  images: {
+    unoptimized: true,
+  },
   experimental: {
     optimizePackageImports: ["lucide-react"],
   },
