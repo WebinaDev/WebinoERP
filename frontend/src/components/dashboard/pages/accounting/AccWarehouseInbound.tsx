@@ -56,6 +56,7 @@ function parsePaginated<T>(axiosData: unknown) {
 
 export default function AccWarehouseInbound() {
   const t = useTranslations();
+  const { formatDateTime } = useLocale();
 
   const [warehouses, setWarehouses] = useState<Warehouse[]>([]);
   const [filterStatus, setFilterStatus] = useState<'all' | 'draft' | 'posted'>('all');

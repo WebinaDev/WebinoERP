@@ -53,6 +53,7 @@ function parsePaginated<T>(axiosData: unknown) {
 
 export default function AccWarehouseAudit() {
   const t = useTranslations();
+  const { formatDateTime } = useLocale();
 
   const [warehouses, setWarehouses] = useState<Warehouse[]>([]);
   const [rows, setRows] = useState<WarehouseDoc[]>([]);

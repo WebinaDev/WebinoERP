@@ -33,15 +33,13 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Textarea } from '@/components/ui/textarea';
 import { usePathname } from 'next/navigation';
 import { WizardStepper } from '@/features/shared/pm';
-import { useLocale } from '@/hooks/use-locale';
 
 type Row = Record<string, unknown>;
 type Meta = { current_page?: number; last_page?: number; total?: number };
 
 export function ContractsListPage() {
-  const { formatDate } = useLocale();
   const t = useTranslations();
-  const { isRtl } = useLocale();
+  const { formatDate, isRtl } = useLocale();
 
   const pathname = usePathname();
   const locale = pathname.split('/')[1] || 'fa';
