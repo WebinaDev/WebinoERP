@@ -35,7 +35,7 @@ services:
       context: .
       dockerfile: docker/php/Dockerfile
     working_dir: /var/www/html
-    entrypoint: ["/entrypoint.sh"]
+    entrypoint: ["sh", "/entrypoint.sh"]
     volumes:
       - ./backend:/var/www/html
       - ./docker/php/entrypoint.sh:/entrypoint.sh:ro
@@ -76,7 +76,7 @@ services:
       context: .
       dockerfile: docker/php/Dockerfile
     working_dir: /var/www/html
-    entrypoint: ["/entrypoint.sh"]
+    entrypoint: ["sh", "/entrypoint.sh"]
     volumes:
       - ./backend:/var/www/html
       - ./docker/php/entrypoint.sh:/entrypoint.sh:ro
@@ -109,7 +109,7 @@ services:
       context: .
       dockerfile: docker/php/Dockerfile
     working_dir: /var/www/html
-    entrypoint: ["/entrypoint.sh"]
+    entrypoint: ["sh", "/entrypoint.sh"]
     volumes:
       - ./backend:/var/www/html
       - ./docker/php/entrypoint.sh:/entrypoint.sh:ro
@@ -142,7 +142,7 @@ services:
       context: .
       dockerfile: docker/php/Dockerfile
     working_dir: /var/www/html
-    entrypoint: ["/entrypoint.sh"]
+    entrypoint: ["sh", "/entrypoint.sh"]
     volumes:
       - ./backend:/var/www/html
       - ./docker/php/entrypoint.sh:/entrypoint.sh:ro

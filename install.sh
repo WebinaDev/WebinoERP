@@ -312,6 +312,7 @@ mkdir -p \
   backend/storage/framework/views \
   backend/storage/logs
 chmod -R 777 backend/bootstrap/cache backend/storage 2>/dev/null || true
+chmod +x docker/php/entrypoint.sh docker/php/entrypoint-platform.sh 2>/dev/null || true
 
 # ── build backend image first (needed for composer + key:generate) ────────────
 log "Building backend Docker image…"
