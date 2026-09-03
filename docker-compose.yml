@@ -56,6 +56,12 @@ services:
       QUEUE_CONNECTION: redis
       BROADCAST_CONNECTION: reverb
       OCTANE_SERVER: frankenphp
+    healthcheck:
+      test: ["CMD-SHELL", "curl -sf http://localhost:8080/api/v1/core/health/readiness >/dev/null || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+      start_period: 30s
     depends_on:
       db:
         condition: service_healthy
@@ -93,7 +99,7 @@ services:
       redis:
         condition: service_healthy
       backend:
-        condition: service_started
+        condition: service_healthy
     command: php artisan queue:work redis --sleep=3 --tries=3
     networks:
       - webino_erp
@@ -126,7 +132,7 @@ services:
       redis:
         condition: service_healthy
       backend:
-        condition: service_started
+        condition: service_healthy
     command: php artisan schedule:work
     networks:
       - webino_erp
@@ -165,6 +171,12 @@ services:
       API_PROXY_TARGET: http://backend:8080
       AUTH_COOKIE_NAME: webino_auth_token
       NEXT_PUBLIC_REVERB_PORT: "8081"
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://localhost:3000/ >/dev/null 2>&1 || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+      start_period: 60s
     depends_on:
       - backend
     networks:
@@ -178,9 +190,12 @@ services:
     volumes:
       - ./docker/caddy/Caddyfile:/etc/caddy/Caddyfile:ro
     depends_on:
-      - backend
-      - frontend
-      - ws
+      frontend:
+        condition: service_healthy
+      backend:
+        condition: service_started
+      ws:
+        condition: service_started
     networks:
       - webino_erp
 

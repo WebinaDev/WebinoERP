@@ -350,6 +350,15 @@ if [ "${READY}" -eq 0 ]; then
   exit 1
 fi
 
+# ── wait for backend to be healthy (Octane fully booted) ─────────────────────
+log "Waiting for backend to boot (Octane/FrankenPHP)…"
+for i in $(seq 1 60); do
+  if compose_cli exec -T backend curl -sf http://localhost:8080/api/v1/core/health/readiness >/dev/null 2>&1; then
+    break
+  fi
+  sleep 3
+done
+
 # ── migrate & seed ────────────────────────────────────────────────────────────
 log "Running database migrations"
 compose_cli exec -T backend php artisan migrate --force
@@ -358,6 +367,16 @@ log "Seeding database"
 compose_cli exec -T backend php artisan db:seed --force
 
 compose_cli exec -T backend php artisan storage:link 2>/dev/null || true
+
+# ── wait for frontend to finish building (Next.js standalone) ─────────────────
+log "Waiting for frontend to become ready (Next.js build may take a few minutes)…"
+for i in $(seq 1 90); do
+  if compose_cli exec -T frontend wget -qO- http://localhost:3000/ >/dev/null 2>&1; then
+    log "Frontend is ready!"
+    break
+  fi
+  sleep 4
+done
 
 # ── done ──────────────────────────────────────────────────────────────────────
 echo
