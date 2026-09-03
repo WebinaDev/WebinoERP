@@ -10,7 +10,6 @@
 		X-Content-Type-Options "nosniff"
 		X-Frame-Options "SAMEORIGIN"
 		Referrer-Policy "strict-origin-when-cross-origin"
-		Strict-Transport-Security "max-age=31536000; includeSubDomains"
 		-Server
 	}
 }
@@ -46,8 +45,11 @@
 	}
 }
 
-# Production domain — Caddy issues Let's Encrypt certs and redirects HTTP→HTTPS.
+# TEMP until Let's Encrypt rate limit resets (~2026-09-05 UTC).
+# Browsers will warn (self-signed). After the date, replace `tls internal`
+# with nothing (Caddy auto LE) — and NEVER delete the caddy_data volume.
 webina.dev, www.webina.dev {
+	tls internal
 	import security_headers
 	import app_routes
 }
