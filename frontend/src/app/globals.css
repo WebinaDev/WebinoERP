@@ -105,8 +105,23 @@
     @apply border-border outline-ring/50;
   }
 
+  html {
+    scrollbar-gutter: stable;
+    overflow-y: scroll;
+  }
+
   body {
     @apply bg-background text-foreground font-sans;
+  }
+
+  /* Radix dropdown/select locks scroll and adds padding — keep layout still. */
+  body[data-scroll-locked] {
+    padding-right: 0 !important;
+    padding-left: 0 !important;
+    padding-inline: 0 !important;
+    margin-right: 0 !important;
+    margin-inline: 0 !important;
+    overflow: hidden !important;
   }
 
   html[lang='fa'] {

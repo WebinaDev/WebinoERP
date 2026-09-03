@@ -107,7 +107,9 @@
       "configSection": "Configuration areas",
       "dashboard": "Dashboard",
       "reports": "Reports",
+      "profile": "My profile",
       "mfg": {
+        "group": "Manufacturing",
         "description": "BOM, work orders, quality control, and MRP planning.",
         "overview": "Overview",
         "boms": "Bills of materials",
@@ -156,6 +158,7 @@
         "downloads": "Downloads"
       },
       "hrm": {
+        "group": "Human resources",
         "description": "Staff records and HR operations.",
         "staff": "Staff",
         "attendance": "Attendance",
@@ -166,6 +169,7 @@
         "training": "Training"
       },
       "finance": {
+        "group": "Finance & accounting",
         "description": "Ledger, invoices, treasury, and financial reports.",
         "dashboard": "Finance dashboard",
         "persons": "Parties",
@@ -182,6 +186,7 @@
         "settings": "Finance settings"
       },
       "crm": {
+        "group": "Customer relationship (CRM)",
         "description": "Leads, customers, tickets, and consultations.",
         "leads": "Leads",
         "customers": "Customers",
@@ -191,6 +196,7 @@
         "pipelines": "Pipelines"
       },
       "pm": {
+        "group": "Project management",
         "description": "Projects, tasks, time tracking, and team chat.",
         "projects": "Projects",
         "tasks": "Tasks",
@@ -199,6 +205,7 @@
         "appointments": "Appointments"
       },
       "scm": {
+        "group": "Supply chain & warehouse",
         "description": "Warehouses, stock, and inventory movements.",
         "warehouses": "Warehouses",
         "stock": "Stock levels",
@@ -207,6 +214,7 @@
         "audit": "Stock audit"
       },
       "sales": {
+        "group": "Sales & marketing",
         "description": "Quotations, catalog, campaigns, and integrations.",
         "invoices": "Quotations",
         "catalog": "Catalog",
@@ -215,11 +223,13 @@
         "modirpayamak": "ModirPayamak SMS"
       },
       "docs": {
+        "group": "Documents & contracts",
         "description": "Contracts and file archive.",
         "contracts": "Contracts",
         "files": "Documents"
       },
       "distribution": {
+        "group": "Distribution, marketplace & licenses",
         "description": "Module marketplace and license management.",
         "marketplaceProducts": "Marketplace / products",
         "marketplaceGitea": "Package server (Gitea)",
@@ -229,6 +239,7 @@
         "licenses": "Marketplace licenses"
       },
       "admin": {
+        "group": "System & settings",
         "description": "Logs, visitor analytics, and platform settings.",
         "bale": "Bale business bot",
         "modirpayamak": "SMS panel",
@@ -274,6 +285,36 @@
     "projectsSection": "Projects",
     "singleNavHint": "Only Overview appears because your role has no extra dashboard permissions yet. Ask a site administrator to assign capabilities (e.g. Shop Manager, Editor) if you need store or content sections.",
     "userFallback": "Signed in"
+  },
+  "layout": {
+    "dashboard": "Dashboard",
+    "reports": "Reports",
+    "hrm": "Human resources",
+    "finance": "Finance & accounting",
+    "crm": "Customer relationship (CRM)",
+    "pm": "Project management",
+    "scm": "Supply chain & warehouse",
+    "sales": "Sales & marketing",
+    "mfg": "Manufacturing",
+    "docs": "Documents & contracts",
+    "admin": "System & settings",
+    "platform": "Platform",
+    "distribution": "Distribution, marketplace & licenses",
+    "hrm_menu": "Human resources",
+    "finance_menu": "Finance & accounting",
+    "crm_menu": "Customer relationship (CRM)",
+    "pm_menu": "Project management",
+    "scm_menu": "Supply chain & warehouse",
+    "sales_menu": "Sales & marketing",
+    "mfg_menu": "Manufacturing",
+    "docs_menu": "Documents & contracts",
+    "admin_menu": "System & settings",
+    "platform_menu": "Platform",
+    "site_builder_menu": "Site Builder",
+    "marketing_menu": "Public site",
+    "distribution_menu": "Distribution, marketplace & licenses",
+    "modirpayamak": "ModirPayamak SMS",
+    "bale_business": "Business bot"
   },
   "login": {
     "title": "Sign in",

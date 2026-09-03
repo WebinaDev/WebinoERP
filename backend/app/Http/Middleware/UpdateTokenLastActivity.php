@@ -12,12 +12,16 @@ class UpdateTokenLastActivity
     {
         $response = $next($request);
         $token = $request->user()?->currentAccessToken();
-        if ($token) {
-            $token->forceFill([
-                'last_activity_at' => now(),
-                'ip' => $request->ip(),
-                'user_agent' => substr((string) $request->userAgent(), 0, 2000),
-            ])->save();
+        if ($token && method_exists($token, 'forceFill') && method_exists($token, 'save')) {
+            try {
+                $token->forceFill([
+                    'last_activity_at' => now(),
+                    'ip' => $request->ip(),
+                    'user_agent' => substr((string) $request->userAgent(), 0, 2000),
+                ])->save();
+            } catch (\Throwable) {
+                // Missing token columns or transient tokens must not fail the request.
+            }
         }
 
         return $response;

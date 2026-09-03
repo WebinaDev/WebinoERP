@@ -15,12 +15,23 @@ class DashboardStatsController extends Controller
     {
         return response()->json([
             'data' => [
-                'leads_total' => CrmLead::query()->count(),
-                'projects_active' => Project::query()->where('status', 'active')->count(),
-                'tasks_open' => ProjectTask::query()->where('status', '!=', 'done')->count(),
-                'tickets_open' => PrjTicket::query()->whereIn('status', ['open', 'pending', 'in_progress'])->count(),
-                'contracts_total' => DB::table('prj_contracts')->count(),
+                'leads_total' => $this->safeCount(fn () => CrmLead::query()->count()),
+                'projects_active' => $this->safeCount(fn () => Project::query()->where('status', 'active')->count()),
+                'tasks_open' => $this->safeCount(fn () => ProjectTask::query()->where('status', '!=', 'done')->count()),
+                'tickets_open' => $this->safeCount(fn () => PrjTicket::query()->whereIn('status', ['open', 'pending', 'in_progress'])->count()),
+                'contracts_total' => \Illuminate\Support\Facades\Schema::hasTable('prj_contracts')
+                    ? $this->safeCount(fn () => DB::table('prj_contracts')->count())
+                    : 0,
             ],
         ]);
+    }
+
+    private function safeCount(callable $fn): int
+    {
+        try {
+            return (int) $fn();
+        } catch (\Throwable) {
+            return 0;
+        }
     }
 }

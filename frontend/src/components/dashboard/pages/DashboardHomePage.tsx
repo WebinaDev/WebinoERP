@@ -64,13 +64,21 @@ export function DashboardHomePage() {
         requests.push(apiClient.get('/v1/core/users', { params: { per_page: 8 } }));
       }
 
-      const results = await Promise.all(requests);
-      const [sRes, fRes, pRes, uRes] = results as [typeof results[0], typeof results[1], typeof results[2], typeof results[3]?];
+      const settled = await Promise.allSettled(requests);
+      const pick = (i: number) => (settled[i]?.status === 'fulfilled' ? settled[i].value : null);
+      const sRes = pick(0);
+      const fRes = pick(1);
+      const pRes = pick(2);
+      const uRes = pick(3);
 
-      setStats(unwrapData<Stats>(sRes));
-      setFull(unwrapData<FullDash>(fRes));
-      setProjects(normalizeListPayload(unwrapData<unknown>(pRes)));
-      setTeam(uRes ? normalizeListPayload(unwrapData<unknown>(uRes)) : []);
+      if (sRes) setStats(unwrapData<Stats>(sRes as { data: unknown }));
+      if (fRes) setFull(unwrapData<FullDash>(fRes as { data: unknown }));
+      if (pRes) setProjects(normalizeListPayload(unwrapData<unknown>(pRes as { data: unknown })));
+      setTeam(uRes ? normalizeListPayload(unwrapData<unknown>(uRes as { data: unknown })) : []);
+      const failed = settled.filter((r) => r.status === 'rejected');
+      if (failed.length === settled.length) {
+        setError(getAxiosMessage(failed[0].reason));
+      }
 
       if (role === 'team_member') {
         const tm = await apiClient.get('/v1/core/dashboard/stats/team-member');

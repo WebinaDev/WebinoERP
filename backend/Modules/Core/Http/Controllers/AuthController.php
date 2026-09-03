@@ -143,9 +143,13 @@ class AuthController extends Controller
 
     private function getLicensedModules(): array
     {
-        return \Modules\Core\Entities\SystemModule::where('is_active', true)
-            ->pluck('slug')
-            ->toArray();
+        try {
+            return \Modules\Core\Entities\SystemModule::where('is_active', true)
+                ->pluck('slug')
+                ->toArray();
+        } catch (\Throwable) {
+            return [];
+        }
     }
 
 }

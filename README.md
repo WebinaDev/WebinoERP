@@ -35,6 +35,27 @@ curl -fsSL https://raw.githubusercontent.com/WebinaDev/WebinoERP/main/install.sh
   | INSTALL_DIR=/opt/webina WEB_HTTP_PORT=3080 APP_URL=http://YOUR_SERVER_IP:3080 bash
 ```
 
+### به‌روزرسانی روی سرور (یک دستور)
+
+دیتابیس و volumeها را پاک نمی‌کند. فقط کد را می‌کشد، کانتینرها را rebuild می‌کند و `migrate` می‌زند. فایل‌های `.env` و `Caddyfile` نگه داشته می‌شوند.
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/WebinaDev/WebinoERP/main/update.sh | bash
+```
+
+اگر نصب جای دیگری است:
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/WebinaDev/WebinoERP/main/update.sh \
+  | INSTALL_DIR=/opt/webina bash
+```
+
+اگر `update.sh` هنوز روی `main` نیست، بعد از `git pull` داخل ریپو:
+
+```bash
+sudo bash /opt/webina/WebinoERP/update.sh
+```
+
 اگر `install.sh` هنوز روی `main` نیست:
 
 ```bash

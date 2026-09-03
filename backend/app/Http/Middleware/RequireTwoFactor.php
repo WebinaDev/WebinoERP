@@ -17,7 +17,13 @@ class RequireTwoFactor
     public function handle(Request $request, Closure $next): Response
     {
         $user = $request->user();
-        if (! $user || ! $user->hasRole(RolesAndPermissionsSeeder::ROLE_SYSTEM_MANAGER)) {
+        $isManager = false;
+        try {
+            $isManager = $user && $user->hasRole(RolesAndPermissionsSeeder::ROLE_SYSTEM_MANAGER);
+        } catch (\Throwable) {
+            $isManager = false;
+        }
+        if (! $user || ! $isManager) {
             return $next($request);
         }
 

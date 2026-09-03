@@ -31,9 +31,13 @@ export async function apiFetch(
     }
   }
 
+  const url = path === 'settings' || path === '/settings'
+    ? '/v1/core/settings'
+    : path
+
   const res = await apiClient.request({
     method,
-    url: path,
+    url,
     headers,
     data,
   })

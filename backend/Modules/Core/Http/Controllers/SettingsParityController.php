@@ -11,18 +11,20 @@ class SettingsParityController extends Controller
 {
     public function show(Request $request): JsonResponse
     {
-        $general = SystemSetting::getByGroup('general');
-        $modules = SystemSetting::getByGroup('modules');
-        $branding = SystemSetting::getByGroup('branding');
+        $general = $this->safeGroup('general');
+        $modules = $this->safeGroup('modules');
+        $branding = $this->safeGroup('branding');
 
         return response()->json([
             'data' => [
                 'general' => $general,
                 'modules' => $modules,
                 'branding' => $branding,
-                'auth' => SystemSetting::getByGroup('auth'),
+                'auth' => $this->safeGroup('auth'),
                 'sms' => $this->smsSettingsForUi(),
-                'payment' => SystemSetting::getByGroup('payment'),
+                'payment' => $this->safeGroup('payment'),
+                'uiTheme' => $general['ui_theme'] ?? null,
+                'uiAccent' => $general['ui_accent'] ?? null,
             ],
         ]);
     }
@@ -48,10 +50,57 @@ class SettingsParityController extends Controller
     /**
      * @return array<string, mixed>
      */
+    public function saveUiPreferences(Request $request): JsonResponse
+    {
+        $payload = $request->validate([
+            'ui_theme' => 'nullable|string|in:light,dark,system',
+            'ui_accent' => 'nullable|string|max:32',
+            'settings' => 'nullable|array',
+            'group' => 'nullable|string|max:50',
+        ]);
+
+        if (isset($payload['settings'])) {
+            return $this->update($request);
+        }
+
+        if (! empty($payload['ui_theme'])) {
+            SystemSetting::set('ui_theme', $payload['ui_theme'], 'general');
+        }
+        if (! empty($payload['ui_accent'])) {
+            SystemSetting::set('ui_accent', $payload['ui_accent'], 'general');
+        }
+
+        return response()->json(['data' => ['saved' => true]]);
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    private function safeGroup(string $group): array
+    {
+        try {
+            return SystemSetting::getByGroup($group);
+        } catch (\Throwable) {
+            return [];
+        }
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
     private function smsSettingsForUi(): array
     {
-        $fromSystem = SystemSetting::getByGroup('sms');
-        $fromIntegration = IntegrationSetting::getJson('sms', 'settings', []);
+        try {
+            $fromSystem = SystemSetting::getByGroup('sms');
+        } catch (\Throwable) {
+            $fromSystem = [];
+        }
+
+        try {
+            $fromIntegration = IntegrationSetting::getJson('sms', 'settings', []);
+        } catch (\Throwable) {
+            $fromIntegration = [];
+        }
         $provider = $fromIntegration['provider'] ?? $fromSystem['provider'] ?? config('integrations.sms.default', 'log');
 
         return array_merge($fromSystem, $fromIntegration, ['provider' => $provider]);

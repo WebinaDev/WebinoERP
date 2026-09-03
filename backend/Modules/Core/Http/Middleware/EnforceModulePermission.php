@@ -29,7 +29,7 @@ class EnforceModulePermission
             ], 401);
         }
 
-        if ($user->hasRole('system_manager')) {
+        if ($this->isSystemManager($user)) {
             return $next($request);
         }
 
@@ -54,7 +54,7 @@ class EnforceModulePermission
             ], 403);
         }
 
-        if (! $user->can($permission)) {
+        if (! $this->userCan($user, $permission)) {
             return response()->json([
                 'message' => __('api.permission_denied'),
                 'errors' => [
@@ -65,6 +65,28 @@ class EnforceModulePermission
         }
 
         return $next($request);
+    }
+
+    private function isSystemManager(mixed $user): bool
+    {
+        try {
+            if (method_exists($user, 'hasRole') && $user->hasRole('system_manager')) {
+                return true;
+            }
+        } catch (\Throwable) {
+            // Role may be missing from the catalog after a partial seed.
+        }
+
+        return (string) ($user->dashboard_role ?? '') === 'system_manager';
+    }
+
+    private function userCan(mixed $user, string $permission): bool
+    {
+        try {
+            return (bool) $user->can($permission);
+        } catch (\Throwable) {
+            return false;
+        }
     }
 
     private function resolvePermission(string $module, Request $request, ?string $uriSlug): ?string

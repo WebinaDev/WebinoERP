@@ -25,30 +25,48 @@ class DashboardParityController extends Controller
                         'id' => 'recent_leads',
                         'title' => 'آخرین سرنخ‌ها',
                         'type' => 'list',
-                        'items' => CrmLead::query()->orderByDesc('id')->limit(5)->get(),
+                        'items' => $this->safeList(fn () => CrmLead::query()->orderByDesc('id')->limit(5)->get()),
                     ],
                     [
                         'id' => 'recent_tasks',
                         'title' => 'آخرین وظایف',
                         'type' => 'list',
-                        'items' => ProjectTask::query()->orderByDesc('id')->limit(5)->get(),
+                        'items' => $this->safeList(fn () => ProjectTask::query()->orderByDesc('id')->limit(5)->get()),
                     ],
                     [
                         'id' => 'recent_tickets',
                         'title' => 'آخرین تیکت‌ها',
                         'type' => 'list',
-                        'items' => PrjTicket::query()->orderByDesc('id')->limit(5)->get(),
+                        'items' => $this->safeList(fn () => PrjTicket::query()->orderByDesc('id')->limit(5)->get()),
                     ],
                 ],
                 'stats' => [
-                    'leads' => CrmLead::query()->count(),
-                    'projects' => Project::query()->count(),
-                    'tasks_open' => ProjectTask::query()->where('status', '!=', 'done')->count(),
-                    'tickets_open' => PrjTicket::query()->where('status', 'open')->count(),
-                    'contracts' => Contract::query()->count(),
+                    'leads' => $this->safeCount(fn () => CrmLead::query()->count()),
+                    'projects' => $this->safeCount(fn () => Project::query()->count()),
+                    'tasks_open' => $this->safeCount(fn () => ProjectTask::query()->where('status', '!=', 'done')->count()),
+                    'tickets_open' => $this->safeCount(fn () => PrjTicket::query()->where('status', 'open')->count()),
+                    'contracts' => $this->safeCount(fn () => Contract::query()->count()),
                 ],
             ],
         ]);
+    }
+
+    private function safeCount(callable $fn): int
+    {
+        try {
+            return (int) $fn();
+        } catch (\Throwable) {
+            return 0;
+        }
+    }
+
+    private function safeList(callable $fn): array
+    {
+        try {
+            return $fn()->all();
+        } catch (\Throwable) {
+            return [];
+        }
     }
 
     public function teamMemberStats(): JsonResponse
