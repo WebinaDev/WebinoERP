@@ -10,15 +10,19 @@
 #   INSTALL_DIR   parent dir of the clone (default /opt/webina)
 #   ERP_DIR       exact repo path if not INSTALL_DIR/WebinoERP
 #   ERP_REF       git branch (default main)
-#   SKIP_UI       1 = do not refresh packages/webina-ui
+#   SKIP_UI       1 = never touch packages/webina-ui (default if it already exists)
+#   FORCE_UI      1 = re-clone @webina/ui even if present (needs access to UI_REPO)
 set -euo pipefail
 trap 'echo "ERROR: update.sh failed at line ${LINENO} (exit $?)" >&2' ERR
+export GIT_TERMINAL_PROMPT=0
+export GIT_ASKPASS=true
 
 ERP_REPO="${ERP_REPO:-https://github.com/WebinaDev/WebinoERP.git}"
 ERP_REF="${ERP_REF:-main}"
 UI_REPO="${UI_REPO:-https://github.com/WebinaDev/WebinaDashboard.git}"
 INSTALL_DIR="${INSTALL_DIR:-/opt/webina}"
 SKIP_UI="${SKIP_UI:-0}"
+FORCE_UI="${FORCE_UI:-0}"
 
 if [ "$(id -u)" -eq 0 ]; then
   SUDO=""
@@ -123,17 +127,25 @@ log "Restoring env and Caddyfile"
 [ -f "${BACKUP_DIR}/docker/caddy/Caddyfile" ] && cp -a "${BACKUP_DIR}/docker/caddy/Caddyfile" "${ERP_DIR}/docker/caddy/Caddyfile"
 
 PARENT_DIR="$(dirname "${ERP_DIR}")"
-if [ "${SKIP_UI}" != "1" ]; then
-  log "Refreshing @webina/ui (frontend Docker build context)"
+UI_PKG="${PARENT_DIR}/packages/webina-ui/package.json"
+if [ "${SKIP_UI}" = "1" ]; then
+  log "Skipping @webina/ui (SKIP_UI=1)"
+elif [ -f "${UI_PKG}" ] && [ "${FORCE_UI}" != "1" ]; then
+  log "Keeping existing @webina/ui at ${PARENT_DIR}/packages/webina-ui"
+else
+  log "Fetching @webina/ui from ${UI_REPO} (no credential prompt)"
   run_cmd mkdir -p "${PARENT_DIR}/packages"
   tmp="$(mktemp -d)"
-  git clone --filter=blob:none --sparse --depth 1 "${UI_REPO}" "${tmp}/dash"
-  git -C "${tmp}/dash" sparse-checkout set packages/webina-ui
-  if [ -d "${tmp}/dash/packages/webina-ui" ]; then
+  if GIT_TERMINAL_PROMPT=0 git clone --filter=blob:none --sparse --depth 1 "${UI_REPO}" "${tmp}/dash" >/dev/null 2>&1 \
+    && git -C "${tmp}/dash" sparse-checkout set packages/webina-ui \
+    && [ -d "${tmp}/dash/packages/webina-ui" ]; then
     run_cmd rm -rf "${PARENT_DIR}/packages/webina-ui"
     run_cmd cp -a "${tmp}/dash/packages/webina-ui" "${PARENT_DIR}/packages/webina-ui"
+    log "@webina/ui updated"
+  elif [ -f "${UI_PKG}" ]; then
+    echo "WARN: could not clone ${UI_REPO} (private/unauthenticated). Keeping existing @webina/ui." >&2
   else
-    echo "WARN: packages/webina-ui not found in ${UI_REPO} — keeping existing copy" >&2
+    echo "WARN: @webina/ui missing and ${UI_REPO} is not clonable without credentials. Frontend build may fail." >&2
   fi
   rm -rf "${tmp}"
 fi
