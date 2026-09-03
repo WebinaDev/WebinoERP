@@ -312,6 +312,10 @@ mkdir -p \
   backend/storage/logs
 chmod -R 777 backend/bootstrap/cache backend/storage 2>/dev/null || true
 
+# ── build backend image first (needed for composer + key:generate) ────────────
+log "Building backend Docker image…"
+compose_cli build backend
+
 # ── composer install (inside backend image, no network to db needed) ──────────
 log "Installing PHP dependencies (composer via Docker — no DB needed here)"
 compose_cli run --rm --no-deps \
@@ -331,7 +335,7 @@ fi
 
 # ── build & start all containers ──────────────────────────────────────────────
 log "Building and starting all Docker services (this may take several minutes)…"
-compose_cli up -d --build
+compose_cli up -d --build --no-recreate 2>/dev/null || compose_cli up -d --build
 
 # ── wait for Postgres to be healthy ──────────────────────────────────────────
 log "Waiting for database to become ready…"
