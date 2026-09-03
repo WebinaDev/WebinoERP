@@ -98,13 +98,12 @@ cleanup_backup() { rm -rf "${BACKUP_DIR}"; }
 trap 'cleanup_backup' EXIT
 trap 'echo "ERROR: update.sh failed at line ${LINENO} (exit $?)" >&2' ERR
 
-log "Backing up env and Caddyfile (secrets + domain stay)"
-mkdir -p "${BACKUP_DIR}/backend" "${BACKUP_DIR}/frontend" "${BACKUP_DIR}/docker/caddy"
+log "Backing up env files (secrets stay; Caddyfile comes from git + CADDY_DOMAINS in .env)"
+mkdir -p "${BACKUP_DIR}/backend" "${BACKUP_DIR}/frontend"
 [ -f "${ERP_DIR}/.env" ] && cp -a "${ERP_DIR}/.env" "${BACKUP_DIR}/.env"
 [ -f "${ERP_DIR}/backend/.env" ] && cp -a "${ERP_DIR}/backend/.env" "${BACKUP_DIR}/backend/.env"
 [ -f "${ERP_DIR}/frontend/.env" ] && cp -a "${ERP_DIR}/frontend/.env" "${BACKUP_DIR}/frontend/.env"
 [ -f "${ERP_DIR}/frontend/.env.local" ] && cp -a "${ERP_DIR}/frontend/.env.local" "${BACKUP_DIR}/frontend/.env.local"
-[ -f "${ERP_DIR}/docker/caddy/Caddyfile" ] && cp -a "${ERP_DIR}/docker/caddy/Caddyfile" "${BACKUP_DIR}/docker/caddy/Caddyfile"
 
 cd "${ERP_DIR}"
 run_cmd git -C "${ERP_DIR}" remote set-url origin "${ERP_REPO}" || true
@@ -116,20 +115,13 @@ run_cmd git -C "${ERP_DIR}" clean -fd \
   -e .env \
   -e backend/.env \
   -e frontend/.env \
-  -e frontend/.env.local \
-  -e docker/caddy/Caddyfile
+  -e frontend/.env.local
 
-log "Restoring env and Caddyfile"
+log "Restoring env files"
 [ -f "${BACKUP_DIR}/.env" ] && cp -a "${BACKUP_DIR}/.env" "${ERP_DIR}/.env"
 [ -f "${BACKUP_DIR}/backend/.env" ] && cp -a "${BACKUP_DIR}/backend/.env" "${ERP_DIR}/backend/.env"
 [ -f "${BACKUP_DIR}/frontend/.env" ] && cp -a "${BACKUP_DIR}/frontend/.env" "${ERP_DIR}/frontend/.env"
 [ -f "${BACKUP_DIR}/frontend/.env.local" ] && cp -a "${BACKUP_DIR}/frontend/.env.local" "${ERP_DIR}/frontend/.env.local"
-[ -f "${BACKUP_DIR}/docker/caddy/Caddyfile" ] && cp -a "${BACKUP_DIR}/docker/caddy/Caddyfile" "${ERP_DIR}/docker/caddy/Caddyfile"
-# Chrome ERR_SSL_PROTOCOL_ERROR when Caddy advertises h3 but UDP/443 is not published
-if [ -f "${ERP_DIR}/docker/caddy/Caddyfile" ]; then
-  sed -i.bak 's/protocols h1 h2 h3/protocols h1 h2/g' "${ERP_DIR}/docker/caddy/Caddyfile" || true
-  rm -f "${ERP_DIR}/docker/caddy/Caddyfile.bak"
-fi
 
 PARENT_DIR="$(dirname "${ERP_DIR}")"
 UI_PKG="${PARENT_DIR}/packages/webina-ui/package.json"
