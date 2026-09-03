@@ -6,10 +6,26 @@ import { CrmPageLayout } from '@/features/shared/layout/CrmPageLayout';
 import { useCrmFeedback } from '@/features/shared/hooks/useCrmFeedback';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Card, CardContent } from '@/components/ui/card';
+import { Label } from '@/components/ui/label';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
+import {
+  Dialog,
+  DialogContent,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
 import { useChat } from '@/hooks/useChat';
 import {
+  createChatChannel,
   getChatChannels,
   getChatMessages,
   getReverbConfig,
@@ -23,7 +39,8 @@ import {
 export function ChatPage() {
   const t = useTranslations('pm.chat');
   const tNav = useTranslations();
-  const { layoutProps, applyAxiosError } = useCrmFeedback();
+  const tCommon = useTranslations('common');
+  const { layoutProps, setSuccess, applyAxiosError } = useCrmFeedback();
   const [channels, setChannels] = useState<ChatChannel[]>([]);
   const [channelId, setChannelId] = useState<number | null>(null);
   const [messages, setMessages] = useState<ChatMessage[]>([]);
@@ -31,6 +48,11 @@ export function ChatPage() {
   const [typingUserId, setTypingUserId] = useState<number | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const typingTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  const [createOpen, setCreateOpen] = useState(false);
+  const [channelName, setChannelName] = useState('');
+  const [channelType, setChannelType] = useState<'public' | 'private'>('public');
+  const [creating, setCreating] = useState(false);
 
   const reverb = getReverbConfig();
 
@@ -47,16 +69,19 @@ export function ChatPage() {
     void loadChannels();
   }, [loadChannels]);
 
-  const loadMessages = useCallback(async (id: number) => {
-    try {
-      const list = await getChatMessages(id);
-      setMessages([...list].reverse());
-      const last = list[0];
-      if (last?.id) void markChannelRead(id, Number(last.id));
-    } catch (err) {
-      applyAxiosError(err);
-    }
-  }, [applyAxiosError]);
+  const loadMessages = useCallback(
+    async (id: number) => {
+      try {
+        const list = await getChatMessages(id);
+        setMessages([...list].reverse());
+        const last = list[0];
+        if (last?.id) void markChannelRead(id, Number(last.id));
+      } catch (err) {
+        applyAxiosError(err);
+      }
+    },
+    [applyAxiosError],
+  );
 
   useEffect(() => {
     if (!channelId) return;
@@ -112,13 +137,53 @@ export function ChatPage() {
     void sendTyping(channelId);
   };
 
+  const handleCreateChannel = async () => {
+    if (!channelName.trim()) return;
+    setCreating(true);
+    try {
+      const ch = await createChatChannel({
+        name: channelName.trim(),
+        type: channelType,
+      });
+      setCreateOpen(false);
+      setChannelName('');
+      setChannelType('public');
+      setSuccess(t('channelCreated'));
+      await loadChannels();
+      if (ch.id != null) setChannelId(Number(ch.id));
+    } catch (err) {
+      applyAxiosError(err);
+    } finally {
+      setCreating(false);
+    }
+  };
+
+  const activeChannel = channels.find((ch) => Number(ch.id) === channelId);
+
   return (
-    <CrmPageLayout title={tNav('nav.erp.pm.chat')} {...layoutProps}>
+    <CrmPageLayout
+      title={tNav('nav.erp.pm.chat')}
+      description={t('listDescription')}
+      {...layoutProps}
+      actions={
+        <Button type="button" size="sm" onClick={() => setCreateOpen(true)}>
+          {t('createChannel')}
+        </Button>
+      }
+    >
       <div className="grid gap-4 lg:grid-cols-3">
         <Card>
-          <CardContent className="space-y-2 pt-6">
+          <CardHeader className="pb-2">
+            <CardTitle className="text-base">{t('channels')}</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-2">
             {channels.length === 0 ? (
-              <p className="text-sm text-muted-foreground">{t('noRooms')}</p>
+              <div className="space-y-2">
+                <p className="text-sm text-muted-foreground">{t('noRooms')}</p>
+                <Button type="button" variant="outline" size="sm" className="w-full" onClick={() => setCreateOpen(true)}>
+                  {t('createChannel')}
+                </Button>
+              </div>
             ) : (
               channels.map((ch) => (
                 <Button
@@ -128,8 +193,15 @@ export function ChatPage() {
                   onClick={() => setChannelId(Number(ch.id))}
                 >
                   <span className="truncate">{String(ch.name ?? ch.id)}</span>
+                  {ch.type ? (
+                    <Badge variant="outline" className="ms-2 shrink-0 text-[10px]">
+                      {String(ch.type)}
+                    </Badge>
+                  ) : null}
                   {ch.unread_count ? (
-                    <Badge variant="secondary" className="ms-auto">{String(ch.unread_count)}</Badge>
+                    <Badge variant="secondary" className="ms-auto">
+                      {String(ch.unread_count)}
+                    </Badge>
                   ) : null}
                 </Button>
               ))
@@ -142,6 +214,12 @@ export function ChatPage() {
               <p className="py-12 text-center text-sm text-muted-foreground">{t('selectRoom')}</p>
             ) : (
               <>
+                <div className="flex items-center justify-between gap-2 border-b pb-2">
+                  <p className="text-sm font-medium">{String(activeChannel?.name ?? channelId)}</p>
+                  {activeChannel?.type ? (
+                    <Badge variant="outline">{String(activeChannel.type)}</Badge>
+                  ) : null}
+                </div>
                 <div className="max-h-80 space-y-2 overflow-y-auto">
                   {messages.length === 0 ? (
                     <p className="text-sm text-muted-foreground">{t('noMessages')}</p>
@@ -150,7 +228,9 @@ export function ChatPage() {
                       const author = m.author as { name?: string } | undefined;
                       return (
                         <div key={String(m.id ?? i)} className="rounded-md border p-2 text-sm">
-                          <p className="text-xs font-medium text-muted-foreground">{String(author?.name ?? '')}</p>
+                          <p className="text-xs font-medium text-muted-foreground">
+                            {String(author?.name ?? '')}
+                          </p>
                           <p>{String(m.body ?? '')}</p>
                           <p className="text-[10px] text-muted-foreground">{String(m.created_at ?? '')}</p>
                         </div>
@@ -184,6 +264,51 @@ export function ChatPage() {
           </CardContent>
         </Card>
       </div>
+
+      <Dialog open={createOpen} onOpenChange={setCreateOpen}>
+        <DialogContent className="max-w-sm">
+          <DialogHeader>
+            <DialogTitle>{t('createChannel')}</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-3 py-2">
+            <div className="space-y-2">
+              <Label>{t('channelName')}</Label>
+              <Input
+                value={channelName}
+                onChange={(e) => setChannelName(e.target.value)}
+                placeholder={t('channelNamePlaceholder')}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label>{t('channelType')}</Label>
+              <Select
+                value={channelType}
+                onValueChange={(v) => setChannelType(v as 'public' | 'private')}
+              >
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="public">{t('typePublic')}</SelectItem>
+                  <SelectItem value="private">{t('typePrivate')}</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+          <DialogFooter>
+            <Button type="button" variant="outline" onClick={() => setCreateOpen(false)}>
+              {tCommon('cancel')}
+            </Button>
+            <Button
+              type="button"
+              onClick={() => void handleCreateChannel()}
+              disabled={creating || !channelName.trim()}
+            >
+              {tCommon('create')}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </CrmPageLayout>
   );
 }

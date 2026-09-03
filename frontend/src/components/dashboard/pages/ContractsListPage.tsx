@@ -31,12 +31,15 @@ import {
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Textarea } from '@/components/ui/textarea';
 import { usePathname } from 'next/navigation';
+import { WizardStepper } from '@/features/shared/pm';
+import { useLocale } from '@/hooks/use-locale';
 
 type Row = Record<string, unknown>;
 type Meta = { current_page?: number; last_page?: number; total?: number };
 
 export function ContractsListPage() {
   const t = useTranslations();
+  const { isRtl } = useLocale();
 
   const pathname = usePathname();
   const locale = pathname.split('/')[1] || 'fa';
@@ -62,6 +65,13 @@ export function ContractsListPage() {
     product_note: '',
     project_id: '',
   });
+
+  const wizardSteps = [
+    { id: 1, label: t('auto.ContractsListPage.s_b874f93c') },
+    { id: 2, label: t('auto.ContractsListPage.s_5e82aa42') },
+    { id: 3, label: t('auto.ContractsListPage.s_2e05931c') },
+    { id: 4, label: t('auto.ContractsListPage.s_55da48c5') },
+  ];
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -235,8 +245,9 @@ export function ContractsListPage() {
           <DialogHeader>
             <DialogTitle>{t('common.wizardContract', { step: step })}</DialogTitle>
           </DialogHeader>
+          <WizardStepper steps={wizardSteps} current={step} isRtl={isRtl} />
           <Tabs value={String(step)} onValueChange={(v) => setStep(Number(v))}>
-            <TabsList className="grid w-full grid-cols-4">
+            <TabsList className="hidden">
               <TabsTrigger value="1">{t('auto.ContractsListPage.s_b874f93c')}</TabsTrigger>
               <TabsTrigger value="2">{t('auto.ContractsListPage.s_5e82aa42')}</TabsTrigger>
               <TabsTrigger value="3">{t('auto.ContractsListPage.s_2e05931c')}</TabsTrigger>

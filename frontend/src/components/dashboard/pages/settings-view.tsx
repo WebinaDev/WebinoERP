@@ -30,7 +30,12 @@ import {
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { dashboardHref } from '@/lib/route-resolver';
-import { SETTINGS_HUB_TABS, type SettingsHubId } from '@/features/modules/admin/settings/settings-hub-config';
+import {
+  SETTINGS_HUB_TABS,
+  resolveSettingsTab,
+  type SettingsHubId,
+} from '@/features/modules/admin/settings/settings-hub-config';
+import { normalizeListPayload } from '@/lib/list-utils';
 
 type SettingsPayload = Record<string, Record<string, string>>;
 
@@ -46,7 +51,8 @@ export function SettingsPageView({ hub, initialTab }: { hub?: SettingsHubId; ini
   const params = useParams();
   const locale = (params?.locale as string) || 'fa';
   const visibleTabs = hub ? SETTINGS_HUB_TABS[hub] : Object.values(SETTINGS_HUB_TABS).flat().filter((v, i, a) => a.indexOf(v) === i);
-  const defaultTab = initialTab && visibleTabs.includes(initialTab) ? initialTab : visibleTabs[0] ?? 'general';
+  const resolvedInitial = resolveSettingsTab(initialTab);
+  const defaultTab = resolvedInitial && visibleTabs.includes(resolvedInitial) ? resolvedInitial : visibleTabs[0] ?? 'auth';
   const [data, setData] = useState<SettingsPayload | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
@@ -62,8 +68,14 @@ export function SettingsPageView({ hub, initialTab }: { hub?: SettingsHubId; ini
   const [canned, setCanned] = useState<Row[]>([]);
   const [positions, setPositions] = useState<Row[]>([]);
   const [categories, setCategories] = useState<Row[]>([]);
+  const [forms, setForms] = useState<Row[]>([]);
+  const [workflow, setWorkflow] = useState<Row[]>([]);
+  const [automations, setAutomations] = useState<Row[]>([]);
 
   const [editedGeneral, setEditedGeneral] = useState<Record<string, string>>({});
+  const [visitorEnabled, setVisitorEnabled] = useState(true);
+  const [leadDefaultStatus, setLeadDefaultStatus] = useState('');
+  const [leadAutoAssign, setLeadAutoAssign] = useState('0');
 
   const [smsProvider, setSmsProvider] = useState('log');
   const [smsUsername, setSmsUsername] = useState('');
@@ -78,6 +90,8 @@ export function SettingsPageView({ hub, initialTab }: { hub?: SettingsHubId; ini
   const [formName, setFormName] = useState('');
   const [formColor, setFormColor] = useState('#888888');
   const [formSort, setFormSort] = useState('0');
+  const [formSlug, setFormSlug] = useState('');
+  const [autoTrigger, setAutoTrigger] = useState('lead.status_changed');
   const [formErr, setFormErr] = useState<string | null>(null);
   const [deleteTarget, setDeleteTarget] = useState<{ kind: string; id: number } | null>(null);
 
@@ -107,14 +121,27 @@ export function SettingsPageView({ hub, initialTab }: { hub?: SettingsHubId; ini
       setSmsApiKey(String(smsPayload.api_key ?? ''));
       setSmsSender(String(smsPayload.sender ?? ''));
 
-      const [cRes, pRes, tRes] = await Promise.all([
+      const [cRes, pRes, tRes, fRes, wRes, aRes] = await Promise.all([
         apiClient.get('/v1/core/canned-responses'),
         apiClient.get('/v1/core/positions'),
         apiClient.get('/v1/core/task-categories'),
+        apiClient.get('/v1/projects/forms').catch(() => ({ data: { data: [] } })),
+        apiClient.get('/v1/projects/kanban/data').catch(() => ({ data: { data: { columns: [] } } })),
+        apiClient.get('/v1/core/automation/rules').catch(() => ({ data: { data: [] } })),
       ]);
       setCanned(unwrapData<Row[]>(cRes) as Row[]);
       setPositions(unwrapData<Row[]>(pRes) as Row[]);
       setCategories(unwrapData<Row[]>(tRes) as Row[]);
+      setForms(normalizeListPayload(unwrapData(fRes)));
+      const kanban = unwrapData<{ columns?: Row[] }>(wRes as { data: unknown });
+      setWorkflow(Array.isArray(kanban?.columns) ? kanban.columns : []);
+      setAutomations(normalizeListPayload(unwrapData(aRes)));
+
+      const visitor = payload?.visitor_tracking ?? {};
+      setVisitorEnabled(String(visitor.enable_visitor_statistics ?? '1') !== '0');
+      const leads = payload?.leads ?? {};
+      setLeadDefaultStatus(String(leads.default_status ?? ''));
+      setLeadAutoAssign(String(leads.auto_assign ?? '0'));
 
       try {
         const prefRes = await apiClient.get('/v1/core/users/me/preferences');
@@ -211,16 +238,20 @@ export function SettingsPageView({ hub, initialTab }: { hub?: SettingsHubId; ini
     setFormName('');
     setFormColor('#888888');
     setFormSort('0');
+    setFormSlug('');
+    setAutoTrigger('lead.status_changed');
     setFormErr(null);
   }
 
   function openEdit(kind: string, row: Row) {
     setDialog({ kind, row });
-    setFormTitle(String(row.title ?? ''));
+    setFormTitle(String(row.title ?? row.name ?? ''));
     setFormBody(String(row.body ?? ''));
     setFormName(String(row.name ?? ''));
     setFormColor(String(row.color ?? '#888888'));
     setFormSort(String(row.sort_order ?? 0));
+    setFormSlug(String(row.slug ?? ''));
+    setAutoTrigger(String(row.trigger ?? 'lead.status_changed'));
     setFormErr(null);
   }
 
@@ -254,6 +285,36 @@ export function SettingsPageView({ hub, initialTab }: { hub?: SettingsHubId; ini
         } else {
           await apiClient.post('/v1/core/task-categories', payload);
         }
+      } else if (dialog.kind === 'form') {
+        const payload = {
+          title: formTitle,
+          slug: formSlug || formTitle.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, ''),
+          fields: dialog.row?.fields ?? [{ name: 'name', type: 'text', label: 'Name' }],
+          is_active: true,
+        };
+        if (id) {
+          await apiClient.patch(`/v1/projects/forms/${id}`, payload);
+        } else {
+          await apiClient.post('/v1/projects/forms', payload);
+        }
+      } else if (dialog.kind === 'workflow') {
+        if (id) {
+          await apiClient.patch(`/v1/projects/kanban/columns/${id}`, { name: formName, color: formColor });
+        } else {
+          await apiClient.post('/v1/projects/workflow/statuses', { name: formName, color: formColor });
+        }
+      } else if (dialog.kind === 'automation') {
+        const payload = {
+          name: formName || formTitle,
+          trigger: autoTrigger,
+          actions: dialog.row?.actions ?? [{ type: 'notify', channel: 'log' }],
+          is_active: true,
+        };
+        if (id) {
+          await apiClient.patch(`/v1/core/automation/rules/${id}`, payload);
+        } else {
+          await apiClient.post('/v1/core/automation/rules', payload);
+        }
       }
       setDialog(null);
       void load();
@@ -274,6 +335,12 @@ export function SettingsPageView({ hub, initialTab }: { hub?: SettingsHubId; ini
         await apiClient.delete(`/v1/core/positions/${id}`);
       } else if (kind === 'category') {
         await apiClient.delete(`/v1/core/task-categories/${id}`);
+      } else if (kind === 'form') {
+        await apiClient.delete(`/v1/projects/forms/${id}`);
+      } else if (kind === 'workflow') {
+        await apiClient.delete(`/v1/projects/workflow/statuses/${id}`);
+      } else if (kind === 'automation') {
+        await apiClient.delete(`/v1/core/automation/rules/${id}`);
       }
       setDeleteTarget(null);
       void load();
@@ -302,14 +369,20 @@ export function SettingsPageView({ hub, initialTab }: { hub?: SettingsHubId; ini
         <Tabs value={tab} onValueChange={setTab}>
           <TabsList className="flex h-auto flex-wrap gap-1">
             {visibleTabs.includes('general') ? <TabsTrigger value="general">{t('general')}</TabsTrigger> : null}
-            {visibleTabs.includes('style') ? <TabsTrigger value="style">{t('style')}</TabsTrigger> : null}
-            {visibleTabs.includes('notifications') ? <TabsTrigger value="notifications">{t('notifications')}</TabsTrigger> : null}
             {visibleTabs.includes('auth') ? <TabsTrigger value="auth">{t('auth')}</TabsTrigger> : null}
+            {visibleTabs.includes('style') ? <TabsTrigger value="style">{t('style')}</TabsTrigger> : null}
+            {visibleTabs.includes('visitor') ? <TabsTrigger value="visitor">{t('visitor')}</TabsTrigger> : null}
+            {visibleTabs.includes('notifications') ? <TabsTrigger value="notifications">{t('notifications')}</TabsTrigger> : null}
             {visibleTabs.includes('sms') ? <TabsTrigger value="sms">{t('sms')}</TabsTrigger> : null}
             {visibleTabs.includes('payment') ? <TabsTrigger value="payment">{t('payment')}</TabsTrigger> : null}
             {visibleTabs.includes('canned') ? <TabsTrigger value="canned">{t('canned')}</TabsTrigger> : null}
+            {visibleTabs.includes('forms') ? <TabsTrigger value="forms">{t('forms')}</TabsTrigger> : null}
+            {visibleTabs.includes('leads') ? <TabsTrigger value="leads">{t('leads')}</TabsTrigger> : null}
+            {visibleTabs.includes('workflow') ? <TabsTrigger value="workflow">{t('workflow')}</TabsTrigger> : null}
             {visibleTabs.includes('positions') ? <TabsTrigger value="positions">{t('positions')}</TabsTrigger> : null}
             {visibleTabs.includes('taskcat') ? <TabsTrigger value="taskcat">{t('taskcat')}</TabsTrigger> : null}
+            {visibleTabs.includes('automations') ? <TabsTrigger value="automations">{t('automations')}</TabsTrigger> : null}
+            {visibleTabs.includes('coreUpdate') ? <TabsTrigger value="coreUpdate">{t('coreUpdate')}</TabsTrigger> : null}
             {visibleTabs.includes('raw') ? <TabsTrigger value="raw">{t('raw')}</TabsTrigger> : null}
             {visibleTabs.includes('hosting') ? <TabsTrigger value="hosting">{t('hosting')}</TabsTrigger> : null}
             {visibleTabs.includes('bots') ? <TabsTrigger value="bots">{t('bots')}</TabsTrigger> : null}
@@ -549,6 +622,180 @@ export function SettingsPageView({ hub, initialTab }: { hub?: SettingsHubId; ini
             </div>
           </TabsContent>
 
+          <TabsContent value="visitor" className="space-y-3 pt-4">
+            <label className="flex items-center gap-2 text-sm">
+              <input
+                type="checkbox"
+                checked={visitorEnabled}
+                onChange={(e) => setVisitorEnabled(e.target.checked)}
+              />
+              {t('visitorEnabled')}
+            </label>
+            <p className="text-xs text-muted-foreground">{t('visitorHint')}</p>
+            <div className="flex flex-wrap gap-2">
+              <Button
+                type="button"
+                size="sm"
+                onClick={() =>
+                  void saveGroup('visitor_tracking', {
+                    enable_visitor_statistics: visitorEnabled ? '1' : '0',
+                  })
+                }
+              >
+                {tCommon('save')}
+              </Button>
+              <Button type="button" variant="outline" size="sm" asChild>
+                <Link href={dashboardHref(locale, 'admin/analytics/visitors')}>{t('openVisitorStats')}</Link>
+              </Button>
+            </div>
+          </TabsContent>
+
+          <TabsContent value="forms" className="space-y-3 pt-4">
+            <Button type="button" size="sm" onClick={() => openCreate('form')}>
+              {t('addForm')}
+            </Button>
+            <ul className="space-y-1">
+              {forms.map((r) => (
+                <li key={String(r.id)} className="flex items-center justify-between rounded border px-2 py-1">
+                  <span>
+                    {String(r.title ?? r.name ?? '')}{' '}
+                    <span className="text-xs text-muted-foreground" dir="ltr">
+                      /{String(r.slug ?? '')}
+                    </span>
+                  </span>
+                  <span>
+                    <Button type="button" variant="ghost" size="sm" onClick={() => openEdit('form', r)}>
+                      {tAuto('auto.settings_view.s_ac60ae7a')}
+                    </Button>
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="sm"
+                      className="text-destructive"
+                      onClick={() => setDeleteTarget({ kind: 'form', id: Number(r.id) })}
+                    >
+                      {tAuto('auto.settings_view.s_2d2bbdc2')}
+                    </Button>
+                  </span>
+                </li>
+              ))}
+              {!forms.length && !loading ? (
+                <li className="text-sm text-muted-foreground">{tCommon('empty')}</li>
+              ) : null}
+            </ul>
+          </TabsContent>
+
+          <TabsContent value="leads" className="space-y-3 pt-4">
+            <div className="grid gap-3 sm:grid-cols-2">
+              <div>
+                <p className="mb-1 text-xs text-muted-foreground">{t('leadDefaultStatus')}</p>
+                <Input value={leadDefaultStatus} onChange={(e) => setLeadDefaultStatus(e.target.value)} dir="ltr" />
+              </div>
+              <div>
+                <p className="mb-1 text-xs text-muted-foreground">{t('leadAutoAssign')}</p>
+                <Select value={leadAutoAssign} onValueChange={setLeadAutoAssign}>
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="1">{tAuth('on')}</SelectItem>
+                    <SelectItem value="0">{tAuth('off')}</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+            <Button
+              type="button"
+              size="sm"
+              onClick={() =>
+                void saveGroup('leads', {
+                  default_status: leadDefaultStatus,
+                  auto_assign: leadAutoAssign,
+                })
+              }
+            >
+              {tCommon('save')}
+            </Button>
+          </TabsContent>
+
+          <TabsContent value="workflow" className="space-y-3 pt-4">
+            <Button type="button" size="sm" onClick={() => openCreate('workflow')}>
+              {t('addWorkflowStatus')}
+            </Button>
+            <ul className="space-y-1">
+              {workflow.map((r) => (
+                <li key={String(r.id)} className="flex items-center justify-between rounded border px-2 py-1">
+                  <span className="flex items-center gap-2">
+                    <span
+                      className="inline-block h-3 w-3 rounded-full border"
+                      style={{ background: String(r.color ?? '#ccc') }}
+                    />
+                    {String(r.name ?? r.title ?? '')}
+                  </span>
+                  <span>
+                    <Button type="button" variant="ghost" size="sm" onClick={() => openEdit('workflow', r)}>
+                      {tAuto('auto.settings_view.s_ac60ae7a')}
+                    </Button>
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="sm"
+                      className="text-destructive"
+                      onClick={() => setDeleteTarget({ kind: 'workflow', id: Number(r.id) })}
+                    >
+                      {tAuto('auto.settings_view.s_2d2bbdc2')}
+                    </Button>
+                  </span>
+                </li>
+              ))}
+              {!workflow.length && !loading ? (
+                <li className="text-sm text-muted-foreground">{tCommon('empty')}</li>
+              ) : null}
+            </ul>
+          </TabsContent>
+
+          <TabsContent value="automations" className="space-y-3 pt-4">
+            <Button type="button" size="sm" onClick={() => openCreate('automation')}>
+              {t('addAutomation')}
+            </Button>
+            <ul className="space-y-1">
+              {automations.map((r) => (
+                <li key={String(r.id)} className="flex items-center justify-between rounded border px-2 py-1">
+                  <span>
+                    {String(r.name ?? '')}{' '}
+                    <span className="text-xs text-muted-foreground" dir="ltr">
+                      {String(r.trigger ?? '')}
+                    </span>
+                  </span>
+                  <span>
+                    <Button type="button" variant="ghost" size="sm" onClick={() => openEdit('automation', r)}>
+                      {tAuto('auto.settings_view.s_ac60ae7a')}
+                    </Button>
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="sm"
+                      className="text-destructive"
+                      onClick={() => setDeleteTarget({ kind: 'automation', id: Number(r.id) })}
+                    >
+                      {tAuto('auto.settings_view.s_2d2bbdc2')}
+                    </Button>
+                  </span>
+                </li>
+              ))}
+              {!automations.length && !loading ? (
+                <li className="text-sm text-muted-foreground">{tCommon('empty')}</li>
+              ) : null}
+            </ul>
+          </TabsContent>
+
+          <TabsContent value="coreUpdate" className="space-y-3 pt-4">
+            <p className="text-sm text-muted-foreground">{t('coreUpdateHint')}</p>
+            <Button type="button" variant="outline" asChild>
+              <Link href={dashboardHref(locale, 'admin/marketplace/products')}>{t('openMarketplace')}</Link>
+            </Button>
+          </TabsContent>
+
           <TabsContent value="hosting" className="pt-4 space-y-3">
             <p className="text-sm text-muted-foreground">{tHosting('settingsTabHint')}</p>
             <Button type="button" variant="outline" asChild>
@@ -579,7 +826,13 @@ export function SettingsPageView({ hub, initialTab }: { hub?: SettingsHubId; ini
                 ? tAuto('auto.settings_view.s_d43b8b9a')
                 : dialog?.kind === 'position'
                   ? tAuto('auto.settings_view.s_95cb3687')
-                  : tAuto('auto.settings_view.s_cfb7155e')}
+                  : dialog?.kind === 'form'
+                    ? t('addForm')
+                    : dialog?.kind === 'workflow'
+                      ? t('addWorkflowStatus')
+                      : dialog?.kind === 'automation'
+                        ? t('addAutomation')
+                        : tAuto('auto.settings_view.s_cfb7155e')}
             </DialogTitle>
           </DialogHeader>
           {dialog?.kind === 'canned' ? (
@@ -589,6 +842,21 @@ export function SettingsPageView({ hub, initialTab }: { hub?: SettingsHubId; ini
             </div>
           ) : dialog?.kind === 'position' ? (
             <Input placeholder={tAuto('auto.settings_view.s_12b6b438')} value={formTitle} onChange={(e) => setFormTitle(e.target.value)} />
+          ) : dialog?.kind === 'form' ? (
+            <div className="space-y-2">
+              <Input placeholder={t('formTitle')} value={formTitle} onChange={(e) => setFormTitle(e.target.value)} />
+              <Input placeholder={t('formSlug')} value={formSlug} onChange={(e) => setFormSlug(e.target.value)} dir="ltr" />
+            </div>
+          ) : dialog?.kind === 'workflow' ? (
+            <div className="space-y-2">
+              <Input placeholder={t('workflowName')} value={formName} onChange={(e) => setFormName(e.target.value)} />
+              <Input type="color" value={formColor} onChange={(e) => setFormColor(e.target.value)} className="w-24 p-1" />
+            </div>
+          ) : dialog?.kind === 'automation' ? (
+            <div className="space-y-2">
+              <Input placeholder={t('automationName')} value={formName} onChange={(e) => setFormName(e.target.value)} />
+              <Input placeholder={t('automationTrigger')} value={autoTrigger} onChange={(e) => setAutoTrigger(e.target.value)} dir="ltr" />
+            </div>
           ) : (
             <div className="space-y-2">
               <Input placeholder={tAuto('auto.settings_view.s_45dd06ba')} value={formName} onChange={(e) => setFormName(e.target.value)} />

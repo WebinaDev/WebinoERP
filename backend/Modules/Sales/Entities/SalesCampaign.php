@@ -8,7 +8,7 @@ class SalesCampaign extends Model
 {
     protected $table = 'sales_campaigns';
 
-    protected $fillable = ['name', 'description', 'status', 'starts_at', 'ends_at', 'created_by'];
+    protected $fillable = ['name', 'description', 'status', 'channel', 'starts_at', 'ends_at', 'created_by'];
 
     protected $casts = [
         'starts_at' => 'datetime',

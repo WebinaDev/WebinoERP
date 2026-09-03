@@ -7,14 +7,19 @@ use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Modules\Integrations\Entities\IntegrationSetting;
 use Modules\Integrations\Entities\ModirPayamakAccount;
+use Modules\Integrations\Entities\ModirPayamakBalanceLedger;
 use Modules\Integrations\Entities\ModirPayamakOrder;
 use Modules\Integrations\Entities\ModirPayamakPackage;
+use Modules\Integrations\Entities\ModirPayamakSecretary;
+use Modules\Integrations\Entities\ModirPayamakTariff;
 use Modules\Integrations\Services\ModirPayamakEdgeClient;
 use Modules\Integrations\Services\ModirPayamakManager;
 
 class ModirPayamakAdminController extends Controller
 {
     use PaginatesApi;
+
+    private const SECRETARY_TYPES = ['auto_reply', 'inbox_forward', 'code_reader', 'membership'];
 
     public function __construct(
         private ModirPayamakEdgeClient $edge,
@@ -23,11 +28,26 @@ class ModirPayamakAdminController extends Controller
 
     public function dashboard(): JsonResponse
     {
+        $configured = $this->edge->isConfigured();
+        $credit = $configured ? $this->edge->myCredit() : ['data' => null];
+        $stats = [
+            'total_customers' => ModirPayamakAccount::query()->count(),
+            'sent_today' => ModirPayamakBalanceLedger::query()
+                ->where('type', 'send')
+                ->whereDate('created_at', now()->toDateString())
+                ->count(),
+            'pending_orders' => ModirPayamakOrder::query()->where('status', 'pending')->count(),
+            'reseller_credit' => is_array($credit['data'] ?? null) ? $credit['data'] : ($credit['data'] ?? null),
+            'price_per_unit' => $this->manager->pricePerUnit(),
+            'configured' => $configured,
+        ];
+
         return response()->json([
             'data' => [
-                'configured' => $this->edge->isConfigured(),
-                'accounts' => ModirPayamakAccount::query()->count(),
-                'orders_pending' => ModirPayamakOrder::query()->where('status', 'pending')->count(),
+                'stats' => $stats,
+                'configured' => $configured,
+                'accounts' => $stats['total_customers'],
+                'orders_pending' => $stats['pending_orders'],
                 'orders_paid' => ModirPayamakOrder::query()->where('status', 'paid')->count(),
             ],
         ]);
@@ -91,6 +111,135 @@ class ModirPayamakAdminController extends Controller
         $package->delete();
 
         return response()->noContent();
+    }
+
+    public function tariffsIndex(): JsonResponse
+    {
+        return response()->json([
+            'data' => [
+                'tariffs' => ModirPayamakTariff::query()->orderBy('sort')->orderBy('line_type')->orderBy('operator')->get(),
+                'tax_percent' => (float) IntegrationSetting::getString('modirpayamak', 'sms_tax_percent', '10'),
+                'surcharge_rial' => (float) IntegrationSetting::getString('modirpayamak', 'sms_surcharge_rial', '40'),
+            ],
+        ]);
+    }
+
+    public function tariffsStore(Request $request): JsonResponse
+    {
+        $data = $request->validate([
+            'id' => 'nullable|integer|min:1',
+            'line_type' => 'required|string|max:50',
+            'operator' => 'required|string|in:mci,other',
+            'rate_fa' => 'required|numeric|min:0',
+            'rate_la' => 'required|numeric|min:0',
+            'sort' => 'nullable|integer',
+            'status' => 'nullable|string|in:active,inactive',
+        ]);
+
+        $payload = [
+            'line_type' => trim($data['line_type']),
+            'operator' => $data['operator'],
+            'rate_fa' => (float) $data['rate_fa'],
+            'rate_la' => (float) $data['rate_la'],
+            'sort' => (int) ($data['sort'] ?? 0),
+            'status' => $data['status'] ?? 'active',
+        ];
+
+        if (! empty($data['id'])) {
+            $tariff = ModirPayamakTariff::query()->findOrFail((int) $data['id']);
+            $tariff->update($payload);
+        } else {
+            $tariff = ModirPayamakTariff::query()->create($payload);
+        }
+
+        return response()->json(['data' => ['id' => $tariff->id], 'message' => 'Tariff saved']);
+    }
+
+    public function tariffsDestroy(int $id): JsonResponse
+    {
+        $tariff = ModirPayamakTariff::query()->findOrFail($id);
+        $tariff->delete();
+
+        return response()->json(['data' => ['message' => 'Deleted']]);
+    }
+
+    public function secretariesIndex(Request $request): JsonResponse
+    {
+        $domain = $this->manager->normalizeDomain((string) $request->query('domain', ''));
+        if ($domain === '') {
+            return response()->json(['message' => 'Domain is required'], 422);
+        }
+
+        $rows = ModirPayamakSecretary::query()
+            ->where('domain', $domain)
+            ->orderByDesc('id')
+            ->get();
+
+        return response()->json(['data' => ['secretaries' => $rows]]);
+    }
+
+    public function secretariesStore(Request $request): JsonResponse
+    {
+        $data = $request->validate([
+            'domain' => 'required|string|max:255',
+            'id' => 'nullable|integer|min:1',
+            'type' => 'nullable|string|in:'.implode(',', self::SECRETARY_TYPES),
+            'name' => 'nullable|string|max:191',
+            'keywords' => 'nullable|string|max:2000',
+            'reply_body' => 'nullable|string',
+            'pattern_code' => 'nullable|string|max:100',
+            'forward_to' => 'nullable|string|max:40',
+            'enabled' => 'nullable|boolean',
+        ]);
+
+        $domain = $this->manager->normalizeDomain($data['domain']);
+        $type = $data['type'] ?? 'auto_reply';
+        $keywords = trim((string) ($data['keywords'] ?? '*'));
+        if ($keywords === '') {
+            $keywords = '*';
+        }
+
+        $payload = [
+            'domain' => $domain,
+            'type' => $type,
+            'name' => trim((string) ($data['name'] ?? $type)) ?: $type,
+            'keywords' => $keywords,
+            'reply_body' => (string) ($data['reply_body'] ?? ''),
+            'pattern_code' => (string) ($data['pattern_code'] ?? ''),
+            'forward_to' => (string) ($data['forward_to'] ?? ''),
+            'enabled' => array_key_exists('enabled', $data) ? (bool) $data['enabled'] : true,
+        ];
+
+        if (! empty($data['id'])) {
+            $rule = ModirPayamakSecretary::query()
+                ->where('domain', $domain)
+                ->where('id', (int) $data['id'])
+                ->firstOrFail();
+            $rule->update($payload);
+        } else {
+            $rule = ModirPayamakSecretary::query()->create($payload);
+        }
+
+        return response()->json(['data' => ['ok' => true, 'rule' => $rule], 'message' => 'Saved']);
+    }
+
+    public function secretariesDestroy(Request $request): JsonResponse
+    {
+        $data = $request->validate([
+            'domain' => 'required|string|max:255',
+            'id' => 'required|integer|min:1',
+        ]);
+        $domain = $this->manager->normalizeDomain($data['domain']);
+        $deleted = ModirPayamakSecretary::query()
+            ->where('domain', $domain)
+            ->where('id', (int) $data['id'])
+            ->delete();
+
+        if (! $deleted) {
+            return response()->json(['message' => 'Secretary rule not found'], 404);
+        }
+
+        return response()->json(['data' => ['ok' => true, 'id' => (int) $data['id']]]);
     }
 
     public function orders(Request $request): JsonResponse

@@ -24,6 +24,7 @@ class CampaignController extends Controller
             'name' => 'required|string|max:255',
             'description' => 'nullable|string',
             'status' => 'nullable|string|max:20',
+            'channel' => 'nullable|string|max:50',
             'starts_at' => 'nullable|date',
             'ends_at' => 'nullable|date|after_or_equal:starts_at',
         ]);
@@ -44,6 +45,7 @@ class CampaignController extends Controller
             'name' => 'sometimes|string|max:255',
             'description' => 'nullable|string',
             'status' => 'sometimes|string|max:20',
+            'channel' => 'nullable|string|max:50',
             'starts_at' => 'nullable|date',
             'ends_at' => 'nullable|date',
         ]);

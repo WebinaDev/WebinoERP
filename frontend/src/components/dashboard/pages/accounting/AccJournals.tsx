@@ -2,16 +2,22 @@
 
 import { useTranslations } from 'next-intl';
 
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import apiClient from '@/lib/api-client';
 import { getAxiosMessage } from '@/lib/api-helpers';
 import { normalizeListPayload } from '@/lib/list-utils';
 import { accountingWpAction } from '@/lib/accounting-wp';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
+import { Input } from '@/components/ui/input';
+import { LocaleDatePicker } from '@/components/ui/locale-date-picker';
 import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from '@/components/ui/select';
+import {
+  Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle,
+} from '@/components/ui/dialog';
+import { Plus, Trash2 } from 'lucide-react';
 
 type Journal = {
   id: number;
@@ -23,8 +29,31 @@ type Journal = {
 
 type FiscalYear = { id: number; title: string };
 
+type ChartAccount = { id: number; code?: string; title?: string; name?: string };
+
+type LineRow = {
+  key: string;
+  account_id: string;
+  debit: string;
+  credit: string;
+  description: string;
+};
+
+const emptyLine = (): LineRow => ({
+  key: `${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
+  account_id: '',
+  debit: '',
+  credit: '',
+  description: '',
+});
+
+function todayIso() {
+  return new Date().toISOString().slice(0, 10);
+}
+
 export default function AccJournals() {
   const t = useTranslations();
+  const tj = useTranslations('finance.journals');
 
   const [journals, setJournals] = useState<Journal[]>([]);
   const [fys, setFys] = useState<FiscalYear[]>([]);
@@ -35,12 +64,31 @@ export default function AccJournals() {
   const [error, setError] = useState<string | null>(null);
   const [postingId, setPostingId] = useState<number | null>(null);
 
+  const [dialogOpen, setDialogOpen] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const [formError, setFormError] = useState<string | null>(null);
+  const [formFyId, setFormFyId] = useState('');
+  const [formDate, setFormDate] = useState(todayIso());
+  const [formDescription, setFormDescription] = useState('');
+  const [lines, setLines] = useState<LineRow[]>([emptyLine(), emptyLine()]);
+  const [accounts, setAccounts] = useState<ChartAccount[]>([]);
+
   useEffect(() => {
     apiClient
       .get('/v1/accounting/fiscal-years', { params: { per_page: 100 } })
       .then((r) => setFys(normalizeListPayload(r.data) as unknown as FiscalYear[]))
       .catch(() => {});
   }, []);
+
+  useEffect(() => {
+    if (!dialogOpen) return;
+    accountingWpAction<{ items?: ChartAccount[] }>('chart_list')
+      .then((data) => {
+        const items = Array.isArray(data) ? data : (data?.items ?? []);
+        setAccounts(items as ChartAccount[]);
+      })
+      .catch(() => setAccounts([]));
+  }, [dialogOpen]);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -62,6 +110,68 @@ export default function AccJournals() {
   useEffect(() => {
     void load();
   }, [load]);
+
+  const debitTotal = useMemo(
+    () => lines.reduce((s, l) => s + (parseFloat(l.debit) || 0), 0),
+    [lines],
+  );
+  const creditTotal = useMemo(
+    () => lines.reduce((s, l) => s + (parseFloat(l.credit) || 0), 0),
+    [lines],
+  );
+  const balanced = Math.abs(debitTotal - creditTotal) < 0.01 && debitTotal > 0;
+
+  const openCreate = () => {
+    setFormFyId(fyId !== 'all' ? fyId : (fys[0] ? String(fys[0].id) : ''));
+    setFormDate(todayIso());
+    setFormDescription('');
+    setLines([emptyLine(), emptyLine()]);
+    setFormError(null);
+    setDialogOpen(true);
+  };
+
+  const updateLine = (idx: number, field: keyof LineRow, value: string) => {
+    setLines((prev) => prev.map((row, i) => (i === idx ? { ...row, [field]: value } : row)));
+  };
+
+  const handleSave = async () => {
+    setFormError(null);
+    const payload = lines
+      .filter((l) => l.account_id && (parseFloat(l.debit) > 0 || parseFloat(l.credit) > 0))
+      .map((l) => ({
+        account_id: Number(l.account_id),
+        debit: parseFloat(l.debit) || 0,
+        credit: parseFloat(l.credit) || 0,
+        description: l.description || null,
+      }));
+    if (payload.length < 2) {
+      setFormError(tj('minLines'));
+      return;
+    }
+    if (!balanced) {
+      setFormError(tj('notBalanced'));
+      return;
+    }
+    if (!formDate) {
+      setFormError(tj('dateRequired'));
+      return;
+    }
+    setSaving(true);
+    try {
+      await accountingWpAction('journal_save', {
+        fiscal_year_id: formFyId ? Number(formFyId) : null,
+        document_date: formDate,
+        description: formDescription || null,
+        lines: payload,
+      });
+      setDialogOpen(false);
+      await load();
+    } catch (e) {
+      setFormError(getAxiosMessage(e));
+    } finally {
+      setSaving(false);
+    }
+  };
 
   const handlePost = async (id: number) => {
     setPostingId(id);
@@ -96,6 +206,10 @@ export default function AccJournals() {
           </Select>
           <Button variant="outline" size="sm" onClick={() => void load()} disabled={loading}>
             {t('auto.accounting_AccJournals.s_182b1c89')}
+          </Button>
+          <Button size="sm" onClick={openCreate}>
+            <Plus className="ms-1 h-4 w-4" />
+            {tj('new')}
           </Button>
         </div>
       </div>
@@ -152,8 +266,8 @@ export default function AccJournals() {
               variant="outline"
               size="sm"
               disabled={page <= 1}
-              onClick={() => setPage((p) => p - 1)}>
-            
+              onClick={() => setPage((p) => p - 1)}
+            >
               {t('auto.accounting_AccJournals.s_1a592f6b')}
             </Button>
             <span className="text-sm tabular-nums text-muted-foreground">
@@ -163,8 +277,8 @@ export default function AccJournals() {
               variant="outline"
               size="sm"
               disabled={page >= lastPage}
-              onClick={() => setPage((p) => p + 1)}>
-            
+              onClick={() => setPage((p) => p + 1)}
+            >
               {t('auto.accounting_AccJournals.s_54ee927e')}
             </Button>
           </div>
@@ -174,6 +288,143 @@ export default function AccJournals() {
       {!loading && !error && journals.length === 0 && (
         <p className="text-sm text-muted-foreground">{t('auto.accounting_AccJournals.s_7eaf94a8')}</p>
       )}
+
+      <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
+        <DialogContent className="max-h-[90vh] max-w-3xl overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>{tj('new')}</DialogTitle>
+            <DialogDescription>{tj('newHint')}</DialogDescription>
+          </DialogHeader>
+
+          <div className="space-y-4">
+            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+              <div className="space-y-1">
+                <label className="text-sm font-medium">{t('auto.accounting_AccJournals.s_79432b0c')}</label>
+                <Select value={formFyId || undefined} onValueChange={setFormFyId}>
+                  <SelectTrigger>
+                    <SelectValue placeholder={t('auto.accounting_AccJournals.s_79432b0c')} />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {fys.map((f) => (
+                      <SelectItem key={f.id} value={String(f.id)}>{f.title}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-1">
+                <label className="text-sm font-medium">{t('auto.accounting_AccJournals.s_217c8491')}</label>
+                <LocaleDatePicker value={formDate} onChange={(v) => setFormDate(v || '')} />
+              </div>
+            </div>
+
+            <div className="space-y-1">
+              <label className="text-sm font-medium">{t('auto.accounting_AccJournals.s_b11813ac')}</label>
+              <Input value={formDescription} onChange={(e) => setFormDescription(e.target.value)} />
+            </div>
+
+            <div className="space-y-2">
+              <div className="flex items-center justify-between">
+                <label className="text-sm font-medium">{tj('lines')}</label>
+                <Button type="button" variant="outline" size="sm" onClick={() => setLines((p) => [...p, emptyLine()])}>
+                  <Plus className="ms-1 h-3.5 w-3.5" />
+                  {tj('addLine')}
+                </Button>
+              </div>
+
+              <div className="overflow-x-auto rounded-md border">
+                <table className="w-full min-w-[640px] text-sm">
+                  <thead>
+                    <tr className="border-b bg-muted/40">
+                      <th className="px-2 py-2 text-start font-medium">{tj('account')}</th>
+                      <th className="px-2 py-2 text-start font-medium">{tj('debit')}</th>
+                      <th className="px-2 py-2 text-start font-medium">{tj('credit')}</th>
+                      <th className="px-2 py-2 text-start font-medium">{t('auto.accounting_AccJournals.s_b11813ac')}</th>
+                      <th className="w-10 px-2 py-2" />
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {lines.map((line, idx) => (
+                      <tr key={line.key} className="border-b border-border/60">
+                        <td className="px-2 py-1.5">
+                          <Select
+                            value={line.account_id || undefined}
+                            onValueChange={(v) => updateLine(idx, 'account_id', v)}
+                          >
+                            <SelectTrigger className="min-w-[160px]">
+                              <SelectValue placeholder={tj('selectAccount')} />
+                            </SelectTrigger>
+                            <SelectContent>
+                              {accounts.map((a) => (
+                                <SelectItem key={a.id} value={String(a.id)}>
+                                  {[a.code, a.title ?? a.name].filter(Boolean).join(' — ') || String(a.id)}
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                        </td>
+                        <td className="px-2 py-1.5">
+                          <Input
+                            type="number"
+                            min={0}
+                            step="0.01"
+                            value={line.debit}
+                            onChange={(e) => updateLine(idx, 'debit', e.target.value)}
+                          />
+                        </td>
+                        <td className="px-2 py-1.5">
+                          <Input
+                            type="number"
+                            min={0}
+                            step="0.01"
+                            value={line.credit}
+                            onChange={(e) => updateLine(idx, 'credit', e.target.value)}
+                          />
+                        </td>
+                        <td className="px-2 py-1.5">
+                          <Input
+                            value={line.description}
+                            onChange={(e) => updateLine(idx, 'description', e.target.value)}
+                          />
+                        </td>
+                        <td className="px-2 py-1.5">
+                          <Button
+                            type="button"
+                            variant="ghost"
+                            size="sm"
+                            className="text-destructive"
+                            disabled={lines.length <= 2}
+                            onClick={() => setLines((prev) => (prev.length <= 2 ? prev : prev.filter((_, i) => i !== idx)))}
+                          >
+                            <Trash2 className="h-3.5 w-3.5" />
+                          </Button>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+
+              <p className={`text-sm ${balanced ? 'text-muted-foreground' : 'text-destructive'}`}>
+                {tj('totals', {
+                  debit: debitTotal.toLocaleString(),
+                  credit: creditTotal.toLocaleString(),
+                })}
+              </p>
+            </div>
+
+            {formError && <p className="text-sm text-destructive">{formError}</p>}
+          </div>
+
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setDialogOpen(false)}>
+              {t('common.cancel')}
+            </Button>
+            <Button onClick={() => void handleSave()} disabled={saving || !balanced}>
+              {saving ? tj('saving') : t('common.save')}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

@@ -35,7 +35,7 @@ export function Customer360Sheet({ accountId, open, onOpenChange }: Props) {
       const [accRes, dealsRes, ticketsRes, contactsRes, activitiesRes] = await Promise.all([
         apiClient.get(`/v1/crm/accounts/${accountId}`),
         apiClient.get('/v1/crm/deals', { params: { account_id: accountId, per_page: 10 } }),
-        apiClient.get('/v1/crm/tickets', { params: { account_id: accountId, per_page: 10 } }),
+        apiClient.get('/v1/projects/tickets', { params: { account_id: accountId, per_page: 10 } }),
         apiClient.get('/v1/crm/contacts', { params: { account_id: accountId, per_page: 10 } }),
         apiClient.get('/v1/crm/activities', {
           params: { account_id: accountId, related_model: 'Modules\\Crm\\Entities\\CrmAccount', per_page: 20 },

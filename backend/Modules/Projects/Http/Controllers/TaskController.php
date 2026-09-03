@@ -19,6 +19,21 @@ class TaskController extends Controller
     public function index(Request $request): JsonResponse
     {
         $query = ProjectTask::query()->orderByDesc('created_at');
+        if ($request->filled('project_id')) {
+            $query->where('project_id', (int) $request->input('project_id'));
+        }
+        if ($request->filled('assignee_id')) {
+            $query->where('assignee_id', (int) $request->input('assignee_id'));
+        }
+        if ($request->filled('priority')) {
+            $query->where('priority', $request->input('priority'));
+        }
+        if ($request->filled('label')) {
+            $query->where('label', 'like', '%'.$request->string('label').'%');
+        }
+        if ($request->filled('status')) {
+            $query->where('status', $request->input('status'));
+        }
         $perPage = min((int) $request->input('per_page', 15), 100);
 
         return response()->json($query->paginate($perPage));
@@ -57,6 +72,39 @@ class TaskController extends Controller
         $task->update($data);
 
         return response()->json(['data' => $task->fresh()]);
+    }
+
+    public function show(int $id): JsonResponse
+    {
+        $task = ProjectTask::query()->findOrFail($id);
+        $comments = TaskComment::query()
+            ->where('task_id', $id)
+            ->with('user:id,name')
+            ->orderBy('id')
+            ->get()
+            ->map(fn (TaskComment $c) => [
+                'id' => $c->id,
+                'body' => $c->body,
+                'user_id' => $c->user_id,
+                'user_name' => $c->user?->name,
+                'created_at' => $c->created_at?->toIso8601String(),
+            ]);
+        $attachments = DB::table('prj_task_attachments')->where('task_id', $id)->get()->map(fn ($row) => [
+            'id' => $row->id,
+            'original_name' => $row->original_name,
+            'path' => $row->path,
+            'url' => Storage::disk($row->disk)->url($row->path),
+            'size_bytes' => $row->size_bytes,
+            'created_at' => $row->created_at,
+        ]);
+
+        return response()->json([
+            'data' => [
+                'task' => $task,
+                'comments' => $comments,
+                'attachments' => $attachments,
+            ],
+        ]);
     }
 
     public function destroy(int $id): JsonResponse
@@ -203,14 +251,28 @@ class TaskController extends Controller
 
     public function calendar(Request $request): JsonResponse
     {
-        $tasks = ProjectTask::query()->whereNotNull('due_at')->orderBy('due_at')->limit(500)->get();
+        $q = ProjectTask::query()->whereNotNull('due_at')->orderBy('due_at')->limit(500);
+        if ($request->filled('start')) {
+            $q->whereDate('due_at', '>=', $request->input('start'));
+        }
+        if ($request->filled('end')) {
+            $q->whereDate('due_at', '<=', $request->input('end'));
+        }
+        if ($request->filled('project_id')) {
+            $q->where('project_id', (int) $request->input('project_id'));
+        }
 
-        return response()->json(['data' => $tasks]);
+        return response()->json(['data' => $q->get()]);
     }
 
     public function gantt(Request $request): JsonResponse
     {
-        return response()->json(['data' => ProjectTask::query()->limit(200)->get()]);
+        $q = ProjectTask::query()->orderBy('due_at')->limit(200);
+        if ($request->filled('project_id')) {
+            $q->where('project_id', (int) $request->input('project_id'));
+        }
+
+        return response()->json(['data' => $q->get()]);
     }
 
     public function uploadAttachment(Request $request, int $id): JsonResponse

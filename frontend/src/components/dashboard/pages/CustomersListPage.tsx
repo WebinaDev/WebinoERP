@@ -69,6 +69,7 @@ export function CustomersListPage() {
   const [deleteId, setDeleteId] = useState<number | null>(null);
   const [customer360Id, setCustomer360Id] = useState<number | null>(null);
   const [importOpen, setImportOpen] = useState(false);
+  const [exporting, setExporting] = useState(false);
 
   const [selected, setSelected] = useState<Record<number, boolean>>({});
 
@@ -226,6 +227,23 @@ export function CustomersListPage() {
     setSelected((s) => ({ ...s, [id]: !s[id] }));
   }
 
+  async function handleExport() {
+    setExporting(true);
+    try {
+      const res = await apiClient.get('/v1/crm/accounts/export', { responseType: 'blob' });
+      const url = window.URL.createObjectURL(res.data as Blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `accounts-${new Date().toISOString().slice(0, 10)}.csv`;
+      a.click();
+      window.URL.revokeObjectURL(url);
+    } catch (e) {
+      setError(getAxiosMessage(e));
+    } finally {
+      setExporting(false);
+    }
+  }
+
   return (
     <Card>
       <CardHeader className="flex flex-row flex-wrap items-center justify-between gap-2">
@@ -236,6 +254,9 @@ export function CustomersListPage() {
           </Button>
           <Button type="button" size="sm" variant="outline" onClick={() => setImportOpen(true)}>
             {t('importCsv')}
+          </Button>
+          <Button type="button" size="sm" variant="outline" disabled={exporting} onClick={() => void handleExport()}>
+            {t('exportCsv')}
           </Button>
           <Button type="button" size="sm" variant="secondary" onClick={() => setSmsOpen(true)}>
             {t('sendSms')}

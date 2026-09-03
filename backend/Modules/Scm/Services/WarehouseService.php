@@ -131,7 +131,12 @@ class WarehouseService
             $doc = ScmWarehouseDocument::query()->where('type', 'audit')->findOrFail($id);
             foreach ($doc->items ?? [] as $row) {
                 $pid = (int) ($row['product_id'] ?? 0);
-                $counted = isset($row['counted']) ? (float) $row['counted'] : null;
+                $counted = null;
+                if (isset($row['counted'])) {
+                    $counted = (float) $row['counted'];
+                } elseif (isset($row['quantity'])) {
+                    $counted = (float) $row['quantity'];
+                }
                 if (! $pid || $counted === null) {
                     continue;
                 }

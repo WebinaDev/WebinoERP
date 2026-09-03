@@ -11,7 +11,8 @@ export function useModirPayamakConfigured() {
     setLoading(true);
     try {
       const data = await getModirPayamakDashboard();
-      setConfigured(Boolean((data as { configured?: boolean })?.configured ?? (data as { data?: { configured?: boolean } })?.data?.configured));
+      const fromStats = data.stats?.configured;
+      setConfigured(Boolean(fromStats ?? data.configured));
     } catch {
       setConfigured(false);
     } finally {

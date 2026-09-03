@@ -8,7 +8,10 @@ class SalesCatalogItem extends Model
 {
     protected $table = 'sales_catalog_items';
 
-    protected $fillable = ['name', 'sku', 'price', 'description', 'status'];
+    protected $fillable = ['name', 'sku', 'price', 'description', 'status', 'type', 'meta'];
 
-    protected $casts = ['price' => 'decimal:2'];
+    protected $casts = [
+        'price' => 'decimal:2',
+        'meta' => 'array',
+    ];
 }

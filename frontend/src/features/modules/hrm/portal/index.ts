@@ -1,0 +1,9 @@
+export { MyPortalPage } from './MyPortalPage';
+export { MyTimePage } from './MyTimePage';
+export { MyDocsPage } from './MyDocsPage';
+export { MyInsurancePage } from './MyInsurancePage';
+export { MyOrgPage } from './MyOrgPage';
+export { MyProfilePage } from './MyProfilePage';
+export { MyPayrollPage } from './MyPayrollPage';
+export { HrmCartablePage } from './HrmCartablePage';
+export { PayrollDecreesPage } from './PayrollDecreesPage';

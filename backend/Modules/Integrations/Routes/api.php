@@ -49,6 +49,13 @@ Route::prefix('modirpayamak')->middleware(['auth:sanctum', 'module:integrations'
         Route::get('/packages', [ModirPayamakAdminController::class, 'packagesIndex']);
         Route::post('/packages', [ModirPayamakAdminController::class, 'packagesStore']);
         Route::delete('/packages/{package}', [ModirPayamakAdminController::class, 'packagesDestroy']);
+        Route::get('/tariffs', [ModirPayamakAdminController::class, 'tariffsIndex']);
+        Route::post('/tariffs', [ModirPayamakAdminController::class, 'tariffsStore']);
+        Route::delete('/tariffs/{id}', [ModirPayamakAdminController::class, 'tariffsDestroy'])->whereNumber('id');
+        Route::get('/secretaries', [ModirPayamakAdminController::class, 'secretariesIndex']);
+        Route::post('/secretaries', [ModirPayamakAdminController::class, 'secretariesStore']);
+        Route::post('/secretaries/delete', [ModirPayamakAdminController::class, 'secretariesDestroy']);
+        Route::delete('/secretaries', [ModirPayamakAdminController::class, 'secretariesDestroy']);
         Route::get('/orders', [ModirPayamakAdminController::class, 'orders']);
         Route::post('/send', [ModirPayamakAdminController::class, 'adminSend']);
         Route::get('/messages', [ModirPayamakAdminController::class, 'messages']);

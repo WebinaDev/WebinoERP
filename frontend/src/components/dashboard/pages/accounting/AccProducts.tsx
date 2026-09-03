@@ -10,6 +10,7 @@ import { accountingWpAction } from '@/lib/accounting-wp';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Pagination } from '@/components/ui/pagination';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter,
 } from '@/components/ui/dialog';
@@ -20,6 +21,10 @@ import {
 import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from '@/components/ui/select';
+import { FolderTree, Ruler } from 'lucide-react';
+import { PriceListsTab } from '@/features/modules/finance/products/PriceListsTab';
+import { UnitsManagerDialog } from '@/features/modules/finance/products/UnitsManagerDialog';
+import { CategoryManagerSheet } from '@/features/modules/finance/products/CategoryManagerSheet';
 
 type Product = {
   id: number;
@@ -46,6 +51,7 @@ const BLANK = {
 
 export default function AccProducts() {
   const t = useTranslations();
+  const tp = useTranslations('finance.products');
 
   const [rows, setRows] = useState<Product[]>([]);
   const [page, setPage] = useState(1);
@@ -67,6 +73,23 @@ export default function AccProducts() {
   const [form, setForm] = useState({ ...BLANK });
 
   const [deleteTarget, setDeleteTarget] = useState<Product | null>(null);
+  const [categorySheetOpen, setCategorySheetOpen] = useState(false);
+  const [unitsOpen, setUnitsOpen] = useState(false);
+
+  const loadOptions = useCallback(async () => {
+    try {
+      const [unitsData, catsData] = await Promise.all([
+        accountingWpAction<{ items?: OptionItem[] } | OptionItem[]>('units_list'),
+        accountingWpAction<{ items?: OptionItem[] } | OptionItem[]>('product_categories'),
+      ]);
+      const u = Array.isArray(unitsData) ? unitsData : (unitsData?.items ?? []);
+      const c = Array.isArray(catsData) ? catsData : (catsData?.items ?? []);
+      setUnits(u as OptionItem[]);
+      setCategories(c as OptionItem[]);
+    } catch {
+      /* ignore option load errors */
+    }
+  }, []);
 
   const fetchRows = useCallback(async (p: number) => {
     setLoading(true);
@@ -91,9 +114,8 @@ export default function AccProducts() {
   useEffect(() => { void fetchRows(1); }, [fetchRows]);
 
   useEffect(() => {
-    accountingWpAction<OptionItem[]>('units_list').then(setUnits).catch(() => {});
-    accountingWpAction<OptionItem[]>('product_categories').then(setCategories).catch(() => {});
-  }, []);
+    void loadOptions();
+  }, [loadOptions]);
 
   const openCreate = () => {
     setEditing(null);
@@ -155,58 +177,81 @@ export default function AccProducts() {
 
   return (
     <div className="space-y-4">
-      <div className="flex flex-wrap items-center gap-2">
-        <Input
-          className="max-w-xs"
-          placeholder={t('auto.accounting_AccProducts.s_f1b2b906')}
-          value={searchInput}
-          onChange={e => setSearchInput(e.target.value)}
-          onKeyDown={e => e.key === 'Enter' && setQuery(searchInput)}
-        />
-        <Button variant="outline" size="sm" onClick={() => setQuery(searchInput)}>{t('auto.accounting_AccProducts.s_1fc039e0')}</Button>
-        <div className="flex-1" />
-        <Button size="sm" onClick={openCreate}>{t('auto.accounting_AccProducts.s_e34fff4e')}</Button>
-      </div>
+      <Tabs defaultValue="list" className="space-y-4">
+        <TabsList>
+          <TabsTrigger value="list">{tp('tabList')}</TabsTrigger>
+          <TabsTrigger value="price-lists">{tp('tabPriceLists')}</TabsTrigger>
+        </TabsList>
+        <div className="flex flex-wrap gap-2">
+          <Button variant="outline" size="sm" onClick={() => setCategorySheetOpen(true)} className="gap-2">
+            <FolderTree className="h-4 w-4" />
+            {tp('tabCategories')}
+          </Button>
+          <Button variant="outline" size="sm" onClick={() => setUnitsOpen(true)} className="gap-2">
+            <Ruler className="h-4 w-4" />
+            {tp('tabUnits')}
+          </Button>
+        </div>
 
-      {error && <p className="text-sm text-destructive">{error}</p>}
-      {loading && <p className="text-sm text-muted-foreground">{t('auto.accounting_AccProducts.s_51617f69')}</p>}
+        <TabsContent value="list" className="space-y-4">
+          <div className="flex flex-wrap items-center gap-2">
+            <Input
+              className="max-w-xs"
+              placeholder={t('auto.accounting_AccProducts.s_f1b2b906')}
+              value={searchInput}
+              onChange={e => setSearchInput(e.target.value)}
+              onKeyDown={e => e.key === 'Enter' && setQuery(searchInput)}
+            />
+            <Button variant="outline" size="sm" onClick={() => setQuery(searchInput)}>{t('auto.accounting_AccProducts.s_1fc039e0')}</Button>
+            <div className="flex-1" />
+            <Button size="sm" onClick={openCreate}>{t('auto.accounting_AccProducts.s_e34fff4e')}</Button>
+          </div>
 
-      <div className="overflow-x-auto rounded-md border">
-        <table className="w-full text-sm">
-          <thead>
-            <tr className="border-b bg-muted/40">
-              <th className="px-3 py-2 text-start font-medium">{t('auto.accounting_AccProducts.s_acc84041')}</th>
-              <th className="px-3 py-2 text-start font-medium">{t('auto.accounting_AccProducts.s_45dd06ba')}</th>
-              <th className="px-3 py-2 text-start font-medium">{t('auto.accounting_AccProducts.s_60b7dd5f')}</th>
-              <th className="px-3 py-2 text-start font-medium">{t('auto.accounting_AccProducts.s_299e3b7b')}</th>
-              <th className="px-3 py-2 text-start font-medium">{t('auto.accounting_AccProducts.s_d8daa96f')}</th>
-              <th className="px-3 py-2 text-start font-medium">{t('auto.accounting_AccProducts.s_8d1cc546')}</th>
-            </tr>
-          </thead>
-          <tbody>
-            {rows.map(row => (
-              <tr key={row.id} className="border-b">
-                <td className="px-3 py-2">{row.id}</td>
-                <td className="px-3 py-2">{row.name}</td>
-                <td className="px-3 py-2">{row.barcode}</td>
-                <td className="px-3 py-2">{Number(row.buy_price).toLocaleString()}</td>
-                <td className="px-3 py-2">{Number(row.sell_price).toLocaleString()}</td>
-                <td className="px-3 py-2 gap-x-1 rtl:gap-x-reverse">
-                  <Button variant="ghost" size="sm" onClick={() => openEdit(row)}>{t('auto.accounting_AccProducts.s_ac60ae7a')}</Button>
-                  <Button variant="ghost" size="sm" className="text-destructive" onClick={() => setDeleteTarget(row)}>{t('auto.accounting_AccProducts.s_2d2bbdc2')}</Button>
-                </td>
-              </tr>
-            ))}
-            {!loading && rows.length === 0 && (
-              <tr><td colSpan={6} className="px-3 py-4 text-center text-muted-foreground">{t('auto.accounting_AccProducts.s_35e7797d')}</td></tr>
-            )}
-          </tbody>
-        </table>
-      </div>
+          {error && <p className="text-sm text-destructive">{error}</p>}
+          {loading && <p className="text-sm text-muted-foreground">{t('auto.accounting_AccProducts.s_51617f69')}</p>}
 
-      {pageCount > 1 && (
-        <Pagination page={page} pageCount={pageCount} total={total} onPageChange={p => fetchRows(p)} />
-      )}
+          <div className="overflow-x-auto rounded-md border">
+            <table className="w-full text-sm">
+              <thead>
+                <tr className="border-b bg-muted/40">
+                  <th className="px-3 py-2 text-start font-medium">{t('auto.accounting_AccProducts.s_acc84041')}</th>
+                  <th className="px-3 py-2 text-start font-medium">{t('auto.accounting_AccProducts.s_45dd06ba')}</th>
+                  <th className="px-3 py-2 text-start font-medium">{t('auto.accounting_AccProducts.s_60b7dd5f')}</th>
+                  <th className="px-3 py-2 text-start font-medium">{t('auto.accounting_AccProducts.s_299e3b7b')}</th>
+                  <th className="px-3 py-2 text-start font-medium">{t('auto.accounting_AccProducts.s_d8daa96f')}</th>
+                  <th className="px-3 py-2 text-start font-medium">{t('auto.accounting_AccProducts.s_8d1cc546')}</th>
+                </tr>
+              </thead>
+              <tbody>
+                {rows.map(row => (
+                  <tr key={row.id} className="border-b">
+                    <td className="px-3 py-2">{row.id}</td>
+                    <td className="px-3 py-2">{row.name}</td>
+                    <td className="px-3 py-2">{row.barcode}</td>
+                    <td className="px-3 py-2">{Number(row.buy_price).toLocaleString()}</td>
+                    <td className="px-3 py-2">{Number(row.sell_price).toLocaleString()}</td>
+                    <td className="px-3 py-2 gap-x-1 rtl:gap-x-reverse">
+                      <Button variant="ghost" size="sm" onClick={() => openEdit(row)}>{t('auto.accounting_AccProducts.s_ac60ae7a')}</Button>
+                      <Button variant="ghost" size="sm" className="text-destructive" onClick={() => setDeleteTarget(row)}>{t('auto.accounting_AccProducts.s_2d2bbdc2')}</Button>
+                    </td>
+                  </tr>
+                ))}
+                {!loading && rows.length === 0 && (
+                  <tr><td colSpan={6} className="px-3 py-4 text-center text-muted-foreground">{t('auto.accounting_AccProducts.s_35e7797d')}</td></tr>
+                )}
+              </tbody>
+            </table>
+          </div>
+
+          {pageCount > 1 && (
+            <Pagination page={page} pageCount={pageCount} total={total} onPageChange={p => fetchRows(p)} />
+          )}
+        </TabsContent>
+
+        <TabsContent value="price-lists">
+          <PriceListsTab />
+        </TabsContent>
+      </Tabs>
 
       <Dialog open={formOpen} onOpenChange={setFormOpen}>
         <DialogContent>
@@ -284,6 +329,17 @@ export default function AccProducts() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      <CategoryManagerSheet
+        open={categorySheetOpen}
+        onOpenChange={setCategorySheetOpen}
+        onChanged={() => void loadOptions()}
+      />
+      <UnitsManagerDialog
+        open={unitsOpen}
+        onOpenChange={setUnitsOpen}
+        onChanged={() => void loadOptions()}
+      />
     </div>
   );
 }

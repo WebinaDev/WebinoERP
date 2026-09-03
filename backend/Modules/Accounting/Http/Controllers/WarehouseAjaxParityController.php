@@ -21,9 +21,11 @@ class WarehouseAjaxParityController extends Controller
     /** @var list<string> */
     private const ACTIONS = [
         'get_warehouses', 'create_warehouse', 'update_warehouse', 'delete_warehouse',
+        'warehouses_create', 'warehouses_update', 'warehouses_delete',
         'create_inbound', 'get_inbound', 'add_inbound_item', 'post_inbound',
         'create_outbound', 'get_outbound', 'add_outbound_item', 'post_outbound',
         'create_audit', 'get_audit', 'initialize_audit_items', 'record_audit_item', 'complete_audit', 'post_audit',
+        'warehouse_document_create', 'warehouse_document_post',
         'get_warehouse_stock', 'get_stock_report', 'get_movement_report', 'get_low_stock_items',
     ];
 
@@ -43,9 +45,9 @@ class WarehouseAjaxParityController extends Controller
         try {
             $data = match ($action) {
                 'get_warehouses' => ['warehouses' => AccWarehouse::query()->orderBy('name')->get()->all()],
-                'create_warehouse' => $this->createWarehouse($p),
-                'update_warehouse' => $this->updateWarehouse($p),
-                'delete_warehouse' => $this->deleteWarehouse($p),
+                'create_warehouse', 'warehouses_create' => $this->createWarehouse($p),
+                'update_warehouse', 'warehouses_update' => $this->updateWarehouse($p),
+                'delete_warehouse', 'warehouses_delete' => $this->deleteWarehouse($p),
                 'create_inbound' => $this->createDoc($p, 'inbound', $request),
                 'get_inbound' => $this->getDoc($p, 'inbound'),
                 'add_inbound_item' => $this->addItem($p, 'inbound'),
@@ -60,6 +62,12 @@ class WarehouseAjaxParityController extends Controller
                 'record_audit_item' => $this->recordAuditItem($p),
                 'complete_audit' => $this->completeAudit($p),
                 'post_audit' => $this->postAudit($p),
+                'warehouse_document_create' => $this->createDoc(
+                    $p,
+                    in_array(($p['type'] ?? ''), ['inbound', 'outbound', 'audit'], true) ? (string) $p['type'] : 'inbound',
+                    $request
+                ),
+                'warehouse_document_post' => $this->postLegacyDoc($p),
                 'get_warehouse_stock' => $this->stockReport($p),
                 'get_stock_report' => $this->stockReport($p),
                 'get_movement_report' => $this->movementReport($p),
@@ -72,6 +80,17 @@ class WarehouseAjaxParityController extends Controller
         }
 
         return response()->json(['data' => $data]);
+    }
+
+    private function postLegacyDoc(array $p): array
+    {
+        $id = (int) ($p['id'] ?? 0);
+        $doc = AccWarehouseDocument::query()->findOrFail($id);
+        if ($doc->type === 'audit') {
+            return $this->postAudit(['id' => $id]);
+        }
+
+        return $this->postDoc(['id' => $id], (string) $doc->type, $doc->type === 'inbound');
     }
 
     private function createWarehouse(array $p): array
@@ -258,7 +277,12 @@ class WarehouseAjaxParityController extends Controller
             $items = $doc->items ?? [];
             foreach ($items as $row) {
                 $pid = (int) ($row['product_id'] ?? 0);
-                $counted = isset($row['counted']) ? (float) $row['counted'] : null;
+                $counted = null;
+                if (isset($row['counted'])) {
+                    $counted = (float) $row['counted'];
+                } elseif (isset($row['quantity'])) {
+                    $counted = (float) $row['quantity'];
+                }
                 if (! $pid || $counted === null) {
                     continue;
                 }

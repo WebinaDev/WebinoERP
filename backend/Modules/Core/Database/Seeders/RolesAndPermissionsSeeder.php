@@ -164,6 +164,10 @@ class RolesAndPermissionsSeeder extends Seeder
                 'docs.files.manage',
             ],
             [
+                'ai_content.view',
+                'ai_content.manage',
+            ],
+            [
                 'marketplace.products.view',
                 'marketplace.products.manage',
                 'marketplace.modules.view',

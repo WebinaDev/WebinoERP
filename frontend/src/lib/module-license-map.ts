@@ -11,6 +11,7 @@ export const LICENSE_SLUG_TO_MODULE_ID: Record<string, string> = {
   scm: 'scm',
   sales: 'sales',
   docs: 'docs',
+  ai_content: 'ai_content',
   marketplace: 'distribution',
   integrations: 'admin',
   warehouse: 'scm',

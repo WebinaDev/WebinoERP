@@ -21,9 +21,11 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Pagination } from '@/components/ui/pagination';
 import { Textarea } from '@/components/ui/textarea';
 import Link from 'next/link';
-import { useLocale, useTranslations } from 'next-intl';
+import { useTranslations } from 'next-intl';
 import { toast } from 'sonner';
 import { PageEmptyState, PageErrorState, PageLoadingState } from '@/features/shared/ui/PageStates';
+import { PmViewToggle } from '@/features/shared/pm';
+import { ImportCsvDialog } from '@/features/modules/crm/ImportCsvDialog';
 
 type StatusRow = { id: number; name: string; color?: string };
 type LeadRow = Record<string, unknown>;
@@ -31,7 +33,6 @@ type DuplicateRow = { id: number; topic?: string; email?: string; confidence: nu
 type Meta = { current_page?: number; last_page?: number; total?: number };
 
 export function LeadsListPage() {
-  const locale = useLocale();
   const t = useTranslations('crm.leads');
   const tc = useTranslations('common');
 
@@ -45,6 +46,9 @@ export function LeadsListPage() {
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [selected, setSelected] = useState<Set<number>>(new Set());
+  const [viewMode, setViewMode] = useState<'table' | 'card'>('table');
+  const [exporting, setExporting] = useState(false);
+  const [importOpen, setImportOpen] = useState(false);
 
   const [addOpen, setAddOpen] = useState(false);
   const [detail, setDetail] = useState<LeadRow | null>(null);
@@ -56,6 +60,9 @@ export function LeadsListPage() {
   const [duplicates, setDuplicates] = useState<DuplicateRow[]>([]);
   const [bulkAssignOpen, setBulkAssignOpen] = useState(false);
   const [bulkAssignUserId, setBulkAssignUserId] = useState('');
+  const [statusChangeOpen, setStatusChangeOpen] = useState(false);
+  const [statusChangeId, setStatusChangeId] = useState('');
+  const [statusUpdating, setStatusUpdating] = useState(false);
 
   const [form, setForm] = useState({
     topic: '',
@@ -230,8 +237,108 @@ export function LeadsListPage() {
     }
   }
 
+  async function handleExport() {
+    setExporting(true);
+    try {
+      const res = await apiClient.get('/v1/crm/leads/export', { responseType: 'blob' });
+      const url = window.URL.createObjectURL(res.data as Blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `leads-${new Date().toISOString().slice(0, 10)}.csv`;
+      a.click();
+      window.URL.revokeObjectURL(url);
+      toast.success(t('exportDone'));
+    } catch (e) {
+      setError(getAxiosMessage(e));
+    } finally {
+      setExporting(false);
+    }
+  }
+
+  function openStatusChange(lead: LeadRow) {
+    setDetail(lead);
+    const st = lead.status as { id?: number } | undefined;
+    const sid = st?.id ?? lead.status_id;
+    setStatusChangeId(sid != null ? String(sid) : '');
+    setStatusChangeOpen(true);
+  }
+
+  async function submitStatusChange() {
+    if (!detail?.id || !statusChangeId) return;
+    setStatusUpdating(true);
+    setError(null);
+    try {
+      await apiClient.patch(`/v1/crm/leads/${detail.id}/status`, {
+        status_id: Number(statusChangeId),
+      });
+      setStatusChangeOpen(false);
+      toast.success(t('statusChanged'));
+      void load();
+    } catch (e) {
+      setError(getAxiosMessage(e));
+    } finally {
+      setStatusUpdating(false);
+    }
+  }
+
   const lastPage = meta.last_page ?? 1;
   const total = meta.total;
+
+  function leadStatusBadge(r: LeadRow) {
+    const st = r.status as { name?: string; color?: string } | undefined;
+    if (!st?.name) return '—';
+    return (
+      <Badge variant="secondary" style={st.color ? { borderColor: st.color } : undefined}>
+        {st.name}
+      </Badge>
+    );
+  }
+
+  function leadActionButtons(r: LeadRow) {
+    return (
+      <div className="flex flex-wrap gap-1">
+        <Button type="button" variant="outline" size="sm" onClick={() => setDetail(r)}>
+          {t('details')}
+        </Button>
+        <Button type="button" variant="outline" size="sm" onClick={() => openStatusChange(r)}>
+          {t('changeStatus')}
+        </Button>
+        <Button
+          type="button"
+          variant="outline"
+          size="sm"
+          onClick={() => {
+            setDetail(r);
+            const aid = r.assigned_to;
+            setAssignUserId(aid != null && aid !== '' ? String(aid) : '__none');
+            setAssignOpen(true);
+          }}
+        >
+          {t('assign')}
+        </Button>
+        <Button
+          type="button"
+          variant="outline"
+          size="sm"
+          onClick={() => {
+            setDetail(r);
+            setConvertDeal(false);
+            setConvertOpen(true);
+          }}
+        >
+          {t('convert')}
+        </Button>
+        <Button type="button" variant="outline" size="sm" onClick={() => void openDuplicates(r)}>
+          {t('duplicates')}
+        </Button>
+        <Link href={`/dashboard/contracts?lead=${String(r.id)}`} className="inline-flex">
+          <Button type="button" variant="ghost" size="sm">
+            {t('contract')}
+          </Button>
+        </Link>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-4">
@@ -272,17 +379,68 @@ export function LeadsListPage() {
                 </Button>
               </>
             ) : null}
+            <Button type="button" size="sm" variant="outline" disabled={exporting} onClick={() => void handleExport()}>
+              {t('exportCsv')}
+            </Button>
+            <Button type="button" size="sm" variant="outline" onClick={() => setImportOpen(true)}>
+              {t('importCsv')}
+            </Button>
             <Button type="button" size="sm" onClick={() => setAddOpen(true)}>
               {t('newLead')}
             </Button>
           </div>
         </CardHeader>
         <CardContent className="space-y-4">
+          <div className="flex justify-end">
+            <PmViewToggle
+              value={viewMode}
+              onChange={(id) => setViewMode(id as 'table' | 'card')}
+              options={[
+                { id: 'table', label: t('viewTable') },
+                { id: 'card', label: t('viewCards') },
+              ]}
+            />
+          </div>
           {error ? <PageErrorState message={error} onRetry={() => void load()} /> : null}
           {loading ? (
             <PageLoadingState />
           ) : rows.length === 0 ? (
             <PageEmptyState actionLabel={t('newLead')} onAction={() => setAddOpen(true)} />
+          ) : viewMode === 'card' ? (
+            <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+              {rows.map((r) => {
+                const id = Number(r.id);
+                return (
+                  <Card key={String(r.id)} className="overflow-hidden">
+                    <CardContent className="space-y-3 pt-4">
+                      <div className="flex items-start justify-between gap-2">
+                        <div>
+                          <p className="font-semibold">{String(r.topic ?? '—')}</p>
+                          <p className="text-sm text-muted-foreground">
+                            {String(r.first_name ?? '')} {String(r.last_name ?? '')}
+                          </p>
+                          <p className="text-sm text-muted-foreground" dir="ltr">
+                            {String(r.mobile ?? '—')}
+                          </p>
+                        </div>
+                        {leadStatusBadge(r)}
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <Checkbox
+                          checked={selected.has(id)}
+                          onCheckedChange={(c) => toggleRow(id, c === true)}
+                          aria-label={`${t('topic')} ${String(r.topic ?? id)}`}
+                        />
+                        <span className="text-xs text-muted-foreground">
+                          {t('score')}: {String(r.lead_score ?? r.score ?? '—')}
+                        </span>
+                      </div>
+                      {leadActionButtons(r)}
+                    </CardContent>
+                  </Card>
+                );
+              })}
+            </div>
           ) : (
             <div className="overflow-x-auto rounded-md border">
               <table className="w-full min-w-[720px] text-sm">
@@ -300,7 +458,6 @@ export function LeadsListPage() {
                 <tbody>
                   {rows.map((r) => {
                     const id = Number(r.id);
-                    const st = r.status as { name?: string; color?: string } | undefined;
                     return (
                       <tr key={String(r.id)} className="border-b border-border/60">
                         <td className="px-2 py-2">
@@ -317,56 +474,9 @@ export function LeadsListPage() {
                         <td className="px-3 py-2" dir="ltr">
                           {String(r.mobile ?? '—')}
                         </td>
-                        <td className="px-3 py-2">
-                          {st?.name ? (
-                            <Badge variant="secondary" style={st.color ? { borderColor: st.color } : undefined}>
-                              {st.name}
-                            </Badge>
-                          ) : (
-                            '—'
-                          )}
-                        </td>
+                        <td className="px-3 py-2">{leadStatusBadge(r)}</td>
                         <td className="px-3 py-2">{String(r.lead_score ?? r.score ?? '—')}</td>
-                        <td className="px-3 py-2">
-                          <div className="flex flex-wrap gap-1">
-                            <Button type="button" variant="outline" size="sm" onClick={() => setDetail(r)}>
-                              {t('details')}
-                            </Button>
-                            <Button
-                              type="button"
-                              variant="outline"
-                              size="sm"
-                              onClick={() => {
-                                setDetail(r);
-                                const aid = r.assigned_to;
-                                setAssignUserId(aid != null && aid !== '' ? String(aid) : '__none');
-                                setAssignOpen(true);
-                              }}
-                            >
-                              {t('assign')}
-                            </Button>
-                            <Button
-                              type="button"
-                              variant="outline"
-                              size="sm"
-                              onClick={() => {
-                                setDetail(r);
-                                setConvertDeal(false);
-                                setConvertOpen(true);
-                              }}
-                            >
-                              {t('convert')}
-                            </Button>
-                            <Button type="button" variant="outline" size="sm" onClick={() => void openDuplicates(r)}>
-                              {t('duplicates')}
-                            </Button>
-                            <Link href={`/dashboard/contracts?lead=${String(r.id)}`} className="inline-flex">
-                              <Button type="button" variant="ghost" size="sm">
-                                {t('contract')}
-                              </Button>
-                            </Link>
-                          </div>
-                        </td>
+                        <td className="px-3 py-2">{leadActionButtons(r)}</td>
                       </tr>
                     );
                   })}
@@ -441,7 +551,7 @@ export function LeadsListPage() {
         </DialogContent>
       </Dialog>
 
-      <Dialog open={!!detail && !assignOpen && !convertOpen && !duplicatesOpen} onOpenChange={(o) => !o && setDetail(null)}>
+      <Dialog open={!!detail && !assignOpen && !convertOpen && !duplicatesOpen && !statusChangeOpen} onOpenChange={(o) => !o && setDetail(null)}>
         <DialogContent>
           <DialogHeader>
             <DialogTitle>{t('detailTitle')}</DialogTitle>
@@ -482,6 +592,37 @@ export function LeadsListPage() {
               </p>
             </div>
           ) : null}
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={statusChangeOpen} onOpenChange={setStatusChangeOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>{t('changeStatusTitle')}</DialogTitle>
+            <DialogDescription>
+              {detail ? `${String(detail.topic ?? '')} — ${String(detail.first_name ?? '')} ${String(detail.last_name ?? '')}` : null}
+            </DialogDescription>
+          </DialogHeader>
+          <Select value={statusChangeId} onValueChange={setStatusChangeId}>
+            <SelectTrigger>
+              <SelectValue placeholder={t('selectStatus')} />
+            </SelectTrigger>
+            <SelectContent>
+              {statuses.map((s) => (
+                <SelectItem key={s.id} value={String(s.id)}>
+                  {s.name}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+          <DialogFooter>
+            <Button type="button" variant="outline" onClick={() => setStatusChangeOpen(false)}>
+              {tc('cancel')}
+            </Button>
+            <Button type="button" disabled={!statusChangeId || statusUpdating} onClick={() => void submitStatusChange()}>
+              {t('save')}
+            </Button>
+          </DialogFooter>
         </DialogContent>
       </Dialog>
 
@@ -580,6 +721,13 @@ export function LeadsListPage() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      <ImportCsvDialog
+        open={importOpen}
+        onOpenChange={setImportOpen}
+        importPath="/v1/crm/leads/import"
+        onImported={() => void load()}
+      />
     </div>
   );
 }

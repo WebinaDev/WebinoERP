@@ -1,12 +1,14 @@
 'use client';
 
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { useTranslations } from 'next-intl';
 import apiClient from '@/lib/api-client';
-import { getAxiosMessage } from '@/lib/api-helpers';
+import { getAxiosMessage, unwrapData } from '@/lib/api-helpers';
 import { normalizeListPayload } from '@/lib/list-utils';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { CrmPageLayout } from '@/features/shared/layout/CrmPageLayout';
+import { useCrmFeedback } from '@/features/shared/hooks/useCrmFeedback';
+import { PmViewToggle } from '@/features/shared/pm';
+import { AccountSelect } from '@/features/shared/crm/AccountSelect';
 import { LocaleDatePicker } from '@/components/ui/locale-date-picker';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -30,9 +32,12 @@ import {
 } from '@/components/ui/alert-dialog';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
+import {
+  AppointmentsCalendarPanel,
+  type CalendarAppointment,
+} from '@/components/dashboard/pages/AppointmentsCalendarPanel';
 
 type Row = Record<string, unknown>;
-type AccountOpt = { id: number; name: string; type?: string };
 
 function pad2(n: number): string {
   return n < 10 ? `0${n}` : `${n}`;
@@ -51,20 +56,34 @@ function parseIsoTimePart(iso: string): string {
   return t || '09:00';
 }
 
+function toCalendarEvent(r: Row): CalendarAppointment | null {
+  const id = Number(r.id);
+  if (!Number.isFinite(id)) return null;
+  return {
+    id,
+    title: String(r.title ?? '—'),
+    starts_at: String(r.starts_at ?? ''),
+    ends_at: r.ends_at != null ? String(r.ends_at) : null,
+    status: r.status != null ? String(r.status) : undefined,
+  };
+}
+
 export function AppointmentsListPage() {
   const t = useTranslations('pm.appointments');
   const tNav = useTranslations();
   const tCommon = useTranslations('common');
+  const { layoutProps, setError, setSuccess, applyAxiosError } = useCrmFeedback();
+
+  const [view, setView] = useState<'list' | 'calendar'>('calendar');
   const [rows, setRows] = useState<Row[]>([]);
-  const [error, setError] = useState<string | null>(null);
+  const [calendarEvents, setCalendarEvents] = useState<CalendarAppointment[]>([]);
   const [loading, setLoading] = useState(true);
+  const [draggingEventId, setDraggingEventId] = useState<number | null>(null);
 
   const [viewMonth, setViewMonth] = useState(() => {
     const n = new Date();
     return new Date(n.getFullYear(), n.getMonth(), 1);
   });
-
-  const [accounts, setAccounts] = useState<AccountOpt[]>([]);
 
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editingId, setEditingId] = useState<number | null>(null);
@@ -75,82 +94,54 @@ export function AppointmentsListPage() {
   const [startTime, setStartTime] = useState('09:00');
   const [endDay, setEndDay] = useState<string | null>(null);
   const [endTime, setEndTime] = useState('10:00');
-  const [customerAccountId, setCustomerAccountId] = useState<string>('');
+  const [customerAccountId, setCustomerAccountId] = useState('');
   const [formErr, setFormErr] = useState<string | null>(null);
-
   const [deleteId, setDeleteId] = useState<number | null>(null);
+  const [submitting, setSubmitting] = useState(false);
 
-  const load = useCallback(async () => {
+  const loadList = useCallback(async () => {
     setLoading(true);
-    setError(null);
     try {
       const res = await apiClient.get('/v1/projects/appointments', { params: { per_page: 500 } });
       const raw = res.data as { data?: unknown };
-      const inner = raw.data;
-      setRows(normalizeListPayload(inner));
+      setRows(normalizeListPayload(raw.data ?? raw));
     } catch (e) {
-      setError(getAxiosMessage(e));
+      applyAxiosError(e);
       setRows([]);
     } finally {
       setLoading(false);
     }
+  }, [applyAxiosError]);
+
+  const loadCalendar = useCallback(async () => {
+    try {
+      const res = await apiClient.get('/v1/projects/appointments/calendar');
+      const list = normalizeListPayload(unwrapData(res));
+      setCalendarEvents(
+        list.map(toCalendarEvent).filter((x): x is CalendarAppointment => x !== null),
+      );
+    } catch {
+      setCalendarEvents([]);
+    }
   }, []);
 
   useEffect(() => {
-    void load();
-  }, [load]);
+    void loadList();
+  }, [loadList]);
 
   useEffect(() => {
-    void (async () => {
-      try {
-        const res = await apiClient.get('/v1/crm/accounts/list');
-        const body = res.data as { data?: AccountOpt[] };
-        setAccounts(Array.isArray(body.data) ? body.data : []);
-      } catch {
-        setAccounts([]);
-      }
-    })();
-  }, []);
+    if (view === 'calendar') void loadCalendar();
+  }, [view, loadCalendar]);
 
-  const calendarWeeks = useMemo(() => {
-    const y = viewMonth.getFullYear();
-    const m = viewMonth.getMonth();
-    const first = new Date(y, m, 1);
-    const startWeekday = (first.getDay() + 1) % 7;
-    const daysInMonth = new Date(y, m + 1, 0).getDate();
-    const cells: (number | null)[] = [];
-    for (let i = 0; i < startWeekday; i++) {
-      cells.push(null);
-    }
-    for (let d = 1; d <= daysInMonth; d++) {
-      cells.push(d);
-    }
-    while (cells.length % 7 !== 0) {
-      cells.push(null);
-    }
-    const weeks: (number | null)[][] = [];
-    for (let i = 0; i < cells.length; i += 7) {
-      weeks.push(cells.slice(i, i + 7));
-    }
-    return weeks;
-  }, [viewMonth]);
-
-  function appointmentsForDay(day: number): Row[] {
-    const y = viewMonth.getFullYear();
-    const m = viewMonth.getMonth();
-    const key = toYmd(new Date(y, m, day));
-    return rows.filter((r) => parseIsoDatePart(String(r.starts_at ?? '')) === key);
-  }
-
-  function openCreate() {
+  function openCreate(prefillDate?: string) {
     setEditingId(null);
     setTitle('');
     setNotes('');
     setStatus('scheduled');
-    const today = toYmd(new Date());
-    setStartDay(today);
+    const day = prefillDate ?? toYmd(new Date());
+    setStartDay(day);
     setStartTime('09:00');
-    setEndDay(today);
+    setEndDay(day);
     setEndTime('10:00');
     setCustomerAccountId('');
     setFormErr(null);
@@ -179,10 +170,26 @@ export function AppointmentsListPage() {
     setDialogOpen(true);
   }
 
-  function combineDateTime(day: string | null, time: string): string | null {
-    if (!day || !time) {
-      return null;
+  function openEditById(id: number) {
+    const match = rows.find((r) => Number(r.id) === id);
+    if (match) {
+      openEdit(match);
+      return;
     }
+    const ev = calendarEvents.find((e) => e.id === id);
+    if (ev) {
+      openEdit({
+        id: ev.id,
+        title: ev.title,
+        starts_at: ev.starts_at,
+        ends_at: ev.ends_at,
+        status: ev.status,
+      });
+    }
+  }
+
+  function combineDateTime(day: string | null, time: string): string | null {
+    if (!day || !time) return null;
     return `${day} ${time}:00`;
   }
 
@@ -190,10 +197,11 @@ export function AppointmentsListPage() {
     setFormErr(null);
     const starts = combineDateTime(startDay, startTime);
     if (!starts) {
-      setFormErr(tNav('auto.AppointmentsListPage.s_fcca97dd'));
+      setFormErr(t('dateRequired'));
       return;
     }
     const ends = combineDateTime(endDay || startDay, endTime);
+    setSubmitting(true);
     try {
       const payload: Record<string, unknown> = {
         title: title || t('title'),
@@ -210,215 +218,228 @@ export function AppointmentsListPage() {
         await apiClient.post('/v1/projects/appointments', payload);
       }
       setDialogOpen(false);
-      await load();
+      setSuccess(tCommon('saved'));
+      await loadList();
+      if (view === 'calendar') await loadCalendar();
     } catch (e) {
       setFormErr(getAxiosMessage(e));
+      applyAxiosError(e);
+    } finally {
+      setSubmitting(false);
     }
   }
 
   async function confirmDelete() {
-    if (!deleteId) {
-      return;
-    }
+    if (!deleteId) return;
     try {
       await apiClient.delete(`/v1/projects/appointments/${deleteId}`);
       setDeleteId(null);
-      await load();
+      setSuccess(tCommon('deleted'));
+      await loadList();
+      if (view === 'calendar') await loadCalendar();
     } catch (e) {
-      setError(getAxiosMessage(e));
+      applyAxiosError(e);
     }
   }
 
-  function prevMonth() {
-    setViewMonth((d) => new Date(d.getFullYear(), d.getMonth() - 1, 1));
-  }
+  async function handleReschedule(appointmentId: number, isoDate: string) {
+    const source =
+      calendarEvents.find((e) => e.id === appointmentId) ??
+      (() => {
+        const r = rows.find((x) => Number(x.id) === appointmentId);
+        return r ? toCalendarEvent(r) : null;
+      })();
+    if (!source) return;
 
-  function nextMonth() {
-    setViewMonth((d) => new Date(d.getFullYear(), d.getMonth() + 1, 1));
-  }
+    const timePart = parseIsoTimePart(source.starts_at);
+    const startsAt = `${isoDate} ${timePart}:00`;
+    let endsAt: string | null = null;
+    if (source.ends_at) {
+      const endTimePart = parseIsoTimePart(source.ends_at);
+      const oldStartDay = parseIsoDatePart(source.starts_at);
+      const oldEndDay = parseIsoDatePart(source.ends_at);
+      if (oldStartDay && oldEndDay && oldStartDay === oldEndDay) {
+        endsAt = `${isoDate} ${endTimePart}:00`;
+      } else {
+        endsAt = `${isoDate} ${endTimePart}:00`;
+      }
+    }
 
-  const monthTitle = viewMonth.toLocaleDateString('fa-IR', { month: 'long', year: 'numeric' });
+    setSubmitting(true);
+    setError(null);
+    try {
+      await apiClient.patch(`/v1/projects/appointments/${appointmentId}/date`, {
+        starts_at: startsAt,
+        ends_at: endsAt,
+      });
+      setSuccess(t('rescheduled'));
+      await loadList();
+      await loadCalendar();
+    } catch (e) {
+      applyAxiosError(e);
+    } finally {
+      setSubmitting(false);
+      setDraggingEventId(null);
+    }
+  }
 
   return (
-    <Card>
-      <CardHeader className="flex flex-row flex-wrap items-center justify-between gap-2">
-        <CardTitle>{tNav('nav.erp.pm.appointments')}</CardTitle>
-        <Button type="button" size="sm" onClick={() => openCreate()}>
-          {tNav('auto.AppointmentsListPage.s_fa0662ae')}
-        </Button>
-      </CardHeader>
-      <CardContent>
-        <Tabs defaultValue="calendar">
-          <TabsList>
-            <TabsTrigger value="calendar">{tNav('auto.AppointmentsListPage.s_9a577560')}</TabsTrigger>
-            <TabsTrigger value="list">{tNav('auto.AppointmentsListPage.s_11fe927c')}</TabsTrigger>
-          </TabsList>
-
-          <TabsContent value="calendar" className="space-y-4 pt-4">
-            {error ? <p className="text-sm text-destructive">{error}</p> : null}
-            <div className="flex items-center justify-between gap-2">
-              <Button type="button" variant="outline" size="sm" onClick={prevMonth}>
-                {tNav('auto.AppointmentsListPage.s_07a098a7')}
-              </Button>
-              <p className="text-sm font-medium">{monthTitle}</p>
-              <Button type="button" variant="outline" size="sm" onClick={nextMonth}>
-                {tNav('auto.AppointmentsListPage.s_16244ea6')}
-              </Button>
-            </div>
-            <div className="grid grid-cols-7 gap-1 text-center text-xs text-muted-foreground">
-              {[tNav('auto.AppointmentsListPage.s_d42b280f'), tNav('auto.AppointmentsListPage.s_a5714dc8'), tNav('auto.AppointmentsListPage.s_5cff1093'), tNav('auto.AppointmentsListPage.s_499cc95f'), tNav('auto.AppointmentsListPage.s_80e86778'), tNav('auto.AppointmentsListPage.s_3f7feaa8'), tNav('auto.AppointmentsListPage.s_e2f45e16')].map((d) => (
-                <div key={d} className="py-1 font-medium">
-                  {d}
-                </div>
-              ))}
-            </div>
-            <div className="space-y-1">
-              {calendarWeeks.map((week, wi) => (
-                <div key={wi} className="grid grid-cols-7 gap-1">
-                  {week.map((day, di) => (
-                    <div
-                      key={`${wi}-${di}`}
-                      className="min-h-[88px] rounded-md border border-border/60 bg-muted/20 p-1 text-start align-top"
-                    >
-                      {day ? (
-                        <>
-                          <div className="mb-1 text-xs font-medium text-muted-foreground">{day}</div>
-                          <div className="flex max-h-[56px] flex-col gap-0.5 overflow-y-auto">
-                            {appointmentsForDay(day).map((ap) => (
-                              <button
-                                key={String(ap.id)}
-                                type="button"
-                                className="truncate rounded bg-primary/15 px-1 py-0.5 text-[10px] leading-tight hover:bg-primary/25"
-                                title={String(ap.title ?? '')}
-                                onClick={() => openEdit(ap)}
-                              >
-                                {String(ap.title ?? '—').slice(0, 18)}
-                              </button>
-                            ))}
-                          </div>
-                        </>
-                      ) : (
-                        <span className="text-transparent">.</span>
-                      )}
-                    </div>
-                  ))}
-                </div>
-              ))}
-            </div>
-            {loading ? <p className="text-sm text-muted-foreground">{tNav('auto.AppointmentsListPage.s_fbac73dc')}</p> : null}
-          </TabsContent>
-
-          <TabsContent value="list" className="space-y-2 pt-4">
-            {error ? <p className="text-destructive text-sm">{error}</p> : null}
-            <div className="overflow-x-auto rounded-md border">
-              <table className="w-full text-sm">
-                <thead>
-                  <tr className="border-b bg-muted/40">
-                    <th className="px-2 py-2 text-start">{tNav('auto.AppointmentsListPage.s_1a9bdb20')}</th>
-                    <th className="px-2 py-2 text-start">{tNav('auto.AppointmentsListPage.s_079a41a7')}</th>
-                    <th className="px-2 py-2 text-start">{tNav('auto.AppointmentsListPage.s_55518965')}</th>
-                    <th className="px-2 py-2 text-start"> </th>
+    <CrmPageLayout
+      title={tNav('nav.erp.pm.appointments')}
+      description={t('listDescription')}
+      {...layoutProps}
+      actions={
+        <>
+          <PmViewToggle
+            value={view}
+            onChange={(id) => setView(id as 'list' | 'calendar')}
+            options={[
+              { id: 'calendar', label: t('viewCalendar') },
+              { id: 'list', label: t('viewList') },
+            ]}
+          />
+          <Button type="button" size="sm" onClick={() => openCreate()}>
+            {t('newAppointment')}
+          </Button>
+        </>
+      }
+    >
+      {view === 'calendar' ? (
+        <div className="space-y-2">
+          <p className="text-xs text-muted-foreground">{t('dragHint')}</p>
+          {loading ? <p className="text-sm text-muted-foreground">{tCommon('loading')}</p> : null}
+          <AppointmentsCalendarPanel
+            events={calendarEvents}
+            viewMonth={viewMonth}
+            onPrevMonth={() => setViewMonth((d) => new Date(d.getFullYear(), d.getMonth() - 1, 1))}
+            onNextMonth={() => setViewMonth((d) => new Date(d.getFullYear(), d.getMonth() + 1, 1))}
+            onDayClick={(iso) => openCreate(iso)}
+            onEventClick={openEditById}
+            onEventDragStart={setDraggingEventId}
+            onDayDrop={(iso) => {
+              if (draggingEventId == null) return;
+              void handleReschedule(draggingEventId, iso);
+            }}
+            draggingEventId={draggingEventId}
+          />
+        </div>
+      ) : (
+        <div className="overflow-x-auto rounded-md border">
+          <table className="w-full text-sm">
+            <thead>
+              <tr className="border-b bg-muted/40">
+                <th className="px-2 py-2 text-start">{t('subject')}</th>
+                <th className="px-2 py-2 text-start">{t('startsAt')}</th>
+                <th className="px-2 py-2 text-start">{t('status')}</th>
+                <th className="px-2 py-2 text-start"> </th>
+              </tr>
+            </thead>
+            <tbody>
+              {loading ? (
+                <tr>
+                  <td colSpan={4} className="py-6 text-center text-muted-foreground">
+                    {tCommon('loading')}
+                  </td>
+                </tr>
+              ) : rows.length === 0 ? (
+                <tr>
+                  <td colSpan={4} className="py-6 text-center text-muted-foreground">
+                    {t('empty')}
+                  </td>
+                </tr>
+              ) : (
+                rows.map((r) => (
+                  <tr key={String(r.id)} className="border-b">
+                    <td className="px-2 py-2">{String(r.title ?? '')}</td>
+                    <td className="px-2 py-2" dir="ltr">
+                      {String(r.starts_at ?? '')}
+                    </td>
+                    <td className="px-2 py-2">
+                      <Badge variant="outline">{String(r.status ?? '—')}</Badge>
+                    </td>
+                    <td className="px-2 py-2">
+                      <div className="flex flex-wrap gap-1">
+                        <Button type="button" variant="ghost" size="sm" onClick={() => openEdit(r)}>
+                          {tCommon('edit')}
+                        </Button>
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="sm"
+                          className="text-destructive"
+                          onClick={() => setDeleteId(Number(r.id))}
+                        >
+                          {tCommon('delete')}
+                        </Button>
+                      </div>
+                    </td>
                   </tr>
-                </thead>
-                <tbody>
-                  {loading ? (
-                    <tr>
-                      <td colSpan={4} className="py-6 text-center">
-                        …
-                      </td>
-                    </tr>
-                  ) : (
-                    rows.map((r) => (
-                      <tr key={String(r.id)} className="border-b">
-                        <td className="px-2 py-2">{String(r.title ?? '')}</td>
-                        <td className="px-2 py-2" dir="ltr">
-                          {String(r.starts_at ?? '')}
-                        </td>
-                        <td className="px-2 py-2">
-                          <Badge variant="outline">{String(r.status ?? '—')}</Badge>
-                        </td>
-                        <td className="px-2 py-2">
-                          <div className="flex flex-wrap gap-1">
-                            <Button type="button" variant="ghost" size="sm" onClick={() => openEdit(r)}>
-                              {tNav('auto.AppointmentsListPage.s_ac60ae7a')}
-                            </Button>
-                            <Button
-                              type="button"
-                              variant="ghost"
-                              size="sm"
-                              className="text-destructive"
-                              onClick={() => setDeleteId(Number(r.id))}>
-                            
-                              {tNav('auto.AppointmentsListPage.s_2d2bbdc2')}
-                            </Button>
-                          </div>
-                        </td>
-                      </tr>
-                    ))
-                  )}
-                </tbody>
-              </table>
-            </div>
-          </TabsContent>
-        </Tabs>
-      </CardContent>
+                ))
+              )}
+            </tbody>
+          </table>
+        </div>
+      )}
 
       <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
         <DialogContent className="max-w-md">
           <DialogHeader>
-            <DialogTitle>{editingId ? tNav('auto.AppointmentsListPage.s_161f8310') : tNav('auto.AppointmentsListPage.s_fa0662ae')}</DialogTitle>
+            <DialogTitle>{editingId ? t('editAppointment') : t('newAppointment')}</DialogTitle>
           </DialogHeader>
           <div className="space-y-3">
-            <Input placeholder={tNav('auto.AppointmentsListPage.s_1a9bdb20')} value={title} onChange={(e) => setTitle(e.target.value)} />
+            <Input placeholder={t('subject')} value={title} onChange={(e) => setTitle(e.target.value)} />
             <div className="grid gap-2 sm:grid-cols-2">
               <div>
-                <p className="mb-1 text-xs text-muted-foreground">{tNav('auto.AppointmentsListPage.s_7f1e4c29')}</p>
+                <p className="mb-1 text-xs text-muted-foreground">{t('startDate')}</p>
                 <LocaleDatePicker value={startDay} onChange={setStartDay} />
               </div>
               <div>
-                <p className="mb-1 text-xs text-muted-foreground">{tNav('auto.AppointmentsListPage.s_e277a8b2')}</p>
-                <Input type="time" value={startTime} onChange={(e) => setStartTime(e.target.value)} dir="ltr" />
+                <p className="mb-1 text-xs text-muted-foreground">{t('startTime')}</p>
+                <Input
+                  type="time"
+                  value={startTime}
+                  onChange={(e) => setStartTime(e.target.value)}
+                  dir="ltr"
+                />
               </div>
             </div>
             <div className="grid gap-2 sm:grid-cols-2">
               <div>
-                <p className="mb-1 text-xs text-muted-foreground">{tNav('auto.AppointmentsListPage.s_d13a2741')}</p>
+                <p className="mb-1 text-xs text-muted-foreground">{t('endDate')}</p>
                 <LocaleDatePicker value={endDay} onChange={setEndDay} />
               </div>
               <div>
-                <p className="mb-1 text-xs text-muted-foreground">{tNav('auto.AppointmentsListPage.s_949b4fda')}</p>
+                <p className="mb-1 text-xs text-muted-foreground">{t('endTime')}</p>
                 <Input type="time" value={endTime} onChange={(e) => setEndTime(e.target.value)} dir="ltr" />
               </div>
             </div>
             <Select value={status} onValueChange={setStatus}>
               <SelectTrigger>
-                <SelectValue placeholder={tNav('auto.AppointmentsListPage.s_55518965')} />
+                <SelectValue placeholder={t('status')} />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="scheduled">scheduled</SelectItem>
-                <SelectItem value="completed">completed</SelectItem>
-                <SelectItem value="cancelled">cancelled</SelectItem>
+                <SelectItem value="scheduled">{t('statusScheduled')}</SelectItem>
+                <SelectItem value="completed">{t('statusCompleted')}</SelectItem>
+                <SelectItem value="cancelled">{t('statusCancelled')}</SelectItem>
               </SelectContent>
             </Select>
-            <Select value={customerAccountId || '__none'} onValueChange={(v) => setCustomerAccountId(v === '__none' ? '' : v)}>
-              <SelectTrigger>
-                <SelectValue placeholder={tNav('auto.AppointmentsListPage.s_01752a0d')} />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="__none">—</SelectItem>
-                {accounts.map((a) => (
-                  <SelectItem key={a.id} value={String(a.id)}>
-                    {a.name}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-            <Textarea placeholder={tNav('auto.AppointmentsListPage.s_2c09d41c')} value={notes} onChange={(e) => setNotes(e.target.value)} rows={3} />
+            <AccountSelect
+              value={customerAccountId || 'none'}
+              onChange={(v) => setCustomerAccountId(v === 'none' ? '' : v)}
+              allowEmpty
+              placeholder={t('client')}
+            />
+            <Textarea
+              placeholder={t('notes')}
+              value={notes}
+              onChange={(e) => setNotes(e.target.value)}
+              rows={3}
+            />
             {formErr ? <p className="text-sm text-destructive">{formErr}</p> : null}
           </div>
           <DialogFooter>
-            <Button type="button" onClick={() => void saveAppointment()}>
-              {tNav('auto.AppointmentsListPage.s_08545fb6')}
+            <Button type="button" onClick={() => void saveAppointment()} disabled={submitting}>
+              {tCommon('save')}
             </Button>
           </DialogFooter>
         </DialogContent>
@@ -427,15 +448,15 @@ export function AppointmentsListPage() {
       <AlertDialog open={deleteId !== null} onOpenChange={(o) => !o && setDeleteId(null)}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>{tNav('auto.AppointmentsListPage.s_013f7751')}</AlertDialogTitle>
-            <AlertDialogDescription>{tNav('auto.AppointmentsListPage.s_23c56c8e')}</AlertDialogDescription>
+            <AlertDialogTitle>{t('deleteTitle')}</AlertDialogTitle>
+            <AlertDialogDescription>{tCommon('confirmDelete')}</AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel>{tNav('auto.AppointmentsListPage.s_106dfb4e')}</AlertDialogCancel>
-            <AlertDialogAction onClick={() => void confirmDelete()}>{tNav('auto.AppointmentsListPage.s_2d2bbdc2')}</AlertDialogAction>
+            <AlertDialogCancel>{tCommon('cancel')}</AlertDialogCancel>
+            <AlertDialogAction onClick={() => void confirmDelete()}>{tCommon('delete')}</AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
-    </Card>
+    </CrmPageLayout>
   );
 }

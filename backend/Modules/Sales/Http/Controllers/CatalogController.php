@@ -35,6 +35,8 @@ class CatalogController extends Controller
             'price' => 'nullable|numeric|min:0',
             'description' => 'nullable|string',
             'status' => 'nullable|string|max:20',
+            'type' => 'nullable|string|max:30',
+            'meta' => 'nullable|array',
         ]);
         $item = SalesCatalogItem::create($data);
 
@@ -54,6 +56,8 @@ class CatalogController extends Controller
             'price' => 'nullable|numeric|min:0',
             'description' => 'nullable|string',
             'status' => 'nullable|string|max:20',
+            'type' => 'nullable|string|max:30',
+            'meta' => 'nullable|array',
         ]);
         $catalog->update($data);
 

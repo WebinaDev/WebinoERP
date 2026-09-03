@@ -32,7 +32,66 @@ export type ModirPayamakStats = {
 
 export async function getModirPayamakDashboard() {
   const res = await apiClient.get(`${BASE}/admin/dashboard`);
-  return unwrapData<{ configured: boolean; accounts: number; orders_pending: number; orders_paid: number }>(res);
+  return unwrapData<{
+    stats?: ModirPayamakStats;
+    configured?: boolean;
+    accounts?: number;
+    orders_pending?: number;
+    orders_paid?: number;
+  }>(res);
+}
+
+export type ModirPayamakTariff = {
+  id: number;
+  line_type: string;
+  operator: 'mci' | 'other' | string;
+  rate_fa: number;
+  rate_la: number;
+  sort: number;
+  status: string;
+};
+
+export async function getModirPayamakTariffs() {
+  const res = await apiClient.get(`${BASE}/admin/tariffs`);
+  return unwrapData<{
+    tariffs: ModirPayamakTariff[];
+    tax_percent?: number;
+    surcharge_rial?: number;
+  }>(res);
+}
+
+export async function saveModirPayamakTariff(data: Partial<ModirPayamakTariff>) {
+  const res = await apiClient.post(`${BASE}/admin/tariffs`, data);
+  return unwrapData(res);
+}
+
+export async function deleteModirPayamakTariff(id: number) {
+  const res = await apiClient.delete(`${BASE}/admin/tariffs/${id}`);
+  return unwrapData(res);
+}
+
+export async function getModirPayamakDomainSecretaries(domain: string) {
+  const res = await apiClient.get(`${BASE}/admin/secretaries`, { params: { domain } });
+  return unwrapData<{ secretaries: Array<Record<string, unknown>> }>(res);
+}
+
+export async function saveModirPayamakDomainSecretary(data: {
+  domain: string;
+  type?: string;
+  name?: string;
+  keywords?: string;
+  reply_body?: string;
+  forward_to?: string;
+  enabled?: boolean;
+  id?: number;
+}) {
+  const res = await apiClient.post(`${BASE}/admin/secretaries`, data);
+  return unwrapData(res);
+}
+
+export async function deleteModirPayamakDomainSecretary(domain: string, id: number) {
+  const res = await apiClient.post(`${BASE}/admin/secretaries/delete`, { domain, id });
+  return unwrapData(res);
 }
 
 export async function getModirPayamakAccount() {

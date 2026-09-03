@@ -25,6 +25,7 @@ class SystemModulesSeeder extends Seeder
             ['name' => 'Site Builder', 'slug' => 'site_builder', 'is_active' => true],
             ['name' => 'Marketing', 'slug' => 'marketing', 'is_active' => true],
             ['name' => 'Platform', 'slug' => 'platform', 'is_active' => true],
+            ['name' => 'AI Content', 'slug' => 'ai_content', 'is_active' => true],
         ];
 
         foreach ($modules as $module) {

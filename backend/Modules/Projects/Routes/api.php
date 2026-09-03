@@ -73,6 +73,7 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('/tasks/calendar', [TaskController::class, 'calendar']);
     Route::get('/tasks/gantt', [TaskController::class, 'gantt']);
     Route::post('/task-templates', [TaskController::class, 'saveAsTemplate']);
+    Route::get('/tasks/{id}', [TaskController::class, 'show'])->whereNumber('id')->middleware('fieldsec:task');
     Route::patch('/tasks/{id}', [TaskController::class, 'update'])->whereNumber('id');
     Route::patch('/tasks/{id}/status', [TaskController::class, 'updateStatus'])->whereNumber('id');
     Route::delete('/tasks/{id}', [TaskController::class, 'destroy'])->whereNumber('id');

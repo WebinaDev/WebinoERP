@@ -10,6 +10,14 @@ export async function getChatChannels(): Promise<ChatChannel[]> {
   return normalizeListPayload(unwrapData(res));
 }
 
+export async function createChatChannel(params: {
+  name: string;
+  type: 'public' | 'private' | 'direct';
+}): Promise<ChatChannel> {
+  const res = await apiClient.post('/v1/core/chat/channels', params);
+  return unwrapData(res) as ChatChannel;
+}
+
 export async function getChatMessages(channelId: number, page = 1): Promise<ChatMessage[]> {
   const res = await apiClient.get(`/v1/core/chat/channels/${channelId}/messages`, {
     params: { page, per_page: 50 },

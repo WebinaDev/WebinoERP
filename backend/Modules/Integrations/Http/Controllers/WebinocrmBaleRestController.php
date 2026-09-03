@@ -24,14 +24,16 @@ class WebinocrmBaleRestController extends Controller
 
     public function updateSettings(Request $request): JsonResponse
     {
-        $body = $request->validate([
-            'token' => 'nullable|string|max:512',
-            'webhook_secret' => 'nullable|string|max:512',
-            'enabled' => 'nullable|boolean',
-            'settings' => 'nullable|array',
-        ]);
+        $body = $request->all();
+        if (isset($body['token']) && empty($body['bot_token'])) {
+            $body['bot_token'] = $body['token'];
+        }
+        if (isset($body['settings']) && is_array($body['settings'])) {
+            $body = array_merge($body, $body['settings']);
+            unset($body['settings']);
+        }
 
-        return response()->json(['data' => $this->bale->updateSettings($body)]);
+        return response()->json(['data' => $this->bale->updateSettings(is_array($body) ? $body : [])]);
     }
 
     public function getLogs(Request $request): JsonResponse
@@ -138,12 +140,20 @@ class WebinocrmBaleRestController extends Controller
     {
         $data = $request->validate([
             'name' => 'required|string|max:191',
-            'message' => 'required|string|max:4096',
+            'message' => 'nullable|string|max:4096',
+            'message_template' => 'nullable|string|max:4096',
+            'segment_key' => 'nullable|string|max:40',
+            'variant' => 'nullable|string|max:1',
+            'cta_text' => 'nullable|string|max:191',
             'mode' => 'nullable|string|max:32',
             'roles' => 'nullable|array',
             'roles.*' => 'string|max:64',
             'scheduled_at' => 'nullable|date',
+            'scheduled_for' => 'nullable|date',
         ]);
+        if (empty($data['message_template']) && ! empty($data['message'])) {
+            $data['message_template'] = $data['message'];
+        }
         $id = $this->bale->createCampaign($data);
         if ($id === null) {
             return response()->json(['data' => ['message' => 'نام کمپین و متن پیام الزامی است.']], 400);

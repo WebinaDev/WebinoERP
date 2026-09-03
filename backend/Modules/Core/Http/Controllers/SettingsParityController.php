@@ -23,6 +23,8 @@ class SettingsParityController extends Controller
                 'auth' => $this->safeGroup('auth'),
                 'sms' => $this->smsSettingsForUi(),
                 'payment' => $this->safeGroup('payment'),
+                'visitor_tracking' => $this->safeGroup('visitor_tracking'),
+                'leads' => $this->safeGroup('leads'),
                 'uiTheme' => $general['ui_theme'] ?? null,
                 'uiAccent' => $general['ui_accent'] ?? null,
             ],

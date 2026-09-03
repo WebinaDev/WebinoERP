@@ -5,6 +5,7 @@ import { useTranslations } from 'next-intl';
 import { useCallback, useEffect, useState } from 'react';
 import apiClient from '@/lib/api-client';
 import { unwrapData, getAxiosMessage } from '@/lib/api-helpers';
+import { normalizeListPayload } from '@/lib/list-utils';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
@@ -16,14 +17,17 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { ResourceListCard } from '@/components/dashboard/ResourceListCard';
 
 type Row = Record<string, unknown>;
+type AccountOption = { id: number; name: string };
 
 export function ConsultationsListPage() {
   const t = useTranslations();
 
   const [rows, setRows] = useState<Row[]>([]);
+  const [accounts, setAccounts] = useState<AccountOption[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [dialogOpen, setDialogOpen] = useState(false);
@@ -34,6 +38,20 @@ export function ConsultationsListPage() {
   const [notes, setNotes] = useState('');
   const [formErr, setFormErr] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
+
+  const loadAccounts = useCallback(async () => {
+    try {
+      const res = await apiClient.get('/v1/crm/accounts', { params: { per_page: 50 } });
+      const list = normalizeListPayload(res.data);
+      setAccounts(
+        list
+          .map((a) => ({ id: Number(a.id), name: String(a.name ?? `#${a.id}`) }))
+          .filter((a) => Number.isFinite(a.id)),
+      );
+    } catch {
+      setAccounts([]);
+    }
+  }, []);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -51,7 +69,8 @@ export function ConsultationsListPage() {
 
   useEffect(() => {
     void load();
-  }, [load]);
+    void loadAccounts();
+  }, [load, loadAccounts]);
 
   function openCreate() {
     setEditId(null);
@@ -153,8 +172,8 @@ export function ConsultationsListPage() {
                     variant="secondary"
                     size="sm"
                     disabled={busy}
-                    onClick={() => void convertToProject(Number(r.id))}>
-                  
+                    onClick={() => void convertToProject(Number(r.id))}
+                  >
                     {t('auto.ConsultationsListPage.s_1e2039cf')}
                   </Button>
                 </div>
@@ -167,19 +186,28 @@ export function ConsultationsListPage() {
       <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
         <DialogContent className="max-w-md">
           <DialogHeader>
-            <DialogTitle>{editId ? t('auto.ConsultationsListPage.s_b3112c0c') : t('auto.ConsultationsListPage.s_bb4a3d56')}</DialogTitle>
+            <DialogTitle>
+              {editId ? t('auto.ConsultationsListPage.s_b3112c0c') : t('auto.ConsultationsListPage.s_bb4a3d56')}
+            </DialogTitle>
           </DialogHeader>
           <div className="grid gap-3 py-2">
             {formErr ? <p className="text-sm text-destructive">{formErr}</p> : null}
             <label className="text-sm font-medium">{t('auto.ConsultationsListPage.s_1a9bdb20')}</label>
             <Input value={title} onChange={(e) => setTitle(e.target.value)} placeholder={t('auto.ConsultationsListPage.s_1a9bdb20')} />
             <label className="text-sm font-medium">{t('auto.ConsultationsListPage.s_abe20085')}</label>
-            <Input
-              value={accountId}
-              onChange={(e) => setAccountId(e.target.value)}
-              placeholder="crm_accounts.id"
-              dir="ltr"
-            />
+            <Select value={accountId || '__none'} onValueChange={(v) => setAccountId(v === '__none' ? '' : v)}>
+              <SelectTrigger>
+                <SelectValue placeholder={t('auto.ConsultationsListPage.s_abe20085')} />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="__none">—</SelectItem>
+                {accounts.map((a) => (
+                  <SelectItem key={a.id} value={String(a.id)}>
+                    {a.name}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
             <label className="text-sm font-medium">{t('auto.ConsultationsListPage.s_55518965')}</label>
             <Input value={status} onChange={(e) => setStatus(e.target.value)} />
             <label className="text-sm font-medium">{t('auto.ConsultationsListPage.s_2c09d41c')}</label>

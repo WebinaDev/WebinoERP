@@ -15,7 +15,8 @@ class HrmEmployee extends Model
 
     protected $fillable = [
         'user_id', 'employee_code', 'first_name', 'last_name', 'email', 'mobile',
-        'department', 'position', 'hire_date', 'status', 'base_salary', 'notes', 'created_by',
+        'department', 'position', 'hire_date', 'status', 'base_salary', 'notes',
+        'shift_template_id', 'created_by',
     ];
 
     protected $casts = [
@@ -28,6 +29,16 @@ class HrmEmployee extends Model
         return $this->belongsTo(\App\Models\User::class);
     }
 
+    public function profile(): \Illuminate\Database\Eloquent\Relations\HasOne
+    {
+        return $this->hasOne(HrmEmployeeProfile::class, 'employee_id');
+    }
+
+    public function shiftTemplate(): BelongsTo
+    {
+        return $this->belongsTo(HrmShiftTemplate::class, 'shift_template_id');
+    }
+
     public function attendanceRecords(): HasMany
     {
         return $this->hasMany(HrmAttendanceRecord::class, 'employee_id');
@@ -36,5 +47,25 @@ class HrmEmployee extends Model
     public function leaveRequests(): HasMany
     {
         return $this->hasMany(HrmLeaveRequest::class, 'employee_id');
+    }
+
+    public function dependents(): HasMany
+    {
+        return $this->hasMany(HrmDependent::class, 'employee_id');
+    }
+
+    public function decrees(): HasMany
+    {
+        return $this->hasMany(HrmEmploymentDecree::class, 'employee_id');
+    }
+
+    public function payrollItems(): HasMany
+    {
+        return $this->hasMany(HrmPayrollItem::class, 'employee_id');
+    }
+
+    public function leaveBalances(): HasMany
+    {
+        return $this->hasMany(HrmLeaveBalance::class, 'employee_id');
     }
 }

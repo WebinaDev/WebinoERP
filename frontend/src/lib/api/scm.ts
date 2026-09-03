@@ -22,6 +22,11 @@ export async function deleteWarehouse(id: number) {
   return unwrapData(res);
 }
 
+export async function listStock(params?: Record<string, unknown>) {
+  const res = await apiClient.get(`${BASE}/stock`, { params });
+  return res.data;
+}
+
 export async function getStock(warehouseId: number | string, productId: number | string) {
   const res = await apiClient.get(`${BASE}/stock/${warehouseId}/${productId}`);
   return unwrapData(res);
@@ -52,17 +57,32 @@ export async function postOutbound(id: number | string) {
   return unwrapData(res);
 }
 
+export async function getOutbound(id: number | string) {
+  const res = await apiClient.get(`${BASE}/outbound/${id}`);
+  return unwrapData(res);
+}
+
 export async function createAudit(data: Record<string, unknown>) {
   const res = await apiClient.post(`${BASE}/audit/create`, data);
   return unwrapData(res);
 }
 
+export async function recordAudit(data: Record<string, unknown>) {
+  const res = await apiClient.post(`${BASE}/audit/record`, data);
+  return unwrapData(res);
+}
+
 export async function completeAudit(id: number | string) {
-  const res = await apiClient.post(`${BASE}/audit/complete`, { id });
+  const res = await apiClient.post(`${BASE}/audit/complete`, { document_id: id });
   return unwrapData(res);
 }
 
 export async function postAudit(id: number | string) {
   const res = await apiClient.post(`${BASE}/audit/post`, { id });
+  return unwrapData(res);
+}
+
+export async function getAudit(id: number | string) {
+  const res = await apiClient.get(`${BASE}/audit/${id}`);
   return unwrapData(res);
 }

@@ -1,0 +1,22 @@
+{
+  "slug": "ai_content",
+  "name_fa": "محتوای هوش مصنوعی",
+  "name_en": "AI Content",
+  "submodules": [
+    "overview",
+    "jobs",
+    "calendar",
+    "products",
+    "titles",
+    "pages",
+    "taxonomies",
+    "attributes",
+    "settings"
+  ],
+  "admin_nav": {
+    "section": "ai_content",
+    "order": 110
+  },
+  "site_types": ["erp"],
+  "public_routes": []
+}

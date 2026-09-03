@@ -64,6 +64,17 @@ import { PayrollRunDetailPage } from '@/features/modules/hrm/payroll_run_detail_
 import { RecruitmentPage } from '@/features/modules/hrm/recruitment_page';
 import { PerformancePage } from '@/features/modules/hrm/performance_page';
 import { TrainingPage } from '@/features/modules/hrm/training_page';
+import {
+  HrmCartablePage,
+  MyDocsPage,
+  MyInsurancePage,
+  MyOrgPage,
+  MyPayrollPage,
+  MyPortalPage,
+  MyProfilePage,
+  MyTimePage,
+  PayrollDecreesPage,
+} from '@/features/modules/hrm/portal';
 import { AccountingDashboardPage } from '@/features/modules/finance/dashboard/AccountingDashboardPage';
 import { PersonsPage } from '@/features/modules/finance/persons/PersonsPage';
 import { FinanceProductsPage } from '@/features/modules/finance/products/ProductsPage';
@@ -91,6 +102,17 @@ import { CampaignsPage } from '@/features/modules/sales/campaigns_page';
 import { ContractsPage } from '@/features/modules/docs/contracts_page';
 import { ContractDetailPage } from '@/features/modules/docs/contract_detail_page';
 import { FilesPage } from '@/features/modules/docs/files_page';
+import {
+  AiOverviewPage,
+  AiJobsPage,
+  AiCalendarPage,
+  AiProductsPage,
+  AiTitlesPage,
+  AiPagesPage,
+  AiTaxonomiesPage,
+  AiAttributesPage,
+  AiSettingsPage,
+} from '@/features/modules/admin/ai-content';
 import { ProductsPage } from '@/features/modules/admin/marketplace/products_page';
 import { CategoriesPage } from '@/features/modules/admin/marketplace/categories_page';
 import { OrdersPage } from '@/features/modules/admin/marketplace/orders_page';
@@ -108,14 +130,17 @@ import { ModirpayamakSendPage } from '@/features/modules/admin/integrations/modi
 import { ModirpayamakReportsPage } from '@/features/modules/admin/integrations/modirpayamak/reports_page';
 import { ModirpayamakCustomersPage } from '@/features/modules/admin/integrations/modirpayamak/customers_page';
 import { ModirpayamakPackagesPage } from '@/features/modules/admin/integrations/modirpayamak/packages_page';
+import { ModirpayamakTariffsPage } from '@/features/modules/admin/integrations/modirpayamak/tariffs_page';
 import { ModirpayamakOrdersPage } from '@/features/modules/admin/integrations/modirpayamak/orders_page';
 import { ModirpayamakPatternsPage } from '@/features/modules/admin/integrations/modirpayamak/patterns_page';
+import { ModirpayamakSecretariesPage } from '@/features/modules/admin/integrations/modirpayamak/secretaries_page';
 import { ModirpayamakPhonebooksPage } from '@/features/modules/admin/integrations/modirpayamak/phonebooks_page';
 import { ModirpayamakNumbersPage } from '@/features/modules/admin/integrations/modirpayamak/numbers_page';
 import { ModirpayamakUsersPage } from '@/features/modules/admin/integrations/modirpayamak/users_page';
 import { ModirpayamakTicketsPage } from '@/features/modules/admin/integrations/modirpayamak/tickets_page';
 import { ModirpayamakDraftsPage } from '@/features/modules/admin/integrations/modirpayamak/drafts_page';
 import { ModirpayamakSettingsPage } from '@/features/modules/admin/integrations/modirpayamak/settings_page';
+import { ModirpayamakDashboardPage } from '@/features/modules/admin/integrations/modirpayamak/dashboard_page';
 import { ChatPage } from '@/features/modules/pm/chat_page';
 import { ProjectDetailPage } from '@/features/modules/pm/project_detail_page';
 import { TimeTrackingPage } from '@/features/modules/pm/time_tracking_page';
@@ -178,6 +203,15 @@ const EXACT: Record<string, ReactNode> = {
   contracts: <ContractsListPage />,
   'docs/files': <FilesPage />,
   documents: <FilesPage />,
+  'ai-content': <AiOverviewPage />,
+  'ai-content/jobs': <AiJobsPage />,
+  'ai-content/calendar': <AiCalendarPage />,
+  'ai-content/products': <AiProductsPage />,
+  'ai-content/titles': <AiTitlesPage />,
+  'ai-content/pages': <AiPagesPage />,
+  'ai-content/taxonomies': <AiTaxonomiesPage />,
+  'ai-content/attributes': <AiAttributesPage />,
+  'ai-content/settings': <AiSettingsPage />,
   'sales/invoices': <SalesInvoicesPage />,
   invoices: <InvoicesListPage />,
   'sales/catalog': <CatalogPage />,
@@ -189,6 +223,15 @@ const EXACT: Record<string, ReactNode> = {
   'hrm/attendance': <AttendancePage />,
   'hrm/leave': <LeavePage />,
   'hrm/payroll': <PayrollPage />,
+  'hrm/payroll/decrees': <PayrollDecreesPage />,
+  'hrm/my-payroll': <MyPayrollPage />,
+  'hrm/me': <MyPortalPage />,
+  'hrm/my-time': <MyTimePage />,
+  'hrm/my-docs': <MyDocsPage />,
+  'hrm/my-insurance': <MyInsurancePage />,
+  'hrm/my-org': <MyOrgPage />,
+  'hrm/my-profile': <MyProfilePage />,
+  'hrm/cartable': <HrmCartablePage />,
   'hrm/recruitment': <RecruitmentPage />,
   'hrm/performance': <PerformancePage />,
   'hrm/training': <TrainingPage />,
@@ -239,13 +282,15 @@ const EXACT: Record<string, ReactNode> = {
   'admin/marketplace/orders': <OrdersPage />,
   'admin/marketplace/gitea': <GiteaPage />,
   'admin/marketplace/modules/new': <ModuleDetailPage moduleId="new" />,
-  'admin/integrations/modirpayamak': <ModirpayamakSendPage />,
+  'admin/integrations/modirpayamak': <ModirpayamakDashboardPage />,
   'admin/integrations/modirpayamak/send': <ModirpayamakSendPage />,
   'admin/integrations/modirpayamak/reports': <ModirpayamakReportsPage />,
   'admin/integrations/modirpayamak/customers': <ModirpayamakCustomersPage />,
   'admin/integrations/modirpayamak/packages': <ModirpayamakPackagesPage />,
+  'admin/integrations/modirpayamak/tariffs': <ModirpayamakTariffsPage />,
   'admin/integrations/modirpayamak/orders': <ModirpayamakOrdersPage />,
   'admin/integrations/modirpayamak/patterns': <ModirpayamakPatternsPage />,
+  'admin/integrations/modirpayamak/secretaries': <ModirpayamakSecretariesPage />,
   'admin/integrations/modirpayamak/phonebooks': <ModirpayamakPhonebooksPage />,
   'admin/integrations/modirpayamak/numbers': <ModirpayamakNumbersPage />,
   'admin/integrations/modirpayamak/users': <ModirpayamakUsersPage />,
@@ -306,7 +351,9 @@ function resolveDetailPage(normalized: string): ReactNode | null {
   const root = parts.slice(0, -1).join('/');
 
   if (root === 'hrm/staff' || root === 'staff') return <StaffDetailPage id={id} />;
-  if (root === 'hrm/payroll' || root === 'payroll') return <PayrollRunDetailPage id={id} />;
+  if ((root === 'hrm/payroll' || root === 'payroll') && /^\d+$/.test(id)) {
+    return <PayrollRunDetailPage id={id} />;
+  }
   if (root === 'crm/customers' || root === 'customers') return <CustomerDetailPage id={id} />;
   if (root === 'docs/contracts' || root === 'contracts') return <ContractDetailPage id={id} />;
   if (root === 'pm/projects' || root === 'projects') return <ProjectDetailPage id={id} />;
@@ -352,10 +399,10 @@ export function resolveDashboardPage(path: string): ReactNode {
   const platformPage = resolvePlatformPage(normalized);
   if (platformPage) return platformPage;
 
+  if (EXACT[normalized]) return EXACT[normalized];
+
   const detailPage = resolveDetailPage(normalized);
   if (detailPage) return detailPage;
-
-  if (EXACT[normalized]) return EXACT[normalized];
 
   return <UnknownRoutePage path={normalized} />;
 }

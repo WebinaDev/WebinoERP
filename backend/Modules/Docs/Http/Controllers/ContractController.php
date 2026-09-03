@@ -26,8 +26,37 @@ class ContractController extends Controller
             'status' => 'nullable|string|max:20',
             'body' => 'nullable|string',
             'signed_at' => 'nullable|date',
+            'lead_id' => 'nullable|integer|min:1',
+            'project_id' => 'nullable|integer|min:1',
+            'product_note' => 'nullable|string',
+            'amount' => 'nullable|numeric|min:0',
+            'installments' => 'nullable|array',
+            'installments.*.amount' => 'nullable|numeric|min:0',
+            'installments.*.due_date' => 'nullable|date',
+            'installments.*.status' => 'nullable|string|max:20',
+            'meta' => 'nullable|array',
         ]);
         $data['created_by'] = $request->user()->id;
+
+        $meta = $data['meta'] ?? [];
+        if (isset($data['lead_id'])) {
+            $meta['lead_id'] = $data['lead_id'];
+        }
+        if (isset($data['project_id'])) {
+            $meta['project_ids'] = array_values(array_unique([...($meta['project_ids'] ?? []), $data['project_id']]));
+        }
+        if (isset($data['product_note'])) {
+            $meta['product_note'] = $data['product_note'];
+        }
+        if (isset($data['amount'])) {
+            $meta['amount'] = $data['amount'];
+        }
+        if (isset($data['installments'])) {
+            $meta['installments'] = $data['installments'];
+        }
+        unset($data['lead_id'], $data['project_id'], $data['product_note'], $data['amount'], $data['installments'], $data['meta']);
+        $data['meta'] = $meta ?: null;
+
         $contract = DocsContract::create($data);
 
         return response()->json(['data' => $contract, 'message' => 'Contract created'], 201);
@@ -35,7 +64,15 @@ class ContractController extends Controller
 
     public function show(DocsContract $contract): JsonResponse
     {
-        return response()->json(['data' => $contract]);
+        $data = $contract->toArray();
+        $meta = $contract->meta ?? [];
+        $data['amount'] = $meta['amount'] ?? null;
+        $data['installments'] = $meta['installments'] ?? [];
+        if (! empty($meta['lead_id'])) {
+            $data['lead'] = ['id' => $meta['lead_id']];
+        }
+
+        return response()->json(['data' => $data]);
     }
 
     public function update(Request $request, DocsContract $contract): JsonResponse
@@ -46,7 +83,32 @@ class ContractController extends Controller
             'status' => 'sometimes|string|max:20',
             'body' => 'nullable|string',
             'signed_at' => 'nullable|date',
+            'project_id' => 'nullable|integer|min:1',
+            'product_note' => 'nullable|string',
+            'amount' => 'nullable|numeric|min:0',
+            'installments' => 'nullable|array',
+            'installments.*.amount' => 'nullable|numeric|min:0',
+            'installments.*.due_date' => 'nullable|date',
+            'installments.*.status' => 'nullable|string|max:20',
+            'meta' => 'nullable|array',
         ]);
+
+        $meta = array_merge($contract->meta ?? [], $data['meta'] ?? []);
+        if (array_key_exists('project_id', $data) && $data['project_id']) {
+            $meta['project_ids'] = array_values(array_unique([...($meta['project_ids'] ?? []), $data['project_id']]));
+        }
+        if (array_key_exists('product_note', $data)) {
+            $meta['product_note'] = $data['product_note'];
+        }
+        if (array_key_exists('amount', $data)) {
+            $meta['amount'] = $data['amount'];
+        }
+        if (array_key_exists('installments', $data)) {
+            $meta['installments'] = $data['installments'];
+        }
+        unset($data['project_id'], $data['product_note'], $data['amount'], $data['installments'], $data['meta']);
+        $data['meta'] = $meta;
+
         $contract->update($data);
 
         return response()->json(['data' => $contract->fresh(), 'message' => 'Contract updated']);

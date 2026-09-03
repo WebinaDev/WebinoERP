@@ -46,8 +46,12 @@ class ScmWarehouseController extends Controller
     public function stock(Request $request): JsonResponse
     {
         $query = ScmWarehouseStock::query()->with(['warehouse', 'product'])->orderByDesc('updated_at');
-        if ($request->filled('filter.warehouse_id')) {
-            $query->where('warehouse_id', $request->input('filter.warehouse_id'));
+        $warehouseId = $request->input('warehouse_id', $request->input('filter.warehouse_id'));
+        if ($warehouseId !== null && $warehouseId !== '' && $warehouseId !== 'all') {
+            $query->where('warehouse_id', (int) $warehouseId);
+        }
+        if ($request->boolean('low_only')) {
+            $query->whereNotNull('reorder_point')->whereColumn('quantity', '<=', 'reorder_point');
         }
 
         return $this->paginatedResponse($query->paginate($this->perPage($request)));
@@ -60,7 +64,13 @@ class ScmWarehouseController extends Controller
 
     public function inbound(Request $request): JsonResponse
     {
-        $query = ScmWarehouseDocument::query()->where('type', 'inbound')->orderByDesc('created_at');
+        $query = ScmWarehouseDocument::query()->with('warehouse')->where('type', 'inbound')->orderByDesc('created_at');
+        if ($request->filled('status') && $request->input('status') !== 'all') {
+            $query->where('status', $request->input('status'));
+        }
+        if ($request->filled('warehouse_id') && $request->input('warehouse_id') !== 'all') {
+            $query->where('warehouse_id', (int) $request->input('warehouse_id'));
+        }
 
         return $this->paginatedResponse($query->paginate($this->perPage($request)));
     }
@@ -95,7 +105,13 @@ class ScmWarehouseController extends Controller
 
     public function outbound(Request $request): JsonResponse
     {
-        $query = ScmWarehouseDocument::query()->where('type', 'outbound')->orderByDesc('created_at');
+        $query = ScmWarehouseDocument::query()->with('warehouse')->where('type', 'outbound')->orderByDesc('created_at');
+        if ($request->filled('status') && $request->input('status') !== 'all') {
+            $query->where('status', $request->input('status'));
+        }
+        if ($request->filled('warehouse_id') && $request->input('warehouse_id') !== 'all') {
+            $query->where('warehouse_id', (int) $request->input('warehouse_id'));
+        }
 
         return $this->paginatedResponse($query->paginate($this->perPage($request)));
     }
@@ -130,7 +146,7 @@ class ScmWarehouseController extends Controller
 
     public function audit(Request $request): JsonResponse
     {
-        $query = ScmWarehouseDocument::query()->where('type', 'audit')->orderByDesc('created_at');
+        $query = ScmWarehouseDocument::query()->with('warehouse')->where('type', 'audit')->orderByDesc('created_at');
 
         return $this->paginatedResponse($query->paginate($this->perPage($request)));
     }

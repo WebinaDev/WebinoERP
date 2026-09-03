@@ -121,6 +121,7 @@ export default function AccWarehouseAudit() {
         items: formItems.map((it) => ({
           product_id: Number(it.product_id) || 0,
           quantity: parseFloat(it.quantity) || 0,
+          counted: parseFloat(it.quantity) || 0,
         })),
         notes: '',
         status: 'draft',
@@ -136,7 +137,8 @@ export default function AccWarehouseAudit() {
 
   const handlePost = useCallback(async (id: number) => {
     try {
-      await apiClient.post('/v1/accounting/warehouse-ajax/warehouse_document_post', { id });
+      await apiClient.post('/v1/accounting/warehouse-ajax/complete_audit', { document_id: id });
+      await apiClient.post('/v1/accounting/warehouse-ajax/post_audit', { id });
       void loadDocs(page);
     } catch (e) {
       setError(getAxiosMessage(e));

@@ -17,4 +17,6 @@ Route::prefix('services')->group(function () {
     Route::get('products', [ServicesController::class, 'products']);
     Route::get('task-templates', [ServicesController::class, 'taskTemplates']);
     Route::post('subscriptions/{catalog}/convert-contract', [ServicesController::class, 'convertContract']);
+    Route::post('products/{catalog}/convert-contract', [ServicesController::class, 'convertContract']);
+    Route::patch('products/{catalog}/task-template', [ServicesController::class, 'updateProductTaskTemplate']);
 });

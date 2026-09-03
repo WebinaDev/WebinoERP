@@ -21,4 +21,9 @@ class HrmPayrollItem extends Model
     {
         return $this->belongsTo(HrmEmployee::class, 'employee_id');
     }
+
+    public function payrollRun(): BelongsTo
+    {
+        return $this->belongsTo(HrmPayrollRun::class, 'payroll_run_id');
+    }
 }

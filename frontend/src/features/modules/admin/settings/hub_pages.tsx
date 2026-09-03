@@ -4,9 +4,8 @@ import Link from 'next/link';
 import { useParams } from 'next/navigation';
 import { useTranslations } from 'next-intl';
 import { SettingsPageView } from '@/components/dashboard/pages/settings-view';
-import { Button } from '@/components/ui/button';
 import { dashboardHref } from '@/lib/route-resolver';
-import type { SettingsHubId } from './settings-hub-config';
+import { resolveSettingsTab, type SettingsHubId } from './settings-hub-config';
 
 type Props = { hub: SettingsHubId; tab?: string };
 
@@ -14,6 +13,7 @@ export function SettingsHubPageView({ hub, tab }: Props) {
   const t = useTranslations();
   const params = useParams();
   const locale = (params?.locale as string) || 'fa';
+  const resolved = resolveSettingsTab(tab);
 
   return (
     <div className="space-y-4">
@@ -24,7 +24,7 @@ export function SettingsHubPageView({ hub, tab }: Props) {
         <span>/</span>
         <span className="text-foreground">{t(`settings.hub.${hub}`)}</span>
       </div>
-      <SettingsPageView hub={hub} initialTab={tab} />
+      <SettingsPageView hub={hub} initialTab={resolved} />
     </div>
   );
 }

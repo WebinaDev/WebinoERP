@@ -6,6 +6,7 @@ use Modules\Hrm\Http\Controllers\AttendanceNestedController;
 use Modules\Hrm\Http\Controllers\EmployeeController;
 use Modules\Hrm\Http\Controllers\LeaveController;
 use Modules\Hrm\Http\Controllers\LeaveNestedController;
+use Modules\Hrm\Http\Controllers\MePortalController;
 use Modules\Hrm\Http\Controllers\PayrollController;
 use Modules\Hrm\Http\Controllers\PayrollNestedController;
 use Modules\Hrm\Http\Controllers\PerformanceController;
@@ -15,6 +16,23 @@ use Modules\Hrm\Http\Controllers\RecruitmentNestedController;
 use Modules\Hrm\Http\Controllers\StaffNestedController;
 use Modules\Hrm\Http\Controllers\TrainingController;
 use Modules\Hrm\Http\Controllers\TrainingNestedController;
+
+// Employee self-service portal
+Route::prefix('me')->group(function () {
+    Route::get('/', [MePortalController::class, 'me']);
+    Route::get('notices', [MePortalController::class, 'notices']);
+    Route::get('shift', [MePortalController::class, 'shift']);
+    Route::get('attendance', [MePortalController::class, 'attendanceIndex']);
+    Route::post('attendance', [MePortalController::class, 'attendancePunch']);
+    Route::get('decrees', [MePortalController::class, 'decrees']);
+    Route::get('dependents', [MePortalController::class, 'dependentsIndex']);
+    Route::post('dependents', [MePortalController::class, 'dependentsStore']);
+    Route::get('org-chart', [MePortalController::class, 'orgChart']);
+    Route::get('profile', [MePortalController::class, 'profileShow']);
+    Route::patch('profile', [MePortalController::class, 'profileUpdate']);
+});
+
+Route::get('requests/inbox', [MePortalController::class, 'requestsInbox']);
 
 // Nested parity routes (must be registered before flat apiResource captures segments)
 Route::prefix('staff')->group(function () {
@@ -48,6 +66,9 @@ Route::prefix('payroll')->group(function () {
     Route::post('components', [PayrollNestedController::class, 'componentsStore']);
     Route::get('employee-salaries', [PayrollNestedController::class, 'employeeSalariesGet']);
     Route::post('employee-salaries', [PayrollNestedController::class, 'employeeSalariesSave']);
+    Route::get('my-payslips', [MePortalController::class, 'myPayslips']);
+    Route::get('decrees', [MePortalController::class, 'payrollDecreesIndex']);
+    Route::post('decrees', [MePortalController::class, 'payrollDecreesStore']);
     Route::get('runs', [PayrollNestedController::class, 'runsIndex']);
     Route::post('runs', [PayrollNestedController::class, 'runStore']);
     Route::get('runs/{run}', [PayrollNestedController::class, 'runGet']);

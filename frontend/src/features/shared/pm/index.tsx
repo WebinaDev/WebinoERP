@@ -1,7 +1,10 @@
 'use client';
 
 import type { ReactNode } from 'react';
+import { useTranslations } from 'next-intl';
 import { Button } from '@/components/ui/button';
+
+export { WizardStepper } from './WizardStepper';
 
 type Props = {
   title: string;
@@ -24,16 +27,18 @@ export function PmPageHeader({ title, description, actions }: Props) {
 export function PmFilterBar({
   children,
   onApply,
+  applyLabel = 'Apply',
 }: {
   children: ReactNode;
   onApply?: () => void;
+  applyLabel?: string;
 }) {
   return (
     <div className="flex flex-col gap-3 rounded-lg border bg-card p-4 sm:flex-row sm:flex-wrap sm:items-end">
       <div className="flex flex-1 flex-col gap-3 sm:flex-row sm:flex-wrap">{children}</div>
       {onApply ? (
         <Button type="button" variant="secondary" onClick={onApply}>
-          Apply
+          {applyLabel}
         </Button>
       ) : null}
     </div>
@@ -49,17 +54,18 @@ export function PmPagination({
   lastPage: number;
   onPage: (p: number) => void;
 }) {
+  const t = useTranslations('common');
   if (lastPage <= 1) return null;
   return (
     <div className="flex items-center justify-center gap-2">
       <Button type="button" variant="outline" size="sm" disabled={page <= 1} onClick={() => onPage(page - 1)}>
-        Prev
+        {t('prev')}
       </Button>
       <span className="text-sm text-muted-foreground">
         {page} / {lastPage}
       </span>
       <Button type="button" variant="outline" size="sm" disabled={page >= lastPage} onClick={() => onPage(page + 1)}>
-        Next
+        {t('next')}
       </Button>
     </div>
   );
@@ -137,6 +143,7 @@ export function PmConfirmDialog({
   onCancel: () => void;
   pending?: boolean;
 }) {
+  const t = useTranslations('common');
   if (!open) return null;
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
@@ -145,10 +152,10 @@ export function PmConfirmDialog({
         {description ? <p className="mt-2 text-sm text-muted-foreground">{description}</p> : null}
         <div className="mt-4 flex justify-end gap-2">
           <Button type="button" variant="outline" onClick={onCancel} disabled={pending}>
-            Cancel
+            {t('cancel')}
           </Button>
           <Button type="button" variant="destructive" onClick={onConfirm} disabled={pending}>
-            Confirm
+            {t('delete')}
           </Button>
         </div>
       </div>

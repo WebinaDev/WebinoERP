@@ -48,7 +48,7 @@ export function CustomerDetailPage({ id }: Props) {
       const [accRes, dealsRes, ticketsRes, contactsRes, sitesRes] = await Promise.all([
         apiClient.get(`/v1/crm/accounts/${id}`),
         apiClient.get('/v1/crm/deals', { params: { account_id: id, per_page: 20 } }),
-        apiClient.get('/v1/crm/tickets', { params: { account_id: id, per_page: 20 } }),
+        apiClient.get('/v1/projects/tickets', { params: { account_id: id, per_page: 20 } }),
         apiClient.get('/v1/crm/contacts', { params: { account_id: id, per_page: 20 } }),
         fetchCrmSites(id).catch(() => ({ resources: [], provisions: [] })),
       ]);

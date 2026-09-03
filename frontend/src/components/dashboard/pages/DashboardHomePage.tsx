@@ -1,6 +1,8 @@
 'use client';
 
 import { useCallback, useEffect, useMemo, useState } from 'react';
+import Link from 'next/link';
+import { useParams } from 'next/navigation';
 import { useTranslations } from 'next-intl';
 import apiClient from '@/lib/api-client';
 import { unwrapData, getAxiosMessage } from '@/lib/api-helpers';
@@ -10,8 +12,10 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Progress } from '@/components/ui/progress';
 import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
 import { AccentBarChart, AccentDonutChart } from '@/components/charts/AccentCharts';
 import { useInitialDashboardStats } from '@/lib/initial-dashboard-context';
+import { dashboardHref } from '@/lib/route-resolver';
 
 type Stats = {
   leads_total?: number;
@@ -27,9 +31,51 @@ type FullDash = {
   widgets?: { id: string; title: string; type: string; items?: WidgetItem[] }[];
 };
 
+type QuickLink = { href: string; labelKey: string };
+
+function roleQuickLinks(role: string): QuickLink[] {
+  if (role === 'system_manager' || role === 'finance_manager') {
+    return [
+      { href: 'pm/projects', labelKey: 'quickLinks.projects' },
+      { href: 'reports', labelKey: 'quickLinks.reports' },
+      { href: 'crm/leads', labelKey: 'quickLinks.leads' },
+      { href: 'admin/settings', labelKey: 'quickLinks.settings' },
+    ];
+  }
+  if (role === 'sales_consultant') {
+    return [
+      { href: 'crm/leads', labelKey: 'quickLinks.leads' },
+      { href: 'crm/deals', labelKey: 'quickLinks.deals' },
+      { href: 'crm/customers', labelKey: 'quickLinks.customers' },
+      { href: 'reports', labelKey: 'quickLinks.reports' },
+    ];
+  }
+  if (role === 'team_member') {
+    return [
+      { href: 'pm/tasks', labelKey: 'quickLinks.tasks' },
+      { href: 'pm/projects', labelKey: 'quickLinks.projects' },
+      { href: 'crm/tickets', labelKey: 'quickLinks.tickets' },
+      { href: 'pm/time-tracking', labelKey: 'quickLinks.time' },
+    ];
+  }
+  if (role === 'client') {
+    return [
+      { href: 'pm/projects', labelKey: 'quickLinks.projects' },
+      { href: 'crm/tickets', labelKey: 'quickLinks.tickets' },
+      { href: 'profile', labelKey: 'quickLinks.profile' },
+    ];
+  }
+  return [
+    { href: 'reports', labelKey: 'quickLinks.reports' },
+    { href: 'profile', labelKey: 'quickLinks.profile' },
+  ];
+}
+
 export function DashboardHomePage() {
   const t = useTranslations('dashboard');
   const tCommon = useTranslations('common');
+  const params = useParams();
+  const locale = (params?.locale as string) || 'fa';
   const initialStats = useInitialDashboardStats();
   const [user, setUser] = useState<User | null>(null);
   const [stats, setStats] = useState<Stats | null>(initialStats);
@@ -153,6 +199,7 @@ export function DashboardHomePage() {
   const roleLabel = t(`roles.${role}` as 'roles.guest');
   const showTeamTab = role !== 'client';
   const showFullOverview = role !== 'client' && role !== 'team_member';
+  const quickLinks = useMemo(() => roleQuickLinks(role), [role]);
 
   const visibleWidgets = useMemo(() => {
     const widgets = full?.widgets ?? [];
@@ -208,6 +255,22 @@ export function DashboardHomePage() {
           </span>
         ) : null}
       </div>
+
+      <Card className="bg-gradient-to-br from-primary/90 to-primary text-primary-foreground">
+        <CardContent className="flex flex-wrap items-center justify-between gap-3 p-4">
+          <div>
+            <p className="font-medium">{t('heroTitle')}</p>
+            <p className="text-sm opacity-90">{t('heroSubtitle')}</p>
+          </div>
+          <div className="flex flex-wrap gap-2">
+            {quickLinks.map((link) => (
+              <Button key={link.href} asChild size="sm" variant="secondary">
+                <Link href={dashboardHref(locale, link.href)}>{t(link.labelKey as 'quickLinks.projects')}</Link>
+              </Button>
+            ))}
+          </div>
+        </CardContent>
+      </Card>
 
       {role === 'team_member' && teamMember ? (
         <div className="grid gap-4 sm:grid-cols-2">
@@ -357,7 +420,7 @@ export function DashboardHomePage() {
                 <table className="w-full text-sm">
                   <thead>
                     <tr className="border-b text-muted-foreground">
-                      <th className="py-2 text-start">{tCommon('search').replace('…', '')}</th>
+                      <th className="py-2 text-start">{t('colName')}</th>
                       <th className="py-2 text-start">{t('stats.tasks')}</th>
                     </tr>
                   </thead>
@@ -387,8 +450,8 @@ export function DashboardHomePage() {
                 <table className="w-full text-sm">
                   <thead>
                     <tr className="border-b text-muted-foreground">
-                      <th className="py-2 text-start">{tCommon('search').replace('…', '')}</th>
-                      <th className="py-2 text-start">Email</th>
+                      <th className="py-2 text-start">{t('colName')}</th>
+                      <th className="py-2 text-start">{t('colEmail')}</th>
                     </tr>
                   </thead>
                   <tbody>
