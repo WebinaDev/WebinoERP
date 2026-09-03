@@ -28,14 +28,24 @@ class WebinoIntegrationsValidateCommand extends Command
             $username = (string) ($smsSettings['username'] ?? env('MELIPAYAMAK_USERNAME', ''));
             $password = (string) ($smsSettings['password'] ?? env('MELIPAYAMAK_PASSWORD', ''));
             if ($username === '' || $password === '') {
-                ($isProd ? $errors : $warnings)[] = 'Melipayamak requires username and password (IntegrationSetting or MELIPAYAMAK_* env).';
+                $msg = 'Melipayamak requires username and password (IntegrationSetting or MELIPAYAMAK_* env).';
+                if ($isProd) {
+                    $errors[] = $msg;
+                } else {
+                    $warnings[] = $msg;
+                }
             }
         }
 
         if ($provider === 'parsgreen') {
             $apiKey = (string) ($smsSettings['api_key'] ?? env('PARSGREEN_API_KEY', ''));
             if ($apiKey === '') {
-                ($isProd ? $errors : $warnings)[] = 'ParsGreen requires api_key (IntegrationSetting or PARSGREEN_API_KEY env).';
+                $msg = 'ParsGreen requires api_key (IntegrationSetting or PARSGREEN_API_KEY env).';
+                if ($isProd) {
+                    $errors[] = $msg;
+                } else {
+                    $warnings[] = $msg;
+                }
             }
         }
 
