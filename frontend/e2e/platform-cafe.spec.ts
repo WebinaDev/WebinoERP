@@ -28,4 +28,24 @@ test.describe('Cafe site provision path', () => {
     await page.goto('/admin/platform/servers');
     await expect(page).toHaveURL(/login|servers/);
   });
+
+  test('sites fleet and control panel routes exist', async ({ page }) => {
+    await page.goto('/admin/platform/sites');
+    await expect(page).toHaveURL(/login|sites/);
+
+    if (!page.url().includes('login')) {
+      await expect(page.getByTestId('sites-fleet')).toBeVisible();
+      const panelLink = page.getByTestId(/site-open-panel-/).first();
+      if ((await panelLink.count()) > 0) {
+        await panelLink.click();
+        await expect(page.getByTestId('site-control-panel')).toBeVisible();
+        await expect(page.getByTestId('control-power')).toBeVisible();
+        await expect(page.getByTestId('control-updates')).toBeVisible();
+        await expect(page.getByTestId('control-update-frontend')).toBeVisible();
+        await expect(page.getByTestId('control-update-backend')).toBeVisible();
+        await expect(page.getByTestId('control-update-migrate')).toBeVisible();
+        await expect(page.getByTestId('control-update-full')).toBeVisible();
+      }
+    }
+  });
 });

@@ -35,6 +35,7 @@ import { HostingInfraPageView } from '@/components/dashboard/pages/HostingInfraP
 import { SiteBuilderCatalogPage } from '@/features/site-builder/SiteBuilderCatalogPage';
 import { SiteProvisionsListPage } from '@/features/site-builder/SiteProvisionsListPage';
 import { SiteProvisionWizardPage } from '@/features/site-builder/SiteProvisionWizardPage';
+import { SiteControlPanelPage } from '@/features/site-builder/control-panel/SiteControlPanelPage';
 import { PlatformDashboardPage } from '@/features/platform/PlatformDashboardPage';
 import { ServersListPage } from '@/features/platform/servers/ServersListPage';
 import { ServerDetailPage } from '@/features/platform/servers/ServerDetailPage';
@@ -348,6 +349,10 @@ function resolvePlatformPage(normalized: string): ReactNode | null {
   if (normalized.startsWith('admin/platform/resources/')) {
     const tail = normalized.replace('admin/platform/resources/', '');
     if (tail && tail !== 'resources' && tail !== 'new') return <ResourceDetailPage id={tail} />;
+  }
+  if (normalized.startsWith('admin/platform/sites/')) {
+    const id = normalized.replace('admin/platform/sites/', '');
+    if (id && id !== 'sites' && id !== 'new') return <SiteControlPanelPage id={id} />;
   }
   return null;
 }

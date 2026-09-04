@@ -7,6 +7,8 @@ namespace Modules\Platform\Support;
  *
  * Shared images (webino-backend / webino-next) are reused; data, networks, and
  * container names are unique per slug so many sites can run on one host.
+ *
+ * Channel tags: latest (default) | beta (git HEAD). Stable is reserved for later.
  */
 final class TenantSiteStack
 {
@@ -17,13 +19,26 @@ final class TenantSiteStack
         return 'ws-'.$safe;
     }
 
-    public static function composeYaml(string $slug): string
+    /** Normalize product channel to a docker image tag suffix. */
+    public static function imageTag(string $channel = 'latest'): string
+    {
+        $channel = strtolower(trim($channel));
+        if ($channel === 'beta') {
+            return 'beta';
+        }
+
+        // stable is not wired yet — fall back to latest for compose until shipped.
+        return 'latest';
+    }
+
+    public static function composeYaml(string $slug, string $channel = 'latest'): string
     {
         $project = self::projectName($slug);
         $internal = $project.'_net';
+        $tag = self::imageTag($channel);
 
         return <<<YAML
-# Isolated tenant stack. Images: webino-backend:latest, webino-next:latest
+# Isolated tenant stack. Images: webino-backend:{$tag}, webino-next:{$tag}
 # Built from https://github.com/Webinadev/WebinoDashboard
 # Private network only — backend/frontend are attached to the proxy network after up
 # so service name "backend" is never shared across sites.
@@ -45,14 +60,14 @@ services:
     restart: unless-stopped
     networks: [{$internal}]
   backend:
-    image: webino-backend:latest
+    image: webino-backend:{$tag}
     container_name: {$project}-backend
     restart: unless-stopped
     env_file: .env
     depends_on: [db, redis]
     networks: [{$internal}]
   frontend:
-    image: webino-next:latest
+    image: webino-next:{$tag}
     container_name: {$project}-frontend
     restart: unless-stopped
     environment:

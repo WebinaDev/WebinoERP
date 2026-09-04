@@ -18,7 +18,7 @@ export function WizardShell({ step, steps, title, subtitle, error, children, foo
   const progress = ((step + 1) / steps.length) * 100;
 
   return (
-    <div className="relative mx-auto max-w-5xl space-y-6 p-4 md:p-6" data-testid="site-wizard">
+    <div className="relative w-full space-y-6" data-testid="site-wizard">
       <div
         className="pointer-events-none absolute inset-x-0 -top-10 -z-10 h-72 overflow-hidden"
         aria-hidden

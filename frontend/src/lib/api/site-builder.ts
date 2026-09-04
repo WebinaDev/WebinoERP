@@ -58,11 +58,57 @@ export type SiteProvision = {
   slug: string;
   domain: string;
   status: string;
+  crm_account_id?: number | null;
   wizard_payload?: Record<string, unknown>;
-  license?: { license_key?: string; meta?: { modules?: string[] } };
+  license?: {
+    id?: number;
+    license_key?: string;
+    status?: string;
+    logo_url?: string;
+    project_name?: string;
+    start_date?: string;
+    expires_at?: string;
+    created_at?: string;
+    max_users?: number;
+    meta?: { modules?: string[]; module_matrix?: Record<string, string[]> };
+  };
   package?: PackageRow;
+  crm_account?: { id: number; name?: string; email?: string } | null;
   error_log?: string;
   progress?: ProvisionProgress | null;
+  launched_at?: string;
+  ready_at?: string;
+};
+
+export type SiteControlPayload = {
+  provision: SiteProvision;
+  channel: string;
+  admin: { name?: string | null; email?: string | null };
+  license: {
+    id: number;
+    license_key: string;
+    status?: string;
+    domain?: string;
+    logo_url?: string | null;
+    project_name?: string | null;
+    start_date?: string | null;
+    expires_at?: string | null;
+    created_at?: string | null;
+    max_users?: number | null;
+    modules: string[];
+    module_matrix?: Record<string, string[]>;
+    is_expired: boolean;
+    days_remaining: number | null;
+  } | null;
+  update?: {
+    target?: string;
+    status?: string;
+    log?: string;
+    error?: string;
+    started_at?: string;
+    finished_at?: string;
+  } | null;
+  customer?: { id: number; name?: string; email?: string } | null;
 };
 
 export async function fetchCatalog() {
@@ -88,6 +134,51 @@ export async function fetchProvisions() {
   if (Array.isArray(raw)) return raw;
   if (raw && typeof raw === 'object' && 'data' in raw && Array.isArray(raw.data)) return raw.data;
   return [];
+}
+
+export async function fetchProvision(id: number) {
+  const res = await apiClient.get(`${BASE}/provisions/${id}`);
+  return unwrapData<SiteProvision>(res);
+}
+
+export async function fetchProvisionControl(id: number) {
+  const res = await apiClient.get(`${BASE}/provisions/${id}/control`);
+  return unwrapData<SiteControlPayload>(res);
+}
+
+export async function updateProvisionAdmin(
+  id: number,
+  body: { name?: string; email?: string; password?: string },
+) {
+  const res = await apiClient.post(`${BASE}/provisions/${id}/admin`, body);
+  return unwrapData<SiteProvision>(res);
+}
+
+export async function updateProvisionModules(
+  id: number,
+  body: {
+    enable?: string[];
+    disable?: string[];
+    modules?: string[];
+    install?: string;
+    replace?: boolean;
+  },
+) {
+  const res = await apiClient.post(`${BASE}/provisions/${id}/modules`, body);
+  return unwrapData<SiteProvision>(res);
+}
+
+export async function setProvisionChannel(id: number, channel: 'beta' | 'stable' | 'latest') {
+  const res = await apiClient.post(`${BASE}/provisions/${id}/channel`, { channel });
+  return unwrapData<SiteProvision>(res);
+}
+
+export async function queueProvisionUpdate(
+  id: number,
+  target: 'frontend' | 'backend' | 'migrate' | 'full',
+) {
+  const res = await apiClient.post(`${BASE}/provisions/${id}/update`, { target });
+  return unwrapData<SiteProvision>(res);
 }
 
 export async function createProvision(body: Record<string, unknown>) {

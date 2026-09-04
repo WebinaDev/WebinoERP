@@ -98,6 +98,67 @@ class SiteProvisionOrchestrator
         return $this->remote->logs($provision, $tail);
     }
 
+    /**
+     * @param  'frontend'|'backend'|'migrate'|'full'  $target
+     * @return array{exit_code:int,stdout:string,stderr:string,log?:string}
+     */
+    public function runUpdate(WebinoSiteProvision $provision, string $target): array
+    {
+        if (! $this->shouldUseLocal($provision)) {
+            throw new \RuntimeException('platform.remote_update_not_supported');
+        }
+
+        $payload = $provision->wizard_payload ?? [];
+        $payload['update'] = [
+            'target' => $target,
+            'status' => 'running',
+            'started_at' => now()->toIso8601String(),
+        ];
+        $provision->update(['wizard_payload' => $payload]);
+
+        $result = match ($target) {
+            'frontend' => $this->local->updateFrontend($provision),
+            'backend' => $this->local->updateBackend($provision),
+            'migrate' => $this->local->migrate($provision),
+            'full' => $this->local->updateApp($provision),
+            default => throw new \InvalidArgumentException('Invalid update target.'),
+        };
+
+        $payload = $provision->fresh()->wizard_payload ?? [];
+        $payload['update'] = [
+            'target' => $target,
+            'status' => ($result['exit_code'] ?? 1) === 0 ? 'done' : 'failed',
+            'log' => substr((string) ($result['log'] ?? ''), 0, 8000),
+            'finished_at' => now()->toIso8601String(),
+        ];
+        $provision->update(['wizard_payload' => $payload]);
+        $this->audit->log($provision->created_by, 'provision.update_'.$target, $provision);
+
+        return $result;
+    }
+
+    public function changeDomain(WebinoSiteProvision $provision, string $newDomain): void
+    {
+        if ($this->shouldUseLocal($provision)) {
+            $this->local->changeDomain($provision, $newDomain);
+        } else {
+            throw new \RuntimeException('platform.remote_domain_change_not_supported');
+        }
+    }
+
+    /**
+     * @param  array<string, mixed>  $payload
+     * @return array<string, mixed>
+     */
+    public function callTenantApi(WebinoSiteProvision $provision, string $path, array $payload = []): array
+    {
+        if ($this->shouldUseLocal($provision)) {
+            return $this->local->callTenantApi($provision, $path, $payload);
+        }
+
+        throw new \RuntimeException('platform.remote_tenant_api_not_supported');
+    }
+
     public function poll(WebinoSiteProvision $provision): WebinoSiteProvision
     {
         if ($provision->status === WebinoSiteProvision::STATUS_SSL_PENDING) {

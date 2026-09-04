@@ -191,6 +191,7 @@ const EXACT: Record<string, DashboardRouteMeta> = {
   'admin/platform/catalog': { titleFa: 'کاتالوگ', titleEn: 'Catalog', group: 'admin' },
   'admin/platform/sites': { titleFa: 'سایت‌ها', titleEn: 'Sites', group: 'admin' },
   'admin/platform/sites/new': { titleFa: 'سایت جدید', titleEn: 'New site', group: 'admin' },
+  'admin/platform/sites/:id': { titleFa: 'پنل کنترل سایت', titleEn: 'Site control', group: 'admin' },
   'admin/site-builder': { titleFa: 'سازنده سایت', titleEn: 'Site builder', group: 'admin' },
   'admin/site-builder/catalog': { titleFa: 'کاتالوگ', titleEn: 'Catalog', group: 'admin' },
   'admin/site-builder/provisions': { titleFa: 'سایت‌ها', titleEn: 'Sites', group: 'admin' },

@@ -40,6 +40,7 @@ Route::delete('/packages/{sitePackage}', [PackageController::class, 'destroy']);
 Route::get('/provisions', [SiteProvisionController::class, 'index']);
 Route::post('/provisions', [SiteProvisionController::class, 'store']);
 Route::get('/provisions/{siteProvision}', [SiteProvisionController::class, 'show']);
+Route::get('/provisions/{siteProvision}/control', [SiteProvisionController::class, 'control']);
 Route::patch('/provisions/{siteProvision}', [SiteProvisionController::class, 'update']);
 Route::post('/provisions/{siteProvision}/prepare-license', [SiteProvisionController::class, 'prepareLicense']);
 Route::post('/provisions/{siteProvision}/launch', [SiteProvisionController::class, 'launch'])->middleware('throttle:10,1');
@@ -49,4 +50,8 @@ Route::post('/provisions/{siteProvision}/retry', [SiteProvisionController::class
 Route::post('/provisions/{siteProvision}/start', [SiteProvisionController::class, 'start']);
 Route::post('/provisions/{siteProvision}/stop', [SiteProvisionController::class, 'stop']);
 Route::get('/provisions/{siteProvision}/logs', [SiteProvisionController::class, 'logs']);
+Route::post('/provisions/{siteProvision}/admin', [SiteProvisionController::class, 'updateAdmin']);
+Route::post('/provisions/{siteProvision}/modules', [SiteProvisionController::class, 'updateModules']);
+Route::post('/provisions/{siteProvision}/channel', [SiteProvisionController::class, 'setChannel']);
+Route::post('/provisions/{siteProvision}/update', [SiteProvisionController::class, 'queueUpdate'])->middleware('throttle:10,1');
 Route::delete('/provisions/{siteProvision}', [SiteProvisionController::class, 'destroy']);

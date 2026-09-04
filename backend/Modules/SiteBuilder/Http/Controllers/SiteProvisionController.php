@@ -75,43 +75,133 @@ class SiteProvisionController extends Controller
         return response()->json(['data' => $siteProvision]);
     }
 
-    public function update(Request $request, WebinoSiteProvision $siteProvision): JsonResponse
+    public function update(Request $request, WebinoSiteProvision $siteProvision, SiteProvisionOrchestrator $orchestrator): JsonResponse
     {
-        if (! in_array($siteProvision->status, [WebinoSiteProvision::STATUS_DRAFT, WebinoSiteProvision::STATUS_PENDING], true)) {
+        $isReady = $siteProvision->status === WebinoSiteProvision::STATUS_READY;
+        $isDraft = in_array($siteProvision->status, [WebinoSiteProvision::STATUS_DRAFT, WebinoSiteProvision::STATUS_PENDING], true);
+
+        if (! $isReady && ! $isDraft) {
             return response()->json(['message' => 'Provision cannot be edited in current status.'], 422);
+        }
+
+        if ($isDraft) {
+            $data = $request->validate([
+                'crm_account_id' => 'nullable|integer|exists:crm_accounts,id',
+                'package_id' => 'nullable|integer|exists:webino_packages,id',
+                'slug' => 'nullable|string|max:64',
+                'wizard_payload' => 'nullable|array',
+                'uses_custom_domain' => 'nullable|boolean',
+            ]);
+
+            try {
+                $wizard = array_merge($siteProvision->wizard_payload ?? [], $data['wizard_payload'] ?? []);
+                unset($data['wizard_payload']);
+
+                $incomingSlug = $data['slug'] ?? $wizard['slug'] ?? null;
+                $slug = $this->uniqueSlug(
+                    is_string($incomingSlug) && $incomingSlug !== '' ? $incomingSlug : $siteProvision->slug,
+                    $wizard['site_name'] ?? null,
+                    $siteProvision->id,
+                );
+                $usesCustom = (bool) ($data['uses_custom_domain'] ?? $wizard['uses_custom_domain'] ?? $siteProvision->uses_custom_domain);
+                $data['slug'] = $slug;
+                $data['domain'] = $this->resolveDomain($slug, $usesCustom, $wizard['custom_domain'] ?? $siteProvision->domain);
+                $data['subdomain'] = $usesCustom ? null : $slug;
+                $data['uses_custom_domain'] = $usesCustom;
+                $data['wizard_payload'] = $wizard;
+                $siteProvision->update($data);
+
+                return response()->json(['data' => $siteProvision->fresh(['license', 'package', 'crmAccount'])]);
+            } catch (Throwable $e) {
+                report($e);
+
+                return response()->json(['message' => $e->getMessage() ?: 'Failed to update provision.'], 422);
+            }
         }
 
         $data = $request->validate([
             'crm_account_id' => 'nullable|integer|exists:crm_accounts,id',
-            'package_id' => 'nullable|integer|exists:webino_packages,id',
-            'slug' => 'nullable|string|max:64',
-            'wizard_payload' => 'nullable|array',
-            'uses_custom_domain' => 'nullable|boolean',
+            'domain' => 'nullable|string|max:255',
+            'logo_url' => 'nullable|string|max:2048',
+            'site_name' => 'nullable|string|max:255',
+            'channel' => 'nullable|string|in:beta,stable,latest',
+            'license' => 'nullable|array',
+            'license.status' => 'nullable|string|max:32',
+            'license.start_date' => 'nullable|date',
+            'license.expires_at' => 'nullable|date',
+            'license.max_users' => 'nullable|integer|min:1',
         ]);
 
         try {
-            $wizard = array_merge($siteProvision->wizard_payload ?? [], $data['wizard_payload'] ?? []);
-            unset($data['wizard_payload']);
+            $wizard = $siteProvision->wizard_payload ?? [];
+            if (array_key_exists('crm_account_id', $data)) {
+                $siteProvision->crm_account_id = $data['crm_account_id'];
+            }
+            if (! empty($data['site_name'])) {
+                $wizard['site_name'] = $data['site_name'];
+            }
+            if (! empty($data['logo_url'])) {
+                $wizard['logo_url'] = $data['logo_url'];
+            }
+            if (! empty($data['channel'])) {
+                if ($data['channel'] === 'stable') {
+                    return response()->json(['message' => 'Stable channel is not available yet.'], 503);
+                }
+                $wizard['channel'] = $data['channel'];
+            }
 
-            $incomingSlug = $data['slug'] ?? $wizard['slug'] ?? null;
-            $slug = $this->uniqueSlug(
-                is_string($incomingSlug) && $incomingSlug !== '' ? $incomingSlug : $siteProvision->slug,
-                $wizard['site_name'] ?? null,
-                $siteProvision->id,
-            );
-            $usesCustom = (bool) ($data['uses_custom_domain'] ?? $wizard['uses_custom_domain'] ?? $siteProvision->uses_custom_domain);
-            $data['slug'] = $slug;
-            $data['domain'] = $this->resolveDomain($slug, $usesCustom, $wizard['custom_domain'] ?? $siteProvision->domain);
-            $data['subdomain'] = $usesCustom ? null : $slug;
-            $data['uses_custom_domain'] = $usesCustom;
-            $data['wizard_payload'] = $wizard;
-            $siteProvision->update($data);
+            $oldDomain = $siteProvision->domain;
+            if (! empty($data['domain']) && strtolower($data['domain']) !== strtolower((string) $oldDomain)) {
+                $newDomain = strtolower(trim($data['domain']));
+                $orchestrator->changeDomain($siteProvision, $newDomain);
+                $siteProvision->domain = $newDomain;
+                $siteProvision->uses_custom_domain = true;
+                $wizard['custom_domain'] = $newDomain;
+                $wizard['uses_custom_domain'] = true;
+                if ($siteProvision->license) {
+                    $siteProvision->license->update(['domain' => $newDomain]);
+                }
+            }
+
+            $siteProvision->wizard_payload = $wizard;
+            $siteProvision->save();
+
+            if ($siteProvision->license && ! empty($data['logo_url'])) {
+                $siteProvision->license->update(['logo_url' => $data['logo_url']]);
+            }
+            if ($siteProvision->license && ! empty($data['license'])) {
+                $lic = $data['license'];
+                $siteProvision->license->fill(array_filter([
+                    'status' => $lic['status'] ?? null,
+                    'start_date' => $lic['start_date'] ?? null,
+                    'expires_at' => $lic['expires_at'] ?? null,
+                    'max_users' => $lic['max_users'] ?? null,
+                    'project_name' => $data['site_name'] ?? null,
+                ], fn ($v) => $v !== null));
+                $siteProvision->license->save();
+                \Modules\Core\Services\CoreLicenseMetaNormalizer::forgetCheckCache(
+                    $siteProvision->license->domain,
+                    $siteProvision->license->license_key,
+                );
+            }
+
+            if (! empty($data['logo_url']) || ($siteProvision->domain !== $oldDomain)) {
+                try {
+                    $orchestrator->callTenantApi($siteProvision, 'provision/branding', [
+                        'logo_url' => $wizard['logo_url'] ?? $siteProvision->license?->logo_url,
+                        'domain' => $siteProvision->domain,
+                        'site_name' => $wizard['site_name'] ?? null,
+                    ]);
+                } catch (Throwable $e) {
+                    report($e);
+                }
+            }
 
             return response()->json(['data' => $siteProvision->fresh(['license', 'package', 'crmAccount'])]);
         } catch (Throwable $e) {
             report($e);
 
-            return response()->json(['message' => $e->getMessage() ?: 'Failed to update provision.'], 422);
+            return response()->json(['message' => $e->getMessage() ?: 'Failed to update site.'], 422);
         }
     }
 
@@ -275,6 +365,204 @@ class SiteProvisionController extends Controller
         } catch (\Throwable $e) {
             return response()->json(['message' => $e->getMessage()], 422);
         }
+    }
+
+    public function control(WebinoSiteProvision $siteProvision): JsonResponse
+    {
+        $siteProvision->load(['license', 'package.businessType.category', 'crmAccount']);
+        $license = $siteProvision->license;
+        $meta = is_array($license?->meta) ? $license->meta : [];
+        $modules = $meta['modules'] ?? $meta['licensed_modules'] ?? [];
+        if (! is_array($modules)) {
+            $modules = [];
+        }
+        $channel = (string) (($siteProvision->wizard_payload['channel'] ?? null) ?: 'beta');
+
+        return response()->json([
+            'data' => [
+                'provision' => $siteProvision,
+                'channel' => $channel,
+                'admin' => [
+                    'name' => $siteProvision->wizard_payload['admin_name'] ?? null,
+                    'email' => $siteProvision->wizard_payload['admin_email'] ?? null,
+                ],
+                'license' => $license ? [
+                    'id' => $license->id,
+                    'license_key' => $license->license_key,
+                    'status' => $license->status,
+                    'domain' => $license->domain,
+                    'logo_url' => $license->logo_url,
+                    'project_name' => $license->project_name,
+                    'start_date' => optional($license->start_date)?->toDateString(),
+                    'expires_at' => optional($license->expires_at)?->toIso8601String(),
+                    'created_at' => optional($license->created_at)?->toIso8601String(),
+                    'max_users' => $license->max_users,
+                    'modules' => array_values(array_filter(array_map('strval', $modules))),
+                    'module_matrix' => $meta['module_matrix'] ?? new \stdClass,
+                    'is_expired' => $license->expires_at ? $license->expires_at->isPast() : false,
+                    'days_remaining' => $license->expires_at
+                        ? (int) now()->diffInDays($license->expires_at, false)
+                        : null,
+                ] : null,
+                'update' => $siteProvision->wizard_payload['update'] ?? null,
+                'customer' => $siteProvision->crmAccount,
+            ],
+        ]);
+    }
+
+    public function updateAdmin(Request $request, WebinoSiteProvision $siteProvision, SiteProvisionOrchestrator $orchestrator): JsonResponse
+    {
+        if ($siteProvision->status !== WebinoSiteProvision::STATUS_READY) {
+            return response()->json(['message' => 'Site must be ready.'], 422);
+        }
+
+        $data = $request->validate([
+            'name' => 'nullable|string|max:255',
+            'email' => 'nullable|email|max:255',
+            'password' => 'nullable|string|min:8|max:255',
+        ]);
+
+        try {
+            $result = $orchestrator->callTenantApi($siteProvision, 'provision/admin', $data);
+            $wizard = $siteProvision->wizard_payload ?? [];
+            if (! empty($data['name'])) {
+                $wizard['admin_name'] = $data['name'];
+            }
+            if (! empty($data['email'])) {
+                $wizard['admin_email'] = $data['email'];
+            }
+            $siteProvision->update(['wizard_payload' => $wizard]);
+
+            return response()->json(['data' => $siteProvision->fresh(['license', 'crmAccount']), 'tenant' => $result]);
+        } catch (Throwable $e) {
+            return response()->json(['message' => $e->getMessage()], 422);
+        }
+    }
+
+    public function updateModules(Request $request, WebinoSiteProvision $siteProvision, SiteProvisionOrchestrator $orchestrator): JsonResponse
+    {
+        if (! $siteProvision->license_id) {
+            return response()->json(['message' => 'No license attached.'], 422);
+        }
+
+        $data = $request->validate([
+            'modules' => 'nullable|array',
+            'modules.*' => 'string|max:64',
+            'enable' => 'nullable|array',
+            'enable.*' => 'string|max:64',
+            'disable' => 'nullable|array',
+            'disable.*' => 'string|max:64',
+            'install' => 'nullable|string|max:64',
+            'replace' => 'nullable|boolean',
+        ]);
+
+        $license = $siteProvision->license()->firstOrFail();
+        $meta = is_array($license->meta) ? $license->meta : [];
+        $current = $meta['modules'] ?? [];
+        if (! is_array($current)) {
+            $current = [];
+        }
+        $current = array_values(array_unique(array_filter(array_map('strval', $current))));
+
+        if (! empty($data['replace']) && isset($data['modules'])) {
+            $current = array_values(array_unique(array_filter(array_map('strval', $data['modules']))));
+        } else {
+            foreach ($data['enable'] ?? [] as $slug) {
+                $current[] = (string) $slug;
+            }
+            $disable = array_map('strval', $data['disable'] ?? []);
+            $current = array_values(array_filter(
+                array_unique($current),
+                fn ($s) => ! in_array($s, $disable, true)
+            ));
+            if (isset($data['modules']) && is_array($data['modules'])) {
+                $current = array_values(array_unique(array_merge($current, array_map('strval', $data['modules']))));
+            }
+        }
+
+        $meta['modules'] = $current;
+        $license->meta = $meta;
+        $license->save();
+        \Modules\Core\Services\CoreLicenseMetaNormalizer::forgetCheckCache($license->domain, $license->license_key);
+
+        $installResult = null;
+        if (! empty($data['install'])) {
+            try {
+                $installResult = $orchestrator->callTenantApi($siteProvision, 'provision/modules/install', [
+                    'slug' => $data['install'],
+                ]);
+            } catch (Throwable $e) {
+                return response()->json([
+                    'message' => $e->getMessage(),
+                    'data' => $siteProvision->fresh(['license']),
+                ], 422);
+            }
+        }
+
+        try {
+            $orchestrator->callTenantApi($siteProvision, 'provision/license-sync', []);
+        } catch (Throwable $e) {
+            report($e);
+        }
+
+        return response()->json([
+            'data' => $siteProvision->fresh(['license', 'package', 'crmAccount']),
+            'install' => $installResult,
+        ]);
+    }
+
+    public function setChannel(Request $request, WebinoSiteProvision $siteProvision): JsonResponse
+    {
+        $data = $request->validate([
+            'channel' => 'required|string|in:beta,stable,latest',
+        ]);
+
+        if ($data['channel'] === 'stable') {
+            return response()->json(['message' => 'Stable channel is not available yet.'], 503);
+        }
+
+        $wizard = $siteProvision->wizard_payload ?? [];
+        $wizard['channel'] = $data['channel'];
+        $siteProvision->update(['wizard_payload' => $wizard]);
+
+        if ($data['channel'] === 'beta' && $siteProvision->status === WebinoSiteProvision::STATUS_READY) {
+            \Modules\SiteBuilder\Jobs\UpdateWebinoSiteJob::dispatch($siteProvision->id, 'full');
+            $wizard = $siteProvision->wizard_payload ?? [];
+            $wizard['update'] = [
+                'target' => 'full',
+                'status' => 'queued',
+                'started_at' => now()->toIso8601String(),
+            ];
+            $siteProvision->update(['wizard_payload' => $wizard]);
+        }
+
+        return response()->json(['data' => $siteProvision->fresh(['license', 'crmAccount'])]);
+    }
+
+    public function queueUpdate(Request $request, WebinoSiteProvision $siteProvision): JsonResponse
+    {
+        if ($siteProvision->status !== WebinoSiteProvision::STATUS_READY) {
+            return response()->json(['message' => 'Site must be ready.'], 422);
+        }
+
+        $data = $request->validate([
+            'target' => 'required|string|in:frontend,backend,migrate,full',
+        ]);
+
+        $wizard = $siteProvision->wizard_payload ?? [];
+        $wizard['update'] = [
+            'target' => $data['target'],
+            'status' => 'queued',
+            'started_at' => now()->toIso8601String(),
+        ];
+        $siteProvision->update(['wizard_payload' => $wizard]);
+
+        \Modules\SiteBuilder\Jobs\UpdateWebinoSiteJob::dispatch($siteProvision->id, $data['target']);
+
+        return response()->json([
+            'data' => $siteProvision->fresh(['license']),
+            'message' => 'Update queued.',
+        ]);
     }
 
     public function destroy(WebinoSiteProvision $siteProvision, SiteProvisionOrchestrator $orchestrator): JsonResponse

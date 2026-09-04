@@ -86,7 +86,8 @@ class LocalSameVpsProvisioner
         $dir = $this->siteDir($provision);
         $this->ensureDir($dir);
 
-        $compose = TenantSiteStack::composeYaml($provision->slug);
+        $channel = (string) (($payload['channel'] ?? null) ?: 'latest');
+        $compose = TenantSiteStack::composeYaml($provision->slug, $channel);
         $envFile = $this->envFile($provision, $siteType, $token);
         $this->writeFile($dir.'/docker-compose.yml', $compose);
         $this->writeFile($dir.'/.env', $envFile);
@@ -211,6 +212,217 @@ class LocalSameVpsProvisioner
         ], 60);
 
         return trim($result['stdout']."\n".$result['stderr']);
+    }
+
+    /**
+     * Rebuild frontend image from git and recreate only the frontend service.
+     * Never rewrites Caddy / Let's Encrypt.
+     *
+     * @return array{exit_code:int,stdout:string,stderr:string,log:string}
+     */
+    public function updateFrontend(WebinoSiteProvision $provision): array
+    {
+        $channel = $this->channelOf($provision);
+        $this->forceBuildImages($channel, only: 'frontend');
+        $this->rewriteComposeImages($provision, $channel);
+
+        return $this->recreateServices($provision, ['frontend']);
+    }
+
+    /**
+     * Rebuild backend image from git and recreate backend (+ worker/scheduler if present).
+     * Never rewrites Caddy / Let's Encrypt. Does not run migrations.
+     *
+     * @return array{exit_code:int,stdout:string,stderr:string,log:string}
+     */
+    public function updateBackend(WebinoSiteProvision $provision): array
+    {
+        $channel = $this->channelOf($provision);
+        $this->forceBuildImages($channel, only: 'backend');
+        $this->rewriteComposeImages($provision, $channel);
+
+        return $this->recreateServices($provision, ['backend']);
+    }
+
+    /**
+     * Run artisan migrate inside the tenant backend container. No image rebuild, no Caddy.
+     *
+     * @return array{exit_code:int,stdout:string,stderr:string,log:string}
+     */
+    public function migrate(WebinoSiteProvision $provision): array
+    {
+        $dir = $this->siteDir($provision);
+        $result = $this->run([
+            'docker', 'compose',
+            '-p', TenantSiteStack::projectName($provision->slug),
+            '-f', $dir.'/docker-compose.yml',
+            '--env-file', $dir.'/.env',
+            'exec', '-T', 'backend',
+            'php', 'artisan', 'migrate', '--force',
+        ], 600);
+
+        return [
+            ...$result,
+            'log' => trim($result['stdout']."\n".$result['stderr']),
+        ];
+    }
+
+    /**
+     * Full app update: rebuild frontend+backend and recreate both. Skips Caddy and migrate.
+     *
+     * @return array{exit_code:int,stdout:string,stderr:string,log:string}
+     */
+    public function updateApp(WebinoSiteProvision $provision): array
+    {
+        $channel = $this->channelOf($provision);
+        $this->forceBuildImages($channel, only: 'all');
+        $this->rewriteComposeImages($provision, $channel);
+
+        return $this->recreateServices($provision, ['backend', 'frontend']);
+    }
+
+    /**
+     * Change public domain — the ONLY path that rewrites the Caddy snippet.
+     * Does not delete caddy_data (Let's Encrypt storage stays intact).
+     */
+    public function changeDomain(WebinoSiteProvision $provision, string $newDomain): void
+    {
+        $newDomain = strtolower(trim($newDomain));
+        if ($newDomain === '' || ! str_contains($newDomain, '.')) {
+            throw new RuntimeException('platform.invalid_domain');
+        }
+
+        $this->writeCaddySnippet($newDomain, $provision->slug);
+        $this->reloadCaddy();
+
+        $dir = $this->siteDir($provision);
+        $envPath = $dir.'/.env';
+        if (is_file($envPath)) {
+            $map = $this->readEnvMap($envPath);
+            $map['APP_URL'] = 'https://'.$newDomain;
+            $lines = [];
+            foreach ($map as $k => $v) {
+                $lines[] = $this->envLine($k, $v);
+            }
+            $this->writeFile($envPath, implode("\n", $lines)."\n");
+        }
+
+        PlatformResource::query()
+            ->where('provision_id', $provision->id)
+            ->update(['fqdn' => $newDomain]);
+    }
+
+    /**
+     * HMAC call into the live tenant dashboard.
+     *
+     * @param  array<string, mixed>  $payload
+     * @return array<string, mixed>
+     */
+    public function callTenantApi(WebinoSiteProvision $provision, string $path, array $payload = []): array
+    {
+        $settings = CoreHostingSetting::current();
+        $secret = (string) ($settings->provision_webhook_secret ?? '');
+        $token = (string) ($provision->provision_token ?? '');
+        if ($secret === '' || $token === '') {
+            throw new RuntimeException('platform.provision_hmac_missing');
+        }
+        $body = json_encode($payload, JSON_UNESCAPED_UNICODE);
+        $response = Http::withHeaders([
+            'X-Provision-Token' => $token,
+            'X-Provision-Signature' => hash_hmac('sha256', $body, $secret),
+            'Accept' => 'application/json',
+            'Content-Type' => 'application/json',
+        ])->withBody($body, 'application/json')
+            ->timeout(90)
+            ->post('https://'.$provision->domain.'/api/v1/'.$path);
+
+        if (! $response->successful()) {
+            throw new RuntimeException(
+                'platform.tenant_api_failed: '.$response->status().' '.substr($response->body(), 0, 400)
+            );
+        }
+
+        return $response->json() ?? [];
+    }
+
+    protected function channelOf(WebinoSiteProvision $provision): string
+    {
+        $channel = (string) (($provision->wizard_payload['channel'] ?? null) ?: 'beta');
+
+        return TenantSiteStack::imageTag($channel);
+    }
+
+    /**
+     * Always git-fetch and rebuild (unlike ensureImages which skips when present).
+     *
+     * @param  'frontend'|'backend'|'all'  $only
+     */
+    protected function forceBuildImages(string $tag, string $only = 'all'): void
+    {
+        $script = (string) (env('WEBINO_DASHBOARD_BUILD_SCRIPT')
+            ?: ($this->erpRoot().'/scripts/build-webino-dashboard-images.sh'));
+        if (! is_file($script)) {
+            throw new RuntimeException('platform.build_script_missing');
+        }
+
+        $env = [
+            'WEBINO_DASHBOARD_GIT_URL' => (string) env(
+                'WEBINO_DASHBOARD_GIT_URL',
+                'https://github.com/Webinadev/WebinoDashboard.git',
+            ),
+            'WEBINO_DASHBOARD_GIT_REF' => (string) env('WEBINO_DASHBOARD_GIT_REF', 'main'),
+            'WEBINO_DASHBOARD_SRC' => (string) env('WEBINO_DASHBOARD_SRC', '/var/lib/webino/src/WebinoDashboard'),
+            'WEBINO_IMAGE_TAG' => $tag === 'latest' ? '' : $tag,
+        ];
+        $dashboardPath = (string) env('WEBINO_DASHBOARD_PATH', '');
+        if ($dashboardPath !== '' && is_file($dashboardPath.'/docker/php/Dockerfile.platform')) {
+            $env['WEBINO_DASHBOARD_PATH'] = $dashboardPath;
+        }
+        $token = (string) env('WEBINO_DASHBOARD_GIT_TOKEN', '');
+        if ($token !== '') {
+            $env['WEBINO_DASHBOARD_GIT_TOKEN'] = $token;
+        }
+
+        // Build script always builds both; selective recreate happens afterwards.
+        unset($only);
+        $build = $this->runEnv(['bash', $script], 2400, $env);
+        if ($build['exit_code'] !== 0) {
+            throw new RuntimeException(
+                'platform.dashboard_rebuild_failed: '.trim($build['stderr'] ?: $build['stdout'])
+            );
+        }
+    }
+
+    protected function rewriteComposeImages(WebinoSiteProvision $provision, string $channel): void
+    {
+        $dir = $this->siteDir($provision);
+        $compose = TenantSiteStack::composeYaml($provision->slug, $channel);
+        $this->writeFile($dir.'/docker-compose.yml', $compose);
+    }
+
+    /**
+     * @param  list<string>  $services
+     * @return array{exit_code:int,stdout:string,stderr:string,log:string}
+     */
+    protected function recreateServices(WebinoSiteProvision $provision, array $services): array
+    {
+        $dir = $this->siteDir($provision);
+        $cmd = [
+            'docker', 'compose',
+            '-p', TenantSiteStack::projectName($provision->slug),
+            '-f', $dir.'/docker-compose.yml',
+            '--env-file', $dir.'/.env',
+            'up', '-d', '--no-deps', '--force-recreate',
+            ...$services,
+        ];
+        $result = $this->run($cmd, 900);
+        $this->attachToProxyNetwork($provision->slug);
+        $this->updateResourceStatus($provision, 'running');
+
+        return [
+            ...$result,
+            'log' => trim($result['stdout']."\n".$result['stderr']),
+        ];
     }
 
     protected function siteDir(WebinoSiteProvision $provision): string

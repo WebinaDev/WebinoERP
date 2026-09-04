@@ -104,4 +104,12 @@ log "Dashboard source: ${CONTEXT}"
 build_one webino-backend:latest docker/php/Dockerfile.platform "$CONTEXT"
 build_one webino-next:latest docker/next/Dockerfile "$CONTEXT"
 
-log "OK: webino-backend:latest and webino-next:latest"
+# Optional channel tag (beta). latest is always built; channel tag is an additional tag.
+IMAGE_TAG="${WEBINO_IMAGE_TAG:-}"
+if [[ -n "$IMAGE_TAG" && "$IMAGE_TAG" != "latest" ]]; then
+  docker tag webino-backend:latest "webino-backend:${IMAGE_TAG}"
+  docker tag webino-next:latest "webino-next:${IMAGE_TAG}"
+  log "OK: webino-backend:${IMAGE_TAG} and webino-next:${IMAGE_TAG} (also :latest)"
+else
+  log "OK: webino-backend:latest and webino-next:latest"
+fi
