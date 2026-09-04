@@ -231,7 +231,8 @@ services:
       CADDY_ACME_EMAIL: "${CADDY_ACME_EMAIL:-admin@localhost}"
     volumes:
       - ./docker/caddy/Caddyfile:/etc/caddy/Caddyfile:ro
-      - ./docker/caddy/sites:/etc/caddy/sites:ro
+      # Durable tenant snippets (survive git clean / update.sh). Backend writes here too.
+      - /var/lib/webino/caddy.d:/etc/caddy/sites
       # Persist Let's Encrypt certs across recreate/update — never delete this volume.
       - caddy_data:/data
       - caddy_config:/config

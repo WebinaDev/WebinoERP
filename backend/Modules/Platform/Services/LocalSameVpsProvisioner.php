@@ -328,9 +328,26 @@ class LocalSameVpsProvisioner
             throw new RuntimeException('platform.invalid_domain');
         }
 
-        $this->writeCaddySnippet($domain, $provision->slug);
-
         $log = [];
+
+        // Bring stack up first — without containers, ACME may succeed but the site stays down.
+        try {
+            $dir = $this->siteDir($provision);
+            if (is_dir($dir) && is_file($dir.'/docker-compose.yml')) {
+                $up = $this->composeUp($provision->slug, $dir);
+                $log[] = 'compose up exit='.$up['exit_code'];
+                $this->attachToProxyNetwork($provision->slug);
+                $log[] = 'proxy network attach requested';
+            } else {
+                $log[] = 'site dir missing: '.$dir;
+            }
+        } catch (Throwable $e) {
+            $log[] = 'compose/attach: '.$e->getMessage();
+        }
+
+        $write = $this->ensureCaddySnippet($provision);
+        $log[] = $write;
+
         if ($force) {
             $log[] = $this->deleteDomainCertLeaf($domain);
         }
@@ -346,15 +363,20 @@ class LocalSameVpsProvisioner
             );
         }
 
+        $seen = $this->caddyContainerSeesSnippet($provision->slug);
+        $log[] = $seen
+            ? 'verified /etc/caddy/sites/'.$provision->slug.'.caddy in web container'
+            : 'WARNING: snippet not visible inside Caddy container at /etc/caddy/sites/'.$provision->slug.'.caddy';
+
         $expiresAt = null;
         $onDisk = false;
-        for ($i = 0; $i < 6; $i++) {
+        for ($i = 0; $i < 8; $i++) {
             $expiresAt = $this->readCertExpiryFromCaddy($domain);
             if ($expiresAt !== null) {
                 $onDisk = true;
                 break;
             }
-            sleep(4);
+            sleep(3);
         }
 
         $acmeLog = $this->caddyAcmeLogSnippet($domain);
@@ -367,8 +389,9 @@ class LocalSameVpsProvisioner
             $ok = true;
         } else {
             $status = 'provisioning';
-            $ok = true;
-            $log[] = "گواهی هنوز روی دیسک Caddy نیست. DNS دامنه باید به همین سرور باشد و پورت ۸۰ و ۴۴۳ باز باشند (Lets Encrypt).";
+            // Still OK at API level if snippet is loaded — ACME can take longer / needs public 80/443.
+            $ok = $seen;
+            $log[] = 'گواهی هنوز روی دیسک Caddy نیست. DNS دامنه باید به همین سرور باشد و پورت ۸۰ و ۴۴۳ باز باشند (Lets Encrypt).';
         }
 
         PlatformDomain::query()
@@ -424,6 +447,7 @@ class LocalSameVpsProvisioner
                 'expires_at' => $expiresAt ?? ($stored['expires_at'] ?? null),
                 'domain' => $domain !== '' ? $domain : null,
                 'log' => isset($stored['log']) ? (string) $stored['log'] : null,
+                'snippet_ok' => $domain !== '' ? $this->caddyContainerSeesSnippet($provision->slug) : false,
             ];
         } catch (Throwable $e) {
             report($e);
@@ -699,26 +723,77 @@ class LocalSameVpsProvisioner
         ])."\n";
     }
 
-    protected function writeCaddySnippet(string $domain, string $slug): void
+    /**
+     * Public entry for artisan resync / control panel.
+     */
+    public function ensureCaddySnippet(WebinoSiteProvision $provision): string
+    {
+        $domain = strtolower(trim((string) $provision->domain));
+        if ($domain === '' || ! str_contains($domain, '.')) {
+            throw new RuntimeException('platform.invalid_domain');
+        }
+
+        return $this->writeCaddySnippet($domain, $provision->slug);
+    }
+
+    public function reloadCaddyPublic(): void
+    {
+        $this->reloadCaddy();
+    }
+
+    /**
+     * Write tenant site block to durable host path (survives update.sh git clean)
+     * and optionally mirror into the repo bind path.
+     */
+    protected function writeCaddySnippet(string $domain, string $slug): string
     {
         $snippet = TenantSiteStack::caddySnippet($domain, $slug);
+        $paths = [];
 
+        // Primary: durable host dir mounted into Caddy as /etc/caddy/sites
+        $durable = '/var/lib/webino/caddy.d';
+        $this->ensureDir($durable);
+        $this->writeFile($durable.'/_keep.caddy', "# keep import glob non-empty\n");
+        $durableFile = $durable.'/'.$slug.'.caddy';
+        $this->writeFile($durableFile, $snippet);
+        $paths[] = $durableFile;
+
+        // Mirror: compose WEBINO_SITES_CADDY_DIR / repo docker/caddy/sites (may be wiped by git clean)
         $repoSites = (string) (env('WEBINO_SITES_CADDY_DIR')
             ?: ($this->erpRoot().'/docker/caddy/sites'));
-        $this->ensureDir($repoSites);
-        $this->writeFile(rtrim($repoSites, '/').'/'.$slug.'.caddy', $snippet);
+        try {
+            $this->ensureDir($repoSites);
+            $this->writeFile(rtrim($repoSites, '/').'/_keep.caddy', "# keep import glob non-empty\n");
+            $repoFile = rtrim($repoSites, '/').'/'.$slug.'.caddy';
+            $this->writeFile($repoFile, $snippet);
+            $paths[] = $repoFile;
+        } catch (Throwable $e) {
+            // Durable path is enough for Caddy when mounted correctly.
+            $paths[] = 'repo-mirror-skipped: '.$e->getMessage();
+        }
 
-        $hostSites = '/var/lib/webino/caddy.d';
-        $this->ensureDir($hostSites);
-        $this->writeFile($hostSites.'/'.$slug.'.caddy', $snippet);
+        if (! is_file($durableFile) || filesize($durableFile) < 10) {
+            throw new RuntimeException('platform.caddy_snippet_write_failed: '.$durableFile);
+        }
+
+        return 'wrote '.implode(', ', $paths);
     }
 
     protected function caddySnippetPath(string $slug): string
     {
-        $repoSites = (string) (env('WEBINO_SITES_CADDY_DIR')
-            ?: ($this->erpRoot().'/docker/caddy/sites'));
+        return '/var/lib/webino/caddy.d/'.$slug.'.caddy';
+    }
 
-        return rtrim($repoSites, '/').'/'.$slug.'.caddy';
+    protected function caddyContainerSeesSnippet(string $slug): bool
+    {
+        $web = $this->findErpWebContainer();
+        if ($web === null) {
+            return is_file($this->caddySnippetPath($slug));
+        }
+        $path = '/etc/caddy/sites/'.$slug.'.caddy';
+        $result = $this->run(['docker', 'exec', $web, 'test', '-s', $path], 10);
+
+        return $result['exit_code'] === 0;
     }
 
     /**

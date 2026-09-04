@@ -116,7 +116,9 @@ run_cmd git -C "${ERP_DIR}" clean -fd \
   -e .env \
   -e backend/.env \
   -e frontend/.env \
-  -e frontend/.env.local
+  -e frontend/.env.local \
+  -e docker/caddy/sites \
+  -e 'docker/caddy/sites/**'
 
 log "Restoring env files"
 [ -f "${BACKUP_DIR}/.env" ] && cp -a "${BACKUP_DIR}/.env" "${ERP_DIR}/.env"
@@ -149,6 +151,12 @@ else
 fi
 
 cd "${ERP_DIR}"
+log "Ensuring durable Caddy sites dir (tenant snippets survive git clean)"
+run_cmd mkdir -p /var/lib/webino/caddy.d
+if [ ! -f /var/lib/webino/caddy.d/_keep.caddy ]; then
+  echo '# keep import glob non-empty' | run_cmd tee /var/lib/webino/caddy.d/_keep.caddy >/dev/null
+fi
+
 log "Rebuilding containers (named volumes db_data / redis_data / caddy_data are untouched)"
 # Never add -v / --volumes here — wiping caddy_data re-triggers Let's Encrypt and hits rate limits.
 compose_cli up -d --build --force-recreate --remove-orphans
@@ -191,9 +199,10 @@ done
 compose_cli exec -T backend php artisan migrate --force
 compose_cli exec -T backend php artisan db:seed --class='Modules\\SiteBuilder\\Database\\Seeders\\SiteBuilderSeeder' --force || true
 compose_cli exec -T backend php artisan site-builder:ensure-hosting-defaults || true
+compose_cli exec -T backend php artisan site-builder:resync-caddy --reload || true
 compose_cli exec -T backend php artisan config:clear || true
 compose_cli exec -T backend php artisan cache:clear || true
 compose_cli exec -T backend php artisan config:cache || true
 
-log "Done. Data volumes (db/redis/caddy certs) were not removed."
+log "Done. Data volumes (db/redis/caddy certs) and tenant Caddy snippets were not removed."
 compose_cli ps

@@ -34,6 +34,7 @@ class SiteBuilderServiceProvider extends ServiceProvider
     {
         $this->commands([
             \Modules\SiteBuilder\Console\EnsureHostingDefaultsCommand::class,
+            \Modules\SiteBuilder\Console\ResyncCaddySnippetsCommand::class,
         ]);
     }
 }

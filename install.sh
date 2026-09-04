@@ -373,6 +373,10 @@ mkdir -p \
   backend/storage/framework/sessions \
   backend/storage/framework/views \
   backend/storage/logs
+run_cmd mkdir -p /var/lib/webino/caddy.d /var/lib/webino/sites /var/lib/webino/src
+if [ ! -f /var/lib/webino/caddy.d/_keep.caddy ]; then
+  echo '# keep import glob non-empty' | run_cmd tee /var/lib/webino/caddy.d/_keep.caddy >/dev/null
+fi
 chmod -R 775 backend/bootstrap/cache backend/storage 2>/dev/null || true
 # Match PHP container user (www-data = 33) when possible
 if id www-data >/dev/null 2>&1; then

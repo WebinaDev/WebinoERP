@@ -146,6 +146,11 @@ class SiteProvisionOrchestrator
         }
     }
 
+    public function reloadCaddyProxy(): void
+    {
+        $this->local->reloadCaddyPublic();
+    }
+
     /**
      * Reload Caddy / optionally re-issue cert for one domain. Never deletes caddy_data volume.
      *
