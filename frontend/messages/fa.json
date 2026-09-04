@@ -2929,6 +2929,13 @@
     "controlUpdateMigrate": "اجرای مایگریشن",
     "controlUpdateFull": "آپدیت کامل (اپ)",
     "controlSslSafe": "آپدیت‌ها Let's Encrypt / اسنیپت Caddy را بازنویسی نمی‌کنند (مگر تغییر دامنه).",
+    "controlSsl": "گواهی SSL",
+    "controlSslHint": "تمدید = reload Caddy. صدور مجدد فقط پوشهٔ گواهی همین دامنه را پاک می‌کند — volume گواهی‌ها دست نخورده می‌ماند.",
+    "controlSslStatus": "وضعیت",
+    "controlSslExpires": "انقضا",
+    "controlSslRenew": "تمدید / بررسی SSL",
+    "controlSslForce": "صدور مجدد گواهی",
+    "controlSslUnknown": "نامشخص",
     "controlCustomer": "مشتری CRM",
     "controlSaved": "ذخیره شد",
     "loading": "در حال بارگذاری…"

@@ -77,11 +77,13 @@ class SiteProvisionController extends Controller
 
     public function update(Request $request, WebinoSiteProvision $siteProvision, SiteProvisionOrchestrator $orchestrator): JsonResponse
     {
-        $isReady = $siteProvision->status === WebinoSiteProvision::STATUS_READY;
+        $isLive = $this->isControlEditable($siteProvision);
         $isDraft = in_array($siteProvision->status, [WebinoSiteProvision::STATUS_DRAFT, WebinoSiteProvision::STATUS_PENDING], true);
 
-        if (! $isReady && ! $isDraft) {
-            return response()->json(['message' => 'Provision cannot be edited in current status.'], 422);
+        if (! $isLive && ! $isDraft) {
+            return response()->json([
+                'message' => 'سایت در این وضعیت قابل ویرایش نیست: '.$siteProvision->status,
+            ], 422);
         }
 
         if ($isDraft) {
@@ -406,14 +408,42 @@ class SiteProvisionController extends Controller
                 ] : null,
                 'update' => $siteProvision->wizard_payload['update'] ?? null,
                 'customer' => $siteProvision->crmAccount,
+                'ssl' => app(SiteProvisionOrchestrator::class)->sslInfo($siteProvision),
             ],
         ]);
     }
 
+    public function renewSsl(Request $request, WebinoSiteProvision $siteProvision, SiteProvisionOrchestrator $orchestrator): JsonResponse
+    {
+        if (! $this->isControlEditable($siteProvision)) {
+            return response()->json([
+                'message' => 'سایت هنوز آماده/SSL نیست: '.$siteProvision->status,
+            ], 422);
+        }
+
+        $data = $request->validate([
+            'force' => 'nullable|boolean',
+        ]);
+
+        try {
+            $result = $orchestrator->renewSsl($siteProvision, (bool) ($data['force'] ?? false));
+
+            return response()->json([
+                'data' => $siteProvision->fresh(['license', 'crmAccount']),
+                'meta' => ['ssl' => $result],
+                'message' => ($result['ok'] ?? false) ? 'SSL تمدید/بررسی شد.' : 'تمدید SSL کامل نشد.',
+            ], ($result['ok'] ?? false) ? 200 : 422);
+        } catch (Throwable $e) {
+            return response()->json(['message' => $e->getMessage() ?: 'تمدید SSL ناموفق بود.'], 422);
+        }
+    }
+
     public function updateAdmin(Request $request, WebinoSiteProvision $siteProvision, SiteProvisionOrchestrator $orchestrator): JsonResponse
     {
-        if ($siteProvision->status !== WebinoSiteProvision::STATUS_READY) {
-            return response()->json(['message' => 'سایت باید در وضعیت آماده (ready) باشد.'], 422);
+        if (! $this->isControlEditable($siteProvision)) {
+            return response()->json([
+                'message' => 'سایت هنوز آماده/SSL نیست: '.$siteProvision->status,
+            ], 422);
         }
 
         $data = $request->validate([
@@ -450,8 +480,14 @@ class SiteProvisionController extends Controller
 
     public function updateModules(Request $request, WebinoSiteProvision $siteProvision, SiteProvisionOrchestrator $orchestrator): JsonResponse
     {
+        if (! $this->isControlEditable($siteProvision)) {
+            return response()->json([
+                'message' => 'سایت هنوز آماده/SSL نیست: '.$siteProvision->status,
+            ], 422);
+        }
+
         if (! $siteProvision->license_id) {
-            return response()->json(['message' => 'No license attached.'], 422);
+            return response()->json(['message' => 'لایسنسی به این سایت وصل نیست.'], 422);
         }
 
         $data = $request->validate([
@@ -522,19 +558,25 @@ class SiteProvisionController extends Controller
 
     public function setChannel(Request $request, WebinoSiteProvision $siteProvision): JsonResponse
     {
+        if (! $this->isControlEditable($siteProvision)) {
+            return response()->json([
+                'message' => 'سایت هنوز آماده/SSL نیست: '.$siteProvision->status,
+            ], 422);
+        }
+
         $data = $request->validate([
             'channel' => 'required|string|in:beta,stable,latest',
         ]);
 
         if ($data['channel'] === 'stable') {
-            return response()->json(['message' => 'Stable channel is not available yet.'], 503);
+            return response()->json(['message' => 'کانال استیبل هنوز در دسترس نیست.'], 503);
         }
 
         $wizard = $siteProvision->wizard_payload ?? [];
         $wizard['channel'] = $data['channel'];
         $siteProvision->update(['wizard_payload' => $wizard]);
 
-        if ($data['channel'] === 'beta' && $siteProvision->status === WebinoSiteProvision::STATUS_READY) {
+        if ($data['channel'] === 'beta') {
             \Modules\SiteBuilder\Jobs\UpdateWebinoSiteJob::dispatch($siteProvision->id, 'full');
             $wizard = $siteProvision->wizard_payload ?? [];
             $wizard['update'] = [
@@ -550,8 +592,10 @@ class SiteProvisionController extends Controller
 
     public function queueUpdate(Request $request, WebinoSiteProvision $siteProvision): JsonResponse
     {
-        if ($siteProvision->status !== WebinoSiteProvision::STATUS_READY) {
-            return response()->json(['message' => 'سایت باید در وضعیت آماده (ready) باشد.'], 422);
+        if (! $this->isControlEditable($siteProvision)) {
+            return response()->json([
+                'message' => 'سایت هنوز آماده/SSL نیست: '.$siteProvision->status,
+            ], 422);
         }
 
         $data = $request->validate([
@@ -654,5 +698,13 @@ class SiteProvisionController extends Controller
         }
 
         return 'webinaagency.ir';
+    }
+
+    protected function isControlEditable(WebinoSiteProvision $siteProvision): bool
+    {
+        return in_array($siteProvision->status, [
+            WebinoSiteProvision::STATUS_READY,
+            WebinoSiteProvision::STATUS_SSL_PENDING,
+        ], true);
     }
 }

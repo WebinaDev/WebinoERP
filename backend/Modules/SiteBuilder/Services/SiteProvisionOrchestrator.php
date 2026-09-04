@@ -147,6 +147,52 @@ class SiteProvisionOrchestrator
     }
 
     /**
+     * Reload Caddy / optionally re-issue cert for one domain. Never deletes caddy_data volume.
+     *
+     * @return array{ok:bool,ssl_status:?string,expires_at:?string,forced:bool,log?:string}
+     */
+    public function renewSsl(WebinoSiteProvision $provision, bool $force = false): array
+    {
+        if (! $this->shouldUseLocal($provision)) {
+            throw new \RuntimeException('platform.remote_ssl_renew_not_supported');
+        }
+
+        $result = $this->local->renewSsl($provision, $force);
+
+        if (($result['ok'] ?? false)
+            && $provision->status === WebinoSiteProvision::STATUS_SSL_PENDING) {
+            $provision->update([
+                'status' => WebinoSiteProvision::STATUS_READY,
+                'ready_at' => $provision->ready_at ?? now(),
+                'error_log' => null,
+            ]);
+        }
+
+        $this->audit->log($provision->created_by, 'provision.ssl_renew', $provision, [
+            'force' => $force,
+            'ok' => $result['ok'] ?? false,
+        ]);
+
+        return $result;
+    }
+
+    /**
+     * @return array{ssl_status:?string,expires_at:?string,domain:?string}
+     */
+    public function sslInfo(WebinoSiteProvision $provision): array
+    {
+        if ($this->shouldUseLocal($provision)) {
+            return $this->local->sslInfo($provision);
+        }
+
+        return [
+            'ssl_status' => null,
+            'expires_at' => null,
+            'domain' => $provision->domain,
+        ];
+    }
+
+    /**
      * @param  array<string, mixed>  $payload
      * @return array<string, mixed>
      */

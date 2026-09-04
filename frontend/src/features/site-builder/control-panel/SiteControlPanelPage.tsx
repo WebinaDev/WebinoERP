@@ -33,6 +33,7 @@ import {
   fetchFeatures,
   fetchProvisionControl,
   queueProvisionUpdate,
+  renewProvisionSsl,
   setProvisionChannel,
   startProvision,
   stopProvision,
@@ -522,6 +523,50 @@ export function SiteControlPanelPage({ id }: { id: string }) {
                 ) : null}
               </div>
             ) : null}
+          </Section>
+
+          <Section
+            icon={ShieldCheck}
+            title={t('controlSsl')}
+            description={t('controlSslHint')}
+            testId="control-ssl"
+          >
+            <div className="grid gap-2 text-sm">
+              <div>
+                {t('controlSslStatus')}:{' '}
+                <strong className="capitalize">{data.ssl?.ssl_status || t('controlSslUnknown')}</strong>
+              </div>
+              <div>
+                {t('controlSslExpires')}:{' '}
+                {data.ssl?.expires_at
+                  ? new Date(data.ssl.expires_at).toLocaleString()
+                  : t('controlSslUnknown')}
+              </div>
+            </div>
+            <div className="flex flex-wrap gap-2">
+              <Button
+                type="button"
+                variant="secondary"
+                className="gap-1.5"
+                disabled={busy !== null}
+                data-testid="control-ssl-renew"
+                onClick={() => void run('ssl', () => renewProvisionSsl(provisionId, false))}
+              >
+                <ShieldCheck className="size-4" />
+                {t('controlSslRenew')}
+              </Button>
+              <Button
+                type="button"
+                variant="outline"
+                className="gap-1.5"
+                disabled={busy !== null}
+                data-testid="control-ssl-force"
+                onClick={() => void run('ssl-force', () => renewProvisionSsl(provisionId, true))}
+              >
+                <RefreshCw className="size-4" />
+                {t('controlSslForce')}
+              </Button>
+            </div>
           </Section>
 
           {data.customer ? (

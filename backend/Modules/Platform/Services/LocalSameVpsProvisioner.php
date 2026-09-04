@@ -313,6 +313,71 @@ class LocalSameVpsProvisioner
     }
 
     /**
+     * Reload Caddy for this site's domain. Optionally delete only that domain's
+     * cert leaf under /data/caddy/certificates (never the whole caddy_data volume).
+     *
+     * @return array{ok:bool,ssl_status:?string,expires_at:?string,forced:bool,log?:string}
+     */
+    public function renewSsl(WebinoSiteProvision $provision, bool $force = false): array
+    {
+        $domain = strtolower(trim((string) $provision->domain));
+        if ($domain === '' || ! str_contains($domain, '.')) {
+            throw new RuntimeException('platform.invalid_domain');
+        }
+
+        $snippetPath = $this->caddySnippetPath($provision->slug);
+        if (! is_file($snippetPath)) {
+            $this->writeCaddySnippet($domain, $provision->slug);
+        }
+
+        $log = [];
+        if ($force) {
+            $log[] = $this->deleteDomainCertLeaf($domain);
+        }
+
+        $this->reloadCaddy();
+        $log[] = 'caddy reload requested';
+
+        // Give ACME a moment after force delete / reload.
+        if ($force) {
+            sleep(3);
+        }
+
+        $ok = $this->probeHttps($domain);
+        $status = $ok ? 'active' : ($force ? 'provisioning' : 'error');
+        $expiresAt = $this->readCertExpiry($domain);
+
+        PlatformDomain::query()
+            ->where('domain', $domain)
+            ->update(['ssl_status' => $status]);
+
+        return [
+            'ok' => $ok,
+            'ssl_status' => $status,
+            'expires_at' => $expiresAt,
+            'forced' => $force,
+            'log' => implode("\n", array_filter($log)),
+        ];
+    }
+
+    /**
+     * @return array{ssl_status:?string,expires_at:?string,domain:?string}
+     */
+    public function sslInfo(WebinoSiteProvision $provision): array
+    {
+        $domain = (string) ($provision->domain ?? '');
+        $row = $domain !== ''
+            ? PlatformDomain::query()->where('domain', $domain)->first()
+            : null;
+
+        return [
+            'ssl_status' => $row?->ssl_status,
+            'expires_at' => $domain !== '' ? $this->readCertExpiry($domain) : null,
+            'domain' => $domain !== '' ? $domain : null,
+        ];
+    }
+
+    /**
      * HMAC call into the live tenant dashboard.
      *
      * @param  array<string, mixed>  $payload
@@ -590,6 +655,97 @@ class LocalSameVpsProvisioner
         $hostSites = '/var/lib/webino/caddy.d';
         $this->ensureDir($hostSites);
         $this->writeFile($hostSites.'/'.$slug.'.caddy', $snippet);
+    }
+
+    protected function caddySnippetPath(string $slug): string
+    {
+        $repoSites = (string) (env('WEBINO_SITES_CADDY_DIR')
+            ?: ($this->erpRoot().'/docker/caddy/sites'));
+
+        return rtrim($repoSites, '/').'/'.$slug.'.caddy';
+    }
+
+    /**
+     * Delete only the leaf cert directory for one hostname inside the Caddy container.
+     * Never removes the caddy_data Docker volume.
+     */
+    protected function deleteDomainCertLeaf(string $domain): string
+    {
+        $web = $this->findErpWebContainer();
+        if ($web === null) {
+            return 'force: caddy container not found; skipped cert leaf delete';
+        }
+
+        // Let's Encrypt storage: /data/caddy/certificates/acme-v02.api.letsencrypt.org-directory/{domain}/
+        $domainArg = escapeshellarg($domain);
+        $script = 'set -e; base=/data/caddy/certificates; '
+            .'if [ ! -d "$base" ]; then echo "no certificates dir"; exit 0; fi; '
+            .'found=0; domain='.$domainArg.'; for d in "$base"/*/; do '
+            .'  leaf="${d}${domain}"; '
+            .'  if [ -d "$leaf" ]; then rm -rf "$leaf"; found=1; echo "removed $leaf"; fi; '
+            .'done; '
+            .'if [ "$found" = "0" ]; then echo "no leaf for $domain"; fi';
+
+        $result = $this->run(['docker', 'exec', $web, 'sh', '-c', $script], 60);
+
+        return 'force: '.trim($result['stdout'].' '.$result['stderr']);
+    }
+
+    protected function probeHttps(string $domain): bool
+    {
+        try {
+            $ctx = stream_context_create([
+                'http' => ['timeout' => 8],
+                'ssl' => ['verify_peer' => false, 'verify_peer_name' => false],
+            ]);
+            $headers = @get_headers('https://'.$domain.'/', true, $ctx);
+            if (! is_array($headers) || ! isset($headers[0])) {
+                return false;
+            }
+
+            return (bool) preg_match('/\s(2\d\d|3\d\d)\s/', (string) $headers[0]);
+        } catch (Throwable) {
+            return false;
+        }
+    }
+
+    protected function readCertExpiry(string $domain): ?string
+    {
+        try {
+            $ctx = stream_context_create([
+                'ssl' => [
+                    'capture_peer_cert' => true,
+                    'verify_peer' => false,
+                    'verify_peer_name' => false,
+                ],
+            ]);
+            $client = @stream_socket_client(
+                'ssl://'.$domain.':443',
+                $errno,
+                $errstr,
+                8,
+                STREAM_CLIENT_CONNECT,
+                $ctx
+            );
+            if (! is_resource($client)) {
+                return null;
+            }
+            $params = stream_context_get_params($client);
+            fclose($client);
+            $cert = $params['options']['ssl']['peer_certificate'] ?? null;
+            if (! $cert) {
+                return null;
+            }
+            $parsed = openssl_x509_parse($cert);
+            $ts = $parsed['validTo_time_t'] ?? null;
+            if (! is_int($ts) && ! is_float($ts)) {
+                return null;
+            }
+
+            return gmdate('c', (int) $ts);
+        } catch (Throwable) {
+            return null;
+        }
     }
 
     protected function removeCaddySnippet(string $slug): void

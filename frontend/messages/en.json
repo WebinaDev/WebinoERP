@@ -2930,6 +2930,13 @@
     "controlUpdateMigrate": "Run migrations",
     "controlUpdateFull": "Full update (app)",
     "controlSslSafe": "Updates never rewrite Let's Encrypt / Caddy snippets (except domain change).",
+    "controlSsl": "SSL certificate",
+    "controlSslHint": "Renew = Caddy reload. Force reissue deletes only this domain's cert leaf — the caddy_data volume is never wiped.",
+    "controlSslStatus": "Status",
+    "controlSslExpires": "Expires",
+    "controlSslRenew": "Renew / check SSL",
+    "controlSslForce": "Force reissue",
+    "controlSslUnknown": "Unknown",
     "controlCustomer": "CRM customer",
     "controlSaved": "Saved",
     "loading": "Loading…"

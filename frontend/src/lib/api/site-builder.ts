@@ -109,6 +109,11 @@ export type SiteControlPayload = {
     finished_at?: string;
   } | null;
   customer?: { id: number; name?: string; email?: string } | null;
+  ssl?: {
+    ssl_status?: string | null;
+    expires_at?: string | null;
+    domain?: string | null;
+  } | null;
 };
 
 export async function fetchCatalog() {
@@ -178,6 +183,11 @@ export async function queueProvisionUpdate(
   target: 'frontend' | 'backend' | 'migrate' | 'full',
 ) {
   const res = await apiClient.post(`${BASE}/provisions/${id}/update`, { target });
+  return unwrapData<SiteProvision>(res);
+}
+
+export async function renewProvisionSsl(id: number, force = false) {
+  const res = await apiClient.post(`${BASE}/provisions/${id}/ssl/renew`, { force });
   return unwrapData<SiteProvision>(res);
 }
 

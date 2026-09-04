@@ -186,4 +186,90 @@ class SiteBuilderApiTest extends TestCase
             ->assertJsonPath('data.progress.percent', 65)
             ->assertJsonStructure(['data' => ['progress' => ['phase', 'percent', 'label_fa', 'eta_seconds']]]);
     }
+
+    public function test_ssl_pending_allows_control_patch_and_update_queue(): void
+    {
+        $user = $this->actingAsRole('system_manager');
+        Sanctum::actingAs($user);
+
+        \Illuminate\Support\Facades\Bus::fake();
+
+        $package = WebinoPackage::query()->first();
+        $provision = WebinoSiteProvision::query()->create([
+            'package_id' => $package->id,
+            'slug' => 'ssl-cafe',
+            'domain' => 'ssl-cafe.webinaagency.ir',
+            'status' => WebinoSiteProvision::STATUS_SSL_PENDING,
+            'wizard_payload' => ['site_name' => 'SSL Cafe', 'channel' => 'beta'],
+            'provision_token' => 'tok-ssl-cafe',
+        ]);
+
+        $this->patchJson('/api/v1/site-builder/provisions/'.$provision->id, [
+            'site_name' => 'SSL Cafe Renamed',
+            'logo_url' => 'https://cdn.example/logo.png',
+        ])
+            ->assertOk()
+            ->assertJsonPath('data.wizard_payload.site_name', 'SSL Cafe Renamed');
+
+        $this->postJson('/api/v1/site-builder/provisions/'.$provision->id.'/update', [
+            'target' => 'frontend',
+        ])
+            ->assertOk()
+            ->assertJsonPath('data.wizard_payload.update.status', 'queued')
+            ->assertJsonPath('data.wizard_payload.update.target', 'frontend');
+
+        \Illuminate\Support\Facades\Bus::assertDispatched(
+            \Modules\SiteBuilder\Jobs\UpdateWebinoSiteJob::class
+        );
+    }
+
+    public function test_ssl_renew_route_promotes_ssl_pending_when_ok(): void
+    {
+        $user = $this->actingAsRole('system_manager');
+        Sanctum::actingAs($user);
+
+        $package = WebinoPackage::query()->first();
+        $provision = WebinoSiteProvision::query()->create([
+            'package_id' => $package->id,
+            'slug' => 'renew-cafe',
+            'domain' => 'renew-cafe.webinaagency.ir',
+            'status' => WebinoSiteProvision::STATUS_SSL_PENDING,
+            'wizard_payload' => ['site_name' => 'Renew Cafe'],
+            'provision_token' => 'tok-renew-cafe',
+        ]);
+
+        $this->mock(\Modules\Platform\Services\LocalSameVpsProvisioner::class, function ($mock) use ($provision) {
+            $mock->shouldReceive('renewSsl')
+                ->once()
+                ->withArgs(fn ($p, $force) => $p->id === $provision->id && $force === false)
+                ->andReturn([
+                    'ok' => true,
+                    'ssl_status' => 'active',
+                    'expires_at' => '2027-01-01T00:00:00+00:00',
+                    'forced' => false,
+                    'log' => 'caddy reload requested',
+                ]);
+            $mock->shouldReceive('sslInfo')->andReturn([
+                'ssl_status' => 'active',
+                'expires_at' => '2027-01-01T00:00:00+00:00',
+                'domain' => $provision->domain,
+            ]);
+        });
+
+        $this->postJson('/api/v1/site-builder/provisions/'.$provision->id.'/ssl/renew', [
+            'force' => false,
+        ])
+            ->assertOk()
+            ->assertJsonPath('meta.ssl.ok', true)
+            ->assertJsonPath('meta.ssl.ssl_status', 'active');
+
+        $this->assertDatabaseHas('webino_site_provisions', [
+            'id' => $provision->id,
+            'status' => WebinoSiteProvision::STATUS_READY,
+        ]);
+
+        $this->getJson('/api/v1/site-builder/provisions/'.$provision->id.'/control')
+            ->assertOk()
+            ->assertJsonPath('data.ssl.ssl_status', 'active');
+    }
 }

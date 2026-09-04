@@ -61,10 +61,27 @@ const KEY_MESSAGES: Record<string, string> = {
   'platform.provision_hmac_missing':
     'سکرت HMAC یا توکن پروویژن تنظیم نیست. در تنظیمات هاستینگ ERP و .env سایت tenant بررسی کنید.',
   'platform.remote_tenant_api_not_supported': 'این عملیات فقط برای سایت‌های هم‌سرور (local) پشتیبانی می‌شود.',
+  'platform.remote_update_not_supported': 'آپدیت از راه دور پشتیبانی نمی‌شود؛ فقط سایت هم‌سرور.',
+  'platform.remote_domain_change_not_supported': 'تغییر دامنه از راه دور پشتیبانی نمی‌شود.',
+  'platform.remote_ssl_renew_not_supported': 'تمدید SSL از راه دور پشتیبانی نمی‌شود.',
   'platform.tenant_api_failed': 'درخواست به API سایت tenant ناموفق بود.',
   'platform.build_script_missing': 'اسکریپت ساخت ایمیج داشبورد روی سرور ERP پیدا نشد.',
+  'platform.invalid_domain': 'دامنه نامعتبر است.',
+  'platform.no_ready_server': 'سرور آماده‌ای برای پروویژن پیدا نشد.',
   'Site must be ready.': 'سایت باید در وضعیت آماده (ready) باشد.',
+  'Provision cannot be edited in current status.': 'سایت در این وضعیت قابل ویرایش نیست.',
 };
+
+function mapPlatformKey(message: string): string | undefined {
+  const key = message.split(/[:\s]/)[0] ?? '';
+  if (key && KEY_MESSAGES[key]) {
+    return KEY_MESSAGES[key];
+  }
+  if (message.startsWith('platform.')) {
+    return message;
+  }
+  return undefined;
+}
 
 function firstValidationError(err: unknown): string | undefined {
   if (!err || typeof err !== 'object' || !('response' in err)) {
@@ -110,33 +127,33 @@ export function getAxiosMessage(err: unknown): string {
 
   const validation = firstValidationError(err);
   if (validation && validation !== 'Server Error') {
-    return validation;
+    const mappedValidation = KEY_MESSAGES[validation] ?? mapPlatformKey(validation);
+    return mappedValidation ?? validation;
   }
 
   const message = responseMessage(err);
-  if (message && KEY_MESSAGES[message]) {
-    return KEY_MESSAGES[message];
-  }
-  if (message === 'Server Error') {
-    return STATUS_MESSAGES[500];
-  }
-  if (message?.includes('platform.dashboard_images_missing') || message?.includes('/opt/WebinoDashboard/docker')) {
-    return 'ایمیج‌های سایت از GitHub ساخته نشدند. دسترسی خروجی به github.com/Webinadev/WebinoDashboard را بررسی کنید و دوباره «ایجاد سایت» بزنید.';
-  }
-  if (message?.startsWith('platform.tenant_api_failed')) {
-    return KEY_MESSAGES['platform.tenant_api_failed'] + ' ' + message.replace(/^platform\.tenant_api_failed:\s*/i, '').slice(0, 240);
-  }
-  if (message?.startsWith('platform.') && KEY_MESSAGES[message.split(/[:\s]/)[0]!]) {
-    return KEY_MESSAGES[message.split(/[:\s]/)[0]!];
-  }
-  if (message && !/^[a-z0-9_.]+$/i.test(message)) {
-    return message;
-  }
-  // Dot-keys like platform.foo used to fall through to generic 422 — map or show the key.
-  if (message && KEY_MESSAGES[message]) {
-    return KEY_MESSAGES[message];
-  }
-  if (message?.startsWith('platform.')) {
+  if (message) {
+    if (KEY_MESSAGES[message]) {
+      return KEY_MESSAGES[message];
+    }
+    if (message === 'Server Error') {
+      return STATUS_MESSAGES[500];
+    }
+    if (message.includes('platform.dashboard_images_missing') || message.includes('/opt/WebinoDashboard/docker')) {
+      return 'ایمیج‌های سایت از GitHub ساخته نشدند. دسترسی خروجی به github.com/Webinadev/WebinoDashboard را بررسی کنید و دوباره «ایجاد سایت» بزنید.';
+    }
+    if (message.startsWith('platform.tenant_api_failed')) {
+      return (
+        KEY_MESSAGES['platform.tenant_api_failed']
+        + ' '
+        + message.replace(/^platform\.tenant_api_failed:\s*/i, '').slice(0, 240)
+      );
+    }
+    const mapped = mapPlatformKey(message);
+    if (mapped) {
+      return mapped;
+    }
+    // Prefer any real server message over generic HTTP status text (e.g. bare 422).
     return message;
   }
 

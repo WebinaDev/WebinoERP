@@ -54,4 +54,5 @@ Route::post('/provisions/{siteProvision}/admin', [SiteProvisionController::class
 Route::post('/provisions/{siteProvision}/modules', [SiteProvisionController::class, 'updateModules']);
 Route::post('/provisions/{siteProvision}/channel', [SiteProvisionController::class, 'setChannel']);
 Route::post('/provisions/{siteProvision}/update', [SiteProvisionController::class, 'queueUpdate'])->middleware('throttle:10,1');
+Route::post('/provisions/{siteProvision}/ssl/renew', [SiteProvisionController::class, 'renewSsl'])->middleware('throttle:10,1');
 Route::delete('/provisions/{siteProvision}', [SiteProvisionController::class, 'destroy']);
