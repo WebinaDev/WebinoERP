@@ -10,7 +10,6 @@ import type { AdminRouteDef, ModuleManifest, SiteTypeSlug } from "./types"
 const SLUG_MAP: Record<string, string> = {
   finance: "accounting",
   pm: "projects",
-  site_builder: "site-builder",
   distribution: "marketplace",
   admin: "core",
 }
@@ -25,7 +24,6 @@ const NAMES: Record<string, { fa: string; en: string; order: number }> = {
   sales: { fa: "فروش", en: "Sales", order: 60 },
   mfg: { fa: "تولید", en: "Manufacturing", order: 70 },
   platform: { fa: "پلتفرم", en: "Platform", order: 75 },
-  "site-builder": { fa: "سایت‌ساز", en: "Site Builder", order: 80 },
   marketing: { fa: "بازاریابی", en: "Marketing", order: 90 },
   docs: { fa: "اسناد", en: "Documents", order: 100 },
   marketplace: { fa: "مارکت‌پلیس", en: "Marketplace", order: 110 },

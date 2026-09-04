@@ -12,8 +12,8 @@ test.describe('Cafe site provision path', () => {
     await page.goto('/admin/platform');
     await expect(page).toHaveURL(/login|platform/);
 
-    await page.goto('/admin/site-builder/provisions/new');
-    await expect(page).toHaveURL(/login|provisions\/new/);
+    await page.goto('/admin/platform/sites/new');
+    await expect(page).toHaveURL(/login|sites\/new/);
 
     const url = page.url();
     if (!url.includes('login')) {

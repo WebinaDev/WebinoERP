@@ -167,6 +167,13 @@ return [
         'tokens' => ['view' => 'platform.settings.manage', 'manage' => 'platform.settings.manage'],
         'webino' => ['view' => 'platform.resources.manage', 'manage' => 'platform.resources.manage'],
         'crm' => ['view' => 'platform.view', 'manage' => 'platform.manage'],
+        // Site builder surfaces (API still under /api/v1/site-builder; gated by module:platform)
+        'catalog' => ['view' => 'site_builder.catalog.view', 'manage' => 'site_builder.catalog.manage'],
+        'categories' => ['view' => 'site_builder.catalog.view', 'manage' => 'site_builder.catalog.manage'],
+        'types' => ['view' => 'site_builder.catalog.view', 'manage' => 'site_builder.catalog.manage'],
+        'features' => ['view' => 'site_builder.catalog.view', 'manage' => 'site_builder.catalog.manage'],
+        'packages' => ['view' => 'site_builder.catalog.view', 'manage' => 'site_builder.catalog.manage'],
+        'provisions' => ['view' => 'site_builder.provision.view', 'manage' => 'site_builder.provision.manage'],
         '*' => ['view' => 'platform.view', 'manage' => 'platform.manage'],
     ],
     'marketing' => [

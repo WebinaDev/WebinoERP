@@ -4,6 +4,8 @@
   "name_en": "Platform",
   "submodules": [
     "dashboard",
+    "catalog",
+    "sites",
     "servers",
     "projects",
     "applications",

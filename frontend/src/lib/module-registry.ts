@@ -330,6 +330,9 @@ export const ERP_MODULES: ErpModuleDef[] = [
         icon: 'ri-cloud-line',
         children: [
           { id: 'platform-dashboard', path: 'admin/platform', titleKey: 'nav.erp.platform.dashboard', icon: 'ri-dashboard-line', requiredPermission: 'platform.view' },
+          { id: 'platform-catalog', path: 'admin/platform/catalog', titleKey: 'nav.erp.siteBuilder.catalog', icon: 'ri-grid-line', requiredPermission: 'site_builder.catalog.view' },
+          { id: 'platform-sites', path: 'admin/platform/sites', titleKey: 'nav.erp.siteBuilder.provisions', icon: 'ri-global-line', requiredPermission: 'site_builder.provision.view' },
+          { id: 'platform-sites-new', path: 'admin/platform/sites/new', titleKey: 'nav.erp.siteBuilder.newSite', icon: 'ri-add-circle-line', requiredPermission: 'site_builder.provision.create' },
           { id: 'platform-servers', path: 'admin/platform/servers', titleKey: 'nav.erp.platform.servers', icon: 'ri-server-line', requiredPermission: 'platform.servers.view' },
           { id: 'platform-projects', path: 'admin/platform/projects', titleKey: 'nav.erp.platform.projects', icon: 'ri-folder-3-line', requiredPermission: 'platform.projects.view' },
           { id: 'platform-resources', path: 'admin/platform/resources', titleKey: 'nav.erp.platform.resources', icon: 'ri-stack-line', requiredPermission: 'platform.resources.view' },
@@ -347,28 +350,16 @@ export const ERP_MODULES: ErpModuleDef[] = [
         ],
       },
     ],
-    legacyRedirects: [],
-  },
-  {
-    id: 'site_builder',
-    settingsKey: 'site_builder',
-    basePath: '/admin/site-builder',
-    sidebarCategoryKey: 'nav.module.siteBuilder',
-    defaultEnabled: true,
-    menuItems: [
-      {
-        id: 'site-builder-menu',
-        path: 'admin/site-builder/catalog',
-        titleKey: 'nav.erp.siteBuilder.group',
-        icon: 'ri-layout-masonry-line',
-        children: [
-          { id: 'site-builder-catalog', path: 'admin/site-builder/catalog', titleKey: 'nav.erp.siteBuilder.catalog', icon: 'ri-grid-line', requiredPermission: 'site_builder.catalog.view' },
-          { id: 'site-builder-provisions', path: 'admin/site-builder/provisions', titleKey: 'nav.erp.siteBuilder.provisions', icon: 'ri-global-line', requiredPermission: 'site_builder.provision.view' },
-          { id: 'site-builder-new', path: 'admin/site-builder/provisions/new', titleKey: 'nav.erp.siteBuilder.newSite', icon: 'ri-add-circle-line', requiredPermission: 'site_builder.provision.create' },
-        ],
-      },
+    legacyRedirects: [
+      { from: 'admin/site-builder', to: 'admin/platform/sites' },
+      { from: 'admin/site-builder/catalog', to: 'admin/platform/catalog' },
+      { from: 'admin/site-builder/provisions', to: 'admin/platform/sites' },
+      { from: 'admin/site-builder/provisions/new', to: 'admin/platform/sites/new' },
+      { from: 'site-builder', to: 'admin/platform/sites' },
+      { from: 'site-builder/catalog', to: 'admin/platform/catalog' },
+      { from: 'site-builder/provisions', to: 'admin/platform/sites' },
+      { from: 'site-builder/provisions/new', to: 'admin/platform/sites/new' },
     ],
-    legacyRedirects: [],
   },
   {
     id: 'marketing',

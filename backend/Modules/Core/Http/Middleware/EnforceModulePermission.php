@@ -14,7 +14,8 @@ use Symfony\Component\HttpFoundation\Response;
  * Fail-closed: missing map / missing segment rules ⇒ 403 (not allow).
  *
  * Optional second parameter is the URI prefix slug when it differs from the
- * config key, e.g. module.permission:site_builder,site-builder
+ * config key, e.g. module.permission:platform,site-builder (site-builder API
+ * gated by the platform module).
  */
 class EnforceModulePermission
 {

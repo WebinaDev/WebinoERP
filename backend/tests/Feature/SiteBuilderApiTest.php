@@ -21,7 +21,10 @@ class SiteBuilderApiTest extends TestCase
     {
         parent::setUp();
         $this->seedRbac();
-        SystemModule::query()->create(['name' => 'Site Builder', 'slug' => 'site_builder', 'is_active' => true]);
+        SystemModule::query()->firstOrCreate(
+            ['slug' => 'platform'],
+            ['name' => 'Platform', 'is_active' => true]
+        );
         $this->seed(SiteBuilderSeeder::class);
     }
 

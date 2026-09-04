@@ -22,7 +22,6 @@ class SystemModulesSeeder extends Seeder
             ['name' => 'Integrations', 'slug' => 'integrations', 'is_active' => true],
             ['name' => 'Warehouse', 'slug' => 'warehouse', 'is_active' => true],
             ['name' => 'MFG', 'slug' => 'mfg', 'is_active' => true],
-            ['name' => 'Site Builder', 'slug' => 'site_builder', 'is_active' => true],
             ['name' => 'Marketing', 'slug' => 'marketing', 'is_active' => true],
             ['name' => 'Platform', 'slug' => 'platform', 'is_active' => true],
             ['name' => 'AI Content', 'slug' => 'ai_content', 'is_active' => true],

@@ -539,7 +539,7 @@ export function SiteProvisionWizardPage() {
                 ) : null}
                 <Button
                   variant="outline"
-                  onClick={() => router.push(dashboardHref(locale, 'admin/site-builder/provisions'))}
+                  onClick={() => router.push(dashboardHref(locale, 'admin/platform/sites'))}
                 >
                   {t('done')}
                 </Button>

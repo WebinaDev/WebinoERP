@@ -68,7 +68,7 @@ export function SiteProvisionsListPage() {
           <p className="text-muted-foreground text-sm">{t('provisionsSubtitle')}</p>
         </div>
         <Button asChild>
-          <Link href={dashboardHref(locale, 'admin/site-builder/provisions/new')}>{t('newProvision')}</Link>
+          <Link href={dashboardHref(locale, 'admin/platform/sites/new')}>{t('newProvision')}</Link>
         </Button>
       </div>
       {error ? <p className="text-destructive text-sm">{error}</p> : null}

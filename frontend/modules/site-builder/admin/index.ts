@@ -1,2 +1,2 @@
-/** Admin pages for the `site-builder` module live in `src/features` and are wired via dashboard-page-map. */
-export const moduleSlug = "site-builder"
+/** @deprecated Site Builder admin pages are under Platform (`admin/platform/sites`). */
+export const moduleSlug = "platform"

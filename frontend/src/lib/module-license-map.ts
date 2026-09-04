@@ -15,6 +15,8 @@ export const LICENSE_SLUG_TO_MODULE_ID: Record<string, string> = {
   marketplace: 'distribution',
   integrations: 'admin',
   warehouse: 'scm',
+  site_builder: 'platform',
+  platform: 'platform',
 };
 
 export function mapLicensedModulesToNavIds(slugs: string[]): string[] {

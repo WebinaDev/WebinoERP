@@ -28,10 +28,6 @@ class PlatformApiTest extends TestCase
             ['slug' => 'platform'],
             ['name' => 'Platform', 'is_active' => true]
         );
-        SystemModule::query()->firstOrCreate(
-            ['slug' => 'site_builder'],
-            ['name' => 'Site Builder', 'is_active' => true]
-        );
     }
 
     public function test_dashboard_servers_projects_tokens(): void

@@ -13,7 +13,6 @@ import { projectsManifest } from "../../modules/projects/manifest"
 import { salesManifest } from "../../modules/sales/manifest"
 import { scmManifest } from "../../modules/scm/manifest"
 import { platformManifest } from "../../modules/platform/manifest"
-import { siteBuilderManifest } from "../../modules/site-builder/manifest"
 
 export const SITE_TYPES: {
   slug: SiteTypeSlug
@@ -40,7 +39,6 @@ export const MODULE_MANIFESTS: ModuleManifest[] = [
   salesManifest,
   mfgManifest,
   platformManifest,
-  siteBuilderManifest,
   marketingManifest,
   docsManifest,
   marketplaceManifest,
