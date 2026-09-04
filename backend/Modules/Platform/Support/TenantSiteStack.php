@@ -40,8 +40,8 @@ final class TenantSiteStack
         return <<<YAML
 # Isolated tenant stack. Images: webino-backend:{$tag}, webino-next:{$tag}
 # Built from https://github.com/Webinadev/WebinoDashboard
-# Private network only — backend/frontend are attached to the proxy network after up
-# so service name "backend" is never shared across sites.
+# Internal net for db/redis; proxy (webino_sites) so ERP Caddy can reach
+# container names without a post-up docker network connect.
 services:
   db:
     image: postgres:15-alpine
@@ -65,7 +65,7 @@ services:
     restart: unless-stopped
     env_file: .env
     depends_on: [db, redis]
-    networks: [{$internal}]
+    networks: [{$internal}, proxy]
   frontend:
     image: webino-next:{$tag}
     container_name: {$project}-frontend
@@ -74,13 +74,16 @@ services:
       INTERNAL_API_URL: http://backend:8080
       API_PROXY_TARGET: http://backend:8080
     depends_on: [backend]
-    networks: [{$internal}]
+    networks: [{$internal}, proxy]
 volumes:
   db:
 networks:
   {$internal}:
     driver: bridge
     name: {$internal}
+  proxy:
+    external: true
+    name: webino_sites
 YAML;
     }
 

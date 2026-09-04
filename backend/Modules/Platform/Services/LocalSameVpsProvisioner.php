@@ -171,16 +171,48 @@ class LocalSameVpsProvisioner
     }
 
     /**
-     * @return array{exit_code:int,stdout:string,stderr:string}
+     * @return array{exit_code:int,stdout:string,stderr:string,attach_log?:string}
      */
     public function start(WebinoSiteProvision $provision): array
     {
+        $this->ensureDockerNetwork();
+        $this->rewriteComposeImages($provision, $this->channelOf($provision));
         $dir = $this->siteDir($provision);
         $result = $this->composeUp($provision->slug, $dir);
-        $this->attachToProxyNetwork($provision->slug);
+        $attachLog = $this->attachToProxyNetwork($provision->slug);
         $this->updateResourceStatus($provision, 'running');
 
-        return $result;
+        return [
+            ...$result,
+            'attach_log' => $attachLog,
+        ];
+    }
+
+    /**
+     * Rewrite compose (proxy network), bring stack up, attach to webino_sites.
+     * Used by ops resync after ERP deploy so existing sites pick up network fixes.
+     *
+     * @return array{exit_code:int,stdout:string,stderr:string,attach_log:string,log:string}
+     */
+    public function resyncStack(WebinoSiteProvision $provision): array
+    {
+        $this->ensureDockerNetwork();
+        $this->rewriteComposeImages($provision, $this->channelOf($provision));
+        $dir = $this->siteDir($provision);
+        if (! is_file($dir.'/docker-compose.yml')) {
+            throw new RuntimeException('platform.site_dir_missing: '.$dir);
+        }
+        $result = $this->composeUp($provision->slug, $dir);
+        $attachLog = $this->attachToProxyNetwork($provision->slug);
+        if ($result['exit_code'] === 0) {
+            $this->updateResourceStatus($provision, 'running');
+        }
+
+        return [
+            ...$result,
+            'attach_log' => $attachLog,
+            'log' => trim($result['stdout']."\n".$result['stderr']."\n".$attachLog),
+        ];
     }
 
     /**
@@ -336,8 +368,8 @@ class LocalSameVpsProvisioner
             if (is_dir($dir) && is_file($dir.'/docker-compose.yml')) {
                 $up = $this->composeUp($provision->slug, $dir);
                 $log[] = 'compose up exit='.$up['exit_code'];
-                $this->attachToProxyNetwork($provision->slug);
-                $log[] = 'proxy network attach requested';
+                $attachLog = $this->attachToProxyNetwork($provision->slug);
+                $log[] = $attachLog !== '' ? $attachLog : 'proxy network attach ok';
             } else {
                 $log[] = 'site dir missing: '.$dir;
             }
@@ -584,12 +616,12 @@ class LocalSameVpsProvisioner
             ...$services,
         ];
         $result = $this->run($cmd, 900);
-        $this->attachToProxyNetwork($provision->slug);
+        $attachLog = $this->attachToProxyNetwork($provision->slug);
         $this->updateResourceStatus($provision, 'running');
 
         return [
             ...$result,
-            'log' => trim($result['stdout']."\n".$result['stderr']),
+            'log' => trim($result['stdout']."\n".$result['stderr']."\n".$attachLog),
         ];
     }
 
@@ -982,42 +1014,79 @@ class LocalSameVpsProvisioner
         ], 900);
     }
 
-    protected function attachToProxyNetwork(string $slug, string $network = 'webino_sites'): void
+    /**
+     * Connect tenant proxy containers to webino_sites (idempotent if already attached).
+     *
+     * @return string Human-readable attach log (empty when all already connected / ok)
+     */
+    protected function attachToProxyNetwork(string $slug, string $network = 'webino_sites'): string
     {
+        $lines = [];
         foreach (TenantSiteStack::proxyContainerNames($slug) as $name) {
-            $this->run(['docker', 'network', 'connect', $network, $name], 30);
+            $result = $this->run(['docker', 'network', 'connect', $network, $name], 30);
+            if ($result['exit_code'] === 0) {
+                $lines[] = "connected {$name} → {$network}";
+
+                continue;
+            }
+            $err = strtolower(trim($result['stderr'].' '.$result['stdout']));
+            if (
+                str_contains($err, 'already exists')
+                || str_contains($err, 'already connected')
+                || str_contains($err, 'endpoint with name')
+            ) {
+                $lines[] = "{$name} already on {$network}";
+
+                continue;
+            }
+            $lines[] = "connect {$name} failed: ".trim($result['stderr'] ?: $result['stdout']);
         }
+
+        return implode("\n", $lines);
     }
 
     protected function waitForHealthy(string $slug, int $attempts = 12): bool
     {
-        $url = 'http://'.TenantSiteStack::projectName($slug).'-frontend:3000/up';
-        for ($i = 0; $i < $attempts; $i++) {
-            $viaCurl = $this->run([
-                'docker', 'run', '--rm',
-                '--network', 'webino_sites',
-                'curlimages/curl:8.5.0',
-                '-sf', $url,
-            ], 30);
-            if ($viaCurl['exit_code'] === 0) {
-                return true;
-            }
+        $project = TenantSiteStack::projectName($slug);
+        $frontendUrl = 'http://'.$project.'-frontend:3000/up';
+        $backendUrl = 'http://'.$project.'-backend:8080/api/v1/health/metrics';
 
-            $web = $this->findErpWebContainer();
-            if ($web !== null) {
-                $viaExec = $this->run([
-                    'docker', 'exec', $web,
-                    'wget', '-q', '-O', '-', $url,
-                ], 30);
-                if ($viaExec['exit_code'] === 0) {
-                    return true;
-                }
+        for ($i = 0; $i < $attempts; $i++) {
+            $feOk = $this->probeOnProxyNetwork($frontendUrl);
+            $beOk = $this->probeOnProxyNetwork($backendUrl);
+            if ($feOk && $beOk) {
+                return true;
             }
 
             sleep(5);
         }
 
         return false;
+    }
+
+    protected function probeOnProxyNetwork(string $url): bool
+    {
+        $viaCurl = $this->run([
+            'docker', 'run', '--rm',
+            '--network', 'webino_sites',
+            'curlimages/curl:8.5.0',
+            '-sf', $url,
+        ], 30);
+        if ($viaCurl['exit_code'] === 0) {
+            return true;
+        }
+
+        $web = $this->findErpWebContainer();
+        if ($web === null) {
+            return false;
+        }
+
+        $viaExec = $this->run([
+            'docker', 'exec', $web,
+            'wget', '-q', '-O', '-', $url,
+        ], 30);
+
+        return $viaExec['exit_code'] === 0;
     }
 
     protected function bootstrapRemote(WebinoSiteProvision $provision, string $siteType, string $token): void
