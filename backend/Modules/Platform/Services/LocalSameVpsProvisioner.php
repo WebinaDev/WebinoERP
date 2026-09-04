@@ -389,28 +389,48 @@ class LocalSameVpsProvisioner
      */
     public function sslInfo(WebinoSiteProvision $provision): array
     {
-        $domain = (string) ($provision->domain ?? '');
-        $row = $domain !== ''
-            ? PlatformDomain::query()->where('domain', $domain)->first()
-            : null;
-
-        $expiresAt = $domain !== '' ? $this->readCertExpiryFromCaddy($domain) : null;
-        $status = $expiresAt ? 'active' : ($row?->ssl_status);
-
-        if ($expiresAt && $row && $row->ssl_status !== 'active') {
-            $row->ssl_status = 'active';
-            $row->save();
-            $status = 'active';
-        }
-
-        $stored = $provision->wizard_payload['ssl'] ?? null;
-
-        return [
-            'ssl_status' => $status,
-            'expires_at' => $expiresAt,
-            'domain' => $domain !== '' ? $domain : null,
-            'log' => is_array($stored) && isset($stored['log']) ? (string) $stored['log'] : null,
+        $empty = [
+            'ssl_status' => null,
+            'expires_at' => null,
+            'domain' => $provision->domain,
+            'log' => null,
         ];
+
+        try {
+            $payload = is_array($provision->wizard_payload) ? $provision->wizard_payload : [];
+            $stored = is_array($payload['ssl'] ?? null) ? $payload['ssl'] : [];
+            $domain = (string) ($provision->domain ?? '');
+
+            $row = null;
+            if ($domain !== '') {
+                try {
+                    $row = PlatformDomain::query()->where('domain', $domain)->first();
+                } catch (Throwable) {
+                    $row = null;
+                }
+            }
+
+            $expiresAt = null;
+            if ($domain !== '') {
+                try {
+                    $expiresAt = $this->readCertExpiryFromCaddy($domain);
+                } catch (Throwable) {
+                    $expiresAt = null;
+                }
+            }
+
+            return [
+                'ssl_status' => $expiresAt ? 'active' : ($row?->ssl_status ?? ($stored['ssl_status'] ?? null)),
+                'expires_at' => $expiresAt ?? ($stored['expires_at'] ?? null),
+                'domain' => $domain !== '' ? $domain : null,
+                'log' => isset($stored['log']) ? (string) $stored['log'] : null,
+            ];
+        } catch (Throwable $e) {
+            report($e);
+            $empty['log'] = $e->getMessage();
+
+            return $empty;
+        }
     }
 
     /**
@@ -820,7 +840,7 @@ class LocalSameVpsProvisioner
     {
         $pem = $this->certPemFromCaddy($domain);
         if ($pem === null || $pem === '') {
-            return $this->readCertExpiry($domain);
+            return null;
         }
         $parsed = @openssl_x509_parse($pem);
         if (! is_array($parsed)) {
@@ -845,7 +865,7 @@ class LocalSameVpsProvisioner
         $script = 'domain='.$domainArg.'; '
             .'f=$(find /data/caddy/certificates -type f -name "${domain}.crt" 2>/dev/null | head -1); '
             .'if [ -n "$f" ]; then cat "$f"; fi';
-        $result = $this->run(['docker', 'exec', $web, 'sh', '-c', $script], 30);
+        $result = $this->run(['docker', 'exec', $web, 'sh', '-c', $script], 8);
         $pem = trim($result['stdout']);
 
         return str_contains($pem, 'BEGIN CERTIFICATE') ? $pem : null;
@@ -1084,7 +1104,15 @@ class LocalSameVpsProvisioner
 
         $process = new Process($command, null, $env);
         $process->setTimeout($timeout);
-        $process->run();
+        try {
+            $process->run();
+        } catch (Throwable $e) {
+            return [
+                'exit_code' => 1,
+                'stdout' => '',
+                'stderr' => $e->getMessage(),
+            ];
+        }
 
         return [
             'exit_code' => $process->getExitCode() ?? 1,

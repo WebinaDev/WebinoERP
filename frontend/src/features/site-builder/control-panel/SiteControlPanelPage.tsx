@@ -105,11 +105,11 @@ export function SiteControlPanelPage({ id }: { id: string }) {
       ]);
       setData(ctrl);
       setFeatures(feats);
-      setAdminName(ctrl.admin.name ?? '');
-      setAdminEmail(ctrl.admin.email ?? '');
-      setDomain(ctrl.provision.domain ?? '');
-      setLogoUrl(ctrl.license?.logo_url ?? String(ctrl.provision.wizard_payload?.logo_url ?? ''));
-      setSiteName(String(ctrl.provision.wizard_payload?.site_name ?? ctrl.license?.project_name ?? ''));
+      setAdminName(ctrl.admin?.name ?? '');
+      setAdminEmail(ctrl.admin?.email ?? '');
+      setDomain(ctrl.provision?.domain ?? '');
+      setLogoUrl(ctrl.license?.logo_url ?? String(ctrl.provision?.wizard_payload?.logo_url ?? ''));
+      setSiteName(String(ctrl.provision?.wizard_payload?.site_name ?? ctrl.license?.project_name ?? ''));
       setExpiresAt(ctrl.license?.expires_at ? ctrl.license.expires_at.slice(0, 10) : '');
       setStartDate(ctrl.license?.start_date ?? '');
     } catch (e) {

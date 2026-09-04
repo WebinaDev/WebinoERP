@@ -371,24 +371,39 @@ class SiteProvisionController extends Controller
 
     public function control(WebinoSiteProvision $siteProvision): JsonResponse
     {
-        $siteProvision->load(['license', 'package.businessType.category', 'crmAccount']);
+        try {
+            $siteProvision->load(['license', 'package.businessType.category', 'crmAccount']);
+        } catch (Throwable $e) {
+            report($e);
+        }
+
+        $wizard = is_array($siteProvision->wizard_payload) ? $siteProvision->wizard_payload : [];
         $license = $siteProvision->license;
         $meta = is_array($license?->meta) ? $license->meta : [];
         $modules = $meta['modules'] ?? $meta['licensed_modules'] ?? [];
         if (! is_array($modules)) {
             $modules = [];
         }
-        $channel = (string) (($siteProvision->wizard_payload['channel'] ?? null) ?: 'beta');
+        $channel = (string) (($wizard['channel'] ?? null) ?: 'beta');
 
-        return response()->json([
-            'data' => [
-                'provision' => $siteProvision,
-                'channel' => $channel,
-                'admin' => [
-                    'name' => $siteProvision->wizard_payload['admin_name'] ?? null,
-                    'email' => $siteProvision->wizard_payload['admin_email'] ?? null,
-                ],
-                'license' => $license ? [
+        $ssl = [
+            'ssl_status' => null,
+            'expires_at' => null,
+            'domain' => $siteProvision->domain,
+            'log' => null,
+        ];
+        try {
+            $ssl = app(SiteProvisionOrchestrator::class)->sslInfo($siteProvision);
+        } catch (Throwable $e) {
+            report($e);
+            $ssl['log'] = $e->getMessage();
+        }
+
+        $licensePayload = null;
+        try {
+            if ($license) {
+                $expires = $license->expires_at;
+                $licensePayload = [
                     'id' => $license->id,
                     'license_key' => $license->license_key,
                     'status' => $license->status,
@@ -396,21 +411,38 @@ class SiteProvisionController extends Controller
                     'logo_url' => $license->logo_url,
                     'project_name' => $license->project_name,
                     'start_date' => optional($license->start_date)?->toDateString(),
-                    'expires_at' => optional($license->expires_at)?->toIso8601String(),
+                    'expires_at' => optional($expires)?->toIso8601String(),
                     'created_at' => optional($license->created_at)?->toIso8601String(),
                     'max_users' => $license->max_users,
                     'modules' => array_values(array_filter(array_map('strval', $modules))),
                     'module_matrix' => $meta['module_matrix'] ?? new \stdClass,
-                    'is_expired' => $license->expires_at ? $license->expires_at->isPast() : false,
-                    'days_remaining' => $license->expires_at
-                        ? (int) now()->diffInDays($license->expires_at, false)
-                        : null,
-                ] : null,
-                'update' => $siteProvision->wizard_payload['update'] ?? null,
-                'customer' => $siteProvision->crmAccount,
-                'ssl' => app(SiteProvisionOrchestrator::class)->sslInfo($siteProvision),
+                    'is_expired' => $expires ? $expires->isPast() : false,
+                    'days_remaining' => $expires ? (int) now()->diffInDays($expires, false) : null,
+                ];
+            }
+        } catch (Throwable $e) {
+            report($e);
+        }
+
+        return response()->json(
+            [
+                'data' => [
+                    'provision' => $siteProvision,
+                    'channel' => $channel,
+                    'admin' => [
+                        'name' => $wizard['admin_name'] ?? null,
+                        'email' => $wizard['admin_email'] ?? null,
+                    ],
+                    'license' => $licensePayload,
+                    'update' => $wizard['update'] ?? null,
+                    'customer' => $siteProvision->crmAccount,
+                    'ssl' => $ssl,
+                ],
             ],
-        ]);
+            200,
+            [],
+            JSON_INVALID_UTF8_SUBSTITUTE
+        );
     }
 
     public function renewSsl(Request $request, WebinoSiteProvision $siteProvision, SiteProvisionOrchestrator $orchestrator): JsonResponse

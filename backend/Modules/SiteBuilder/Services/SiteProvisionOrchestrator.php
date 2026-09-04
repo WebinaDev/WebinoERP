@@ -192,14 +192,26 @@ class SiteProvisionOrchestrator
      */
     public function sslInfo(WebinoSiteProvision $provision): array
     {
-        if ($this->shouldUseLocal($provision)) {
-            return $this->local->sslInfo($provision);
+        try {
+            if ($this->shouldUseLocal($provision)) {
+                return $this->local->sslInfo($provision);
+            }
+        } catch (Throwable $e) {
+            report($e);
+
+            return [
+                'ssl_status' => null,
+                'expires_at' => null,
+                'domain' => $provision->domain,
+                'log' => $e->getMessage(),
+            ];
         }
 
         return [
             'ssl_status' => null,
             'expires_at' => null,
             'domain' => $provision->domain,
+            'log' => null,
         ];
     }
 
