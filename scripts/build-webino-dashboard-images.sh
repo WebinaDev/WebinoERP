@@ -14,6 +14,8 @@ GIT_URL="${WEBINO_DASHBOARD_GIT_URL:-https://github.com/Webinadev/WebinoDashboar
 GIT_REF="${WEBINO_DASHBOARD_GIT_REF:-main}"
 SRC="${WEBINO_DASHBOARD_SRC:-/var/lib/webino/src/WebinoDashboard}"
 
+log() { echo "$*" >&2; }
+
 has_dockerfiles() {
   local root="${1:-}"
   [[ -n "$root" && -f "${root}/docker/php/Dockerfile.platform" && -f "${root}/docker/next/Dockerfile" ]]
@@ -35,7 +37,7 @@ authenticated_url() {
 
 sync_from_git() {
   if ! command -v git >/dev/null 2>&1; then
-    echo "error: git is required to clone ${GIT_URL}" >&2
+    log "error: git is required to clone ${GIT_URL}"
     exit 1
   fi
 
@@ -44,7 +46,7 @@ sync_from_git() {
   local url
   url="$(authenticated_url "$GIT_URL")"
 
-  echo "Syncing ${GIT_URL} (${GIT_REF}) → ${SRC}"
+  log "Syncing ${GIT_URL} (${GIT_REF}) → ${SRC}"
 
   if [[ -d "${SRC}/.git" ]]; then
     git -C "$SRC" remote set-url origin "$url"
@@ -61,18 +63,9 @@ sync_from_git() {
   fi
 
   if ! has_dockerfiles "$SRC"; then
-    echo "error: clone succeeded but docker/php/Dockerfile.platform is missing in ${SRC}" >&2
+    log "error: clone succeeded but docker/php/Dockerfile.platform is missing in ${SRC}"
     exit 1
   fi
-}
-
-resolve_source() {
-  if has_dockerfiles "${WEBINO_DASHBOARD_PATH:-}"; then
-    (cd "${WEBINO_DASHBOARD_PATH}" && pwd)
-    return
-  fi
-  sync_from_git
-  (cd "$SRC" && pwd)
 }
 
 build_one() {
@@ -80,7 +73,16 @@ build_one() {
   local dockerfile="$2"
   local context="$3"
 
-  echo "Building ${tag} from ${context} (-f ${dockerfile})"
+  log "Building ${tag} from ${context} (-f ${dockerfile})"
+
+  if [[ ! -d "$context" ]]; then
+    log "error: docker build context is not a directory: ${context}"
+    exit 1
+  fi
+  if [[ ! -f "${context}/${dockerfile}" ]]; then
+    log "error: missing ${context}/${dockerfile}"
+    exit 1
+  fi
 
   if docker buildx version >/dev/null 2>&1; then
     docker buildx build --load -t "${tag}" -f "${context}/${dockerfile}" "${context}"
@@ -89,10 +91,17 @@ build_one() {
   fi
 }
 
-CONTEXT="$(resolve_source)"
-echo "Dashboard source: ${CONTEXT}"
+CONTEXT=""
+if has_dockerfiles "${WEBINO_DASHBOARD_PATH:-}"; then
+  CONTEXT="$(cd "${WEBINO_DASHBOARD_PATH}" && pwd)"
+else
+  sync_from_git
+  CONTEXT="$SRC"
+fi
+
+log "Dashboard source: ${CONTEXT}"
 
 build_one webino-backend:latest docker/php/Dockerfile.platform "$CONTEXT"
 build_one webino-next:latest docker/next/Dockerfile "$CONTEXT"
 
-echo "OK: webino-backend:latest and webino-next:latest"
+log "OK: webino-backend:latest and webino-next:latest"
