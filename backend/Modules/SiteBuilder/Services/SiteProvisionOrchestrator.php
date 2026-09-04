@@ -8,6 +8,7 @@ use Modules\Platform\Entities\PlatformServer;
 use Modules\Platform\Services\LocalSameVpsProvisioner;
 use Modules\Platform\Services\WebinoDashboardProvisioner;
 use Modules\SiteBuilder\Entities\WebinoSiteProvision;
+use Modules\SiteBuilder\Support\ProvisionProgress;
 use Throwable;
 
 class SiteProvisionOrchestrator
@@ -22,6 +23,10 @@ class SiteProvisionOrchestrator
     public function launch(WebinoSiteProvision $provision): WebinoSiteProvision
     {
         $provision->load(['package.businessType.category', 'package.features', 'crmAccount']);
+
+        if ($provision->status === WebinoSiteProvision::STATUS_CANCELLED) {
+            return $provision;
+        }
 
         $serverId = (int) (($provision->wizard_payload['server_id'] ?? 0) ?: 0);
         $server = $serverId ? PlatformServer::query()->find($serverId) : null;
@@ -40,6 +45,7 @@ class SiteProvisionOrchestrator
             ?? 'corporate';
 
         try {
+            ProvisionProgress::assertNotCancelled($provision);
             if ($useRemote) {
                 $this->remote->provisionFromSiteBuilder($provision, $server, $siteType);
             } else {
@@ -47,6 +53,12 @@ class SiteProvisionOrchestrator
             }
             $this->audit->log($provision->created_by, 'provision.launched', $provision->fresh());
         } catch (Throwable $e) {
+            if (str_contains($e->getMessage(), 'platform.provision_cancelled')) {
+                ProvisionProgress::report($provision, ProvisionProgress::PHASE_CANCELLED);
+
+                return $provision->fresh(['license', 'package', 'crmAccount']);
+            }
+
             return $this->fail($provision, $e->getMessage());
         }
 
@@ -107,6 +119,35 @@ class SiteProvisionOrchestrator
         return $provision->fresh(['license', 'package', 'crmAccount']);
     }
 
+    public function cancel(WebinoSiteProvision $provision): WebinoSiteProvision
+    {
+        if (! in_array($provision->status, [
+            WebinoSiteProvision::STATUS_PENDING,
+            WebinoSiteProvision::STATUS_PROVISIONING,
+            WebinoSiteProvision::STATUS_SSL_PENDING,
+        ], true)) {
+            throw new \InvalidArgumentException('Only in-progress provisions can be cancelled.');
+        }
+
+        $provision->update([
+            'status' => WebinoSiteProvision::STATUS_CANCELLED,
+            'progress' => ProvisionProgress::make(ProvisionProgress::PHASE_CANCELLED),
+            'error_log' => trim(($provision->error_log ?? '')."\nCancelled by user."),
+        ]);
+
+        try {
+            if ($this->shouldUseLocal($provision)) {
+                $this->local->destroyStack($provision);
+            }
+        } catch (Throwable $e) {
+            report($e);
+        }
+
+        $this->audit->log($provision->created_by, 'provision.cancelled', $provision);
+
+        return $provision->fresh(['license', 'package', 'crmAccount']);
+    }
+
     public function rollback(WebinoSiteProvision $provision): WebinoSiteProvision
     {
         try {
@@ -123,6 +164,7 @@ class SiteProvisionOrchestrator
 
         $provision->update([
             'status' => WebinoSiteProvision::STATUS_FAILED,
+            'progress' => ProvisionProgress::make(ProvisionProgress::PHASE_FAILED),
             'error_log' => trim(($provision->error_log ?? '')."\nRolled back."),
         ]);
 
@@ -253,6 +295,7 @@ class SiteProvisionOrchestrator
     {
         $provision->update([
             'status' => WebinoSiteProvision::STATUS_FAILED,
+            'progress' => ProvisionProgress::make(ProvisionProgress::PHASE_FAILED),
             'error_log' => $message,
         ]);
         $this->audit->log($provision->created_by, 'provision.failed', $provision, ['error' => $message]);

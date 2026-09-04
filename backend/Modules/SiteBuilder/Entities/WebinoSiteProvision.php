@@ -21,11 +21,13 @@ class WebinoSiteProvision extends Model
 
     public const STATUS_FAILED = 'failed';
 
+    public const STATUS_CANCELLED = 'cancelled';
+
     protected $table = 'webino_site_provisions';
 
     protected $fillable = [
         'crm_account_id', 'package_id', 'license_id', 'slug', 'domain', 'subdomain',
-        'uses_custom_domain', 'status', 'wizard_payload', 'error_log', 'server_host_id',
+        'uses_custom_domain', 'status', 'wizard_payload', 'error_log', 'progress', 'server_host_id',
         'provision_token', 'created_by', 'launched_at', 'ready_at',
     ];
 
@@ -33,6 +35,7 @@ class WebinoSiteProvision extends Model
     {
         return [
             'wizard_payload' => 'array',
+            'progress' => 'array',
             'uses_custom_domain' => 'boolean',
             'launched_at' => 'datetime',
             'ready_at' => 'datetime',

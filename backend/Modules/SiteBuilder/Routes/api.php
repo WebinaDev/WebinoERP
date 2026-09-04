@@ -44,6 +44,7 @@ Route::patch('/provisions/{siteProvision}', [SiteProvisionController::class, 'up
 Route::post('/provisions/{siteProvision}/prepare-license', [SiteProvisionController::class, 'prepareLicense']);
 Route::post('/provisions/{siteProvision}/launch', [SiteProvisionController::class, 'launch'])->middleware('throttle:10,1');
 Route::get('/provisions/{siteProvision}/status', [SiteProvisionController::class, 'status']);
+Route::post('/provisions/{siteProvision}/cancel', [SiteProvisionController::class, 'cancel'])->middleware('throttle:10,1');
 Route::post('/provisions/{siteProvision}/retry', [SiteProvisionController::class, 'retry'])->middleware('throttle:10,1');
 Route::post('/provisions/{siteProvision}/start', [SiteProvisionController::class, 'start']);
 Route::post('/provisions/{siteProvision}/stop', [SiteProvisionController::class, 'stop']);

@@ -12,6 +12,7 @@ use Modules\Platform\Entities\PlatformServer;
 use Modules\Platform\Support\TenantSiteStack;
 use Modules\SiteBuilder\Entities\WebinoSiteProvision;
 use Modules\SiteBuilder\Services\LicenseProvisionerService;
+use Modules\SiteBuilder\Support\ProvisionProgress;
 use RuntimeException;
 use Symfony\Component\Process\Process;
 use Throwable;
@@ -55,15 +56,33 @@ class LocalSameVpsProvisioner
             $provision->load('license');
         }
 
+        ProvisionProgress::assertNotCancelled($provision);
+
         $token = $provision->provision_token ?: Str::random(48);
         $provision->provision_token = $token;
         $provision->status = WebinoSiteProvision::STATUS_PROVISIONING;
         $provision->launched_at = now();
         $provision->save();
 
-        $this->ensureDockerNetwork();
-        $this->ensureImages();
+        $imagesCached = $this->imagesPresent();
+        ProvisionProgress::report($provision, ProvisionProgress::PHASE_QUEUED, $imagesCached);
 
+        $this->ensureDockerNetwork();
+        ProvisionProgress::assertNotCancelled($provision);
+
+        if (! $imagesCached) {
+            ProvisionProgress::report($provision, ProvisionProgress::PHASE_FETCH_SOURCE, false);
+        }
+        ProvisionProgress::report(
+            $provision,
+            $imagesCached ? ProvisionProgress::PHASE_WRITE_STACK : ProvisionProgress::PHASE_BUILD_IMAGES,
+            $imagesCached,
+        );
+        $this->ensureImages();
+        $imagesCached = true;
+        ProvisionProgress::assertNotCancelled($provision);
+
+        ProvisionProgress::report($provision, ProvisionProgress::PHASE_WRITE_STACK, $imagesCached);
         $dir = $this->siteDir($provision);
         $this->ensureDir($dir);
 
@@ -74,12 +93,15 @@ class LocalSameVpsProvisioner
 
         $this->writeCaddySnippet($provision->domain, $provision->slug);
         $this->reloadCaddy();
+        ProvisionProgress::assertNotCancelled($provision);
 
+        ProvisionProgress::report($provision, ProvisionProgress::PHASE_COMPOSE_UP, $imagesCached);
         $up = $this->composeUp($provision->slug, $dir);
         if ($up['exit_code'] !== 0) {
             throw new RuntimeException(trim($up['stderr'] ?: $up['stdout']) ?: 'platform.compose_up_failed');
         }
         $this->attachToProxyNetwork($provision->slug);
+        ProvisionProgress::assertNotCancelled($provision);
 
         $resource = PlatformResource::query()->updateOrCreate(
             ['provision_id' => $provision->id],
@@ -120,16 +142,25 @@ class LocalSameVpsProvisioner
         ]);
 
         try {
+            ProvisionProgress::report($provision, ProvisionProgress::PHASE_HEALTH, $imagesCached);
             if ($this->waitForHealthy($provision->slug)) {
+                ProvisionProgress::assertNotCancelled($provision);
+                ProvisionProgress::report($provision, ProvisionProgress::PHASE_BOOTSTRAP, $imagesCached);
                 $this->bootstrapRemote($provision, $siteType, $token);
                 $provision->status = WebinoSiteProvision::STATUS_READY;
                 $provision->ready_at = now();
+                ProvisionProgress::report($provision, ProvisionProgress::PHASE_DONE, $imagesCached);
             } else {
+                ProvisionProgress::report($provision, ProvisionProgress::PHASE_SSL, $imagesCached);
                 $provision->status = WebinoSiteProvision::STATUS_SSL_PENDING;
             }
             $provision->error_log = null;
             $provision->save();
         } catch (Throwable $e) {
+            if (str_contains($e->getMessage(), 'platform.provision_cancelled')) {
+                throw $e;
+            }
+            ProvisionProgress::report($provision, ProvisionProgress::PHASE_SSL, $imagesCached);
             $provision->status = WebinoSiteProvision::STATUS_SSL_PENDING;
             $provision->error_log = $e->getMessage();
             $provision->save();
@@ -198,12 +229,17 @@ class LocalSameVpsProvisioner
         }
     }
 
-    protected function ensureImages(): void
+    protected function imagesPresent(): bool
     {
         $backendOk = $this->run(['docker', 'image', 'inspect', 'webino-backend:latest'], 30)['exit_code'] === 0;
         $frontendOk = $this->run(['docker', 'image', 'inspect', 'webino-next:latest'], 30)['exit_code'] === 0;
 
-        if ($backendOk && $frontendOk) {
+        return $backendOk && $frontendOk;
+    }
+
+    protected function ensureImages(): void
+    {
+        if ($this->imagesPresent()) {
             return;
         }
 
@@ -236,9 +272,7 @@ class LocalSameVpsProvisioner
             }
         }
 
-        $backendOk = $this->run(['docker', 'image', 'inspect', 'webino-backend:latest'], 30)['exit_code'] === 0;
-        $frontendOk = $this->run(['docker', 'image', 'inspect', 'webino-next:latest'], 30)['exit_code'] === 0;
-        if (! $backendOk || ! $frontendOk) {
+        if (! $this->imagesPresent()) {
             throw new RuntimeException(
                 'platform.dashboard_images_missing: need webino-backend:latest and webino-next:latest. '
                 .'ERP clones https://github.com/Webinadev/WebinoDashboard into /var/lib/webino/src and builds images.'

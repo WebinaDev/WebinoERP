@@ -12,6 +12,7 @@ use Modules\SiteBuilder\Jobs\ProvisionWebinoSiteJob;
 use Modules\SiteBuilder\Services\LicenseProvisionerService;
 use Modules\SiteBuilder\Services\SiteProvisionAuditLogger;
 use Modules\SiteBuilder\Services\SiteProvisionOrchestrator;
+use Modules\SiteBuilder\Support\ProvisionProgress;
 use Throwable;
 
 class SiteProvisionController extends Controller
@@ -163,6 +164,7 @@ class SiteProvisionController extends Controller
             WebinoSiteProvision::STATUS_DRAFT,
             WebinoSiteProvision::STATUS_PENDING,
             WebinoSiteProvision::STATUS_FAILED,
+            WebinoSiteProvision::STATUS_CANCELLED,
         ], true)) {
             return response()->json(['message' => 'Provision already launched.'], 422);
         }
@@ -171,7 +173,11 @@ class SiteProvisionController extends Controller
             return response()->json(['message' => 'Package is required.'], 422);
         }
 
-        $siteProvision->update(['status' => WebinoSiteProvision::STATUS_PENDING]);
+        $siteProvision->update([
+            'status' => WebinoSiteProvision::STATUS_PENDING,
+            'error_log' => null,
+            'progress' => ProvisionProgress::make(ProvisionProgress::PHASE_QUEUED),
+        ]);
         ProvisionWebinoSiteJob::dispatch($siteProvision->id);
         app(SiteProvisionAuditLogger::class)->log($request->user()?->id, 'provision.launch_queued', $siteProvision);
 
@@ -190,13 +196,34 @@ class SiteProvisionController extends Controller
         return response()->json(['data' => $siteProvision->load(['license', 'package'])]);
     }
 
+    public function cancel(WebinoSiteProvision $siteProvision, SiteProvisionOrchestrator $orchestrator, Request $request): JsonResponse
+    {
+        try {
+            $row = $orchestrator->cancel($siteProvision);
+            app(SiteProvisionAuditLogger::class)->log($request->user()?->id, 'provision.cancel_requested', $row);
+
+            return response()->json(['data' => $row, 'message' => 'Cancelled']);
+        } catch (\InvalidArgumentException $e) {
+            return response()->json(['message' => $e->getMessage()], 422);
+        } catch (Throwable $e) {
+            return response()->json(['message' => $e->getMessage()], 422);
+        }
+    }
+
     public function retry(WebinoSiteProvision $siteProvision): JsonResponse
     {
-        if ($siteProvision->status !== WebinoSiteProvision::STATUS_FAILED) {
-            return response()->json(['message' => 'Only failed provisions can be retried.'], 422);
+        if (! in_array($siteProvision->status, [
+            WebinoSiteProvision::STATUS_FAILED,
+            WebinoSiteProvision::STATUS_CANCELLED,
+        ], true)) {
+            return response()->json(['message' => 'Only failed or cancelled provisions can be retried.'], 422);
         }
 
-        $siteProvision->update(['status' => WebinoSiteProvision::STATUS_PENDING, 'error_log' => null]);
+        $siteProvision->update([
+            'status' => WebinoSiteProvision::STATUS_PENDING,
+            'error_log' => null,
+            'progress' => ProvisionProgress::make(ProvisionProgress::PHASE_QUEUED),
+        ]);
         ProvisionWebinoSiteJob::dispatch($siteProvision->id);
 
         return response()->json(['data' => $siteProvision, 'message' => 'Retry queued.']);

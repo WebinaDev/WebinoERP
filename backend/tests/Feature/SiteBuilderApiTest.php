@@ -122,4 +122,68 @@ class SiteBuilderApiTest extends TestCase
         $this->assertDatabaseHas('webino_site_provisions', ['slug' => 'test-shop']);
         $this->assertSame('draft', $provision->status);
     }
+
+    public function test_cancel_sets_cancelled_status_and_progress(): void
+    {
+        $user = $this->actingAsRole('system_manager');
+        Sanctum::actingAs($user);
+
+        $package = WebinoPackage::query()->first();
+        $provision = WebinoSiteProvision::query()->create([
+            'package_id' => $package->id,
+            'slug' => 'cancel-me',
+            'domain' => 'cancel-me.webina.local',
+            'status' => WebinoSiteProvision::STATUS_PENDING,
+            'wizard_payload' => ['site_name' => 'Cancel Me'],
+            'progress' => [
+                'phase' => 'queued',
+                'percent' => 5,
+                'label_fa' => 'در صف اجرا',
+                'label_en' => 'Queued',
+                'eta_seconds' => 180,
+                'images_cached' => true,
+                'updated_at' => now()->toIso8601String(),
+            ],
+        ]);
+
+        $this->postJson('/api/v1/site-builder/provisions/'.$provision->id.'/cancel')
+            ->assertOk()
+            ->assertJsonPath('data.status', 'cancelled')
+            ->assertJsonPath('data.progress.phase', 'cancelled');
+
+        $this->assertDatabaseHas('webino_site_provisions', [
+            'id' => $provision->id,
+            'status' => 'cancelled',
+        ]);
+    }
+
+    public function test_status_returns_progress_shape(): void
+    {
+        $user = $this->actingAsRole('system_manager');
+        Sanctum::actingAs($user);
+
+        $package = WebinoPackage::query()->first();
+        $provision = WebinoSiteProvision::query()->create([
+            'package_id' => $package->id,
+            'slug' => 'progress-shop',
+            'domain' => 'progress-shop.webina.local',
+            'status' => WebinoSiteProvision::STATUS_PROVISIONING,
+            'wizard_payload' => ['site_name' => 'Progress'],
+            'progress' => [
+                'phase' => 'compose_up',
+                'percent' => 65,
+                'label_fa' => 'بالا آوردن کانتینرها',
+                'label_en' => 'Starting containers',
+                'eta_seconds' => 70,
+                'images_cached' => true,
+                'updated_at' => now()->toIso8601String(),
+            ],
+        ]);
+
+        $this->getJson('/api/v1/site-builder/provisions/'.$provision->id.'/status')
+            ->assertOk()
+            ->assertJsonPath('data.progress.phase', 'compose_up')
+            ->assertJsonPath('data.progress.percent', 65)
+            ->assertJsonStructure(['data' => ['progress' => ['phase', 'percent', 'label_fa', 'eta_seconds']]]);
+    }
 }

@@ -17,11 +17,9 @@ test.describe('Cafe site provision path', () => {
 
     const url = page.url();
     if (!url.includes('login')) {
-      const siteTypeSelect = page.locator('select').filter({ has: page.locator('option[value="cafe"]') }).first();
-      await expect(siteTypeSelect).toBeVisible();
-      for (const siteType of ['ecommerce', 'magazine', 'cafe', 'resume', 'corporate']) {
-        await expect(siteTypeSelect.locator(`option[value="${siteType}"]`)).toHaveText(siteType);
-      }
+      await expect(page.getByTestId('site-wizard')).toBeVisible();
+      await expect(page.getByTestId('wizard-step-customer')).toBeVisible();
+      await expect(page.getByTestId('wizard-continue')).toBeVisible();
     }
   });
 

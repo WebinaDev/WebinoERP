@@ -43,15 +43,26 @@ export type PackageRow = {
   features?: DashboardFeature[];
 };
 
+export type ProvisionProgress = {
+  phase?: string;
+  percent?: number;
+  label_fa?: string;
+  label_en?: string;
+  eta_seconds?: number | null;
+  images_cached?: boolean | null;
+  updated_at?: string;
+};
+
 export type SiteProvision = {
   id: number;
   slug: string;
   domain: string;
   status: string;
   wizard_payload?: Record<string, unknown>;
-  license?: { license_key?: string };
+  license?: { license_key?: string; meta?: { modules?: string[] } };
   package?: PackageRow;
   error_log?: string;
+  progress?: ProvisionProgress | null;
 };
 
 export async function fetchCatalog() {
@@ -101,6 +112,11 @@ export async function launchProvision(id: number) {
 
 export async function pollProvisionStatus(id: number) {
   const res = await apiClient.get(`${BASE}/provisions/${id}/status`);
+  return unwrapData<SiteProvision>(res);
+}
+
+export async function cancelProvision(id: number) {
+  const res = await apiClient.post(`${BASE}/provisions/${id}/cancel`);
   return unwrapData<SiteProvision>(res);
 }
 

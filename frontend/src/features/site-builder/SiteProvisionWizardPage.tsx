@@ -1,20 +1,12 @@
 'use client';
 
-import { useRouter } from 'next/navigation';
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { useLocale, useTranslations } from 'next-intl';
+import { useTranslations } from 'next-intl';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent } from '@/components/ui/card';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Switch } from '@/components/ui/switch';
-import { dashboardHref } from '@/lib/route-resolver';
 import {
   createProvision,
   fetchCatalog,
   fetchPackages,
-  launchProvision,
-  pollProvisionStatus,
   prepareProvisionLicense,
   updateProvision,
   type BusinessCategory,
@@ -24,20 +16,19 @@ import {
 } from '@/lib/api/site-builder';
 import { fetchServers, type PlatformServer } from '@/lib/api/platform';
 import apiClient from '@/lib/api-client';
-import { formatProvisionError, getAxiosMessage, unwrapData } from '@/lib/api-helpers';
+import { getAxiosMessage, unwrapData } from '@/lib/api-helpers';
 import { normalizeListPayload } from '@/lib/list-utils';
-
-type CrmAccount = { id: number; name?: string; company_name?: string };
+import { WizardFooter, WizardShell } from './wizard/WizardShell';
+import { StepCustomer, type CrmAccount } from './wizard/StepCustomer';
+import { StepCategory } from './wizard/StepCategory';
+import { StepType } from './wizard/StepType';
+import { StepPackage } from './wizard/StepPackage';
+import { StepSiteInfo } from './wizard/StepSiteInfo';
+import { StepDomain } from './wizard/StepDomain';
+import { StepLicense } from './wizard/StepLicense';
+import { LaunchControlPanel } from './wizard/LaunchControlPanel';
 
 const DEFAULT_BASE_DOMAIN = 'webinaagency.ir';
-
-const SITE_TYPE_LABELS: Record<string, string> = {
-  ecommerce: 'فروشگاه اینترنتی',
-  magazine: 'مجله آموزشی',
-  cafe: 'کافه و رستوران',
-  resume: 'رزومه',
-  corporate: 'شرکتی',
-};
 
 function slugify(value: string): string {
   return value
@@ -50,7 +41,9 @@ function slugify(value: string): string {
 }
 
 function pickDefaultServer(servers: PlatformServer[]): number | null {
-  const localhost = servers.find((s) => s.is_localhost || s.ip === '127.0.0.1' || /localhost/i.test(s.name));
+  const localhost = servers.find(
+    (s) => s.is_localhost || s.ip === '127.0.0.1' || /localhost/i.test(s.name),
+  );
   if (localhost?.id) return localhost.id;
   const ready = servers.find((s) => (s.status ?? '').toLowerCase() === 'ready');
   if (ready?.id) return ready.id;
@@ -59,8 +52,6 @@ function pickDefaultServer(servers: PlatformServer[]): number | null {
 
 export function SiteProvisionWizardPage() {
   const t = useTranslations('siteBuilder');
-  const locale = useLocale();
-  const router = useRouter();
   const [step, setStep] = useState(0);
   const [categories, setCategories] = useState<BusinessCategory[]>([]);
   const [packages, setPackages] = useState<PackageRow[]>([]);
@@ -147,9 +138,11 @@ export function SiteProvisionWizardPage() {
     }
     const nested = selectedType?.packages ?? [];
     if (nested.length) setPackages(nested);
-    void fetchPackages(typeId).then(setPackages).catch(() => {
-      if (nested.length) setPackages(nested);
-    });
+    void fetchPackages(typeId)
+      .then(setPackages)
+      .catch(() => {
+        if (nested.length) setPackages(nested);
+      });
   }, [typeId, selectedType]);
 
   useEffect(() => {
@@ -208,10 +201,25 @@ export function SiteProvisionWizardPage() {
       setError(t('customerRequired'));
       return;
     }
+    if (step === 1 && !categoryId) return;
+    if (step === 2 && !typeId) return;
+    if (step === 3 && !packageId) return;
+    if (step === 4 && !siteName.trim()) return;
+
     if (step < 3) {
       setStep((s) => s + 1);
       return;
     }
+
+    if (step === 6) {
+      if (!provision?.license?.license_key) {
+        setError(t('licensePending'));
+        return;
+      }
+      setStep(7);
+      return;
+    }
+
     setPending(true);
     try {
       const row = await persistWizard();
@@ -237,9 +245,7 @@ export function SiteProvisionWizardPage() {
     try {
       const res = await apiClient.post('/v1/crm/accounts', { name, type: 'customer' });
       const created = unwrapData<CrmAccount>(res);
-      if (!created?.id) {
-        throw new Error(t('saveError'));
-      }
+      if (!created?.id) throw new Error(t('saveError'));
       setAccounts((prev) => [created, ...prev]);
       setCrmAccountId(created.id);
       setNewCustomerName('');
@@ -251,7 +257,6 @@ export function SiteProvisionWizardPage() {
   }
 
   async function prepareLicense() {
-    if (!provision?.id) return;
     setPending(true);
     setError(null);
     try {
@@ -261,31 +266,6 @@ export function SiteProvisionWizardPage() {
       setProvision(licensed);
     } catch (e) {
       setError(getAxiosMessage(e) || t('saveError'));
-    } finally {
-      setPending(false);
-    }
-  }
-
-  async function launch() {
-    if (!provision?.id) return;
-    setPending(true);
-    setError(null);
-    try {
-      await launchProvision(provision.id);
-      const poll = async () => {
-        try {
-          const st = await pollProvisionStatus(provision.id);
-          setProvision(st);
-          if (!['ready', 'failed'].includes(st.status)) {
-            setTimeout(() => void poll(), 4000);
-          }
-        } catch (e) {
-          setError(getAxiosMessage(e) || t('launchError'));
-        }
-      };
-      void poll();
-    } catch (e) {
-      setError(getAxiosMessage(e) || t('launchError'));
     } finally {
       setPending(false);
     }
@@ -302,362 +282,164 @@ export function SiteProvisionWizardPage() {
     t('stepLaunch'),
   ];
 
-  return (
-    <div className="mx-auto max-w-2xl space-y-4 p-4">
-      <h1 className="text-2xl font-semibold">{t('wizardTitle')}</h1>
-      <ol className="flex flex-wrap gap-2 text-xs text-muted-foreground">
-        {steps.map((label, i) => (
-          <li key={label} className={i === step ? 'text-foreground font-medium' : ''}>
-            {i + 1}. {label}
-          </li>
-        ))}
-      </ol>
-      {error ? <p className="text-destructive text-sm">{error}</p> : null}
+  const stepSubtitles = [
+    t('stepCustomerSubtitle'),
+    t('stepCategorySubtitle'),
+    t('stepTypeSubtitle'),
+    t('stepPackageSubtitle'),
+    t('stepSiteInfoSubtitle'),
+    t('stepDomainSubtitle'),
+    t('stepLicenseSubtitle'),
+    t('stepLaunchSubtitle'),
+  ];
 
-      {step === 0 ? (
-        <Card>
-          <CardContent className="grid gap-3 pt-6">
-            <Label>{t('selectCustomer')}</Label>
-            <select
-              className="bg-background h-10 rounded-md border px-3"
-              value={crmAccountId ?? ''}
-              onChange={(e) => setCrmAccountId(e.target.value ? Number(e.target.value) : null)}
+  const canContinue =
+    (step === 0 && !!crmAccountId) ||
+    (step === 1 && !!categoryId) ||
+    (step === 2 && !!typeId) ||
+    (step === 3 && !!packageId) ||
+    (step === 4 && !!siteName.trim()) ||
+    step === 5 ||
+    (step === 6 && !!provision?.license?.license_key);
+
+  return (
+    <WizardShell
+      step={step}
+      steps={steps}
+      title={t('wizardTitle')}
+      subtitle={stepSubtitles[step]}
+      error={error}
+      footer={
+        step < 7 ? (
+          <WizardFooter>
+            <Button type="button" variant="outline" onClick={backStep} disabled={step === 0 || pending}>
+              {t('back')}
+            </Button>
+            <Button
+              disabled={pending || !canContinue}
+              onClick={() => void nextStep()}
+              data-testid="wizard-continue"
             >
-              <option value="">{t('customerRequired')}</option>
-              {accounts.map((a) => (
-                <option key={a.id} value={a.id}>
-                  {a.company_name || a.name || `#${a.id}`}
-                </option>
-              ))}
-            </select>
-            {accounts.length === 0 ? (
-              <p className="text-muted-foreground text-sm">{t('createCustomer')}</p>
-            ) : null}
-            <div className="grid gap-2">
-              <Label>{t('createCustomer')}</Label>
-              <div className="flex gap-2">
-                <Input
-                  value={newCustomerName}
-                  onChange={(e) => setNewCustomerName(e.target.value)}
-                  placeholder={t('createCustomer')}
-                />
-                <Button
-                  type="button"
-                  variant="outline"
-                  disabled={pending || !newCustomerName.trim()}
-                  onClick={() => void createCustomerQuick()}
-                >
-                  {t('save')}
-                </Button>
-              </div>
-            </div>
-            <Button disabled={pending || !crmAccountId} onClick={() => void nextStep()}>
               {t('continue')}
             </Button>
-          </CardContent>
-        </Card>
+          </WizardFooter>
+        ) : null
+      }
+    >
+      {step === 0 ? (
+        <StepCustomer
+          accounts={accounts}
+          crmAccountId={crmAccountId}
+          onSelect={setCrmAccountId}
+          newCustomerName={newCustomerName}
+          onNewName={setNewCustomerName}
+          onCreate={() => void createCustomerQuick()}
+          pending={pending}
+        />
       ) : null}
 
       {step === 1 ? (
-        <Card>
-          <CardContent className="grid gap-3 pt-6 md:grid-cols-2">
-            {categories.map((c) => (
-              <Button
-                key={c.id}
-                type="button"
-                variant={categoryId === c.id ? 'default' : 'outline'}
-                onClick={() => {
-                  setCategoryId(c.id);
-                  setTypeId(null);
-                }}
-              >
-                {c.name_fa}
-              </Button>
-            ))}
-            <div className="flex gap-2 md:col-span-2">
-              <Button type="button" variant="outline" onClick={backStep}>
-                {t('back')}
-              </Button>
-              <Button disabled={!categoryId || pending} onClick={() => void nextStep()}>
-                {t('continue')}
-              </Button>
-            </div>
-          </CardContent>
-        </Card>
+        <StepCategory
+          categories={categories}
+          categoryId={categoryId}
+          onSelect={(id) => {
+            setCategoryId(id);
+            setTypeId(null);
+          }}
+        />
       ) : null}
 
       {step === 2 ? (
-        <Card>
-          <CardContent className="grid gap-3 pt-6 md:grid-cols-2">
-            {(selectedCategory?.types ?? []).map((type) => (
-              <Button
-                key={type.id}
-                type="button"
-                variant={typeId === type.id ? 'default' : 'outline'}
-                onClick={() => {
-                  setTypeId(type.id);
-                  if (type.slug) setSiteTypeSlug(type.slug);
-                }}
-              >
-                {type.name_fa}
-              </Button>
-            ))}
-            <div className="flex gap-2 md:col-span-2">
-              <Button type="button" variant="outline" onClick={backStep}>
-                {t('back')}
-              </Button>
-              <Button disabled={!typeId || pending} onClick={() => void nextStep()}>
-                {t('continue')}
-              </Button>
-            </div>
-          </CardContent>
-        </Card>
+        <StepType
+          types={selectedCategory?.types ?? []}
+          typeId={typeId}
+          onSelect={(type) => {
+            setTypeId(type.id);
+            if (type.slug) setSiteTypeSlug(type.slug);
+          }}
+        />
       ) : null}
 
       {step === 3 ? (
-        <Card>
-          <CardContent className="grid gap-3 pt-6">
-            {packages.length === 0 ? (
-              <p className="text-muted-foreground text-sm">{t('noPackages')}</p>
-            ) : null}
-            {packages.map((p) => (
-              <Button
-                key={p.id}
-                type="button"
-                variant={packageId === p.id ? 'default' : 'outline'}
-                className="justify-start"
-                onClick={() => {
-                  setPackageId(p.id);
-                  const fromType = (selectedType?.features ?? [])
-                    .filter((f) => !f.is_addon)
-                    .map((f) => f.slug);
-                  if (fromType.length) setSelectedFeatures(fromType);
-                }}
-              >
-                {p.name_fa} ({p.sku})
-              </Button>
-            ))}
-            {(selectedType?.features ?? [])
-              .filter((f) => f.is_addon)
-              .map((f) => (
-                <div key={f.id} className="flex items-center justify-between rounded border p-3">
-                  <span>{f.name_fa}</span>
-                  <Switch
-                    checked={selectedFeatures.includes(f.slug)}
-                    onCheckedChange={(on) => {
-                      setSelectedFeatures((prev) =>
-                        on ? [...prev, f.slug] : prev.filter((s) => s !== f.slug),
-                      );
-                    }}
-                  />
-                </div>
-              ))}
-            <div className="flex gap-2">
-              <Button type="button" variant="outline" onClick={backStep}>
-                {t('back')}
-              </Button>
-              <Button disabled={!packageId || pending} onClick={() => void nextStep()}>
-                {t('continue')}
-              </Button>
-            </div>
-          </CardContent>
-        </Card>
+        <StepPackage
+          packages={packages}
+          packageId={packageId}
+          selectedType={selectedType}
+          selectedFeatures={selectedFeatures}
+          onSelectPackage={(p) => {
+            setPackageId(p.id);
+            const fromType = (selectedType?.features ?? [])
+              .filter((f) => !f.is_addon)
+              .map((f) => f.slug);
+            if (fromType.length) setSelectedFeatures(fromType);
+          }}
+          onToggleFeature={(slugVal, on) => {
+            setSelectedFeatures((prev) =>
+              on ? [...prev, slugVal] : prev.filter((s) => s !== slugVal),
+            );
+          }}
+        />
       ) : null}
 
       {step === 4 ? (
-        <Card>
-          <CardContent className="grid gap-3 pt-6">
-            <div className="grid gap-2">
-              <Label>{t('siteName')}</Label>
-              <Input
-                value={siteName}
-                onChange={(e) => {
-                  const next = e.target.value;
-                  setSiteName(next);
-                  if (!slug || slug === slugify(siteName)) {
-                    const auto = slugify(next);
-                    if (auto) setSlug(auto);
-                  }
-                }}
-              />
-            </div>
-            <div className="grid gap-2">
-              <Label>{t('slug')}</Label>
-              <Input value={slug} onChange={(e) => setSlug(e.target.value)} dir="ltr" className="font-mono" />
-            </div>
-            <div className="grid gap-2">
-              <Label>{t('adminName')}</Label>
-              <Input value={adminName} onChange={(e) => setAdminName(e.target.value)} />
-            </div>
-            <div className="grid gap-2">
-              <Label>{t('adminEmail')}</Label>
-              <Input
-                type="email"
-                value={adminEmail}
-                onChange={(e) => setAdminEmail(e.target.value)}
-                dir="ltr"
-              />
-            </div>
-            <div className="grid gap-2">
-              <Label>{t('currency')}</Label>
-              <Input value={currency} onChange={(e) => setCurrency(e.target.value)} dir="ltr" />
-            </div>
-            <div className="grid gap-2">
-              <Label>{t('siteTypeSlug')}</Label>
-              <select
-                className="bg-background h-10 rounded-md border px-3"
-                value={siteTypeSlug}
-                onChange={(e) => setSiteTypeSlug(e.target.value)}
-              >
-                {['ecommerce', 'magazine', 'cafe', 'resume', 'corporate'].map((st) => (
-                  <option key={st} value={st}>
-                    {SITE_TYPE_LABELS[st] ?? st}
-                  </option>
-                ))}
-                {siteTypeSlug &&
-                !['ecommerce', 'magazine', 'cafe', 'resume', 'corporate'].includes(siteTypeSlug) ? (
-                  <option value={siteTypeSlug}>{siteTypeSlug}</option>
-                ) : null}
-              </select>
-            </div>
-            <div className="grid gap-2">
-              <Label>
-                {t('platformServer')} ({t('optional')})
-              </Label>
-              <select
-                className="bg-background h-10 rounded-md border px-3"
-                value={serverId ?? ''}
-                onChange={(e) => setServerId(e.target.value ? Number(e.target.value) : null)}
-              >
-                <option value="">{t('localServerHint')}</option>
-                {servers.map((s) => (
-                  <option key={s.id} value={s.id}>
-                    {s.name} ({s.ip})
-                  </option>
-                ))}
-              </select>
-              <p className="text-muted-foreground text-xs">{t('localServerHint')}</p>
-            </div>
-            <div className="flex gap-2">
-              <Button type="button" variant="outline" onClick={backStep}>
-                {t('back')}
-              </Button>
-              <Button disabled={!siteName.trim() || pending} onClick={() => void nextStep()}>
-                {t('continue')}
-              </Button>
-            </div>
-          </CardContent>
-        </Card>
+        <StepSiteInfo
+          siteName={siteName}
+          slug={slug}
+          adminName={adminName}
+          adminEmail={adminEmail}
+          currency={currency}
+          siteTypeSlug={siteTypeSlug}
+          serverId={serverId}
+          servers={servers}
+          previewDomain={finalDomain}
+          onChange={(patch) => {
+            if (patch.slug !== undefined) setSlug(patch.slug);
+            if (patch.adminName !== undefined) setAdminName(patch.adminName);
+            if (patch.adminEmail !== undefined) setAdminEmail(patch.adminEmail);
+            if (patch.currency !== undefined) setCurrency(patch.currency);
+            if (patch.siteTypeSlug !== undefined) setSiteTypeSlug(patch.siteTypeSlug);
+            if (patch.serverId !== undefined) setServerId(patch.serverId);
+          }}
+          onSiteName={(next) => {
+            setSiteName(next);
+            if (!slug || slug === slugify(siteName)) {
+              const auto = slugify(next);
+              if (auto) setSlug(auto);
+            }
+          }}
+        />
       ) : null}
 
       {step === 5 ? (
-        <Card>
-          <CardContent className="grid gap-3 pt-6">
-            <div className="flex items-center justify-between">
-              <Label>{t('customDomain')}</Label>
-              <Switch checked={usesCustomDomain} onCheckedChange={setUsesCustomDomain} />
-            </div>
-            {usesCustomDomain ? (
-              <Input
-                value={customDomain}
-                onChange={(e) => setCustomDomain(e.target.value)}
-                dir="ltr"
-                className="font-mono"
-              />
-            ) : (
-              <p className="text-muted-foreground text-sm">
-                {t('subdomainHint', { slug: slug || 'my-shop', domain: baseDomain })}
-              </p>
-            )}
-            <p className="text-sm font-medium">
-              {t('finalDomain')}: <span className="font-mono" dir="ltr">{finalDomain}</span>
-            </p>
-            <div className="flex gap-2">
-              <Button type="button" variant="outline" onClick={backStep}>
-                {t('back')}
-              </Button>
-              <Button disabled={pending} onClick={() => void nextStep()}>
-                {t('continue')}
-              </Button>
-            </div>
-          </CardContent>
-        </Card>
+        <StepDomain
+          usesCustomDomain={usesCustomDomain}
+          customDomain={customDomain}
+          slug={slug}
+          baseDomain={baseDomain}
+          finalDomain={finalDomain}
+          onToggleCustom={setUsesCustomDomain}
+          onCustomDomain={setCustomDomain}
+        />
       ) : null}
 
       {step === 6 ? (
-        <Card>
-          <CardContent className="grid gap-3 pt-6 text-sm">
-            <p>{t('licenseHint')}</p>
-            {!provision?.license?.license_key ? (
-              <Button disabled={pending || !provision?.id} onClick={() => void prepareLicense()}>
-                {t('continue')}
-              </Button>
-            ) : (
-              <>
-                <p className="font-mono text-xs break-all">{provision.license.license_key}</p>
-                <Button
-                  disabled={pending}
-                  onClick={() => {
-                    setStep(7);
-                  }}
-                >
-                  {t('continue')}
-                </Button>
-              </>
-            )}
-            {!provision?.license?.license_key ? (
-              <p className="text-muted-foreground">{t('licensePending')}</p>
-            ) : null}
-          </CardContent>
-        </Card>
+        <StepLicense
+          provision={provision}
+          pending={pending}
+          onPrepare={() => void prepareLicense()}
+        />
       ) : null}
 
       {step === 7 ? (
-        <Card>
-          <CardContent className="grid gap-3 pt-6">
-            <p className="text-sm">
-              {t('reviewDomain')}:{' '}
-              <span className="font-mono">{provision?.domain || finalDomain}</span>
-            </p>
-            {provision?.license?.license_key ? (
-              <p className="font-mono text-xs break-all">{provision.license.license_key}</p>
-            ) : null}
-            <p className="text-sm">{selectedPackage?.sku}</p>
-            {usesCustomDomain ? (
-              <p className="text-muted-foreground text-xs">{t('dnsCustomHint')}</p>
-            ) : null}
-            <p className="text-sm">
-              {t('status')}: {provision?.status}
-            </p>
-            {provision?.status === 'failed' && provision.error_log ? (
-              <pre className="bg-muted max-h-40 overflow-auto rounded p-2 text-xs whitespace-pre-wrap">
-                {formatProvisionError(provision.error_log).slice(0, 800)}
-              </pre>
-            ) : null}
-            {provision?.status === 'ready' ? (
-              <div className="flex flex-wrap gap-2">
-                {provision.domain ? (
-                  <Button asChild>
-                    <a href={`https://${provision.domain}`} target="_blank" rel="noopener noreferrer">
-                      {t('openSite')}
-                    </a>
-                  </Button>
-                ) : null}
-                <Button
-                  variant="outline"
-                  onClick={() => router.push(dashboardHref(locale, 'admin/platform/sites'))}
-                >
-                  {t('done')}
-                </Button>
-              </div>
-            ) : (
-              <Button disabled={pending} onClick={() => void launch()}>
-                {t('launch')}
-              </Button>
-            )}
-          </CardContent>
-        </Card>
+        <LaunchControlPanel
+          provision={provision}
+          finalDomain={finalDomain}
+          packageSku={selectedPackage?.sku}
+          usesCustomDomain={usesCustomDomain}
+          onProvision={setProvision}
+          onError={setError}
+        />
       ) : null}
-    </div>
+    </WizardShell>
   );
 }
