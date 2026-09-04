@@ -316,6 +316,9 @@ class LocalSameVpsProvisioner
      * Reload Caddy for this site's domain. Optionally delete only that domain's
      * cert leaf under /data/caddy/certificates (never the whole caddy_data volume).
      *
+     * Probe via the Caddy container cert store — not public HTTPS from PHP
+     * (hairpin NAT makes get_headers fail even when Let's Encrypt succeeded).
+     *
      * @return array{ok:bool,ssl_status:?string,expires_at:?string,forced:bool,log?:string}
      */
     public function renewSsl(WebinoSiteProvision $provision, bool $force = false): array
@@ -325,27 +328,48 @@ class LocalSameVpsProvisioner
             throw new RuntimeException('platform.invalid_domain');
         }
 
-        $snippetPath = $this->caddySnippetPath($provision->slug);
-        if (! is_file($snippetPath)) {
-            $this->writeCaddySnippet($domain, $provision->slug);
-        }
+        $this->writeCaddySnippet($domain, $provision->slug);
 
         $log = [];
         if ($force) {
             $log[] = $this->deleteDomainCertLeaf($domain);
         }
 
-        $this->reloadCaddy();
-        $log[] = 'caddy reload requested';
-
-        // Give ACME a moment after force delete / reload.
-        if ($force) {
-            sleep(3);
+        $reload = $this->reloadCaddyResult();
+        $log[] = 'caddy reload exit='.$reload['exit_code'];
+        if (trim($reload['stderr']) !== '') {
+            $log[] = trim($reload['stderr']);
+        }
+        if ($reload['exit_code'] !== 0) {
+            throw new RuntimeException(
+                'ریلود Caddy ناموفق بود. '.trim($reload['stderr'] ?: $reload['stdout'])
+            );
         }
 
-        $ok = $this->probeHttps($domain);
-        $status = $ok ? 'active' : ($force ? 'provisioning' : 'error');
-        $expiresAt = $this->readCertExpiry($domain);
+        $expiresAt = null;
+        $onDisk = false;
+        for ($i = 0; $i < 6; $i++) {
+            $expiresAt = $this->readCertExpiryFromCaddy($domain);
+            if ($expiresAt !== null) {
+                $onDisk = true;
+                break;
+            }
+            sleep(4);
+        }
+
+        $acmeLog = $this->caddyAcmeLogSnippet($domain);
+        if ($acmeLog !== '') {
+            $log[] = $acmeLog;
+        }
+
+        if ($onDisk) {
+            $status = 'active';
+            $ok = true;
+        } else {
+            $status = 'provisioning';
+            $ok = true;
+            $log[] = 'گواهی هنوز روی دیسک Caddy نیست. DNS دامنه باید به همین سرور باشد و پورت ۸۰ و ۴۴۳ باز باشند (Let's Encrypt).';
+        }
 
         PlatformDomain::query()
             ->where('domain', $domain)
@@ -361,7 +385,7 @@ class LocalSameVpsProvisioner
     }
 
     /**
-     * @return array{ssl_status:?string,expires_at:?string,domain:?string}
+     * @return array{ssl_status:?string,expires_at:?string,domain:?string,log?:string}
      */
     public function sslInfo(WebinoSiteProvision $provision): array
     {
@@ -370,10 +394,22 @@ class LocalSameVpsProvisioner
             ? PlatformDomain::query()->where('domain', $domain)->first()
             : null;
 
+        $expiresAt = $domain !== '' ? $this->readCertExpiryFromCaddy($domain) : null;
+        $status = $expiresAt ? 'active' : ($row?->ssl_status);
+
+        if ($expiresAt && $row && $row->ssl_status !== 'active') {
+            $row->ssl_status = 'active';
+            $row->save();
+            $status = 'active';
+        }
+
+        $stored = $provision->wizard_payload['ssl'] ?? null;
+
         return [
-            'ssl_status' => $row?->ssl_status,
-            'expires_at' => $domain !== '' ? $this->readCertExpiry($domain) : null,
+            'ssl_status' => $status,
+            'expires_at' => $expiresAt,
             'domain' => $domain !== '' ? $domain : null,
+            'log' => is_array($stored) && isset($stored['log']) ? (string) $stored['log'] : null,
         ];
     }
 
@@ -764,14 +800,77 @@ class LocalSameVpsProvisioner
 
     protected function reloadCaddy(): void
     {
+        $this->reloadCaddyResult();
+    }
+
+    /**
+     * @return array{exit_code:int,stdout:string,stderr:string}
+     */
+    protected function reloadCaddyResult(): array
+    {
         $web = $this->findErpWebContainer();
         if ($web !== null) {
-            $this->run(['docker', 'exec', $web, 'caddy', 'reload', '--config', '/etc/caddy/Caddyfile'], 60);
-
-            return;
+            return $this->run(['docker', 'exec', $web, 'caddy', 'reload', '--config', '/etc/caddy/Caddyfile'], 60);
         }
 
-        $this->run(['sh', '-c', 'systemctl reload caddy 2>/dev/null || caddy reload --config /etc/caddy/Caddyfile 2>/dev/null || true'], 60);
+        return $this->run(['sh', '-c', 'systemctl reload caddy 2>/dev/null || caddy reload --config /etc/caddy/Caddyfile 2>/dev/null || true'], 60);
+    }
+
+    protected function readCertExpiryFromCaddy(string $domain): ?string
+    {
+        $pem = $this->certPemFromCaddy($domain);
+        if ($pem === null || $pem === '') {
+            return $this->readCertExpiry($domain);
+        }
+        $parsed = @openssl_x509_parse($pem);
+        if (! is_array($parsed)) {
+            return null;
+        }
+        $ts = $parsed['validTo_time_t'] ?? null;
+        if (! is_int($ts) && ! is_float($ts)) {
+            return null;
+        }
+
+        return gmdate('c', (int) $ts);
+    }
+
+    protected function certPemFromCaddy(string $domain): ?string
+    {
+        $web = $this->findErpWebContainer();
+        if ($web === null) {
+            return null;
+        }
+
+        $domainArg = escapeshellarg($domain);
+        $script = 'domain='.$domainArg.'; '
+            .'f=$(find /data/caddy/certificates -type f -name "${domain}.crt" 2>/dev/null | head -1); '
+            .'if [ -n "$f" ]; then cat "$f"; fi';
+        $result = $this->run(['docker', 'exec', $web, 'sh', '-c', $script], 30);
+        $pem = trim($result['stdout']);
+
+        return str_contains($pem, 'BEGIN CERTIFICATE') ? $pem : null;
+    }
+
+    protected function caddyAcmeLogSnippet(string $domain): string
+    {
+        $web = $this->findErpWebContainer();
+        if ($web === null) {
+            return '';
+        }
+        $logs = $this->run(['docker', 'logs', '--tail', '80', $web], 20);
+        $blob = $logs['stdout']."\n".$logs['stderr'];
+        $lines = preg_split('/\r?\n/', $blob) ?: [];
+        $hit = [];
+        foreach ($lines as $line) {
+            if ($line !== '' && (str_contains($line, $domain) || preg_match('/acme|certificate|tls/i', $line))) {
+                $hit[] = $line;
+            }
+        }
+        if ($hit === []) {
+            return '';
+        }
+
+        return implode("\n", array_slice($hit, -12));
     }
 
     /**
@@ -886,6 +985,18 @@ class LocalSameVpsProvisioner
 
     protected function findErpWebContainer(): ?string
     {
+        $byCompose = $this->run([
+            'docker', 'ps',
+            '--filter', 'label=com.docker.compose.service=web',
+            '--format', '{{.Names}}',
+        ], 15);
+        $names = preg_split('/\r?\n/', trim($byCompose['stdout'])) ?: [];
+        foreach ($names as $name) {
+            if ($name !== '') {
+                return $name;
+            }
+        }
+
         $byImage = $this->run([
             'docker', 'ps',
             '--filter', 'ancestor=caddy:2-alpine',

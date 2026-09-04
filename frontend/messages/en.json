@@ -2932,6 +2932,7 @@
     "controlSslSafe": "Updates never rewrite Let's Encrypt / Caddy snippets (except domain change).",
     "controlSsl": "SSL certificate",
     "controlSslHint": "Renew = Caddy reload. Force reissue deletes only this domain's cert leaf — the caddy_data volume is never wiped.",
+    "controlSslDnsHint": "Let's Encrypt only issues a cert when DNS points at this server and ports 80 and 443 are reachable from the internet.",
     "controlSslStatus": "Status",
     "controlSslExpires": "Expires",
     "controlSslRenew": "Renew / check SSL",

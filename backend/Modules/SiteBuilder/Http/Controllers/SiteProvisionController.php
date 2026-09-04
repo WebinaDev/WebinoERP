@@ -427,12 +427,16 @@ class SiteProvisionController extends Controller
 
         try {
             $result = $orchestrator->renewSsl($siteProvision, (bool) ($data['force'] ?? false));
+            $ok = (bool) ($result['ok'] ?? false);
+            $active = ($result['ssl_status'] ?? '') === 'active';
 
             return response()->json([
                 'data' => $siteProvision->fresh(['license', 'crmAccount']),
                 'meta' => ['ssl' => $result],
-                'message' => ($result['ok'] ?? false) ? 'SSL تمدید/بررسی شد.' : 'تمدید SSL کامل نشد.',
-            ], ($result['ok'] ?? false) ? 200 : 422);
+                'message' => $active
+                    ? 'گواهی SSL فعال است.'
+                    : 'درخواست SSL به Caddy ارسال شد. اگر گواهی نیامد، DNS و پورت ۸۰/۴۴۳ را بررسی کنید.',
+            ], $ok ? 200 : 422);
         } catch (Throwable $e) {
             return response()->json(['message' => $e->getMessage() ?: 'تمدید SSL ناموفق بود.'], 422);
         }

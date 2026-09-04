@@ -113,6 +113,7 @@ export type SiteControlPayload = {
     ssl_status?: string | null;
     expires_at?: string | null;
     domain?: string | null;
+    log?: string | null;
   } | null;
 };
 

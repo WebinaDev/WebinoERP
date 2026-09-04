@@ -159,18 +159,29 @@ class SiteProvisionOrchestrator
 
         $result = $this->local->renewSsl($provision, $force);
 
-        if (($result['ok'] ?? false)
+        $payload = $provision->wizard_payload ?? [];
+        $payload['ssl'] = [
+            'ssl_status' => $result['ssl_status'] ?? null,
+            'expires_at' => $result['expires_at'] ?? null,
+            'log' => $result['log'] ?? null,
+            'forced' => $force,
+            'updated_at' => now()->toIso8601String(),
+        ];
+        $updates = ['wizard_payload' => $payload];
+
+        if (($result['ssl_status'] ?? '') === 'active'
             && $provision->status === WebinoSiteProvision::STATUS_SSL_PENDING) {
-            $provision->update([
-                'status' => WebinoSiteProvision::STATUS_READY,
-                'ready_at' => $provision->ready_at ?? now(),
-                'error_log' => null,
-            ]);
+            $updates['status'] = WebinoSiteProvision::STATUS_READY;
+            $updates['ready_at'] = $provision->ready_at ?? now();
+            $updates['error_log'] = null;
         }
+
+        $provision->update($updates);
 
         $this->audit->log($provision->created_by, 'provision.ssl_renew', $provision, [
             'force' => $force,
             'ok' => $result['ok'] ?? false,
+            'ssl_status' => $result['ssl_status'] ?? null,
         ]);
 
         return $result;

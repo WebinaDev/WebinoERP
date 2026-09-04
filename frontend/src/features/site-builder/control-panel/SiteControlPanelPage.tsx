@@ -543,6 +543,12 @@ export function SiteControlPanelPage({ id }: { id: string }) {
                   : t('controlSslUnknown')}
               </div>
             </div>
+            <p className="text-muted-foreground text-xs">{t('controlSslDnsHint')}</p>
+            {data.ssl?.log ? (
+              <pre className="bg-muted/50 max-h-40 overflow-auto whitespace-pre-wrap rounded-lg border p-3 text-xs">
+                {data.ssl.log}
+              </pre>
+            ) : null}
             <div className="flex flex-wrap gap-2">
               <Button
                 type="button"
