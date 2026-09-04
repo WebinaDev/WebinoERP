@@ -55,9 +55,14 @@ class LicenseProvisionerService
 
         $licenseKey = $this->generateLicenseKey();
 
-        return CoreLicense::query()->create([
+        $projectName = (string) ($context['project_name'] ?? $context['site_name'] ?? $domain);
+        if (! isset($meta['sku'])) {
+            $meta['sku'] = $package->sku;
+        }
+
+        return CoreLicense::createForSchema([
             'license_key' => $licenseKey,
-            'project_name' => (string) ($context['project_name'] ?? $context['site_name'] ?? $domain),
+            'project_name' => $projectName,
             'domain' => $domain,
             'logo_url' => $context['logo_url'] ?? null,
             'status' => 'active',

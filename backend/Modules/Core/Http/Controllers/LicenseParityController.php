@@ -73,7 +73,7 @@ class LicenseParityController extends Controller
                 if (! empty($data['license_key'])) {
                     $updates['license_key'] = $key;
                 }
-                $created->update($updates);
+                $created->update(CoreLicense::attributesForSchema($updates));
                 CoreLicenseMetaNormalizer::forgetCheckCache($created->domain, $created->license_key);
 
                 return response()->json(['data' => $created->fresh()], 201);
@@ -98,7 +98,7 @@ class LicenseParityController extends Controller
             }
         }
 
-        $license = CoreLicense::query()->create([
+        $license = CoreLicense::createForSchema([
             'license_key' => $key,
             'project_name' => $data['project_name'],
             'domain' => $domain,
@@ -161,7 +161,7 @@ class LicenseParityController extends Controller
             }
         }
 
-        $license->update($data);
+        $license->update(CoreLicense::attributesForSchema($data));
 
         CoreLicenseMetaNormalizer::forgetCheckCache($license->domain, $license->license_key);
 
