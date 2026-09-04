@@ -127,7 +127,7 @@ export function SiteControlPanelPage({ id }: { id: string }) {
     if (!Number.isFinite(provisionId)) return;
     setLogsBusy(true);
     try {
-      const raw = await fetchProvisionLogs(provisionId, 400);
+      const raw = await fetchProvisionLogs(provisionId, 80);
       const text =
         typeof raw === 'string'
           ? raw
@@ -619,6 +619,12 @@ export function SiteControlPanelPage({ id }: { id: string }) {
                 </Badge>
               </div>
               <div>
+                {t('controlBackendSelf')}:{' '}
+                <Badge variant={data?.stack?.backend_self ? 'default' : 'destructive'}>
+                  {data?.stack?.backend_self ? t('controlOk') : t('controlFail')}
+                </Badge>
+              </div>
+              <div>
                 {t('controlCaddyToBackend')}:{' '}
                 <Badge variant={data?.stack?.caddy_to_backend ? 'default' : 'destructive'}>
                   {data?.stack?.caddy_to_backend ? t('controlOk') : t('controlFail')}
@@ -637,7 +643,7 @@ export function SiteControlPanelPage({ id }: { id: string }) {
               </div>
             </div>
             {data?.stack?.log ? (
-              <pre className="bg-muted/50 max-h-40 overflow-auto whitespace-pre-wrap rounded-lg border p-3 text-xs">
+              <pre className="bg-muted/50 max-h-56 overflow-auto whitespace-pre-wrap rounded-lg border p-3 text-xs">
                 {data.stack.log}
               </pre>
             ) : null}
@@ -656,7 +662,9 @@ export function SiteControlPanelPage({ id }: { id: string }) {
                       .join('\n');
                     if (log) setComposeLogs(log);
                     if ((res.compose?.exit_code ?? 1) !== 0) {
-                      throw new Error(res.message || t('controlFail'));
+                      throw new Error(
+                        [res.message, res.compose?.log].filter(Boolean).join('\n') || t('controlFail'),
+                      );
                     }
                   })
                 }

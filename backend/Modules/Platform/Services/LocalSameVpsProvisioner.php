@@ -307,7 +307,7 @@ class LocalSameVpsProvisioner
         return $result;
     }
 
-    public function logs(WebinoSiteProvision $provision, int $tail = 200): string
+    public function logs(WebinoSiteProvision $provision, int $tail = 80): string
     {
         $dir = $this->siteDir($provision);
         $result = $this->run([
@@ -318,7 +318,41 @@ class LocalSameVpsProvisioner
             '--tail', (string) $tail,
         ], 60);
 
-        return trim($result['stdout']."\n".$result['stderr']);
+        return $this->compressRepeatedLogLines(trim($result['stdout']."\n".$result['stderr']));
+    }
+
+    /**
+     * Collapse consecutive identical log lines: "msg" then "msg (×N)".
+     */
+    protected function compressRepeatedLogLines(string $text): string
+    {
+        if ($text === '') {
+            return '';
+        }
+
+        $lines = preg_split('/\r?\n/', $text) ?: [];
+        $out = [];
+        $prev = null;
+        $count = 0;
+        $flush = function () use (&$out, &$prev, &$count): void {
+            if ($prev === null) {
+                return;
+            }
+            $out[] = $count > 1 ? $prev.' (×'.$count.')' : $prev;
+        };
+
+        foreach ($lines as $line) {
+            if ($line === $prev) {
+                $count++;
+                continue;
+            }
+            $flush();
+            $prev = $line;
+            $count = 1;
+        }
+        $flush();
+
+        return implode("\n", $out);
     }
 
     /**
@@ -569,11 +603,15 @@ class LocalSameVpsProvisioner
      *
      * @return array{
      *   project:string,
-     *   containers:array<string, array{status:string,networks:list<string>}>,
+     *   containers:array<string, array{status:string,networks:list<string>,restart_count:int}>,
      *   on_webino_sites:array{backend:bool,frontend:bool},
      *   caddy_to_backend:bool,
      *   frontend_to_backend:bool,
      *   db_auth_ok:bool,
+     *   backend_self:bool,
+     *   caddy_snippet_ok:bool,
+     *   caddy_config_has_upstream:bool,
+     *   caddy_exec_to_backend:bool,
      *   env_pw_fp:string,
      *   backend_pw_fp:string,
      *   log:string
@@ -597,14 +635,23 @@ class LocalSameVpsProvisioner
                 '{{range $k, $v := .NetworkSettings.Networks}}{{$k}} {{end}}',
                 $name,
             ], 15);
+            $restarts = $this->run([
+                'docker', 'inspect', '-f', '{{.RestartCount}}', $name,
+            ], 15);
             $statusStr = $status['exit_code'] === 0 ? trim($status['stdout']) : 'missing';
             $netList = preg_split('/\s+/', trim($nets['stdout'] ?? '')) ?: [];
             $netList = array_values(array_filter($netList, fn ($n) => $n !== ''));
+            $restartCount = ($restarts['exit_code'] === 0 && is_numeric(trim($restarts['stdout'])))
+                ? (int) trim($restarts['stdout'])
+                : -1;
             $containers[$name] = [
                 'status' => $statusStr,
                 'networks' => $netList,
+                'restart_count' => $restartCount,
             ];
-            $lines[] = $name.': '.$statusStr.' nets=['.implode(',', $netList).']';
+            $lines[] = $name.': '.$statusStr
+                .' restarts='.($restartCount >= 0 ? (string) $restartCount : '?')
+                .' nets=['.implode(',', $netList).']';
         }
 
         $onSites = [
@@ -627,9 +674,23 @@ class LocalSameVpsProvisioner
         $dbAuthOk = $this->probeDatabaseAuth($provision);
         $lines[] = 'db auth with .env password: '.($dbAuthOk ? 'ok' : 'FAIL');
 
-        $caddyToBackend = $this->probeOnProxyNetwork(
-            'http://'.$backend.':8080/api/v1/health/metrics'
-        );
+        $backendSelf = $this->probeBackendSelf($backend);
+        $lines[] = 'backend_self (127.0.0.1:8080/api/v1/health/metrics): '.($backendSelf ? 'ok' : 'FAIL');
+
+        $caddySnippetOk = $this->caddyContainerSeesSnippet($provision->slug);
+        $lines[] = 'caddy_snippet_ok (/etc/caddy/sites/'.$provision->slug.'.caddy): '
+            .($caddySnippetOk ? 'yes' : 'no');
+
+        $upstream = $backend.':8080';
+        $caddyConfigHasUpstream = $this->caddyConfigHasUpstream($upstream);
+        $lines[] = 'caddy_config_has_upstream ('.$upstream.'): '
+            .($caddyConfigHasUpstream ? 'yes' : 'no');
+
+        $healthUrl = 'http://'.$backend.':8080/api/v1/health/metrics';
+        $caddyExecToBackend = $this->probeFromCaddyContainer($healthUrl);
+        $lines[] = 'caddy_exec_to_backend: '.($caddyExecToBackend ? 'ok' : 'FAIL');
+
+        $caddyToBackend = $this->probeOnProxyNetwork($healthUrl);
         $lines[] = 'caddy→'.$backend.'/api/v1/health/metrics: '.($caddyToBackend ? 'ok' : 'FAIL');
 
         $feToBe = $this->run([
@@ -651,6 +712,10 @@ class LocalSameVpsProvisioner
             'containers' => $containers,
             'on_webino_sites' => $onSites,
             'db_auth_ok' => $dbAuthOk,
+            'backend_self' => $backendSelf,
+            'caddy_snippet_ok' => $caddySnippetOk,
+            'caddy_config_has_upstream' => $caddyConfigHasUpstream,
+            'caddy_exec_to_backend' => $caddyExecToBackend,
             'env_pw_fp' => $envPwFp,
             'backend_pw_fp' => $backendPwFp,
             'caddy_to_backend' => $caddyToBackend,
@@ -850,7 +915,8 @@ class LocalSameVpsProvisioner
     }
 
     /**
-     * Repair DB auth mismatch: rewrite .env, ALTER USER to match, recreate backend.
+     * Repair DB auth mismatch: rewrite .env, ALTER USER to match, recreate backend,
+     * wait until the app serves health, then refresh Caddy snippet + reload.
      *
      * @return array{exit_code:int,stdout:string,stderr:string,log:string}
      */
@@ -859,15 +925,43 @@ class LocalSameVpsProvisioner
         $this->rewriteEnvFile($provision);
         $dbLog = $this->syncDatabasePassword($provision);
         $recreate = $this->recreateServices($provision, ['backend']);
+
+        $backend = TenantSiteStack::backendService($provision->slug);
+        $waitLine = $this->waitUntilBackendReady($backend, 30);
+
+        $domain = strtolower(trim((string) $provision->domain));
+        $caddyWrite = '';
+        $caddyReload = ['exit_code' => 0, 'stdout' => '', 'stderr' => ''];
+        if ($domain !== '' && str_contains($domain, '.')) {
+            $caddyWrite = $this->writeCaddySnippet($domain, $provision->slug);
+            $caddyReload = $this->reloadCaddyResult();
+        }
+
         $verified = $this->probeDatabaseAuth($provision);
-        $verifyLine = 'db auth after repair: '.($verified ? 'ok' : 'FAIL');
+        $caddyToBackend = $this->probeOnProxyNetwork(
+            'http://'.$backend.':8080/api/v1/health/metrics'
+        );
+
+        $reloadDetail = trim(($caddyReload['stderr'] ?? '')."\n".($caddyReload['stdout'] ?? ''));
         $log = trim(implode("\n", array_filter([
             $dbLog,
             $recreate['log'] ?? '',
-            $verifyLine,
+            $waitLine,
+            $caddyWrite !== '' ? $caddyWrite : null,
+            $caddyWrite !== ''
+                ? 'caddy reload exit='.$caddyReload['exit_code']
+                    .($reloadDetail !== '' ? ' '.$reloadDetail : '')
+                : null,
+            'db auth after repair: '.($verified ? 'ok' : 'FAIL'),
+            'caddy→backend after repair: '.($caddyToBackend ? 'ok' : 'FAIL'),
         ])));
 
-        $exit = ($recreate['exit_code'] === 0 && $verified) ? 0 : 1;
+        $exit = (
+            ($recreate['exit_code'] ?? 1) === 0
+            && $verified
+            && $caddyToBackend
+            && ($caddyWrite === '' || ($caddyReload['exit_code'] ?? 1) === 0)
+        ) ? 0 : 1;
 
         return [
             'exit_code' => $exit,
@@ -875,6 +969,99 @@ class LocalSameVpsProvisioner
             'stderr' => $recreate['stderr'] ?? '',
             'log' => $log,
         ];
+    }
+
+    /**
+     * Poll until Octane serves /api/v1/health/metrics inside the backend container.
+     * Migrations on first boot can take ~60–90s.
+     */
+    protected function waitUntilBackendReady(string $backendContainer, int $attempts = 30): string
+    {
+        for ($i = 1; $i <= $attempts; $i++) {
+            if ($this->probeBackendSelf($backendContainer)) {
+                return 'backend ready after attempt '.$i.'/'.$attempts;
+            }
+            sleep(3);
+        }
+
+        return 'backend NOT ready after '.$attempts.' attempts (~'.($attempts * 3).'s)';
+    }
+
+    /**
+     * Probe health from inside the backend container (independent of Docker DNS / Caddy).
+     */
+    protected function probeBackendSelf(string $backendContainer): bool
+    {
+        $url = 'http://127.0.0.1:8080/api/v1/health/metrics';
+
+        $wget = $this->run([
+            'docker', 'exec', $backendContainer,
+            'wget', '-q', '-O', '-', $url,
+        ], 15);
+        if ($wget['exit_code'] === 0 && str_contains($wget['stdout'], 'data')) {
+            return true;
+        }
+
+        $curl = $this->run([
+            'docker', 'exec', $backendContainer,
+            'curl', '-sf', $url,
+        ], 15);
+        if ($curl['exit_code'] === 0 && str_contains($curl['stdout'], 'data')) {
+            return true;
+        }
+
+        $php = $this->run([
+            'docker', 'exec', $backendContainer,
+            'php', '-r',
+            'echo @file_get_contents("http://127.0.0.1:8080/api/v1/health/metrics") ?: "";',
+        ], 15);
+
+        return $php['exit_code'] === 0 && str_contains($php['stdout'], 'data');
+    }
+
+    /**
+     * Check whether the live Caddy config JSON mentions the tenant backend upstream.
+     */
+    protected function caddyConfigHasUpstream(string $upstream): bool
+    {
+        $web = $this->findErpWebContainer();
+        if ($web === null) {
+            return false;
+        }
+
+        $result = $this->run([
+            'docker', 'exec', $web,
+            'wget', '-q', '-O', '-', 'http://127.0.0.1:2019/config/',
+        ], 20);
+        if ($result['exit_code'] !== 0 || trim($result['stdout']) === '') {
+            $result = $this->run([
+                'docker', 'exec', $web,
+                'wget', '-q', '-O', '-', 'http://localhost:2019/config/',
+            ], 20);
+        }
+        if ($result['exit_code'] !== 0) {
+            return false;
+        }
+
+        return str_contains($result['stdout'], $upstream);
+    }
+
+    /**
+     * Probe a URL from inside the ERP Caddy container (same network path as reverse_proxy).
+     */
+    protected function probeFromCaddyContainer(string $url): bool
+    {
+        $web = $this->findErpWebContainer();
+        if ($web === null) {
+            return false;
+        }
+
+        $viaExec = $this->run([
+            'docker', 'exec', $web,
+            'wget', '-q', '-O', '-', $url,
+        ], 30);
+
+        return $viaExec['exit_code'] === 0;
     }
 
     /**
@@ -1455,27 +1642,20 @@ class LocalSameVpsProvisioner
 
     protected function probeOnProxyNetwork(string $url): bool
     {
+        // Prefer probing from the real Caddy container — same path as reverse_proxy.
+        // A disposable curl image may be missing on the host and fails silently.
+        if ($this->probeFromCaddyContainer($url)) {
+            return true;
+        }
+
         $viaCurl = $this->run([
             'docker', 'run', '--rm',
             '--network', 'webino_sites',
             'curlimages/curl:8.5.0',
             '-sf', $url,
         ], 30);
-        if ($viaCurl['exit_code'] === 0) {
-            return true;
-        }
 
-        $web = $this->findErpWebContainer();
-        if ($web === null) {
-            return false;
-        }
-
-        $viaExec = $this->run([
-            'docker', 'exec', $web,
-            'wget', '-q', '-O', '-', $url,
-        ], 30);
-
-        return $viaExec['exit_code'] === 0;
+        return $viaCurl['exit_code'] === 0;
     }
 
     protected function bootstrapRemote(WebinoSiteProvision $provision, string $siteType, string $token): void

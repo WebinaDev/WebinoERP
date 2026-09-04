@@ -2941,6 +2941,7 @@
     "controlDiagnosticsHint": "سلامت استک Docker، دسترسی Caddy به بک‌اند، و لاگ compose — برای دیباگ لاگین/۵۰۲ کپی کنید.",
     "controlStackHealth": "سلامت استک",
     "controlDbAuth": "احراز هویت دیتابیس با رمز .env",
+    "controlBackendSelf": "بک‌اند از داخل خودش (اپ بالا است؟)",
     "controlRepairDb": "تعمیر دیتابیس",
     "controlCaddyToBackend": "Caddy → بک‌اند API",
     "controlFrontendToBackend": "فرانت → بک‌اند (شبکه داخلی)",

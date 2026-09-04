@@ -356,11 +356,12 @@ class SiteProvisionController extends Controller
         try {
             $result = $orchestrator->repairDatabase($siteProvision);
 
+            // Always 200 so the UI can show compose.log; success/failure is in exit_code.
             return response()->json([
                 'data' => $siteProvision->fresh(['license', 'package']),
                 'compose' => $result,
                 'message' => $result['exit_code'] === 0 ? 'Database repaired' : 'Database repair failed',
-            ], $result['exit_code'] === 0 ? 200 : 422);
+            ]);
         } catch (\Throwable $e) {
             return response()->json(['message' => $e->getMessage()], 422);
         }
@@ -369,7 +370,7 @@ class SiteProvisionController extends Controller
     public function logs(WebinoSiteProvision $siteProvision, SiteProvisionOrchestrator $orchestrator, Request $request): JsonResponse
     {
         try {
-            $tail = max(1, min(2000, $request->integer('tail', 200)));
+            $tail = max(1, min(500, $request->integer('tail', 80)));
             $logs = $orchestrator->logs($siteProvision, $tail);
 
             return response()->json([

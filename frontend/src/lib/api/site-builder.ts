@@ -117,9 +117,13 @@ export type SiteControlPayload = {
   } | null;
   stack?: {
     project?: string | null;
-    containers?: Record<string, { status?: string; networks?: string[] }>;
+    containers?: Record<string, { status?: string; networks?: string[]; restart_count?: number }>;
     on_webino_sites?: { backend?: boolean; frontend?: boolean };
     db_auth_ok?: boolean;
+    backend_self?: boolean;
+    caddy_snippet_ok?: boolean;
+    caddy_config_has_upstream?: boolean;
+    caddy_exec_to_backend?: boolean;
     env_pw_fp?: string;
     backend_pw_fp?: string;
     caddy_to_backend?: boolean;
@@ -249,27 +253,15 @@ export async function stopProvision(id: number) {
 }
 
 export async function repairProvisionDatabase(id: number) {
-  try {
-    const res = await apiClient.post(`${BASE}/provisions/${id}/repair-db`);
-    return res.data as {
-      data: SiteProvision;
-      compose?: { exit_code?: number; log?: string; stdout?: string; stderr?: string };
-      message?: string;
-    };
-  } catch (e: unknown) {
-    const ax = e as { response?: { data?: { compose?: unknown; message?: string; data?: SiteProvision } } };
-    if (ax.response?.data?.compose) {
-      return ax.response.data as {
-        data: SiteProvision;
-        compose?: { exit_code?: number; log?: string; stdout?: string; stderr?: string };
-        message?: string;
-      };
-    }
-    throw e;
-  }
+  const res = await apiClient.post(`${BASE}/provisions/${id}/repair-db`);
+  return res.data as {
+    data: SiteProvision;
+    compose?: { exit_code?: number; log?: string; stdout?: string; stderr?: string };
+    message?: string;
+  };
 }
 
-export async function fetchProvisionLogs(id: number, tail = 200) {
+export async function fetchProvisionLogs(id: number, tail = 80) {
   const res = await apiClient.get(`${BASE}/provisions/${id}/logs`, { params: { tail } });
   return unwrapData<{ provision_id?: number; slug?: string; logs?: string } | string>(res);
 }
