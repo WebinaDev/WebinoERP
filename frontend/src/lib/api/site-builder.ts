@@ -119,6 +119,7 @@ export type SiteControlPayload = {
     project?: string | null;
     containers?: Record<string, { status?: string; networks?: string[] }>;
     on_webino_sites?: { backend?: boolean; frontend?: boolean };
+    db_auth_ok?: boolean;
     caddy_to_backend?: boolean;
     frontend_to_backend?: boolean;
     log?: string | null;

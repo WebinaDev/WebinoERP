@@ -612,6 +612,12 @@ export function SiteControlPanelPage({ id }: { id: string }) {
             <div className="grid gap-2 text-sm" data-testid="control-stack-health">
               <div className="font-medium">{t('controlStackHealth')}</div>
               <div>
+                {t('controlDbAuth')}:{' '}
+                <Badge variant={data?.stack?.db_auth_ok ? 'default' : 'destructive'}>
+                  {data?.stack?.db_auth_ok ? t('controlOk') : t('controlFail')}
+                </Badge>
+              </div>
+              <div>
                 {t('controlCaddyToBackend')}:{' '}
                 <Badge variant={data?.stack?.caddy_to_backend ? 'default' : 'destructive'}>
                   {data?.stack?.caddy_to_backend ? t('controlOk') : t('controlFail')}

@@ -2940,6 +2940,7 @@
     "controlDiagnostics": "لاگ و تشخیص",
     "controlDiagnosticsHint": "سلامت استک Docker، دسترسی Caddy به بک‌اند، و لاگ compose — برای دیباگ لاگین/۵۰۲ کپی کنید.",
     "controlStackHealth": "سلامت استک",
+    "controlDbAuth": "احراز هویت دیتابیس با رمز .env",
     "controlCaddyToBackend": "Caddy → بک‌اند API",
     "controlFrontendToBackend": "فرانت → بک‌اند (شبکه داخلی)",
     "controlOnProxyNet": "روی webino_sites",

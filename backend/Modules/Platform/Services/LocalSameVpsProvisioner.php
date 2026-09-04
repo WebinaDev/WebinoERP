@@ -101,6 +101,24 @@ class LocalSameVpsProvisioner
         if ($up['exit_code'] !== 0) {
             throw new RuntimeException(trim($up['stderr'] ?: $up['stdout']) ?: 'platform.compose_up_failed');
         }
+        // Existing volumes keep the first-init password; align role with .env then recreate backend.
+        $dbLog = $this->syncDatabasePassword($provision);
+        $recreate = $this->run([
+            'docker', 'compose',
+            '-p', TenantSiteStack::projectName($provision->slug),
+            '-f', $dir.'/docker-compose.yml',
+            '--env-file', $dir.'/.env',
+            'up', '-d', '--no-deps', '--force-recreate', '--remove-orphans',
+            TenantSiteStack::backendService($provision->slug),
+            TenantSiteStack::frontendService($provision->slug),
+        ], 900);
+        if ($recreate['exit_code'] !== 0) {
+            throw new RuntimeException(
+                trim($recreate['stderr'] ?: $recreate['stdout']) ?: 'platform.compose_recreate_failed'
+            );
+        }
+        $up['stdout'] .= "\n".$dbLog."\n".$recreate['stdout'];
+        $up['stderr'] .= "\n".$recreate['stderr'];
         $this->attachToProxyNetwork($provision->slug);
         ProvisionProgress::assertNotCancelled($provision);
 
@@ -176,11 +194,13 @@ class LocalSameVpsProvisioner
     public function start(WebinoSiteProvision $provision): array
     {
         $this->ensureDockerNetwork();
-        $this->rewriteComposeImages($provision, $this->channelOf($provision));
+        $this->rewriteComposeImages($provision, $this->effectiveTag($provision));
         $this->rewriteEnvFile($provision);
         $legacyLog = $this->removeLegacyServiceContainers($provision->slug);
         $dir = $this->siteDir($provision);
         $result = $this->composeUp($provision->slug, $dir);
+        // Align Postgres role password with .env before recreate so migrate can succeed.
+        $dbLog = $this->syncDatabasePassword($provision);
         // Ensure backend/frontend pick up new .env mount + network after rewrite.
         $recreate = $this->run([
             'docker', 'compose',
@@ -210,7 +230,7 @@ class LocalSameVpsProvisioner
 
         return [
             ...$result,
-            'attach_log' => trim(implode("\n", array_filter([$legacyLog, $attachLog, $caddyLog]))),
+            'attach_log' => trim(implode("\n", array_filter([$legacyLog, $dbLog, $attachLog, $caddyLog]))),
         ];
     }
 
@@ -224,7 +244,7 @@ class LocalSameVpsProvisioner
     public function resyncStack(WebinoSiteProvision $provision): array
     {
         $this->ensureDockerNetwork();
-        $this->rewriteComposeImages($provision, $this->channelOf($provision));
+        $this->rewriteComposeImages($provision, $this->effectiveTag($provision));
         $this->rewriteEnvFile($provision);
         $legacyLog = $this->removeLegacyServiceContainers($provision->slug);
         $dir = $this->siteDir($provision);
@@ -232,6 +252,7 @@ class LocalSameVpsProvisioner
             throw new RuntimeException('platform.site_dir_missing: '.$dir);
         }
         $result = $this->composeUp($provision->slug, $dir);
+        $dbLog = $this->syncDatabasePassword($provision);
         $recreate = $this->run([
             'docker', 'compose',
             '-p', TenantSiteStack::projectName($provision->slug),
@@ -260,7 +281,7 @@ class LocalSameVpsProvisioner
             $this->updateResourceStatus($provision, 'running');
         }
 
-        $combined = trim(implode("\n", array_filter([$legacyLog, $attachLog, $caddyLog])));
+        $combined = trim(implode("\n", array_filter([$legacyLog, $dbLog, $attachLog, $caddyLog])));
 
         return [
             ...$result,
@@ -552,6 +573,7 @@ class LocalSameVpsProvisioner
      *   on_webino_sites:array{backend:bool,frontend:bool},
      *   caddy_to_backend:bool,
      *   frontend_to_backend:bool,
+     *   db_auth_ok:bool,
      *   log:string
      * }
      */
@@ -590,6 +612,9 @@ class LocalSameVpsProvisioner
         $lines[] = 'on_webino_sites backend='.($onSites['backend'] ? 'yes' : 'no')
             .' frontend='.($onSites['frontend'] ? 'yes' : 'no');
 
+        $dbAuthOk = $this->probeDatabaseAuth($provision);
+        $lines[] = 'db auth with .env password: '.($dbAuthOk ? 'ok' : 'FAIL');
+
         $caddyToBackend = $this->probeOnProxyNetwork(
             'http://'.$backend.':8080/api/v1/health/metrics'
         );
@@ -613,6 +638,7 @@ class LocalSameVpsProvisioner
             'project' => $project,
             'containers' => $containers,
             'on_webino_sites' => $onSites,
+            'db_auth_ok' => $dbAuthOk,
             'caddy_to_backend' => $caddyToBackend,
             'frontend_to_backend' => $frontendToBackend,
             'log' => implode("\n", $lines),
@@ -680,6 +706,113 @@ class LocalSameVpsProvisioner
         $channel = (string) (($provision->wizard_payload['channel'] ?? null) ?: 'beta');
 
         return TenantSiteStack::imageTag($channel);
+    }
+
+    /**
+     * Resolve compose image tag without inventing a missing "beta" tag.
+     * Prefer an explicit wizard channel; otherwise keep the tag already in
+     * docker-compose.yml when that image exists; finally fall back to latest.
+     */
+    protected function effectiveTag(WebinoSiteProvision $provision): string
+    {
+        $explicit = $provision->wizard_payload['channel'] ?? null;
+        if (is_string($explicit) && trim($explicit) !== '') {
+            return TenantSiteStack::imageTag($explicit);
+        }
+
+        $composePath = $this->siteDir($provision).'/docker-compose.yml';
+        if (is_file($composePath)) {
+            $content = (string) file_get_contents($composePath);
+            if (preg_match('/webino-backend:([^\s"\']+)/', $content, $m)) {
+                $tag = trim($m[1]);
+                if ($tag !== '' && $this->run(
+                    ['docker', 'image', 'inspect', 'webino-backend:'.$tag],
+                    15,
+                )['exit_code'] === 0) {
+                    return $tag;
+                }
+            }
+        }
+
+        return 'latest';
+    }
+
+    /**
+     * Align the Postgres role password with DB_PASSWORD from the site .env.
+     * Official postgres image trusts local unix-socket connections, so ALTER USER
+     * works without knowing the previous password. Never logs the password.
+     */
+    protected function syncDatabasePassword(WebinoSiteProvision $provision): string
+    {
+        $dbContainer = TenantSiteStack::projectName($provision->slug).'-db';
+        $password = $this->readEnvMap($this->siteDir($provision).'/.env')['DB_PASSWORD'] ?? '';
+        if ($password === '') {
+            return 'db password sync skipped: DB_PASSWORD empty';
+        }
+
+        $healthy = false;
+        for ($i = 0; $i < 24; $i++) {
+            $inspect = $this->run([
+                'docker', 'inspect', '-f', '{{.State.Health.Status}}', $dbContainer,
+            ], 15);
+            $status = trim($inspect['stdout'] ?? '');
+            if ($inspect['exit_code'] === 0 && $status === 'healthy') {
+                $healthy = true;
+                break;
+            }
+            // No healthcheck configured — fall back to running state.
+            if ($inspect['exit_code'] === 0 && ($status === '' || $status === '<no value>')) {
+                $running = $this->run([
+                    'docker', 'inspect', '-f', '{{.State.Running}}', $dbContainer,
+                ], 15);
+                if (trim($running['stdout'] ?? '') === 'true') {
+                    $healthy = true;
+                    break;
+                }
+            }
+            sleep(2);
+        }
+        if (! $healthy) {
+            return 'db password sync failed: '.$dbContainer.' not healthy';
+        }
+
+        $escaped = str_replace("'", "''", $password);
+        $sql = "ALTER USER webino WITH PASSWORD '{$escaped}'";
+        $result = $this->run([
+            'docker', 'exec', $dbContainer,
+            'psql', '-v', 'ON_ERROR_STOP=1', '-U', 'webino', '-d', 'webino', '-c', $sql,
+        ], 30);
+
+        if ($result['exit_code'] !== 0) {
+            $err = trim($result['stderr'] ?: $result['stdout']);
+            // Strip any accidental password echo from psql output.
+            $err = str_replace($password, '***', $err);
+
+            return 'db password sync failed: '.$err;
+        }
+
+        return 'db password synced: ok';
+    }
+
+    /**
+     * Probe TCP auth to Postgres using the password currently in .env.
+     */
+    protected function probeDatabaseAuth(WebinoSiteProvision $provision): bool
+    {
+        $dbContainer = TenantSiteStack::projectName($provision->slug).'-db';
+        $password = $this->readEnvMap($this->siteDir($provision).'/.env')['DB_PASSWORD'] ?? '';
+        if ($password === '') {
+            return false;
+        }
+
+        $result = $this->run([
+            'docker', 'exec',
+            '-e', 'PGPASSWORD='.$password,
+            $dbContainer,
+            'psql', '-h', '127.0.0.1', '-U', 'webino', '-d', 'webino', '-c', 'select 1',
+        ], 20);
+
+        return $result['exit_code'] === 0;
     }
 
     /**
