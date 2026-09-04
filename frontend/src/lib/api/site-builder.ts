@@ -115,6 +115,14 @@ export type SiteControlPayload = {
     domain?: string | null;
     log?: string | null;
   } | null;
+  stack?: {
+    project?: string | null;
+    containers?: Record<string, { status?: string; networks?: string[] }>;
+    on_webino_sites?: { backend?: boolean; frontend?: boolean };
+    caddy_to_backend?: boolean;
+    frontend_to_backend?: boolean;
+    log?: string | null;
+  } | null;
 };
 
 export async function fetchCatalog() {
@@ -237,9 +245,9 @@ export async function stopProvision(id: number) {
   return unwrapData<SiteProvision>(res);
 }
 
-export async function fetchProvisionLogs(id: number) {
-  const res = await apiClient.get(`${BASE}/provisions/${id}/logs`);
-  return unwrapData<{ logs?: string; error_log?: string } | string>(res);
+export async function fetchProvisionLogs(id: number, tail = 200) {
+  const res = await apiClient.get(`${BASE}/provisions/${id}/logs`, { params: { tail } });
+  return unwrapData<{ provision_id?: number; slug?: string; logs?: string } | string>(res);
 }
 
 export async function saveCategory(body: Partial<BusinessCategory> & { id?: number }) {

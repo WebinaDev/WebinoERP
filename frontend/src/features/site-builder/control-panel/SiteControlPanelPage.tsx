@@ -5,6 +5,7 @@ import { useCallback, useEffect, useState, type ComponentType, type ReactNode } 
 import { useLocale, useTranslations } from 'next-intl';
 import {
   ArrowLeft,
+  ClipboardCopy,
   Database,
   ExternalLink,
   FlaskConical,
@@ -17,6 +18,7 @@ import {
   Power,
   PowerOff,
   RefreshCw,
+  ScrollText,
   Server,
   ShieldCheck,
   UserRound,
@@ -32,6 +34,7 @@ import { getAxiosMessage } from '@/lib/api-helpers';
 import {
   fetchFeatures,
   fetchProvisionControl,
+  fetchProvisionLogs,
   queueProvisionUpdate,
   renewProvisionSsl,
   setProvisionChannel,
@@ -94,6 +97,8 @@ export function SiteControlPanelPage({ id }: { id: string }) {
   const [expiresAt, setExpiresAt] = useState('');
   const [startDate, setStartDate] = useState('');
   const [installSlug, setInstallSlug] = useState('');
+  const [composeLogs, setComposeLogs] = useState('');
+  const [logsBusy, setLogsBusy] = useState(false);
 
   const load = useCallback(async () => {
     if (!Number.isFinite(provisionId)) return;
@@ -117,9 +122,32 @@ export function SiteControlPanelPage({ id }: { id: string }) {
     }
   }, [provisionId, t]);
 
+  const loadLogs = useCallback(async () => {
+    if (!Number.isFinite(provisionId)) return;
+    setLogsBusy(true);
+    try {
+      const raw = await fetchProvisionLogs(provisionId, 400);
+      const text =
+        typeof raw === 'string'
+          ? raw
+          : raw && typeof raw === 'object' && 'logs' in raw
+            ? String(raw.logs ?? '')
+            : '';
+      setComposeLogs(text);
+    } catch (e) {
+      setComposeLogs(getAxiosMessage(e) || t('loadError'));
+    } finally {
+      setLogsBusy(false);
+    }
+  }, [provisionId, t]);
+
   useEffect(() => {
     void load();
   }, [load]);
+
+  useEffect(() => {
+    if (data) void loadLogs();
+  }, [data?.provision?.id, loadLogs]);
 
   useEffect(() => {
     if (!data?.update || !['queued', 'running'].includes(data.update.status ?? '')) return;
@@ -573,6 +601,77 @@ export function SiteControlPanelPage({ id }: { id: string }) {
                 {t('controlSslForce')}
               </Button>
             </div>
+          </Section>
+
+          <Section
+            icon={ScrollText}
+            title={t('controlDiagnostics')}
+            description={t('controlDiagnosticsHint')}
+            testId="control-diagnostics"
+          >
+            <div className="grid gap-2 text-sm" data-testid="control-stack-health">
+              <div className="font-medium">{t('controlStackHealth')}</div>
+              <div>
+                {t('controlCaddyToBackend')}:{' '}
+                <Badge variant={data?.stack?.caddy_to_backend ? 'default' : 'destructive'}>
+                  {data?.stack?.caddy_to_backend ? t('controlOk') : t('controlFail')}
+                </Badge>
+              </div>
+              <div>
+                {t('controlFrontendToBackend')}:{' '}
+                <Badge variant={data?.stack?.frontend_to_backend ? 'default' : 'destructive'}>
+                  {data?.stack?.frontend_to_backend ? t('controlOk') : t('controlFail')}
+                </Badge>
+              </div>
+              <div>
+                {t('controlOnProxyNet')}: backend=
+                {data?.stack?.on_webino_sites?.backend ? t('controlOk') : t('controlFail')}, frontend=
+                {data?.stack?.on_webino_sites?.frontend ? t('controlOk') : t('controlFail')}
+              </div>
+            </div>
+            {data?.stack?.log ? (
+              <pre className="bg-muted/50 max-h-40 overflow-auto whitespace-pre-wrap rounded-lg border p-3 text-xs">
+                {data.stack.log}
+              </pre>
+            ) : null}
+            <div className="flex flex-wrap gap-2">
+              <Button
+                type="button"
+                variant="secondary"
+                className="gap-1.5"
+                disabled={logsBusy || busy !== null}
+                data-testid="control-refresh-logs"
+                onClick={() => void loadLogs()}
+              >
+                {logsBusy ? <Loader2 className="size-4 animate-spin" /> : <RefreshCw className="size-4" />}
+                {t('controlRefreshLogs')}
+              </Button>
+              <Button
+                type="button"
+                variant="outline"
+                className="gap-1.5"
+                disabled={!composeLogs && !data?.stack?.log}
+                data-testid="control-copy-logs"
+                onClick={async () => {
+                  const text = [data?.stack?.log, composeLogs].filter(Boolean).join('\n\n--- compose ---\n\n');
+                  try {
+                    await navigator.clipboard.writeText(text);
+                    setMsg(t('controlLogsCopied'));
+                  } catch {
+                    setError(t('saveError'));
+                  }
+                }}
+              >
+                <ClipboardCopy className="size-4" />
+                {t('controlCopyLogs')}
+              </Button>
+            </div>
+            <pre
+              className="bg-muted/50 max-h-72 overflow-auto whitespace-pre-wrap rounded-lg border p-3 text-xs"
+              data-testid="control-compose-logs"
+            >
+              {composeLogs || t('controlLogsEmpty')}
+            </pre>
           </Section>
 
           {data.customer ? (

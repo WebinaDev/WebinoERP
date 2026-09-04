@@ -8,6 +8,9 @@ namespace Modules\Platform\Support;
  * Shared images (webino-backend / webino-next) are reused; data, networks, and
  * container names are unique per slug so many sites can run on one host.
  *
+ * Service names on the shared webino_sites network MUST be unique (ws-{slug}-*).
+ * Generic names "backend"/"frontend" steal Docker DNS from ERP Caddy.
+ *
  * Channel tags: latest (default) | beta (git HEAD). Stable is reserved for later.
  */
 final class TenantSiteStack
@@ -17,6 +20,16 @@ final class TenantSiteStack
         $safe = strtolower(preg_replace('/[^a-z0-9-]/', '', $slug) ?: 'site');
 
         return 'ws-'.$safe;
+    }
+
+    public static function backendService(string $slug): string
+    {
+        return self::projectName($slug).'-backend';
+    }
+
+    public static function frontendService(string $slug): string
+    {
+        return self::projectName($slug).'-frontend';
     }
 
     /** Normalize product channel to a docker image tag suffix. */
@@ -36,12 +49,15 @@ final class TenantSiteStack
         $project = self::projectName($slug);
         $internal = $project.'_net';
         $tag = self::imageTag($channel);
+        $backendSvc = $project.'-backend';
+        $frontendSvc = $project.'-frontend';
 
         return <<<YAML
 # Isolated tenant stack. Images: webino-backend:{$tag}, webino-next:{$tag}
 # Built from https://github.com/Webinadev/WebinoDashboard
-# Internal net for db/redis; proxy (webino_sites) so ERP Caddy can reach
-# container names. Browser /api → Caddy → *-backend:8080; pages → *-frontend:3000.
+# Service names are unique (not "backend"/"frontend") so they do not steal
+# Docker DNS from ERP Caddy on webino_sites. Internal aliases keep
+# INTERNAL_API_URL=http://backend:8080 working on the private net.
 services:
   db:
     image: postgres:15-alpine
@@ -65,7 +81,7 @@ services:
     container_name: {$project}-redis
     restart: unless-stopped
     networks: [{$internal}]
-  backend:
+  {$backendSvc}:
     image: webino-backend:{$tag}
     container_name: {$project}-backend
     restart: unless-stopped
@@ -77,16 +93,23 @@ services:
         condition: service_healthy
       redis:
         condition: service_started
-    networks: [{$internal}, proxy]
-  frontend:
+    networks:
+      {$internal}:
+        aliases: [backend]
+      proxy:
+  {$frontendSvc}:
     image: webino-next:{$tag}
     container_name: {$project}-frontend
     restart: unless-stopped
     environment:
       INTERNAL_API_URL: http://backend:8080
       API_PROXY_TARGET: http://backend:8080
-    depends_on: [backend]
-    networks: [{$internal}, proxy]
+    depends_on:
+      - {$backendSvc}
+    networks:
+      {$internal}:
+        aliases: [frontend]
+      proxy:
 volumes:
   db:
 networks:
@@ -128,8 +151,6 @@ CADDY;
      */
     public static function proxyContainerNames(string $slug): array
     {
-        $project = self::projectName($slug);
-
-        return [$project.'-backend', $project.'-frontend'];
+        return [self::backendService($slug), self::frontendService($slug)];
     }
 }

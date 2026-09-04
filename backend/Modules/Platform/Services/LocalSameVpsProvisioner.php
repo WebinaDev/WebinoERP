@@ -186,8 +186,9 @@ class LocalSameVpsProvisioner
             '-p', TenantSiteStack::projectName($provision->slug),
             '-f', $dir.'/docker-compose.yml',
             '--env-file', $dir.'/.env',
-            'up', '-d', '--no-deps', '--force-recreate',
-            'backend', 'frontend',
+            'up', '-d', '--no-deps', '--force-recreate', '--remove-orphans',
+            TenantSiteStack::backendService($provision->slug),
+            TenantSiteStack::frontendService($provision->slug),
         ], 900);
         if ($recreate['exit_code'] !== 0 && $result['exit_code'] === 0) {
             $result = $recreate;
@@ -234,8 +235,9 @@ class LocalSameVpsProvisioner
             '-p', TenantSiteStack::projectName($provision->slug),
             '-f', $dir.'/docker-compose.yml',
             '--env-file', $dir.'/.env',
-            'up', '-d', '--no-deps', '--force-recreate',
-            'backend', 'frontend',
+            'up', '-d', '--no-deps', '--force-recreate', '--remove-orphans',
+            TenantSiteStack::backendService($provision->slug),
+            TenantSiteStack::frontendService($provision->slug),
         ], 900);
         if ($recreate['exit_code'] !== 0 && $result['exit_code'] === 0) {
             $result = $recreate;
@@ -339,7 +341,7 @@ class LocalSameVpsProvisioner
             '-p', TenantSiteStack::projectName($provision->slug),
             '-f', $dir.'/docker-compose.yml',
             '--env-file', $dir.'/.env',
-            'exec', '-T', 'backend',
+            'exec', '-T', TenantSiteStack::backendService($provision->slug),
             'php', 'artisan', 'migrate', '--force',
         ], 600);
 
@@ -540,6 +542,82 @@ class LocalSameVpsProvisioner
     }
 
     /**
+     * Diagnostics for control panel: container state, webino_sites attach, API reachability.
+     *
+     * @return array{
+     *   project:string,
+     *   containers:array<string, array{status:string,networks:list<string>}>,
+     *   on_webino_sites:array{backend:bool,frontend:bool},
+     *   caddy_to_backend:bool,
+     *   frontend_to_backend:bool,
+     *   log:string
+     * }
+     */
+    public function stackDiagnostics(WebinoSiteProvision $provision): array
+    {
+        $project = TenantSiteStack::projectName($provision->slug);
+        $backend = TenantSiteStack::backendService($provision->slug);
+        $frontend = TenantSiteStack::frontendService($provision->slug);
+        $db = $project.'-db';
+
+        $containers = [];
+        $lines = [];
+        foreach ([$backend, $frontend, $db] as $name) {
+            $status = $this->run([
+                'docker', 'inspect', '-f', '{{.State.Status}}', $name,
+            ], 15);
+            $nets = $this->run([
+                'docker', 'inspect', '-f',
+                '{{range $k, $v := .NetworkSettings.Networks}}{{$k}} {{end}}',
+                $name,
+            ], 15);
+            $statusStr = $status['exit_code'] === 0 ? trim($status['stdout']) : 'missing';
+            $netList = preg_split('/\s+/', trim($nets['stdout'] ?? '')) ?: [];
+            $netList = array_values(array_filter($netList, fn ($n) => $n !== ''));
+            $containers[$name] = [
+                'status' => $statusStr,
+                'networks' => $netList,
+            ];
+            $lines[] = $name.': '.$statusStr.' nets=['.implode(',', $netList).']';
+        }
+
+        $onSites = [
+            'backend' => in_array('webino_sites', $containers[$backend]['networks'] ?? [], true),
+            'frontend' => in_array('webino_sites', $containers[$frontend]['networks'] ?? [], true),
+        ];
+        $lines[] = 'on_webino_sites backend='.($onSites['backend'] ? 'yes' : 'no')
+            .' frontend='.($onSites['frontend'] ? 'yes' : 'no');
+
+        $caddyToBackend = $this->probeOnProxyNetwork(
+            'http://'.$backend.':8080/api/v1/health/metrics'
+        );
+        $lines[] = 'caddy→'.$backend.'/api/v1/health/metrics: '.($caddyToBackend ? 'ok' : 'FAIL');
+
+        $feToBe = $this->run([
+            'docker', 'exec', $frontend,
+            'wget', '-q', '-O', '-', 'http://backend:8080/api/v1/health/metrics',
+        ], 30);
+        if ($feToBe['exit_code'] !== 0) {
+            $feToBe = $this->run([
+                'docker', 'exec', $frontend,
+                'node', '-e',
+                "fetch('http://backend:8080/api/v1/health/metrics').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))",
+            ], 30);
+        }
+        $frontendToBackend = $feToBe['exit_code'] === 0;
+        $lines[] = 'frontend→http://backend:8080 (internal alias): '.($frontendToBackend ? 'ok' : 'FAIL');
+
+        return [
+            'project' => $project,
+            'containers' => $containers,
+            'on_webino_sites' => $onSites,
+            'caddy_to_backend' => $caddyToBackend,
+            'frontend_to_backend' => $frontendToBackend,
+            'log' => implode("\n", $lines),
+        ];
+    }
+
+    /**
      * HMAC call into the live tenant dashboard.
      *
      * @param  array<string, mixed>  $payload
@@ -651,19 +729,27 @@ class LocalSameVpsProvisioner
     }
 
     /**
-     * @param  list<string>  $services
+     * @param  list<string>  $services  Short names backend|frontend or full ws-*-*
      * @return array{exit_code:int,stdout:string,stderr:string,log:string}
      */
     protected function recreateServices(WebinoSiteProvision $provision, array $services): array
     {
         $dir = $this->siteDir($provision);
+        $mapped = array_map(
+            fn (string $s) => match ($s) {
+                'backend' => TenantSiteStack::backendService($provision->slug),
+                'frontend' => TenantSiteStack::frontendService($provision->slug),
+                default => $s,
+            },
+            $services,
+        );
         $cmd = [
             'docker', 'compose',
             '-p', TenantSiteStack::projectName($provision->slug),
             '-f', $dir.'/docker-compose.yml',
             '--env-file', $dir.'/.env',
-            'up', '-d', '--no-deps', '--force-recreate',
-            ...$services,
+            'up', '-d', '--no-deps', '--force-recreate', '--remove-orphans',
+            ...$mapped,
         ];
         $result = $this->run($cmd, 900);
         $attachLog = $this->attachToProxyNetwork($provision->slug);
@@ -1084,7 +1170,7 @@ class LocalSameVpsProvisioner
             '-p', TenantSiteStack::projectName($slug),
             '-f', $dir.'/docker-compose.yml',
             '--env-file', $dir.'/.env',
-            'up', '-d',
+            'up', '-d', '--remove-orphans',
         ], 900);
     }
 

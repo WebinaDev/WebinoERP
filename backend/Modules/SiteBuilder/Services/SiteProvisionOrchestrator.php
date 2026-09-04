@@ -221,6 +221,38 @@ class SiteProvisionOrchestrator
     }
 
     /**
+     * @return array<string, mixed>
+     */
+    public function stackDiagnostics(WebinoSiteProvision $provision): array
+    {
+        try {
+            if ($this->shouldUseLocal($provision)) {
+                return $this->local->stackDiagnostics($provision);
+            }
+        } catch (Throwable $e) {
+            report($e);
+
+            return [
+                'project' => null,
+                'containers' => [],
+                'on_webino_sites' => ['backend' => false, 'frontend' => false],
+                'caddy_to_backend' => false,
+                'frontend_to_backend' => false,
+                'log' => $e->getMessage(),
+            ];
+        }
+
+        return [
+            'project' => null,
+            'containers' => [],
+            'on_webino_sites' => ['backend' => false, 'frontend' => false],
+            'caddy_to_backend' => false,
+            'frontend_to_backend' => false,
+            'log' => 'remote stack diagnostics not supported',
+        ];
+    }
+
+    /**
      * @param  array<string, mixed>  $payload
      * @return array<string, mixed>
      */

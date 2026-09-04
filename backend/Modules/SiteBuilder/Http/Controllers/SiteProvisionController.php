@@ -399,6 +399,21 @@ class SiteProvisionController extends Controller
             $ssl['log'] = $e->getMessage();
         }
 
+        $stack = [
+            'project' => null,
+            'containers' => [],
+            'on_webino_sites' => ['backend' => false, 'frontend' => false],
+            'caddy_to_backend' => false,
+            'frontend_to_backend' => false,
+            'log' => null,
+        ];
+        try {
+            $stack = app(SiteProvisionOrchestrator::class)->stackDiagnostics($siteProvision);
+        } catch (Throwable $e) {
+            report($e);
+            $stack['log'] = $e->getMessage();
+        }
+
         $licensePayload = null;
         try {
             if ($license) {
@@ -437,6 +452,7 @@ class SiteProvisionController extends Controller
                     'update' => $wizard['update'] ?? null,
                     'customer' => $siteProvision->crmAccount,
                     'ssl' => $ssl,
+                    'stack' => $stack,
                 ],
             ],
             200,
