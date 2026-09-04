@@ -2809,6 +2809,7 @@
     "selectCustomer": "Select CRM account",
     "optional": "Optional",
     "continue": "Continue",
+    "back": "Back",
     "siteName": "Site name",
     "slug": "Slug",
     "currency": "Default currency",
@@ -2840,7 +2841,8 @@
     "addPackage": "Add package",
     "nameFa": "Name (FA)",
     "nameEn": "Name (EN)",
-    "save": "Save"
+    "save": "Save",
+    "noPackages": "No package for this business type. Refresh or create the resume package in the catalog."
   },
   "platform": {
     "dashboardTitle": "Platform dashboard",

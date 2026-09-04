@@ -46,10 +46,10 @@ class WebinoDashboardProvisioner
                 $provision->package,
                 [
                     'selected_feature_slugs' => $payload['selected_feature_slugs'] ?? [],
-                    'extra_module_slugs' => $payload['extra_module_slugs'] ?? ['dashboard', 'modules'],
                     'expires_at' => $payload['expires_at'] ?? null,
                     'max_users' => $payload['max_users'] ?? null,
                     'site_type' => $siteType,
+                    'site_name' => $payload['site_name'] ?? $provision->slug,
                 ],
                 $provision->created_by,
             );
@@ -272,23 +272,23 @@ YAML;
             'crm_account_id' => $provision->crm_account_id,
             'admin_email' => $provision->wizard_payload['admin_email'] ?? null,
             'admin_name' => $provision->wizard_payload['admin_name'] ?? 'Admin',
-        ], JSON_UNESCAPED_UNICODE);
+        ], JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
 
         return implode("\n", [
-            'APP_ENV=production',
-            'APP_KEY=base64:'.base64_encode(random_bytes(32)),
-            'DB_CONNECTION=pgsql',
-            'DB_HOST=db',
-            'DB_DATABASE=webino',
-            'DB_USERNAME=webino',
-            'DB_PASSWORD='.Str::random(24),
-            'REDIS_HOST=redis',
-            'RUN_MIGRATIONS=1',
-            'WEBINO_BASE_URL='.$crm,
-            'TENANT_LICENSE_KEY='.($provision->license?->license_key ?? ''),
-            'TENANT_PROVISION_TOKEN='.$token,
-            'TENANT_SEED_JSON='.$seed,
-            'WEBINO_PROVISION_HMAC_SECRET='.($settings->provision_webhook_secret ?? ''),
+            $this->envLine('APP_ENV', 'production'),
+            $this->envLine('APP_KEY', 'base64:'.base64_encode(random_bytes(32))),
+            $this->envLine('DB_CONNECTION', 'pgsql'),
+            $this->envLine('DB_HOST', 'db'),
+            $this->envLine('DB_DATABASE', 'webino'),
+            $this->envLine('DB_USERNAME', 'webino'),
+            $this->envLine('DB_PASSWORD', Str::random(24)),
+            $this->envLine('REDIS_HOST', 'redis'),
+            $this->envLine('RUN_MIGRATIONS', '1'),
+            $this->envLine('WEBINO_BASE_URL', $crm),
+            $this->envLine('TENANT_LICENSE_KEY', (string) ($provision->license?->license_key ?? '')),
+            $this->envLine('TENANT_PROVISION_TOKEN', $token),
+            $this->envLine('TENANT_SEED_JSON', (string) $seed),
+            $this->envLine('WEBINO_PROVISION_HMAC_SECRET', (string) ($settings->provision_webhook_secret ?? '')),
         ])."\n";
     }
 
@@ -346,5 +346,12 @@ CADDY;
             ->timeout(60)
             ->post('https://'.$provision->domain.'/api/v1/provision/bootstrap')
             ->throw();
+    }
+
+    protected function envLine(string $key, string $value): string
+    {
+        $escaped = str_replace(['\\', "\n", '"'], ['\\\\', '\\n', '\\"'], $value);
+
+        return $key.'="'.$escaped.'"';
     }
 }

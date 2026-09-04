@@ -6,11 +6,13 @@ use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Str;
 use Modules\Core\Entities\CoreHostingSetting;
+use Modules\Core\Entities\CoreLicense;
 use Modules\SiteBuilder\Entities\WebinoSiteProvision;
 use Modules\SiteBuilder\Jobs\ProvisionWebinoSiteJob;
 use Modules\SiteBuilder\Services\LicenseProvisionerService;
 use Modules\SiteBuilder\Services\SiteProvisionAuditLogger;
 use Modules\SiteBuilder\Services\SiteProvisionOrchestrator;
+use Throwable;
 
 class SiteProvisionController extends Controller
 {
@@ -30,36 +32,39 @@ class SiteProvisionController extends Controller
     public function store(Request $request): JsonResponse
     {
         $data = $request->validate([
-            'crm_account_id' => 'nullable|exists:crm_accounts,id',
-            'package_id' => 'nullable|exists:webino_packages,id',
-            'slug' => 'nullable|string|max:64|regex:/^[a-z0-9-]+$/|unique:webino_site_provisions,slug',
+            'crm_account_id' => 'nullable|integer|exists:crm_accounts,id',
+            'package_id' => 'nullable|integer|exists:webino_packages,id',
+            'slug' => 'nullable|string|max:64',
             'wizard_payload' => 'nullable|array',
         ]);
 
-        $slug = $data['slug'] ?? Str::slug($data['wizard_payload']['site_name'] ?? 'site-'.Str::random(6));
-        $settings = CoreHostingSetting::current();
-        $baseDomain = $settings->platform_base_domain ?: 'webinaagency.ir';
-        $usesCustom = (bool) ($data['wizard_payload']['uses_custom_domain'] ?? false);
-        $domain = $usesCustom
-            ? ($data['wizard_payload']['custom_domain'] ?? $slug.'.'.$baseDomain)
-            : $slug.'.'.$baseDomain;
+        try {
+            $wizard = is_array($data['wizard_payload'] ?? null) ? $data['wizard_payload'] : [];
+            $slug = $this->uniqueSlug($data['slug'] ?? null, $wizard['site_name'] ?? null);
+            $usesCustom = (bool) ($wizard['uses_custom_domain'] ?? false);
+            $domain = $this->resolveDomain($slug, $usesCustom, $wizard['custom_domain'] ?? null);
 
-        $row = WebinoSiteProvision::query()->create([
-            'crm_account_id' => $data['crm_account_id'] ?? null,
-            'package_id' => $data['package_id'] ?? null,
-            'slug' => $slug,
-            'domain' => $domain,
-            'subdomain' => $usesCustom ? null : $slug,
-            'uses_custom_domain' => $usesCustom,
-            'status' => WebinoSiteProvision::STATUS_DRAFT,
-            'wizard_payload' => $data['wizard_payload'] ?? [],
-            'provision_token' => Str::random(48),
-            'created_by' => $request->user()?->id,
-        ]);
+            $row = WebinoSiteProvision::query()->create([
+                'crm_account_id' => $data['crm_account_id'] ?? null,
+                'package_id' => $data['package_id'] ?? null,
+                'slug' => $slug,
+                'domain' => $domain,
+                'subdomain' => $usesCustom ? null : $slug,
+                'uses_custom_domain' => $usesCustom,
+                'status' => WebinoSiteProvision::STATUS_DRAFT,
+                'wizard_payload' => $wizard,
+                'provision_token' => Str::random(48),
+                'created_by' => $request->user()?->id,
+            ]);
 
-        app(SiteProvisionAuditLogger::class)->log($request->user()?->id, 'provision.created', $row);
+            app(SiteProvisionAuditLogger::class)->log($request->user()?->id, 'provision.created', $row);
 
-        return response()->json(['data' => $row], 201);
+            return response()->json(['data' => $row->fresh(['license', 'package', 'crmAccount'])], 201);
+        } catch (Throwable $e) {
+            report($e);
+
+            return response()->json(['message' => $e->getMessage() ?: 'Failed to create provision.'], 422);
+        }
     }
 
     public function show(WebinoSiteProvision $siteProvision): JsonResponse
@@ -76,32 +81,37 @@ class SiteProvisionController extends Controller
         }
 
         $data = $request->validate([
-            'crm_account_id' => 'nullable|exists:crm_accounts,id',
-            'package_id' => 'nullable|exists:webino_packages,id',
-            'slug' => 'sometimes|string|max:64|regex:/^[a-z0-9-]+$/|unique:webino_site_provisions,slug,'.$siteProvision->id,
+            'crm_account_id' => 'nullable|integer|exists:crm_accounts,id',
+            'package_id' => 'nullable|integer|exists:webino_packages,id',
+            'slug' => 'nullable|string|max:64',
             'wizard_payload' => 'nullable|array',
             'uses_custom_domain' => 'nullable|boolean',
         ]);
 
-        $wizard = array_merge($siteProvision->wizard_payload ?? [], $data['wizard_payload'] ?? []);
-        unset($data['wizard_payload']);
+        try {
+            $wizard = array_merge($siteProvision->wizard_payload ?? [], $data['wizard_payload'] ?? []);
+            unset($data['wizard_payload']);
 
-        if (isset($data['slug']) || isset($data['uses_custom_domain']) || isset($wizard['uses_custom_domain'])) {
-            $settings = CoreHostingSetting::current();
-            $baseDomain = $settings->platform_base_domain ?: 'webinaagency.ir';
-            $slug = $data['slug'] ?? $siteProvision->slug;
-            $usesCustom = $data['uses_custom_domain'] ?? $wizard['uses_custom_domain'] ?? $siteProvision->uses_custom_domain;
-            $data['domain'] = $usesCustom
-                ? ($wizard['custom_domain'] ?? $siteProvision->domain)
-                : $slug.'.'.$baseDomain;
+            $incomingSlug = $data['slug'] ?? $wizard['slug'] ?? null;
+            $slug = $this->uniqueSlug(
+                is_string($incomingSlug) && $incomingSlug !== '' ? $incomingSlug : $siteProvision->slug,
+                $wizard['site_name'] ?? null,
+                $siteProvision->id,
+            );
+            $usesCustom = (bool) ($data['uses_custom_domain'] ?? $wizard['uses_custom_domain'] ?? $siteProvision->uses_custom_domain);
+            $data['slug'] = $slug;
+            $data['domain'] = $this->resolveDomain($slug, $usesCustom, $wizard['custom_domain'] ?? $siteProvision->domain);
             $data['subdomain'] = $usesCustom ? null : $slug;
             $data['uses_custom_domain'] = $usesCustom;
+            $data['wizard_payload'] = $wizard;
+            $siteProvision->update($data);
+
+            return response()->json(['data' => $siteProvision->fresh(['license', 'package', 'crmAccount'])]);
+        } catch (Throwable $e) {
+            report($e);
+
+            return response()->json(['message' => $e->getMessage() ?: 'Failed to update provision.'], 422);
         }
-
-        $data['wizard_payload'] = $wizard;
-        $siteProvision->update($data);
-
-        return response()->json(['data' => $siteProvision->fresh(['license', 'package', 'crmAccount'])]);
     }
 
     public function prepareLicense(WebinoSiteProvision $siteProvision, LicenseProvisionerService $licenses, Request $request): JsonResponse
@@ -114,15 +124,28 @@ class SiteProvisionController extends Controller
 
         if (! $siteProvision->license_id) {
             $payload = $siteProvision->wizard_payload ?? [];
-            $license = $licenses->createForProvision(
-                $siteProvision->domain,
-                $siteProvision->package,
-                [
-                    'selected_feature_slugs' => $payload['selected_feature_slugs'] ?? [],
-                    'extra_module_slugs' => $payload['extra_module_slugs'] ?? ['dashboard', 'modules'],
-                ],
-                $request->user()?->id,
-            );
+            $siteType = (string) ($payload['site_type_slug'] ?? $siteProvision->package?->businessType?->slug ?? 'corporate');
+            if (CoreLicense::query()->where('domain', $siteProvision->domain)->exists()) {
+                return response()->json(['message' => 'Domain already licensed. Choose another slug or domain.'], 422);
+            }
+            try {
+                $license = $licenses->createForProvision(
+                    $siteProvision->domain,
+                    $siteProvision->package,
+                    [
+                        'selected_feature_slugs' => $payload['selected_feature_slugs'] ?? [],
+                        'site_type' => $siteType,
+                        'site_type_slug' => $siteType,
+                        'site_name' => $payload['site_name'] ?? $siteProvision->slug,
+                        'project_name' => $payload['site_name'] ?? $siteProvision->slug,
+                    ],
+                    $request->user()?->id,
+                );
+            } catch (Throwable $e) {
+                report($e);
+
+                return response()->json(['message' => $e->getMessage() ?: 'Failed to prepare license.'], 422);
+            }
             $siteProvision->update(['license_id' => $license->id]);
             app(SiteProvisionAuditLogger::class)->log($request->user()?->id, 'license.prepared', $siteProvision, [
                 'license_key' => $license->license_key,
@@ -240,5 +263,72 @@ class SiteProvisionController extends Controller
         }
 
         return response()->json(['message' => 'Deleted']);
+    }
+
+    protected function uniqueSlug(?string $requested, mixed $siteName, ?int $ignoreId = null): string
+    {
+        $fromRequest = $this->normalizeSlug((string) ($requested ?? ''));
+        $fromName = $this->normalizeSlug(is_string($siteName) ? $siteName : '');
+        $base = $fromRequest !== '' ? $fromRequest : $fromName;
+        if ($base === '' || $base === '-') {
+            $base = 'site-'.Str::lower(Str::random(8));
+        }
+
+        $slug = $base;
+        $i = 2;
+        while (
+            WebinoSiteProvision::query()
+                ->when($ignoreId, fn ($q) => $q->where('id', '!=', $ignoreId))
+                ->where('slug', $slug)
+                ->exists()
+        ) {
+            $slug = $base.'-'.$i;
+            $i++;
+            if ($i > 50) {
+                $slug = $base.'-'.Str::lower(Str::random(4));
+                break;
+            }
+        }
+
+        return $slug;
+    }
+
+    protected function normalizeSlug(string $value): string
+    {
+        $slug = Str::slug($value);
+        if ($slug !== '') {
+            return $slug;
+        }
+
+        $ascii = strtolower(trim($value));
+        $ascii = preg_replace('/[\s_]+/', '-', $ascii) ?? '';
+        $ascii = preg_replace('/[^a-z0-9-]/', '', $ascii) ?? '';
+        $ascii = trim(preg_replace('/-+/', '-', $ascii) ?? '', '-');
+
+        return $ascii;
+    }
+
+    protected function resolveDomain(string $slug, bool $usesCustom, mixed $customDomain): string
+    {
+        if ($usesCustom && is_string($customDomain) && trim($customDomain) !== '') {
+            return strtolower(trim($customDomain));
+        }
+
+        return $slug.'.'.$this->platformBaseDomain();
+    }
+
+    protected function platformBaseDomain(): string
+    {
+        try {
+            $row = CoreHostingSetting::query()->first();
+            $domain = $row?->getAttributes()['platform_base_domain'] ?? null;
+            if (is_string($domain) && trim($domain) !== '') {
+                return trim($domain);
+            }
+        } catch (Throwable) {
+            /* settings table / decrypt may be unavailable */
+        }
+
+        return 'webinaagency.ir';
     }
 }

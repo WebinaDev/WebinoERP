@@ -25,10 +25,29 @@ import {
 import { fetchServers, type PlatformServer } from '@/lib/api/platform';
 import apiClient from '@/lib/api-client';
 import { getAxiosMessage, unwrapData } from '@/lib/api-helpers';
+import { normalizeListPayload } from '@/lib/list-utils';
 
 type CrmAccount = { id: number; name?: string; company_name?: string };
 
 const DEFAULT_BASE_DOMAIN = 'webinaagency.ir';
+
+const SITE_TYPE_LABELS: Record<string, string> = {
+  ecommerce: 'فروشگاه اینترنتی',
+  magazine: 'مجله آموزشی',
+  cafe: 'کافه و رستوران',
+  resume: 'رزومه',
+  corporate: 'شرکتی',
+};
+
+function slugify(value: string): string {
+  return value
+    .trim()
+    .toLowerCase()
+    .replace(/[\s_]+/g, '-')
+    .replace(/[^a-z0-9-]/g, '')
+    .replace(/-+/g, '-')
+    .replace(/^-|-$/g, '');
+}
 
 function pickDefaultServer(servers: PlatformServer[]): number | null {
   const localhost = servers.find((s) => s.is_localhost || s.ip === '127.0.0.1' || /localhost/i.test(s.name));
@@ -88,14 +107,23 @@ export function SiteProvisionWizardPage() {
       try {
         const [cat, accRes, platformServers] = await Promise.all([
           fetchCatalog(),
-          apiClient.get('/v1/crm/accounts', { params: { per_page: 50 } }),
+          apiClient.get('/v1/crm/accounts', { params: { per_page: 100 } }),
           fetchServers().catch(() => [] as PlatformServer[]),
         ]);
         setCategories(cat);
         setServers(platformServers);
         setServerId(pickDefaultServer(platformServers));
-        const accData = unwrapData<{ data?: CrmAccount[] } | CrmAccount[]>(accRes);
-        setAccounts(Array.isArray(accData) ? accData : (accData.data ?? []));
+        const accData = unwrapData<unknown>(accRes);
+        const rows = normalizeListPayload(accData);
+        setAccounts(
+          rows
+            .map((r) => ({
+              id: Number(r.id),
+              name: String(r.name ?? ''),
+              company_name: typeof r.company_name === 'string' ? r.company_name : undefined,
+            }))
+            .filter((r) => Number.isFinite(r.id) && r.id > 0),
+        );
 
         try {
           const settingsRes = await apiClient.get('webinocrm/v1/hosting/settings');
@@ -113,15 +141,26 @@ export function SiteProvisionWizardPage() {
   }, [t]);
 
   useEffect(() => {
-    if (!typeId) return;
-    void fetchPackages(typeId).then(setPackages).catch(() => {});
-  }, [typeId]);
+    if (!typeId) {
+      setPackages([]);
+      return;
+    }
+    const nested = selectedType?.packages ?? [];
+    if (nested.length) setPackages(nested);
+    void fetchPackages(typeId).then(setPackages).catch(() => {
+      if (nested.length) setPackages(nested);
+    });
+  }, [typeId, selectedType]);
+
+  useEffect(() => {
+    if (selectedType?.slug) {
+      setSiteTypeSlug(selectedType.slug);
+    }
+  }, [selectedType?.slug]);
 
   const persistWizard = useCallback(async () => {
-    const payload = {
-      crm_account_id: crmAccountId,
-      package_id: packageId,
-      slug: slug || undefined,
+    const autoSlug = slugify(slug) || slugify(siteName);
+    const payload: Record<string, unknown> = {
       wizard_payload: {
         site_name: siteName,
         currency,
@@ -132,11 +171,14 @@ export function SiteProvisionWizardPage() {
         selected_feature_slugs: selectedFeatures,
         business_category_id: categoryId,
         business_type_id: typeId,
-        site_type_slug: siteTypeSlug,
+        site_type_slug: selectedType?.slug || siteTypeSlug,
         server_id: serverId,
       },
       uses_custom_domain: usesCustomDomain,
     };
+    if (crmAccountId) payload.crm_account_id = crmAccountId;
+    if (packageId) payload.package_id = packageId;
+    if (autoSlug) payload.slug = autoSlug;
     if (provision?.id) {
       return updateProvision(provision.id, payload);
     }
@@ -155,12 +197,21 @@ export function SiteProvisionWizardPage() {
     categoryId,
     typeId,
     siteTypeSlug,
+    selectedType?.slug,
     serverId,
     provision?.id,
   ]);
 
   async function nextStep() {
     setError(null);
+    if (step === 0 && !crmAccountId) {
+      setError(t('customerRequired'));
+      return;
+    }
+    if (step < 3) {
+      setStep((s) => s + 1);
+      return;
+    }
     setPending(true);
     try {
       const row = await persistWizard();
@@ -173,14 +224,22 @@ export function SiteProvisionWizardPage() {
     }
   }
 
+  function backStep() {
+    setError(null);
+    setStep((s) => Math.max(0, s - 1));
+  }
+
   async function createCustomerQuick() {
     const name = newCustomerName.trim();
     if (!name) return;
     setPending(true);
     setError(null);
     try {
-      const res = await apiClient.post('/v1/crm/accounts', { name });
+      const res = await apiClient.post('/v1/crm/accounts', { name, type: 'customer' });
       const created = unwrapData<CrmAccount>(res);
+      if (!created?.id) {
+        throw new Error(t('saveError'));
+      }
       setAccounts((prev) => [created, ...prev]);
       setCrmAccountId(created.id);
       setNewCustomerName('');
@@ -271,6 +330,9 @@ export function SiteProvisionWizardPage() {
                 </option>
               ))}
             </select>
+            {accounts.length === 0 ? (
+              <p className="text-muted-foreground text-sm">{t('createCustomer')}</p>
+            ) : null}
             <div className="grid gap-2">
               <Label>{t('createCustomer')}</Label>
               <div className="flex gap-2">
@@ -312,9 +374,14 @@ export function SiteProvisionWizardPage() {
                 {c.name_fa}
               </Button>
             ))}
-            <Button disabled={!categoryId || pending} onClick={() => void nextStep()}>
-              {t('continue')}
-            </Button>
+            <div className="flex gap-2 md:col-span-2">
+              <Button type="button" variant="outline" onClick={backStep}>
+                {t('back')}
+              </Button>
+              <Button disabled={!categoryId || pending} onClick={() => void nextStep()}>
+                {t('continue')}
+              </Button>
+            </div>
           </CardContent>
         </Card>
       ) : null}
@@ -335,9 +402,14 @@ export function SiteProvisionWizardPage() {
                 {type.name_fa}
               </Button>
             ))}
-            <Button disabled={!typeId || pending} onClick={() => void nextStep()}>
-              {t('continue')}
-            </Button>
+            <div className="flex gap-2 md:col-span-2">
+              <Button type="button" variant="outline" onClick={backStep}>
+                {t('back')}
+              </Button>
+              <Button disabled={!typeId || pending} onClick={() => void nextStep()}>
+                {t('continue')}
+              </Button>
+            </div>
           </CardContent>
         </Card>
       ) : null}
@@ -345,13 +417,22 @@ export function SiteProvisionWizardPage() {
       {step === 3 ? (
         <Card>
           <CardContent className="grid gap-3 pt-6">
+            {packages.length === 0 ? (
+              <p className="text-muted-foreground text-sm">{t('noPackages')}</p>
+            ) : null}
             {packages.map((p) => (
               <Button
                 key={p.id}
                 type="button"
                 variant={packageId === p.id ? 'default' : 'outline'}
                 className="justify-start"
-                onClick={() => setPackageId(p.id)}
+                onClick={() => {
+                  setPackageId(p.id);
+                  const fromType = (selectedType?.features ?? [])
+                    .filter((f) => !f.is_addon)
+                    .map((f) => f.slug);
+                  if (fromType.length) setSelectedFeatures(fromType);
+                }}
               >
                 {p.name_fa} ({p.sku})
               </Button>
@@ -371,9 +452,14 @@ export function SiteProvisionWizardPage() {
                   />
                 </div>
               ))}
-            <Button disabled={!packageId || pending} onClick={() => void nextStep()}>
-              {t('continue')}
-            </Button>
+            <div className="flex gap-2">
+              <Button type="button" variant="outline" onClick={backStep}>
+                {t('back')}
+              </Button>
+              <Button disabled={!packageId || pending} onClick={() => void nextStep()}>
+                {t('continue')}
+              </Button>
+            </div>
           </CardContent>
         </Card>
       ) : null}
@@ -383,7 +469,17 @@ export function SiteProvisionWizardPage() {
           <CardContent className="grid gap-3 pt-6">
             <div className="grid gap-2">
               <Label>{t('siteName')}</Label>
-              <Input value={siteName} onChange={(e) => setSiteName(e.target.value)} />
+              <Input
+                value={siteName}
+                onChange={(e) => {
+                  const next = e.target.value;
+                  setSiteName(next);
+                  if (!slug || slug === slugify(siteName)) {
+                    const auto = slugify(next);
+                    if (auto) setSlug(auto);
+                  }
+                }}
+              />
             </div>
             <div className="grid gap-2">
               <Label>{t('slug')}</Label>
@@ -415,7 +511,7 @@ export function SiteProvisionWizardPage() {
               >
                 {['ecommerce', 'magazine', 'cafe', 'resume', 'corporate'].map((st) => (
                   <option key={st} value={st}>
-                    {st}
+                    {SITE_TYPE_LABELS[st] ?? st}
                   </option>
                 ))}
                 {siteTypeSlug &&
@@ -442,9 +538,14 @@ export function SiteProvisionWizardPage() {
               </select>
               <p className="text-muted-foreground text-xs">{t('localServerHint')}</p>
             </div>
-            <Button disabled={!siteName || pending} onClick={() => void nextStep()}>
-              {t('continue')}
-            </Button>
+            <div className="flex gap-2">
+              <Button type="button" variant="outline" onClick={backStep}>
+                {t('back')}
+              </Button>
+              <Button disabled={!siteName.trim() || pending} onClick={() => void nextStep()}>
+                {t('continue')}
+              </Button>
+            </div>
           </CardContent>
         </Card>
       ) : null}
@@ -471,9 +572,14 @@ export function SiteProvisionWizardPage() {
             <p className="text-sm font-medium">
               {t('finalDomain')}: <span className="font-mono" dir="ltr">{finalDomain}</span>
             </p>
-            <Button disabled={pending} onClick={() => void nextStep()}>
-              {t('continue')}
-            </Button>
+            <div className="flex gap-2">
+              <Button type="button" variant="outline" onClick={backStep}>
+                {t('back')}
+              </Button>
+              <Button disabled={pending} onClick={() => void nextStep()}>
+                {t('continue')}
+              </Button>
+            </div>
           </CardContent>
         </Card>
       ) : null}

@@ -11,9 +11,17 @@ class BusinessCategoryController extends Controller
     public function index(): JsonResponse
     {
         $rows = WebinoBusinessCategory::query()
-            ->with(['types' => fn ($q) => $q->where('is_active', true)->orderBy('sort_order')])
+            ->with(['types' => fn ($q) => $q->where('is_active', true)->orderBy('sort_order')->with(['features', 'packages'])])
             ->orderBy('sort_order')
             ->get();
+
+        if ($rows->isEmpty()) {
+            app(\Modules\SiteBuilder\Database\Seeders\SiteBuilderSeeder::class)->run();
+            $rows = WebinoBusinessCategory::query()
+                ->with(['types' => fn ($q) => $q->where('is_active', true)->orderBy('sort_order')->with(['features', 'packages'])])
+                ->orderBy('sort_order')
+                ->get();
+        }
 
         return response()->json(['data' => $rows]);
     }

@@ -32,7 +32,10 @@ class AccountController extends Controller
 
     public function store(StoreAccountRequest $request): JsonResponse
     {
-        $account = CrmAccount::query()->create($request->validated() + ['created_by' => $request->user()->id]);
+        $payload = $request->validated() + ['created_by' => $request->user()?->id];
+        $payload['type'] = $payload['type'] ?: 'customer';
+
+        $account = CrmAccount::query()->create($payload);
 
         return response()->json(['data' => $account], 201);
     }

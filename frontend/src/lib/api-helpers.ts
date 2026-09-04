@@ -60,15 +60,43 @@ const KEY_MESSAGES: Record<string, string> = {
   'Two-factor authentication required': 'احراز هویت دو مرحله‌ای لازم است. کد ارسال‌شده را وارد کنید.',
 };
 
+function firstValidationError(err: unknown): string | undefined {
+  if (!err || typeof err !== 'object' || !('response' in err)) {
+    return undefined;
+  }
+  const errors = (err as { response?: { data?: { errors?: unknown } } }).response?.data?.errors;
+  if (!errors || typeof errors !== 'object') {
+    return undefined;
+  }
+  for (const [key, value] of Object.entries(errors as Record<string, unknown>)) {
+    if (key === 'code') continue;
+    if (Array.isArray(value) && typeof value[0] === 'string' && value[0].trim()) {
+      return value[0];
+    }
+    if (typeof value === 'string' && value.trim() && value !== 'MODULE_NOT_ACTIVE') {
+      return value;
+    }
+  }
+  return undefined;
+}
+
 export function getAxiosMessage(err: unknown): string {
   const code = errorCode(err);
   if (code && KEY_MESSAGES[code]) {
     return KEY_MESSAGES[code];
   }
 
+  const validation = firstValidationError(err);
+  if (validation && validation !== 'Server Error') {
+    return validation;
+  }
+
   const message = responseMessage(err);
   if (message && KEY_MESSAGES[message]) {
     return KEY_MESSAGES[message];
+  }
+  if (message === 'Server Error') {
+    return STATUS_MESSAGES[500];
   }
   if (message && !/^[a-z0-9_.]+$/i.test(message)) {
     return message;

@@ -40,4 +40,16 @@ class AccountApiTest extends TestCase
         $this->getJson('/api/v1/crm/accounts/'.$id)->assertOk();
         $this->deleteJson('/api/v1/crm/accounts/'.$id)->assertStatus(204);
     }
+
+    public function test_store_defaults_type_when_omitted(): void
+    {
+        $user = $this->actingAsRole(RolesAndPermissionsSeeder::ROLE_SYSTEM_MANAGER);
+        Sanctum::actingAs($user);
+
+        $this->postJson('/api/v1/crm/accounts', [
+            'name' => 'مبین حبیبی',
+        ])->assertCreated()
+            ->assertJsonPath('data.name', 'مبین حبیبی')
+            ->assertJsonPath('data.type', 'customer');
+    }
 }

@@ -69,6 +69,38 @@ class SiteBuilderApiTest extends TestCase
         ])->assertCreated()->assertJsonPath('data.slug', 'test_cat');
     }
 
+    public function test_empty_site_name_gets_unique_slug_and_resume_package_exists(): void
+    {
+        $user = $this->actingAsRole('system_manager');
+        Sanctum::actingAs($user);
+
+        $resume = WebinoPackage::query()->where('sku', 'pkg-resume-starter')->first();
+        $this->assertNotNull($resume);
+
+        $account = \Modules\Crm\Entities\CrmAccount::query()->create([
+            'name' => 'مبین حبیبی',
+            'type' => 'individual',
+        ]);
+
+        $first = $this->postJson('/api/v1/site-builder/provisions', [
+            'crm_account_id' => $account->id,
+            'wizard_payload' => ['site_name' => '', 'site_type_slug' => 'resume'],
+        ]);
+        $first->assertCreated();
+        $slug1 = $first->json('data.slug');
+        $this->assertNotSame('', $slug1);
+        $this->assertDoesNotMatchRegularExpression('/^\./', (string) $first->json('data.domain'));
+
+        $second = $this->postJson('/api/v1/site-builder/provisions', [
+            'crm_account_id' => $account->id,
+            'package_id' => $resume->id,
+            'wizard_payload' => ['site_name' => 'رزومه مبین', 'site_type_slug' => 'resume'],
+        ]);
+        $second->assertCreated();
+        $this->assertNotSame('', $second->json('data.slug'));
+        $this->assertNotSame($slug1, $second->json('data.slug'));
+    }
+
     public function test_license_meta_includes_business_fields(): void
     {
         $this->seed(SiteBuilderSeeder::class);
