@@ -109,6 +109,14 @@ class SiteProvisionOrchestrator
 
     public function rollback(WebinoSiteProvision $provision): WebinoSiteProvision
     {
+        try {
+            if ($this->shouldUseLocal($provision)) {
+                $this->local->destroyStack($provision);
+            }
+        } catch (Throwable $e) {
+            report($e);
+        }
+
         if ($provision->license) {
             $this->licenses->revoke($provision->license);
         }

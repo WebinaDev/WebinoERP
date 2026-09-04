@@ -9,6 +9,7 @@ use Modules\Platform\Entities\PlatformDeployment;
 use Modules\Platform\Entities\PlatformDomain;
 use Modules\Platform\Entities\PlatformResource;
 use Modules\Platform\Entities\PlatformServer;
+use Modules\Platform\Support\TenantSiteStack;
 use Modules\SiteBuilder\Entities\WebinoSiteProvision;
 use Modules\SiteBuilder\Services\LicenseProvisionerService;
 use RuntimeException;
@@ -65,7 +66,7 @@ class WebinoDashboardProvisioner
         $provision->save();
 
         $dir = '/var/lib/webino/sites/'.$provision->slug;
-        $compose = $this->composeYaml($provision, $siteType, $token);
+        $compose = TenantSiteStack::composeYaml($provision->slug);
         $this->docker->writeFile($server, $dir.'/docker-compose.yml', $compose);
         $envFile = $this->envFile($provision, $siteType, $token);
         $this->docker->writeFile($server, $dir.'/.env', $envFile);
@@ -82,10 +83,15 @@ class WebinoDashboardProvisioner
             throw new RuntimeException(trim($preflight['stderr'] ?: $preflight['stdout']) ?: 'platform.dashboard_images_missing');
         }
 
-        $up = $this->docker->composeUp($server, $dir, $provision->slug);
+        $up = $this->docker->composeUp($server, $dir, TenantSiteStack::projectName($provision->slug));
         if ($up['exit_code'] !== 0) {
             throw new RuntimeException(trim($up['stderr'] ?: $up['stdout']) ?: 'platform.compose_up_failed');
         }
+        $connect = [];
+        foreach (TenantSiteStack::proxyContainerNames($provision->slug) as $name) {
+            $connect[] = 'docker network connect webino '.escapeshellarg($name).' 2>/dev/null || true';
+        }
+        $this->docker->sshRun($server, implode('; ', $connect), 60);
 
         $resource = PlatformResource::query()->create([
             'environment_id' => $this->ensureDefaultEnvironment($provision)->id,
@@ -172,7 +178,12 @@ class WebinoDashboardProvisioner
     {
         $server = $this->serverFor($provision);
         $dir = '/var/lib/webino/sites/'.$provision->slug;
-        $result = $this->docker->composeUp($server, $dir, $provision->slug);
+        $result = $this->docker->composeUp($server, $dir, TenantSiteStack::projectName($provision->slug));
+        $connect = [];
+        foreach (TenantSiteStack::proxyContainerNames($provision->slug) as $name) {
+            $connect[] = 'docker network connect webino '.escapeshellarg($name).' 2>/dev/null || true';
+        }
+        $this->docker->sshRun($server, implode('; ', $connect), 60);
         PlatformResource::query()->where('provision_id', $provision->id)->update(['status' => 'running']);
 
         return $result;
@@ -185,7 +196,7 @@ class WebinoDashboardProvisioner
     {
         $server = $this->serverFor($provision);
         $dir = '/var/lib/webino/sites/'.$provision->slug;
-        $result = $this->docker->composeStop($server, $dir, $provision->slug);
+        $result = $this->docker->composeStop($server, $dir, TenantSiteStack::projectName($provision->slug));
         PlatformResource::query()->where('provision_id', $provision->id)->update(['status' => 'stopped']);
 
         return $result;
@@ -197,7 +208,7 @@ class WebinoDashboardProvisioner
         $dir = '/var/lib/webino/sites/'.$provision->slug;
         $r = $this->docker->sshRun(
             $server,
-            'cd '.escapeshellarg($dir).' && docker compose -p '.escapeshellarg($provision->slug).' logs --tail '.((int) $tail).' 2>&1',
+            'cd '.escapeshellarg($dir).' && docker compose -p '.escapeshellarg(TenantSiteStack::projectName($provision->slug)).' logs --tail '.((int) $tail).' 2>&1',
             60
         );
 
@@ -214,49 +225,6 @@ class WebinoDashboardProvisioner
         }
 
         return $server;
-    }
-
-    /**
-     * Uses published images only — no Dockerfile build on the target host.
-     * Images webino-backend:latest and webino-next:latest must already exist remotely.
-     */
-    protected function composeYaml(WebinoSiteProvision $provision, string $siteType, string $token): string
-    {
-        $slug = $provision->slug;
-        return <<<YAML
-# Published images required on this host: webino-backend:latest, webino-next:latest
-# No host port publish — reverse proxy via host Caddy to {slug}-*-1 containers.
-services:
-  db:
-    image: postgres:15-alpine
-    environment:
-      POSTGRES_DB: webino
-      POSTGRES_USER: webino
-      POSTGRES_PASSWORD: \${DB_PASSWORD}
-    volumes:
-      - {$slug}_db:/var/lib/postgresql/data
-    networks: [webino]
-  redis:
-    image: redis:7-alpine
-    networks: [webino]
-  backend:
-    image: webino-backend:latest
-    env_file: .env
-    depends_on: [db, redis]
-    networks: [webino]
-  frontend:
-    image: webino-next:latest
-    environment:
-      INTERNAL_API_URL: http://backend:8080
-      API_PROXY_TARGET: http://backend:8080
-    depends_on: [backend]
-    networks: [webino]
-volumes:
-  {$slug}_db:
-networks:
-  webino:
-    external: true
-YAML;
     }
 
     protected function envFile(WebinoSiteProvision $provision, string $siteType, string $token): string

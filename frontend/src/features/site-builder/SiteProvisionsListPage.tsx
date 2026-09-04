@@ -6,7 +6,7 @@ import { useLocale, useTranslations } from 'next-intl';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { dashboardHref } from '@/lib/route-resolver';
-import { getAxiosMessage } from '@/lib/api-helpers';
+import { formatProvisionError, getAxiosMessage } from '@/lib/api-helpers';
 import {
   fetchProvisionLogs,
   fetchProvisions,
@@ -88,8 +88,10 @@ export function SiteProvisionsListPage() {
               ) : null}
               {row.status === 'failed' && row.error_log ? (
                 <pre className="bg-muted max-h-28 overflow-auto rounded p-2 text-xs whitespace-pre-wrap">
-                  {row.error_log.slice(0, 500)}
-                  {row.error_log.length > 500 ? '…' : ''}
+                  {(() => {
+                    const msg = formatProvisionError(row.error_log);
+                    return msg.slice(0, 500) + (msg.length > 500 ? '…' : '');
+                  })()}
                 </pre>
               ) : null}
               {logsById[row.id] ? (

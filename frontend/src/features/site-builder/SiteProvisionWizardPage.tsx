@@ -24,7 +24,7 @@ import {
 } from '@/lib/api/site-builder';
 import { fetchServers, type PlatformServer } from '@/lib/api/platform';
 import apiClient from '@/lib/api-client';
-import { getAxiosMessage, unwrapData } from '@/lib/api-helpers';
+import { formatProvisionError, getAxiosMessage, unwrapData } from '@/lib/api-helpers';
 import { normalizeListPayload } from '@/lib/list-utils';
 
 type CrmAccount = { id: number; name?: string; company_name?: string };
@@ -631,7 +631,7 @@ export function SiteProvisionWizardPage() {
             </p>
             {provision?.status === 'failed' && provision.error_log ? (
               <pre className="bg-muted max-h-40 overflow-auto rounded p-2 text-xs whitespace-pre-wrap">
-                {provision.error_log.slice(0, 800)}
+                {formatProvisionError(provision.error_log).slice(0, 800)}
               </pre>
             ) : null}
             {provision?.status === 'ready' ? (

@@ -14,7 +14,7 @@ class ProvisionWebinoSiteJob implements ShouldQueue
 {
     use Dispatchable, InteractsWithQueue, Queueable, SerializesModels;
 
-    public int $timeout = 600;
+    public int $timeout = 2400;
 
     public function __construct(public int $provisionId) {}
 

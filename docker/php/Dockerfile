@@ -8,7 +8,7 @@ RUN apt-get update \
     && apt-get install -y --no-install-recommends \
         $PHPIZE_DEPS \
         git unzip libzip-dev libpq-dev libpng-dev libonig-dev libxml2-dev libsqlite3-dev \
-        libbrotli-dev curl \
+        libbrotli-dev curl ca-certificates \
     && docker-php-ext-install dom xml zip pdo_sqlite pdo_pgsql pgsql mbstring pcntl bcmath gd opcache \
     && chmod +x /tmp/install-redis.sh \
     && REDIS_PECL_VERSION="$REDIS_PECL_VERSION" /tmp/install-redis.sh \
@@ -26,9 +26,12 @@ COPY --from=dunglas/frankenphp:1-php8.3-bookworm /usr/local/bin/frankenphp /usr/
 # Host Docker for LocalSameVpsProvisioner (docker.sock mounted at runtime).
 COPY --from=docker:27-cli /usr/local/bin/docker /usr/local/bin/docker
 COPY --from=docker:27-cli /usr/local/libexec/docker/cli-plugins/docker-compose /usr/local/libexec/docker/cli-plugins/docker-compose
+COPY --from=docker:27-cli /usr/local/libexec/docker/cli-plugins/docker-buildx /usr/local/libexec/docker/cli-plugins/docker-buildx
 RUN chmod +x /usr/local/bin/frankenphp /usr/local/bin/docker \
     && mkdir -p /usr/local/lib/docker/cli-plugins \
     && ln -sf /usr/local/libexec/docker/cli-plugins/docker-compose /usr/local/lib/docker/cli-plugins/docker-compose \
-    && chmod +x /usr/local/libexec/docker/cli-plugins/docker-compose
+    && ln -sf /usr/local/libexec/docker/cli-plugins/docker-buildx /usr/local/lib/docker/cli-plugins/docker-buildx \
+    && chmod +x /usr/local/libexec/docker/cli-plugins/docker-compose \
+        /usr/local/libexec/docker/cli-plugins/docker-buildx
 
 WORKDIR /var/www/html

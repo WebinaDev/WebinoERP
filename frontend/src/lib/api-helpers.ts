@@ -80,6 +80,22 @@ function firstValidationError(err: unknown): string | undefined {
   return undefined;
 }
 
+export function formatProvisionError(raw: string): string {
+  const text = raw.trim();
+  if (
+    text.includes('platform.dashboard_images_missing')
+    || text.includes('/opt/WebinoDashboard/docker')
+    || text.includes('unable to evaluate symlinks in Dockerfile path')
+  ) {
+    return [
+      'ایمیج‌های سایت از GitHub ساخته نشدند.',
+      'ERP باید بتواند https://github.com/Webinadev/WebinoDashboard را کلون کند و webino-backend / webino-next را بسازد.',
+      text.slice(0, 400),
+    ].join('\n');
+  }
+  return text;
+}
+
 export function getAxiosMessage(err: unknown): string {
   const code = errorCode(err);
   if (code && KEY_MESSAGES[code]) {
@@ -97,6 +113,9 @@ export function getAxiosMessage(err: unknown): string {
   }
   if (message === 'Server Error') {
     return STATUS_MESSAGES[500];
+  }
+  if (message?.includes('platform.dashboard_images_missing') || message?.includes('/opt/WebinoDashboard/docker')) {
+    return 'ایمیج‌های سایت از GitHub ساخته نشدند. دسترسی خروجی به github.com/Webinadev/WebinoDashboard را بررسی کنید و دوباره «ایجاد سایت» بزنید.';
   }
   if (message && !/^[a-z0-9_.]+$/i.test(message)) {
     return message;

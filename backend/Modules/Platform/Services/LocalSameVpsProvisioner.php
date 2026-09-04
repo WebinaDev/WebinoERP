@@ -9,6 +9,7 @@ use Modules\Platform\Entities\PlatformDeployment;
 use Modules\Platform\Entities\PlatformDomain;
 use Modules\Platform\Entities\PlatformResource;
 use Modules\Platform\Entities\PlatformServer;
+use Modules\Platform\Support\TenantSiteStack;
 use Modules\SiteBuilder\Entities\WebinoSiteProvision;
 use Modules\SiteBuilder\Services\LicenseProvisionerService;
 use RuntimeException;
@@ -18,8 +19,8 @@ use Throwable;
 /**
  * Provisions an isolated WebinoDashboard stack on the same VPS as WebinoERP (no SSH).
  *
- * Requires host Docker access (docker CLI + ability to reach /var/lib/webino and reload Caddy).
- * Images webino-backend:latest and webino-next:latest must exist (see scripts/build-webino-dashboard-images.sh).
+ * Source: git clone https://github.com/Webinadev/WebinoDashboard into /var/lib/webino/src
+ * (path shared with the host Docker daemon). Each site is a separate compose project.
  */
 class LocalSameVpsProvisioner
 {
@@ -63,10 +64,10 @@ class LocalSameVpsProvisioner
         $this->ensureDockerNetwork();
         $this->ensureImages();
 
-        $dir = '/var/lib/webino/sites/'.$provision->slug;
+        $dir = $this->siteDir($provision);
         $this->ensureDir($dir);
 
-        $compose = $this->composeYaml($provision);
+        $compose = TenantSiteStack::composeYaml($provision->slug);
         $envFile = $this->envFile($provision, $siteType, $token);
         $this->writeFile($dir.'/docker-compose.yml', $compose);
         $this->writeFile($dir.'/.env', $envFile);
@@ -78,31 +79,36 @@ class LocalSameVpsProvisioner
         if ($up['exit_code'] !== 0) {
             throw new RuntimeException(trim($up['stderr'] ?: $up['stdout']) ?: 'platform.compose_up_failed');
         }
+        $this->attachToProxyNetwork($provision->slug);
 
-        $resource = PlatformResource::query()->create([
-            'environment_id' => $this->ensureDefaultEnvironment($provision)->id,
-            'server_id' => $server->id,
-            'type' => 'webino_dashboard',
-            'name' => $provision->slug,
-            'status' => 'running',
-            'fqdn' => $provision->domain,
-            'build_pack' => 'compose',
-            'site_type_slug' => $siteType,
-            'license_id' => $provision->license_id,
-            'crm_account_id' => $provision->crm_account_id,
-            'provision_id' => $provision->id,
-            'docker_compose_raw' => $compose,
-            'settings' => [
-                'site_dir' => $dir,
-                'provision_mode' => 'local_same_vps',
+        $resource = PlatformResource::query()->updateOrCreate(
+            ['provision_id' => $provision->id],
+            [
+                'environment_id' => $this->ensureDefaultEnvironment($provision)->id,
+                'server_id' => $server->id,
+                'type' => 'webino_dashboard',
+                'name' => $provision->slug,
+                'status' => 'running',
+                'fqdn' => $provision->domain,
+                'build_pack' => 'compose',
+                'git_repository' => (string) env('WEBINO_DASHBOARD_GIT_URL', 'https://github.com/Webinadev/WebinoDashboard.git'),
+                'git_branch' => (string) env('WEBINO_DASHBOARD_GIT_REF', 'main'),
+                'site_type_slug' => $siteType,
+                'license_id' => $provision->license_id,
+                'crm_account_id' => $provision->crm_account_id,
+                'docker_compose_raw' => $compose,
+                'settings' => [
+                    'site_dir' => $dir,
+                    'compose_project' => TenantSiteStack::projectName($provision->slug),
+                    'provision_mode' => 'local_same_vps',
+                ],
             ],
-        ]);
+        );
 
-        PlatformDomain::query()->create([
-            'resource_id' => $resource->id,
-            'domain' => $provision->domain,
-            'ssl_status' => 'pending',
-        ]);
+        PlatformDomain::query()->firstOrCreate(
+            ['resource_id' => $resource->id, 'domain' => $provision->domain],
+            ['ssl_status' => 'pending'],
+        );
 
         PlatformDeployment::query()->create([
             'resource_id' => $resource->id,
@@ -139,6 +145,7 @@ class LocalSameVpsProvisioner
     {
         $dir = $this->siteDir($provision);
         $result = $this->composeUp($provision->slug, $dir);
+        $this->attachToProxyNetwork($provision->slug);
         $this->updateResourceStatus($provision, 'running');
 
         return $result;
@@ -152,7 +159,7 @@ class LocalSameVpsProvisioner
         $dir = $this->siteDir($provision);
         $result = $this->run([
             'docker', 'compose',
-            '-p', $provision->slug,
+            '-p', TenantSiteStack::projectName($provision->slug),
             '-f', $dir.'/docker-compose.yml',
             'stop',
         ], 300);
@@ -166,7 +173,7 @@ class LocalSameVpsProvisioner
         $dir = $this->siteDir($provision);
         $result = $this->run([
             'docker', 'compose',
-            '-p', $provision->slug,
+            '-p', TenantSiteStack::projectName($provision->slug),
             '-f', $dir.'/docker-compose.yml',
             'logs',
             '--tail', (string) $tail,
@@ -203,15 +210,27 @@ class LocalSameVpsProvisioner
         $script = (string) (env('WEBINO_DASHBOARD_BUILD_SCRIPT')
             ?: ($this->erpRoot().'/scripts/build-webino-dashboard-images.sh'));
         if (is_file($script)) {
-            $env = [];
+            $env = [
+                'WEBINO_DASHBOARD_GIT_URL' => (string) env(
+                    'WEBINO_DASHBOARD_GIT_URL',
+                    'https://github.com/Webinadev/WebinoDashboard.git',
+                ),
+                'WEBINO_DASHBOARD_GIT_REF' => (string) env('WEBINO_DASHBOARD_GIT_REF', 'main'),
+                'WEBINO_DASHBOARD_SRC' => (string) env('WEBINO_DASHBOARD_SRC', '/var/lib/webino/src/WebinoDashboard'),
+            ];
             $dashboardPath = (string) env('WEBINO_DASHBOARD_PATH', '');
-            if ($dashboardPath !== '' && is_dir($dashboardPath)) {
+            if ($dashboardPath !== '' && is_file($dashboardPath.'/docker/php/Dockerfile.platform')) {
                 $env['WEBINO_DASHBOARD_PATH'] = $dashboardPath;
             }
-            $build = $this->runEnv(['bash', $script], 1800, $env);
+            $token = (string) env('WEBINO_DASHBOARD_GIT_TOKEN', '');
+            if ($token !== '') {
+                $env['WEBINO_DASHBOARD_GIT_TOKEN'] = $token;
+            }
+            $build = $this->runEnv(['bash', $script], 2400, $env);
             if ($build['exit_code'] !== 0) {
                 throw new RuntimeException(
-                    'platform.dashboard_images_missing: build failed. Run scripts/build-webino-dashboard-images.sh. '
+                    'platform.dashboard_images_missing: git clone/build failed from '
+                    .$env['WEBINO_DASHBOARD_GIT_URL'].'. '
                     .trim($build['stderr'] ?: $build['stdout'])
                 );
             }
@@ -222,49 +241,34 @@ class LocalSameVpsProvisioner
         if (! $backendOk || ! $frontendOk) {
             throw new RuntimeException(
                 'platform.dashboard_images_missing: need webino-backend:latest and webino-next:latest. '
-                .'Build with WebinoERP/scripts/build-webino-dashboard-images.sh (set WEBINO_DASHBOARD_PATH if needed).'
+                .'ERP clones https://github.com/Webinadev/WebinoDashboard into /var/lib/webino/src and builds images.'
             );
         }
     }
 
-    protected function composeYaml(WebinoSiteProvision $provision): string
+    /**
+     * Stop and remove this site's containers and volumes only. Shared images stay.
+     *
+     * @return array{exit_code:int,stdout:string,stderr:string}
+     */
+    public function destroyStack(WebinoSiteProvision $provision): array
     {
-        $slug = $provision->slug;
+        $dir = $this->siteDir($provision);
+        $project = TenantSiteStack::projectName($provision->slug);
+        $result = ['exit_code' => 0, 'stdout' => '', 'stderr' => ''];
+        if (is_file($dir.'/docker-compose.yml')) {
+            $result = $this->run([
+                'docker', 'compose',
+                '-p', $project,
+                '-f', $dir.'/docker-compose.yml',
+                'down', '-v', '--remove-orphans',
+            ], 300);
+        }
+        $this->removeCaddySnippet($provision->slug);
+        $this->reloadCaddy();
+        $this->updateResourceStatus($provision, 'destroyed');
 
-        return <<<YAML
-# Published images required: webino-backend:latest, webino-next:latest
-# Build via WebinoERP/scripts/build-webino-dashboard-images.sh
-services:
-  db:
-    image: postgres:15-alpine
-    environment:
-      POSTGRES_DB: webino
-      POSTGRES_USER: webino
-      POSTGRES_PASSWORD: \${DB_PASSWORD}
-    volumes:
-      - {$slug}_db:/var/lib/postgresql/data
-    networks: [webino_sites]
-  redis:
-    image: redis:7-alpine
-    networks: [webino_sites]
-  backend:
-    image: webino-backend:latest
-    env_file: .env
-    depends_on: [db, redis]
-    networks: [webino_sites]
-  frontend:
-    image: webino-next:latest
-    environment:
-      INTERNAL_API_URL: http://backend:8080
-      API_PROXY_TARGET: http://backend:8080
-    depends_on: [backend]
-    networks: [webino_sites]
-volumes:
-  {$slug}_db:
-networks:
-  webino_sites:
-    external: true
-YAML;
+        return $result;
     }
 
     protected function envFile(WebinoSiteProvision $provision, string $siteType, string $token): string
@@ -282,14 +286,19 @@ YAML;
             'admin_name' => $provision->wizard_payload['admin_name'] ?? 'Admin',
         ], JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
 
+        $previous = $this->readEnvMap($this->siteDir($provision).'/.env');
+        $appKey = $previous['APP_KEY'] ?? ('base64:'.base64_encode(random_bytes(32)));
+        $dbPassword = $previous['DB_PASSWORD'] ?? Str::random(24);
+
         return implode("\n", [
             $this->envLine('APP_ENV', 'production'),
-            $this->envLine('APP_KEY', 'base64:'.base64_encode(random_bytes(32))),
+            $this->envLine('APP_URL', 'https://'.$provision->domain),
+            $this->envLine('APP_KEY', $appKey),
             $this->envLine('DB_CONNECTION', 'pgsql'),
             $this->envLine('DB_HOST', 'db'),
             $this->envLine('DB_DATABASE', 'webino'),
             $this->envLine('DB_USERNAME', 'webino'),
-            $this->envLine('DB_PASSWORD', Str::random(24)),
+            $this->envLine('DB_PASSWORD', $dbPassword),
             $this->envLine('REDIS_HOST', 'redis'),
             $this->envLine('RUN_MIGRATIONS', '1'),
             $this->envLine('WEBINO_BASE_URL', $crm),
@@ -302,17 +311,7 @@ YAML;
 
     protected function writeCaddySnippet(string $domain, string $slug): void
     {
-        $snippet = <<<CADDY
-{$domain} {
-  encode gzip
-  handle /api/* {
-    reverse_proxy {$slug}-backend-1:8080
-  }
-  handle {
-    reverse_proxy {$slug}-frontend-1:3000
-  }
-}
-CADDY;
+        $snippet = TenantSiteStack::caddySnippet($domain, $slug);
 
         $repoSites = (string) (env('WEBINO_SITES_CADDY_DIR')
             ?: ($this->erpRoot().'/docker/caddy/sites'));
@@ -322,6 +321,20 @@ CADDY;
         $hostSites = '/var/lib/webino/caddy.d';
         $this->ensureDir($hostSites);
         $this->writeFile($hostSites.'/'.$slug.'.caddy', $snippet);
+    }
+
+    protected function removeCaddySnippet(string $slug): void
+    {
+        $repoSites = (string) (env('WEBINO_SITES_CADDY_DIR')
+            ?: ($this->erpRoot().'/docker/caddy/sites'));
+        foreach ([
+            rtrim($repoSites, '/').'/'.$slug.'.caddy',
+            '/var/lib/webino/caddy.d/'.$slug.'.caddy',
+        ] as $path) {
+            if (is_file($path)) {
+                @unlink($path);
+            }
+        }
     }
 
     protected function reloadCaddy(): void
@@ -343,16 +356,23 @@ CADDY;
     {
         return $this->run([
             'docker', 'compose',
-            '-p', $slug,
+            '-p', TenantSiteStack::projectName($slug),
             '-f', $dir.'/docker-compose.yml',
             '--env-file', $dir.'/.env',
             'up', '-d',
         ], 900);
     }
 
+    protected function attachToProxyNetwork(string $slug, string $network = 'webino_sites'): void
+    {
+        foreach (TenantSiteStack::proxyContainerNames($slug) as $name) {
+            $this->run(['docker', 'network', 'connect', $network, $name], 30);
+        }
+    }
+
     protected function waitForHealthy(string $slug, int $attempts = 12): bool
     {
-        $url = 'http://'.$slug.'-frontend-1:3000/up';
+        $url = 'http://'.TenantSiteStack::projectName($slug).'-frontend:3000/up';
         for ($i = 0; $i < $attempts; $i++) {
             $viaCurl = $this->run([
                 'docker', 'run', '--rm',
@@ -535,6 +555,27 @@ CADDY;
             'stdout' => $process->getOutput(),
             'stderr' => $process->getErrorOutput(),
         ];
+    }
+
+    /**
+     * @return array<string, string>
+     */
+    protected function readEnvMap(string $path): array
+    {
+        if (! is_file($path)) {
+            return [];
+        }
+        $out = [];
+        foreach (file($path, FILE_IGNORE_NEW_LINES) ?: [] as $line) {
+            $line = trim($line);
+            if ($line === '' || str_starts_with($line, '#') || ! str_contains($line, '=')) {
+                continue;
+            }
+            [$key, $value] = explode('=', $line, 2);
+            $out[trim($key)] = trim($value, " \t\"'");
+        }
+
+        return $out;
     }
 
     protected function envLine(string $key, string $value): string
