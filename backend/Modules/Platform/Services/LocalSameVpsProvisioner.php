@@ -609,11 +609,13 @@ class LocalSameVpsProvisioner
      *   frontend_to_backend:bool,
      *   db_auth_ok:bool,
      *   backend_self:bool,
+     *   readiness_ok:bool,
      *   caddy_snippet_ok:bool,
      *   caddy_config_has_upstream:bool,
      *   caddy_exec_to_backend:bool,
      *   env_pw_fp:string,
      *   backend_pw_fp:string,
+     *   app_log:string,
      *   log:string
      * }
      */
@@ -677,6 +679,12 @@ class LocalSameVpsProvisioner
         $backendSelf = $this->probeBackendSelf($backend);
         $lines[] = 'backend_self (127.0.0.1:8080/api/v1/health/metrics): '.($backendSelf ? 'ok' : 'FAIL');
 
+        $readiness = $this->probeBackendReadiness($backend);
+        $readinessOk = $readiness['ok'];
+        $lines[] = 'backend_readiness (db/redis/queue): '
+            .($readinessOk ? 'ok' : 'FAIL')
+            .($readiness['detail'] !== '' ? ' '.$readiness['detail'] : '');
+
         $caddySnippetOk = $this->caddyContainerSeesSnippet($provision->slug);
         $lines[] = 'caddy_snippet_ok (/etc/caddy/sites/'.$provision->slug.'.caddy): '
             .($caddySnippetOk ? 'yes' : 'no');
@@ -707,12 +715,21 @@ class LocalSameVpsProvisioner
         $frontendToBackend = $feToBe['exit_code'] === 0;
         $lines[] = 'frontend→http://backend:8080 (internal alias): '.($frontendToBackend ? 'ok' : 'FAIL');
 
+        $appLog = $this->tailBackendAppLog($backend, 40);
+        if ($appLog !== '') {
+            $lines[] = '--- app_log (storage/logs/laravel.log) ---';
+            $lines[] = $appLog;
+        } else {
+            $lines[] = 'app_log: (empty or unavailable)';
+        }
+
         return [
             'project' => $project,
             'containers' => $containers,
             'on_webino_sites' => $onSites,
             'db_auth_ok' => $dbAuthOk,
             'backend_self' => $backendSelf,
+            'readiness_ok' => $readinessOk,
             'caddy_snippet_ok' => $caddySnippetOk,
             'caddy_config_has_upstream' => $caddyConfigHasUpstream,
             'caddy_exec_to_backend' => $caddyExecToBackend,
@@ -720,6 +737,7 @@ class LocalSameVpsProvisioner
             'backend_pw_fp' => $backendPwFp,
             'caddy_to_backend' => $caddyToBackend,
             'frontend_to_backend' => $frontendToBackend,
+            'app_log' => $appLog,
             'log' => implode("\n", $lines),
         ];
     }
@@ -1020,6 +1038,92 @@ class LocalSameVpsProvisioner
     }
 
     /**
+     * Probe readiness (database / redis / queue) from inside the backend container.
+     *
+     * @return array{ok:bool,detail:string}
+     */
+    protected function probeBackendReadiness(string $backendContainer): array
+    {
+        $url = 'http://127.0.0.1:8080/api/v1/health/readiness';
+        $body = '';
+
+        $wget = $this->run([
+            'docker', 'exec', $backendContainer,
+            'wget', '-q', '-O', '-', $url,
+        ], 20);
+        if ($wget['exit_code'] === 0) {
+            $body = $wget['stdout'];
+        } else {
+            $curl = $this->run([
+                'docker', 'exec', $backendContainer,
+                'curl', '-s', $url,
+            ], 20);
+            if ($curl['exit_code'] === 0) {
+                $body = $curl['stdout'];
+            } else {
+                $php = $this->run([
+                    'docker', 'exec', $backendContainer,
+                    'php', '-r',
+                    'echo @file_get_contents("http://127.0.0.1:8080/api/v1/health/readiness") ?: "";',
+                ], 20);
+                $body = $php['stdout'] ?? '';
+            }
+        }
+
+        $body = trim($body);
+        if ($body === '') {
+            return ['ok' => false, 'detail' => 'no response'];
+        }
+
+        $json = json_decode($body, true);
+        if (! is_array($json)) {
+            return ['ok' => false, 'detail' => substr($body, 0, 120)];
+        }
+
+        $status = (string) data_get($json, 'data.status', '');
+        $checks = data_get($json, 'data.checks', []);
+        $parts = [];
+        if (is_array($checks)) {
+            foreach ($checks as $name => $check) {
+                if (! is_array($check)) {
+                    continue;
+                }
+                $ok = (bool) ($check['ok'] ?? false);
+                $parts[] = $name.'='.($ok ? 'ok' : 'FAIL');
+            }
+        }
+
+        return [
+            'ok' => $status === 'ready',
+            'detail' => $parts !== [] ? '('.implode(' ', $parts).')' : 'status='.$status,
+        ];
+    }
+
+    /**
+     * Tail Laravel app log inside the backend container (exceptions often miss docker logs).
+     */
+    protected function tailBackendAppLog(string $backendContainer, int $lines = 40): string
+    {
+        $result = $this->run([
+            'docker', 'exec', $backendContainer,
+            'sh', '-c',
+            'tail -n '.(int) $lines.' storage/logs/laravel.log 2>/dev/null || true',
+        ], 20);
+
+        $text = trim($result['stdout'] ?? '');
+        if ($text === '') {
+            return '';
+        }
+
+        // Keep diagnostics readable — drop huge stack frames beyond a soft cap.
+        if (strlen($text) > 6000) {
+            $text = substr($text, -6000);
+        }
+
+        return $this->compressRepeatedLogLines($text);
+    }
+
+    /**
      * Check whether the live Caddy config JSON mentions the tenant backend upstream.
      */
     protected function caddyConfigHasUpstream(string $upstream): bool
@@ -1275,6 +1379,8 @@ class LocalSameVpsProvisioner
             $this->envLine('SESSION_SECURE_COOKIE', 'true'),
             $this->envLine('TRUSTED_PROXIES', '*'),
             $this->envLine('SANCTUM_STATEFUL_DOMAINS', $provision->domain),
+            $this->envLine('LOG_CHANNEL', 'stderr'),
+            $this->envLine('LOG_STACK', 'stderr'),
             $this->envLine('RUN_MIGRATIONS', '1'),
             $this->envLine('WEBINO_BASE_URL', $crm),
             $this->envLine('TENANT_LICENSE_KEY', (string) ($provision->license?->license_key ?? '')),
@@ -1624,11 +1730,13 @@ class LocalSameVpsProvisioner
     protected function waitForHealthy(string $slug, int $attempts = 12): bool
     {
         $project = TenantSiteStack::projectName($slug);
-        $frontendUrl = 'http://'.$project.'-frontend:3000/up';
+        // Probe Next at / (always served). Prefer /up when the image has that route.
+        $frontendUrl = 'http://'.$project.'-frontend:3000/';
         $backendUrl = 'http://'.$project.'-backend:8080/api/v1/health/metrics';
 
         for ($i = 0; $i < $attempts; $i++) {
-            $feOk = $this->probeOnProxyNetwork($frontendUrl);
+            $feOk = $this->probeOnProxyNetwork($frontendUrl)
+                || $this->probeOnProxyNetwork('http://'.$project.'-frontend:3000/up');
             $beOk = $this->probeOnProxyNetwork($backendUrl);
             if ($feOk && $beOk) {
                 return true;

@@ -367,6 +367,21 @@ class SiteProvisionController extends Controller
         }
     }
 
+    public function bootstrap(WebinoSiteProvision $siteProvision, SiteProvisionOrchestrator $orchestrator): JsonResponse
+    {
+        try {
+            $result = $orchestrator->bootstrapSite($siteProvision);
+
+            return response()->json([
+                'data' => $siteProvision->fresh(['license', 'package']),
+                'compose' => $result,
+                'message' => $result['exit_code'] === 0 ? 'Site bootstrapped' : 'Bootstrap failed',
+            ]);
+        } catch (\Throwable $e) {
+            return response()->json(['message' => $e->getMessage()], 422);
+        }
+    }
+
     public function logs(WebinoSiteProvision $siteProvision, SiteProvisionOrchestrator $orchestrator, Request $request): JsonResponse
     {
         try {

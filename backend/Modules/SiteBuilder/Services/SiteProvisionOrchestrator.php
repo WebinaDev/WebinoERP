@@ -103,6 +103,60 @@ class SiteProvisionOrchestrator
         return $this->local->repairDatabase($provision);
     }
 
+    /**
+     * Re-run tenant provision/bootstrap (creates tenant row, content, admin user).
+     * Used when the site is up but stuck in ssl_pending because the initial
+     * bootstrap call failed (e.g. bad health probe).
+     *
+     * @return array{exit_code:int,stdout:string,stderr:string,log:string}
+     */
+    public function bootstrapSite(WebinoSiteProvision $provision): array
+    {
+        $provision->loadMissing(['license', 'package.businessType.category', 'crmAccount']);
+        $token = (string) ($provision->provision_token ?? '');
+        if ($token === '') {
+            throw new \RuntimeException('توکن پروویژن این سایت خالی است؛ سایت را دوباره provision کنید.');
+        }
+
+        $domain = strtolower(trim((string) $provision->domain));
+        if ($domain === '' || ! str_contains($domain, '.')) {
+            throw new \RuntimeException('platform.invalid_domain');
+        }
+
+        $seed = $this->buildSeedJson($provision, $provision->wizard_payload ?? []);
+        $log = [];
+        $log[] = 'bootstrap target=https://'.$domain.'/api/v1/provision/bootstrap';
+
+        try {
+            $this->bootstrapRemoteSite($domain, $token, $seed);
+            $provision->update([
+                'status' => WebinoSiteProvision::STATUS_READY,
+                'ready_at' => $provision->ready_at ?? now(),
+                'error_log' => null,
+            ]);
+            $log[] = 'bootstrap: ok';
+            $this->audit->log($provision->created_by, 'provision.bootstrap', $provision->fresh());
+
+            return [
+                'exit_code' => 0,
+                'stdout' => '',
+                'stderr' => '',
+                'log' => implode("\n", $log),
+            ];
+        } catch (Throwable $e) {
+            $message = $e->getMessage();
+            $provision->update(['error_log' => $message]);
+            $log[] = 'bootstrap: FAIL '.$message;
+
+            return [
+                'exit_code' => 1,
+                'stdout' => '',
+                'stderr' => $message,
+                'log' => implode("\n", $log),
+            ];
+        }
+    }
+
     public function logs(WebinoSiteProvision $provision, int $tail = 200): string
     {
         if ($this->shouldUseLocal($provision)) {
@@ -438,7 +492,9 @@ class SiteProvisionOrchestrator
 
     protected function waitForHealthy(string $domain, int $attempts = 12): bool
     {
-        $url = 'https://'.$domain.'/up';
+        // Must hit /api/* so Caddy routes to the Laravel backend.
+        // Plain /up is handled by Next (or 404 on older images) and never reaches Octane.
+        $url = 'https://'.$domain.'/api/v1/health/metrics';
         for ($i = 0; $i < $attempts; $i++) {
             try {
                 $res = Http::timeout(8)->get($url);

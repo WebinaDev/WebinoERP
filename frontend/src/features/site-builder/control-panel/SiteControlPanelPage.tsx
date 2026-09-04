@@ -18,6 +18,7 @@ import {
   Power,
   PowerOff,
   RefreshCw,
+  Rocket,
   ScrollText,
   Server,
   ShieldCheck,
@@ -38,6 +39,7 @@ import {
   queueProvisionUpdate,
   renewProvisionSsl,
   repairProvisionDatabase,
+  bootstrapProvisionSite,
   setProvisionChannel,
   startProvision,
   stopProvision,
@@ -625,6 +627,12 @@ export function SiteControlPanelPage({ id }: { id: string }) {
                 </Badge>
               </div>
               <div>
+                {t('controlReadiness')}:{' '}
+                <Badge variant={data?.stack?.readiness_ok ? 'default' : 'destructive'}>
+                  {data?.stack?.readiness_ok ? t('controlOk') : t('controlFail')}
+                </Badge>
+              </div>
+              <div>
                 {t('controlCaddyToBackend')}:{' '}
                 <Badge variant={data?.stack?.caddy_to_backend ? 'default' : 'destructive'}>
                   {data?.stack?.caddy_to_backend ? t('controlOk') : t('controlFail')}
@@ -675,6 +683,34 @@ export function SiteControlPanelPage({ id }: { id: string }) {
                   <Database className="size-4" />
                 )}
                 {t('controlRepairDb')}
+              </Button>
+              <Button
+                type="button"
+                variant="default"
+                className="gap-1.5"
+                disabled={busy !== null || logsBusy}
+                data-testid="control-bootstrap"
+                onClick={() =>
+                  void run('bootstrap', async () => {
+                    const res = await bootstrapProvisionSite(provisionId);
+                    const log = [res.compose?.log, res.compose?.stdout, res.compose?.stderr]
+                      .filter(Boolean)
+                      .join('\n');
+                    if (log) setComposeLogs(log);
+                    if ((res.compose?.exit_code ?? 1) !== 0) {
+                      throw new Error(
+                        [res.message, res.compose?.log].filter(Boolean).join('\n') || t('controlFail'),
+                      );
+                    }
+                  })
+                }
+              >
+                {busy === 'bootstrap' ? (
+                  <Loader2 className="size-4 animate-spin" />
+                ) : (
+                  <Rocket className="size-4" />
+                )}
+                {t('controlBootstrap')}
               </Button>
               <Button
                 type="button"

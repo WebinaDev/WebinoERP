@@ -50,6 +50,7 @@ Route::post('/provisions/{siteProvision}/retry', [SiteProvisionController::class
 Route::post('/provisions/{siteProvision}/start', [SiteProvisionController::class, 'start']);
 Route::post('/provisions/{siteProvision}/stop', [SiteProvisionController::class, 'stop']);
 Route::post('/provisions/{siteProvision}/repair-db', [SiteProvisionController::class, 'repairDatabase']);
+Route::post('/provisions/{siteProvision}/bootstrap', [SiteProvisionController::class, 'bootstrap']);
 Route::get('/provisions/{siteProvision}/logs', [SiteProvisionController::class, 'logs']);
 Route::post('/provisions/{siteProvision}/admin', [SiteProvisionController::class, 'updateAdmin']);
 Route::post('/provisions/{siteProvision}/modules', [SiteProvisionController::class, 'updateModules']);

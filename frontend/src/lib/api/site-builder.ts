@@ -121,6 +121,7 @@ export type SiteControlPayload = {
     on_webino_sites?: { backend?: boolean; frontend?: boolean };
     db_auth_ok?: boolean;
     backend_self?: boolean;
+    readiness_ok?: boolean;
     caddy_snippet_ok?: boolean;
     caddy_config_has_upstream?: boolean;
     caddy_exec_to_backend?: boolean;
@@ -128,6 +129,7 @@ export type SiteControlPayload = {
     backend_pw_fp?: string;
     caddy_to_backend?: boolean;
     frontend_to_backend?: boolean;
+    app_log?: string;
     log?: string | null;
   } | null;
 };
@@ -254,6 +256,15 @@ export async function stopProvision(id: number) {
 
 export async function repairProvisionDatabase(id: number) {
   const res = await apiClient.post(`${BASE}/provisions/${id}/repair-db`);
+  return res.data as {
+    data: SiteProvision;
+    compose?: { exit_code?: number; log?: string; stdout?: string; stderr?: string };
+    message?: string;
+  };
+}
+
+export async function bootstrapProvisionSite(id: number) {
+  const res = await apiClient.post(`${BASE}/provisions/${id}/bootstrap`);
   return res.data as {
     data: SiteProvision;
     compose?: { exit_code?: number; log?: string; stdout?: string; stderr?: string };

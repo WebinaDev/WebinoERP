@@ -277,9 +277,11 @@ CADDY;
 
     protected function waitForHealthy(string $domain, int $attempts = 12): bool
     {
+        // Hit /api/* so Caddy routes to Laravel (plain /up goes to Next).
+        $url = 'https://'.$domain.'/api/v1/health/metrics';
         for ($i = 0; $i < $attempts; $i++) {
             try {
-                if (Http::timeout(8)->get('https://'.$domain.'/up')->successful()) {
+                if (Http::timeout(8)->get($url)->successful()) {
                     return true;
                 }
             } catch (Throwable) {
