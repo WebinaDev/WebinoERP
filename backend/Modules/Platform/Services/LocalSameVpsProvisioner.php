@@ -177,19 +177,44 @@ class LocalSameVpsProvisioner
     {
         $this->ensureDockerNetwork();
         $this->rewriteComposeImages($provision, $this->channelOf($provision));
+        $this->rewriteEnvFile($provision);
         $dir = $this->siteDir($provision);
         $result = $this->composeUp($provision->slug, $dir);
+        // Ensure backend/frontend pick up new .env mount + network after rewrite.
+        $recreate = $this->run([
+            'docker', 'compose',
+            '-p', TenantSiteStack::projectName($provision->slug),
+            '-f', $dir.'/docker-compose.yml',
+            '--env-file', $dir.'/.env',
+            'up', '-d', '--no-deps', '--force-recreate',
+            'backend', 'frontend',
+        ], 900);
+        if ($recreate['exit_code'] !== 0 && $result['exit_code'] === 0) {
+            $result = $recreate;
+        } else {
+            $result['stdout'] .= "\n".$recreate['stdout'];
+            $result['stderr'] .= "\n".$recreate['stderr'];
+        }
         $attachLog = $this->attachToProxyNetwork($provision->slug);
+        $caddyLog = '';
+        try {
+            $caddyLog = $this->ensureCaddySnippet($provision);
+            $this->reloadCaddy();
+            $caddyLog .= "\ncaddy reload requested";
+        } catch (Throwable $e) {
+            $caddyLog = 'caddy: '.$e->getMessage();
+        }
         $this->updateResourceStatus($provision, 'running');
 
         return [
             ...$result,
-            'attach_log' => $attachLog,
+            'attach_log' => trim($attachLog."\n".$caddyLog),
         ];
     }
 
     /**
-     * Rewrite compose (proxy network), bring stack up, attach to webino_sites.
+     * Rewrite compose (backend+frontend on webino_sites), bring stack up,
+     * and refresh Caddy snippet (/api → backend, pages → frontend).
      * Used by ops resync after ERP deploy so existing sites pick up network fixes.
      *
      * @return array{exit_code:int,stdout:string,stderr:string,attach_log:string,log:string}
@@ -198,20 +223,45 @@ class LocalSameVpsProvisioner
     {
         $this->ensureDockerNetwork();
         $this->rewriteComposeImages($provision, $this->channelOf($provision));
+        $this->rewriteEnvFile($provision);
         $dir = $this->siteDir($provision);
         if (! is_file($dir.'/docker-compose.yml')) {
             throw new RuntimeException('platform.site_dir_missing: '.$dir);
         }
         $result = $this->composeUp($provision->slug, $dir);
+        $recreate = $this->run([
+            'docker', 'compose',
+            '-p', TenantSiteStack::projectName($provision->slug),
+            '-f', $dir.'/docker-compose.yml',
+            '--env-file', $dir.'/.env',
+            'up', '-d', '--no-deps', '--force-recreate',
+            'backend', 'frontend',
+        ], 900);
+        if ($recreate['exit_code'] !== 0 && $result['exit_code'] === 0) {
+            $result = $recreate;
+        } else {
+            $result['stdout'] .= "\n".$recreate['stdout'];
+            $result['stderr'] .= "\n".$recreate['stderr'];
+        }
         $attachLog = $this->attachToProxyNetwork($provision->slug);
+        $caddyLog = '';
+        try {
+            $caddyLog = $this->ensureCaddySnippet($provision);
+            $this->reloadCaddy();
+            $caddyLog .= "\ncaddy reload requested";
+        } catch (Throwable $e) {
+            $caddyLog = 'caddy: '.$e->getMessage();
+        }
         if ($result['exit_code'] === 0) {
             $this->updateResourceStatus($provision, 'running');
         }
 
+        $combined = trim($attachLog."\n".$caddyLog);
+
         return [
             ...$result,
-            'attach_log' => $attachLog,
-            'log' => trim($result['stdout']."\n".$result['stderr']."\n".$attachLog),
+            'attach_log' => $combined,
+            'log' => trim($result['stdout']."\n".$result['stderr']."\n".$combined),
         ];
     }
 
@@ -738,14 +788,23 @@ class LocalSameVpsProvisioner
 
         return implode("\n", [
             $this->envLine('APP_ENV', 'production'),
+            $this->envLine('APP_DEBUG', 'false'),
             $this->envLine('APP_URL', 'https://'.$provision->domain),
             $this->envLine('APP_KEY', $appKey),
             $this->envLine('DB_CONNECTION', 'pgsql'),
             $this->envLine('DB_HOST', 'db'),
+            $this->envLine('DB_PORT', '5432'),
             $this->envLine('DB_DATABASE', 'webino'),
             $this->envLine('DB_USERNAME', 'webino'),
             $this->envLine('DB_PASSWORD', $dbPassword),
             $this->envLine('REDIS_HOST', 'redis'),
+            $this->envLine('REDIS_PORT', '6379'),
+            $this->envLine('CACHE_STORE', 'redis'),
+            $this->envLine('SESSION_DRIVER', 'file'),
+            $this->envLine('QUEUE_CONNECTION', 'redis'),
+            $this->envLine('SESSION_SECURE_COOKIE', 'true'),
+            $this->envLine('TRUSTED_PROXIES', '*'),
+            $this->envLine('SANCTUM_STATEFUL_DOMAINS', $provision->domain),
             $this->envLine('RUN_MIGRATIONS', '1'),
             $this->envLine('WEBINO_BASE_URL', $crm),
             $this->envLine('TENANT_LICENSE_KEY', (string) ($provision->license?->license_key ?? '')),
@@ -753,6 +812,21 @@ class LocalSameVpsProvisioner
             $this->envLine('TENANT_SEED_JSON', (string) $seed),
             $this->envLine('WEBINO_PROVISION_HMAC_SECRET', (string) ($settings->provision_webhook_secret ?? '')),
         ])."\n";
+    }
+
+    /**
+     * Refresh tenant .env (preserves APP_KEY / DB_PASSWORD) for Sanctum / proxy headers.
+     */
+    protected function rewriteEnvFile(WebinoSiteProvision $provision): void
+    {
+        $provision->loadMissing(['license', 'package.businessType']);
+        $siteType = (string) (
+            ($provision->wizard_payload['site_type_slug'] ?? null)
+            ?: ($provision->package?->businessType?->slug)
+            ?: 'corporate'
+        );
+        $token = (string) ($provision->provision_token ?: '');
+        $this->writeFile($this->siteDir($provision).'/.env', $this->envFile($provision, $siteType, $token));
     }
 
     /**

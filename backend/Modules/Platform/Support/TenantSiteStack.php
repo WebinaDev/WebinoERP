@@ -41,7 +41,7 @@ final class TenantSiteStack
 # Isolated tenant stack. Images: webino-backend:{$tag}, webino-next:{$tag}
 # Built from https://github.com/Webinadev/WebinoDashboard
 # Internal net for db/redis; proxy (webino_sites) so ERP Caddy can reach
-# container names without a post-up docker network connect.
+# container names. Browser /api → Caddy → *-backend:8080; pages → *-frontend:3000.
 services:
   db:
     image: postgres:15-alpine
@@ -53,6 +53,12 @@ services:
       POSTGRES_PASSWORD: \${DB_PASSWORD}
     volumes:
       - db:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U webino -d webino"]
+      interval: 5s
+      timeout: 5s
+      retries: 12
+      start_period: 10s
     networks: [{$internal}]
   redis:
     image: redis:7-alpine
@@ -64,7 +70,13 @@ services:
     container_name: {$project}-backend
     restart: unless-stopped
     env_file: .env
-    depends_on: [db, redis]
+    volumes:
+      - ./.env:/var/www/html/.env:ro
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_started
     networks: [{$internal}, proxy]
   frontend:
     image: webino-next:{$tag}
@@ -91,14 +103,21 @@ YAML;
     {
         $project = self::projectName($slug);
 
+        // Same split as ERP Caddyfile: /api → Octane backend, rest → Next.
+        // Backend must be on webino_sites or Caddy returns 502 while HTML still loads.
         return <<<CADDY
 {$domain} {
   encode gzip
   handle /api/* {
-    reverse_proxy {$project}-backend:8080
+    reverse_proxy {$project}-backend:8080 {
+      header_up Host {host}
+      header_up X-Forwarded-Proto {scheme}
+    }
   }
   handle {
-    reverse_proxy {$project}-frontend:3000
+    reverse_proxy {$project}-frontend:3000 {
+      header_up Host {host}
+    }
   }
 }
 CADDY;

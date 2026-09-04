@@ -199,8 +199,10 @@ done
 compose_cli exec -T backend php artisan migrate --force
 compose_cli exec -T backend php artisan db:seed --class='Modules\\SiteBuilder\\Database\\Seeders\\SiteBuilderSeeder' --force || true
 compose_cli exec -T backend php artisan site-builder:ensure-hosting-defaults || true
-compose_cli exec -T backend php artisan site-builder:resync-caddy --reload || true
+# Stacks first (compose + attach backend to webino_sites), then Caddy snippets
+# so /api can reach ws-*-backend:8080 (same pattern as ERP Caddyfile).
 compose_cli exec -T backend php artisan site-builder:resync-stacks || true
+compose_cli exec -T backend php artisan site-builder:resync-caddy --reload || true
 compose_cli exec -T backend php artisan config:clear || true
 compose_cli exec -T backend php artisan cache:clear || true
 compose_cli exec -T backend php artisan config:cache || true
