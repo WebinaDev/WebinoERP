@@ -89,6 +89,20 @@ class SiteProvisionOrchestrator
         return $this->remote->stop($provision);
     }
 
+    /**
+     * Align Postgres role with .env and recreate backend (local only).
+     *
+     * @return array{exit_code:int,stdout:string,stderr:string,log:string}
+     */
+    public function repairDatabase(WebinoSiteProvision $provision): array
+    {
+        if (! $this->shouldUseLocal($provision)) {
+            throw new \RuntimeException('platform.remote_repair_db_not_supported');
+        }
+
+        return $this->local->repairDatabase($provision);
+    }
+
     public function logs(WebinoSiteProvision $provision, int $tail = 200): string
     {
         if ($this->shouldUseLocal($provision)) {
@@ -238,6 +252,7 @@ class SiteProvisionOrchestrator
                 'on_webino_sites' => ['backend' => false, 'frontend' => false],
                 'caddy_to_backend' => false,
                 'frontend_to_backend' => false,
+                'db_auth_ok' => false,
                 'log' => $e->getMessage(),
             ];
         }
@@ -248,6 +263,7 @@ class SiteProvisionOrchestrator
             'on_webino_sites' => ['backend' => false, 'frontend' => false],
             'caddy_to_backend' => false,
             'frontend_to_backend' => false,
+            'db_auth_ok' => false,
             'log' => 'remote stack diagnostics not supported',
         ];
     }

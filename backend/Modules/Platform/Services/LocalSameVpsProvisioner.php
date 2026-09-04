@@ -574,6 +574,8 @@ class LocalSameVpsProvisioner
      *   caddy_to_backend:bool,
      *   frontend_to_backend:bool,
      *   db_auth_ok:bool,
+     *   env_pw_fp:string,
+     *   backend_pw_fp:string,
      *   log:string
      * }
      */
@@ -612,6 +614,16 @@ class LocalSameVpsProvisioner
         $lines[] = 'on_webino_sites backend='.($onSites['backend'] ? 'yes' : 'no')
             .' frontend='.($onSites['frontend'] ? 'yes' : 'no');
 
+        $envPassword = $this->readEnvMap($this->siteDir($provision).'/.env')['DB_PASSWORD'] ?? '';
+        $envPwFp = $this->passwordFingerprint($envPassword);
+        $backendPw = $this->run(['docker', 'exec', $backend, 'printenv', 'DB_PASSWORD'], 15);
+        $backendPwFp = 'unavailable';
+        if ($backendPw['exit_code'] === 0) {
+            $backendPwFp = $this->passwordFingerprint(rtrim($backendPw['stdout'], "\r\n"));
+        }
+        $fpMatch = ($backendPwFp !== 'unavailable' && $envPwFp === $backendPwFp) ? 'yes' : 'no';
+        $lines[] = 'db password fp env='.$envPwFp.' backend='.$backendPwFp.' match='.$fpMatch;
+
         $dbAuthOk = $this->probeDatabaseAuth($provision);
         $lines[] = 'db auth with .env password: '.($dbAuthOk ? 'ok' : 'FAIL');
 
@@ -639,6 +651,8 @@ class LocalSameVpsProvisioner
             'containers' => $containers,
             'on_webino_sites' => $onSites,
             'db_auth_ok' => $dbAuthOk,
+            'env_pw_fp' => $envPwFp,
+            'backend_pw_fp' => $backendPwFp,
             'caddy_to_backend' => $caddyToBackend,
             'frontend_to_backend' => $frontendToBackend,
             'log' => implode("\n", $lines),
@@ -791,28 +805,76 @@ class LocalSameVpsProvisioner
             return 'db password sync failed: '.$err;
         }
 
-        return 'db password synced: ok';
+        // Verify via the same path the backend uses (TCP to host "db" on tenant net).
+        // Loopback probes are worthless — pg_hba trusts 127.0.0.1.
+        if (! $this->probeDatabaseAuth($provision)) {
+            return "db password synced: ok\ndb password sync verified: FAIL";
+        }
+
+        return "db password synced: ok\ndb password sync verified: ok";
     }
 
     /**
-     * Probe TCP auth to Postgres using the password currently in .env.
+     * Probe TCP auth to Postgres the same way the backend does: connect to host
+     * "db" on the tenant private network (scram-sha-256), not loopback trust.
      */
     protected function probeDatabaseAuth(WebinoSiteProvision $provision): bool
     {
-        $dbContainer = TenantSiteStack::projectName($provision->slug).'-db';
         $password = $this->readEnvMap($this->siteDir($provision).'/.env')['DB_PASSWORD'] ?? '';
         if ($password === '') {
             return false;
         }
 
+        $network = TenantSiteStack::projectName($provision->slug).'_net';
         $result = $this->run([
-            'docker', 'exec',
+            'docker', 'run', '--rm',
+            '--network', $network,
             '-e', 'PGPASSWORD='.$password,
-            $dbContainer,
-            'psql', '-h', '127.0.0.1', '-U', 'webino', '-d', 'webino', '-c', 'select 1',
-        ], 20);
+            'postgres:15-alpine',
+            'psql', '-h', 'db', '-U', 'webino', '-d', 'webino', '-tAc', 'select 1',
+        ], 45);
 
-        return $result['exit_code'] === 0;
+        return $result['exit_code'] === 0 && str_contains(trim($result['stdout']), '1');
+    }
+
+    /**
+     * Fingerprint a password without revealing it: first 8 hex of sha256 + length.
+     */
+    protected function passwordFingerprint(string $password): string
+    {
+        if ($password === '') {
+            return 'empty/0';
+        }
+
+        return substr(hash('sha256', $password), 0, 8).'/'.strlen($password);
+    }
+
+    /**
+     * Repair DB auth mismatch: rewrite .env, ALTER USER to match, recreate backend.
+     *
+     * @return array{exit_code:int,stdout:string,stderr:string,log:string}
+     */
+    public function repairDatabase(WebinoSiteProvision $provision): array
+    {
+        $this->rewriteEnvFile($provision);
+        $dbLog = $this->syncDatabasePassword($provision);
+        $recreate = $this->recreateServices($provision, ['backend']);
+        $verified = $this->probeDatabaseAuth($provision);
+        $verifyLine = 'db auth after repair: '.($verified ? 'ok' : 'FAIL');
+        $log = trim(implode("\n", array_filter([
+            $dbLog,
+            $recreate['log'] ?? '',
+            $verifyLine,
+        ])));
+
+        $exit = ($recreate['exit_code'] === 0 && $verified) ? 0 : 1;
+
+        return [
+            'exit_code' => $exit,
+            'stdout' => $recreate['stdout'] ?? '',
+            'stderr' => $recreate['stderr'] ?? '',
+            'log' => $log,
+        ];
     }
 
     /**

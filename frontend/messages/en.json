@@ -2942,6 +2942,7 @@
     "controlDiagnosticsHint": "Docker stack health, Caddy→backend reachability, and compose logs — copy for debugging login/502.",
     "controlStackHealth": "Stack health",
     "controlDbAuth": "DB auth with .env password",
+    "controlRepairDb": "Repair database",
     "controlCaddyToBackend": "Caddy → backend API",
     "controlFrontendToBackend": "Frontend → backend (internal net)",
     "controlOnProxyNet": "On webino_sites",

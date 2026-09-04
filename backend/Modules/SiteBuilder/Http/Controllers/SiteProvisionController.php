@@ -351,6 +351,21 @@ class SiteProvisionController extends Controller
         }
     }
 
+    public function repairDatabase(WebinoSiteProvision $siteProvision, SiteProvisionOrchestrator $orchestrator): JsonResponse
+    {
+        try {
+            $result = $orchestrator->repairDatabase($siteProvision);
+
+            return response()->json([
+                'data' => $siteProvision->fresh(['license', 'package']),
+                'compose' => $result,
+                'message' => $result['exit_code'] === 0 ? 'Database repaired' : 'Database repair failed',
+            ], $result['exit_code'] === 0 ? 200 : 422);
+        } catch (\Throwable $e) {
+            return response()->json(['message' => $e->getMessage()], 422);
+        }
+    }
+
     public function logs(WebinoSiteProvision $siteProvision, SiteProvisionOrchestrator $orchestrator, Request $request): JsonResponse
     {
         try {

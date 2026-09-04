@@ -37,6 +37,7 @@ import {
   fetchProvisionLogs,
   queueProvisionUpdate,
   renewProvisionSsl,
+  repairProvisionDatabase,
   setProvisionChannel,
   startProvision,
   stopProvision,
@@ -641,6 +642,32 @@ export function SiteControlPanelPage({ id }: { id: string }) {
               </pre>
             ) : null}
             <div className="flex flex-wrap gap-2">
+              <Button
+                type="button"
+                variant="default"
+                className="gap-1.5"
+                disabled={busy !== null || logsBusy}
+                data-testid="control-repair-db"
+                onClick={() =>
+                  void run('repair-db', async () => {
+                    const res = await repairProvisionDatabase(provisionId);
+                    const log = [res.compose?.log, res.compose?.stdout, res.compose?.stderr]
+                      .filter(Boolean)
+                      .join('\n');
+                    if (log) setComposeLogs(log);
+                    if ((res.compose?.exit_code ?? 1) !== 0) {
+                      throw new Error(res.message || t('controlFail'));
+                    }
+                  })
+                }
+              >
+                {busy === 'repair-db' ? (
+                  <Loader2 className="size-4 animate-spin" />
+                ) : (
+                  <Database className="size-4" />
+                )}
+                {t('controlRepairDb')}
+              </Button>
               <Button
                 type="button"
                 variant="secondary"
