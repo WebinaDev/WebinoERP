@@ -2944,6 +2944,7 @@
     "controlDbAuth": "DB auth with .env password",
     "controlBackendSelf": "Backend self (is the app up?)",
     "controlReadiness": "Backend readiness (DB/Redis/queue)",
+    "controlRedis": "Redis from backend",
     "controlRepairDb": "Repair database",
     "controlBootstrap": "Bootstrap site",
     "controlCaddyToBackend": "Caddy → backend API",

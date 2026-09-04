@@ -633,6 +633,12 @@ export function SiteControlPanelPage({ id }: { id: string }) {
                 </Badge>
               </div>
               <div>
+                {t('controlRedis')}:{' '}
+                <Badge variant={data?.stack?.redis_ok ? 'default' : 'destructive'}>
+                  {data?.stack?.redis_ok ? t('controlOk') : t('controlFail')}
+                </Badge>
+              </div>
+              <div>
                 {t('controlCaddyToBackend')}:{' '}
                 <Badge variant={data?.stack?.caddy_to_backend ? 'default' : 'destructive'}>
                   {data?.stack?.caddy_to_backend ? t('controlOk') : t('controlFail')}
@@ -665,13 +671,27 @@ export function SiteControlPanelPage({ id }: { id: string }) {
                 onClick={() =>
                   void run('repair-db', async () => {
                     const res = await repairProvisionDatabase(provisionId);
-                    const log = [res.compose?.log, res.compose?.stdout, res.compose?.stderr]
+                    const stages = res.compose?.stages;
+                    const stageLine =
+                      stages && typeof stages === 'object'
+                        ? Object.entries(stages)
+                            .map(([k, v]) => `${k}=${v ? 'ok' : 'FAIL'}`)
+                            .join(' ')
+                        : '';
+                    const log = [
+                      res.message,
+                      stageLine ? `stages: ${stageLine}` : '',
+                      res.compose?.log,
+                      res.compose?.stdout,
+                      res.compose?.stderr,
+                    ]
                       .filter(Boolean)
                       .join('\n');
                     if (log) setComposeLogs(log);
                     if ((res.compose?.exit_code ?? 1) !== 0) {
                       throw new Error(
-                        [res.message, res.compose?.log].filter(Boolean).join('\n') || t('controlFail'),
+                        [res.message, stageLine, res.compose?.log].filter(Boolean).join('\n') ||
+                          t('controlFail'),
                       );
                     }
                   })
@@ -693,13 +713,20 @@ export function SiteControlPanelPage({ id }: { id: string }) {
                 onClick={() =>
                   void run('bootstrap', async () => {
                     const res = await bootstrapProvisionSite(provisionId);
-                    const log = [res.compose?.log, res.compose?.stdout, res.compose?.stderr]
+                    const log = [
+                      res.message,
+                      res.compose?.log,
+                      res.compose?.stdout,
+                      res.compose?.stderr,
+                    ]
                       .filter(Boolean)
                       .join('\n');
                     if (log) setComposeLogs(log);
                     if ((res.compose?.exit_code ?? 1) !== 0) {
                       throw new Error(
-                        [res.message, res.compose?.log].filter(Boolean).join('\n') || t('controlFail'),
+                        [res.message, res.compose?.log, res.compose?.stderr]
+                          .filter(Boolean)
+                          .join('\n') || t('controlFail'),
                       );
                     }
                   })

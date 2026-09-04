@@ -613,6 +613,7 @@ class LocalSameVpsProvisioner
      *   caddy_snippet_ok:bool,
      *   caddy_config_has_upstream:bool,
      *   caddy_exec_to_backend:bool,
+     *   redis_ok:bool,
      *   env_pw_fp:string,
      *   backend_pw_fp:string,
      *   app_log:string,
@@ -625,10 +626,11 @@ class LocalSameVpsProvisioner
         $backend = TenantSiteStack::backendService($provision->slug);
         $frontend = TenantSiteStack::frontendService($provision->slug);
         $db = $project.'-db';
+        $redis = $project.'-redis';
 
         $containers = [];
         $lines = [];
-        foreach ([$backend, $frontend, $db] as $name) {
+        foreach ([$backend, $frontend, $db, $redis] as $name) {
             $status = $this->run([
                 'docker', 'inspect', '-f', '{{.State.Status}}', $name,
             ], 15);
@@ -676,8 +678,19 @@ class LocalSameVpsProvisioner
         $dbAuthOk = $this->probeDatabaseAuth($provision);
         $lines[] = 'db auth with .env password: '.($dbAuthOk ? 'ok' : 'FAIL');
 
-        $backendSelf = $this->probeBackendSelf($backend);
-        $lines[] = 'backend_self (127.0.0.1:8080/api/v1/health/metrics): '.($backendSelf ? 'ok' : 'FAIL');
+        $redisProbe = $this->probeBackendRedis($backend);
+        $redisOk = $redisProbe['ok'];
+        $lines[] = 'redis (ext+cache from backend): '
+            .($redisOk ? 'ok' : 'FAIL')
+            .($redisProbe['detail'] !== '' ? ' '.$redisProbe['detail'] : '');
+
+        $selfProbe = $this->probeHttp($backend, 'http://127.0.0.1:8080/api/v1/health/metrics');
+        $backendSelf = $selfProbe['status'] >= 200
+            && $selfProbe['status'] < 300
+            && str_contains($selfProbe['body'], 'data');
+        $lines[] = 'backend_self (127.0.0.1:8080/api/v1/health/metrics): '
+            .($backendSelf ? 'ok' : 'FAIL')
+            .' '.$this->formatProbeSummary($selfProbe);
 
         $readiness = $this->probeBackendReadiness($backend);
         $readinessOk = $readiness['ok'];
@@ -695,32 +708,31 @@ class LocalSameVpsProvisioner
             .($caddyConfigHasUpstream ? 'yes' : 'no');
 
         $healthUrl = 'http://'.$backend.':8080/api/v1/health/metrics';
-        $caddyExecToBackend = $this->probeFromCaddyContainer($healthUrl);
-        $lines[] = 'caddy_exec_to_backend: '.($caddyExecToBackend ? 'ok' : 'FAIL');
+        $caddyExecProbe = $this->probeFromCaddyContainerDetailed($healthUrl);
+        $caddyExecToBackend = $caddyExecProbe['status'] >= 200
+            && $caddyExecProbe['status'] < 300
+            && str_contains($caddyExecProbe['body'], 'data');
+        $lines[] = 'caddy_exec_to_backend: '
+            .($caddyExecToBackend ? 'ok' : 'FAIL')
+            .' '.$this->formatProbeSummary($caddyExecProbe);
 
         $caddyToBackend = $this->probeOnProxyNetwork($healthUrl);
         $lines[] = 'caddy→'.$backend.'/api/v1/health/metrics: '.($caddyToBackend ? 'ok' : 'FAIL');
 
-        $feToBe = $this->run([
-            'docker', 'exec', $frontend,
-            'wget', '-q', '-O', '-', 'http://backend:8080/api/v1/health/metrics',
-        ], 30);
-        if ($feToBe['exit_code'] !== 0) {
-            $feToBe = $this->run([
-                'docker', 'exec', $frontend,
-                'node', '-e',
-                "fetch('http://backend:8080/api/v1/health/metrics').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))",
-            ], 30);
-        }
-        $frontendToBackend = $feToBe['exit_code'] === 0;
-        $lines[] = 'frontend→http://backend:8080 (internal alias): '.($frontendToBackend ? 'ok' : 'FAIL');
+        $feProbe = $this->probeHttp($frontend, 'http://backend:8080/api/v1/health/metrics');
+        $frontendToBackend = $feProbe['status'] >= 200
+            && $feProbe['status'] < 300
+            && str_contains($feProbe['body'], 'data');
+        $lines[] = 'frontend→http://backend:8080 (internal alias): '
+            .($frontendToBackend ? 'ok' : 'FAIL')
+            .' '.$this->formatProbeSummary($feProbe);
 
-        $appLog = $this->tailBackendAppLog($backend, 40);
+        $appLog = $this->tailBackendErrors($backend);
         if ($appLog !== '') {
-            $lines[] = '--- app_log (storage/logs/laravel.log) ---';
+            $lines[] = '--- app_errors ---';
             $lines[] = $appLog;
         } else {
-            $lines[] = 'app_log: (empty or unavailable)';
+            $lines[] = 'app_errors: (empty or unavailable)';
         }
 
         return [
@@ -733,6 +745,7 @@ class LocalSameVpsProvisioner
             'caddy_snippet_ok' => $caddySnippetOk,
             'caddy_config_has_upstream' => $caddyConfigHasUpstream,
             'caddy_exec_to_backend' => $caddyExecToBackend,
+            'redis_ok' => $redisOk,
             'env_pw_fp' => $envPwFp,
             'backend_pw_fp' => $backendPwFp,
             'caddy_to_backend' => $caddyToBackend,
@@ -956,9 +969,24 @@ class LocalSameVpsProvisioner
         }
 
         $verified = $this->probeDatabaseAuth($provision);
+        $selfProbe = $this->probeHttp($backend, 'http://127.0.0.1:8080/api/v1/health/metrics');
+        $appHealth = $selfProbe['status'] >= 200
+            && $selfProbe['status'] < 300
+            && str_contains($selfProbe['body'], 'data');
         $caddyToBackend = $this->probeOnProxyNetwork(
             'http://'.$backend.':8080/api/v1/health/metrics'
         );
+
+        $caddyReloadOk = $caddyWrite === '' || ($caddyReload['exit_code'] ?? 1) === 0;
+        $recreateOk = ($recreate['exit_code'] ?? 1) === 0;
+
+        $stages = [
+            'db_auth' => $verified,
+            'recreate' => $recreateOk,
+            'caddy_reload' => $caddyReloadOk,
+            'app_health' => $appHealth,
+            'caddy_to_backend' => $caddyToBackend,
+        ];
 
         $reloadDetail = trim(($caddyReload['stderr'] ?? '')."\n".($caddyReload['stdout'] ?? ''));
         $log = trim(implode("\n", array_filter([
@@ -970,22 +998,31 @@ class LocalSameVpsProvisioner
                 ? 'caddy reload exit='.$caddyReload['exit_code']
                     .($reloadDetail !== '' ? ' '.$reloadDetail : '')
                 : null,
-            'db auth after repair: '.($verified ? 'ok' : 'FAIL'),
-            'caddy→backend after repair: '.($caddyToBackend ? 'ok' : 'FAIL'),
+            'stage db_auth: '.($verified ? 'ok' : 'FAIL'),
+            'stage recreate: '.($recreateOk ? 'ok' : 'FAIL'),
+            'stage caddy_reload: '.($caddyReloadOk ? 'ok' : 'FAIL'),
+            'stage app_health: '.($appHealth ? 'ok' : 'FAIL')
+                .' '.$this->formatProbeSummary($selfProbe),
+            'stage caddy_to_backend: '.($caddyToBackend ? 'ok' : 'FAIL'),
         ])));
 
-        $exit = (
-            ($recreate['exit_code'] ?? 1) === 0
-            && $verified
-            && $caddyToBackend
-            && ($caddyWrite === '' || ($caddyReload['exit_code'] ?? 1) === 0)
-        ) ? 0 : 1;
+        // Overall success = DB fixed + backend recreated + Caddy rewritten.
+        // App HTTP 500 must not mark the whole repair red by itself.
+        $exit = ($recreateOk && $verified && $caddyReloadOk) ? 0 : 1;
+
+        $message = $exit === 0
+            ? ($appHealth
+                ? 'Database repaired'
+                : 'Database repaired; app still unhealthy (see stages)')
+            : 'Database repair failed';
 
         return [
             'exit_code' => $exit,
             'stdout' => $recreate['stdout'] ?? '',
             'stderr' => $recreate['stderr'] ?? '',
-            'log' => $log,
+            'log' => $log !== '' ? $log : $message,
+            'message' => $message,
+            'stages' => $stages,
         ];
     }
 
@@ -1006,35 +1043,130 @@ class LocalSameVpsProvisioner
     }
 
     /**
+     * HTTP probe from inside a container. Returns status + body even on 4xx/5xx.
+     *
+     * @return array{status:int,body:string}
+     */
+    protected function probeHttp(string $container, string $url, int $timeout = 20): array
+    {
+        $curl = $this->run([
+            'docker', 'exec', $container,
+            'curl', '-s', '-o', '-', '-w', "\n__HTTP__%{http_code}",
+            '--max-time', (string) max(5, $timeout - 2),
+            $url,
+        ], $timeout);
+
+        if (($curl['exit_code'] ?? 1) === 0 || str_contains((string) ($curl['stdout'] ?? ''), '__HTTP__')) {
+            $parsed = $this->parseCurlProbeOutput((string) ($curl['stdout'] ?? ''));
+            if ($parsed['status'] > 0 || $parsed['body'] !== '') {
+                return $parsed;
+            }
+        }
+
+        // Caddy alpine typically has wget, not curl/php.
+        $wget = $this->run([
+            'docker', 'exec', $container,
+            'sh', '-c',
+            'wget -q -S -O - '.escapeshellarg($url).' 2>&1 || true',
+        ], $timeout);
+        $wgetOut = (string) ($wget['stdout'] ?? '');
+        if ($wgetOut !== '') {
+            $status = 0;
+            if (preg_match('/HTTP\/\S+\s+(\d{3})/', $wgetOut, $m)) {
+                $status = (int) $m[1];
+            }
+            // Strip response headers block; keep body after blank line if present.
+            $body = $wgetOut;
+            if (preg_match('/\r?\n\r?\n([\s\S]*)$/', $wgetOut, $bm)) {
+                $body = $bm[1];
+            } elseif ($status > 0) {
+                // Headers only / error page mixed — drop leading header lines.
+                $lines = preg_split('/\r?\n/', $wgetOut) ?: [];
+                $bodyLines = [];
+                $pastHeaders = false;
+                foreach ($lines as $line) {
+                    if (! $pastHeaders) {
+                        if ($line === '' || preg_match('/^HTTP\//', $line) || preg_match('/^[A-Za-z0-9-]+:\s/', $line)) {
+                            continue;
+                        }
+                        $pastHeaders = true;
+                    }
+                    $bodyLines[] = $line;
+                }
+                $body = implode("\n", $bodyLines);
+            }
+
+            return ['status' => $status, 'body' => trim($body)];
+        }
+
+        $php = $this->run([
+            'docker', 'exec', $container,
+            'php', '-r',
+            '$ctx=stream_context_create(["http"=>["timeout"=>15,"ignore_errors"=>true]]);'
+            .'$body=@file_get_contents('.var_export($url, true).', false, $ctx);'
+            .'$code=0; if(isset($http_response_header[0]) && preg_match("/\\s(\\d{3})\\s/", $http_response_header[0], $m)){$code=(int)$m[1];}'
+            .'echo ($body===false?"":$body)."\n__HTTP__".$code;',
+        ], $timeout);
+
+        $phpParsed = $this->parseCurlProbeOutput((string) ($php['stdout'] ?? ''));
+        if ($phpParsed['status'] > 0 || $phpParsed['body'] !== '') {
+            return $phpParsed;
+        }
+
+        // Next.js frontend image: node is available.
+        $node = $this->run([
+            'docker', 'exec', $container,
+            'node', '-e',
+            'fetch('.json_encode($url).').then(async r=>{const t=await r.text();'
+            .'process.stdout.write(t+"\\n__HTTP__"+r.status);})'
+            .'.catch(e=>{process.stdout.write(String(e)+"\\n__HTTP__0"); process.exit(0);})',
+        ], $timeout);
+
+        return $this->parseCurlProbeOutput((string) ($node['stdout'] ?? ''));
+    }
+
+    /**
+     * @return array{status:int,body:string}
+     */
+    protected function parseCurlProbeOutput(string $raw): array
+    {
+        $status = 0;
+        $body = $raw;
+        if (preg_match('/\n__HTTP__(\d{3})\s*$/', $raw, $m)) {
+            $status = (int) $m[1];
+            $body = substr($raw, 0, -strlen($m[0]));
+        }
+
+        return [
+            'status' => $status,
+            'body' => trim($body),
+        ];
+    }
+
+    /**
+     * @param  array{status:int,body:string}  $probe
+     */
+    protected function formatProbeSummary(array $probe): string
+    {
+        $body = $probe['body'];
+        if (strlen($body) > 180) {
+            $body = substr($body, 0, 180).'…';
+        }
+        $body = str_replace(["\n", "\r"], ' ', $body);
+
+        return 'http='.$probe['status'].($body !== '' ? ' body='.$body : ' body=(empty)');
+    }
+
+    /**
      * Probe health from inside the backend container (independent of Docker DNS / Caddy).
      */
     protected function probeBackendSelf(string $backendContainer): bool
     {
-        $url = 'http://127.0.0.1:8080/api/v1/health/metrics';
+        $probe = $this->probeHttp($backendContainer, 'http://127.0.0.1:8080/api/v1/health/metrics');
 
-        $wget = $this->run([
-            'docker', 'exec', $backendContainer,
-            'wget', '-q', '-O', '-', $url,
-        ], 15);
-        if ($wget['exit_code'] === 0 && str_contains($wget['stdout'], 'data')) {
-            return true;
-        }
-
-        $curl = $this->run([
-            'docker', 'exec', $backendContainer,
-            'curl', '-sf', $url,
-        ], 15);
-        if ($curl['exit_code'] === 0 && str_contains($curl['stdout'], 'data')) {
-            return true;
-        }
-
-        $php = $this->run([
-            'docker', 'exec', $backendContainer,
-            'php', '-r',
-            'echo @file_get_contents("http://127.0.0.1:8080/api/v1/health/metrics") ?: "";',
-        ], 15);
-
-        return $php['exit_code'] === 0 && str_contains($php['stdout'], 'data');
+        return $probe['status'] >= 200
+            && $probe['status'] < 300
+            && str_contains($probe['body'], 'data');
     }
 
     /**
@@ -1044,40 +1176,19 @@ class LocalSameVpsProvisioner
      */
     protected function probeBackendReadiness(string $backendContainer): array
     {
-        $url = 'http://127.0.0.1:8080/api/v1/health/readiness';
-        $body = '';
+        $probe = $this->probeHttp($backendContainer, 'http://127.0.0.1:8080/api/v1/health/readiness');
+        $body = $probe['body'];
 
-        $wget = $this->run([
-            'docker', 'exec', $backendContainer,
-            'wget', '-q', '-O', '-', $url,
-        ], 20);
-        if ($wget['exit_code'] === 0) {
-            $body = $wget['stdout'];
-        } else {
-            $curl = $this->run([
-                'docker', 'exec', $backendContainer,
-                'curl', '-s', $url,
-            ], 20);
-            if ($curl['exit_code'] === 0) {
-                $body = $curl['stdout'];
-            } else {
-                $php = $this->run([
-                    'docker', 'exec', $backendContainer,
-                    'php', '-r',
-                    'echo @file_get_contents("http://127.0.0.1:8080/api/v1/health/readiness") ?: "";',
-                ], 20);
-                $body = $php['stdout'] ?? '';
-            }
-        }
-
-        $body = trim($body);
-        if ($body === '') {
+        if ($body === '' && $probe['status'] === 0) {
             return ['ok' => false, 'detail' => 'no response'];
         }
 
         $json = json_decode($body, true);
         if (! is_array($json)) {
-            return ['ok' => false, 'detail' => substr($body, 0, 120)];
+            return [
+                'ok' => false,
+                'detail' => 'http='.$probe['status'].' '.substr($body, 0, 120),
+            ];
         }
 
         $status = (string) data_get($json, 'data.status', '');
@@ -1093,34 +1204,133 @@ class LocalSameVpsProvisioner
             }
         }
 
+        if ($status === '' && isset($json['success']) && $json['success'] === false) {
+            $msg = (string) ($json['message'] ?? 'errors.server');
+
+            return [
+                'ok' => false,
+                'detail' => 'http='.$probe['status'].' error='.$msg,
+            ];
+        }
+
         return [
             'ok' => $status === 'ready',
-            'detail' => $parts !== [] ? '('.implode(' ', $parts).')' : 'status='.$status,
+            'detail' => $parts !== []
+                ? 'http='.$probe['status'].' ('.implode(' ', $parts).')'
+                : 'http='.$probe['status'].' status='.$status,
         ];
     }
 
     /**
-     * Tail Laravel app log inside the backend container (exceptions often miss docker logs).
+     * Probe Redis extension + cache store from inside the backend container.
+     *
+     * @return array{ok:bool,detail:string}
      */
-    protected function tailBackendAppLog(string $backendContainer, int $lines = 40): string
+    protected function probeBackendRedis(string $backendContainer): array
     {
-        $result = $this->run([
+        $ext = $this->run([
             'docker', 'exec', $backendContainer,
-            'sh', '-c',
-            'tail -n '.(int) $lines.' storage/logs/laravel.log 2>/dev/null || true',
+            'php', '-r', 'echo extension_loaded("redis") ? "yes" : "no";',
+        ], 15);
+        $extLoaded = trim($ext['stdout'] ?? '') === 'yes';
+
+        // Prefer phpredis direct ping (no artisan/tinker dependency in prod image).
+        $direct = $this->run([
+            'docker', 'exec', $backendContainer,
+            'php', '-r',
+            '$h=getenv("REDIS_HOST")?: "redis"; $p=(int)(getenv("REDIS_PORT")?:6379);'
+            .'try { $r=new Redis(); $ok=@$r->connect($h,$p,2.0);'
+            .'echo $ok && $r->ping() ? "redis_ping=ok" : "redis_ping=FAIL connect";'
+            .'} catch (Throwable $e) { echo "redis_ping=FAIL ".$e->getMessage(); }',
         ], 20);
 
-        $text = trim($result['stdout'] ?? '');
+        $directOut = trim(($direct['stdout'] ?? '')."\n".($direct['stderr'] ?? ''));
+        $pingOk = str_contains($directOut, 'redis_ping=ok');
+
+        // If extension missing, still try Laravel Redis facade via artisan (may use predis).
+        if (! $extLoaded && ! $pingOk) {
+            $artisan = $this->run([
+                'docker', 'exec', $backendContainer,
+                'php', 'artisan', 'cache:clear',
+            ], 25);
+            $artisanOut = trim(($artisan['stdout'] ?? '')."\n".($artisan['stderr'] ?? ''));
+            if (($artisan['exit_code'] ?? 1) === 0) {
+                $pingOk = true;
+                $directOut = 'cache:clear=ok';
+            } elseif ($artisanOut !== '') {
+                $directOut = 'cache:clear FAIL '.substr(str_replace(["\n", "\r"], ' ', $artisanOut), 0, 100);
+            }
+        }
+
+        $detail = 'ext='.($extLoaded ? 'yes' : 'no');
+        if (preg_match('/redis_ping=\S+(?:\s+.*)?/', $directOut, $m)) {
+            $detail .= ' '.trim($m[0]);
+        } elseif ($directOut !== '') {
+            $detail .= ' '.substr(str_replace(["\n", "\r"], ' ', $directOut), 0, 120);
+        }
+
+        return [
+            'ok' => $pingOk,
+            'detail' => $detail,
+        ];
+    }
+
+    /**
+     * Collect real error headlines from laravel.log + recent docker stderr.
+     */
+    protected function tailBackendErrors(string $backendContainer): string
+    {
+        $parts = [];
+
+        $fileErrors = $this->run([
+            'docker', 'exec', $backendContainer,
+            'sh', '-c',
+            "grep -a -E '\\.(ERROR|CRITICAL|EMERGENCY):' storage/logs/laravel.log 2>/dev/null | tail -n 5 || true",
+        ], 20);
+        $fileText = trim($fileErrors['stdout'] ?? '');
+        if ($fileText !== '') {
+            $parts[] = '[laravel.log]';
+            $parts[] = $fileText;
+        }
+
+        $dockerLogs = $this->run([
+            'docker', 'logs', '--tail', '400', $backendContainer,
+        ], 25);
+        $combined = trim(($dockerLogs['stdout'] ?? '')."\n".($dockerLogs['stderr'] ?? ''));
+        if ($combined !== '') {
+            $filtered = [];
+            foreach (preg_split('/\r?\n/', $combined) ?: [] as $line) {
+                if (preg_match(
+                    '/ERROR|CRITICAL|EMERGENCY|Fatal error|Uncaught|Unable to load dynamic library|PHP Warning|SQLSTATE/i',
+                    $line
+                )) {
+                    $filtered[] = $line;
+                }
+            }
+            if ($filtered !== []) {
+                $parts[] = '[docker logs]';
+                $parts[] = implode("\n", array_slice($filtered, -30));
+            }
+        }
+
+        $text = trim(implode("\n", $parts));
         if ($text === '') {
             return '';
         }
 
-        // Keep diagnostics readable — drop huge stack frames beyond a soft cap.
         if (strlen($text) > 6000) {
             $text = substr($text, -6000);
         }
 
         return $this->compressRepeatedLogLines($text);
+    }
+
+    /**
+     * @deprecated Use tailBackendErrors()
+     */
+    protected function tailBackendAppLog(string $backendContainer, int $lines = 40): string
+    {
+        return $this->tailBackendErrors($backendContainer);
     }
 
     /**
@@ -1155,17 +1365,24 @@ class LocalSameVpsProvisioner
      */
     protected function probeFromCaddyContainer(string $url): bool
     {
+        $probe = $this->probeFromCaddyContainerDetailed($url);
+
+        return $probe['status'] >= 200
+            && $probe['status'] < 300
+            && str_contains($probe['body'], 'data');
+    }
+
+    /**
+     * @return array{status:int,body:string}
+     */
+    protected function probeFromCaddyContainerDetailed(string $url): array
+    {
         $web = $this->findErpWebContainer();
         if ($web === null) {
-            return false;
+            return ['status' => 0, 'body' => 'caddy container missing'];
         }
 
-        $viaExec = $this->run([
-            'docker', 'exec', $web,
-            'wget', '-q', '-O', '-', $url,
-        ], 30);
-
-        return $viaExec['exit_code'] === 0;
+        return $this->probeHttp($web, $url, 30);
     }
 
     /**

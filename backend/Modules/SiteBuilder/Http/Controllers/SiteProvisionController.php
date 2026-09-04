@@ -355,15 +355,42 @@ class SiteProvisionController extends Controller
     {
         try {
             $result = $orchestrator->repairDatabase($siteProvision);
+            $message = (string) ($result['message'] ?? '');
+            if ($message === '') {
+                $message = ($result['exit_code'] ?? 1) === 0
+                    ? 'Database repaired'
+                    : 'Database repair failed';
+            }
+            if (($result['log'] ?? '') === '') {
+                $result['log'] = $message;
+            }
 
             // Always 200 so the UI can show compose.log; success/failure is in exit_code.
             return response()->json([
                 'data' => $siteProvision->fresh(['license', 'package']),
                 'compose' => $result,
-                'message' => $result['exit_code'] === 0 ? 'Database repaired' : 'Database repair failed',
+                'message' => $message,
             ]);
         } catch (\Throwable $e) {
-            return response()->json(['message' => $e->getMessage()], 422);
+            $msg = $e->getMessage() !== '' ? $e->getMessage() : 'Database repair failed';
+
+            return response()->json([
+                'data' => $siteProvision->fresh(['license', 'package']),
+                'compose' => [
+                    'exit_code' => 1,
+                    'stdout' => '',
+                    'stderr' => $msg,
+                    'log' => $msg,
+                    'stages' => [
+                        'db_auth' => false,
+                        'recreate' => false,
+                        'caddy_reload' => false,
+                        'app_health' => false,
+                        'caddy_to_backend' => false,
+                    ],
+                ],
+                'message' => $msg,
+            ]);
         }
     }
 
@@ -371,14 +398,33 @@ class SiteProvisionController extends Controller
     {
         try {
             $result = $orchestrator->bootstrapSite($siteProvision);
+            $message = ($result['exit_code'] ?? 1) === 0
+                ? 'Site bootstrapped'
+                : (trim((string) ($result['stderr'] ?? '')) !== ''
+                    ? 'Bootstrap failed: '.trim((string) $result['stderr'])
+                    : 'Bootstrap failed');
+            if (($result['log'] ?? '') === '') {
+                $result['log'] = $message;
+            }
 
             return response()->json([
                 'data' => $siteProvision->fresh(['license', 'package']),
                 'compose' => $result,
-                'message' => $result['exit_code'] === 0 ? 'Site bootstrapped' : 'Bootstrap failed',
+                'message' => $message,
             ]);
         } catch (\Throwable $e) {
-            return response()->json(['message' => $e->getMessage()], 422);
+            $msg = $e->getMessage() !== '' ? $e->getMessage() : 'Bootstrap failed';
+
+            return response()->json([
+                'data' => $siteProvision->fresh(['license', 'package']),
+                'compose' => [
+                    'exit_code' => 1,
+                    'stdout' => '',
+                    'stderr' => $msg,
+                    'log' => $msg,
+                ],
+                'message' => $msg,
+            ]);
         }
     }
 

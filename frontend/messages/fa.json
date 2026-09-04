@@ -2943,6 +2943,7 @@
     "controlDbAuth": "احراز هویت دیتابیس با رمز .env",
     "controlBackendSelf": "بک‌اند از داخل خودش (اپ بالا است؟)",
     "controlReadiness": "آمادگی بک‌اند (دیتابیس/Redis/صف)",
+    "controlRedis": "Redis از داخل بک‌اند",
     "controlRepairDb": "تعمیر دیتابیس",
     "controlBootstrap": "راه‌اندازی اولیه سایت",
     "controlCaddyToBackend": "Caddy → بک‌اند API",
