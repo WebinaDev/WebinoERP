@@ -368,7 +368,7 @@ class LocalSameVpsProvisioner
         } else {
             $status = 'provisioning';
             $ok = true;
-            $log[] = 'گواهی هنوز روی دیسک Caddy نیست. DNS دامنه باید به همین سرور باشد و پورت ۸۰ و ۴۴۳ باز باشند (Let's Encrypt).';
+            $log[] = "گواهی هنوز روی دیسک Caddy نیست. DNS دامنه باید به همین سرور باشد و پورت ۸۰ و ۴۴۳ باز باشند (Lets Encrypt).";
         }
 
         PlatformDomain::query()
