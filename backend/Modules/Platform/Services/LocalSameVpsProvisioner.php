@@ -323,22 +323,45 @@ class LocalSameVpsProvisioner
         $settings = CoreHostingSetting::current();
         $secret = (string) ($settings->provision_webhook_secret ?? '');
         $token = (string) ($provision->provision_token ?? '');
-        if ($secret === '' || $token === '') {
-            throw new RuntimeException('platform.provision_hmac_missing');
+        if ($secret === '') {
+            throw new RuntimeException(
+                'سکرت HMAC پروویژن در تنظیمات هاستینگ ERP خالی است (provision_webhook_secret).'
+            );
         }
-        $body = json_encode($payload, JSON_UNESCAPED_UNICODE);
-        $response = Http::withHeaders([
-            'X-Provision-Token' => $token,
-            'X-Provision-Signature' => hash_hmac('sha256', $body, $secret),
-            'Accept' => 'application/json',
-            'Content-Type' => 'application/json',
-        ])->withBody($body, 'application/json')
-            ->timeout(90)
-            ->post('https://'.$provision->domain.'/api/v1/'.$path);
+        if ($token === '') {
+            throw new RuntimeException('توکن پروویژن این سایت خالی است؛ سایت را دوباره provision کنید.');
+        }
+        // Always JSON object so HMAC body matches Laravel request content on the tenant.
+        $body = json_encode($payload === [] ? new \stdClass : $payload, JSON_UNESCAPED_UNICODE);
+        if ($body === false) {
+            throw new RuntimeException('Failed to encode tenant API payload.');
+        }
+
+        try {
+            $response = Http::withHeaders([
+                'X-Provision-Token' => $token,
+                'X-Provision-Signature' => hash_hmac('sha256', $body, $secret),
+                'Accept' => 'application/json',
+                'Content-Type' => 'application/json',
+            ])->withBody($body, 'application/json')
+                ->timeout(90)
+                ->post('https://'.$provision->domain.'/api/v1/'.$path);
+        } catch (Throwable $e) {
+            throw new RuntimeException(
+                'ارتباط با سایت tenant برقرار نشد (https://'.$provision->domain.'): '.$e->getMessage(),
+                0,
+                $e
+            );
+        }
 
         if (! $response->successful()) {
+            $tenantMessage = data_get($response->json(), 'message');
+            if (is_string($tenantMessage) && $tenantMessage !== '') {
+                throw new RuntimeException($tenantMessage);
+            }
+
             throw new RuntimeException(
-                'platform.tenant_api_failed: '.$response->status().' '.substr($response->body(), 0, 400)
+                'درخواست به سایت tenant ناموفق بود (HTTP '.$response->status().').'
             );
         }
 

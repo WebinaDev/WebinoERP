@@ -413,7 +413,7 @@ class SiteProvisionController extends Controller
     public function updateAdmin(Request $request, WebinoSiteProvision $siteProvision, SiteProvisionOrchestrator $orchestrator): JsonResponse
     {
         if ($siteProvision->status !== WebinoSiteProvision::STATUS_READY) {
-            return response()->json(['message' => 'Site must be ready.'], 422);
+            return response()->json(['message' => 'سایت باید در وضعیت آماده (ready) باشد.'], 422);
         }
 
         $data = $request->validate([
@@ -421,6 +421,15 @@ class SiteProvisionController extends Controller
             'email' => 'nullable|email|max:255',
             'password' => 'nullable|string|min:8|max:255',
         ]);
+
+        $data = array_filter(
+            $data,
+            static fn ($v) => $v !== null && $v !== ''
+        );
+
+        if ($data === []) {
+            return response()->json(['message' => 'حداقل یکی از فیلدهای نام، ایمیل یا رمز عبور را وارد کنید.'], 422);
+        }
 
         try {
             $result = $orchestrator->callTenantApi($siteProvision, 'provision/admin', $data);
@@ -435,7 +444,7 @@ class SiteProvisionController extends Controller
 
             return response()->json(['data' => $siteProvision->fresh(['license', 'crmAccount']), 'tenant' => $result]);
         } catch (Throwable $e) {
-            return response()->json(['message' => $e->getMessage()], 422);
+            return response()->json(['message' => $e->getMessage() ?: 'به‌روزرسانی ادمین سایت ناموفق بود.'], 422);
         }
     }
 
@@ -542,7 +551,7 @@ class SiteProvisionController extends Controller
     public function queueUpdate(Request $request, WebinoSiteProvision $siteProvision): JsonResponse
     {
         if ($siteProvision->status !== WebinoSiteProvision::STATUS_READY) {
-            return response()->json(['message' => 'Site must be ready.'], 422);
+            return response()->json(['message' => 'سایت باید در وضعیت آماده (ready) باشد.'], 422);
         }
 
         $data = $request->validate([

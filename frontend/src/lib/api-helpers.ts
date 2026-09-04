@@ -58,6 +58,12 @@ const KEY_MESSAGES: Record<string, string> = {
   'errors.server': 'خطای داخلی سرور. صفحه را تازه کنید یا کمی بعد دوباره تلاش کنید.',
   'validation.failed': 'اطلاعات ارسال‌شده معتبر نیست.',
   'Two-factor authentication required': 'احراز هویت دو مرحله‌ای لازم است. کد ارسال‌شده را وارد کنید.',
+  'platform.provision_hmac_missing':
+    'سکرت HMAC یا توکن پروویژن تنظیم نیست. در تنظیمات هاستینگ ERP و .env سایت tenant بررسی کنید.',
+  'platform.remote_tenant_api_not_supported': 'این عملیات فقط برای سایت‌های هم‌سرور (local) پشتیبانی می‌شود.',
+  'platform.tenant_api_failed': 'درخواست به API سایت tenant ناموفق بود.',
+  'platform.build_script_missing': 'اسکریپت ساخت ایمیج داشبورد روی سرور ERP پیدا نشد.',
+  'Site must be ready.': 'سایت باید در وضعیت آماده (ready) باشد.',
 };
 
 function firstValidationError(err: unknown): string | undefined {
@@ -117,7 +123,20 @@ export function getAxiosMessage(err: unknown): string {
   if (message?.includes('platform.dashboard_images_missing') || message?.includes('/opt/WebinoDashboard/docker')) {
     return 'ایمیج‌های سایت از GitHub ساخته نشدند. دسترسی خروجی به github.com/Webinadev/WebinoDashboard را بررسی کنید و دوباره «ایجاد سایت» بزنید.';
   }
+  if (message?.startsWith('platform.tenant_api_failed')) {
+    return KEY_MESSAGES['platform.tenant_api_failed'] + ' ' + message.replace(/^platform\.tenant_api_failed:\s*/i, '').slice(0, 240);
+  }
+  if (message?.startsWith('platform.') && KEY_MESSAGES[message.split(/[:\s]/)[0]!]) {
+    return KEY_MESSAGES[message.split(/[:\s]/)[0]!];
+  }
   if (message && !/^[a-z0-9_.]+$/i.test(message)) {
+    return message;
+  }
+  // Dot-keys like platform.foo used to fall through to generic 422 — map or show the key.
+  if (message && KEY_MESSAGES[message]) {
+    return KEY_MESSAGES[message];
+  }
+  if (message?.startsWith('platform.')) {
     return message;
   }
 
