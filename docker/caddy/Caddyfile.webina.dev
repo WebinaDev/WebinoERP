@@ -27,7 +27,7 @@
 	header @api Cache-Control "no-store"
 
 	handle /api/* {
-		reverse_proxy backend:8080 {
+		reverse_proxy erp-backend:8080 {
 			header_up Host {host}
 		}
 	}
@@ -41,7 +41,7 @@
 	}
 
 	handle {
-		reverse_proxy frontend:3000
+		reverse_proxy erp-frontend:3000
 	}
 }
 

@@ -178,6 +178,7 @@ class LocalSameVpsProvisioner
         $this->ensureDockerNetwork();
         $this->rewriteComposeImages($provision, $this->channelOf($provision));
         $this->rewriteEnvFile($provision);
+        $legacyLog = $this->removeLegacyServiceContainers($provision->slug);
         $dir = $this->siteDir($provision);
         $result = $this->composeUp($provision->slug, $dir);
         // Ensure backend/frontend pick up new .env mount + network after rewrite.
@@ -209,12 +210,12 @@ class LocalSameVpsProvisioner
 
         return [
             ...$result,
-            'attach_log' => trim($attachLog."\n".$caddyLog),
+            'attach_log' => trim(implode("\n", array_filter([$legacyLog, $attachLog, $caddyLog]))),
         ];
     }
 
     /**
-     * Rewrite compose (backend+frontend on webino_sites), bring stack up,
+     * Rewrite compose (unique service names on webino_sites), bring stack up,
      * and refresh Caddy snippet (/api → backend, pages → frontend).
      * Used by ops resync after ERP deploy so existing sites pick up network fixes.
      *
@@ -225,6 +226,7 @@ class LocalSameVpsProvisioner
         $this->ensureDockerNetwork();
         $this->rewriteComposeImages($provision, $this->channelOf($provision));
         $this->rewriteEnvFile($provision);
+        $legacyLog = $this->removeLegacyServiceContainers($provision->slug);
         $dir = $this->siteDir($provision);
         if (! is_file($dir.'/docker-compose.yml')) {
             throw new RuntimeException('platform.site_dir_missing: '.$dir);
@@ -258,7 +260,7 @@ class LocalSameVpsProvisioner
             $this->updateResourceStatus($provision, 'running');
         }
 
-        $combined = trim($attachLog."\n".$caddyLog);
+        $combined = trim(implode("\n", array_filter([$legacyLog, $attachLog, $caddyLog])));
 
         return [
             ...$result,
@@ -1172,6 +1174,38 @@ class LocalSameVpsProvisioner
             '--env-file', $dir.'/.env',
             'up', '-d', '--remove-orphans',
         ], 900);
+    }
+
+    /**
+     * Remove tenant proxy containers still labeled with the old compose service
+     * names "backend"/"frontend". Those names collide with the new unique service
+     * names (same container_name) and steal Docker DNS on webino_sites from ERP Caddy.
+     */
+    protected function removeLegacyServiceContainers(string $slug): string
+    {
+        $lines = [];
+        foreach (TenantSiteStack::proxyContainerNames($slug) as $name) {
+            $inspect = $this->run([
+                'docker', 'inspect',
+                '-f', '{{index .Config.Labels "com.docker.compose.service"}}',
+                $name,
+            ], 15);
+            if ($inspect['exit_code'] !== 0) {
+                continue;
+            }
+            $service = trim($inspect['stdout']);
+            if ($service !== 'backend' && $service !== 'frontend') {
+                continue;
+            }
+            $rm = $this->run(['docker', 'rm', '-f', $name], 60);
+            if ($rm['exit_code'] === 0) {
+                $lines[] = "removed legacy {$name} (compose service={$service})";
+            } else {
+                $lines[] = "failed to remove legacy {$name}: ".trim($rm['stderr'] ?: $rm['stdout']);
+            }
+        }
+
+        return implode("\n", $lines);
     }
 
     /**
