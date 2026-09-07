@@ -1593,6 +1593,7 @@ class LocalSameVpsProvisioner
             $this->envLine('APP_ENV', 'production'),
             $this->envLine('APP_DEBUG', 'false'),
             $this->envLine('APP_URL', 'https://'.$provision->domain),
+            $this->envLine('FRONTEND_URL', 'https://'.$provision->domain),
             $this->envLine('APP_KEY', $appKey),
             $this->envLine('DB_CONNECTION', 'pgsql'),
             $this->envLine('DB_HOST', 'db'),
@@ -1607,7 +1608,11 @@ class LocalSameVpsProvisioner
             $this->envLine('QUEUE_CONNECTION', 'redis'),
             $this->envLine('SESSION_SECURE_COOKIE', 'true'),
             $this->envLine('TRUSTED_PROXIES', '*'),
-            $this->envLine('SANCTUM_STATEFUL_DOMAINS', $provision->domain),
+            $this->envLine(
+                'SANCTUM_STATEFUL_DOMAINS',
+                $provision->domain.',www.'.$provision->domain
+            ),
+            $this->envLine('AUTH_COOKIE_NAME', 'webino_auth_token'),
             $this->envLine('LOG_CHANNEL', 'stderr'),
             $this->envLine('LOG_STACK', 'stderr'),
             $this->envLine('RUN_MIGRATIONS', '1'),
