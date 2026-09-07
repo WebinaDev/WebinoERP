@@ -688,9 +688,19 @@ class LocalSameVpsProvisioner
         $backendSelf = $selfProbe['status'] >= 200
             && $selfProbe['status'] < 300
             && str_contains($selfProbe['body'], 'data');
+        $pdoDrivers = '';
+        if (preg_match('/"pdo_drivers"\s*:\s*\[(.*?)\]/s', $selfProbe['body'], $m)) {
+            $pdoDrivers = trim(str_replace(['"', ' '], '', $m[1]));
+        }
         $lines[] = 'backend_self (127.0.0.1:8080/api/v1/health/metrics): '
             .($backendSelf ? 'ok' : 'FAIL')
             .' '.$this->formatProbeSummary($selfProbe);
+        if ($pdoDrivers !== '' || $backendSelf) {
+            $hasPgsql = str_contains($pdoDrivers, 'pgsql');
+            $lines[] = 'frankenphp_pdo_drivers: '
+                .($pdoDrivers !== '' ? $pdoDrivers : '(missing from metrics — rebuild backend image)')
+                .' pgsql='.($hasPgsql ? 'yes' : 'NO');
+        }
 
         $readiness = $this->probeBackendReadiness($backend);
         $readinessOk = $readiness['ok'];
@@ -1200,7 +1210,8 @@ class LocalSameVpsProvisioner
                     continue;
                 }
                 $ok = (bool) ($check['ok'] ?? false);
-                $parts[] = $name.'='.($ok ? 'ok' : 'FAIL');
+                $msg = isset($check['message']) ? '('.substr((string) $check['message'], 0, 60).')' : '';
+                $parts[] = $name.'='.($ok ? 'ok' : 'FAIL').$msg;
             }
         }
 
@@ -1209,14 +1220,15 @@ class LocalSameVpsProvisioner
 
             return [
                 'ok' => false,
-                'detail' => 'http='.$probe['status'].' error='.$msg,
+                'detail' => 'http='.$probe['status'].' error='.$msg
+                    .($parts !== [] ? ' ('.implode(' ', $parts).')' : ''),
             ];
         }
 
         return [
             'ok' => $status === 'ready',
             'detail' => $parts !== []
-                ? 'http='.$probe['status'].' ('.implode(' ', $parts).')'
+                ? 'http='.$probe['status'].' status='.$status.' ('.implode(' ', $parts).')'
                 : 'http='.$probe['status'].' status='.$status,
         ];
     }
