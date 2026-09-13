@@ -10,13 +10,62 @@ class TagController extends Controller
 {
     public function index(): JsonResponse
     {
-        return response()->json(['success' => true, 'data' => PlatformTag::query()->orderBy('name')->get(), 'message' => null, 'meta' => null, 'errors' => null]);
+        return response()->json([
+            'success' => true,
+            'data' => PlatformTag::query()->orderBy('name')->get(),
+            'message' => null,
+            'meta' => null,
+            'errors' => null,
+        ]);
     }
 
     public function store(Request $request): JsonResponse
     {
-        $data = $request->validate(['name' => 'required|string|max:64', 'color' => 'nullable|string|max:32']);
-        $row = PlatformTag::query()->firstOrCreate(['name' => $data['name']], ['color' => $data['color'] ?? null]);
-        return response()->json(['success' => true, 'data' => $row, 'message' => null, 'meta' => null, 'errors' => null], 201);
+        $data = $request->validate([
+            'name' => 'required|string|max:64',
+            'color' => 'nullable|string|max:32',
+        ]);
+        $row = PlatformTag::query()->firstOrCreate(
+            ['name' => $data['name']],
+            ['color' => $data['color'] ?? null]
+        );
+
+        return response()->json([
+            'success' => true,
+            'data' => $row,
+            'message' => null,
+            'meta' => null,
+            'errors' => null,
+        ], 201);
+    }
+
+    public function update(Request $request, PlatformTag $tag): JsonResponse
+    {
+        $data = $request->validate([
+            'name' => 'sometimes|required|string|max:64',
+            'color' => 'nullable|string|max:32',
+        ]);
+        $tag->update($data);
+
+        return response()->json([
+            'success' => true,
+            'data' => $tag->fresh(),
+            'message' => null,
+            'meta' => null,
+            'errors' => null,
+        ]);
+    }
+
+    public function destroy(PlatformTag $tag): JsonResponse
+    {
+        $tag->delete();
+
+        return response()->json([
+            'success' => true,
+            'data' => null,
+            'message' => 'Deleted',
+            'meta' => null,
+            'errors' => null,
+        ]);
     }
 }

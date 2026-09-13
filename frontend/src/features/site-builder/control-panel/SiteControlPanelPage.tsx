@@ -1,8 +1,9 @@
 'use client';
 
 import Link from 'next/link';
-import { useCallback, useEffect, useState, type ComponentType, type ReactNode } from 'react';
+import { useCallback, useEffect, useMemo, useState, type ComponentType, type ReactNode } from 'react';
 import { useLocale, useTranslations } from 'next-intl';
+import { useRouter } from 'next/navigation';
 import {
   ArrowLeft,
   ClipboardCopy,
@@ -14,6 +15,7 @@ import {
   KeyRound,
   Layers,
   Loader2,
+  LogIn,
   PackagePlus,
   Power,
   PowerOff,
@@ -22,6 +24,7 @@ import {
   ScrollText,
   Server,
   ShieldCheck,
+  Trash2,
   UserRound,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -33,20 +36,21 @@ import { Switch } from '@/components/ui/switch';
 import { dashboardHref } from '@/lib/route-resolver';
 import { getAxiosMessage } from '@/lib/api-helpers';
 import {
-  fetchFeatures,
+  bootstrapProvisionSite,
+  destroyProvision,
   fetchProvisionControl,
   fetchProvisionLogs,
+  installModuleOnSiteApi,
+  moduleInstallStatusApi,
   queueProvisionUpdate,
   renewProvisionSsl,
   repairProvisionDatabase,
-  bootstrapProvisionSite,
   setProvisionChannel,
   startProvision,
   stopProvision,
   updateProvision,
   updateProvisionAdmin,
   updateProvisionModules,
-  type DashboardFeature,
   type SiteControlPayload,
 } from '@/lib/api/site-builder';
 
@@ -81,12 +85,25 @@ function Section({
   );
 }
 
+const ACTION_MSG: Record<string, string> = {
+  start: 'controlStarted',
+  stop: 'controlStopped',
+  ssl: 'controlSslDone',
+  'ssl-force': 'controlSslDone',
+  'upd-fe': 'controlUpdated',
+  'upd-be': 'controlUpdated',
+  'upd-mig': 'controlUpdated',
+  'upd-full': 'controlUpdated',
+  'channel-beta': 'controlUpdated',
+  install: 'controlInstalled',
+};
+
 export function SiteControlPanelPage({ id }: { id: string }) {
   const t = useTranslations('siteBuilder');
   const locale = useLocale();
+  const router = useRouter();
   const provisionId = Number(id);
   const [data, setData] = useState<SiteControlPayload | null>(null);
-  const [features, setFeatures] = useState<DashboardFeature[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState<string | null>(null);
   const [msg, setMsg] = useState<string | null>(null);
@@ -100,6 +117,7 @@ export function SiteControlPanelPage({ id }: { id: string }) {
   const [expiresAt, setExpiresAt] = useState('');
   const [startDate, setStartDate] = useState('');
   const [installSlug, setInstallSlug] = useState('');
+  const [installStatus, setInstallStatus] = useState<string | null>(null);
   const [composeLogs, setComposeLogs] = useState('');
   const [logsBusy, setLogsBusy] = useState(false);
 
@@ -107,12 +125,8 @@ export function SiteControlPanelPage({ id }: { id: string }) {
     if (!Number.isFinite(provisionId)) return;
     setError(null);
     try {
-      const [ctrl, feats] = await Promise.all([
-        fetchProvisionControl(provisionId),
-        fetchFeatures().catch(() => [] as DashboardFeature[]),
-      ]);
+      const ctrl = await fetchProvisionControl(provisionId);
       setData(ctrl);
-      setFeatures(feats);
       setAdminName(ctrl.admin?.name ?? '');
       setAdminEmail(ctrl.admin?.email ?? '');
       setDomain(ctrl.provision?.domain ?? '');
@@ -164,7 +178,8 @@ export function SiteControlPanelPage({ id }: { id: string }) {
     setMsg(null);
     try {
       await fn();
-      setMsg(t('controlSaved'));
+      const msgKey = ACTION_MSG[key] ?? 'controlSaved';
+      setMsg(t(msgKey as 'controlSaved'));
       await load();
     } catch (e) {
       setError(getAxiosMessage(e) || t('saveError'));
@@ -173,12 +188,19 @@ export function SiteControlPanelPage({ id }: { id: string }) {
     }
   }
 
+  const moduleSlugs = useMemo(() => {
+    const licensed = data?.license?.modules ?? [];
+    const pkg = data?.package_modules ?? [];
+    return Array.from(new Set([...pkg, ...licensed].filter(Boolean)));
+  }, [data?.license?.modules, data?.package_modules]);
+
+  const power = data?.power_state ?? data?.provision?.power_state ?? 'unknown';
+  const updateStatus = data?.update?.status;
+  const containers = data?.stack?.containers ?? {};
+
   if (!Number.isFinite(provisionId)) {
     return <p className="text-destructive text-sm">{t('loadError')}</p>;
   }
-
-  const modules = data?.license?.modules ?? [];
-  const updateStatus = data?.update?.status;
 
   return (
     <div className="space-y-6" data-testid="site-control-panel">
@@ -197,7 +219,18 @@ export function SiteControlPanelPage({ id }: { id: string }) {
           <div className="flex flex-wrap gap-2">
             {data ? (
               <Badge variant="outline" className="capitalize">
-                {data.provision.status}
+                {(['draft', 'pending', 'provisioning', 'ssl_pending', 'ready', 'failed', 'cancelled'] as const).includes(
+                  data.provision.status as 'ready',
+                )
+                  ? t(`status.${data.provision.status as 'ready'}`)
+                  : data.provision.status}
+              </Badge>
+            ) : null}
+            {data ? (
+              <Badge variant="secondary" className="capitalize">
+                {(['running', 'stopped', 'unknown'] as const).includes(power as 'running')
+                  ? t(`power.${power as 'running'}`)
+                  : power}
               </Badge>
             ) : null}
             {data ? (
@@ -205,6 +238,7 @@ export function SiteControlPanelPage({ id }: { id: string }) {
                 {data.channel}
               </Badge>
             ) : null}
+            {data?.is_remote ? <Badge variant="outline">remote</Badge> : null}
             {data?.license ? (
               <Badge variant={data.license.is_expired ? 'destructive' : 'outline'} className="gap-1">
                 <ShieldCheck className="size-3" />
@@ -225,17 +259,42 @@ export function SiteControlPanelPage({ id }: { id: string }) {
             {t('refresh')}
           </Button>
           {data?.provision.domain ? (
-            <Button asChild size="sm" variant="outline" className="gap-1.5">
-              <a href={`https://${data.provision.domain}`} target="_blank" rel="noopener noreferrer">
-                <ExternalLink className="size-3.5" />
-                {t('openSite')}
-              </a>
-            </Button>
+            <>
+              <Button asChild size="sm" variant="outline" className="gap-1.5">
+                <a href={`https://${data.provision.domain}`} target="_blank" rel="noopener noreferrer">
+                  <ExternalLink className="size-3.5" />
+                  {t('openSite')}
+                </a>
+              </Button>
+              <Button asChild size="sm" className="gap-1.5">
+                <a href={`https://${data.provision.domain}/login`} target="_blank" rel="noopener noreferrer">
+                  <LogIn className="size-3.5" />
+                  {t('controlOpenAdmin')}
+                </a>
+              </Button>
+            </>
           ) : null}
+          <Button
+            type="button"
+            size="sm"
+            variant="destructive"
+            className="gap-1.5"
+            disabled={busy !== null}
+            onClick={() => {
+              if (!window.confirm(t('controlConfirmDestroy'))) return;
+              void run('destroy', async () => {
+                await destroyProvision(provisionId);
+                router.push(dashboardHref(locale, 'admin/platform/sites'));
+              });
+            }}
+          >
+            <Trash2 className="size-3.5" />
+            {t('controlDestroy')}
+          </Button>
         </div>
       </div>
 
-      {error ? <p className="text-destructive text-sm">{error}</p> : null}
+      {error ? <p className="text-destructive text-sm whitespace-pre-wrap">{error}</p> : null}
       {msg ? <p className="text-sm text-emerald-600">{msg}</p> : null}
       {!data ? (
         <div className="text-muted-foreground flex items-center gap-2 text-sm">
@@ -261,7 +320,10 @@ export function SiteControlPanelPage({ id }: { id: string }) {
                 variant="outline"
                 className="gap-1.5"
                 disabled={busy !== null}
-                onClick={() => void run('stop', () => stopProvision(provisionId))}
+                onClick={() => {
+                  if (!window.confirm(t('controlConfirmStop'))) return;
+                  void run('stop', () => stopProvision(provisionId));
+                }}
                 data-testid="control-stop"
               >
                 <PowerOff className="size-4" />
@@ -343,13 +405,28 @@ export function SiteControlPanelPage({ id }: { id: string }) {
               // eslint-disable-next-line @next/next/no-img-element
               <img src={logoUrl} alt="" className="bg-muted h-16 w-auto rounded-md border object-contain p-1" />
             ) : null}
-            <Button
-              type="button"
-              disabled={busy !== null}
-              onClick={() => void run('logo', () => updateProvision(provisionId, { logo_url: logoUrl }))}
-            >
-              {t('controlSaveLogo')}
-            </Button>
+            <div className="flex flex-wrap gap-2">
+              <Button
+                type="button"
+                disabled={busy !== null}
+                onClick={() => void run('logo', () => updateProvision(provisionId, { logo_url: logoUrl }))}
+              >
+                {t('controlSaveLogo')}
+              </Button>
+              <Button
+                type="button"
+                variant="outline"
+                disabled={busy !== null}
+                onClick={() =>
+                  void run('logo-clear', async () => {
+                    await updateProvision(provisionId, { logo_url: '' });
+                    setLogoUrl('');
+                  })
+                }
+              >
+                {t('controlClearLogo')}
+              </Button>
+            </div>
           </Section>
 
           <Section
@@ -421,31 +498,29 @@ export function SiteControlPanelPage({ id }: { id: string }) {
             testId="control-modules"
           >
             <div className="space-y-3">
-              {(features.length
-                ? features.map((f) => f.module_slug || f.slug)
-                : modules
-              )
-                .filter((v, i, a) => a.indexOf(v) === i && v)
-                .map((slug) => {
-                  const on = modules.includes(slug);
-                  return (
-                    <div key={slug} className="flex items-center justify-between gap-3 rounded-lg border px-3 py-2">
-                      <span className="font-mono text-sm">{slug}</span>
-                      <Switch
-                        checked={on}
-                        disabled={busy !== null}
-                        onCheckedChange={(checked) =>
-                          void run(`mod-${slug}`, () =>
-                            updateProvisionModules(provisionId, {
-                              enable: checked ? [slug] : undefined,
-                              disable: checked ? undefined : [slug],
-                            }),
-                          )
-                        }
-                      />
-                    </div>
-                  );
-                })}
+              {moduleSlugs.map((slug) => {
+                const on = (data.license?.modules ?? []).includes(slug);
+                return (
+                  <div key={slug} className="flex items-center justify-between gap-3 rounded-lg border px-3 py-2">
+                    <span className="font-mono text-sm">{slug}</span>
+                    <Switch
+                      checked={on}
+                      disabled={busy !== null}
+                      onCheckedChange={(checked) =>
+                        void run(`mod-${slug}`, () =>
+                          updateProvisionModules(provisionId, {
+                            enable: checked ? [slug] : undefined,
+                            disable: checked ? undefined : [slug],
+                          }),
+                        )
+                      }
+                    />
+                  </div>
+                );
+              })}
+              {moduleSlugs.length === 0 ? (
+                <p className="text-muted-foreground text-sm">{t('controlNoLicense')}</p>
+              ) : null}
             </div>
             <div className="flex flex-wrap items-end gap-2">
               <div className="min-w-[12rem] flex-1 space-y-1.5">
@@ -462,18 +537,28 @@ export function SiteControlPanelPage({ id }: { id: string }) {
                 className="gap-1.5"
                 disabled={busy !== null || !installSlug.trim()}
                 onClick={() =>
-                  void run('install', () =>
-                    updateProvisionModules(provisionId, {
-                      install: installSlug.trim(),
-                      enable: [installSlug.trim()],
-                    }),
-                  )
+                  void run('install', async () => {
+                    const slug = installSlug.trim();
+                    await installModuleOnSiteApi(provisionId, slug, true);
+                    setInstallStatus(t('controlInstallQueued'));
+                    for (let i = 0; i < 20; i++) {
+                      await new Promise((r) => setTimeout(r, 2000));
+                      const st = (await moduleInstallStatusApi(provisionId, slug)) as {
+                        install?: { status?: string };
+                        tenant?: { status?: string };
+                      };
+                      const status = String(st?.install?.status ?? st?.tenant?.status ?? '');
+                      setInstallStatus(status || t('controlInstallQueued'));
+                      if (['done', 'completed', 'failed', 'error', 'success'].includes(status)) break;
+                    }
+                  })
                 }
               >
                 <PackagePlus className="size-4" />
                 {t('controlInstall')}
               </Button>
             </div>
+            {installStatus ? <p className="text-muted-foreground text-xs">{installStatus}</p> : null}
           </Section>
 
           <Section
@@ -491,9 +576,6 @@ export function SiteControlPanelPage({ id }: { id: string }) {
                 data-testid="control-channel-beta"
               >
                 {t('controlSwitchBeta')}
-              </Button>
-              <Button type="button" variant="outline" disabled title={t('controlStableSoon')}>
-                {t('controlSwitchStable')}
               </Button>
             </div>
             <div className="grid gap-2 sm:grid-cols-2">
@@ -535,7 +617,10 @@ export function SiteControlPanelPage({ id }: { id: string }) {
                 className="justify-start gap-2"
                 disabled={busy !== null}
                 data-testid="control-update-full"
-                onClick={() => void run('upd-full', () => queueProvisionUpdate(provisionId, 'full'))}
+                onClick={() => {
+                  if (!window.confirm(t('controlConfirmFullUpdate'))) return;
+                  void run('upd-full', () => queueProvisionUpdate(provisionId, 'full'));
+                }}
               >
                 <RefreshCw className="size-4" />
                 {t('controlUpdateFull')}
@@ -598,7 +683,10 @@ export function SiteControlPanelPage({ id }: { id: string }) {
                 className="gap-1.5"
                 disabled={busy !== null}
                 data-testid="control-ssl-force"
-                onClick={() => void run('ssl-force', () => renewProvisionSsl(provisionId, true))}
+                onClick={() => {
+                  if (!window.confirm(t('controlConfirmForceSsl'))) return;
+                  void run('ssl-force', () => renewProvisionSsl(provisionId, true));
+                }}
               >
                 <RefreshCw className="size-4" />
                 {t('controlSslForce')}
@@ -656,6 +744,33 @@ export function SiteControlPanelPage({ id }: { id: string }) {
                 {data?.stack?.on_webino_sites?.frontend ? t('controlOk') : t('controlFail')}
               </div>
             </div>
+
+            {Object.keys(containers).length > 0 ? (
+              <div className="space-y-2">
+                <div className="text-sm font-medium">{t('controlContainers')}</div>
+                <div className="overflow-x-auto rounded-lg border">
+                  <table className="w-full text-xs">
+                    <thead className="bg-muted/50 text-muted-foreground">
+                      <tr>
+                        <th className="px-2 py-1.5 text-start">Name</th>
+                        <th className="px-2 py-1.5 text-start">Status</th>
+                        <th className="px-2 py-1.5 text-start">Restarts</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {Object.entries(containers).map(([name, info]) => (
+                        <tr key={name} className="border-t">
+                          <td className="px-2 py-1.5 font-mono">{name}</td>
+                          <td className="px-2 py-1.5 capitalize">{info.status ?? '—'}</td>
+                          <td className="px-2 py-1.5">{info.restart_count ?? 0}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            ) : null}
+
             {data?.stack?.log ? (
               <pre className="bg-muted/50 max-h-56 overflow-auto whitespace-pre-wrap rounded-lg border p-3 text-xs">
                 {data.stack.log}
@@ -781,7 +896,12 @@ export function SiteControlPanelPage({ id }: { id: string }) {
           {data.customer ? (
             <Section icon={UserRound} title={t('controlCustomer')}>
               <p className="text-sm">
-                {data.customer.name}
+                <Link
+                  href={dashboardHref(locale, `crm/customers/${data.customer.id}`)}
+                  className="text-primary hover:underline"
+                >
+                  {data.customer.name}
+                </Link>
                 {data.customer.email ? ` · ${data.customer.email}` : ''}
               </p>
             </Section>

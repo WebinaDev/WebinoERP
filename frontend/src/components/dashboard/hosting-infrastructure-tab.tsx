@@ -1,12 +1,14 @@
 'use client';
 
 import { useCallback, useEffect, useState } from 'react';
-import { useTranslations } from 'next-intl';
+import Link from 'next/link';
+import { useLocale, useTranslations } from 'next-intl';
 import apiClient from '@/lib/api-client';
 import { unwrapData, getAxiosMessage } from '@/lib/api-helpers';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { dashboardHref } from '@/lib/route-resolver';
 
 type HostingSettings = {
   public_crm_url?: string;
@@ -34,6 +36,7 @@ type GitSourceRow = {
 
 export function HostingInfrastructureTab() {
   const t = useTranslations('hosting');
+  const locale = useLocale();
   const [settings, setSettings] = useState<HostingSettings | null>(null);
   const [sources, setSources] = useState<GitSourceRow[]>([]);
   const [stacks, setStacks] = useState<unknown[] | null>(null);
@@ -278,6 +281,14 @@ export function HostingInfrastructureTab() {
           <div className="sm:col-span-2 border-t pt-3 mt-1">
             <p className="mb-2 text-sm font-medium">{t('platformSection')}</p>
             <p className="mb-2 text-xs text-muted-foreground">{t('platformSectionHint')}</p>
+            <div className="flex flex-wrap gap-2">
+              <Button asChild variant="outline" size="sm">
+                <Link href={dashboardHref(locale, 'admin/platform/sites')}>{t('openPlatformSites')}</Link>
+              </Button>
+              <Button asChild variant="ghost" size="sm">
+                <Link href={dashboardHref(locale, 'admin/platform')}>{t('openPlatformDashboard')}</Link>
+              </Button>
+            </div>
           </div>
           <div>
             <p className="mb-1 text-xs text-muted-foreground">{t('platformBaseDomain')}</p>

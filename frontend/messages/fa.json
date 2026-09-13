@@ -3023,7 +3023,9 @@
     "defaultProductChannel": "کانال محصول پیش‌فرض",
     "provisionWebhookSecret": "رمز webhook provisioning (خالی = بدون تغییر)",
     "platformSection": "پروویژن پلتفرم",
-    "platformSectionHint": "سرورها، داکر، دامنه‌ها و سایت‌های Webino Dashboard از مسیر ادمین ← پلتفرم مدیریت می‌شوند."
+    "platformSectionHint": "سرورها، داکر، دامنه‌ها و سایت‌های Webino Dashboard از مسیر ادمین ← پلتفرم مدیریت می‌شوند.",
+    "openPlatformSites": "سایت‌های پلتفرم",
+    "openPlatformDashboard": "داشبورد پلتفرم"
   },
   "siteBuilder": {
     "catalogTitle": "کاتالوگ Site Builder",
@@ -3200,6 +3202,38 @@
     "controlFail": "ناموفق",
     "controlCustomer": "مشتری CRM",
     "controlSaved": "ذخیره شد",
+    "controlStarted": "سایت روشن شد",
+    "controlStopped": "سایت خاموش شد",
+    "controlUpdated": "آپدیت در صف قرار گرفت",
+    "controlSslDone": "درخواست SSL ارسال شد",
+    "controlDestroyed": "سایت حذف شد",
+    "controlInstalled": "نصب ماژول در صف قرار گرفت",
+    "controlConfirmStop": "سایت خاموش شود؟",
+    "controlConfirmDestroy": "استک و لایسنس این سایت حذف شود؟ این کار برگشت‌پذیر نیست.",
+    "controlConfirmForceSsl": "گواهی همین دامنه حذف و دوباره صادر شود؟",
+    "controlConfirmFullUpdate": "آپدیت کامل فرانت و بک اجرا شود؟",
+    "controlDestroy": "حذف سایت",
+    "controlOpenAdmin": "ورود پنل سایت",
+    "controlClearLogo": "پاک کردن لوگو",
+    "controlContainers": "کانتینرها",
+    "controlInstallQueued": "نصب در صف است…",
+    "emptyProvisions": "هنوز سایتی ساخته نشده است.",
+    "prevPage": "قبلی",
+    "nextPage": "بعدی",
+    "status": {
+      "draft": "پیش‌نویس",
+      "pending": "در صف",
+      "provisioning": "در حال راه‌اندازی",
+      "ssl_pending": "منتظر SSL",
+      "ready": "آماده",
+      "failed": "ناموفق",
+      "cancelled": "لغو شده"
+    },
+    "power": {
+      "running": "روشن",
+      "stopped": "خاموش",
+      "unknown": "نامشخص"
+    },
     "loading": "در حال بارگذاری…"
   },
   "platform": {

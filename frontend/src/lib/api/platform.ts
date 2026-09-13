@@ -578,6 +578,16 @@ export async function createTag(body: Record<string, unknown>) {
   return unwrapData<PlatformTag>(res);
 }
 
+export async function updateTag(id: number | string, body: Record<string, unknown>) {
+  const res = await apiClient.patch(`${BASE}/tags/${id}`, body);
+  return unwrapData<PlatformTag>(res);
+}
+
+export async function deleteTag(id: number | string) {
+  const res = await apiClient.delete(`${BASE}/tags/${id}`);
+  return unwrapData(res);
+}
+
 export async function launchWebino(body: Record<string, unknown>) {
   const res = await apiClient.post(`${BASE}/webino/launch`, body);
   return unwrapData<unknown>(res);

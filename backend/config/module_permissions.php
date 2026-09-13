@@ -145,7 +145,11 @@ return [
         'types' => ['view' => 'site_builder.catalog.view', 'manage' => 'site_builder.catalog.manage'],
         'features' => ['view' => 'site_builder.catalog.view', 'manage' => 'site_builder.catalog.manage'],
         'packages' => ['view' => 'site_builder.catalog.view', 'manage' => 'site_builder.catalog.manage'],
-        'provisions' => ['view' => 'site_builder.provision.view', 'manage' => 'site_builder.provision.manage'],
+        'provisions' => [
+            'view' => 'site_builder.provision.view',
+            'create' => 'site_builder.provision.create',
+            'manage' => 'site_builder.provision.manage',
+        ],
         '*' => ['view' => 'site_builder.catalog.view', 'manage' => 'site_builder.catalog.manage'],
     ],
     'platform' => [
@@ -173,7 +177,11 @@ return [
         'types' => ['view' => 'site_builder.catalog.view', 'manage' => 'site_builder.catalog.manage'],
         'features' => ['view' => 'site_builder.catalog.view', 'manage' => 'site_builder.catalog.manage'],
         'packages' => ['view' => 'site_builder.catalog.view', 'manage' => 'site_builder.catalog.manage'],
-        'provisions' => ['view' => 'site_builder.provision.view', 'manage' => 'site_builder.provision.manage'],
+        'provisions' => [
+            'view' => 'site_builder.provision.view',
+            'create' => 'site_builder.provision.create',
+            'manage' => 'site_builder.provision.manage',
+        ],
         '*' => ['view' => 'platform.view', 'manage' => 'platform.manage'],
     ],
     'marketing' => [

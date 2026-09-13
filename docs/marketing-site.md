@@ -16,11 +16,11 @@
 
 ## نصب و پروویژن (از WebinoERP Platform)
 
-پروویژن سایت شرکتی از **Site Builder** در WebinoERP انجام می‌شود. ماژول **Platform** (SSH + Docker + Caddy) تصویر `WebinoERM` را deploy می‌کند.
+پروویژن سایت از **Site Builder** در WebinoERP انجام می‌شود (`/admin/platform/sites`). ماژول **Platform** (SSH + Docker + Caddy) استک WebinoDashboard را deploy می‌کند. کنترل پنل هر سایت در `/admin/platform/sites/{id}` است.
 
 ```bash
-# از UI: admin/site-builder/provisions/new
-# یا API: POST /api/v1/platform/sites
+# از UI: admin/platform/sites/new
+# یا API: POST /api/v1/site-builder/provisions
 ```
 
 Bootstrap خودکار شامل: `migrate`, `db:seed` (شامل `MarketingSiteSeeder`), `storage:link`.
@@ -29,7 +29,7 @@ Bootstrap خودکار شامل: `migrate`, `db:seed` (شامل `MarketingSiteSe
 
 ### مهاجرت اختیاری WordPress هنگام پروویژن
 
-از Site Builder یا env-patch در `POST /api/v1/platform/sites` استفاده کنید:
+از Site Builder یا env در پروویژن استفاده کنید:
 
 ```json
 {"MARKETING_IMPORT_WORDPRESS_URL":"https://webina.dev"}

@@ -254,6 +254,16 @@ class SiteBuilderApiTest extends TestCase
                 'expires_at' => '2027-01-01T00:00:00+00:00',
                 'domain' => $provision->domain,
             ]);
+            $mock->shouldReceive('powerState')->andReturn('running');
+            $mock->shouldReceive('stackDiagnostics')->andReturn([
+                'project' => 'ws-renew-cafe',
+                'containers' => [],
+                'on_webino_sites' => ['backend' => true, 'frontend' => true],
+                'caddy_to_backend' => true,
+                'frontend_to_backend' => true,
+                'db_auth_ok' => true,
+                'log' => '',
+            ]);
         });
 
         $this->postJson('/api/v1/site-builder/provisions/'.$provision->id.'/ssl/renew', [
@@ -271,5 +281,160 @@ class SiteBuilderApiTest extends TestCase
         $this->getJson('/api/v1/site-builder/provisions/'.$provision->id.'/control')
             ->assertOk()
             ->assertJsonPath('data.ssl.ssl_status', 'active');
+    }
+
+    public function test_control_exposes_power_state_and_logo_can_clear(): void
+    {
+        $user = $this->actingAsRole('system_manager');
+        Sanctum::actingAs($user);
+
+        $package = WebinoPackage::query()->first();
+        $provision = WebinoSiteProvision::query()->create([
+            'package_id' => $package->id,
+            'slug' => 'power-cafe',
+            'domain' => 'power-cafe.webinaagency.ir',
+            'status' => WebinoSiteProvision::STATUS_READY,
+            'wizard_payload' => ['site_name' => 'Power Cafe', 'logo_url' => 'https://cdn.example/a.png'],
+            'provision_token' => 'tok-power-cafe',
+        ]);
+
+        $project = \Modules\Platform\Entities\PlatformProject::query()->firstOrCreate(
+            ['name' => 'power-cafe-test'],
+            ['description' => 'test']
+        );
+        $env = \Modules\Platform\Entities\PlatformEnvironment::query()->firstOrCreate(
+            ['project_id' => $project->id, 'name' => 'production']
+        );
+        \Modules\Platform\Entities\PlatformResource::query()->create([
+            'environment_id' => $env->id,
+            'type' => 'webino_dashboard',
+            'name' => 'power-cafe',
+            'status' => 'running',
+            'fqdn' => $provision->domain,
+            'provision_id' => $provision->id,
+        ]);
+
+        $this->mock(\Modules\Platform\Services\LocalSameVpsProvisioner::class, function ($mock) {
+            $mock->shouldReceive('powerState')->andReturnUsing(function ($p) {
+                $status = (string) (\Modules\Platform\Entities\PlatformResource::query()
+                    ->where('provision_id', $p->id)
+                    ->value('status') ?? '');
+
+                return match ($status) {
+                    'running' => 'running',
+                    'stopped', 'destroyed' => 'stopped',
+                    default => 'unknown',
+                };
+            });
+            $mock->shouldReceive('sslInfo')->andReturn([
+                'ssl_status' => null,
+                'expires_at' => null,
+                'domain' => 'power-cafe.webinaagency.ir',
+            ]);
+            $mock->shouldReceive('stackDiagnostics')->andReturn([
+                'project' => 'ws-power-cafe',
+                'containers' => [],
+                'on_webino_sites' => ['backend' => false, 'frontend' => false],
+                'caddy_to_backend' => false,
+                'frontend_to_backend' => false,
+                'db_auth_ok' => false,
+                'log' => '',
+            ]);
+            $mock->shouldReceive('stop')->once()->andReturnUsing(function ($p) {
+                \Modules\Platform\Entities\PlatformResource::query()
+                    ->where('provision_id', $p->id)
+                    ->update(['status' => 'stopped']);
+
+                return [
+                    'exit_code' => 0,
+                    'stdout' => 'stopped',
+                    'stderr' => '',
+                ];
+            });
+            $mock->shouldReceive('callTenantApi')->andReturn([]);
+        });
+
+        $this->getJson('/api/v1/site-builder/provisions/'.$provision->id.'/control')
+            ->assertOk()
+            ->assertJsonPath('data.power_state', 'running');
+
+        $this->postJson('/api/v1/site-builder/provisions/'.$provision->id.'/stop')
+            ->assertOk()
+            ->assertJsonPath('power_state', 'stopped');
+
+        $this->assertDatabaseHas('platform_resources', [
+            'provision_id' => $provision->id,
+            'status' => 'stopped',
+        ]);
+
+        $this->patchJson('/api/v1/site-builder/provisions/'.$provision->id, [
+            'logo_url' => '',
+        ])->assertOk();
+
+        $fresh = $provision->fresh();
+        $this->assertArrayHasKey('logo_url', $fresh->wizard_payload);
+        $this->assertNull($fresh->wizard_payload['logo_url']);
+    }
+
+    public function test_stable_channel_rejected_and_failed_status_is_controllable(): void
+    {
+        $user = $this->actingAsRole('system_manager');
+        Sanctum::actingAs($user);
+
+        $package = WebinoPackage::query()->first();
+        $provision = WebinoSiteProvision::query()->create([
+            'package_id' => $package->id,
+            'slug' => 'failed-cafe',
+            'domain' => 'failed-cafe.webinaagency.ir',
+            'status' => WebinoSiteProvision::STATUS_FAILED,
+            'wizard_payload' => ['site_name' => 'Failed Cafe'],
+            'provision_token' => 'tok-failed-cafe',
+        ]);
+
+        $this->postJson('/api/v1/site-builder/provisions/'.$provision->id.'/channel', [
+            'channel' => 'stable',
+        ])->assertStatus(503);
+
+        \Illuminate\Support\Facades\Bus::fake();
+
+        $this->postJson('/api/v1/site-builder/provisions/'.$provision->id.'/update', [
+            'target' => 'migrate',
+        ])->assertOk();
+    }
+
+    public function test_platform_webino_launch_queues_site_builder_job(): void
+    {
+        $user = $this->actingAsRole('system_manager');
+        Sanctum::actingAs($user);
+        \Illuminate\Support\Facades\Bus::fake();
+
+        $package = WebinoPackage::query()->first();
+        $server = \Modules\Platform\Entities\PlatformServer::query()->firstOrCreate(
+            ['name' => 'localhost'],
+            [
+                'ip' => '127.0.0.1',
+                'port' => 22,
+                'user' => 'root',
+                'status' => 'ready',
+                'is_localhost' => true,
+            ]
+        );
+        $provision = WebinoSiteProvision::query()->create([
+            'package_id' => $package->id,
+            'slug' => 'queue-cafe',
+            'domain' => 'queue-cafe.webinaagency.ir',
+            'status' => WebinoSiteProvision::STATUS_DRAFT,
+            'wizard_payload' => ['site_name' => 'Queue Cafe'],
+            'provision_token' => 'tok-queue-cafe',
+        ]);
+
+        $this->postJson('/api/v1/platform/webino/launch', [
+            'provision_id' => $provision->id,
+            'server_id' => $server->id,
+        ])->assertStatus(202);
+
+        \Illuminate\Support\Facades\Bus::assertDispatched(
+            \Modules\SiteBuilder\Jobs\ProvisionWebinoSiteJob::class
+        );
     }
 }

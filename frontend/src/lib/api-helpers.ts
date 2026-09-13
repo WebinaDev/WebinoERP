@@ -64,6 +64,12 @@ const KEY_MESSAGES: Record<string, string> = {
   'platform.remote_update_not_supported': 'آپدیت از راه دور پشتیبانی نمی‌شود؛ فقط سایت هم‌سرور.',
   'platform.remote_domain_change_not_supported': 'تغییر دامنه از راه دور پشتیبانی نمی‌شود.',
   'platform.remote_ssl_renew_not_supported': 'تمدید SSL از راه دور پشتیبانی نمی‌شود.',
+  'platform.remote_repair_db_not_supported': 'تعمیر دیتابیس از راه دور پشتیبانی نمی‌شود.',
+  'platform.remote_caddy_missing':
+    'روی سرور ریموت کانتینر Caddy روی شبکه webino_sites با مانت /var/lib/webino/caddy.d پیدا نشد.',
+  'platform.caddy_snippet_write_failed': 'نوشتن اسنیپت Caddy ناموفق بود.',
+  'platform.compose_up_failed': 'بالا آوردن استک Docker ناموفق بود.',
+  'platform.dashboard_images_missing': 'ایمیج‌های webino-backend و webino-next روی سرور موجود نیست.',
   'platform.tenant_api_failed': 'درخواست به API سایت tenant ناموفق بود.',
   'platform.build_script_missing': 'اسکریپت ساخت ایمیج داشبورد روی سرور ERP پیدا نشد.',
   'platform.invalid_domain': 'دامنه نامعتبر است.',

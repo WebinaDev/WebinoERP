@@ -11,6 +11,7 @@ import {
   Loader2,
   Play,
   RefreshCw,
+  Settings2,
   Square,
   TerminalSquare,
   XCircle,
@@ -372,6 +373,16 @@ export function LaunchControlPanel({
                 </a>
               </Button>
             ) : null}
+            <Button
+              variant="default"
+              onClick={() =>
+                router.push(dashboardHref(locale, `admin/platform/sites/${provision.id}`))
+              }
+              data-testid="open-control-panel-btn"
+            >
+              <Settings2 className="me-1 h-4 w-4" />
+              {t('controlOpenPanel')}
+            </Button>
             <Button variant="outline" disabled={pending} onClick={() => void start()}>
               <Play className="me-1 h-4 w-4" />
               {t('start')}

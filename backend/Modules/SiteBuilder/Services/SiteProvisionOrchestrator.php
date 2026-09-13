@@ -70,11 +70,12 @@ class SiteProvisionOrchestrator
      */
     public function start(WebinoSiteProvision $provision): array
     {
-        if ($this->shouldUseLocal($provision)) {
-            return $this->local->start($provision);
-        }
+        $result = $this->shouldUseLocal($provision)
+            ? $this->local->start($provision)
+            : $this->remote->start($provision);
+        $this->audit->log($provision->created_by, 'provision.start', $provision);
 
-        return $this->remote->start($provision);
+        return $result;
     }
 
     /**
@@ -82,25 +83,41 @@ class SiteProvisionOrchestrator
      */
     public function stop(WebinoSiteProvision $provision): array
     {
-        if ($this->shouldUseLocal($provision)) {
-            return $this->local->stop($provision);
-        }
+        $result = $this->shouldUseLocal($provision)
+            ? $this->local->stop($provision)
+            : $this->remote->stop($provision);
+        $this->audit->log($provision->created_by, 'provision.stop', $provision);
 
-        return $this->remote->stop($provision);
+        return $result;
     }
 
     /**
-     * Align Postgres role with .env and recreate backend (local only).
+     * Runtime power state separate from lifecycle status (ready/ssl_pending/…).
+     *
+     * @return 'running'|'stopped'|'unknown'
+     */
+    public function powerState(WebinoSiteProvision $provision): string
+    {
+        return $this->shouldUseLocal($provision)
+            ? $this->local->powerState($provision)
+            : $this->remote->powerState($provision);
+    }
+
+    /**
+     * Align Postgres role with .env and recreate backend.
      *
      * @return array{exit_code:int,stdout:string,stderr:string,log:string}
      */
     public function repairDatabase(WebinoSiteProvision $provision): array
     {
-        if (! $this->shouldUseLocal($provision)) {
-            throw new \RuntimeException('platform.remote_repair_db_not_supported');
-        }
+        $result = $this->shouldUseLocal($provision)
+            ? $this->local->repairDatabase($provision)
+            : $this->remote->repairDatabase($provision);
+        $this->audit->log($provision->created_by, 'provision.repair_db', $provision, [
+            'exit_code' => $result['exit_code'] ?? null,
+        ]);
 
-        return $this->local->repairDatabase($provision);
+        return $result;
     }
 
     /**
@@ -172,10 +189,6 @@ class SiteProvisionOrchestrator
      */
     public function runUpdate(WebinoSiteProvision $provision, string $target): array
     {
-        if (! $this->shouldUseLocal($provision)) {
-            throw new \RuntimeException('platform.remote_update_not_supported');
-        }
-
         $payload = $provision->wizard_payload ?? [];
         $payload['update'] = [
             'target' => $target,
@@ -184,13 +197,17 @@ class SiteProvisionOrchestrator
         ];
         $provision->update(['wizard_payload' => $payload]);
 
-        $result = match ($target) {
-            'frontend' => $this->local->updateFrontend($provision),
-            'backend' => $this->local->updateBackend($provision),
-            'migrate' => $this->local->migrate($provision),
-            'full' => $this->local->updateApp($provision),
-            default => throw new \InvalidArgumentException('Invalid update target.'),
-        };
+        if ($this->shouldUseLocal($provision)) {
+            $result = match ($target) {
+                'frontend' => $this->local->updateFrontend($provision),
+                'backend' => $this->local->updateBackend($provision),
+                'migrate' => $this->local->migrate($provision),
+                'full' => $this->local->updateApp($provision),
+                default => throw new \InvalidArgumentException('Invalid update target.'),
+            };
+        } else {
+            $result = $this->remote->runUpdate($provision, $target);
+        }
 
         $payload = $provision->fresh()->wizard_payload ?? [];
         $payload['update'] = [
@@ -210,7 +227,7 @@ class SiteProvisionOrchestrator
         if ($this->shouldUseLocal($provision)) {
             $this->local->changeDomain($provision, $newDomain);
         } else {
-            throw new \RuntimeException('platform.remote_domain_change_not_supported');
+            $this->remote->changeDomain($provision, $newDomain);
         }
     }
 
@@ -226,11 +243,9 @@ class SiteProvisionOrchestrator
      */
     public function renewSsl(WebinoSiteProvision $provision, bool $force = false): array
     {
-        if (! $this->shouldUseLocal($provision)) {
-            throw new \RuntimeException('platform.remote_ssl_renew_not_supported');
-        }
-
-        $result = $this->local->renewSsl($provision, $force);
+        $result = $this->shouldUseLocal($provision)
+            ? $this->local->renewSsl($provision, $force)
+            : $this->remote->renewSsl($provision, $force);
 
         $payload = $provision->wizard_payload ?? [];
         $payload['ssl'] = [
@@ -266,9 +281,9 @@ class SiteProvisionOrchestrator
     public function sslInfo(WebinoSiteProvision $provision): array
     {
         try {
-            if ($this->shouldUseLocal($provision)) {
-                return $this->local->sslInfo($provision);
-            }
+            return $this->shouldUseLocal($provision)
+                ? $this->local->sslInfo($provision)
+                : $this->remote->sslInfo($provision);
         } catch (Throwable $e) {
             report($e);
 
@@ -279,13 +294,6 @@ class SiteProvisionOrchestrator
                 'log' => $e->getMessage(),
             ];
         }
-
-        return [
-            'ssl_status' => null,
-            'expires_at' => null,
-            'domain' => $provision->domain,
-            'log' => null,
-        ];
     }
 
     /**
@@ -294,9 +302,9 @@ class SiteProvisionOrchestrator
     public function stackDiagnostics(WebinoSiteProvision $provision): array
     {
         try {
-            if ($this->shouldUseLocal($provision)) {
-                return $this->local->stackDiagnostics($provision);
-            }
+            return $this->shouldUseLocal($provision)
+                ? $this->local->stackDiagnostics($provision)
+                : $this->remote->stackDiagnostics($provision);
         } catch (Throwable $e) {
             report($e);
 
@@ -310,29 +318,17 @@ class SiteProvisionOrchestrator
                 'log' => $e->getMessage(),
             ];
         }
-
-        return [
-            'project' => null,
-            'containers' => [],
-            'on_webino_sites' => ['backend' => false, 'frontend' => false],
-            'caddy_to_backend' => false,
-            'frontend_to_backend' => false,
-            'db_auth_ok' => false,
-            'log' => 'remote stack diagnostics not supported',
-        ];
     }
 
     /**
+     * HMAC tenant API works over HTTPS for both local and remote sites.
+     *
      * @param  array<string, mixed>  $payload
      * @return array<string, mixed>
      */
     public function callTenantApi(WebinoSiteProvision $provision, string $path, array $payload = []): array
     {
-        if ($this->shouldUseLocal($provision)) {
-            return $this->local->callTenantApi($provision, $path, $payload);
-        }
-
-        throw new \RuntimeException('platform.remote_tenant_api_not_supported');
+        return $this->local->callTenantApi($provision, $path, $payload);
     }
 
     public function poll(WebinoSiteProvision $provision): WebinoSiteProvision
@@ -375,6 +371,8 @@ class SiteProvisionOrchestrator
         try {
             if ($this->shouldUseLocal($provision)) {
                 $this->local->destroyStack($provision);
+            } else {
+                $this->remote->destroyStack($provision);
             }
         } catch (Throwable $e) {
             report($e);
@@ -390,6 +388,8 @@ class SiteProvisionOrchestrator
         try {
             if ($this->shouldUseLocal($provision)) {
                 $this->local->destroyStack($provision);
+            } else {
+                $this->remote->destroyStack($provision);
             }
         } catch (Throwable $e) {
             report($e);

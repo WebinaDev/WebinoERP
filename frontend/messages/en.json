@@ -3024,7 +3024,9 @@
     "defaultProductChannel": "Default product channel",
     "provisionWebhookSecret": "Provision webhook secret (leave blank to keep)",
     "platformSection": "Platform provisioning",
-    "platformSectionHint": "Servers, Docker, domains and Webino Dashboard sites are managed under Admin → Platform."
+    "platformSectionHint": "Servers, Docker, domains and Webino Dashboard sites are managed under Admin → Platform.",
+    "openPlatformSites": "Platform sites",
+    "openPlatformDashboard": "Platform dashboard"
   },
   "siteBuilder": {
     "catalogTitle": "Site Builder catalog",
@@ -3201,6 +3203,38 @@
     "controlFail": "Fail",
     "controlCustomer": "CRM customer",
     "controlSaved": "Saved",
+    "controlStarted": "Site started",
+    "controlStopped": "Site stopped",
+    "controlUpdated": "Update queued",
+    "controlSslDone": "SSL request sent",
+    "controlDestroyed": "Site deleted",
+    "controlInstalled": "Module install queued",
+    "controlConfirmStop": "Stop this site?",
+    "controlConfirmDestroy": "Delete this site stack and revoke its license? This cannot be undone.",
+    "controlConfirmForceSsl": "Delete and re-issue the certificate for this domain?",
+    "controlConfirmFullUpdate": "Run a full frontend+backend update?",
+    "controlDestroy": "Delete site",
+    "controlOpenAdmin": "Open site admin",
+    "controlClearLogo": "Clear logo",
+    "controlContainers": "Containers",
+    "controlInstallQueued": "Install queued…",
+    "emptyProvisions": "No sites yet.",
+    "prevPage": "Previous",
+    "nextPage": "Next",
+    "status": {
+      "draft": "Draft",
+      "pending": "Pending",
+      "provisioning": "Provisioning",
+      "ssl_pending": "SSL pending",
+      "ready": "Ready",
+      "failed": "Failed",
+      "cancelled": "Cancelled"
+    },
+    "power": {
+      "running": "Running",
+      "stopped": "Stopped",
+      "unknown": "Unknown"
+    },
     "loading": "Loading…"
   },
   "platform": {

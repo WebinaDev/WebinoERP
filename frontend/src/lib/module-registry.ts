@@ -356,12 +356,12 @@ export const ERP_MODULES: ErpModuleDef[] = [
     legacyRedirects: [
       { from: 'admin/site-builder', to: 'admin/platform/sites' },
       { from: 'admin/site-builder/catalog', to: 'admin/platform/catalog' },
-      { from: 'admin/site-builder/provisions', to: 'admin/platform/sites' },
       { from: 'admin/site-builder/provisions/new', to: 'admin/platform/sites/new' },
+      { from: 'admin/site-builder/provisions', to: 'admin/platform/sites' },
       { from: 'site-builder', to: 'admin/platform/sites' },
       { from: 'site-builder/catalog', to: 'admin/platform/catalog' },
-      { from: 'site-builder/provisions', to: 'admin/platform/sites' },
       { from: 'site-builder/provisions/new', to: 'admin/platform/sites/new' },
+      { from: 'site-builder/provisions', to: 'admin/platform/sites' },
     ],
   },
   {

@@ -71,8 +71,9 @@
 | **15** | Test depth | CrmLeadAdvancedTest, AccountApiTest, Vitest, phase14-deep E2E | ✅ | **100%** |
 | **16** | Observability | health/readiness, metrics, backup schedule, observability docs | ✅ | **100%** |
 | **17** | A11y & security | axe Playwright, CSP/security headers, composer/npm audit in CI | ✅ | **100%** |
+| **18** | Platform site control | Site Builder control panel (power_state, remote Caddy, modules, destroy, pagination) | ✅ | **100%** |
 
-**Overall project completion (weighted): ~100%** (phases 0–17)
+**Overall project completion (weighted): ~100%** (phases 0–18)
 
 ---
 

@@ -452,6 +452,27 @@ class LocalSameVpsProvisioner
         PlatformResource::query()
             ->where('provision_id', $provision->id)
             ->update(['fqdn' => $newDomain]);
+
+        // Recreate app containers so APP_URL / env mount is picked up.
+        try {
+            $this->recreateServices($provision, ['backend', 'frontend']);
+            $this->attachToProxyNetwork($provision->slug);
+        } catch (Throwable $e) {
+            report($e);
+        }
+    }
+
+    public function powerState(WebinoSiteProvision $provision): string
+    {
+        $status = (string) (PlatformResource::query()
+            ->where('provision_id', $provision->id)
+            ->value('status') ?? '');
+
+        return match ($status) {
+            'running' => 'running',
+            'stopped', 'destroyed' => 'stopped',
+            default => 'unknown',
+        };
     }
 
     /**

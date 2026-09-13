@@ -58,6 +58,7 @@ export type SiteProvision = {
   slug: string;
   domain: string;
   status: string;
+  power_state?: 'running' | 'stopped' | 'unknown' | string;
   crm_account_id?: number | null;
   wizard_payload?: Record<string, unknown>;
   license?: {
@@ -82,6 +83,8 @@ export type SiteProvision = {
 
 export type SiteControlPayload = {
   provision: SiteProvision;
+  power_state?: 'running' | 'stopped' | 'unknown' | string;
+  is_remote?: boolean;
   channel: string;
   admin: { name?: string | null; email?: string | null };
   license: {
@@ -100,6 +103,7 @@ export type SiteControlPayload = {
     is_expired: boolean;
     days_remaining: number | null;
   } | null;
+  package_modules?: string[];
   update?: {
     target?: string;
     status?: string;
@@ -152,12 +156,26 @@ export async function fetchPackages(businessTypeId?: number) {
   return unwrapData<PackageRow[]>(res);
 }
 
-export async function fetchProvisions() {
-  const res = await apiClient.get(`${BASE}/provisions`);
-  const raw = unwrapData<{ data?: SiteProvision[] } | SiteProvision[]>(res);
-  if (Array.isArray(raw)) return raw;
-  if (raw && typeof raw === 'object' && 'data' in raw && Array.isArray(raw.data)) return raw.data;
-  return [];
+export async function fetchProvisions(page = 1, perPage = 20) {
+  const res = await apiClient.get(`${BASE}/provisions`, { params: { page, per_page: perPage } });
+  const raw = unwrapData<{ data?: SiteProvision[]; current_page?: number; last_page?: number; total?: number } | SiteProvision[]>(res);
+  if (Array.isArray(raw)) {
+    return { data: raw, current_page: 1, last_page: 1, total: raw.length };
+  }
+  if (raw && typeof raw === 'object' && Array.isArray(raw.data)) {
+    return {
+      data: raw.data,
+      current_page: Number(raw.current_page ?? page),
+      last_page: Number(raw.last_page ?? 1),
+      total: Number(raw.total ?? raw.data.length),
+    };
+  }
+  return { data: [] as SiteProvision[], current_page: 1, last_page: 1, total: 0 };
+}
+
+export async function destroyProvision(id: number) {
+  const res = await apiClient.delete(`${BASE}/provisions/${id}`);
+  return res.data as { message?: string };
 }
 
 export async function fetchProvision(id: number) {

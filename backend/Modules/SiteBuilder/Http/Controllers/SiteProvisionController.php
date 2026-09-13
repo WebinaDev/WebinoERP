@@ -27,7 +27,15 @@ class SiteProvisionController extends Controller
             $q->where('status', $request->string('status'));
         }
 
-        return response()->json(['data' => $q->paginate($request->integer('per_page', 20))]);
+        $paginator = $q->paginate($request->integer('per_page', 20));
+        $orchestrator = app(SiteProvisionOrchestrator::class);
+        $paginator->getCollection()->transform(function (WebinoSiteProvision $row) use ($orchestrator) {
+            $row->setAttribute('power_state', $orchestrator->powerState($row));
+
+            return $row;
+        });
+
+        return response()->json(['data' => $paginator]);
     }
 
     public function store(Request $request): JsonResponse
@@ -142,8 +150,10 @@ class SiteProvisionController extends Controller
             if (! empty($data['site_name'])) {
                 $wizard['site_name'] = $data['site_name'];
             }
-            if (! empty($data['logo_url'])) {
-                $wizard['logo_url'] = $data['logo_url'];
+            if (array_key_exists('logo_url', $data)) {
+                $wizard['logo_url'] = $data['logo_url'] === null || $data['logo_url'] === ''
+                    ? null
+                    : $data['logo_url'];
             }
             if (! empty($data['channel'])) {
                 if ($data['channel'] === 'stable') {
@@ -168,8 +178,10 @@ class SiteProvisionController extends Controller
             $siteProvision->wizard_payload = $wizard;
             $siteProvision->save();
 
-            if ($siteProvision->license && ! empty($data['logo_url'])) {
-                $siteProvision->license->update(['logo_url' => $data['logo_url']]);
+            if ($siteProvision->license && array_key_exists('logo_url', $data)) {
+                $siteProvision->license->update([
+                    'logo_url' => $wizard['logo_url'] ?? null,
+                ]);
             }
             if ($siteProvision->license && ! empty($data['license'])) {
                 $lic = $data['license'];
@@ -187,7 +199,7 @@ class SiteProvisionController extends Controller
                 );
             }
 
-            if (! empty($data['logo_url']) || ($siteProvision->domain !== $oldDomain)) {
+            if (array_key_exists('logo_url', $data) || ($siteProvision->domain !== $oldDomain)) {
                 try {
                     $orchestrator->callTenantApi($siteProvision, 'provision/branding', [
                         'logo_url' => $wizard['logo_url'] ?? $siteProvision->license?->logo_url,
@@ -325,10 +337,13 @@ class SiteProvisionController extends Controller
     {
         try {
             $result = $orchestrator->start($siteProvision);
+            $fresh = $siteProvision->fresh(['license', 'package']);
+            $fresh?->setAttribute('power_state', $orchestrator->powerState($fresh));
 
             return response()->json([
-                'data' => $siteProvision->fresh(['license', 'package']),
+                'data' => $fresh,
                 'compose' => $result,
+                'power_state' => $fresh?->getAttribute('power_state'),
                 'message' => $result['exit_code'] === 0 ? 'Started' : 'Start failed',
             ], $result['exit_code'] === 0 ? 200 : 422);
         } catch (\Throwable $e) {
@@ -340,10 +355,13 @@ class SiteProvisionController extends Controller
     {
         try {
             $result = $orchestrator->stop($siteProvision);
+            $fresh = $siteProvision->fresh(['license', 'package']);
+            $fresh?->setAttribute('power_state', $orchestrator->powerState($fresh));
 
             return response()->json([
-                'data' => $siteProvision->fresh(['license', 'package']),
+                'data' => $fresh,
                 'compose' => $result,
+                'power_state' => $fresh?->getAttribute('power_state'),
                 'message' => $result['exit_code'] === 0 ? 'Stopped' : 'Stop failed',
             ], $result['exit_code'] === 0 ? 200 : 422);
         } catch (\Throwable $e) {
@@ -446,7 +464,7 @@ class SiteProvisionController extends Controller
         }
     }
 
-    public function control(WebinoSiteProvision $siteProvision): JsonResponse
+    public function control(Request $request, WebinoSiteProvision $siteProvision): JsonResponse
     {
         try {
             $siteProvision->load(['license', 'package.businessType.category', 'crmAccount']);
@@ -462,6 +480,8 @@ class SiteProvisionController extends Controller
             $modules = [];
         }
         $channel = (string) (($wizard['channel'] ?? null) ?: 'beta');
+        $orchestrator = app(SiteProvisionOrchestrator::class);
+        $powerState = $orchestrator->powerState($siteProvision);
 
         $ssl = [
             'ssl_status' => null,
@@ -470,7 +490,7 @@ class SiteProvisionController extends Controller
             'log' => null,
         ];
         try {
-            $ssl = app(SiteProvisionOrchestrator::class)->sslInfo($siteProvision);
+            $ssl = $orchestrator->sslInfo($siteProvision);
         } catch (Throwable $e) {
             report($e);
             $ssl['log'] = $e->getMessage();
@@ -484,11 +504,14 @@ class SiteProvisionController extends Controller
             'frontend_to_backend' => false,
             'log' => null,
         ];
-        try {
-            $stack = app(SiteProvisionOrchestrator::class)->stackDiagnostics($siteProvision);
-        } catch (Throwable $e) {
-            report($e);
-            $stack['log'] = $e->getMessage();
+        $includeDiagnostics = ! filter_var($request->query('light', false), FILTER_VALIDATE_BOOLEAN);
+        if ($includeDiagnostics) {
+            try {
+                $stack = $orchestrator->stackDiagnostics($siteProvision);
+            } catch (Throwable $e) {
+                report($e);
+                $stack['log'] = $e->getMessage();
+            }
         }
 
         $licensePayload = null;
@@ -516,16 +539,22 @@ class SiteProvisionController extends Controller
             report($e);
         }
 
+        $siteProvision->setAttribute('power_state', $powerState);
+        $isRemote = ! $this->isLocalProvision($siteProvision);
+
         return response()->json(
             [
                 'data' => [
                     'provision' => $siteProvision,
+                    'power_state' => $powerState,
+                    'is_remote' => $isRemote,
                     'channel' => $channel,
                     'admin' => [
                         'name' => $wizard['admin_name'] ?? null,
                         'email' => $wizard['admin_email'] ?? null,
                     ],
                     'license' => $licensePayload,
+                    'package_modules' => $this->packageModuleSlugs($siteProvision),
                     'update' => $wizard['update'] ?? null,
                     'customer' => $siteProvision->crmAccount,
                     'ssl' => $ssl,
@@ -542,7 +571,7 @@ class SiteProvisionController extends Controller
     {
         if (! $this->isControlEditable($siteProvision)) {
             return response()->json([
-                'message' => 'سایت هنوز آماده/SSL نیست: '.$siteProvision->status,
+                'message' => 'سایت در این وضعیت قابل کنترل نیست: '.$siteProvision->status,
             ], 422);
         }
 
@@ -571,7 +600,7 @@ class SiteProvisionController extends Controller
     {
         if (! $this->isControlEditable($siteProvision)) {
             return response()->json([
-                'message' => 'سایت هنوز آماده/SSL نیست: '.$siteProvision->status,
+                'message' => 'سایت در این وضعیت قابل کنترل نیست: '.$siteProvision->status,
             ], 422);
         }
 
@@ -611,7 +640,7 @@ class SiteProvisionController extends Controller
     {
         if (! $this->isControlEditable($siteProvision)) {
             return response()->json([
-                'message' => 'سایت هنوز آماده/SSL نیست: '.$siteProvision->status,
+                'message' => 'سایت در این وضعیت قابل کنترل نیست: '.$siteProvision->status,
             ], 422);
         }
 
@@ -673,15 +702,21 @@ class SiteProvisionController extends Controller
             }
         }
 
+        $licenseSyncError = null;
         try {
             $orchestrator->callTenantApi($siteProvision, 'provision/license-sync', []);
         } catch (Throwable $e) {
             report($e);
+            $licenseSyncError = $e->getMessage();
         }
 
         return response()->json([
             'data' => $siteProvision->fresh(['license', 'package', 'crmAccount']),
             'install' => $installResult,
+            'license_sync_error' => $licenseSyncError,
+            'message' => $licenseSyncError
+                ? 'ماژول‌ها ذخیره شد اما همگام‌سازی لایسنس با سایت ناموفق بود: '.$licenseSyncError
+                : null,
         ]);
     }
 
@@ -692,7 +727,7 @@ class SiteProvisionController extends Controller
     ): JsonResponse {
         if (! $this->isControlEditable($siteProvision)) {
             return response()->json([
-                'message' => 'سایت هنوز آماده/SSL نیست: '.$siteProvision->status,
+                'message' => 'سایت در این وضعیت قابل کنترل نیست: '.$siteProvision->status,
             ], 422);
         }
 
@@ -706,6 +741,12 @@ class SiteProvisionController extends Controller
                 $siteProvision,
                 $data['slug'],
                 (bool) ($data['async'] ?? true),
+            );
+            app(SiteProvisionAuditLogger::class)->log(
+                $request->user()?->id,
+                'provision.module_install',
+                $siteProvision,
+                ['slug' => $data['slug'], 'queued' => $result['queued'] ?? false],
             );
         } catch (Throwable $e) {
             return response()->json(['message' => $e->getMessage()], 422);
@@ -732,7 +773,7 @@ class SiteProvisionController extends Controller
     {
         if (! $this->isControlEditable($siteProvision)) {
             return response()->json([
-                'message' => 'سایت هنوز آماده/SSL نیست: '.$siteProvision->status,
+                'message' => 'سایت در این وضعیت قابل کنترل نیست: '.$siteProvision->status,
             ], 422);
         }
 
@@ -766,7 +807,7 @@ class SiteProvisionController extends Controller
     {
         if (! $this->isControlEditable($siteProvision)) {
             return response()->json([
-                'message' => 'سایت هنوز آماده/SSL نیست: '.$siteProvision->status,
+                'message' => 'سایت در این وضعیت قابل کنترل نیست: '.$siteProvision->status,
             ], 422);
         }
 
@@ -796,8 +837,15 @@ class SiteProvisionController extends Controller
             WebinoSiteProvision::STATUS_PROVISIONING,
             WebinoSiteProvision::STATUS_READY,
             WebinoSiteProvision::STATUS_SSL_PENDING,
+            WebinoSiteProvision::STATUS_FAILED,
         ], true)) {
             $orchestrator->rollback($siteProvision);
+            app(SiteProvisionAuditLogger::class)->log(
+                request()->user()?->id,
+                'provision.destroy',
+                $siteProvision,
+            );
+            $siteProvision->delete();
         } else {
             $siteProvision->delete();
         }
@@ -874,9 +922,67 @@ class SiteProvisionController extends Controller
 
     protected function isControlEditable(WebinoSiteProvision $siteProvision): bool
     {
-        return in_array($siteProvision->status, [
+        if (in_array($siteProvision->status, [
+            WebinoSiteProvision::STATUS_DRAFT,
+            WebinoSiteProvision::STATUS_PENDING,
+            WebinoSiteProvision::STATUS_PROVISIONING,
+            WebinoSiteProvision::STATUS_CANCELLED,
+        ], true)) {
+            return false;
+        }
+
+        if (in_array($siteProvision->status, [
             WebinoSiteProvision::STATUS_READY,
             WebinoSiteProvision::STATUS_SSL_PENDING,
-        ], true);
+            WebinoSiteProvision::STATUS_FAILED,
+        ], true)) {
+            return true;
+        }
+
+        return \Modules\Platform\Entities\PlatformResource::query()
+            ->where('provision_id', $siteProvision->id)
+            ->where('status', '!=', 'destroyed')
+            ->exists();
+    }
+
+    /**
+     * @return list<string>
+     */
+    protected function packageModuleSlugs(WebinoSiteProvision $siteProvision): array
+    {
+        $siteProvision->loadMissing(['package.features']);
+        $fromPackage = [];
+        foreach ($siteProvision->package?->features ?? [] as $feature) {
+            $slug = (string) ($feature->module_slug ?: $feature->slug);
+            if ($slug !== '') {
+                $fromPackage[] = $slug;
+            }
+        }
+        $wizardSelected = $siteProvision->wizard_payload['selected_feature_slugs'] ?? [];
+        if (is_array($wizardSelected)) {
+            foreach ($wizardSelected as $slug) {
+                if (is_string($slug) && $slug !== '') {
+                    $fromPackage[] = $slug;
+                }
+            }
+        }
+
+        return array_values(array_unique($fromPackage));
+    }
+
+    protected function isLocalProvision(WebinoSiteProvision $siteProvision): bool
+    {
+        $serverId = (int) (($siteProvision->wizard_payload['server_id'] ?? 0) ?: 0);
+        if (! $serverId) {
+            return true;
+        }
+        $server = \Modules\Platform\Entities\PlatformServer::query()->find($serverId);
+        if (! $server) {
+            return true;
+        }
+
+        return (bool) $server->is_localhost
+            || in_array($server->ip, ['127.0.0.1', 'localhost', '::1'], true)
+            || strcasecmp((string) $server->name, 'localhost') === 0;
     }
 }

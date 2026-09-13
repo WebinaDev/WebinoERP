@@ -359,6 +359,15 @@ function resolvePlatformPage(normalized: string): ReactNode | null {
     const id = normalized.replace('admin/platform/sites/', '');
     if (id && id !== 'sites' && id !== 'new') return <SiteControlPanelPage id={id} />;
   }
+  // Legacy Site Builder detail URLs
+  if (normalized.startsWith('admin/site-builder/provisions/')) {
+    const id = normalized.replace('admin/site-builder/provisions/', '');
+    if (id && id !== 'provisions' && id !== 'new') return <SiteControlPanelPage id={id} />;
+  }
+  if (normalized.startsWith('site-builder/provisions/')) {
+    const id = normalized.replace('site-builder/provisions/', '');
+    if (id && id !== 'provisions' && id !== 'new') return <SiteControlPanelPage id={id} />;
+  }
   return null;
 }
 

@@ -106,6 +106,8 @@ Route::delete('variables/{variable}', [SharedVariableController::class, 'destroy
 
 Route::get('tags', [TagController::class, 'index']);
 Route::post('tags', [TagController::class, 'store']);
+Route::patch('tags/{tag}', [TagController::class, 'update']);
+Route::delete('tags/{tag}', [TagController::class, 'destroy']);
 
 Route::post('webino/launch', [WebinoProvisionController::class, 'launch']);
 Route::get('crm/{accountId}/sites', [CrmSitesController::class, 'show']);

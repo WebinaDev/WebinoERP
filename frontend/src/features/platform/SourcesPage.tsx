@@ -7,6 +7,7 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { createSource, deleteSource, fetchSources, type PlatformSource } from '@/lib/api/platform';
+import { getAxiosMessage } from '@/lib/api-helpers';
 import { PlatformPageLayout, RefreshButton } from '@/features/platform/PlatformPageLayout';
 
 export function SourcesPage() {
@@ -26,7 +27,7 @@ export function SourcesPage() {
     try {
       setRows(await fetchSources());
     } catch (e) {
-      setError(e instanceof Error ? e.message : tP('loadError'));
+      setError(getAxiosMessage(e) || tP('loadError'));
     }
   }, [tP]);
 
@@ -44,7 +45,7 @@ export function SourcesPage() {
       setCreatedHint({ provider, name: createdName });
       await load();
     } catch (e) {
-      setError(e instanceof Error ? e.message : tP('saveError'));
+      setError(getAxiosMessage(e) || tP('saveError'));
     } finally {
       setPending(false);
     }

@@ -122,6 +122,19 @@ class EnforceModulePermission
 
         $isRead = in_array($request->method(), ['GET', 'HEAD', 'OPTIONS'], true);
 
+        // Collection POST (e.g. POST /provisions) may use a dedicated "create" permission.
+        $parts = array_values(array_filter(explode('/', $relative), static fn ($p) => $p !== ''));
+        if (
+            ! $isRead
+            && $request->method() === 'POST'
+            && count($parts) === 1
+            && isset($rules['create'])
+            && is_string($rules['create'])
+            && $rules['create'] !== ''
+        ) {
+            return $rules['create'];
+        }
+
         $permission = $isRead ? ($rules['view'] ?? null) : ($rules['manage'] ?? $rules['view'] ?? null);
 
         return is_string($permission) && $permission !== '' ? $permission : null;
