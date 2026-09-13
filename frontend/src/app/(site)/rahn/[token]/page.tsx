@@ -241,7 +241,7 @@ export default function RahnPublicPage() {
             <input
               type="range"
               min={0}
-              max={Math.max(1, Math.ceil((pub?.V_hat ?? fWanted || 1) * 2))}
+              max={Math.max(1, Math.ceil(((pub?.V_hat ?? fWanted) || 1) * 2))}
               step={100000}
               value={Math.max(0, fWanted)}
               onChange={(e) => {

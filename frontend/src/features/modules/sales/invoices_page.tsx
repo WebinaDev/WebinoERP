@@ -430,7 +430,7 @@ export function InvoicesPage() {
                           {formatNumber(Number(inv.final_total ?? inv.total ?? 0))}
                         </TableCell>
                         <TableCell>
-                          {String(inv.date_display ?? String(inv.issue_date ?? '').slice(0, 10) || '—')}
+                          {String(inv.date_display ?? (String(inv.issue_date ?? '').slice(0, 10) || '—'))}
                         </TableCell>
                         <TableCell className="text-end">
                           <div className="flex flex-wrap justify-end gap-2">
