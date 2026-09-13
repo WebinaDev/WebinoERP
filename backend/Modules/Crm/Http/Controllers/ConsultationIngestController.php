@@ -4,13 +4,18 @@ namespace Modules\Crm\Http\Controllers;
 
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Modules\Core\Entities\CoreHostingSetting;
 use Modules\Crm\Entities\CrmConsultation;
 
 class ConsultationIngestController extends Controller
 {
     public function store(Request $request): JsonResponse
     {
-        $secret = (string) config('services.webino.provision_hmac_secret', env('WEBINO_PROVISION_HMAC_SECRET', ''));
+        $settings = CoreHostingSetting::current();
+        $secret = (string) ($settings->provision_webhook_secret ?? '');
+        if ($secret === '') {
+            $secret = (string) config('services.webino.provision_hmac_secret', env('WEBINO_PROVISION_HMAC_SECRET', ''));
+        }
         if ($secret === '') {
             $secret = (string) config('app.webinocrm_license_hmac_secret', env('WEBINOCRM_LICENSE_HMAC_SECRET', ''));
         }

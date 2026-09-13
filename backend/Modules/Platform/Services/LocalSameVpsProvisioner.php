@@ -9,6 +9,7 @@ use Modules\Platform\Entities\PlatformDeployment;
 use Modules\Platform\Entities\PlatformDomain;
 use Modules\Platform\Entities\PlatformResource;
 use Modules\Platform\Entities\PlatformServer;
+use Modules\Platform\Support\TenantEnvBuilder;
 use Modules\Platform\Support\TenantSiteStack;
 use Modules\SiteBuilder\Entities\WebinoSiteProvision;
 use Modules\SiteBuilder\Services\LicenseProvisionerService;
@@ -1572,56 +1573,9 @@ class LocalSameVpsProvisioner
 
     protected function envFile(WebinoSiteProvision $provision, string $siteType, string $token): string
     {
-        $settings = CoreHostingSetting::current();
-        $crm = rtrim((string) ($settings->public_crm_url ?: config('app.url')), '/');
-        $seed = json_encode([
-            'tenant_name' => $provision->wizard_payload['site_name'] ?? $provision->slug,
-            'domain' => $provision->domain,
-            'license_key' => $provision->license?->license_key,
-            'site_type_slug' => $siteType,
-            'business_type_slug' => $siteType,
-            'crm_account_id' => $provision->crm_account_id,
-            'admin_email' => $provision->wizard_payload['admin_email'] ?? null,
-            'admin_name' => $provision->wizard_payload['admin_name'] ?? 'Admin',
-        ], JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
-
         $previous = $this->readEnvMap($this->siteDir($provision).'/.env');
-        $appKey = $previous['APP_KEY'] ?? ('base64:'.base64_encode(random_bytes(32)));
-        $dbPassword = $previous['DB_PASSWORD'] ?? Str::random(24);
 
-        return implode("\n", [
-            $this->envLine('APP_ENV', 'production'),
-            $this->envLine('APP_DEBUG', 'false'),
-            $this->envLine('APP_URL', 'https://'.$provision->domain),
-            $this->envLine('FRONTEND_URL', 'https://'.$provision->domain),
-            $this->envLine('APP_KEY', $appKey),
-            $this->envLine('DB_CONNECTION', 'pgsql'),
-            $this->envLine('DB_HOST', 'db'),
-            $this->envLine('DB_PORT', '5432'),
-            $this->envLine('DB_DATABASE', 'webino'),
-            $this->envLine('DB_USERNAME', 'webino'),
-            $this->envLine('DB_PASSWORD', $dbPassword),
-            $this->envLine('REDIS_HOST', 'redis'),
-            $this->envLine('REDIS_PORT', '6379'),
-            $this->envLine('CACHE_STORE', 'redis'),
-            $this->envLine('SESSION_DRIVER', 'file'),
-            $this->envLine('QUEUE_CONNECTION', 'redis'),
-            $this->envLine('SESSION_SECURE_COOKIE', 'true'),
-            $this->envLine('TRUSTED_PROXIES', '*'),
-            $this->envLine(
-                'SANCTUM_STATEFUL_DOMAINS',
-                $provision->domain.',www.'.$provision->domain
-            ),
-            $this->envLine('AUTH_COOKIE_NAME', 'webino_auth_token'),
-            $this->envLine('LOG_CHANNEL', 'stderr'),
-            $this->envLine('LOG_STACK', 'stderr'),
-            $this->envLine('RUN_MIGRATIONS', '1'),
-            $this->envLine('WEBINO_BASE_URL', $crm),
-            $this->envLine('TENANT_LICENSE_KEY', (string) ($provision->license?->license_key ?? '')),
-            $this->envLine('TENANT_PROVISION_TOKEN', $token),
-            $this->envLine('TENANT_SEED_JSON', (string) $seed),
-            $this->envLine('WEBINO_PROVISION_HMAC_SECRET', (string) ($settings->provision_webhook_secret ?? '')),
-        ])."\n";
+        return TenantEnvBuilder::build($provision, $siteType, $token, $previous);
     }
 
     /**
@@ -2016,6 +1970,7 @@ class LocalSameVpsProvisioner
             'crm_account_id' => $provision->crm_account_id,
             'admin_email' => $provision->wizard_payload['admin_email'] ?? null,
             'admin_name' => $provision->wizard_payload['admin_name'] ?? 'Admin',
+            'provision_token' => $token,
         ];
         $body = json_encode(['seed' => $seed], JSON_UNESCAPED_UNICODE);
         Http::withHeaders([

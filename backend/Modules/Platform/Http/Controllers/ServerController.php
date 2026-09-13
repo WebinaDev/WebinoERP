@@ -93,8 +93,8 @@ class ServerController extends Controller
         try {
             $result = $this->ssh->bootstrap($server);
             PlatformDestination::query()->firstOrCreate(
-                ['server_id' => $server->id, 'network_name' => 'webino'],
-                ['name' => 'webino', 'driver' => 'bridge']
+                ['server_id' => $server->id, 'network_name' => 'webino_sites'],
+                ['name' => 'webino_sites', 'driver' => 'bridge']
             );
             return $this->ok(['server' => $server->fresh(), 'result' => $result]);
         } catch (Throwable $e) {

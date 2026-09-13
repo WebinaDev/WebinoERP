@@ -5,6 +5,7 @@ namespace Modules\Marketplace\Http\Controllers;
 use App\Http\Controllers\Api\PaginatesApi;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Http\Response;
 use Modules\Marketplace\Entities\MarketplaceProduct;
 
 class ProductController extends Controller
@@ -53,7 +54,7 @@ class ProductController extends Controller
         return response()->json(['data' => $product->fresh('category'), 'message' => 'Updated']);
     }
 
-    public function destroy(MarketplaceProduct $product): JsonResponse
+    public function destroy(MarketplaceProduct $product): Response
     {
         $product->delete();
 

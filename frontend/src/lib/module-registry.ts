@@ -280,6 +280,7 @@ export const ERP_MODULES: ErpModuleDef[] = [
         children: [
           { id: 'invoices', path: 'sales/invoices', titleKey: 'nav.erp.sales.invoices', icon: 'ri-file-list-3-line' },
           { id: 'services', path: 'sales/catalog', titleKey: 'nav.erp.sales.catalog', icon: 'ri-service-line' },
+          { id: 'rahn-percent', path: 'sales/rahn-percent', titleKey: 'nav.erp.sales.rahnPercent', icon: 'ri-percent-line' },
           { id: 'campaigns', path: 'sales/campaigns', titleKey: 'nav.erp.sales.campaigns', icon: 'ri-megaphone-line' },
         ],
       },
@@ -291,6 +292,8 @@ export const ERP_MODULES: ErpModuleDef[] = [
       { from: 'services/*', to: 'sales/catalog' },
       { from: 'campaigns', to: 'sales/campaigns' },
       { from: 'campaigns/*', to: 'sales/campaigns' },
+      { from: 'rahn-percent', to: 'sales/rahn-percent' },
+      { from: 'rahn-percent/*', to: 'sales/rahn-percent' },
     ],
   },
   {
@@ -458,9 +461,8 @@ export const ERP_MODULES: ErpModuleDef[] = [
         icon: 'ri-store-2-line',
         children: [
           { id: 'marketplace-products', path: 'admin/marketplace/products', titleKey: 'nav.erp.distribution.marketplaceProducts', icon: 'ri-store-2-line' },
-          { id: 'marketplace-themes', path: 'admin/marketplace/themes', titleKey: 'nav.erp.distribution.marketplaceThemes', icon: 'ri-palette-line' },
-          { id: 'marketplace-modules-new', path: 'admin/marketplace/modules/new', titleKey: 'nav.erp.distribution.marketplaceProducts', icon: 'ri-add-box-line' },
           { id: 'marketplace-gitea', path: 'admin/marketplace/gitea', titleKey: 'nav.erp.distribution.marketplaceGitea', icon: 'ri-git-branch-line' },
+          { id: 'marketplace-basalam', path: 'admin/marketplace/basalam', titleKey: 'nav.erp.distribution.marketplaceBasalam', icon: 'ri-store-3-line' },
           { id: 'marketplace-categories', path: 'admin/marketplace/categories', titleKey: 'nav.erp.distribution.marketplaceCategories', icon: 'ri-folder-line' },
           { id: 'marketplace-orders', path: 'admin/marketplace/orders', titleKey: 'nav.erp.distribution.marketplaceOrders', icon: 'ri-shopping-bag-line' },
           { id: 'licenses', path: 'admin/licenses', titleKey: 'nav.erp.distribution.licenses', icon: 'ri-key-2-line' },
@@ -473,6 +475,7 @@ export const ERP_MODULES: ErpModuleDef[] = [
       { from: 'marketplace/themes', to: 'admin/marketplace/themes' },
       { from: 'marketplace/categories', to: 'admin/marketplace/categories' },
       { from: 'marketplace/gitea', to: 'admin/marketplace/gitea' },
+      { from: 'marketplace/basalam', to: 'admin/marketplace/basalam' },
       { from: 'marketplace/orders', to: 'admin/marketplace/orders' },
       { from: 'marketplace/modules/:id', to: 'admin/marketplace/modules/:id' },
       { from: 'licenses', to: 'admin/licenses' },

@@ -3,7 +3,6 @@
 namespace Tests\Feature;
 
 use Illuminate\Foundation\Testing\RefreshDatabase;
-use Illuminate\Support\Facades\Http;
 use Laravel\Sanctum\Sanctum;
 use Modules\Core\Entities\SystemModule;
 use Modules\Integrations\Entities\IntegrationSetting;
@@ -80,7 +79,6 @@ class ModirPayamakApiTest extends TestCase
         $this->assertNotEmpty($show->json('data.api_key_masked'));
         $this->assertNull($show->json('data.api_key'));
 
-        // Empty api_key on update must not wipe the stored secret.
         $this->putJson('/api/v1/integrations/modirpayamak/settings', [
             'default_from' => '3000501',
             'enabled' => true,
@@ -152,5 +150,149 @@ class ModirPayamakApiTest extends TestCase
             'method' => 'GET',
             'path' => 'api/tickets/1',
         ])->assertOk()->assertJsonPath('data.ticket.id', 1);
+    }
+
+    public function test_admin_packages_crud_with_crm_field_aliases(): void
+    {
+        putenv('MODIRPAYAMAK_MOCK=true');
+        $user = $this->actingAsRole('system_manager');
+        Sanctum::actingAs($user);
+
+        $list = $this->getJson('/api/v1/integrations/modirpayamak/admin/packages')->assertOk();
+        $this->assertNotEmpty($list->json('data.packages'));
+        $this->assertSame(200, $list->json('data.packages.0.bonus'));
+
+        $created = $this->postJson('/api/v1/integrations/modirpayamak/admin/packages', [
+            'name' => 'Pro',
+            'amount' => 250000,
+            'bonus' => 500,
+            'sort' => 5,
+            'status' => 'active',
+        ])->assertCreated();
+
+        $id = (int) $created->json('data.id');
+        $this->assertGreaterThan(0, $id);
+
+        $this->postJson('/api/v1/integrations/modirpayamak/admin/packages', [
+            'id' => $id,
+            'name' => 'Pro Plus',
+            'amount' => 300000,
+            'bonus' => 600,
+            'sort' => 6,
+            'status' => 'inactive',
+        ])->assertOk();
+
+        $this->deleteJson('/api/v1/integrations/modirpayamak/admin/packages/'.$id)->assertOk();
+    }
+
+    public function test_admin_tariffs_and_secretaries_crud(): void
+    {
+        putenv('MODIRPAYAMAK_MOCK=true');
+        $user = $this->actingAsRole('system_manager');
+        Sanctum::actingAs($user);
+
+        $this->getJson('/api/v1/integrations/modirpayamak/admin/tariffs')
+            ->assertOk()
+            ->assertJsonStructure(['data' => ['tariffs', 'tax_percent', 'surcharge_rial']]);
+
+        $saved = $this->postJson('/api/v1/integrations/modirpayamak/admin/tariffs', [
+            'line_type' => 'test-line',
+            'operator' => 'mci',
+            'rate_fa' => 1000,
+            'rate_la' => 2000,
+            'sort' => 1,
+            'status' => 'active',
+        ])->assertOk();
+        $tariffId = (int) $saved->json('data.id');
+
+        $this->deleteJson('/api/v1/integrations/modirpayamak/admin/tariffs/'.$tariffId)->assertOk();
+
+        $this->postJson('/api/v1/integrations/modirpayamak/admin/secretaries', [
+            'domain' => 'shop.example.com',
+            'type' => 'auto_reply',
+            'name' => 'Welcome',
+            'keywords' => '*',
+            'reply_body' => 'Hi',
+        ])->assertOk();
+
+        $list = $this->getJson('/api/v1/integrations/modirpayamak/admin/secretaries?domain=shop.example.com')
+            ->assertOk();
+        $this->assertCount(1, $list->json('data.secretaries'));
+        $ruleId = (int) $list->json('data.secretaries.0.id');
+
+        $this->postJson('/api/v1/integrations/modirpayamak/admin/secretaries/delete', [
+            'domain' => 'shop.example.com',
+            'id' => $ruleId,
+        ])->assertOk();
+    }
+
+    public function test_admin_numbers_attach_detach_and_pattern_registry(): void
+    {
+        putenv('MODIRPAYAMAK_MOCK=true');
+        $user = $this->actingAsRole('system_manager');
+        Sanctum::actingAs($user);
+
+        $this->postJson('/api/v1/integrations/modirpayamak/admin/numbers/attach', [
+            'domain' => 'shop.example.com',
+            'number' => '+983000505',
+            'role' => 'service',
+        ])->assertOk()
+            ->assertJsonPath('data.number.number', '+983000505');
+
+        $customers = $this->getJson('/api/v1/integrations/modirpayamak/admin/customers')->assertOk();
+        $accounts = $customers->json('data.accounts');
+        $this->assertIsArray($accounts);
+        $this->assertNotEmpty($accounts[0]['numbers'] ?? []);
+
+        $this->postJson('/api/v1/integrations/modirpayamak/admin/patterns/attach', [
+            'domain' => 'shop.example.com',
+            'scope' => 'order_customer',
+            'event_key' => 'processing',
+            'pattern_code' => 'PAT001',
+        ])->assertOk();
+
+        $registry = $this->getJson('/api/v1/integrations/modirpayamak/admin/patterns/registry?domain=shop.example.com')
+            ->assertOk();
+        $this->assertCount(1, $registry->json('data.registry'));
+
+        $this->postJson('/api/v1/integrations/modirpayamak/admin/patterns/detach', [
+            'domain' => 'shop.example.com',
+            'scope' => 'order_customer',
+            'event_key' => 'processing',
+        ])->assertOk();
+
+        $this->postJson('/api/v1/integrations/modirpayamak/admin/numbers/detach', [
+            'domain' => 'shop.example.com',
+            'role' => 'service',
+            'number' => '+983000505',
+        ])->assertOk();
+    }
+
+    public function test_admin_balance_ledger_and_local_messages(): void
+    {
+        putenv('MODIRPAYAMAK_MOCK=true');
+        $user = $this->actingAsRole('system_manager');
+        Sanctum::actingAs($user);
+
+        $this->postJson('/api/v1/integrations/modirpayamak/admin/customers/balance', [
+            'domain' => 'shop.example.com',
+            'amount' => 5000,
+            'note' => 'manual topup',
+        ])->assertOk();
+
+        $ledger = $this->getJson('/api/v1/integrations/modirpayamak/admin/customers/ledger?domain=shop.example.com')
+            ->assertOk();
+        $this->assertNotEmpty($ledger->json('data.ledger'));
+
+        $this->postJson('/api/v1/integrations/modirpayamak/admin/send', [
+            'sending_type' => 'pattern',
+            'code' => 'PAT001',
+            'from_number' => '+983000505',
+            'recipients' => ['09121234567'],
+            'params' => ['name' => 'Ali'],
+        ])->assertOk();
+
+        $messages = $this->getJson('/api/v1/integrations/modirpayamak/admin/messages')->assertOk();
+        $this->assertNotEmpty($messages->json('data.messages'));
     }
 }

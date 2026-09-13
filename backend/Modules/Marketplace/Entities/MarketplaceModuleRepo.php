@@ -9,7 +9,17 @@ class MarketplaceModuleRepo extends Model
 {
     protected $table = 'marketplace_module_repos';
 
-    protected $fillable = ['module_id', 'repo_url', 'repo_branch', 'gitea_repo', 'last_synced_at'];
+    protected $fillable = [
+        'module_id',
+        'repo_url',
+        'repo_branch',
+        'gitea_repo',
+        'provider',
+        'default_branch',
+        'latest_tag',
+        'readme_excerpt',
+        'last_synced_at',
+    ];
 
     protected $casts = ['last_synced_at' => 'datetime'];
 

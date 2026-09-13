@@ -1,58 +1,105 @@
 'use client';
 
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { useTranslations } from 'next-intl';
 import { Loader2 } from 'lucide-react';
 import { CrmPageLayout } from '@/features/shared/layout/CrmPageLayout';
 import { useCrmFeedback } from '@/features/shared/hooks/useCrmFeedback';
 import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Checkbox } from '@/components/ui/checkbox';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { modirPayamakSend } from '@/lib/api/modirpayamak';
+import { adminModirPayamakSend } from '@/lib/api/modirpayamak';
+import { edgeField, type EdgeRow } from '@/lib/api/modirpayamak-edge';
+import { getAxiosMessage } from '@/lib/api-helpers';
+import { ModirPayamakLineSelect } from './components/line-select';
+import { ModirPayamakPatternSelect } from './components/pattern-select';
+import { ModirPayamakStatusBadge } from './components/status-badge';
 import { ModirPayamakBreadcrumb, ModirPayamakNotConfigured } from './components/shared';
 import { useModirPayamakConfigured } from './hooks/useModirPayamakConfigured';
-import { useModirPayamakTenantDomain } from './hooks/useModirPayamakTenantDomain';
 
 export function ModirpayamakSendPage() {
   const t = useTranslations('modirpayamak');
   const tNav = useTranslations();
   const searchParams = useSearchParams();
-  const { layoutProps, setError, setSuccess, applyAxiosError } = useCrmFeedback();
+  const { layoutProps, setError, setSuccess } = useCrmFeedback();
   const { configured, loading: configLoading } = useModirPayamakConfigured();
-  const { domain, setDomain, domains } = useModirPayamakTenantDomain();
-  const [mode, setMode] = useState<'simple' | 'pattern'>(searchParams.get('mode') === 'pattern' ? 'pattern' : 'simple');
-  const [debitTenant, setDebitTenant] = useState(false);
+
+  const initialMode = searchParams.get('mode') === 'pattern' ? 'pattern' : 'simple';
+  const [mode, setMode] = useState<'simple' | 'pattern'>(initialMode);
   const [from, setFrom] = useState('');
   const [phone, setPhone] = useState('');
   const [message, setMessage] = useState(searchParams.get('message') ?? '');
   const [patternCode, setPatternCode] = useState(searchParams.get('pattern') ?? '');
+  const [patternParams, setPatternParams] = useState<Record<string, string>>({});
+  const [debitTenant, setDebitTenant] = useState(false);
+  const [domain, setDomain] = useState('');
   const [loading, setLoading] = useState(false);
-  const [lastResult, setLastResult] = useState<Record<string, unknown> | null>(null);
+  const [lastResult, setLastResult] = useState<{ id: string; cost: string; status: string } | null>(null);
 
-  const recipientCount = useMemo(() => phone.split(/[\s,;\n]+/).filter(Boolean).length, [phone]);
+  useEffect(() => {
+    const msg = searchParams.get('message');
+    if (msg) setMessage(msg);
+    const pat = searchParams.get('pattern');
+    if (pat) {
+      setPatternCode(pat);
+      setMode('pattern');
+    }
+    if (searchParams.get('mode') === 'simple') setMode('simple');
+  }, [searchParams]);
 
-  const send = async () => {
-    if (debitTenant && !domain.trim()) {
-      setError(t('domainRequired'));
+  const recipientCount = useMemo(
+    () => phone.split(/[\s,;\n]+/).filter(Boolean).length,
+    [phone],
+  );
+
+  const onPatternSelect = (row: EdgeRow | null) => {
+    if (!row) {
+      setPatternParams({});
       return;
     }
+    const body = edgeField(row, 'pattern_message', 'message', 'text', 'body');
+    const vars = [...new Set((body.match(/%([a-zA-Z0-9_]+)%/g) ?? []).map((m) => m.slice(1, -1)))];
+    const next: Record<string, string> = {};
+    for (const key of vars) next[key] = '';
+    setPatternParams(next);
+  };
+
+  const send = async () => {
     setLoading(true);
     setError(null);
+    setSuccess(null);
+    setLastResult(null);
+    const recipients = phone.split(/[\s,;\n]+/).filter(Boolean);
+    const base: Record<string, unknown> = {
+      from_number: from,
+      recipients,
+    };
+    if (debitTenant) {
+      base.debit_tenant = true;
+      if (domain.trim()) base.domain = domain.trim();
+    }
+    const payload =
+      mode === 'pattern'
+        ? { ...base, sending_type: 'pattern', code: patternCode, params: patternParams }
+        : { ...base, sending_type: 'webservice', message };
     try {
-      const recipients = phone.split(/[\s,;\n]+/).filter(Boolean);
-      const payload: Record<string, unknown> =
-        mode === 'pattern'
-          ? { from_number: from, message: patternCode, recipients, debit_tenant: debitTenant }
-          : { from_number: from || undefined, message, recipients, debit_tenant: debitTenant };
-      if (debitTenant) payload.domain = domain.trim();
-      const res = await modirPayamakSend(payload);
-      setLastResult(res as Record<string, unknown>);
-      setSuccess(tNav('common.saved'));
-    } catch (err) {
-      applyAxiosError(err);
+      const data = (await adminModirPayamakSend(payload)) as Record<string, unknown> | undefined;
+      const edge =
+        data && typeof data.edge === 'object' && data.edge && !Array.isArray(data.edge)
+          ? (data.edge as Record<string, unknown>)
+          : data;
+      setLastResult({
+        id: edge ? String(edge.message_id ?? edge.id ?? '—') : '—',
+        cost: edge ? String(edge.cost ?? edge.price ?? '—') : '—',
+        status: edge ? String(edge.status ?? 'sent') : 'sent',
+      });
+      setSuccess(t('sendSuccess'));
+    } catch (e) {
+      setError(getAxiosMessage(e) || t('sendFailed'));
     } finally {
       setLoading(false);
     }
@@ -61,72 +108,130 @@ export function ModirpayamakSendPage() {
   return (
     <CrmPageLayout title={tNav('nav.erp.admin.mpSend')} {...layoutProps}>
       <ModirPayamakBreadcrumb current={tNav('nav.erp.admin.mpSend')} />
-      {configLoading ? null : !configured ? (
-        <ModirPayamakNotConfigured />
-      ) : (
-        <Card>
+      {configLoading ? null : !configured ? <ModirPayamakNotConfigured /> : null}
+
+      {configLoading ? (
+        <Card className="max-w-2xl">
+          <CardContent className="h-64 animate-pulse bg-muted/30" />
+        </Card>
+      ) : configured ? (
+        <Card className="max-w-2xl">
           <CardHeader>
-            <CardTitle className="flex gap-2">
-              <Button variant={mode === 'simple' ? 'default' : 'outline'} size="sm" onClick={() => setMode('simple')}>
-                {t('sendSimple')}
-              </Button>
-              <Button variant={mode === 'pattern' ? 'default' : 'outline'} size="sm" onClick={() => setMode('pattern')}>
-                {t('sendPattern')}
-              </Button>
-            </CardTitle>
+            <CardTitle>{tNav('nav.erp.admin.mpSend')}</CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
-            <div className="flex items-center gap-2">
-              <input
-                id="mp-debit"
-                type="checkbox"
-                className="size-4"
-                checked={debitTenant}
-                onChange={(e) => setDebitTenant(e.target.checked)}
+            <div className="flex flex-wrap gap-2">
+              <Button
+                type="button"
+                variant={mode === 'simple' ? 'default' : 'outline'}
+                onClick={() => setMode('simple')}
+              >
+                {t('simpleSend')}
+              </Button>
+              <Button
+                type="button"
+                variant={mode === 'pattern' ? 'default' : 'outline'}
+                onClick={() => setMode('pattern')}
+              >
+                {t('patternSend')}
+              </Button>
+            </div>
+            <div className="space-y-2">
+              <Label>{t('fromNumber')}</Label>
+              <ModirPayamakLineSelect value={from} onChange={setFrom} disabled={loading} />
+            </div>
+            <div className="space-y-2">
+              <Label>{t('recipients')}</Label>
+              <Textarea
+                dir="ltr"
+                rows={3}
+                value={phone}
+                onChange={(e) => setPhone(e.target.value)}
+                placeholder="+98912..."
               />
-              <Label htmlFor="mp-debit">{t('debitTenantWallet')}</Label>
+              <p className="text-xs text-muted-foreground">
+                {t('recipientCount', { count: recipientCount })}
+              </p>
+            </div>
+            {mode === 'pattern' ? (
+              <>
+                <div className="space-y-2">
+                  <Label>{t('patternCode')}</Label>
+                  <ModirPayamakPatternSelect
+                    value={patternCode}
+                    onChange={setPatternCode}
+                    onSelectRow={onPatternSelect}
+                    disabled={loading}
+                  />
+                </div>
+                {Object.keys(patternParams).length === 0 ? (
+                  <p className="text-xs text-muted-foreground">{t('noPatternVars')}</p>
+                ) : (
+                  Object.entries(patternParams).map(([key, val]) => (
+                    <div key={key} className="space-y-2">
+                      <Label className="font-mono text-xs" dir="ltr">
+                        %{key}%
+                      </Label>
+                      <Input
+                        value={val}
+                        onChange={(e) => setPatternParams((p) => ({ ...p, [key]: e.target.value }))}
+                      />
+                    </div>
+                  ))
+                )}
+              </>
+            ) : (
+              <div className="space-y-2">
+                <Label>{t('message')}</Label>
+                <Textarea value={message} onChange={(e) => setMessage(e.target.value)} rows={4} />
+              </div>
+            )}
+            <div className="flex items-center gap-2">
+              <Checkbox
+                id="debit-tenant"
+                checked={debitTenant}
+                onCheckedChange={(v) => setDebitTenant(v === true)}
+              />
+              <Label htmlFor="debit-tenant">{t('debitTenantWallet')}</Label>
             </div>
             {debitTenant ? (
-              <div className="grid gap-2">
+              <div className="space-y-2">
                 <Label>{t('domain')}</Label>
                 <Input
-                  list="mp-send-domains"
-                  placeholder={t('domain')}
+                  dir="ltr"
                   value={domain}
                   onChange={(e) => setDomain(e.target.value)}
-                  dir="ltr"
+                  placeholder="example.com"
                 />
-                <datalist id="mp-send-domains">
-                  {domains.map((d) => (
-                    <option key={d} value={d} />
-                  ))}
-                </datalist>
               </div>
             ) : null}
-            <Input placeholder="From line" value={from} onChange={(e) => setFrom(e.target.value)} dir="ltr" />
-            <Textarea placeholder={t('recipients')} value={phone} onChange={(e) => setPhone(e.target.value)} rows={3} />
-            <p className="text-muted-foreground text-xs">{recipientCount} recipients</p>
-            {mode === 'simple' ? (
-              <Textarea placeholder={t('message')} value={message} onChange={(e) => setMessage(e.target.value)} rows={5} />
-            ) : (
-              <Input placeholder="Pattern code" value={patternCode} onChange={(e) => setPatternCode(e.target.value)} dir="ltr" />
-            )}
-            <Button onClick={() => void send()} disabled={loading}>
-              {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : t('send')}
+            <Button
+              type="button"
+              onClick={() => void send()}
+              disabled={loading || !from || recipientCount === 0}
+            >
+              {loading ? <Loader2 className="me-2 h-4 w-4 animate-spin" /> : null}
+              {t('send')}
             </Button>
             {lastResult ? (
-              <Card>
-                <CardHeader>
-                  <CardTitle className="text-base">{t('lastResult')}</CardTitle>
-                </CardHeader>
-                <CardContent className="text-sm">
-                  <pre>{JSON.stringify(lastResult, null, 2)}</pre>
+              <Card className="border-green-500/30 bg-green-500/5">
+                <CardContent className="space-y-2 pt-4 text-sm">
+                  <p className="font-medium">{t('sendSuccess')}</p>
+                  <div className="flex flex-wrap gap-4">
+                    <span>
+                      {t('messageId')}: {lastResult.id}
+                    </span>
+                    <span>
+                      {t('cost')}: {lastResult.cost}
+                    </span>
+                    <ModirPayamakStatusBadge status={lastResult.status} />
+                  </div>
                 </CardContent>
               </Card>
             ) : null}
           </CardContent>
         </Card>
-      )}
+      ) : null}
     </CrmPageLayout>
   );
 }

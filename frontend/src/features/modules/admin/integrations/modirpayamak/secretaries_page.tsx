@@ -21,7 +21,8 @@ import {
   saveModirPayamakDomainSecretary,
 } from '@/lib/api/modirpayamak';
 import { getAxiosMessage } from '@/lib/api-helpers';
-import { ModirPayamakBreadcrumb } from './components/shared';
+import { ModirPayamakBreadcrumb, ModirPayamakNotConfigured } from './components/shared';
+import { useModirPayamakConfigured } from './hooks/useModirPayamakConfigured';
 import { useModirPayamakTenantDomain } from './hooks/useModirPayamakTenantDomain';
 
 const TYPES = ['auto_reply', 'inbox_forward', 'code_reader', 'membership'] as const;
@@ -31,6 +32,7 @@ export function ModirpayamakSecretariesPage() {
   const tNav = useTranslations();
   const tCommon = useTranslations('common');
   const { layoutProps, setError, setSuccess } = useCrmFeedback();
+  const { configured } = useModirPayamakConfigured();
   const { domain, setDomain, domains } = useModirPayamakTenantDomain();
   const [rows, setRows] = useState<Array<Record<string, unknown>>>([]);
   const [loading, setLoading] = useState(false);
@@ -39,6 +41,7 @@ export function ModirpayamakSecretariesPage() {
   const [keywords, setKeywords] = useState('*');
   const [replyBody, setReplyBody] = useState('');
   const [forwardTo, setForwardTo] = useState('');
+  const [patternCode, setPatternCode] = useState('');
 
   const load = async (d: string) => {
     if (!d.trim()) return;
@@ -85,12 +88,14 @@ export function ModirpayamakSecretariesPage() {
         keywords: keywords.trim() || '*',
         reply_body: replyBody,
         forward_to: forwardTo.trim() || undefined,
+        pattern_code: patternCode.trim() || undefined,
         enabled: true,
       });
       setSuccess(tCommon('saved'));
       setName('');
       setReplyBody('');
       setForwardTo('');
+      setPatternCode('');
       setKeywords('*');
       void load(domain);
     } catch (e) {
@@ -109,6 +114,7 @@ export function ModirpayamakSecretariesPage() {
   return (
     <CrmPageLayout title={tNav('nav.erp.admin.mpSecretaries')} {...layoutProps}>
       <ModirPayamakBreadcrumb current={tNav('nav.erp.admin.mpSecretaries')} />
+      {configured === false ? <ModirPayamakNotConfigured /> : null}
       <div className="mb-4 flex flex-wrap items-end gap-2">
         <div>
           <Label>{t('domain')}</Label>
@@ -169,6 +175,15 @@ export function ModirpayamakSecretariesPage() {
             value={forwardTo}
             onChange={(e) => setForwardTo(e.target.value)}
             placeholder="09xxxxxxxxx"
+          />
+        </div>
+        <div>
+          <Label>{t('patternCodeOptional')}</Label>
+          <Input
+            className="mt-1 font-mono"
+            dir="ltr"
+            value={patternCode}
+            onChange={(e) => setPatternCode(e.target.value)}
           />
         </div>
         <Button type="button" className="w-fit" onClick={() => void addRule()}>

@@ -9,9 +9,9 @@ class ModirPayamakOrder extends Model
 {
     protected $table = 'modirpayamak_orders';
 
-    protected $fillable = ['domain', 'package_id', 'amount', 'authority', 'status', 'ref_id', 'user_id'];
+    protected $fillable = ['domain', 'package_id', 'amount', 'credit_amount', 'authority', 'status', 'ref_id', 'user_id'];
 
-    protected $casts = ['amount' => 'decimal:2'];
+    protected $casts = ['amount' => 'decimal:2', 'credit_amount' => 'decimal:2'];
 
     public function package(): BelongsTo
     {

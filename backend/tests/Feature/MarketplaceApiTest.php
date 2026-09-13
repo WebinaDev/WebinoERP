@@ -63,12 +63,17 @@ class MarketplaceApiTest extends TestCase
         $this->assertNotEmpty($create->json('data.order_number'));
 
         $this->getJson('/api/v1/marketplace/orders/'.$orderId)->assertOk()
-            ->assertJsonPath('data.total', '1500000.00');
+            ->assertJsonPath('data.order.total', '1500000.00')
+            ->assertJsonStructure(['data' => ['order', 'entitlements']]);
 
         $this->patchJson('/api/v1/marketplace/orders/'.$orderId, [
             'status' => 'paid',
             'total' => 1600000,
         ])->assertOk()->assertJsonPath('data.status', 'paid');
+
+        $this->getJson('/api/v1/marketplace/orders')
+            ->assertOk()
+            ->assertJsonStructure(['data' => ['orders', 'entitlements']]);
 
         $this->deleteJson('/api/v1/marketplace/orders/'.$orderId)->assertNoContent();
         $this->getJson('/api/v1/marketplace/orders/'.$orderId)->assertNotFound();

@@ -3,6 +3,15 @@ import { unwrapData } from '@/lib/api-helpers';
 
 const BASE = '/v1/integrations/modirpayamak';
 
+export type ModirPayamakDomainNumber = {
+  id?: number;
+  domain?: string;
+  number: string;
+  role: 'service' | 'personal' | 'marketing' | string;
+  label?: string;
+  is_default?: boolean;
+};
+
 export type ModirPayamakAccount = {
   id: number;
   domain: string;
@@ -10,6 +19,16 @@ export type ModirPayamakAccount = {
   default_from?: string;
   status: string;
   expires_at?: string | null;
+  numbers?: ModirPayamakDomainNumber[];
+};
+
+export type ModirPayamakLedgerRow = {
+  id: number;
+  type: string;
+  amount: number;
+  balance_after: number;
+  note?: string;
+  created_at?: string;
 };
 
 export type ModirPayamakPackage = {
@@ -19,6 +38,21 @@ export type ModirPayamakPackage = {
   bonus: number;
   sort: number;
   status: string;
+  sms_units?: number;
+  sort_order?: number;
+  is_active?: boolean;
+};
+
+export type ModirPayamakOrder = {
+  id: number;
+  domain: string;
+  package_id?: number;
+  amount: number;
+  credit_amount?: number;
+  status: string;
+  authority?: string;
+  ref_id?: string;
+  created_at?: string;
 };
 
 export type ModirPayamakStats = {
@@ -28,6 +62,28 @@ export type ModirPayamakStats = {
   reseller_credit: unknown;
   price_per_unit: number;
   configured: boolean;
+};
+
+export type ModirPayamakTariff = {
+  id: number;
+  line_type: string;
+  operator: 'mci' | 'other' | string;
+  rate_fa: number;
+  rate_la: number;
+  sort: number;
+  status: string;
+};
+
+export type ModirPayamakPatternScope = 'order_customer' | 'order_admin' | 'site';
+
+export type ModirPayamakRegistryRow = {
+  domain?: string;
+  scope?: string;
+  event_key?: string;
+  ippanel_code?: string;
+  sync_status?: string;
+  last_error?: string;
+  param_map?: Record<string, string>;
 };
 
 export async function getModirPayamakDashboard() {
@@ -40,16 +96,6 @@ export async function getModirPayamakDashboard() {
     orders_paid?: number;
   }>(res);
 }
-
-export type ModirPayamakTariff = {
-  id: number;
-  line_type: string;
-  operator: 'mci' | 'other' | string;
-  rate_fa: number;
-  rate_la: number;
-  sort: number;
-  status: string;
-};
 
 export async function getModirPayamakTariffs() {
   const res = await apiClient.get(`${BASE}/admin/tariffs`);
@@ -82,6 +128,7 @@ export async function saveModirPayamakDomainSecretary(data: {
   keywords?: string;
   reply_body?: string;
   forward_to?: string;
+  pattern_code?: string;
   enabled?: boolean;
   id?: number;
 }) {
@@ -101,23 +148,110 @@ export async function getModirPayamakAccount() {
 
 export async function getModirPayamakCustomers() {
   const res = await apiClient.get(`${BASE}/admin/customers`);
-  const data = unwrapData<ModirPayamakAccount[]>(res);
-  return Array.isArray(data) ? data : [];
+  const data = unwrapData<{ accounts?: ModirPayamakAccount[] } | ModirPayamakAccount[]>(res);
+  if (Array.isArray(data)) return { accounts: data };
+  return { accounts: Array.isArray(data?.accounts) ? data.accounts : [] };
 }
 
 export async function adjustModirPayamakBalance(domain: string, amount: number, note?: string) {
   const res = await apiClient.post(`${BASE}/admin/customers/balance`, { domain, amount, note });
-  return unwrapData(res);
+  return unwrapData<{ account?: ModirPayamakAccount; message?: string }>(res);
+}
+
+export async function getModirPayamakCustomerLedger(domain: string, page = 1) {
+  const res = await apiClient.get(`${BASE}/admin/customers/ledger`, { params: { domain, page } });
+  return unwrapData<{ ledger: ModirPayamakLedgerRow[]; account?: ModirPayamakAccount }>(res);
+}
+
+export async function attachModirPayamakNumber(data: {
+  domain: string;
+  number: string;
+  role: 'service' | 'personal' | 'marketing';
+  label?: string;
+}) {
+  const res = await apiClient.post(`${BASE}/admin/numbers/attach`, {
+    domain: data.domain,
+    number: data.number,
+    role: data.role === 'marketing' ? 'personal' : data.role,
+    label: data.label ?? '',
+  });
+  return unwrapData<{
+    number: ModirPayamakDomainNumber;
+    account?: ModirPayamakAccount;
+    attachments?: ModirPayamakDomainNumber[];
+    message?: string;
+  }>(res);
+}
+
+export async function detachModirPayamakNumber(
+  domain: string,
+  role: 'service' | 'personal' | 'marketing',
+  number?: string,
+) {
+  const res = await apiClient.post(`${BASE}/admin/numbers/detach`, {
+    domain,
+    role: role === 'marketing' ? 'personal' : role,
+    number: number ?? '',
+  });
+  return unwrapData<{ account?: ModirPayamakAccount; message?: string }>(res);
+}
+
+export async function attachModirPayamakPattern(data: {
+  domain: string;
+  scope: ModirPayamakPatternScope;
+  event_key: string;
+  pattern_code: string;
+  param_map?: Record<string, string>;
+}) {
+  const res = await apiClient.post(`${BASE}/admin/patterns/attach`, {
+    domain: data.domain,
+    scope: data.scope,
+    event_key: data.event_key,
+    pattern_code: data.pattern_code,
+    param_map: data.param_map ?? undefined,
+  });
+  return unwrapData<{ message?: string; result?: unknown; registry?: ModirPayamakRegistryRow[] }>(res);
+}
+
+export async function detachModirPayamakPattern(data: {
+  domain: string;
+  scope: ModirPayamakPatternScope;
+  event_key: string;
+}) {
+  const res = await apiClient.post(`${BASE}/admin/patterns/detach`, data);
+  return unwrapData<{ message?: string; registry?: ModirPayamakRegistryRow[] }>(res);
+}
+
+export async function getModirPayamakDomainPatternRegistry(domain = '') {
+  const res = await apiClient.get(`${BASE}/admin/patterns/registry`, {
+    params: domain ? { domain } : {},
+  });
+  return unwrapData<{ registry: ModirPayamakRegistryRow[]; events?: string[] }>(res);
+}
+
+export async function getModirPayamakMessages(domain = '', page = 1, limit = 20) {
+  const res = await apiClient.get(`${BASE}/admin/messages`, {
+    params: { domain, page, limit },
+  });
+  return unwrapData<{ messages: Array<Record<string, unknown>> }>(res);
 }
 
 export async function getModirPayamakPackages() {
   const res = await apiClient.get(`${BASE}/admin/packages`);
-  const data = unwrapData<ModirPayamakPackage[]>(res);
-  return Array.isArray(data) ? data : [];
+  const data = unwrapData<{ packages?: ModirPayamakPackage[] } | ModirPayamakPackage[]>(res);
+  if (Array.isArray(data)) return { packages: data };
+  return { packages: Array.isArray(data?.packages) ? data.packages : [] };
 }
 
 export async function saveModirPayamakPackage(data: Partial<ModirPayamakPackage>) {
-  const res = await apiClient.post(`${BASE}/admin/packages`, data);
+  const res = await apiClient.post(`${BASE}/admin/packages`, {
+    id: data.id,
+    name: data.name ?? '',
+    amount: data.amount ?? 0,
+    bonus: data.bonus ?? data.sms_units ?? 0,
+    sort: data.sort ?? data.sort_order ?? 0,
+    status: data.status ?? (data.is_active === false ? 'inactive' : 'active'),
+  });
   return unwrapData(res);
 }
 
@@ -128,12 +262,24 @@ export async function deleteModirPayamakPackage(id: number) {
 
 export async function getModirPayamakOrders(page = 1) {
   const res = await apiClient.get(`${BASE}/admin/orders`, { params: { page } });
-  return unwrapData(res);
+  const body = res.data as {
+    data?: { orders?: ModirPayamakOrder[] };
+    meta?: { current_page?: number; last_page?: number; total?: number; per_page?: number };
+  };
+  const data = unwrapData<{ orders?: ModirPayamakOrder[] }>(res);
+  return {
+    orders: Array.isArray(data?.orders) ? data.orders : [],
+    meta: body.meta ?? {},
+  };
 }
 
 export async function modirPayamakSend(payload: Record<string, unknown>) {
   const res = await apiClient.post(`${BASE}/admin/send`, payload);
   return unwrapData(res);
+}
+
+export async function adminModirPayamakSend(payload: Record<string, unknown>) {
+  return modirPayamakSend(payload);
 }
 
 export async function modirPayamakCalculatePrice(payload: Record<string, unknown>) {
@@ -143,6 +289,11 @@ export async function modirPayamakCalculatePrice(payload: Record<string, unknown
 
 export async function getModirPayamakOutbox(params?: Record<string, unknown>) {
   const res = await apiClient.get(`${BASE}/admin/reports/outbox`, { params });
+  return unwrapData(res);
+}
+
+export async function getModirPayamakInbox(params?: Record<string, unknown>) {
+  const res = await apiClient.get(`${BASE}/admin/reports/inbox`, { params });
   return unwrapData(res);
 }
 

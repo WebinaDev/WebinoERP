@@ -34,9 +34,9 @@ class ModirPayamakEdgeClient
     public function request(string $method, string $path, array $body = [], array $query = []): array
     {
         if (env('MODIRPAYAMAK_MOCK', false)) {
-            $data = $this->mockResponse($path, $body);
+            $data = $this->mockResponse($path, $method, $body, $query);
 
-            return ['ok' => true, 'code' => 200, 'data' => $data, 'meta' => [], 'message' => ''];
+            return ['ok' => true, 'code' => 200, 'data' => $data, 'meta' => ['current_page' => 1, 'last_page' => 1], 'message' => ''];
         }
 
         $key = $this->apiKey();
@@ -122,12 +122,12 @@ class ModirPayamakEdgeClient
 
     public function reportOutboxById(string $outboxId): array
     {
-        return $this->request('GET', 'api/report/outbox/'.rawurlencode($outboxId));
+        return $this->request('GET', 'api/report/by_bulk', [], ['messages_outbox_id' => $outboxId]);
     }
 
     public function reportInbox(int $page = 1, int $limit = 20, array $filters = []): array
     {
-        return $this->request('POST', 'api/report/inbox', ['page' => $page, 'limit' => $limit, 'filters' => $filters]);
+        return $this->request('POST', 'api/report/messages-inbox', ['page' => $page, 'per_page' => $limit, 'filters' => $filters]);
     }
 
     public function myCredit(): array
@@ -140,14 +140,34 @@ class ModirPayamakEdgeClient
         return $this->request('GET', 'api/patterns', [], $query);
     }
 
+    public function getPattern(string $code): array
+    {
+        return $this->request('GET', 'api/patterns/'.rawurlencode($code));
+    }
+
+    public function createPattern(array $payload): array
+    {
+        return $this->request('POST', 'api/patterns/normal', $payload);
+    }
+
+    public function updatePattern(string $code, array $payload): array
+    {
+        return $this->request('PUT', 'api/patterns/'.rawurlencode($code), $payload);
+    }
+
+    public function deletePattern(string $code): array
+    {
+        return $this->request('DELETE', 'api/patterns/'.rawurlencode($code));
+    }
+
     public function listNumbers(array $query = []): array
     {
-        return $this->request('GET', 'api/numbers', [], $query);
+        return $this->request('GET', 'api/number/numbers', [], $query);
     }
 
     public function listPhonebooks(array $query = []): array
     {
-        return $this->request('GET', 'api/phonebooks', [], $query);
+        return $this->request('GET', 'api/phonebooks/list-new', [], $query);
     }
 
     public function createPhonebook(array $payload): array
@@ -155,26 +175,108 @@ class ModirPayamakEdgeClient
         return $this->request('POST', 'api/phonebooks', $payload);
     }
 
+    public function updatePhonebook(int $id, array $payload): array
+    {
+        return $this->request('PUT', 'api/phonebooks/'.$id, $payload);
+    }
+
+    public function deletePhonebook(int $id): array
+    {
+        return $this->request('POST', 'api/phonebooks/delete-list', ['listPhonebooks' => [$id]]);
+    }
+
     public function listPhonebookContacts(int $phonebookId, array $query = []): array
     {
-        return $this->request('GET', 'api/phonebooks/'.$phonebookId.'/contacts', [], $query);
+        return $this->request('GET', 'api/phonebooks/numbers/contact-list', [], array_merge($query, [
+            'phonebook_id' => (string) $phonebookId,
+        ]));
     }
 
     public function createPhonebookContact(int $phonebookId, array $payload): array
     {
-        return $this->request('POST', 'api/phonebooks/'.$phonebookId.'/contacts', $payload);
+        $item = array_merge($payload, ['phonebook_id' => $payload['phonebook_id'] ?? (string) $phonebookId]);
+
+        return $this->request('POST', 'api/phonebooks/numbers/add-list-new', ['list' => [$item]]);
     }
 
     /**
+     * @param  array<string, mixed>  $body
+     * @param  array<string, mixed>  $query
      * @return array<string, mixed>
      */
-    private function mockResponse(string $path, array $body): array
+    private function mockResponse(string $path, string $method = 'GET', array $body = [], array $query = []): array
     {
-        if (str_contains($path, 'api/tickets')) {
-            if (preg_match('#api/tickets/(\d+)$#', $path, $m)) {
+        if (str_contains($path, 'api/report/new_list') || str_contains($path, 'api/report/messages-inbox')) {
+            return [
+                'entries' => [
+                    [
+                        'id' => 1,
+                        'recipient' => '09120000000',
+                        'message' => 'Mock message',
+                        'status' => 'delivered',
+                        'created_at' => now()->toIso8601String(),
+                    ],
+                ],
+            ];
+        }
+
+        if (str_contains($path, 'api/report/by_bulk') || str_contains($path, 'api/report/outbox')) {
+            return [
+                'id' => $query['messages_outbox_id'] ?? 1,
+                'recipient' => '09120000000',
+                'message' => 'Mock detail',
+                'status' => 'delivered',
+            ];
+        }
+
+        if (str_contains($path, 'api/patterns')) {
+            if (preg_match('#api/patterns/([^/]+)$#', $path, $m) && strtoupper($method) !== 'DELETE') {
+                return [
+                    'code' => urldecode($m[1]),
+                    'title' => 'Mock pattern',
+                    'message' => 'Hello %name%',
+                    'status' => 'active',
+                ];
+            }
+
+            return [
+                'patterns' => [
+                    ['code' => 'PAT001', 'title' => 'Welcome', 'message' => 'Hello %name%', 'status' => 'active'],
+                    ['code' => 'PAT002', 'title' => 'OTP', 'message' => 'Code %code%', 'status' => 'active'],
+                ],
+            ];
+        }
+
+        if (str_contains($path, 'api/number')) {
+            return [
+                'numbers' => [
+                    ['number' => '+983000505', 'type' => 'service', 'status' => 'active'],
+                    ['number' => '+9810002000', 'type' => 'personal', 'status' => 'active'],
+                ],
+            ];
+        }
+
+        if (str_contains($path, 'api/phonebooks')) {
+            if (str_contains($path, 'contact-list') || str_contains($path, '/contacts')) {
+                return [
+                    'entries' => [
+                        ['name' => 'Ali', 'number' => '09121111111'],
+                    ],
+                ];
+            }
+
+            return [
+                'phonebooks' => [
+                    ['id' => 1, 'name' => 'Default book', 'title' => 'Default book'],
+                ],
+            ];
+        }
+
+        if (str_contains($path, 'api/ticket')) {
+            if (preg_match('#api/tickets?/(\d+)$#', $path, $m) || str_contains($path, 'api/ticket/show')) {
                 return [
                     'ticket' => [
-                        'id' => (int) $m[1],
+                        'id' => (int) ($m[1] ?? $query['ticket_id'] ?? 1),
                         'title' => 'Mock ticket',
                         'status' => 'open',
                         'messages' => [],
@@ -189,11 +291,23 @@ class ModirPayamakEdgeClient
             ];
         }
 
+        if (str_contains($path, 'api/user/draft') || str_contains($path, 'api/drafts')) {
+            if (str_contains($path, 'group')) {
+                return ['groups' => [['id' => 1, 'name' => 'Default']]];
+            }
+
+            return [
+                'drafts' => [
+                    ['id' => 1, 'title' => 'Mock draft', 'message' => 'Sample message', 'created_at' => now()->toIso8601String()],
+                ],
+            ];
+        }
+
         if (str_contains($path, 'api/user')) {
-            if (preg_match('#api/user/(\d+)$#', $path, $m)) {
+            if (preg_match('#api/user/(\d+)$#', $path, $m) || str_contains($path, 'api/user/show')) {
                 return [
                     'user' => [
-                        'id' => (int) $m[1],
+                        'id' => (int) ($m[1] ?? $query['user_id'] ?? 1),
                         'username' => 'mock_user',
                         'email' => 'mock@example.com',
                         'status' => 'active',
@@ -208,22 +322,12 @@ class ModirPayamakEdgeClient
             ];
         }
 
-        if (str_contains($path, 'api/drafts')) {
-            if (preg_match('#api/drafts/(\d+)$#', $path, $m)) {
-                return [
-                    'draft' => [
-                        'id' => (int) $m[1],
-                        'title' => 'Mock draft',
-                        'message' => 'Sample message',
-                    ],
-                ];
-            }
+        if (str_contains($path, 'api/send')) {
+            return ['id' => 'mock-send-1', 'cost' => 500, 'status' => 'queued'];
+        }
 
-            return [
-                'drafts' => [
-                    ['id' => 1, 'title' => 'Mock draft', 'message' => 'Sample message', 'created_at' => now()->toIso8601String()],
-                ],
-            ];
+        if (str_contains($path, 'api/payment/credit')) {
+            return ['credit' => 1000000, 'expire' => now()->addMonth()->toDateString()];
         }
 
         return ['mock' => true, 'path' => $path, 'body' => $body];

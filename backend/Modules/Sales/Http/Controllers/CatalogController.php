@@ -14,10 +14,13 @@ class CatalogController extends Controller
     public function index(Request $request): JsonResponse
     {
         $query = SalesCatalogItem::query();
+        if ($request->filled('type')) {
+            $query->where('type', $request->string('type'));
+        }
         $paginator = $this->applyIndexQuery(
             $query,
             $request,
-            ['status' => 'status'],
+            ['status' => 'status', 'type' => 'type'],
             ['name', 'sku'],
             ['name', 'created_at', 'price'],
             'name',

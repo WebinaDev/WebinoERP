@@ -19,6 +19,7 @@ class DatabaseSeeder extends Seeder
             \Modules\SiteBuilder\Database\Seeders\SiteBuilderSeeder::class,
             \Modules\Platform\Database\Seeders\PlatformServiceTemplatesSeeder::class,
             \Modules\Marketplace\Database\Seeders\SiteThemeSeeder::class,
+            \Modules\Marketplace\Database\Seeders\DemoPaidModuleSeeder::class,
             \Modules\Marketing\Database\Seeders\MarketingSiteSeeder::class,
             DemoUserSeeder::class,
         ]);

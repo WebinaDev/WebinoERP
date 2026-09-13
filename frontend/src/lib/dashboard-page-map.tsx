@@ -100,6 +100,7 @@ import { AuditPage } from '@/features/modules/scm/audit_page';
 import { InvoicesPage as SalesInvoicesPage } from '@/features/modules/sales/invoices_page';
 import { CatalogPage } from '@/features/modules/sales/catalog_page';
 import { CampaignsPage } from '@/features/modules/sales/campaigns_page';
+import { RahnPercentPage } from '@/features/modules/sales/rahn_percent_page';
 import { ContractsPage } from '@/features/modules/docs/contracts_page';
 import { ContractDetailPage } from '@/features/modules/docs/contract_detail_page';
 import { FilesPage } from '@/features/modules/docs/files_page';
@@ -118,6 +119,7 @@ import { ProductsPage } from '@/features/modules/admin/marketplace/products_page
 import { CategoriesPage } from '@/features/modules/admin/marketplace/categories_page';
 import { OrdersPage } from '@/features/modules/admin/marketplace/orders_page';
 import { GiteaPage } from '@/features/modules/admin/marketplace/gitea_page';
+import { BasalamPage } from '@/features/modules/admin/marketplace/basalam_page';
 import { SiteThemesPage } from '@/features/modules/admin/marketplace/themes_page';
 import { ModuleDetailPage } from '@/features/modules/admin/marketplace/module_detail_page';
 import {
@@ -219,6 +221,8 @@ const EXACT: Record<string, ReactNode> = {
   services: <ServicesListPage />,
   'sales/campaigns': <CampaignsPage />,
   campaigns: <CampaignsPage />,
+  'sales/rahn-percent': <RahnPercentPage />,
+  'rahn-percent': <RahnPercentPage />,
   'hrm/staff': <StaffPage />,
   staff: <StaffPage />,
   'hrm/attendance': <AttendancePage />,
@@ -290,6 +294,7 @@ const EXACT: Record<string, ReactNode> = {
   'admin/marketplace/categories': <CategoriesPage />,
   'admin/marketplace/orders': <OrdersPage />,
   'admin/marketplace/gitea': <GiteaPage />,
+  'admin/marketplace/basalam': <BasalamPage />,
   'admin/marketplace/modules/new': <ModuleDetailPage moduleId="new" />,
   'admin/integrations/modirpayamak': <ModirpayamakDashboardPage />,
   'admin/integrations/modirpayamak/send': <ModirpayamakSendPage />,

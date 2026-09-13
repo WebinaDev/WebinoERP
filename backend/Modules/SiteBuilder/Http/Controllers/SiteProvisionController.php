@@ -685,6 +685,49 @@ class SiteProvisionController extends Controller
         ]);
     }
 
+    public function installModule(
+        Request $request,
+        WebinoSiteProvision $siteProvision,
+        \Modules\SiteBuilder\Services\ModuleInstallOrchestrator $installer,
+    ): JsonResponse {
+        if (! $this->isControlEditable($siteProvision)) {
+            return response()->json([
+                'message' => 'سایت هنوز آماده/SSL نیست: '.$siteProvision->status,
+            ], 422);
+        }
+
+        $data = $request->validate([
+            'slug' => 'required|string|max:64',
+            'async' => 'nullable|boolean',
+        ]);
+
+        try {
+            $result = $installer->install(
+                $siteProvision,
+                $data['slug'],
+                (bool) ($data['async'] ?? true),
+            );
+        } catch (Throwable $e) {
+            return response()->json(['message' => $e->getMessage()], 422);
+        }
+
+        return response()->json([
+            'data' => $result['install'],
+            'queued' => $result['queued'],
+            'message' => $result['queued'] ? 'Install queued' : 'Install completed',
+        ], $result['queued'] ? 202 : 200);
+    }
+
+    public function moduleInstallStatus(
+        WebinoSiteProvision $siteProvision,
+        string $slug,
+        \Modules\SiteBuilder\Services\ModuleInstallOrchestrator $installer,
+    ): JsonResponse {
+        return response()->json([
+            'data' => $installer->status($siteProvision, $slug),
+        ]);
+    }
+
     public function setChannel(Request $request, WebinoSiteProvision $siteProvision): JsonResponse
     {
         if (! $this->isControlEditable($siteProvision)) {

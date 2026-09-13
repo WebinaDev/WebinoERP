@@ -5,10 +5,9 @@ namespace Modules\Accounting\Http\Controllers;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Modules\Accounting\Http\Controllers\Concerns\VerifiesWebinocrmLicenseSignature;
-use Modules\Core\Entities\CoreHostingSetting;
 use Modules\Core\Entities\CoreLicense;
 use Modules\Core\Services\CoreLicenseMetaNormalizer;
-use Modules\Core\Services\GitHttpUrlAuthInjector;
+use Modules\Core\Services\OrgGit\OrgGitProviderFactory;
 
 /**
  * Authenticated clone URL for dashboard git installs (HMAC same as license/check).
@@ -18,7 +17,7 @@ class WebinocrmModuleCloneUrlController extends Controller
 {
     use VerifiesWebinocrmLicenseSignature;
 
-    public function handle(Request $request): JsonResponse
+    public function handle(Request $request, OrgGitProviderFactory $factory): JsonResponse
     {
         if (! $this->verifyLicenseRequest($request)) {
             return response()->json(['error' => ['code' => 'INVALID_SIGNATURE', 'message' => 'Invalid signature']], 403);
@@ -55,11 +54,17 @@ class WebinocrmModuleCloneUrlController extends Controller
             return response()->json(['error' => ['code' => 'NO_REPO', 'message' => 'No clone URL for module']], 404);
         }
 
-        $hosting = CoreHostingSetting::current();
-        $pat = $hosting->git_pat;
-        $cloneUrl = $baseUrl;
-        if (is_string($pat) && $pat !== '' && str_starts_with(strtolower($baseUrl), 'http')) {
-            $cloneUrl = GitHttpUrlAuthInjector::inject($baseUrl, 'oauth2', $pat);
+        $host = parse_url($baseUrl, PHP_URL_HOST);
+        $allowed = $factory->allowedCloneHosts();
+        if (is_string($host) && $allowed !== [] && ! in_array(strtolower($host), $allowed, true)) {
+            return response()->json(['error' => ['code' => 'HOST_DENIED', 'message' => 'Clone host not allowed']], 403);
+        }
+
+        try {
+            $provider = $factory->make();
+            $cloneUrl = $provider->authenticatedCloneUrl($baseUrl);
+        } catch (\Throwable) {
+            $cloneUrl = $baseUrl;
         }
 
         return response()->json([

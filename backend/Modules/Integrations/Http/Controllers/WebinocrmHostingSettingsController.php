@@ -34,7 +34,21 @@ class WebinocrmHostingSettingsController extends Controller
     public function update(Request $request): JsonResponse
     {
         $data = $request->validate([
-            'public_crm_url' => 'nullable|string|max:512',
+            'public_crm_url' => [
+                'nullable',
+                'string',
+                'max:512',
+                'url',
+                function (string $attribute, mixed $value, \Closure $fail): void {
+                    if ($value === null || $value === '') {
+                        return;
+                    }
+                    $host = strtolower((string) (parse_url((string) $value, PHP_URL_HOST) ?: ''));
+                    if (in_array($host, ['localhost', '127.0.0.1', '::1'], true)) {
+                        $fail('public_crm_url must be a public URL reachable from tenant containers.');
+                    }
+                },
+            ],
             'git_provider' => 'nullable|string|max:32',
             'git_base_url' => 'nullable|string|max:512',
             'git_pat' => 'nullable|string|max:4000',

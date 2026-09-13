@@ -46,6 +46,7 @@ Route::prefix('modirpayamak')->middleware(['auth:sanctum', 'module:integrations'
         Route::post('/proxy', [ModirPayamakAdminController::class, 'proxy']);
         Route::get('/customers', [ModirPayamakAdminController::class, 'customers']);
         Route::post('/customers/balance', [ModirPayamakAdminController::class, 'customerBalance']);
+        Route::get('/customers/ledger', [ModirPayamakAdminController::class, 'customerLedger']);
         Route::get('/packages', [ModirPayamakAdminController::class, 'packagesIndex']);
         Route::post('/packages', [ModirPayamakAdminController::class, 'packagesStore']);
         Route::delete('/packages/{package}', [ModirPayamakAdminController::class, 'packagesDestroy']);
@@ -60,9 +61,15 @@ Route::prefix('modirpayamak')->middleware(['auth:sanctum', 'module:integrations'
         Route::post('/send', [ModirPayamakAdminController::class, 'adminSend']);
         Route::get('/messages', [ModirPayamakAdminController::class, 'messages']);
         Route::get('/reports/outbox', [ModirPayamakAdminController::class, 'reportsOutbox']);
+        Route::get('/reports/inbox', [ModirPayamakAdminController::class, 'reportsInbox']);
         Route::get('/reports/outbox/{id}', [ModirPayamakAdminController::class, 'reportOutboxDetail']);
         Route::get('/patterns', [ModirPayamakAdminController::class, 'patterns']);
+        Route::post('/patterns/attach', [ModirPayamakAdminController::class, 'attachPattern']);
+        Route::post('/patterns/detach', [ModirPayamakAdminController::class, 'detachPattern']);
+        Route::get('/patterns/registry', [ModirPayamakAdminController::class, 'patternRegistry']);
         Route::get('/numbers', [ModirPayamakAdminController::class, 'numbers']);
+        Route::post('/numbers/attach', [ModirPayamakAdminController::class, 'attachNumber']);
+        Route::post('/numbers/detach', [ModirPayamakAdminController::class, 'detachNumber']);
         Route::match(['get', 'post'], '/phonebooks', [ModirPayamakAdminController::class, 'phonebooks']);
         Route::match(['get', 'post'], '/phonebooks/{id}/contacts', [ModirPayamakAdminController::class, 'phonebookContacts'])->whereNumber('id');
     });

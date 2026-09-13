@@ -38,6 +38,7 @@ class CoreServiceProvider extends ServiceProvider
     public function register()
     {
         $this->app->register(RouteServiceProvider::class);
+        $this->app->singleton(\Modules\Core\Services\OrgGit\OrgGitProviderFactory::class);
     }
 
     /**

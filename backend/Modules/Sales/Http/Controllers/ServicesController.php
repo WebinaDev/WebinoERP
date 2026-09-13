@@ -77,6 +77,18 @@ class ServicesController extends Controller
 
     public function convertContract(Request $request, SalesCatalogItem $catalog): JsonResponse
     {
+        $meta = $catalog->meta ?? [];
+        if (! empty($meta['converted_contract_id'])) {
+            return response()->json([
+                'data' => [
+                    'subscription_id' => $catalog->id,
+                    'contract_id' => $meta['converted_contract_id'],
+                    'status' => 'already_converted',
+                ],
+                'message' => 'Already converted',
+            ]);
+        }
+
         $contract = DocsContract::query()->create([
             'title' => $catalog->name,
             'party_name' => null,
@@ -91,7 +103,6 @@ class ServicesController extends Controller
             'created_by' => $request->user()->id,
         ]);
 
-        $meta = $catalog->meta ?? [];
         $meta['converted_contract_id'] = $contract->id;
         $catalog->update(['meta' => $meta]);
 

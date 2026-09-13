@@ -9,6 +9,7 @@ use Modules\Platform\Entities\PlatformDomain;
 use Modules\Platform\Entities\PlatformResource;
 use Modules\Platform\Services\DockerRemoteService;
 use Modules\Platform\Services\SshExecutor;
+use Modules\Platform\Support\TenantSiteStack;
 use Throwable;
 
 class DomainController extends Controller
@@ -104,26 +105,34 @@ class DomainController extends Controller
             throw new \RuntimeException('platform.domain_no_server');
         }
 
-        $port = (int) ($resource->ports_exposes ?: 80);
-        $upstream = $resource->settings['caddy_upstream']
-            ?? (($resource->settings['site_dir'] ?? null)
-                ? Str::slug($resource->name).'-frontend-1:3000'
-                : '127.0.0.1:'.$port);
-
         $hstsLine = $domain->hsts ? "\n  header Strict-Transport-Security \"max-age=31536000; includeSubDomains\"" : '';
         $redirectBlock = '';
         if ($domain->redirect_to) {
             $redirectBlock = "\n  redir https://{$domain->redirect_to}{uri} permanent";
         }
 
-        $force = $domain->force_https ? '' : '# http allowed';
-        $snippet = <<<CADDY
+        if ($resource->type === 'webino_dashboard' || filled($resource->settings['site_dir'] ?? null)) {
+            $snippet = TenantSiteStack::caddySnippet($domain->domain, (string) $resource->name);
+            if ($hstsLine !== '' || $redirectBlock !== '') {
+                $snippet = preg_replace(
+                    '/\{\n/',
+                    '{'.$hstsLine.$redirectBlock."\n",
+                    $snippet,
+                    1
+                ) ?? $snippet;
+            }
+        } else {
+            $port = (int) ($resource->ports_exposes ?: 80);
+            $upstream = $resource->settings['caddy_upstream'] ?? ('127.0.0.1:'.$port);
+            $force = $domain->force_https ? '' : '# http allowed';
+            $snippet = <<<CADDY
 {$domain->domain} {
   encode gzip{$hstsLine}{$redirectBlock}
   {$force}
   reverse_proxy {$upstream}
 }
 CADDY;
+        }
 
         $slug = Str::slug($domain->domain);
         $this->docker->writeFile($server, '/etc/caddy/webino.d/'.$slug.'.caddy', $snippet);

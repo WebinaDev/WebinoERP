@@ -45,6 +45,8 @@ type Campaign = Record<string, unknown> & {
   description?: string | null;
   status?: string;
   channel?: string | null;
+  budget?: number | string | null;
+  lead_count?: number;
   starts_at?: string | null;
   ends_at?: string | null;
 };
@@ -54,6 +56,7 @@ type FormState = {
   description: string;
   channel: string;
   status: string;
+  budget: string;
   starts_at: string;
   ends_at: string;
 };
@@ -63,6 +66,7 @@ const emptyForm = (): FormState => ({
   description: '',
   channel: 'web',
   status: 'draft',
+  budget: '',
   starts_at: '',
   ends_at: '',
 });
@@ -80,7 +84,7 @@ const STATUS_VARIANT: Record<string, 'default' | 'secondary' | 'outline' | 'dest
 export function CampaignsPage() {
   const t = useTranslations('sales.campaigns');
   const tNav = useTranslations();
-  const { formatDate } = useLocale();
+  const { formatDate, formatNumber } = useLocale();
   const { layoutProps, setSuccess, setError, applyAxiosError } = useCrmFeedback();
   const [rows, setRows] = useState<Campaign[]>([]);
   const [loading, setLoading] = useState(true);
@@ -96,23 +100,15 @@ export function CampaignsPage() {
   const load = useCallback(async () => {
     setLoading(true);
     try {
-      const res = await apiClient.get('/v1/sales/campaigns', { params: { per_page: 100 } });
-      let list = normalizeListPayload(res.data) as Campaign[];
-      if (search.trim()) {
-        const q = search.trim().toLowerCase();
-        list = list.filter(
-          (c) =>
-            String(c.name ?? '')
-              .toLowerCase()
-              .includes(q) ||
-            String(c.description ?? '')
-              .toLowerCase()
-              .includes(q),
-        );
-      }
-      if (statusFilter) list = list.filter((c) => c.status === statusFilter);
-      if (channelFilter) list = list.filter((c) => c.channel === channelFilter);
-      setRows(list);
+      const res = await apiClient.get('/v1/sales/campaigns', {
+        params: {
+          per_page: 100,
+          search: search.trim() || undefined,
+          status: statusFilter || undefined,
+          channel: channelFilter || undefined,
+        },
+      });
+      setRows(normalizeListPayload(res.data) as Campaign[]);
     } catch (err) {
       applyAxiosError(err);
     } finally {
@@ -137,6 +133,7 @@ export function CampaignsPage() {
       description: String(c.description ?? ''),
       channel: String(c.channel ?? 'web'),
       status: String(c.status ?? 'draft'),
+      budget: c.budget != null && c.budget !== '' ? String(c.budget) : '',
       starts_at: String(c.starts_at ?? '').slice(0, 10),
       ends_at: String(c.ends_at ?? '').slice(0, 10),
     });
@@ -159,6 +156,7 @@ export function CampaignsPage() {
         description: form.description.trim() || null,
         channel: form.channel,
         status: form.status,
+        budget: parseFloat(form.budget) || 0,
         starts_at: form.starts_at || null,
         ends_at: form.ends_at || null,
       };
@@ -253,8 +251,10 @@ export function CampaignsPage() {
                   <TableHead>{t('name')}</TableHead>
                   <TableHead>{t('channel')}</TableHead>
                   <TableHead>{t('status')}</TableHead>
+                  <TableHead>{t('budget')}</TableHead>
                   <TableHead>{t('startDate')}</TableHead>
                   <TableHead>{t('endDate')}</TableHead>
+                  <TableHead>{t('leadCount')}</TableHead>
                   <TableHead className="text-end">{tNav('common.actions')}</TableHead>
                 </TableRow>
               </TableHeader>
@@ -268,8 +268,10 @@ export function CampaignsPage() {
                         {c.status ? t(`status_${String(c.status)}`) : '—'}
                       </Badge>
                     </TableCell>
+                    <TableCell dir="ltr">{formatNumber(Number(c.budget ?? 0))}</TableCell>
                     <TableCell>{formatDate(String(c.starts_at ?? '')) || '—'}</TableCell>
                     <TableCell>{formatDate(String(c.ends_at ?? '')) || '—'}</TableCell>
+                    <TableCell>{Number(c.lead_count ?? 0)}</TableCell>
                     <TableCell className="text-end">
                       <div className="flex justify-end gap-2">
                         <Button size="sm" variant="outline" onClick={() => openEdit(c)}>
@@ -342,6 +344,16 @@ export function CampaignsPage() {
                   </SelectContent>
                 </Select>
               </div>
+            </div>
+            <div className="space-y-2">
+              <Label>{t('budget')}</Label>
+              <Input
+                dir="ltr"
+                type="number"
+                min={0}
+                value={form.budget}
+                onChange={(e) => setForm((f) => ({ ...f, budget: e.target.value }))}
+              />
             </div>
             <div className="grid gap-4 sm:grid-cols-2">
               <div className="space-y-2">

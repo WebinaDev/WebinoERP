@@ -9,6 +9,7 @@ use Modules\Platform\Entities\PlatformDeployment;
 use Modules\Platform\Entities\PlatformDomain;
 use Modules\Platform\Entities\PlatformResource;
 use Modules\Platform\Entities\PlatformServer;
+use Modules\Platform\Support\TenantEnvBuilder;
 use Modules\Platform\Support\TenantSiteStack;
 use Modules\SiteBuilder\Entities\WebinoSiteProvision;
 use Modules\SiteBuilder\Services\LicenseProvisionerService;
@@ -74,7 +75,7 @@ class WebinoDashboardProvisioner
         // Ensure external compose network + published images exist on remote host.
         $preflight = $this->docker->sshRun(
             $server,
-            'docker network inspect webino >/dev/null 2>&1 || docker network create webino; '
+            'docker network inspect webino_sites >/dev/null 2>&1 || docker network create webino_sites; '
             .'docker image inspect webino-backend:latest >/dev/null 2>&1 && docker image inspect webino-next:latest >/dev/null 2>&1 '
             .'|| { echo "platform.dashboard_images_missing: pull or load webino-backend:latest and webino-next:latest on this host" >&2; exit 1; }',
             120
@@ -89,7 +90,7 @@ class WebinoDashboardProvisioner
         }
         $connect = [];
         foreach (TenantSiteStack::proxyContainerNames($provision->slug) as $name) {
-            $connect[] = 'docker network connect webino '.escapeshellarg($name).' 2>/dev/null || true';
+            $connect[] = 'docker network connect webino_sites '.escapeshellarg($name).' 2>/dev/null || true';
         }
         $this->docker->sshRun($server, implode('; ', $connect), 60);
 
@@ -181,7 +182,7 @@ class WebinoDashboardProvisioner
         $result = $this->docker->composeUp($server, $dir, TenantSiteStack::projectName($provision->slug));
         $connect = [];
         foreach (TenantSiteStack::proxyContainerNames($provision->slug) as $name) {
-            $connect[] = 'docker network connect webino '.escapeshellarg($name).' 2>/dev/null || true';
+            $connect[] = 'docker network connect webino_sites '.escapeshellarg($name).' 2>/dev/null || true';
         }
         $this->docker->sshRun($server, implode('; ', $connect), 60);
         PlatformResource::query()->where('provision_id', $provision->id)->update(['status' => 'running']);
@@ -229,50 +230,12 @@ class WebinoDashboardProvisioner
 
     protected function envFile(WebinoSiteProvision $provision, string $siteType, string $token): string
     {
-        $settings = CoreHostingSetting::current();
-        $crm = rtrim((string) ($settings->public_crm_url ?: config('app.url')), '/');
-        $seed = json_encode([
-            'tenant_name' => $provision->wizard_payload['site_name'] ?? $provision->slug,
-            'domain' => $provision->domain,
-            'license_key' => $provision->license?->license_key,
-            'site_type_slug' => $siteType,
-            'business_type_slug' => $siteType,
-            'crm_account_id' => $provision->crm_account_id,
-            'admin_email' => $provision->wizard_payload['admin_email'] ?? null,
-            'admin_name' => $provision->wizard_payload['admin_name'] ?? 'Admin',
-        ], JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
-
-        return implode("\n", [
-            $this->envLine('APP_ENV', 'production'),
-            $this->envLine('APP_KEY', 'base64:'.base64_encode(random_bytes(32))),
-            $this->envLine('DB_CONNECTION', 'pgsql'),
-            $this->envLine('DB_HOST', 'db'),
-            $this->envLine('DB_DATABASE', 'webino'),
-            $this->envLine('DB_USERNAME', 'webino'),
-            $this->envLine('DB_PASSWORD', Str::random(24)),
-            $this->envLine('REDIS_HOST', 'redis'),
-            $this->envLine('RUN_MIGRATIONS', '1'),
-            $this->envLine('WEBINO_BASE_URL', $crm),
-            $this->envLine('TENANT_LICENSE_KEY', (string) ($provision->license?->license_key ?? '')),
-            $this->envLine('TENANT_PROVISION_TOKEN', $token),
-            $this->envLine('TENANT_SEED_JSON', (string) $seed),
-            $this->envLine('WEBINO_PROVISION_HMAC_SECRET', (string) ($settings->provision_webhook_secret ?? '')),
-        ])."\n";
+        return TenantEnvBuilder::build($provision, $siteType, $token);
     }
 
     protected function caddySnippet(string $domain, string $slug): string
     {
-        return <<<CADDY
-{$domain} {
-  encode gzip
-  handle /api/* {
-    reverse_proxy {$slug}-backend-1:8080
-  }
-  handle {
-    reverse_proxy {$slug}-frontend-1:3000
-  }
-}
-CADDY;
+        return TenantSiteStack::caddySnippet($domain, $slug);
     }
 
     protected function waitForHealthy(string $domain, int $attempts = 12): bool
@@ -307,6 +270,7 @@ CADDY;
             'crm_account_id' => $provision->crm_account_id,
             'admin_email' => $provision->wizard_payload['admin_email'] ?? null,
             'admin_name' => $provision->wizard_payload['admin_name'] ?? 'Admin',
+            'provision_token' => $token,
         ];
         $body = json_encode(['seed' => $seed], JSON_UNESCAPED_UNICODE);
         Http::withHeaders([
@@ -316,12 +280,5 @@ CADDY;
             ->timeout(60)
             ->post('https://'.$provision->domain.'/api/v1/provision/bootstrap')
             ->throw();
-    }
-
-    protected function envLine(string $key, string $value): string
-    {
-        $escaped = str_replace(['\\', "\n", '"'], ['\\\\', '\\n', '\\"'], $value);
-
-        return $key.'="'.$escaped.'"';
     }
 }

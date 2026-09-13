@@ -178,6 +178,20 @@ export async function updateProvisionAdmin(
   return unwrapData<SiteProvision>(res);
 }
 
+export async function installModuleOnSiteApi(
+  id: number,
+  slug: string,
+  async = true,
+) {
+  const res = await apiClient.post(`${BASE}/provisions/${id}/modules/install`, { slug, async });
+  return unwrapData(res);
+}
+
+export async function moduleInstallStatusApi(id: number, slug: string) {
+  const res = await apiClient.get(`${BASE}/provisions/${id}/modules/${slug}/status`);
+  return unwrapData(res);
+}
+
 export async function updateProvisionModules(
   id: number,
   body: {

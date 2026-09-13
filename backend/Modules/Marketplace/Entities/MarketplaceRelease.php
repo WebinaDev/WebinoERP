@@ -9,9 +9,22 @@ class MarketplaceRelease extends Model
 {
     protected $table = 'marketplace_releases';
 
-    protected $fillable = ['module_id', 'version', 'changelog', 'status', 'published_at'];
+    protected $fillable = [
+        'module_id',
+        'version',
+        'tag_name',
+        'changelog',
+        'gitea_release_id',
+        'package_path',
+        'package_source',
+        'status',
+        'published_at',
+    ];
 
-    protected $casts = ['published_at' => 'datetime'];
+    protected $casts = [
+        'published_at' => 'datetime',
+        'gitea_release_id' => 'integer',
+    ];
 
     public function module(): BelongsTo
     {

@@ -24,8 +24,8 @@ export function useModirPayamakTenantDomain() {
   const reload = useCallback(async () => {
     setLoading(true);
     try {
-      const accounts = await getModirPayamakCustomers();
-      const list = accounts.map((a) => a.domain).filter(Boolean);
+      const data = await getModirPayamakCustomers();
+      const list = (data.accounts ?? []).map((a) => a.domain).filter(Boolean);
       setDomains(list);
       let stored = '';
       try {

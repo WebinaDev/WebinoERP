@@ -54,6 +54,8 @@ Route::post('/provisions/{siteProvision}/bootstrap', [SiteProvisionController::c
 Route::get('/provisions/{siteProvision}/logs', [SiteProvisionController::class, 'logs']);
 Route::post('/provisions/{siteProvision}/admin', [SiteProvisionController::class, 'updateAdmin']);
 Route::post('/provisions/{siteProvision}/modules', [SiteProvisionController::class, 'updateModules']);
+Route::post('/provisions/{siteProvision}/modules/install', [SiteProvisionController::class, 'installModule']);
+Route::get('/provisions/{siteProvision}/modules/{slug}/status', [SiteProvisionController::class, 'moduleInstallStatus']);
 Route::post('/provisions/{siteProvision}/channel', [SiteProvisionController::class, 'setChannel']);
 Route::post('/provisions/{siteProvision}/update', [SiteProvisionController::class, 'queueUpdate'])->middleware('throttle:10,1');
 Route::post('/provisions/{siteProvision}/ssl/renew', [SiteProvisionController::class, 'renewSsl'])->middleware('throttle:10,1');
