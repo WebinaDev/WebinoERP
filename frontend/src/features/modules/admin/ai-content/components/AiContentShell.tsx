@@ -6,6 +6,7 @@ import { useParams } from 'next/navigation';
 import { useTranslations } from 'next-intl';
 import { Button } from '@/components/ui/button';
 import { dashboardHref } from '@/lib/route-resolver';
+import { AiContentStubBanner } from '../AiContentStubBanner';
 
 const LINKS = [
   { path: 'ai-content', key: 'overview' as const },
@@ -39,6 +40,7 @@ export function AiContentShell({
           </Button>
         ))}
       </div>
+      <AiContentStubBanner />
       {children}
     </div>
   );

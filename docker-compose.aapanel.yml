@@ -49,6 +49,7 @@ services:
       DB_CONNECTION: pgsql
       DB_HOST: db
       REDIS_HOST: redis
+      REDIS_PASSWORD: ""
       QUEUE_CONNECTION: redis
       OCTANE_SERVER: frankenphp
     volumes:
@@ -73,6 +74,7 @@ services:
       QUEUE_CONNECTION: redis
       DB_HOST: db
       REDIS_HOST: redis
+      REDIS_PASSWORD: ""
     volumes:
       - backend_storage:/var/www/html/storage
       - ./backend/.env:/var/www/html/.env:ro
@@ -89,6 +91,7 @@ services:
       APP_ENV: production
       DB_HOST: db
       REDIS_HOST: redis
+      REDIS_PASSWORD: ""
     volumes:
       - backend_storage:/var/www/html/storage
       - ./backend/.env:/var/www/html/.env:ro
@@ -104,6 +107,7 @@ services:
     environment:
       BROADCAST_CONNECTION: reverb
       REDIS_HOST: redis
+      REDIS_PASSWORD: ""
     volumes:
       - ./backend/.env:/var/www/html/.env:ro
     command: php artisan reverb:start --host=0.0.0.0 --port=8081

@@ -38,4 +38,9 @@ case " $* " in
     ;;
 esac
 
+if [ "${RUN_MIGRATIONS:-0}" = "1" ]; then
+  echo "[webinoerp] Running migrations (RUN_MIGRATIONS=1)"
+  php artisan migrate --force
+fi
+
 exec "$@"

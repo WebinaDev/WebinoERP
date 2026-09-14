@@ -5,7 +5,7 @@ import { useTranslations } from 'next-intl';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import apiClient from '@/lib/api-client';
 import { getAxiosMessage } from '@/lib/api-helpers';
-import { normalizeListPayload } from '@/lib/list-utils';
+import { normalizeListPayload, readListMeta } from '@/lib/list-utils';
 import { accountingWpAction } from '@/lib/accounting-wp';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -97,9 +97,8 @@ export default function AccJournals() {
       const params: Record<string, unknown> = { page, per_page: 20 };
       if (fyId !== 'all') params.fiscal_year_id = fyId;
       const res = await apiClient.get('/v1/accounting/journals', { params });
-      const body = res.data as { data?: Journal[]; last_page?: number };
-      setJournals(body.data ?? []);
-      setLastPage(body.last_page ?? 1);
+      setJournals(normalizeListPayload(res.data) as Journal[]);
+      setLastPage(Number(readListMeta(res.data).last_page ?? 1));
     } catch (e) {
       setError(getAxiosMessage(e));
     } finally {

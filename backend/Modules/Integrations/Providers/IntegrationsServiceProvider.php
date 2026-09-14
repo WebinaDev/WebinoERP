@@ -51,6 +51,10 @@ class IntegrationsServiceProvider extends ServiceProvider
 
         Route::prefix('api/webinocrm/v1')
             ->middleware('api')
+            ->group(module_path($this->moduleName, 'Routes/webinocrm-modirpayamak.php'));
+
+        Route::prefix('api/webinocrm/v1')
+            ->middleware('api')
             ->post('/git/webhook', [WebinocrmGitWebhookController::class, 'handle']);
 
         Route::prefix('api/webinocrm/v1')

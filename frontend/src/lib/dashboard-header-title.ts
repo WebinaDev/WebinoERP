@@ -1,4 +1,3 @@
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
 type TFunction = (key: string, params?: Record<string, string>) => string
 
 import type { DashboardRouteDef } from '@/routes/routes.config'

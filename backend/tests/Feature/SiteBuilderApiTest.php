@@ -305,8 +305,19 @@ class SiteBuilderApiTest extends TestCase
         $env = \Modules\Platform\Entities\PlatformEnvironment::query()->firstOrCreate(
             ['project_id' => $project->id, 'name' => 'production']
         );
+        $server = \Modules\Platform\Entities\PlatformServer::query()->firstOrCreate(
+            ['name' => 'localhost'],
+            [
+                'ip' => '127.0.0.1',
+                'port' => 22,
+                'user' => 'root',
+                'status' => 'ready',
+                'is_localhost' => true,
+            ]
+        );
         \Modules\Platform\Entities\PlatformResource::query()->create([
             'environment_id' => $env->id,
+            'server_id' => $server->id,
             'type' => 'webino_dashboard',
             'name' => 'power-cafe',
             'status' => 'running',
@@ -360,7 +371,7 @@ class SiteBuilderApiTest extends TestCase
 
         $this->postJson('/api/v1/site-builder/provisions/'.$provision->id.'/stop')
             ->assertOk()
-            ->assertJsonPath('power_state', 'stopped');
+            ->assertJsonPath('data.power_state', 'stopped');
 
         $this->assertDatabaseHas('platform_resources', [
             'provision_id' => $provision->id,

@@ -71,6 +71,7 @@ class WebinocrmLicenseCompatController extends Controller
                 'sku' => $norm['sku'],
                 'business_category' => $norm['business_category'],
                 'business_type' => $norm['business_type'],
+                'site_type' => $norm['site_type'] ?? $norm['business_type'],
                 'features' => $norm['features'],
                 'theme_preset' => $norm['theme_preset'],
                 'nav_preset' => $norm['nav_preset'],

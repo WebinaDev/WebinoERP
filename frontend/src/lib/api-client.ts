@@ -1,5 +1,5 @@
 import axios, { AxiosInstance, AxiosError } from 'axios';
-import { unwrapApiData } from '@webina/ui';
+import { unwrapApiResponse } from '@webina/ui';
 
 /**
  * Browser calls must be same-origin `/api` so Caddy can proxy to Laravel.
@@ -28,7 +28,16 @@ export const apiClient: AxiosInstance = axios.create({
 apiClient.interceptors.response.use(
   (response) => {
     if (response.data && typeof response.data === 'object') {
-      response.data = unwrapApiData(response.data);
+      const unwrapped = unwrapApiResponse(response.data);
+      if (unwrapped.meta != null) {
+        response.data = {
+          data: unwrapped.data,
+          meta: unwrapped.meta,
+          ...(unwrapped.message ? { message: unwrapped.message } : {}),
+        };
+      } else {
+        response.data = unwrapped.data;
+      }
     }
     return response;
   },

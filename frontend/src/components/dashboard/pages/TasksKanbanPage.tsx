@@ -16,7 +16,7 @@ import {
 import apiClient from '@/lib/api-client';
 import { getAxiosMessage } from '@/lib/api-helpers';
 import { cn } from '@/lib/utils';
-import { normalizeListPayload } from '@/lib/list-utils';
+import { normalizeListPayload, readEntity } from '@/lib/list-utils';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Checkbox } from '@/components/ui/checkbox';
@@ -226,8 +226,8 @@ export function TasksKanbanPage() {
           label: filterLabel || undefined,
         },
       });
-      const body = res.data as { data?: KanbanData };
-      setData(body.data ?? {});
+      const body = res.data;
+      setData(readEntity<KanbanData>(body) ?? {});
     } catch (e) {
       setError(getAxiosMessage(e));
     } finally {

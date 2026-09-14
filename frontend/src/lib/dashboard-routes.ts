@@ -104,7 +104,7 @@ const EXACT: Record<string, DashboardRouteMeta> = {
   'pm/projects': { titleFa: 'پروژه‌ها', titleEn: 'Projects', group: 'pm', apiHint: '/v1/projects/projects' },
   'pm/tasks': { titleFa: 'وظایف', titleEn: 'Tasks', group: 'pm', apiHint: '/v1/projects/tasks' },
   'pm/appointments': { titleFa: 'قرارها', titleEn: 'Appointments', group: 'pm', apiHint: '/v1/projects/appointments' },
-  'pm/chat': { titleFa: 'گفتگو', titleEn: 'Chat', group: 'pm', apiHint: '/v1/projects/chat' },
+  'pm/chat': { titleFa: 'گفتگو', titleEn: 'Chat', group: 'pm', apiHint: '/v1/core/chat' },
   'pm/time-tracking': { titleFa: 'ثبت زمان', titleEn: 'Time tracking', group: 'pm', apiHint: '/v1/projects/time-entries' },
   'scm/warehouses': { titleFa: 'انبارها', titleEn: 'Warehouses', group: 'scm', apiHint: '/v1/scm/warehouses' },
   'scm/stock': { titleFa: 'موجودی', titleEn: 'Stock', group: 'scm', apiHint: '/v1/scm/stock' },

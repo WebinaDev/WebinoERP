@@ -75,14 +75,12 @@ export function LeadsListPage() {
 
   const loadStatuses = useCallback(async () => {
     const res = await apiClient.get('/v1/crm/statuses');
-    const body = res.data as { data?: StatusRow[] };
-    setStatuses(Array.isArray(body.data) ? body.data : []);
+    setStatuses(normalizeListPayload(res.data) as StatusRow[]);
   }, []);
 
   const loadAssignees = useCallback(async () => {
     const res = await apiClient.get('/v1/crm/leads/assignees');
-    const body = res.data as { data?: { id: number; name: string }[] };
-    setAssignees(Array.isArray(body.data) ? body.data : []);
+    setAssignees(normalizeListPayload(res.data) as { id: number; name: string }[]);
   }, []);
 
   const load = useCallback(async () => {
@@ -182,8 +180,7 @@ export function LeadsListPage() {
     setError(null);
     try {
       const res = await apiClient.get(`/v1/crm/leads/${lead.id}/duplicates`);
-      const body = res.data as { data?: DuplicateRow[] };
-      setDuplicates(Array.isArray(body.data) ? body.data : []);
+      setDuplicates(normalizeListPayload(res.data) as DuplicateRow[]);
       setDuplicatesOpen(true);
     } catch (e) {
       setError(getAxiosMessage(e));

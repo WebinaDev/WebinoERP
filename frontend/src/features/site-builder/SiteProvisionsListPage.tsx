@@ -175,7 +175,7 @@ export function SiteProvisionsListPage() {
             (row as { crm_account?: { name?: string }; crmAccount?: { name?: string } }).crm_account?.name
             || (row as { crmAccount?: { name?: string } }).crmAccount?.name
             || (typeof row.wizard_payload?.site_name === 'string' ? row.wizard_payload.site_name : null);
-          const power = row.power_state ?? 'unknown';
+          const powerState = row.power_state ?? 'unknown';
 
           return (
             <Card
@@ -197,10 +197,10 @@ export function SiteProvisionsListPage() {
                         ? t(`status.${row.status as 'ready'}`)
                         : row.status}
                     </Badge>
-                    <Badge variant="outline" className={cn('border capitalize', powerTone(power))}>
-                      {(['running', 'stopped', 'unknown'] as const).includes(power as 'running')
-                        ? t(`power.${power as 'running'}`)
-                        : power}
+                    <Badge variant="outline" className={cn('border capitalize', powerTone(powerState))}>
+                      {(['running', 'stopped', 'unknown'] as const).includes(powerState as 'running')
+                        ? t(`power.${powerState as 'running'}`)
+                        : powerState}
                     </Badge>
                   </div>
                 </div>

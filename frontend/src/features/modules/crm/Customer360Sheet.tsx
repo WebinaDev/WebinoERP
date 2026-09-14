@@ -4,6 +4,7 @@ import { useCallback, useEffect, useState } from 'react';
 import { useTranslations } from 'next-intl';
 import apiClient from '@/lib/api-client';
 import { getAxiosMessage } from '@/lib/api-helpers';
+import { normalizeListPayload, readEntity } from '@/lib/list-utils';
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sheet';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Badge } from '@/components/ui/badge';
@@ -41,15 +42,11 @@ export function Customer360Sheet({ accountId, open, onOpenChange }: Props) {
           params: { account_id: accountId, related_model: 'Modules\\Crm\\Entities\\CrmAccount', per_page: 20 },
         }),
       ]);
-      setAccount((accRes.data as { data?: Record<string, unknown> }).data ?? null);
-      const dealsBody = dealsRes.data as { data?: unknown[] };
-      const ticketsBody = ticketsRes.data as { data?: unknown[] };
-      const contactsBody = contactsRes.data as { data?: unknown[] };
-      const activitiesBody = activitiesRes.data as { data?: unknown[] };
-      setDeals(Array.isArray(dealsBody.data) ? (dealsBody.data as Record<string, unknown>[]) : []);
-      setTickets(Array.isArray(ticketsBody.data) ? (ticketsBody.data as Record<string, unknown>[]) : []);
-      setContacts(Array.isArray(contactsBody.data) ? (contactsBody.data as Record<string, unknown>[]) : []);
-      setActivities(Array.isArray(activitiesBody.data) ? (activitiesBody.data as Record<string, unknown>[]) : []);
+      setAccount(readEntity<Record<string, unknown>>(accRes.data));
+      setDeals(normalizeListPayload(dealsRes.data) as Record<string, unknown>[]);
+      setTickets(normalizeListPayload(ticketsRes.data) as Record<string, unknown>[]);
+      setContacts(normalizeListPayload(contactsRes.data) as Record<string, unknown>[]);
+      setActivities(normalizeListPayload(activitiesRes.data) as Record<string, unknown>[]);
     } catch (e) {
       setError(getAxiosMessage(e));
     } finally {

@@ -100,12 +100,17 @@ class CoreLicenseMetaNormalizer
             ? $meta['nav_preset']
             : null;
 
+        $siteType = isset($meta['site_type']) && is_string($meta['site_type'])
+            ? $meta['site_type']
+            : null;
+
         return [
             'licensed_modules' => $licensed,
             'vertical' => $vertical,
             'sku' => $sku,
             'business_category' => $businessCategory,
             'business_type' => $businessType,
+            'site_type' => $siteType,
             'features' => $features,
             'theme_preset' => $themePreset,
             'nav_preset' => $navPreset,

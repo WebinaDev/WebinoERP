@@ -90,7 +90,7 @@ export async function getCurrentUser(): Promise<User | null> {
     const response = await apiClient.get('/v1/core/auth/user');
     const payload = asRecord(response.data);
     const nested = asRecord(payload.user);
-    const user = (nested.id ? nested : payload) as User;
+    const user = (nested.id ? nested : payload) as unknown as User;
     if (!user?.id) {
       return null;
     }

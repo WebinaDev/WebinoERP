@@ -6,6 +6,7 @@ use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Modules\Core\Entities\CoreHostingSetting;
 use Modules\Crm\Entities\CrmConsultation;
+use Modules\SiteBuilder\Entities\WebinoSiteProvision;
 
 class ConsultationIngestController extends Controller
 {
@@ -36,8 +37,20 @@ class ConsultationIngestController extends Controller
             return response()->json(['message' => 'Missing site token'], 401);
         }
 
+        $tenantDomain = (string) ($request->input('tenant_domain') ?? '');
+        if ($tenantDomain === '') {
+            return response()->json(['message' => 'tenant_domain is required'], 422);
+        }
+
+        $provisionQuery = WebinoSiteProvision::query()
+            ->where('provision_token', $token)
+            ->where('domain', $tenantDomain);
+        if (! $provisionQuery->exists()) {
+            return response()->json(['message' => 'Invalid site token'], 401);
+        }
+
         $data = $request->validate([
-            'tenant_domain' => 'nullable|string|max:255',
+            'tenant_domain' => 'required|string|max:255',
             'crm_account_id' => 'nullable|integer',
             'name' => 'required|string|max:120',
             'email' => 'required|email|max:255',
@@ -46,6 +59,22 @@ class ConsultationIngestController extends Controller
             'message' => 'nullable|string|max:5000',
             'site_consultation_id' => 'nullable|integer',
         ]);
+
+        if (! empty($data['site_consultation_id'])) {
+            $existing = CrmConsultation::query()
+                ->where('notes', 'like', '%"site_consultation_id":'.$data['site_consultation_id'].'%')
+                ->where('notes', 'like', '%"tenant_domain":"'.$tenantDomain.'"%')
+                ->orderByDesc('id')
+                ->first();
+            if ($existing) {
+                return response()->json([
+                    'data' => [
+                        'consultation_id' => $existing->id,
+                        'duplicate' => true,
+                    ],
+                ], 200);
+            }
+        }
 
         $title = $data['subject'] ?: ('Consultation from '.$data['name']);
         $notes = collect([

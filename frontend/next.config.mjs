@@ -13,10 +13,7 @@ const apiProxyTarget =
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   output: "standalone",
-  typescript: {
-    // Type errors are caught in CI separately; don't block production builds
-    ignoreBuildErrors: true,
-  },
+  // TypeScript is enforced; ESLint warnings remain non-blocking until cleaned up.
   eslint: {
     ignoreDuringBuilds: true,
   },

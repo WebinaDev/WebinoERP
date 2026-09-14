@@ -27,8 +27,11 @@ async function fetchGate(request: NextRequest): Promise<GateData | null> {
         cache: "no-store",
       })
       if (!res.ok) continue
-      const json = (await res.json()) as { data?: GateData; authenticated?: boolean }
-      const data = json.data ?? json
+      const json = (await res.json()) as GateData & { data?: GateData }
+      const data: GateData = json.data ?? {
+        authenticated: json.authenticated,
+        setup_completed: json.setup_completed,
+      }
       if (data && typeof data.authenticated === "boolean") {
         return { authenticated: data.authenticated, setup_completed: data.setup_completed }
       }

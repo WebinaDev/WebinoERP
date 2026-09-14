@@ -35,8 +35,8 @@ export function ProfilePage() {
       }
       try {
         const res = await apiClient.get('/v1/core/auth/user');
-        const body = res.data as { data?: { user?: { phone?: string } } };
-        const usr = body.data?.user;
+        const body = res.data as { user?: { phone?: string } };
+        const usr = body.user;
         if (usr?.phone) setPhone(String(usr.phone));
       } catch { /* ignore */ }
       setLoading(false);

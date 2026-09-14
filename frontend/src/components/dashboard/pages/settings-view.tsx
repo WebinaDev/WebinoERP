@@ -35,7 +35,7 @@ import {
   resolveSettingsTab,
   type SettingsHubId,
 } from '@/features/modules/admin/settings/settings-hub-config';
-import { normalizeListPayload } from '@/lib/list-utils';
+import { normalizeListPayload, readEntity } from '@/lib/list-utils';
 
 type SettingsPayload = Record<string, Record<string, string>>;
 
@@ -145,8 +145,8 @@ export function SettingsPageView({ hub, initialTab }: { hub?: SettingsHubId; ini
 
       try {
         const prefRes = await apiClient.get('/v1/core/users/me/preferences');
-        const prefBody = prefRes.data as { data?: { preferences?: Record<string, boolean> } };
-        const prefs = prefBody.data?.preferences;
+        const prefEntity = readEntity<{ preferences?: Record<string, boolean> }>(prefRes.data);
+        const prefs = prefEntity?.preferences ?? (prefRes.data as { preferences?: Record<string, boolean> })?.preferences;
         if (prefs) {
           setNotifEmail(!!prefs.email_digest);
           setNotifTasks(!!prefs.task_reminders);

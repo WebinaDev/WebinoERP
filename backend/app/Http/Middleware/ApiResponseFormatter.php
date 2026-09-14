@@ -21,6 +21,10 @@ class ApiResponseFormatter
             return $next($request);
         }
 
+        if (str_contains($request->path(), 'webinocrm/v1/modirpayamak')) {
+            return $next($request);
+        }
+
         $response = $next($request);
 
         if ($response->isEmpty() || $response->getStatusCode() === 204) {

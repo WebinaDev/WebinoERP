@@ -5,7 +5,7 @@ import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import { useTranslations } from 'next-intl';
 import apiClient from '@/lib/api-client';
 import { getAxiosMessage } from '@/lib/api-helpers';
-import { normalizeListPayload } from '@/lib/list-utils';
+import { normalizeListPayload, readEntity, readListMeta } from '@/lib/list-utils';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import {
@@ -108,8 +108,7 @@ export function TicketsListPage() {
       setReplyBody('');
       try {
         const res = await apiClient.get(`/v1/projects/tickets/${id}`);
-        const payload = res.data as { data?: Row };
-        const d = payload.data ?? { id };
+        const d = readEntity<Row>(res.data) ?? ({ id } as Row);
         setDetail(d);
         const raw = d.replies as Row[] | undefined;
         setReplies(Array.isArray(raw) ? raw : []);

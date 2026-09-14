@@ -57,7 +57,7 @@ export function useChat(options: UseChatOptions) {
   const handlersRef = useRef(handlers);
   handlersRef.current = handlers;
 
-  const echoRef = useRef<Echo | null>(null);
+  const echoRef = useRef<Echo<"pusher"> | null>(null);
 
   const disconnect = useCallback(() => {
     if (echoRef.current) {
@@ -74,7 +74,7 @@ export function useChat(options: UseChatOptions) {
 
     const authEndpoint = `${apiUrl.replace(/\/$/, "")}/broadcasting/auth`;
 
-    const echo = new Echo({
+    const echo = new Echo<"pusher">({
       broadcaster: "pusher",
       key,
       cluster: "mt1",

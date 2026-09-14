@@ -5,6 +5,7 @@ import { useTranslations } from 'next-intl';
 import { Paperclip, Trash2, X } from 'lucide-react';
 import apiClient from '@/lib/api-client';
 import { getAxiosMessage } from '@/lib/api-helpers';
+import { readEntity } from '@/lib/list-utils';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
@@ -76,14 +77,11 @@ export function TaskDetailSheet({ taskId, open, onOpenChange, onUpdated }: Props
     setError(null);
     try {
       const res = await apiClient.get(`/v1/projects/tasks/${taskId}`);
-      const body = res.data as {
-        data?: {
-          task?: TaskRow;
-          comments?: TaskCommentRow[];
-          attachments?: TaskAttachmentRow[];
-        };
-      };
-      const payload = body.data;
+      const payload = readEntity<{
+        task?: TaskRow;
+        comments?: TaskCommentRow[];
+        attachments?: TaskAttachmentRow[];
+      }>(res.data);
       if (payload?.task) {
         setTask({
           ...payload.task,

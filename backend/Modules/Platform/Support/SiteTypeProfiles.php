@@ -18,11 +18,14 @@ final class SiteTypeProfiles
                 'name_en' => 'E-commerce',
                 'theme' => 'ecommerce-starter',
                 'modules' => array_merge(self::coreModules(), [
-                    'commerce' => ['catalog', 'variants', 'cart', 'checkout', 'orders', 'inventory'],
+                    'commerce' => ['catalog', 'brands', 'attributes', 'variants', 'pricing', 'marketplace', 'cart', 'checkout', 'orders', 'c2c', 'wallet', 'pos', 'inventory'],
+                    'coffee-profile' => ['profile'],
                     'users' => ['customers', 'staff', 'rbac'],
                     'cms' => ['pages', 'menus', 'seo'],
                     'blog' => ['posts', 'categories'],
-                    'marketing' => ['coupons', 'campaigns'],
+                    'marketing' => ['coupons', 'bot-broadcast', 'bot-campaigns', 'sms', 'newsletter'],
+                    'bots' => ['bale', 'telegram'],
+                    'sms-panel' => ['panel'],
                     'analytics' => ['overview', 'reports'],
                 ]),
             ],
@@ -36,7 +39,7 @@ final class SiteTypeProfiles
                     'cms' => ['pages', 'menus', 'seo'],
                     'blog' => ['posts', 'categories'],
                     'users' => ['subscribers', 'rbac'],
-                    'marketing' => ['newsletter', 'campaigns'],
+                    'marketing' => ['newsletter'],
                     'analytics' => ['overview', 'reports'],
                 ]),
             ],
@@ -46,9 +49,11 @@ final class SiteTypeProfiles
                 'theme' => 'cafe-starter',
                 'modules' => array_merge(self::coreModules(), [
                     'cafe' => ['menu', 'reservations', 'hours', 'gallery', 'venue', 'qr', 'engagement'],
-                    'commerce' => ['catalog', 'variants', 'cart', 'checkout', 'orders'],
+                    'commerce' => ['catalog', 'brands', 'attributes', 'variants', 'pricing', 'cart', 'checkout', 'orders', 'pos'],
                     'cms' => ['pages', 'menus', 'seo'],
-                    'marketing' => ['coupons', 'campaigns'],
+                    'marketing' => ['coupons', 'bot-broadcast', 'bot-campaigns', 'sms'],
+                    'bots' => ['bale', 'telegram'],
+                    'sms-panel' => ['panel'],
                     'blog' => ['posts', 'categories'],
                     'analytics' => ['overview', 'reports'],
                 ]),
@@ -72,7 +77,9 @@ final class SiteTypeProfiles
                     'cms' => ['pages', 'menus', 'seo'],
                     'blog' => ['posts', 'categories'],
                     'users' => ['rbac'],
-                    'marketing' => ['coupons', 'campaigns'],
+                    'marketing' => ['coupons', 'bot-broadcast', 'bot-campaigns', 'sms'],
+                    'bots' => ['bale', 'telegram'],
+                    'sms-panel' => ['panel'],
                     'analytics' => ['overview', 'reports'],
                 ]),
             ],
@@ -85,6 +92,19 @@ final class SiteTypeProfiles
         return [
             'core' => ['auth', 'setup', 'tenant', 'dashboard', 'settings', 'media', 'i18n', 'modules', 'themes'],
         ];
+    }
+
+    /** @return list<string> */
+    public static function coreSubmoduleKeys(): array
+    {
+        $keys = [];
+        foreach (self::coreModules() as $module => $subs) {
+            foreach ($subs as $sub) {
+                $keys[] = "{$module}.{$sub}";
+            }
+        }
+
+        return $keys;
     }
 
     public static function isValid(string $slug): bool
@@ -100,6 +120,7 @@ final class SiteTypeProfiles
     public static function moduleSlugsFor(string $siteType): array
     {
         $modules = self::all()[$siteType]['modules'] ?? [];
+
         return array_values(array_keys($modules));
     }
 

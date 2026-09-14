@@ -11,7 +11,7 @@ services:
       SESSION_SECURE_COOKIE: "${SESSION_SECURE_COOKIE:-true}"
       SANCTUM_STATEFUL_DOMAINS: "${SANCTUM_STATEFUL_DOMAINS:-webinaagency.ir,www.webinaagency.ir}"
       QUEUE_CONNECTION: redis
-      REDIS_PASSWORD: ${REDIS_PASSWORD:-}
+      REDIS_PASSWORD: ${REDIS_PASSWORD:-CHANGE_ME}
       REVERB_APP_SECRET: ${REVERB_APP_SECRET:-}
       REVERB_APP_KEY: ${REVERB_APP_KEY:-}
 
@@ -24,19 +24,19 @@ services:
       APP_ENV: production
       APP_DEBUG: "false"
       QUEUE_CONNECTION: redis
-      REDIS_PASSWORD: ${REDIS_PASSWORD:-}
+      REDIS_PASSWORD: ${REDIS_PASSWORD:-CHANGE_ME}
 
   scheduler:
     environment:
       APP_ENV: production
       APP_DEBUG: "false"
-      REDIS_PASSWORD: ${REDIS_PASSWORD:-}
+      REDIS_PASSWORD: ${REDIS_PASSWORD:-CHANGE_ME}
 
   ws:
     environment:
       APP_ENV: production
       APP_DEBUG: "false"
-      REDIS_PASSWORD: ${REDIS_PASSWORD:-}
+      REDIS_PASSWORD: ${REDIS_PASSWORD:-CHANGE_ME}
       REVERB_APP_SECRET: ${REVERB_APP_SECRET:-}
       REVERB_APP_KEY: ${REVERB_APP_KEY:-}
 

@@ -80,9 +80,14 @@ class AuthController extends Controller
             return response()->json(['message' => __('api.unauthorized')], 401);
         }
 
-        $request->user()?->currentAccessToken()?->delete();
+        $current = $request->user()?->currentAccessToken();
+        $currentAbilities = $current && property_exists($current, 'abilities')
+            ? (array) $current->abilities
+            : [];
+        $abilities = in_array('2fa-pending', $currentAbilities, true) ? ['2fa-pending'] : ['*'];
+        $current?->delete();
 
-        $tokenObj = $user->createToken('spa');
+        $tokenObj = $user->createToken('spa', $abilities);
         $token = $tokenObj->plainTextToken;
 
         $response = response()->json([

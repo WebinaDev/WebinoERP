@@ -23,6 +23,7 @@ import {
   VisitorStatsPageView,
 } from '@/components/dashboard/pages/CoreStaticPages';
 import { ProfilePage, ReportsPage } from '@/features/modules/core/core_pages';
+import { FieldPermissionsPage } from '@/features/modules/core/settings/FieldPermissionsPage';
 import {
   SettingsAccountingPage,
   SettingsBotsPage,
@@ -257,7 +258,9 @@ const EXACT: Record<string, ReactNode> = {
   'admin/analytics/visitors': <VisitorStatsPageView />,
   'visitor-statistics': <VisitorStatsPageView />,
   'admin/settings': <SettingsHubPage />,
+  'admin/settings/field-permissions': <FieldPermissionsPage />,
   settings: <SettingsHubPage />,
+  'settings/field-permissions': <FieldPermissionsPage />,
   'admin/integrations/bale': <BaleBusinessDashboard />,
   'bale-business': <BaleBusinessDashboard />,
   'hosting-infra': <HostingInfraPageView />,

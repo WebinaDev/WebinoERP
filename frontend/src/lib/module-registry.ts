@@ -424,7 +424,7 @@ export const ERP_MODULES: ErpModuleDef[] = [
     settingsKey: 'ai_content',
     basePath: '/ai-content',
     sidebarCategoryKey: 'nav.module.aiContent',
-    defaultEnabled: true,
+    defaultEnabled: false,
     menuItems: [
       {
         id: 'ai-content-menu',

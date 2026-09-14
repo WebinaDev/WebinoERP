@@ -63,14 +63,13 @@ export function ServicesListPage() {
     setSubLoading(true);
     try {
       const res = await apiClient.get('/v1/projects/subscriptions');
-      const envelope = res.data as { data?: unknown; message?: string };
-      const raw = envelope.data;
-      setSubMessage(typeof envelope.message === 'string' ? envelope.message : null);
-      if (Array.isArray(raw)) {
-        setSubRows(raw as Row[]);
-      } else {
-        setSubRows(normalizeListPayload(raw));
-      }
+      const envelope = res.data as { data?: unknown; message?: string } | unknown[];
+      setSubMessage(
+        envelope && typeof envelope === 'object' && !Array.isArray(envelope) && typeof (envelope as { message?: string }).message === 'string'
+          ? (envelope as { message: string }).message
+          : null,
+      );
+      setSubRows(normalizeListPayload(envelope) as Row[]);
     } catch (e) {
       setSubMessage(getAxiosMessage(e));
       setSubRows([]);

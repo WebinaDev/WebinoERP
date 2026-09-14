@@ -6,7 +6,7 @@ import { useLocale } from '@/hooks/use-locale-next';
 import { useCallback, useEffect, useState } from 'react';
 import apiClient from '@/lib/api-client';
 import { getAxiosMessage } from '@/lib/api-helpers';
-import { normalizeListPayload } from '@/lib/list-utils';
+import { normalizeListPayload, readEntity } from '@/lib/list-utils';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import {
@@ -100,8 +100,7 @@ export function ContractsListPage() {
     setDetailFull(null);
     try {
       const res = await apiClient.get(`/v1/projects/contracts/${String(r.id)}/details`);
-      const body = res.data as { data?: Row };
-      setDetailFull(body.data ?? r);
+      setDetailFull(readEntity<Row>(res.data) ?? r);
     } catch {
       setDetailFull(r);
     }
