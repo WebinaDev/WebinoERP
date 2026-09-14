@@ -74,6 +74,11 @@ export function normalizeDashboardPath(path: string): string {
 }
 
 export function dashboardHref(_locale: string, path: string): string {
-  const p = normalizeDashboardPath(path);
-  return `/admin${p ? `/${p}` : ''}`;
+  let normalized = path.replace(/^\/+|\/+$/g, '').trim()
+  // Callers often pass `admin/platform/...`; this helper always prefixes `/admin`.
+  if (normalized === 'admin' || normalized.startsWith('admin/')) {
+    normalized = normalized.slice('admin'.length).replace(/^\/+/, '')
+  }
+  const p = normalizeDashboardPath(normalized)
+  return `/admin${p ? `/${p}` : ''}`
 }

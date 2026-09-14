@@ -248,30 +248,34 @@ export function SiteProvisionsListPage() {
                   ) : null}
                   {canPower(row) ? (
                     <>
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        type="button"
-                        className="gap-1.5"
-                        disabled={busyId === row.id}
-                        onClick={() => void power(row.id, 'start')}
-                        data-testid={`site-start-${row.id}`}
-                      >
-                        <Power className="size-3.5" />
-                        {t('start')}
-                      </Button>
-                      <Button
-                        size="sm"
-                        variant="ghost"
-                        type="button"
-                        className="gap-1.5"
-                        disabled={busyId === row.id}
-                        onClick={() => void power(row.id, 'stop')}
-                        data-testid={`site-stop-${row.id}`}
-                      >
-                        <PowerOff className="size-3.5" />
-                        {t('stop')}
-                      </Button>
+                      {powerState !== 'running' ? (
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          type="button"
+                          className="gap-1.5"
+                          disabled={busyId === row.id}
+                          onClick={() => void power(row.id, 'start')}
+                          data-testid={`site-start-${row.id}`}
+                        >
+                          <Power className="size-3.5" />
+                          {t('start')}
+                        </Button>
+                      ) : null}
+                      {powerState !== 'stopped' ? (
+                        <Button
+                          size="sm"
+                          variant="ghost"
+                          type="button"
+                          className="gap-1.5"
+                          disabled={busyId === row.id}
+                          onClick={() => void power(row.id, 'stop')}
+                          data-testid={`site-stop-${row.id}`}
+                        >
+                          <PowerOff className="size-3.5" />
+                          {t('stop')}
+                        </Button>
+                      ) : null}
                     </>
                   ) : null}
                   <Button

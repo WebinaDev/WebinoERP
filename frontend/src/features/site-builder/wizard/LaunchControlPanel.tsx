@@ -143,13 +143,7 @@ export function LaunchControlPanel({
         if (cancelled) return;
         onProvision(st);
         try {
-          const raw = await fetchProvisionLogs(provision.id);
-          const text =
-            typeof raw === 'string'
-              ? raw
-              : raw && typeof raw === 'object' && 'logs' in raw
-                ? String((raw as { logs?: string }).logs ?? '')
-                : JSON.stringify(raw);
+          const text = await fetchProvisionLogs(provision.id);
           if (!cancelled) setLogs(text);
         } catch {
           /* logs may not exist yet */
@@ -383,14 +377,18 @@ export function LaunchControlPanel({
               <Settings2 className="me-1 h-4 w-4" />
               {t('controlOpenPanel')}
             </Button>
-            <Button variant="outline" disabled={pending} onClick={() => void start()}>
-              <Play className="me-1 h-4 w-4" />
-              {t('start')}
-            </Button>
-            <Button variant="outline" disabled={pending} onClick={() => void stop()}>
-              <Square className="me-1 h-4 w-4" />
-              {t('stop')}
-            </Button>
+            {(provision.power_state ?? 'unknown') !== 'running' ? (
+              <Button variant="outline" disabled={pending} onClick={() => void start()}>
+                <Play className="me-1 h-4 w-4" />
+                {t('start')}
+              </Button>
+            ) : null}
+            {(provision.power_state ?? 'unknown') !== 'stopped' ? (
+              <Button variant="outline" disabled={pending} onClick={() => void stop()}>
+                <Square className="me-1 h-4 w-4" />
+                {t('stop')}
+              </Button>
+            ) : null}
             <Button
               variant="outline"
               onClick={() => router.push(dashboardHref(locale, 'admin/platform/sites'))}

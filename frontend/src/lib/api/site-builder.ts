@@ -1,7 +1,61 @@
 import apiClient from '@/lib/api-client';
 import { unwrapData } from '@/lib/api-helpers';
+import { readPage } from '@/lib/list-utils';
 
 const BASE = '/v1/site-builder';
+
+type ComposeResult = {
+  exit_code?: number;
+  log?: string;
+  stdout?: string;
+  stderr?: string;
+  message?: string;
+  stages?: Record<string, boolean>;
+};
+
+type ActionWithCompose = {
+  data: SiteProvision;
+  compose?: ComposeResult;
+  message?: string;
+};
+
+function readActionWithCompose(res: { data: unknown }): ActionWithCompose {
+  const body = res.data;
+  if (!body || typeof body !== 'object') {
+    return { data: body as SiteProvision };
+  }
+  const o = body as Record<string, unknown>;
+  const meta =
+    o.meta && typeof o.meta === 'object' ? (o.meta as Record<string, unknown>) : {};
+  const compose = (meta.compose ?? o.compose) as ComposeResult | undefined;
+  const message =
+    typeof o.message === 'string'
+      ? o.message
+      : typeof meta.message === 'string'
+        ? meta.message
+        : undefined;
+  const data = ('data' in o ? o.data : o) as SiteProvision;
+  return { data, compose, message };
+}
+
+function readSiblingMeta(res: { data: unknown }): Record<string, unknown> {
+  const body = res.data;
+  if (!body || typeof body !== 'object') return {};
+  const o = body as Record<string, unknown>;
+  if (o.meta && typeof o.meta === 'object') return o.meta as Record<string, unknown>;
+  return {};
+}
+
+function normalizeInstallStatus(raw: unknown): string {
+  if (raw == null) return '';
+  if (typeof raw === 'string') return raw;
+  if (typeof raw !== 'object') return String(raw);
+  const o = raw as Record<string, unknown>;
+  const install = o.install && typeof o.install === 'object' ? (o.install as Record<string, unknown>) : null;
+  const tenant = o.tenant && typeof o.tenant === 'object' ? (o.tenant as Record<string, unknown>) : null;
+  const status = o.status ?? install?.status ?? tenant?.status ?? '';
+  return status == null ? '' : String(status);
+}
 
 export type BusinessCategory = {
   id: number;
@@ -158,19 +212,13 @@ export async function fetchPackages(businessTypeId?: number) {
 
 export async function fetchProvisions(page = 1, perPage = 20) {
   const res = await apiClient.get(`${BASE}/provisions`, { params: { page, per_page: perPage } });
-  const raw = unwrapData<{ data?: SiteProvision[]; current_page?: number; last_page?: number; total?: number } | SiteProvision[]>(res);
-  if (Array.isArray(raw)) {
-    return { data: raw, current_page: 1, last_page: 1, total: raw.length };
-  }
-  if (raw && typeof raw === 'object' && Array.isArray(raw.data)) {
-    return {
-      data: raw.data,
-      current_page: Number(raw.current_page ?? page),
-      last_page: Number(raw.last_page ?? 1),
-      total: Number(raw.total ?? raw.data.length),
-    };
-  }
-  return { data: [] as SiteProvision[], current_page: 1, last_page: 1, total: 0 };
+  const { rows, meta } = readPage<SiteProvision>(res.data);
+  return {
+    data: rows,
+    current_page: Number(meta.current_page ?? page),
+    last_page: Number(meta.last_page ?? 1),
+    total: Number(meta.total ?? rows.length),
+  };
 }
 
 export async function destroyProvision(id: number) {
@@ -193,7 +241,14 @@ export async function updateProvisionAdmin(
   body: { name?: string; email?: string; password?: string },
 ) {
   const res = await apiClient.post(`${BASE}/provisions/${id}/admin`, body);
-  return unwrapData<SiteProvision>(res);
+  const meta = readSiblingMeta(res);
+  return {
+    data: unwrapData<SiteProvision>(res),
+    tenant: meta.tenant,
+    message: typeof (res.data as { message?: string })?.message === 'string'
+      ? (res.data as { message?: string }).message
+      : undefined,
+  };
 }
 
 export async function installModuleOnSiteApi(
@@ -202,12 +257,23 @@ export async function installModuleOnSiteApi(
   async = true,
 ) {
   const res = await apiClient.post(`${BASE}/provisions/${id}/modules/install`, { slug, async });
-  return unwrapData(res);
+  const meta = readSiblingMeta(res);
+  return {
+    data: unwrapData(res),
+    queued: meta.queued ?? (res.data as { queued?: boolean })?.queued,
+  };
 }
 
 export async function moduleInstallStatusApi(id: number, slug: string) {
   const res = await apiClient.get(`${BASE}/provisions/${id}/modules/${slug}/status`);
-  return unwrapData(res);
+  const raw = unwrapData(res);
+  const status = normalizeInstallStatus(raw);
+  return {
+    raw,
+    status,
+    install: { status },
+    tenant: { status },
+  };
 }
 
 export async function updateProvisionModules(
@@ -221,7 +287,20 @@ export async function updateProvisionModules(
   },
 ) {
   const res = await apiClient.post(`${BASE}/provisions/${id}/modules`, body);
-  return unwrapData<SiteProvision>(res);
+  const meta = readSiblingMeta(res);
+  const message =
+    typeof (res.data as { message?: string })?.message === 'string'
+      ? (res.data as { message?: string }).message
+      : undefined;
+  return {
+    data: unwrapData<SiteProvision>(res),
+    install: meta.install,
+    license_sync_error:
+      typeof meta.license_sync_error === 'string' ? meta.license_sync_error : undefined,
+    message:
+      message ??
+      (typeof meta.license_sync_error === 'string' ? meta.license_sync_error : undefined),
+  };
 }
 
 export async function setProvisionChannel(id: number, channel: 'beta' | 'stable' | 'latest') {
@@ -289,38 +368,20 @@ export async function stopProvision(id: number) {
 
 export async function repairProvisionDatabase(id: number) {
   const res = await apiClient.post(`${BASE}/provisions/${id}/repair-db`);
-  return res.data as {
-    data: SiteProvision;
-    compose?: {
-      exit_code?: number;
-      log?: string;
-      stdout?: string;
-      stderr?: string;
-      message?: string;
-      stages?: Record<string, boolean>;
-    };
-    message?: string;
-  };
+  return readActionWithCompose(res);
 }
 
 export async function bootstrapProvisionSite(id: number) {
   const res = await apiClient.post(`${BASE}/provisions/${id}/bootstrap`);
-  return res.data as {
-    data: SiteProvision;
-    compose?: {
-      exit_code?: number;
-      log?: string;
-      stdout?: string;
-      stderr?: string;
-      message?: string;
-    };
-    message?: string;
-  };
+  return readActionWithCompose(res);
 }
 
 export async function fetchProvisionLogs(id: number, tail = 80) {
   const res = await apiClient.get(`${BASE}/provisions/${id}/logs`, { params: { tail } });
-  return unwrapData<{ provision_id?: number; slug?: string; logs?: string } | string>(res);
+  const raw = unwrapData<{ provision_id?: number; slug?: string; logs?: string } | string>(res);
+  if (typeof raw === 'string') return raw;
+  if (raw && typeof raw === 'object' && typeof raw.logs === 'string') return raw.logs;
+  return '';
 }
 
 export async function saveCategory(body: Partial<BusinessCategory> & { id?: number }) {

@@ -371,7 +371,9 @@ class SiteBuilderApiTest extends TestCase
 
         $this->postJson('/api/v1/site-builder/provisions/'.$provision->id.'/stop')
             ->assertOk()
-            ->assertJsonPath('data.power_state', 'stopped');
+            ->assertJsonPath('data.power_state', 'stopped')
+            ->assertJsonPath('meta.compose.exit_code', 0)
+            ->assertJsonPath('meta.power_state', 'stopped');
 
         $this->assertDatabaseHas('platform_resources', [
             'provision_id' => $provision->id,
@@ -447,5 +449,60 @@ class SiteBuilderApiTest extends TestCase
         \Illuminate\Support\Facades\Bus::assertDispatched(
             \Modules\SiteBuilder\Jobs\ProvisionWebinoSiteJob::class
         );
+    }
+
+    public function test_repair_db_and_bootstrap_preserve_compose_in_meta(): void
+    {
+        $user = $this->actingAsRole('system_manager');
+        Sanctum::actingAs($user);
+
+        $package = WebinoPackage::query()->first();
+        $provision = WebinoSiteProvision::query()->create([
+            'package_id' => $package->id,
+            'slug' => 'compose-cafe',
+            'domain' => 'compose-cafe.webinaagency.ir',
+            'status' => WebinoSiteProvision::STATUS_READY,
+            'wizard_payload' => ['site_name' => 'Compose Cafe'],
+            'provision_token' => 'tok-compose-cafe',
+        ]);
+
+        $this->mock(\Modules\SiteBuilder\Services\SiteProvisionOrchestrator::class, function ($mock) use ($provision) {
+            $mock->shouldReceive('repairDatabase')->once()->andReturn([
+                'exit_code' => 0,
+                'stdout' => 'ok',
+                'stderr' => '',
+                'log' => 'repaired',
+                'stages' => ['db_auth' => true],
+            ]);
+            $mock->shouldReceive('bootstrapSite')->once()->andReturn([
+                'exit_code' => 0,
+                'stdout' => 'bootstrapped',
+                'stderr' => '',
+                'log' => 'bootstrapped',
+            ]);
+            $mock->shouldReceive('powerState')->andReturn('running');
+            $mock->shouldReceive('sslInfo')->andReturn([
+                'ssl_status' => null,
+                'expires_at' => null,
+                'domain' => $provision->domain,
+            ]);
+            $mock->shouldReceive('stackDiagnostics')->andReturn([
+                'project' => 'ws-compose-cafe',
+                'containers' => [],
+                'log' => '',
+            ]);
+        });
+
+        $this->postJson('/api/v1/site-builder/provisions/'.$provision->id.'/repair-db')
+            ->assertOk()
+            ->assertJsonPath('success', true)
+            ->assertJsonPath('meta.compose.exit_code', 0)
+            ->assertJsonPath('meta.compose.log', 'repaired')
+            ->assertJsonPath('data.id', $provision->id);
+
+        $this->postJson('/api/v1/site-builder/provisions/'.$provision->id.'/bootstrap')
+            ->assertOk()
+            ->assertJsonPath('meta.compose.exit_code', 0)
+            ->assertJsonPath('data.id', $provision->id);
     }
 }

@@ -15,6 +15,16 @@ function resolveApiBase(): string {
 
 const API_URL = resolveApiBase()
 
+/** Sibling fields Site Builder (and similar) attach next to `data` before/after envelope. */
+const RESPONSE_SIBLING_KEYS = [
+  'compose',
+  'power_state',
+  'tenant',
+  'queued',
+  'install',
+  'license_sync_error',
+] as const
+
 export const apiClient: AxiosInstance = axios.create({
   baseURL: API_URL,
   headers: {
@@ -28,15 +38,25 @@ export const apiClient: AxiosInstance = axios.create({
 apiClient.interceptors.response.use(
   (response) => {
     if (response.data && typeof response.data === 'object') {
-      const unwrapped = unwrapApiResponse(response.data);
-      if (unwrapped.meta != null) {
+      const raw = response.data as Record<string, unknown>
+      const unwrapped = unwrapApiResponse(response.data)
+      const meta: Record<string, unknown> = {
+        ...(unwrapped.meta && typeof unwrapped.meta === 'object' ? unwrapped.meta : {}),
+      }
+      for (const key of RESPONSE_SIBLING_KEYS) {
+        if (key in raw && !(key in meta)) {
+          meta[key] = raw[key]
+        }
+      }
+      const hasMeta = Object.keys(meta).length > 0
+      if (hasMeta || unwrapped.message != null) {
         response.data = {
           data: unwrapped.data,
-          meta: unwrapped.meta,
-          ...(unwrapped.message ? { message: unwrapped.message } : {}),
-        };
+          ...(hasMeta ? { meta } : {}),
+          ...(unwrapped.message != null ? { message: unwrapped.message } : {}),
+        }
       } else {
-        response.data = unwrapped.data;
+        response.data = unwrapped.data
       }
     }
     return response;

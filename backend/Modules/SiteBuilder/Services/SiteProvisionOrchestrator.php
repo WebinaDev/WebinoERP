@@ -473,6 +473,7 @@ class SiteProvisionOrchestrator
             'default_currency' => $payload['currency'] ?? 'IRR',
             'domain' => $provision->domain,
             'license_key' => $provision->license?->license_key,
+            'provision_token' => $provision->provision_token,
             'business_category_slug' => $category?->slug,
             'business_type_slug' => $type?->slug,
             'site_type_slug' => $siteType,

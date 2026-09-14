@@ -143,14 +143,7 @@ export function SiteControlPanelPage({ id }: { id: string }) {
     if (!Number.isFinite(provisionId)) return;
     setLogsBusy(true);
     try {
-      const raw = await fetchProvisionLogs(provisionId, 80);
-      const text =
-        typeof raw === 'string'
-          ? raw
-          : raw && typeof raw === 'object' && 'logs' in raw
-            ? String(raw.logs ?? '')
-            : '';
-      setComposeLogs(text);
+      setComposeLogs(await fetchProvisionLogs(provisionId, 80));
     } catch (e) {
       setComposeLogs(getAxiosMessage(e) || t('loadError'));
     } finally {
@@ -305,30 +298,34 @@ export function SiteControlPanelPage({ id }: { id: string }) {
         <div className="grid gap-4 xl:grid-cols-2">
           <Section icon={Power} title={t('controlPower')} description={t('controlPowerHint')} testId="control-power">
             <div className="flex flex-wrap gap-2">
-              <Button
-                type="button"
-                className="gap-1.5"
-                disabled={busy !== null}
-                onClick={() => void run('start', () => startProvision(provisionId))}
-                data-testid="control-start"
-              >
-                <Power className="size-4" />
-                {t('start')}
-              </Button>
-              <Button
-                type="button"
-                variant="outline"
-                className="gap-1.5"
-                disabled={busy !== null}
-                onClick={() => {
-                  if (!window.confirm(t('controlConfirmStop'))) return;
-                  void run('stop', () => stopProvision(provisionId));
-                }}
-                data-testid="control-stop"
-              >
-                <PowerOff className="size-4" />
-                {t('stop')}
-              </Button>
+              {power !== 'running' ? (
+                <Button
+                  type="button"
+                  className="gap-1.5"
+                  disabled={busy !== null}
+                  onClick={() => void run('start', () => startProvision(provisionId))}
+                  data-testid="control-start"
+                >
+                  <Power className="size-4" />
+                  {t('start')}
+                </Button>
+              ) : null}
+              {power !== 'stopped' ? (
+                <Button
+                  type="button"
+                  variant="outline"
+                  className="gap-1.5"
+                  disabled={busy !== null}
+                  onClick={() => {
+                    if (!window.confirm(t('controlConfirmStop'))) return;
+                    void run('stop', () => stopProvision(provisionId));
+                  }}
+                  data-testid="control-stop"
+                >
+                  <PowerOff className="size-4" />
+                  {t('stop')}
+                </Button>
+              ) : null}
             </div>
           </Section>
 
@@ -507,12 +504,15 @@ export function SiteControlPanelPage({ id }: { id: string }) {
                       checked={on}
                       disabled={busy !== null}
                       onCheckedChange={(checked) =>
-                        void run(`mod-${slug}`, () =>
-                          updateProvisionModules(provisionId, {
+                        void run(`mod-${slug}`, async () => {
+                          const result = await updateProvisionModules(provisionId, {
                             enable: checked ? [slug] : undefined,
                             disable: checked ? undefined : [slug],
-                          }),
-                        )
+                          });
+                          if (result.license_sync_error) {
+                            throw new Error(result.license_sync_error);
+                          }
+                        })
                       }
                     />
                   </div>
@@ -543,11 +543,8 @@ export function SiteControlPanelPage({ id }: { id: string }) {
                     setInstallStatus(t('controlInstallQueued'));
                     for (let i = 0; i < 20; i++) {
                       await new Promise((r) => setTimeout(r, 2000));
-                      const st = (await moduleInstallStatusApi(provisionId, slug)) as {
-                        install?: { status?: string };
-                        tenant?: { status?: string };
-                      };
-                      const status = String(st?.install?.status ?? st?.tenant?.status ?? '');
+                      const st = await moduleInstallStatusApi(provisionId, slug);
+                      const status = st.status || '';
                       setInstallStatus(status || t('controlInstallQueued'));
                       if (['done', 'completed', 'failed', 'error', 'success'].includes(status)) break;
                     }

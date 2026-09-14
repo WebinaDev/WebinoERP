@@ -9,6 +9,16 @@ use Symfony\Component\HttpFoundation\Response;
 
 class ApiResponseFormatter
 {
+    /** @var list<string> */
+    private const SUCCESS_SIBLING_KEYS = [
+        'compose',
+        'power_state',
+        'tenant',
+        'queued',
+        'install',
+        'license_sync_error',
+    ];
+
     /**
      * Normalize API responses to the Webina envelope:
      * { success, data, message, meta, errors }
@@ -95,7 +105,7 @@ class ApiResponseFormatter
     private function formatSuccess(array $content): array
     {
         $message = null;
-        $meta = null;
+        $meta = [];
         $data = $content;
 
         if (isset($content['message']) && is_string($content['message'])) {
@@ -108,11 +118,18 @@ class ApiResponseFormatter
             unset($data['meta']);
         }
 
+        foreach (self::SUCCESS_SIBLING_KEYS as $key) {
+            if (array_key_exists($key, $content)) {
+                $meta[$key] = $content[$key];
+                unset($data[$key]);
+            }
+        }
+
         if (isset($content['data'])) {
             $data = $content['data'];
         }
 
-        if (count($data) === 1 && array_key_exists('data', $data) && is_array($data['data'])) {
+        if (is_array($data) && count($data) === 1 && array_key_exists('data', $data) && is_array($data['data'])) {
             $data = $data['data'];
         }
 
@@ -120,7 +137,7 @@ class ApiResponseFormatter
             'success' => true,
             'data' => $data,
             'message' => $message,
-            'meta' => $meta,
+            'meta' => $meta === [] ? null : $meta,
             'errors' => null,
         ];
     }
