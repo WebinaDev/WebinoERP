@@ -229,7 +229,7 @@
         "invoices": "پیش‌فاکتورها",
         "catalog": "کاتالوگ",
         "campaigns": "کمپین‌ها",
-        "rahnPercent": "محاسبه تعرفه قرارداد",
+        "rahnPercent": "نرخ‌نامه",
         "bale": "ربات کسب‌وکار",
         "modirpayamak": "مدیرپیامک"
       },
@@ -3049,7 +3049,15 @@
     "provisionsTitle": "سایت‌های ایجادشده",
     "provisionsSubtitle": "وضعیت نصب و لایسنس",
     "newProvision": "ایجاد سایت جدید",
-    "status": "وضعیت",
+    "status": {
+      "draft": "پیش‌نویس",
+      "pending": "در صف",
+      "provisioning": "در حال راه‌اندازی",
+      "ssl_pending": "منتظر SSL",
+      "ready": "آماده",
+      "failed": "ناموفق",
+      "cancelled": "لغو شده"
+    },
     "wizardTitle": "ویزارد ایجاد سایت",
     "stepCustomer": "مشتری",
     "stepCategory": "دسته‌بندی",
@@ -3229,15 +3237,6 @@
     "emptyProvisions": "هنوز سایتی ساخته نشده است.",
     "prevPage": "قبلی",
     "nextPage": "بعدی",
-    "status": {
-      "draft": "پیش‌نویس",
-      "pending": "در صف",
-      "provisioning": "در حال راه‌اندازی",
-      "ssl_pending": "منتظر SSL",
-      "ready": "آماده",
-      "failed": "ناموفق",
-      "cancelled": "لغو شده"
-    },
     "power": {
       "running": "روشن",
       "stopped": "خاموش",
@@ -4333,9 +4332,9 @@
       "channel_other": "سایر"
     },
     "rahn": {
-      "title": "ماشین‌حساب رهن‌درصد",
-      "description": "تعیین ثابت و درصد قرارداد، صورتحساب ماهانه و تنظیم هزینه‌ها.",
-      "tabCalculator": "ماشین‌حساب",
+      "title": "نرخ‌نامه",
+      "description": "ویزارد تعرفه قرارداد: موضوع، حوزه، خدمات، مدت و مبدل ثابت ↔ درصد با لینک اشتراک مشتری.",
+      "tabCalculator": "ویزارد نرخ‌نامه",
       "tabStatements": "صورتحساب ماهانه",
       "tabQuotes": "پیش‌نویس‌ها",
       "tabSettings": "تنظیمات",
@@ -4418,7 +4417,42 @@
       "history": "تاریخچه",
       "noHistory": "صورتحسابی ثبت نشده.",
       "noQuotes": "پیش‌نویسی نیست.",
-      "clause": "بند رهن‌درصد"
+      "clause": "بند رهن‌درصد",
+      "lockedAt": "قفل",
+      "wizard": {
+        "stepBusiness": "کسب‌وکار",
+        "stepTopic": "موضوع",
+        "stepDomain": "حوزه",
+        "stepServices": "خدمات",
+        "stepDeal": "تعرفه",
+        "stepSummary": "خلاصه و اشتراک",
+        "businessTitle": "شروع نرخ‌نامه",
+        "businessName": "نام کسب‌وکار",
+        "businessPlaceholder": "مثلاً کافه نور یا فروشگاه آرایشی گل‌رخ",
+        "businessRequired": "نام کسب‌وکار را وارد کنید.",
+        "topicRequired": "موضوع را انتخاب کنید.",
+        "domainRequired": "حوزه را انتخاب کنید.",
+        "domainHint": "حوزه، درصد پیشنهادی را مشخص می‌کند؛ بعداً با افزایش ثابت می‌توانید درصد را کم کنید.",
+        "domainSuggest": "پیشنهاد حوزه {name}: حدود {percent}٪",
+        "exclusive": "انتخاب تکی",
+        "durationMonths": "{months} ماه",
+        "pFloorCeil": "کف {min}٪ — سقف {max}٪",
+        "fixedHint": "با افزایش مبلغ ثابت ماهانه، درصد فروش تا کف تنظیمات پایین می‌آید.",
+        "summaryTitle": "خلاصه پیشنهاد",
+        "noServices": "خدمتی انتخاب نشده است.",
+        "prev": "قبلی",
+        "next": "بعدی",
+        "topics": "موضوع‌ها",
+        "domains": "حوزه‌ها",
+        "categories": "دسته‌های خدمت",
+        "pSuggest": "درصد پیشنهادی",
+        "addTopic": "افزودن موضوع",
+        "addDomain": "افزودن حوزه",
+        "addCategory": "افزودن دسته",
+        "feeLabel": "برچسب کارمزد",
+        "choiceGroup": "گروه انتخاب تکی",
+        "categoryId": "شناسه دسته"
+      }
     }
   },
   "auto": {

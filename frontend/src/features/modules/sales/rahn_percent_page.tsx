@@ -29,7 +29,13 @@ export function RahnPercentPage() {
           setError(t('loadError'));
           return;
         }
-        setSettings(settings);
+        setSettings({
+          ...settings,
+          topics: settings.topics ?? [],
+          domains: settings.domains ?? [],
+          categories: settings.categories ?? [],
+          duration_options: settings.duration_options?.length ? settings.duration_options : [6, 9, 12, 18, 24],
+        });
       })
       .catch(() => setError(t('loadError')))
       .finally(() => setLoading(false));
@@ -55,6 +61,7 @@ export function RahnPercentPage() {
 
   return (
     <CrmPageLayout title={t('title')} description={t('description')}>
+      <div className="space-y-4 text-start" dir="rtl">
       <Tabs defaultValue="calculator">
         <TabsList className="flex h-auto flex-wrap gap-1">
           <TabsTrigger value="calculator">{t('tabCalculator')}</TabsTrigger>
@@ -75,6 +82,7 @@ export function RahnPercentPage() {
           <RahnSettingsTab settings={settings} onSaved={setSettings} />
         </TabsContent>
       </Tabs>
+      </div>
     </CrmPageLayout>
   );
 }

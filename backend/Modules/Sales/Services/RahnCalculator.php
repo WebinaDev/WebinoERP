@@ -238,6 +238,10 @@ class RahnCalculator
                 'period_months' => (int) ($item['period_months'] ?? 1),
                 'renewable' => ! empty($item['renewable']),
                 'description' => (string) ($item['description'] ?? ''),
+                'category' => (string) ($item['category'] ?? ''),
+                'category_id' => (string) ($item['category_id'] ?? ''),
+                'fee_label' => (string) ($item['fee_label'] ?? ''),
+                'amount' => (float) ($item['amount'] ?? 0),
             ];
         }
 

@@ -14,7 +14,7 @@ import { RAHN_API, type RahnQuote } from './types';
 export function RahnQuotesTab() {
   const t = useTranslations('sales.rahn');
   const tCommon = useTranslations('common');
-  const { formatNumber } = useLocale();
+  const { formatNumber, formatDate } = useLocale();
   const [quotes, setQuotes] = useState<RahnQuote[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -22,8 +22,8 @@ export function RahnQuotesTab() {
     setLoading(true);
     try {
       const res = await apiClient.get(`${RAHN_API}/quotes`, { params: { paged: 1 } });
-      const data = res.data as { quotes?: RahnQuote[] };
-      setQuotes(data?.quotes ?? []);
+      const body = res.data as { quotes?: RahnQuote[]; data?: { quotes?: RahnQuote[] } };
+      setQuotes(body?.quotes ?? body?.data?.quotes ?? []);
     } catch {
       toast.error(t('loadError'));
     } finally {
@@ -47,8 +47,8 @@ export function RahnQuotesTab() {
   const remove = async (id: number) => {
     try {
       const res = await apiClient.delete(`${RAHN_API}/quotes/${id}`);
-      const data = res.data as { message?: string };
-      toast.success(data?.message || t('deleted'));
+      const body = res.data as { message?: string; data?: { message?: string } };
+      toast.success(body?.data?.message || body?.message || t('deleted'));
       void load();
     } catch {
       toast.error(t('saveError'));
@@ -64,7 +64,7 @@ export function RahnQuotesTab() {
   }
 
   return (
-    <div className="space-y-3">
+    <div className="space-y-3 text-start" dir="rtl">
       <div className="flex justify-end">
         <Button type="button" size="sm" variant="outline" onClick={() => void load()}>
           <RefreshCw className="h-4 w-4" />
@@ -74,16 +74,28 @@ export function RahnQuotesTab() {
       {quotes.map((q) => (
         <Card key={q.id}>
           <CardContent className="flex flex-wrap items-center gap-3 p-4">
-            <div className="flex-1 min-w-0">
-              <div className="flex items-center gap-2 flex-wrap">
+            <div className="min-w-0 flex-1">
+              <div className="flex flex-wrap items-center gap-2">
                 <span className="font-medium">{q.title}</span>
                 <Badge variant="secondary">{q.status}</Badge>
               </div>
-              <div className="text-sm text-muted-foreground mt-1">
+              {q.wizard?.business_name ? (
+                <div className="mt-1 text-sm text-muted-foreground">{q.wizard.business_name}</div>
+              ) : null}
+              <div className="mt-1 text-sm text-muted-foreground">
                 {formatNumber(Math.round(q.F))} {t('toman')} +{' '}
                 {formatNumber(Math.round(q.p_percent * 100) / 100)}%
+                {q.duration ? ` · ${q.duration} ${t('months')}` : null}
               </div>
-              <div className="text-xs text-muted-foreground break-all mt-1 text-start" dir="ltr">{q.share_url}</div>
+              <div className="mt-1 text-xs text-muted-foreground">
+                {q.created_at ? formatDate(q.created_at, { includeTime: true }) || q.created_at : null}
+                {q.locked_at
+                  ? ` · ${t('lockedAt')}: ${formatDate(q.locked_at, { includeTime: true }) || q.locked_at}`
+                  : null}
+              </div>
+              <div className="mt-1 break-all text-start text-xs text-muted-foreground" dir="ltr">
+                {q.share_url}
+              </div>
             </div>
             <Button type="button" size="sm" variant="outline" onClick={() => void copy(q.share_url)}>
               <Copy className="h-4 w-4" />

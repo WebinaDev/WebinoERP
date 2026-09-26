@@ -130,7 +130,7 @@ export function RahnStatementsTab({ settings }: Props) {
   ).filter(([key]) => settings.sales_definition[key]?.enabled);
 
   return (
-    <div className="grid gap-6 lg:grid-cols-2">
+    <div className="grid gap-6 text-start lg:grid-cols-2" dir="rtl">
       <Card>
         <CardHeader>
           <CardTitle className="text-base">{t('monthlyBilling')}</CardTitle>

@@ -1,5 +1,35 @@
 export type RahnBilling = 'once' | 'monthly' | 'yearly' | 'custom';
 
+export const RAHN_DURATION_OPTIONS = [6, 9, 12, 18, 24] as const;
+export type RahnDuration = (typeof RAHN_DURATION_OPTIONS)[number];
+
+export interface RahnTopic {
+  id: string;
+  name: string;
+  description?: string;
+  sort_order: number;
+  active?: boolean;
+}
+
+export interface RahnDomain {
+  id: string;
+  topic_id: string;
+  name: string;
+  description?: string;
+  /** Suggested revenue share 0–1 (e.g. gold low, cosmetics high). */
+  p_suggest: number;
+  sort_order: number;
+  active?: boolean;
+}
+
+export interface RahnServiceCategory {
+  id: string;
+  name: string;
+  description?: string;
+  sort_order: number;
+  active?: boolean;
+}
+
 export interface RahnCatalogItem {
   id: string;
   name: string;
@@ -9,9 +39,16 @@ export interface RahnCatalogItem {
   amount: number;
   active: boolean;
   default_selected: boolean;
+  /** Display category label (legacy + fallback). */
   category: string;
+  category_id?: string;
   description: string;
   sort_order: number;
+  /** Mutually exclusive option group (radio). */
+  choice_group?: string;
+  choice_value?: string;
+  /** Extra line for customer (e.g. gateway fee). */
+  fee_label?: string;
 }
 
 export interface RahnSettings {
@@ -23,13 +60,23 @@ export interface RahnSettings {
   p_default: number;
   s_hat_default: number;
   clause_template: string;
+  duration_options: number[];
   review: {
     enabled: boolean;
     deviation_percent: number;
     consecutive_months: number;
   };
   sales_definition: Record<'G' | 'R' | 'D' | 'X', { enabled: boolean; label: string }>;
+  topics: RahnTopic[];
+  domains: RahnDomain[];
+  categories: RahnServiceCategory[];
   catalog: RahnCatalogItem[];
+}
+
+export interface RahnWizardMeta {
+  business_name?: string;
+  topic_id?: string;
+  domain_id?: string;
 }
 
 export interface RahnLockResult {
@@ -78,6 +125,8 @@ export interface RahnPublicPayload {
     period_months: number;
     renewable: boolean;
     description: string;
+    category?: string;
+    fee_label?: string;
   }>;
   clause: string;
 }
@@ -97,6 +146,7 @@ export interface RahnCalcResponse {
     k: number;
     breakdown: RahnLockResult['breakdown'];
   };
+  wizard?: RahnWizardMeta;
 }
 
 export interface RahnQuote {
@@ -118,6 +168,7 @@ export interface RahnQuote {
   created_at: string;
   updated_at: string;
   selected_ids: string[];
+  wizard?: RahnWizardMeta;
 }
 
 export interface RahnContract {
@@ -149,3 +200,9 @@ export interface RahnBill {
 }
 
 export const RAHN_API = '/v1/sales/rahn';
+
+export function clampRahnDuration(value: number, options: number[] = [...RAHN_DURATION_OPTIONS]): number {
+  const opts = options.length ? options : [...RAHN_DURATION_OPTIONS];
+  if (opts.includes(value)) return value;
+  return opts.reduce((best, cur) => (Math.abs(cur - value) < Math.abs(best - value) ? cur : best), opts[0]!);
+}

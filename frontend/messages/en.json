@@ -229,7 +229,7 @@
         "invoices": "Quotations",
         "catalog": "Catalog",
         "campaigns": "Campaigns",
-        "rahnPercent": "Contract tariff calculator",
+        "rahnPercent": "Nerkhnameh",
         "bale": "Bale business bot",
         "modirpayamak": "ModirPayamak SMS"
       },
@@ -3050,7 +3050,15 @@
     "provisionsTitle": "Provisioned sites",
     "provisionsSubtitle": "Install status and licenses",
     "newProvision": "Create new site",
-    "status": "Status",
+    "status": {
+      "draft": "Draft",
+      "pending": "Pending",
+      "provisioning": "Provisioning",
+      "ssl_pending": "SSL pending",
+      "ready": "Ready",
+      "failed": "Failed",
+      "cancelled": "Cancelled"
+    },
     "wizardTitle": "Site creation wizard",
     "stepCustomer": "Customer",
     "stepCategory": "Category",
@@ -3230,15 +3238,6 @@
     "emptyProvisions": "No sites yet.",
     "prevPage": "Previous",
     "nextPage": "Next",
-    "status": {
-      "draft": "Draft",
-      "pending": "Pending",
-      "provisioning": "Provisioning",
-      "ssl_pending": "SSL pending",
-      "ready": "Ready",
-      "failed": "Failed",
-      "cancelled": "Cancelled"
-    },
     "power": {
       "running": "Running",
       "stopped": "Stopped",
@@ -4334,9 +4333,9 @@
       "channel_other": "Other"
     },
     "rahn": {
-      "title": "Rahn-percent calculator",
-      "description": "Lock fixed fee and percent, monthly statements, and cost settings.",
-      "tabCalculator": "Calculator",
+      "title": "Nerkhnameh",
+      "description": "Contract tariff wizard: topic, domain, services, duration, and fixed ↔ percent negotiation with a shareable customer link.",
+      "tabCalculator": "Nerkhnameh wizard",
       "tabStatements": "Monthly statements",
       "tabQuotes": "Quotes",
       "tabSettings": "Settings",
@@ -4419,7 +4418,42 @@
       "history": "History",
       "noHistory": "No statements yet.",
       "noQuotes": "No quotes yet.",
-      "clause": "Rahn-percent clause"
+      "clause": "Rahn-percent clause",
+      "lockedAt": "Locked",
+      "wizard": {
+        "stepBusiness": "Business",
+        "stepTopic": "Topic",
+        "stepDomain": "Domain",
+        "stepServices": "Services",
+        "stepDeal": "Tariff",
+        "stepSummary": "Summary & share",
+        "businessTitle": "Start Nerkhnameh",
+        "businessName": "Business name",
+        "businessPlaceholder": "e.g. Cafe Noor",
+        "businessRequired": "Enter a business name.",
+        "topicRequired": "Pick a topic.",
+        "domainRequired": "Pick a domain.",
+        "domainHint": "Domain sets the suggested percent; raising fixed fee later lowers percent.",
+        "domainSuggest": "{name} suggests about {percent}%",
+        "exclusive": "Single choice",
+        "durationMonths": "{months} months",
+        "pFloorCeil": "Floor {min}% — ceiling {max}%",
+        "fixedHint": "Raising the fixed monthly fee lowers the revenue share toward the floor.",
+        "summaryTitle": "Proposal summary",
+        "noServices": "No services selected.",
+        "prev": "Back",
+        "next": "Next",
+        "topics": "Topics",
+        "domains": "Domains",
+        "categories": "Service categories",
+        "pSuggest": "Suggested %",
+        "addTopic": "Add topic",
+        "addDomain": "Add domain",
+        "addCategory": "Add category",
+        "feeLabel": "Fee label",
+        "choiceGroup": "Exclusive group",
+        "categoryId": "Category id"
+      }
     }
   },
   "auto": {

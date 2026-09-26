@@ -1,7 +1,8 @@
 'use client';
 
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useParams } from 'next/navigation';
+import { ArrowLeft, ArrowRight } from 'lucide-react';
 
 type PublicPayload = {
   F: number;
@@ -14,7 +15,15 @@ type PublicPayload = {
   p_min: number;
   p_max: number;
   F_min: number;
-  services: Array<{ id: string; name: string; billing: string; description: string }>;
+  services: Array<{
+    id: string;
+    name: string;
+    billing: string;
+    description: string;
+    category?: string;
+    fee_label?: string;
+    amount?: number;
+  }>;
   clause: string;
 };
 
@@ -24,10 +33,21 @@ type CatalogItem = {
   billing: string;
   period_months: number;
   renewable: boolean;
+  amount?: number;
   category: string;
+  category_id?: string;
   description: string;
   default_selected: boolean;
+  choice_group?: string;
+  choice_value?: string;
+  fee_label?: string;
+  sort_order?: number;
+  active?: boolean;
 };
+
+type Topic = { id: string; name: string; description?: string; sort_order: number };
+type Domain = { id: string; topic_id: string; name: string; description?: string; p_suggest: number; sort_order: number };
+type Category = { id: string; name: string; description?: string; sort_order: number };
 
 function money(n: number) {
   return Math.round(n).toLocaleString('fa-IR');
@@ -46,6 +66,30 @@ async function rahnPublicApi<T>(path: string, init?: RequestInit): Promise<{ ok:
   return { ok: res.ok, data: json.data, message: json.message };
 }
 
+function toggleSelection(catalog: CatalogItem[], selected: string[], id: string, checked: boolean): string[] {
+  const item = catalog.find((c) => c.id === id);
+  if (!item) return selected;
+  const group = item.choice_group?.trim();
+  if (group) {
+    const groupIds = new Set(catalog.filter((c) => c.choice_group === group).map((c) => c.id));
+    const without = selected.filter((x) => !groupIds.has(x));
+    return checked ? [...without, id] : without;
+  }
+  return checked ? (selected.includes(id) ? selected : [...selected, id]) : selected.filter((x) => x !== id);
+}
+
+const STEPS = ['business', 'topic', 'domain', 'services', 'deal', 'contact'] as const;
+type Step = (typeof STEPS)[number];
+
+const STEP_LABELS: Record<Step, string> = {
+  business: 'کسب‌وکار',
+  topic: 'موضوع',
+  domain: 'حوزه',
+  services: 'خدمات',
+  deal: 'تعرفه',
+  contact: 'ثبت درخواست',
+};
+
 export default function RahnPublicPage() {
   const params = useParams();
   const token = String(params?.token ?? '');
@@ -55,20 +99,29 @@ export default function RahnPublicPage() {
   const [title, setTitle] = useState('');
   const [locked, setLocked] = useState(false);
   const [catalog, setCatalog] = useState<CatalogItem[]>([]);
+  const [topics, setTopics] = useState<Topic[]>([]);
+  const [domains, setDomains] = useState<Domain[]>([]);
+  const [categories, setCategories] = useState<Category[]>([]);
+  const [durationOptions, setDurationOptions] = useState<number[]>([6, 9, 12, 18, 24]);
   const [selected, setSelected] = useState<string[]>([]);
   const [pub, setPub] = useState<PublicPayload | null>(null);
   const [pMin, setPMin] = useState(0.05);
   const [pMax, setPMax] = useState(0.25);
   const [sHat, setSHat] = useState(0);
+  const [duration, setDuration] = useState(12);
   const [pPercent, setPPercent] = useState(10);
   const [mode, setMode] = useState<'from_p' | 'from_f'>('from_p');
   const [fWanted, setFWanted] = useState(0);
+  const [businessName, setBusinessName] = useState('');
+  const [topicId, setTopicId] = useState('');
+  const [domainId, setDomainId] = useState('');
   const [name, setName] = useState('');
   const [phone, setPhone] = useState('');
   const [email, setEmail] = useState('');
   const [note, setNote] = useState('');
   const [submitted, setSubmitted] = useState(false);
   const [siteName, setSiteName] = useState('Webino');
+  const [step, setStep] = useState<Step>('business');
 
   const load = useCallback(async () => {
     if (!token) return;
@@ -78,11 +131,17 @@ export default function RahnPublicPage() {
         title: string;
         locked: boolean;
         catalog: CatalogItem[];
+        topics?: Topic[];
+        domains?: Domain[];
+        categories?: Category[];
+        duration_options?: number[];
         selected_ids: string[];
         public: PublicPayload;
         p_min: number;
         p_max: number;
         s_hat: number;
+        T?: number;
+        wizard?: { business_name?: string; topic_id?: string; domain_id?: string };
         site_name?: string;
       }>(token);
       if (!res.ok || !res.data) {
@@ -92,13 +151,21 @@ export default function RahnPublicPage() {
       setTitle(res.data.title);
       setLocked(!!res.data.locked);
       setCatalog(res.data.catalog || []);
+      setTopics(res.data.topics || []);
+      setDomains(res.data.domains || []);
+      setCategories(res.data.categories || []);
+      setDurationOptions(res.data.duration_options?.length ? res.data.duration_options : [6, 9, 12, 18, 24]);
       setSelected(res.data.selected_ids || []);
       setPub(res.data.public);
       setPMin(res.data.p_min);
       setPMax(res.data.p_max);
       setSHat(res.data.s_hat);
+      setDuration(res.data.T || res.data.public.T || 12);
       setPPercent(res.data.public.p_percent);
       setFWanted(res.data.public.F);
+      if (res.data.wizard?.business_name) setBusinessName(res.data.wizard.business_name);
+      if (res.data.wizard?.topic_id) setTopicId(res.data.wizard.topic_id);
+      if (res.data.wizard?.domain_id) setDomainId(res.data.wizard.domain_id);
       if (res.data.site_name) setSiteName(res.data.site_name);
     } catch {
       setError('خطا در دریافت اطلاعات.');
@@ -111,15 +178,34 @@ export default function RahnPublicPage() {
     void load();
   }, [load]);
 
+  const domainOptions = useMemo(
+    () => domains.filter((d) => !topicId || d.topic_id === topicId),
+    [domains, topicId],
+  );
+
   const recalc = useCallback(
-    async (next: { selected?: string[]; pPercent?: number; fWanted?: number; mode?: 'from_p' | 'from_f' }) => {
+    async (next: {
+      selected?: string[];
+      pPercent?: number;
+      fWanted?: number;
+      mode?: 'from_p' | 'from_f';
+      duration?: number;
+      sHat?: number;
+      topicId?: string;
+      domainId?: string;
+      businessName?: string;
+    }) => {
       if (locked || !token) return;
       const body = {
         selected_ids: next.selected ?? selected,
-        s_hat: sHat,
+        s_hat: next.sHat ?? sHat,
+        T: next.duration ?? duration,
         mode: next.mode ?? mode,
         p_percent: next.pPercent ?? pPercent,
         F_wanted: next.fWanted ?? fWanted,
+        business_name: next.businessName ?? businessName,
+        topic_id: next.topicId ?? topicId,
+        domain_id: next.domainId ?? domainId,
       };
       const res = await rahnPublicApi<{ public: PublicPayload }>(`${token}/calculate`, {
         method: 'POST',
@@ -131,15 +217,18 @@ export default function RahnPublicPage() {
         setFWanted(res.data.public.F);
       }
     },
-    [locked, token, selected, sHat, mode, pPercent, fWanted],
+    [locked, token, selected, sHat, duration, mode, pPercent, fWanted, businessName, topicId, domainId],
   );
 
-  const toggle = (id: string) => {
-    if (locked) return;
-    const next = selected.includes(id) ? selected.filter((x) => x !== id) : [...selected, id];
-    setSelected(next);
-    void recalc({ selected: next });
-  };
+  useEffect(() => {
+    if (!domainId || locked) return;
+    const domain = domains.find((d) => d.id === domainId);
+    if (!domain) return;
+    const pct = domain.p_suggest * 100;
+    setMode('from_p');
+    setPPercent(pct);
+    void recalc({ pPercent: pct, mode: 'from_p', domainId });
+  }, [domainId]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const submit = async () => {
     const res = await rahnPublicApi<{ message?: string }>(`${token}/submit`, {
@@ -151,9 +240,13 @@ export default function RahnPublicPage() {
         note,
         selected_ids: selected,
         s_hat: sHat,
+        T: duration,
         mode,
         p_percent: pPercent,
         F_wanted: fWanted,
+        business_name: businessName,
+        topic_id: topicId,
+        domain_id: domainId,
       }),
     });
     if (!res.ok) {
@@ -163,6 +256,55 @@ export default function RahnPublicPage() {
     setSubmitted(true);
   };
 
+  const stepIndex = STEPS.indexOf(step);
+  const goNext = () => {
+    if (step === 'business' && !businessName.trim()) {
+      setError('نام کسب‌وکار را وارد کنید.');
+      return;
+    }
+    if (step === 'topic' && !topicId) {
+      setError('موضوع را انتخاب کنید.');
+      return;
+    }
+    if (step === 'domain' && !domainId) {
+      setError('حوزه کسب‌وکار را انتخاب کنید.');
+      return;
+    }
+    setError(null);
+    const next = STEPS[stepIndex + 1];
+    if (next) setStep(next);
+  };
+  const goPrev = () => {
+    const prev = STEPS[stepIndex - 1];
+    if (prev) setStep(prev);
+  };
+
+  const serviceGroups = useMemo(() => {
+    const map = new Map<string, CatalogItem[]>();
+    for (const item of catalog) {
+      const key = item.category_id || item.category || 'other';
+      const list = map.get(key) ?? [];
+      list.push(item);
+      map.set(key, list);
+    }
+    const ordered: Array<{ title: string; items: CatalogItem[] }> = [];
+    for (const cat of [...categories].sort((a, b) => a.sort_order - b.sort_order)) {
+      const list = map.get(cat.id);
+      if (list?.length) {
+        ordered.push({ title: cat.name, items: list });
+        map.delete(cat.id);
+      }
+    }
+    for (const [key, list] of map) {
+      ordered.push({ title: list[0]?.category || key, items: list });
+    }
+    return ordered;
+  }, [catalog, categories]);
+
+  const selectedItems = catalog.filter((c) => selected.includes(c.id));
+  const pMinPct = pMin * 100;
+  const pMaxPct = pMax * 100;
+
   if (loading) {
     return (
       <div className="mx-auto max-w-3xl px-4 py-16 text-center text-muted-foreground" dir="rtl">
@@ -171,7 +313,7 @@ export default function RahnPublicPage() {
     );
   }
 
-  if (error) {
+  if (error && !pub) {
     return (
       <div className="mx-auto max-w-3xl px-4 py-16 text-center text-destructive" dir="rtl">
         {error}
@@ -179,43 +321,167 @@ export default function RahnPublicPage() {
     );
   }
 
-  const pMinPct = pMin * 100;
-  const pMaxPct = pMax * 100;
-
   return (
-    <div className="mx-auto max-w-3xl space-y-8 px-4 py-10" dir="rtl">
-      <header className="space-y-2 text-center">
+    <div className="mx-auto max-w-3xl space-y-8 px-4 py-10 text-start" dir="rtl">
+      <header className="space-y-3 text-center">
         <p className="text-sm text-muted-foreground">{siteName}</p>
-        <h1 className="text-2xl font-semibold tracking-tight">{title || 'پیشنهاد رهن‌درصد'}</h1>
-        {locked ? (
-          <p className="text-sm text-amber-700">این پیشنهاد قفل شده و فقط قابل مشاهده است.</p>
-        ) : null}
+        <h1 className="text-3xl font-bold tracking-tight">نرخ‌نامه</h1>
+        <p className="text-muted-foreground">{title || 'پیشنهاد تعرفه قرارداد'}</p>
+        {locked ? <p className="text-sm text-amber-700">این پیشنهاد قفل شده و فقط قابل مشاهده است.</p> : null}
       </header>
 
-      <section className="space-y-3 rounded-xl border p-4">
-        <h2 className="font-medium">خدمات</h2>
-        {catalog.map((item) => (
-          <label key={item.id} className="flex items-start gap-3 rounded-lg border p-3">
-            <input
-              type="checkbox"
-              checked={selected.includes(item.id)}
-              disabled={locked}
-              onChange={() => toggle(item.id)}
-              className="mt-1"
-            />
-            <div>
-              <div className="font-medium">{item.name}</div>
-              {item.category ? <div className="text-xs text-muted-foreground">{item.category}</div> : null}
-            </div>
-          </label>
-        ))}
-      </section>
-
       {!locked ? (
-        <section className="space-y-4 rounded-xl border p-4">
+        <ol className="flex flex-wrap justify-center gap-2">
+          {STEPS.map((s, i) => (
+            <li
+              key={s}
+              className={`rounded-full border px-3 py-1 text-xs ${
+                s === step ? 'border-primary bg-primary text-primary-foreground' : 'bg-muted/40 text-muted-foreground'
+              }`}
+            >
+              {i + 1}. {STEP_LABELS[s]}
+            </li>
+          ))}
+        </ol>
+      ) : null}
+
+      {error ? <p className="text-center text-sm text-destructive">{error}</p> : null}
+
+      {step === 'business' || locked ? (
+        <section className="space-y-3 rounded-2xl border bg-gradient-to-bl from-primary/10 to-background p-5">
+          <h2 className="font-semibold">نام کسب‌وکار</h2>
+          <input
+            className="w-full rounded-xl border bg-background px-3 py-2 text-start"
+            placeholder="مثلاً کافه نور یا فروشگاه آرایشی گل‌رخ"
+            value={businessName}
+            disabled={locked}
+            onChange={(e) => setBusinessName(e.target.value)}
+          />
+        </section>
+      ) : null}
+
+      {!locked && step === 'topic' ? (
+        <section className="grid gap-3 sm:grid-cols-2">
+          {topics.map((topic) => (
+            <button
+              key={topic.id}
+              type="button"
+              onClick={() => {
+                setTopicId(topic.id);
+                if (domainId && !domains.some((d) => d.id === domainId && d.topic_id === topic.id)) setDomainId('');
+              }}
+              className={`rounded-2xl border p-4 text-start ${
+                topicId === topic.id ? 'border-primary bg-primary/10 ring-1 ring-primary/30' : 'hover:bg-muted/30'
+              }`}
+            >
+              <div className="font-medium">{topic.name}</div>
+              {topic.description ? <p className="mt-1 text-sm text-muted-foreground">{topic.description}</p> : null}
+            </button>
+          ))}
+        </section>
+      ) : null}
+
+      {!locked && step === 'domain' ? (
+        <section className="grid gap-3 sm:grid-cols-2">
+          {domainOptions.map((domain) => (
+            <button
+              key={domain.id}
+              type="button"
+              onClick={() => setDomainId(domain.id)}
+              className={`rounded-2xl border p-4 text-start ${
+                domainId === domain.id ? 'border-primary bg-primary/10 ring-1 ring-primary/30' : 'hover:bg-muted/30'
+              }`}
+            >
+              <div className="flex items-start justify-between gap-2">
+                <div className="font-medium">{domain.name}</div>
+                <span className="text-xs tabular-nums text-muted-foreground" dir="ltr">
+                  {(domain.p_suggest * 100).toFixed(1)}%
+                </span>
+              </div>
+              {domain.description ? <p className="mt-1 text-sm text-muted-foreground">{domain.description}</p> : null}
+            </button>
+          ))}
+        </section>
+      ) : null}
+
+      {(!locked && step === 'services') || locked ? (
+        <section className="space-y-4">
+          {serviceGroups.map((group) => (
+            <div key={group.title} className="overflow-hidden rounded-2xl border">
+              <div className="border-b bg-muted/40 px-4 py-2 text-sm font-medium">{group.title}</div>
+              <div className="space-y-2 p-3">
+                {group.items.map((item) => (
+                  <label key={item.id} className="flex items-start gap-3 rounded-xl border p-3">
+                    <input
+                      type="checkbox"
+                      checked={selected.includes(item.id)}
+                      disabled={locked}
+                      onChange={(e) => {
+                        const next = toggleSelection(catalog, selected, item.id, e.target.checked);
+                        setSelected(next);
+                        void recalc({ selected: next });
+                      }}
+                      className="mt-1"
+                    />
+                    <div className="min-w-0 flex-1">
+                      <div className="font-medium">{item.name}</div>
+                      {item.description ? <p className="text-sm text-muted-foreground">{item.description}</p> : null}
+                      {item.fee_label ? <p className="text-xs text-amber-700">{item.fee_label}</p> : null}
+                    </div>
+                  </label>
+                ))}
+              </div>
+            </div>
+          ))}
+        </section>
+      ) : null}
+
+      {!locked && step === 'deal' ? (
+        <section className="space-y-5 rounded-2xl border p-5">
           <div>
             <div className="mb-2 flex justify-between text-sm">
-              <span>درصد</span>
+              <span>مدت قرارداد</span>
+              <span className="font-semibold">{duration} ماه</span>
+            </div>
+            <input
+              type="range"
+              min={0}
+              max={durationOptions.length - 1}
+              step={1}
+              value={Math.max(0, durationOptions.indexOf(duration))}
+              onChange={(e) => {
+                const d = durationOptions[Number(e.target.value)] ?? duration;
+                setDuration(d);
+                void recalc({ duration: d });
+              }}
+              className="w-full accent-primary"
+            />
+            <div className="mt-1 flex justify-between text-xs text-muted-foreground">
+              {durationOptions.map((d) => (
+                <span key={d}>{d}</span>
+              ))}
+            </div>
+          </div>
+          <div>
+            <div className="mb-2 flex justify-between text-sm">
+              <span>بودجه فروش ماهانه مبنا</span>
+              <span className="font-semibold tabular-nums">{money(sHat)} تومان</span>
+            </div>
+            <input
+              type="number"
+              className="w-full rounded-xl border px-3 py-2"
+              dir="ltr"
+              value={sHat}
+              onChange={(e) => {
+                const v = Number(e.target.value) || 0;
+                setSHat(v);
+                void recalc({ sHat: v });
+              }}
+            />
+          </div>
+          <div>
+            <div className="mb-2 flex justify-between text-sm">
+              <span>درصد از فروش</span>
               <span className="font-semibold tabular-nums">{pPercent.toFixed(1)}%</span>
             </div>
             <input
@@ -235,7 +501,7 @@ export default function RahnPublicPage() {
           </div>
           <div>
             <div className="mb-2 flex justify-between text-sm">
-              <span>ثابت ماهانه</span>
+              <span>ثابت ماهانه (با افزایش ثابت، درصد کمتر می‌شود)</span>
               <span className="font-semibold tabular-nums">{money(fWanted)} تومان</span>
             </div>
             <input
@@ -256,61 +522,114 @@ export default function RahnPublicPage() {
         </section>
       ) : null}
 
-      {pub ? (
+      {pub && (step === 'deal' || step === 'contact' || locked) ? (
         <section className="grid gap-3 sm:grid-cols-2">
-          <div className="rounded-xl border bg-primary/5 p-4">
+          <div className="rounded-2xl border bg-primary/5 p-4">
             <div className="text-xs text-muted-foreground">ثابت ماهانه</div>
             <div className="text-2xl font-bold">{money(pub.F)}</div>
           </div>
-          <div className="rounded-xl border bg-emerald-500/10 p-4">
+          <div className="rounded-2xl border bg-emerald-500/10 p-4">
             <div className="text-xs text-muted-foreground">درصد از فروش</div>
             <div className="text-2xl font-bold">{pub.p_percent.toFixed(1)}%</div>
           </div>
           {pub.clause ? (
-            <div className="sm:col-span-2 rounded-xl border border-dashed p-4 text-sm leading-7">{pub.clause}</div>
+            <div className="rounded-2xl border border-dashed p-4 text-sm leading-7 sm:col-span-2">{pub.clause}</div>
           ) : null}
         </section>
       ) : null}
 
-      {submitted ? (
-        <div className="rounded-xl border bg-emerald-500/10 p-4 text-center">درخواست شما ثبت شد. به‌زودی تماس می‌گیریم.</div>
-      ) : (
-        <section className="space-y-3 rounded-xl border p-4">
-          <h2 className="font-medium">ثبت علاقه‌مندی</h2>
-          <input
-            className="w-full rounded-md border px-3 py-2"
-            placeholder="نام"
-            value={name}
-            onChange={(e) => setName(e.target.value)}
-          />
-          <input
-            className="w-full rounded-md border px-3 py-2"
-            placeholder="تلفن"
-            value={phone}
-            onChange={(e) => setPhone(e.target.value)}
-          />
-          <input
-            className="w-full rounded-md border px-3 py-2"
-            placeholder="ایمیل"
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
-          />
-          <textarea
-            className="w-full rounded-md border px-3 py-2"
-            rows={3}
-            placeholder="توضیح"
-            value={note}
-            onChange={(e) => setNote(e.target.value)}
-          />
+      {(step === 'contact' || locked) && selectedItems.length ? (
+        <section className="space-y-3">
+          <h2 className="font-semibold">خدمات انتخابی</h2>
+          {serviceGroups.map((group) => {
+            const rows = group.items.filter((i) => selected.includes(i.id));
+            if (!rows.length) return null;
+            return (
+              <div key={group.title} className="overflow-hidden rounded-2xl border">
+                <div className="border-b bg-muted/40 px-4 py-2 text-sm font-medium">{group.title}</div>
+                <ul className="divide-y">
+                  {rows.map((row) => (
+                    <li key={row.id} className="px-4 py-3 text-sm">
+                      <div className="font-medium">{row.name}</div>
+                      {row.fee_label ? <div className="text-xs text-muted-foreground">{row.fee_label}</div> : null}
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            );
+          })}
+        </section>
+      ) : null}
+
+      {!locked && step === 'contact' ? (
+        submitted ? (
+          <div className="rounded-2xl border bg-emerald-500/10 p-4 text-center">
+            درخواست شما ثبت شد. به‌زودی تماس می‌گیریم.
+          </div>
+        ) : (
+          <section className="space-y-3 rounded-2xl border p-5">
+            <h2 className="font-medium">ثبت علاقه‌مندی</h2>
+            <input
+              className="w-full rounded-xl border px-3 py-2 text-start"
+              placeholder="نام"
+              value={name}
+              onChange={(e) => setName(e.target.value)}
+            />
+            <input
+              className="w-full rounded-xl border px-3 py-2 text-start"
+              placeholder="تلفن"
+              value={phone}
+              onChange={(e) => setPhone(e.target.value)}
+              dir="ltr"
+            />
+            <input
+              className="w-full rounded-xl border px-3 py-2 text-start"
+              placeholder="ایمیل"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              dir="ltr"
+            />
+            <textarea
+              className="w-full rounded-xl border px-3 py-2 text-start"
+              rows={3}
+              placeholder="توضیح"
+              value={note}
+              onChange={(e) => setNote(e.target.value)}
+            />
+            <button
+              type="button"
+              className="w-full rounded-xl bg-primary px-4 py-2.5 text-primary-foreground"
+              onClick={() => void submit()}
+            >
+              ارسال درخواست
+            </button>
+          </section>
+        )
+      ) : null}
+
+      {!locked ? (
+        <div className="flex flex-wrap items-center justify-between gap-3">
           <button
             type="button"
-            className="w-full rounded-md bg-primary px-4 py-2 text-primary-foreground"
-            onClick={() => void submit()}
+            className="inline-flex items-center gap-2 rounded-xl border px-4 py-2 text-sm disabled:opacity-40"
+            disabled={stepIndex <= 0}
+            onClick={goPrev}
           >
-            ارسال درخواست
+            <ArrowRight className="size-4" />
+            قبلی
           </button>
-        </section>
-      )}
+          {step !== 'contact' ? (
+            <button
+              type="button"
+              className="inline-flex items-center gap-2 rounded-xl bg-primary px-4 py-2 text-sm text-primary-foreground"
+              onClick={goNext}
+            >
+              بعدی
+              <ArrowLeft className="size-4" />
+            </button>
+          ) : null}
+        </div>
+      ) : null}
     </div>
   );
 }

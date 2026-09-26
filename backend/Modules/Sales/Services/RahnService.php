@@ -36,9 +36,28 @@ class RahnService
         }
         $items = RahnSettingsService::resolveItems($selected, $override);
 
-        $T = isset($params['T']) ? (int) $params['T'] : (int) $settings['T'];
+        $durationOptions = is_array($settings['duration_options'] ?? null)
+            ? $settings['duration_options']
+            : RahnSettingsService::DURATION_OPTIONS;
+        $T = RahnSettingsService::clampDuration(
+            isset($params['T']) ? (int) $params['T'] : (isset($params['duration']) ? (int) $params['duration'] : (int) $settings['T']),
+            $durationOptions
+        );
         $sHat = isset($params['s_hat']) ? (float) $params['s_hat'] : (float) $settings['s_hat_default'];
         $mode = strtolower((string) ($params['mode'] ?? 'from_p'));
+
+        // Domain suggested percent seeds p_wanted when caller did not send an explicit percent/fixed mode override from slider.
+        if (! empty($params['domain_id']) && ! isset($params['p_percent']) && ! isset($params['p_wanted']) && $mode === 'from_p') {
+            foreach ((array) ($settings['domains'] ?? []) as $domain) {
+                if (is_array($domain) && (string) ($domain['id'] ?? '') === (string) $params['domain_id']) {
+                    $suggest = (float) ($domain['p_suggest'] ?? 0);
+                    if ($suggest > 0) {
+                        $params['p_wanted'] = $suggest;
+                    }
+                    break;
+                }
+            }
+        }
 
         $lockArgs = [
             'items' => $items,
@@ -71,12 +90,19 @@ class RahnService
 
         $public = RahnCalculator::publicPayload($lock, $items, $clause);
 
+        $wizard = [
+            'business_name' => trim((string) ($params['business_name'] ?? '')),
+            'topic_id' => preg_replace('/[^a-z0-9_\-]/i', '', (string) ($params['topic_id'] ?? '')) ?: '',
+            'domain_id' => preg_replace('/[^a-z0-9_\-]/i', '', (string) ($params['domain_id'] ?? '')) ?: '',
+        ];
+
         $out = [
             'selected_ids' => $selected,
             'items' => $items,
             'clause' => $clause,
             'public' => $public,
             'lock' => $internal ? $lock : null,
+            'wizard' => $wizard,
         ];
 
         if ($internal) {
@@ -130,6 +156,8 @@ class RahnService
     public function formatQuote(SalesRahnQuote $quote): array
     {
         $shareUrl = rtrim((string) config('app.url'), '/').'/rahn/'.$quote->token;
+        $snap = is_array($quote->calc_snapshot) ? $quote->calc_snapshot : [];
+        $wizard = is_array($snap['wizard'] ?? null) ? $snap['wizard'] : [];
 
         return [
             'id' => (int) $quote->id,
@@ -150,6 +178,11 @@ class RahnService
             'created_at' => $quote->created_at?->toDateTimeString(),
             'updated_at' => $quote->updated_at?->toDateTimeString(),
             'selected_ids' => is_array($quote->selected_ids) ? $quote->selected_ids : [],
+            'wizard' => [
+                'business_name' => (string) ($wizard['business_name'] ?? ''),
+                'topic_id' => (string) ($wizard['topic_id'] ?? ''),
+                'domain_id' => (string) ($wizard['domain_id'] ?? ''),
+            ],
         ];
     }
 
@@ -190,10 +223,19 @@ class RahnService
         $lock = $calc['lock'];
 
         $quoteId = (int) ($params['id'] ?? $params['quote_id'] ?? 0);
+        $businessName = trim((string) ($params['business_name'] ?? ($calc['wizard']['business_name'] ?? '')));
         $title = trim((string) ($params['title'] ?? ''));
         if ($title === '') {
-            $title = 'پیش‌نویس رهن‌درصد — '.RahnCalculator::formatMoney((float) $lock['F']);
+            $title = ($businessName !== '' ? $businessName.' — ' : 'نرخ‌نامه — ').RahnCalculator::formatMoney((float) $lock['F']);
         }
+
+        $calcSnapshot = array_merge(is_array($lock) ? $lock : [], [
+            'wizard' => $calc['wizard'] ?? [
+                'business_name' => $businessName,
+                'topic_id' => (string) ($params['topic_id'] ?? ''),
+                'domain_id' => (string) ($params['domain_id'] ?? ''),
+            ],
+        ]);
 
         $data = [
             'title' => $title,
@@ -201,7 +243,7 @@ class RahnService
             'lead_id' => (int) ($params['lead_id'] ?? 0),
             'selected_ids' => $calc['selected_ids'],
             'items_snapshot' => $calc['items'],
-            'calc_snapshot' => $lock,
+            'calc_snapshot' => $calcSnapshot,
             's_hat' => (float) $lock['S_hat'],
             'duration' => (int) $lock['T'],
             'mode' => (string) $lock['mode'],
@@ -615,11 +657,20 @@ class RahnService
                 'billing' => $item['billing'],
                 'period_months' => $item['period_months'],
                 'renewable' => ! empty($item['renewable']),
+                'amount' => (float) ($item['amount'] ?? 0),
                 'category' => $item['category'],
+                'category_id' => (string) ($item['category_id'] ?? ''),
                 'description' => $item['description'],
                 'default_selected' => ! empty($item['default_selected']),
+                'choice_group' => (string) ($item['choice_group'] ?? ''),
+                'choice_value' => (string) ($item['choice_value'] ?? ''),
+                'fee_label' => (string) ($item['fee_label'] ?? ''),
+                'sort_order' => (int) ($item['sort_order'] ?? 0),
             ];
         }
+
+        $snap = is_array($quote->calc_snapshot) ? $quote->calc_snapshot : [];
+        $wizard = is_array($snap['wizard'] ?? null) ? $snap['wizard'] : [];
 
         return [
             'token' => $token,
@@ -628,11 +679,20 @@ class RahnService
             'locked' => in_array($quote->status, ['locked', 'contracted'], true),
             'selected_ids' => $quote->selected_ids ?? [],
             'catalog' => $catalogPublic,
+            'topics' => array_values(array_filter((array) ($settings['topics'] ?? []), fn ($t) => is_array($t) && (! isset($t['active']) || ! empty($t['active'])))),
+            'domains' => array_values(array_filter((array) ($settings['domains'] ?? []), fn ($t) => is_array($t) && (! isset($t['active']) || ! empty($t['active'])))),
+            'categories' => array_values(array_filter((array) ($settings['categories'] ?? []), fn ($t) => is_array($t) && (! isset($t['active']) || ! empty($t['active'])))),
+            'duration_options' => array_values((array) ($settings['duration_options'] ?? RahnSettingsService::DURATION_OPTIONS)),
             'public' => $calc['public'],
             'p_min' => (float) $settings['p_min'],
             'p_max' => (float) $settings['p_max'],
             's_hat' => (float) $quote->s_hat,
             'T' => (int) $quote->duration,
+            'wizard' => [
+                'business_name' => (string) ($wizard['business_name'] ?? ''),
+                'topic_id' => (string) ($wizard['topic_id'] ?? ''),
+                'domain_id' => (string) ($wizard['domain_id'] ?? ''),
+            ],
             'site_name' => (string) config('app.name', 'Webino'),
         ];
     }
@@ -657,12 +717,15 @@ class RahnService
         $calc = $this->runCalc(
             [
                 'selected_ids' => $selected,
-                'T' => (int) ($params['T'] ?? $quote->duration),
+                'T' => (int) ($params['T'] ?? $params['duration'] ?? $quote->duration),
                 's_hat' => (float) ($params['s_hat'] ?? $quote->s_hat),
                 'mode' => strtolower((string) ($params['mode'] ?? 'from_p')),
                 'p_wanted' => (float) ($params['p_wanted'] ?? $quote->p_wanted),
                 'F_wanted' => (float) ($params['F_wanted'] ?? $quote->f_wanted),
                 'p_percent' => $params['p_percent'] ?? null,
+                'business_name' => $params['business_name'] ?? null,
+                'topic_id' => $params['topic_id'] ?? null,
+                'domain_id' => $params['domain_id'] ?? null,
             ],
             $settings,
             false

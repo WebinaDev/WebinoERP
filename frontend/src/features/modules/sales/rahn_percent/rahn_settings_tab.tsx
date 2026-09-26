@@ -19,12 +19,38 @@ import {
 } from '@/components/ui/select';
 import { Switch } from '@/components/ui/switch';
 import { Textarea } from '@/components/ui/textarea';
-import { RAHN_API, type RahnBilling, type RahnCatalogItem, type RahnSettings } from './types';
+import {
+  RAHN_API,
+  RAHN_DURATION_OPTIONS,
+  type RahnBilling,
+  type RahnCatalogItem,
+  type RahnDomain,
+  type RahnServiceCategory,
+  type RahnSettings,
+  type RahnTopic,
+} from './types';
 
 type Props = {
   settings: RahnSettings;
   onSaved: (next: RahnSettings) => void;
 };
+
+function normalizeSettings(s: RahnSettings): RahnSettings {
+  return {
+    ...s,
+    topics: s.topics ?? [],
+    domains: s.domains ?? [],
+    categories: s.categories ?? [],
+    duration_options: s.duration_options?.length ? s.duration_options : [...RAHN_DURATION_OPTIONS],
+    catalog: (s.catalog ?? []).map((c) => ({
+      ...c,
+      category_id: c.category_id ?? '',
+      choice_group: c.choice_group ?? '',
+      choice_value: c.choice_value ?? '',
+      fee_label: c.fee_label ?? '',
+    })),
+  };
+}
 
 function newItem(sort: number): RahnCatalogItem {
   return {
@@ -37,14 +63,18 @@ function newItem(sort: number): RahnCatalogItem {
     active: true,
     default_selected: false,
     category: '',
+    category_id: '',
     description: '',
+    choice_group: '',
+    choice_value: '',
+    fee_label: '',
     sort_order: sort,
   };
 }
 
 export function RahnSettingsTab({ settings, onSaved }: Props) {
   const t = useTranslations('sales.rahn');
-  const [draft, setDraft] = useState<RahnSettings>(settings);
+  const [draft, setDraft] = useState<RahnSettings>(() => normalizeSettings(settings));
   const [saving, setSaving] = useState(false);
 
   const updateCatalog = (id: string, patch: Partial<RahnCatalogItem>) => {
@@ -72,14 +102,16 @@ export function RahnSettingsTab({ settings, onSaved }: Props) {
     setSaving(true);
     try {
       const res = await apiClient.put(`${RAHN_API}/settings`, draft);
-      const data = res.data as { settings: RahnSettings; message?: string };
-      if (!data?.settings) {
+      const body = res.data as { settings?: RahnSettings; data?: { settings?: RahnSettings; message?: string }; message?: string };
+      const next = body?.settings ?? body?.data?.settings;
+      if (!next) {
         toast.error(t('saveError'));
         return;
       }
-      onSaved(data.settings);
-      setDraft(data.settings);
-      toast.success(data.message || t('settingsSaved'));
+      const normalized = normalizeSettings(next);
+      onSaved(normalized);
+      setDraft(normalized);
+      toast.success(body.data?.message || body.message || t('settingsSaved'));
     } catch {
       toast.error(t('saveError'));
     } finally {
@@ -88,7 +120,7 @@ export function RahnSettingsTab({ settings, onSaved }: Props) {
   };
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 text-start" dir="rtl">
       <Card>
         <CardHeader>
           <CardTitle className="text-base">{t('formulaSettings')}</CardTitle>
@@ -111,6 +143,7 @@ export function RahnSettingsTab({ settings, onSaved }: Props) {
                 type="number"
                 step="any"
                 value={draft[key]}
+                dir="ltr"
                 onChange={(e) =>
                   setDraft((prev) => ({
                     ...prev,
@@ -132,6 +165,29 @@ export function RahnSettingsTab({ settings, onSaved }: Props) {
         </CardContent>
       </Card>
 
+      <TaxonomyEditor
+        title={t('wizard.topics')}
+        addLabel={t('wizard.addTopic')}
+        rows={draft.topics}
+        onChange={(topics) => setDraft((prev) => ({ ...prev, topics }))}
+      />
+
+      <DomainEditor
+        title={t('wizard.domains')}
+        addLabel={t('wizard.addDomain')}
+        rows={draft.domains}
+        topics={draft.topics}
+        pSuggestLabel={t('wizard.pSuggest')}
+        onChange={(domains) => setDraft((prev) => ({ ...prev, domains }))}
+      />
+
+      <TaxonomyEditor
+        title={t('wizard.categories')}
+        addLabel={t('wizard.addCategory')}
+        rows={draft.categories}
+        onChange={(categories) => setDraft((prev) => ({ ...prev, categories }))}
+      />
+
       <Card>
         <CardHeader>
           <CardTitle className="text-base">{t('salesDefinition')}</CardTitle>
@@ -151,7 +207,7 @@ export function RahnSettingsTab({ settings, onSaved }: Props) {
                   }))
                 }
               />
-              <div className="flex-1 grid gap-1">
+              <div className="grid flex-1 gap-1">
                 <Label className="text-xs text-muted-foreground">{key}</Label>
                 <Input
                   value={draft.sales_definition[key].label}
@@ -193,6 +249,7 @@ export function RahnSettingsTab({ settings, onSaved }: Props) {
             <Input
               type="number"
               value={draft.review.deviation_percent}
+              dir="ltr"
               onChange={(e) =>
                 setDraft((prev) => ({
                   ...prev,
@@ -206,6 +263,7 @@ export function RahnSettingsTab({ settings, onSaved }: Props) {
             <Input
               type="number"
               value={draft.review.consecutive_months}
+              dir="ltr"
               onChange={(e) =>
                 setDraft((prev) => ({
                   ...prev,
@@ -227,8 +285,8 @@ export function RahnSettingsTab({ settings, onSaved }: Props) {
         </CardHeader>
         <CardContent className="space-y-4">
           {draft.catalog.map((item) => (
-            <div key={item.id} className="rounded-xl border p-4 grid gap-3 md:grid-cols-6">
-              <div className="md:col-span-2 grid gap-2">
+            <div key={item.id} className="grid gap-3 rounded-xl border p-4 md:grid-cols-6">
+              <div className="grid gap-2 md:col-span-2">
                 <Label>{t('serviceName')}</Label>
                 <Input value={item.name} onChange={(e) => updateCatalog(item.id, { name: e.target.value })} />
               </div>
@@ -254,6 +312,7 @@ export function RahnSettingsTab({ settings, onSaved }: Props) {
                 <Input
                   type="number"
                   min={1}
+                  dir="ltr"
                   value={item.period_months}
                   onChange={(e) =>
                     updateCatalog(item.id, { period_months: Math.max(1, Number(e.target.value) || 1) })
@@ -264,6 +323,7 @@ export function RahnSettingsTab({ settings, onSaved }: Props) {
                 <Label>{t('amount')}</Label>
                 <Input
                   type="number"
+                  dir="ltr"
                   value={item.amount}
                   onChange={(e) => updateCatalog(item.id, { amount: Number(e.target.value) || 0 })}
                 />
@@ -275,7 +335,56 @@ export function RahnSettingsTab({ settings, onSaved }: Props) {
                   onChange={(e) => updateCatalog(item.id, { category: e.target.value })}
                 />
               </div>
-              <div className="md:col-span-6 flex flex-wrap items-center gap-4">
+              <div className="grid gap-2">
+                <Label>{t('wizard.categoryId')}</Label>
+                <Select
+                  value={item.category_id || '__none'}
+                  onValueChange={(v) =>
+                    updateCatalog(item.id, {
+                      category_id: v === '__none' ? '' : v,
+                      category:
+                        v === '__none'
+                          ? item.category
+                          : draft.categories.find((c) => c.id === v)?.name || item.category,
+                    })
+                  }
+                >
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="__none">—</SelectItem>
+                    {draft.categories.map((c) => (
+                      <SelectItem key={c.id} value={c.id}>
+                        {c.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="grid gap-2">
+                <Label>{t('wizard.choiceGroup')}</Label>
+                <Input
+                  value={item.choice_group || ''}
+                  dir="ltr"
+                  onChange={(e) => updateCatalog(item.id, { choice_group: e.target.value })}
+                />
+              </div>
+              <div className="grid gap-2">
+                <Label>{t('wizard.feeLabel')}</Label>
+                <Input
+                  value={item.fee_label || ''}
+                  onChange={(e) => updateCatalog(item.id, { fee_label: e.target.value })}
+                />
+              </div>
+              <div className="grid gap-2 md:col-span-2">
+                <Label>توضیح مشتری</Label>
+                <Input
+                  value={item.description}
+                  onChange={(e) => updateCatalog(item.id, { description: e.target.value })}
+                />
+              </div>
+              <div className="flex flex-wrap items-center gap-4 md:col-span-6">
                 <label className="flex items-center gap-2 text-sm">
                   <Checkbox
                     checked={item.renewable}
@@ -284,10 +393,7 @@ export function RahnSettingsTab({ settings, onSaved }: Props) {
                   {t('renewable')}
                 </label>
                 <label className="flex items-center gap-2 text-sm">
-                  <Checkbox
-                    checked={item.active}
-                    onCheckedChange={(v) => updateCatalog(item.id, { active: !!v })}
-                  />
+                  <Checkbox checked={item.active} onCheckedChange={(v) => updateCatalog(item.id, { active: !!v })} />
                   {t('active')}
                 </label>
                 <label className="flex items-center gap-2 text-sm">
@@ -301,7 +407,7 @@ export function RahnSettingsTab({ settings, onSaved }: Props) {
                   type="button"
                   size="sm"
                   variant="ghost"
-                  className="text-destructive ms-auto"
+                  className="ms-auto text-destructive"
                   onClick={() => removeItem(item.id)}
                 >
                   <Trash2 className="h-4 w-4" />
@@ -319,5 +425,198 @@ export function RahnSettingsTab({ settings, onSaved }: Props) {
         </Button>
       </div>
     </div>
+  );
+}
+
+function TaxonomyEditor({
+  title,
+  addLabel,
+  rows,
+  onChange,
+}: {
+  title: string;
+  addLabel: string;
+  rows: Array<RahnTopic | RahnServiceCategory>;
+  onChange: (rows: Array<RahnTopic | RahnServiceCategory>) => void;
+}) {
+  return (
+    <Card>
+      <CardHeader className="flex flex-row items-center justify-between">
+        <CardTitle className="text-base">{title}</CardTitle>
+        <Button
+          type="button"
+          size="sm"
+          variant="secondary"
+          onClick={() =>
+            onChange([
+              ...rows,
+              {
+                id: `item_${Date.now()}`,
+                name: '',
+                description: '',
+                sort_order: rows.length + 1,
+                active: true,
+              },
+            ])
+          }
+        >
+          <Plus className="h-4 w-4" />
+          {addLabel}
+        </Button>
+      </CardHeader>
+      <CardContent className="space-y-3">
+        {rows.map((row, idx) => (
+          <div key={row.id} className="grid gap-2 rounded-lg border p-3 sm:grid-cols-4">
+            <Input
+              value={row.name}
+              placeholder="نام"
+              onChange={(e) => {
+                const next = [...rows];
+                next[idx] = { ...row, name: e.target.value };
+                onChange(next);
+              }}
+            />
+            <Input
+              className="sm:col-span-2"
+              value={row.description || ''}
+              placeholder="توضیح"
+              onChange={(e) => {
+                const next = [...rows];
+                next[idx] = { ...row, description: e.target.value };
+                onChange(next);
+              }}
+            />
+            <div className="flex items-center gap-2">
+              <Input
+                type="number"
+                dir="ltr"
+                value={row.sort_order}
+                onChange={(e) => {
+                  const next = [...rows];
+                  next[idx] = { ...row, sort_order: Number(e.target.value) || 0 };
+                  onChange(next);
+                }}
+              />
+              <Button type="button" size="sm" variant="ghost" className="text-destructive" onClick={() => onChange(rows.filter((r) => r.id !== row.id))}>
+                <Trash2 className="h-4 w-4" />
+              </Button>
+            </div>
+          </div>
+        ))}
+      </CardContent>
+    </Card>
+  );
+}
+
+function DomainEditor({
+  title,
+  addLabel,
+  rows,
+  topics,
+  pSuggestLabel,
+  onChange,
+}: {
+  title: string;
+  addLabel: string;
+  rows: RahnDomain[];
+  topics: RahnTopic[];
+  pSuggestLabel: string;
+  onChange: (rows: RahnDomain[]) => void;
+}) {
+  return (
+    <Card>
+      <CardHeader className="flex flex-row items-center justify-between">
+        <CardTitle className="text-base">{title}</CardTitle>
+        <Button
+          type="button"
+          size="sm"
+          variant="secondary"
+          onClick={() =>
+            onChange([
+              ...rows,
+              {
+                id: `dom_${Date.now()}`,
+                topic_id: topics[0]?.id || '',
+                name: '',
+                description: '',
+                p_suggest: 0.1,
+                sort_order: rows.length + 1,
+                active: true,
+              },
+            ])
+          }
+        >
+          <Plus className="h-4 w-4" />
+          {addLabel}
+        </Button>
+      </CardHeader>
+      <CardContent className="space-y-3">
+        {rows.map((row, idx) => (
+          <div key={row.id} className="grid gap-2 rounded-lg border p-3 md:grid-cols-6">
+            <Input
+              className="md:col-span-2"
+              value={row.name}
+              onChange={(e) => {
+                const next = [...rows];
+                next[idx] = { ...row, name: e.target.value };
+                onChange(next);
+              }}
+            />
+            <Select
+              value={row.topic_id || '__none'}
+              onValueChange={(v) => {
+                const next = [...rows];
+                next[idx] = { ...row, topic_id: v === '__none' ? '' : v };
+                onChange(next);
+              }}
+            >
+              <SelectTrigger>
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="__none">—</SelectItem>
+                {topics.map((t) => (
+                  <SelectItem key={t.id} value={t.id}>
+                    {t.name}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            <div className="grid gap-1">
+              <Label className="text-xs">{pSuggestLabel}</Label>
+              <Input
+                type="number"
+                step="0.01"
+                dir="ltr"
+                value={row.p_suggest}
+                onChange={(e) => {
+                  const next = [...rows];
+                  next[idx] = { ...row, p_suggest: Number(e.target.value) || 0 };
+                  onChange(next);
+                }}
+              />
+            </div>
+            <Input
+              className="md:col-span-2"
+              value={row.description || ''}
+              onChange={(e) => {
+                const next = [...rows];
+                next[idx] = { ...row, description: e.target.value };
+                onChange(next);
+              }}
+            />
+            <Button
+              type="button"
+              size="sm"
+              variant="ghost"
+              className="text-destructive"
+              onClick={() => onChange(rows.filter((r) => r.id !== row.id))}
+            >
+              <Trash2 className="h-4 w-4" />
+            </Button>
+          </div>
+        ))}
+      </CardContent>
+    </Card>
   );
 }
