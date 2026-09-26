@@ -636,6 +636,48 @@ class SiteProvisionController extends Controller
         }
     }
 
+    public function panelLogin(WebinoSiteProvision $siteProvision, SiteProvisionOrchestrator $orchestrator): JsonResponse
+    {
+        if (! $this->isControlEditable($siteProvision)) {
+            return response()->json([
+                'message' => 'سایت در این وضعیت قابل کنترل نیست: '.$siteProvision->status,
+            ], 422);
+        }
+
+        $domain = is_string($siteProvision->domain) ? trim($siteProvision->domain) : '';
+        $fallbackLogin = $domain !== ''
+            ? 'https://'.preg_replace('#^https?://#i', '', $domain).'/login'
+            : null;
+
+        try {
+            $result = $orchestrator->callTenantApi($siteProvision, 'provision/panel-login', []);
+            $payload = is_array($result['data'] ?? null) ? $result['data'] : $result;
+            $url = $payload['login_url'] ?? $payload['one_shot_url'] ?? null;
+            if (! is_string($url) || $url === '') {
+                throw new \RuntimeException('Tenant did not return a panel login URL.');
+            }
+
+            return response()->json([
+                'data' => [
+                    'url' => $url,
+                    'expires_in' => $payload['expires_in'] ?? 300,
+                ],
+            ]);
+        } catch (Throwable $e) {
+            if ($fallbackLogin) {
+                return response()->json([
+                    'data' => [
+                        'url' => $fallbackLogin,
+                        'fallback' => true,
+                        'message' => $e->getMessage() ?: 'ورود یک‌بارمصرف در دسترس نبود.',
+                    ],
+                ]);
+            }
+
+            return response()->json(['message' => $e->getMessage() ?: 'ساخت لینک ورود پنل ناموفق بود.'], 422);
+        }
+    }
+
     public function updateModules(Request $request, WebinoSiteProvision $siteProvision, SiteProvisionOrchestrator $orchestrator): JsonResponse
     {
         if (! $this->isControlEditable($siteProvision)) {

@@ -251,6 +251,11 @@ export async function updateProvisionAdmin(
   };
 }
 
+export async function fetchProvisionPanelLogin(id: number) {
+  const res = await apiClient.post(`${BASE}/provisions/${id}/panel-login`);
+  return unwrapData<{ url: string; expires_in?: number; fallback?: boolean; message?: string }>(res);
+}
+
 export async function installModuleOnSiteApi(
   id: number,
   slug: string,

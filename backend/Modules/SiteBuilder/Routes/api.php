@@ -52,8 +52,9 @@ Route::post('/provisions/{siteProvision}/stop', [SiteProvisionController::class,
 Route::post('/provisions/{siteProvision}/repair-db', [SiteProvisionController::class, 'repairDatabase']);
 Route::post('/provisions/{siteProvision}/bootstrap', [SiteProvisionController::class, 'bootstrap']);
 Route::get('/provisions/{siteProvision}/logs', [SiteProvisionController::class, 'logs']);
-Route::post('/provisions/{siteProvision}/admin', [SiteProvisionController::class, 'updateAdmin']);
-Route::post('/provisions/{siteProvision}/modules', [SiteProvisionController::class, 'updateModules']);
+    Route::post('/provisions/{siteProvision}/admin', [SiteProvisionController::class, 'updateAdmin']);
+    Route::post('/provisions/{siteProvision}/panel-login', [SiteProvisionController::class, 'panelLogin'])->middleware('throttle:20,1');
+    Route::post('/provisions/{siteProvision}/modules', [SiteProvisionController::class, 'updateModules']);
 Route::post('/provisions/{siteProvision}/modules/install', [SiteProvisionController::class, 'installModule']);
 Route::get('/provisions/{siteProvision}/modules/{slug}/status', [SiteProvisionController::class, 'moduleInstallStatus']);
 Route::post('/provisions/{siteProvision}/channel', [SiteProvisionController::class, 'setChannel']);

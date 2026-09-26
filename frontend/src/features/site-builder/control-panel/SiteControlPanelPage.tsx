@@ -42,6 +42,7 @@ import {
   destroyProvision,
   fetchProvisionControl,
   fetchProvisionLogs,
+  fetchProvisionPanelLogin,
   installModuleOnSiteApi,
   moduleInstallStatusApi,
   queueProvisionUpdate,
@@ -262,11 +263,41 @@ export function SiteControlPanelPage({ id }: { id: string }) {
                   {t('openSite')}
                 </a>
               </Button>
-              <Button asChild size="sm" className="gap-1.5">
-                <a href={`https://${data.provision.domain}/login`} target="_blank" rel="noopener noreferrer">
+              <Button
+                type="button"
+                size="sm"
+                className="gap-1.5"
+                disabled={busy !== null}
+                onClick={() => {
+                  void (async () => {
+                    setBusy('panel-login');
+                    setError(null);
+                    try {
+                      const result = await fetchProvisionPanelLogin(provisionId);
+                      const url =
+                        typeof result?.url === 'string' && result.url
+                          ? result.url
+                          : `https://${data.provision.domain}/login`;
+                      window.open(url, '_blank', 'noopener,noreferrer');
+                    } catch (e) {
+                      window.open(
+                        `https://${data.provision.domain}/login`,
+                        '_blank',
+                        'noopener,noreferrer',
+                      );
+                      setError(getAxiosMessage(e) || t('saveError'));
+                    } finally {
+                      setBusy(null);
+                    }
+                  })();
+                }}
+              >
+                {busy === 'panel-login' ? (
+                  <Loader2 className="size-3.5 animate-spin" />
+                ) : (
                   <LogIn className="size-3.5" />
-                  {t('controlOpenAdmin')}
-                </a>
+                )}
+                {t('controlOpenAdmin')}
               </Button>
             </>
           ) : null}
