@@ -49,10 +49,11 @@ class BasalamOAuthController extends Controller
         $data = $request->validate([
             'site_url' => 'required|url|max:500',
             'return_url' => 'nullable|url|max:500',
+            'handoff_path' => 'nullable|string|max:200',
         ]);
 
         try {
-            $payload = $this->oauth->start($data['site_url'], $data['return_url'] ?? '');
+            $payload = $this->oauth->start($data['site_url'], $data['return_url'] ?? '', $data['handoff_path'] ?? null);
         } catch (\Throwable $e) {
             return response()->json(['message' => $e->getMessage()], 400);
         }

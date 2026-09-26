@@ -24,6 +24,8 @@ class BasalamOAuthService
 
     public const HANDOFF_TTL = 180;
 
+    public const DEFAULT_HANDOFF_PATH = '/dashboard/settings/shop/basalam/';
+
     /**
      * @return array{client_id: string, client_secret: string, redirect_uri: string, scopes: string}
      */
@@ -104,9 +106,23 @@ class BasalamOAuthService
     }
 
     /**
-     * @return array{url: string, state: string, redirect_uri: string, client_id: string, expires_in: int}
+     * Merchant-side path that receives the signed token handoff (same host as the site).
      */
-    public function start(string $siteUrl, string $returnUrl = ''): array
+    public static function normalizeHandoffPath(?string $path): string
+    {
+        $path = trim((string) $path);
+        if ($path === '' || $path[0] !== '/' || str_starts_with($path, '//') || str_contains($path, '..')
+            || preg_match('#[\s?\#\\\\]#', $path)) {
+            return self::DEFAULT_HANDOFF_PATH;
+        }
+
+        return $path;
+    }
+
+    /**
+     * @return array{url: string, state: string, redirect_uri: string, client_id: string, expires_in: int, handoff_key: string}
+     */
+    public function start(string $siteUrl, string $returnUrl = '', ?string $handoffPath = null): array
     {
         $siteUrl = rtrim($siteUrl, '/');
         if ($returnUrl !== '') {
@@ -124,6 +140,7 @@ class BasalamOAuthService
             'created' => time(),
             'ip' => request()->ip() ?? '',
             'handoff_key' => Str::random(32),
+            'handoff_path' => self::normalizeHandoffPath($handoffPath),
         ];
         Cache::put($this->sessionKey($state), $session, self::SESSION_TTL);
 
@@ -140,6 +157,7 @@ class BasalamOAuthService
             'redirect_uri' => $cfg['redirect_uri'],
             'client_id' => $cfg['client_id'],
             'expires_in' => self::SESSION_TTL,
+            'handoff_key' => $session['handoff_key'],
         ];
     }
 
@@ -209,9 +227,10 @@ class BasalamOAuthService
         }
 
         $site = rtrim((string) $session['site_url'], '/');
+        $handoffPath = self::normalizeHandoffPath($session['handoff_path'] ?? null);
         $vendorId = $this->resolveVendorId($access);
         if ($vendorId < 1) {
-            return $site.'/dashboard/settings/shop/basalam/?oauth=error&reason=vendor';
+            return $site.$handoffPath.'?oauth=error&reason=vendor';
         }
 
         $this->upsertConnection($site, $vendorId, 'connected', [
@@ -248,7 +267,7 @@ class BasalamOAuthService
             'return_url' => ! empty($session['return_url']) ? (string) $session['return_url'] : null,
         ]);
 
-        $handoff = $site.'/dashboard/settings/shop/basalam/?'.$query;
+        $handoff = $site.$handoffPath.'?'.$query;
         $sessionHost = parse_url($site, PHP_URL_HOST);
         $handoffHost = parse_url($handoff, PHP_URL_HOST);
         if (! is_string($sessionHost) || ! is_string($handoffHost) || strcasecmp($sessionHost, $handoffHost) !== 0) {
