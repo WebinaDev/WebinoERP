@@ -9,7 +9,7 @@
 #   WEBINO_DASHBOARD_GIT_URL  WEBINO_DASHBOARD_GIT_REF  WEBINO_DASHBOARD_GIT_TOKEN
 #   WEBINO_DASHBOARD_SRC      WEBINO_DASHBOARD_PATH (local checkout, skips git)
 #   WEBINO_IRAN_DOCKER       auto|1|0 — use Hub mirrors (default auto=on)
-#   FRANKENPHP_IMAGE  COMPOSER_IMAGE  NODE_IMAGE — base image overrides
+#   PHP_IMAGE  COMPOSER_IMAGE  NODE_IMAGE — base image overrides
 set -euo pipefail
 
 GIT_URL="${WEBINO_DASHBOARD_GIT_URL:-https://github.com/Webinadev/WebinoDashboard.git}"
@@ -27,19 +27,30 @@ iran_docker_enabled() {
 }
 
 # Resolve base images: explicit env wins; else Iran mirrors when enabled; else Hub.
+# Use library/php (not dunglas/frankenphp) — frankenphp is often missing on IR mirrors.
 if iran_docker_enabled; then
-  FRANKENPHP_IMAGE="${FRANKENPHP_IMAGE:-hub.hamdocker.ir/dunglas/frankenphp:1-php8.3-bookworm}"
+  PHP_IMAGE="${PHP_IMAGE:-hub.hamdocker.ir/library/php:8.3-cli-bookworm}"
   COMPOSER_IMAGE="${COMPOSER_IMAGE:-hub.hamdocker.ir/library/composer:2}"
   NODE_IMAGE="${NODE_IMAGE:-hub.hamdocker.ir/library/node:22-alpine}"
   log "Iran Docker mirrors enabled (WEBINO_IRAN_DOCKER=${WEBINO_IRAN_DOCKER})"
 else
-  FRANKENPHP_IMAGE="${FRANKENPHP_IMAGE:-dunglas/frankenphp:1-php8.3-bookworm}"
+  PHP_IMAGE="${PHP_IMAGE:-php:8.3-cli-bookworm}"
   COMPOSER_IMAGE="${COMPOSER_IMAGE:-composer:2}"
   NODE_IMAGE="${NODE_IMAGE:-node:22-alpine}"
   log "Using Docker Hub base images (WEBINO_IRAN_DOCKER=${WEBINO_IRAN_DOCKER})"
 fi
 
-log "Base images: FRANKENPHP_IMAGE=${FRANKENPHP_IMAGE}"
+# Reject blank overrides (would produce "base name should not be blank").
+for _pair in "PHP_IMAGE=${PHP_IMAGE}" "COMPOSER_IMAGE=${COMPOSER_IMAGE}" "NODE_IMAGE=${NODE_IMAGE}"; do
+  _key="${_pair%%=*}"
+  _val="${_pair#*=}"
+  if [[ -z "${_val// }" ]]; then
+    log "error: ${_key} is empty"
+    exit 1
+  fi
+done
+
+log "Base images: PHP_IMAGE=${PHP_IMAGE}"
 log "Base images: COMPOSER_IMAGE=${COMPOSER_IMAGE}"
 log "Base images: NODE_IMAGE=${NODE_IMAGE}"
 
@@ -139,7 +150,7 @@ fi
 log "Dashboard source: ${CONTEXT}"
 
 build_one webino-backend:latest docker/php/Dockerfile.platform "$CONTEXT" \
-  --build-arg "FRANKENPHP_IMAGE=${FRANKENPHP_IMAGE}" \
+  --build-arg "PHP_IMAGE=${PHP_IMAGE}" \
   --build-arg "COMPOSER_IMAGE=${COMPOSER_IMAGE}"
 
 build_one webino-next:latest docker/next/Dockerfile "$CONTEXT" \

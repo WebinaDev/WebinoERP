@@ -1451,7 +1451,7 @@ class LocalSameVpsProvisioner
         if ($token !== '') {
             $env['WEBINO_DASHBOARD_GIT_TOKEN'] = $token;
         }
-        foreach (['FRANKENPHP_IMAGE', 'COMPOSER_IMAGE', 'NODE_IMAGE'] as $key) {
+        foreach (['PHP_IMAGE', 'COMPOSER_IMAGE', 'NODE_IMAGE'] as $key) {
             $value = (string) env($key, '');
             if ($value !== '') {
                 $env[$key] = $value;
