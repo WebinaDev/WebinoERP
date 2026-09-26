@@ -3,6 +3,26 @@ export type RahnBilling = 'once' | 'monthly' | 'yearly' | 'custom';
 export const RAHN_DURATION_OPTIONS = [6, 9, 12, 18, 24] as const;
 export type RahnDuration = (typeof RAHN_DURATION_OPTIONS)[number];
 
+export type RahnWizardStepType =
+  | 'business'
+  | 'topic'
+  | 'domain'
+  | 'services'
+  | 'deal'
+  | 'summary'
+  | 'note';
+
+export interface RahnWizardStepConfig {
+  id: string;
+  type: RahnWizardStepType;
+  label: string;
+  body?: string;
+  sort_order: number;
+  active: boolean;
+  /** Built-in steps cannot be deleted (only disabled). */
+  system?: boolean;
+}
+
 export interface RahnTopic {
   id: string;
   name: string;
@@ -28,6 +48,10 @@ export interface RahnServiceCategory {
   description?: string;
   sort_order: number;
   active?: boolean;
+  /** Empty = available for all topics. */
+  topic_id?: string;
+  /** Empty = available for all domains under topic. */
+  domain_id?: string;
 }
 
 export interface RahnCatalogItem {
@@ -49,6 +73,8 @@ export interface RahnCatalogItem {
   choice_value?: string;
   /** Extra line for customer (e.g. gateway fee). */
   fee_label?: string;
+  /** Show only when this catalog item is selected (empty = always). */
+  show_when_item_id?: string;
 }
 
 export interface RahnSettings {
@@ -71,6 +97,7 @@ export interface RahnSettings {
   domains: RahnDomain[];
   categories: RahnServiceCategory[];
   catalog: RahnCatalogItem[];
+  wizard_steps: RahnWizardStepConfig[];
 }
 
 export interface RahnWizardMeta {
@@ -201,8 +228,27 @@ export interface RahnBill {
 
 export const RAHN_API = '/v1/sales/rahn';
 
+export const DEFAULT_WIZARD_STEPS: RahnWizardStepConfig[] = [
+  { id: 'business', type: 'business', label: 'کسب‌وکار', sort_order: 1, active: true, system: true },
+  { id: 'topic', type: 'topic', label: 'موضوع', sort_order: 2, active: true, system: true },
+  { id: 'domain', type: 'domain', label: 'حوزه', sort_order: 3, active: true, system: true },
+  { id: 'services', type: 'services', label: 'خدمات', sort_order: 4, active: true, system: true },
+  { id: 'deal', type: 'deal', label: 'تعرفه', sort_order: 5, active: true, system: true },
+  { id: 'summary', type: 'summary', label: 'خلاصه', sort_order: 6, active: true, system: true },
+];
+
 export function clampRahnDuration(value: number, options: number[] = [...RAHN_DURATION_OPTIONS]): number {
   const opts = options.length ? options : [...RAHN_DURATION_OPTIONS];
   if (opts.includes(value)) return value;
   return opts.reduce((best, cur) => (Math.abs(cur - value) < Math.abs(best - value) ? cur : best), opts[0]!);
+}
+
+/** Fraction 0–1 → percent number for inputs (0.1 → 10). */
+export function fractionToPercentInput(value: number): number {
+  return Math.round(value * 10000) / 100;
+}
+
+/** Percent input → fraction 0–1 (10 → 0.1). */
+export function percentInputToFraction(value: number): number {
+  return Math.max(0, Math.min(100, value)) / 100;
 }

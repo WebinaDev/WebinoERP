@@ -6,11 +6,14 @@ import * as SelectPrimitive from '@radix-ui/react-select';
 import { Check, ChevronDown, ChevronUp } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
-function Select({
-  modal = false,
-  ...props
-}: React.ComponentProps<typeof SelectPrimitive.Root>) {
-  return <SelectPrimitive.Root modal={modal} {...props} />;
+type SelectRootProps = React.ComponentPropsWithoutRef<typeof SelectPrimitive.Root> & {
+  modal?: boolean;
+};
+
+function Select({ modal = false, ...props }: SelectRootProps) {
+  // Runtime supports modal; some package typings omit it.
+  const Root = SelectPrimitive.Root as React.FC<SelectRootProps>;
+  return <Root modal={modal} {...props} />;
 }
 const SelectGroup = SelectPrimitive.Group;
 const SelectValue = SelectPrimitive.Value;
