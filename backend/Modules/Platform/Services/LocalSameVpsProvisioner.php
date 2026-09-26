@@ -1424,14 +1424,13 @@ class LocalSameVpsProvisioner
      *
      * @param  'frontend'|'backend'|'all'  $only
      */
-    protected function forceBuildImages(string $tag, string $only = 'all'): void
+    /**
+     * Env passed to scripts/build-webino-dashboard-images.sh (git + IR Hub mirrors).
+     *
+     * @return array<string, string>
+     */
+    protected function dashboardBuildEnv(string $imageTag = ''): array
     {
-        $script = (string) (env('WEBINO_DASHBOARD_BUILD_SCRIPT')
-            ?: ($this->erpRoot().'/scripts/build-webino-dashboard-images.sh'));
-        if (! is_file($script)) {
-            throw new RuntimeException('platform.build_script_missing');
-        }
-
         $env = [
             'WEBINO_DASHBOARD_GIT_URL' => (string) env(
                 'WEBINO_DASHBOARD_GIT_URL',
@@ -1439,8 +1438,11 @@ class LocalSameVpsProvisioner
             ),
             'WEBINO_DASHBOARD_GIT_REF' => (string) env('WEBINO_DASHBOARD_GIT_REF', 'main'),
             'WEBINO_DASHBOARD_SRC' => (string) env('WEBINO_DASHBOARD_SRC', '/var/lib/webino/src/WebinoDashboard'),
-            'WEBINO_IMAGE_TAG' => $tag === 'latest' ? '' : $tag,
+            'WEBINO_IRAN_DOCKER' => (string) env('WEBINO_IRAN_DOCKER', 'auto'),
         ];
+        if ($imageTag !== '' && $imageTag !== 'latest') {
+            $env['WEBINO_IMAGE_TAG'] = $imageTag;
+        }
         $dashboardPath = (string) env('WEBINO_DASHBOARD_PATH', '');
         if ($dashboardPath !== '' && is_file($dashboardPath.'/docker/php/Dockerfile.platform')) {
             $env['WEBINO_DASHBOARD_PATH'] = $dashboardPath;
@@ -1449,6 +1451,25 @@ class LocalSameVpsProvisioner
         if ($token !== '') {
             $env['WEBINO_DASHBOARD_GIT_TOKEN'] = $token;
         }
+        foreach (['FRANKENPHP_IMAGE', 'COMPOSER_IMAGE', 'NODE_IMAGE'] as $key) {
+            $value = (string) env($key, '');
+            if ($value !== '') {
+                $env[$key] = $value;
+            }
+        }
+
+        return $env;
+    }
+
+    protected function forceBuildImages(string $tag, string $only = 'all'): void
+    {
+        $script = (string) (env('WEBINO_DASHBOARD_BUILD_SCRIPT')
+            ?: ($this->erpRoot().'/scripts/build-webino-dashboard-images.sh'));
+        if (! is_file($script)) {
+            throw new RuntimeException('platform.build_script_missing');
+        }
+
+        $env = $this->dashboardBuildEnv($tag);
 
         // Build script always builds both; selective recreate happens afterwards.
         unset($only);
@@ -1533,22 +1554,7 @@ class LocalSameVpsProvisioner
         $script = (string) (env('WEBINO_DASHBOARD_BUILD_SCRIPT')
             ?: ($this->erpRoot().'/scripts/build-webino-dashboard-images.sh'));
         if (is_file($script)) {
-            $env = [
-                'WEBINO_DASHBOARD_GIT_URL' => (string) env(
-                    'WEBINO_DASHBOARD_GIT_URL',
-                    'https://github.com/Webinadev/WebinoDashboard.git',
-                ),
-                'WEBINO_DASHBOARD_GIT_REF' => (string) env('WEBINO_DASHBOARD_GIT_REF', 'main'),
-                'WEBINO_DASHBOARD_SRC' => (string) env('WEBINO_DASHBOARD_SRC', '/var/lib/webino/src/WebinoDashboard'),
-            ];
-            $dashboardPath = (string) env('WEBINO_DASHBOARD_PATH', '');
-            if ($dashboardPath !== '' && is_file($dashboardPath.'/docker/php/Dockerfile.platform')) {
-                $env['WEBINO_DASHBOARD_PATH'] = $dashboardPath;
-            }
-            $token = (string) env('WEBINO_DASHBOARD_GIT_TOKEN', '');
-            if ($token !== '') {
-                $env['WEBINO_DASHBOARD_GIT_TOKEN'] = $token;
-            }
+            $env = $this->dashboardBuildEnv();
             $build = $this->runEnv(['bash', $script], 2400, $env);
             if ($build['exit_code'] !== 0) {
                 throw new RuntimeException(

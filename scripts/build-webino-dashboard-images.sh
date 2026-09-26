@@ -8,13 +8,40 @@
 # Override:
 #   WEBINO_DASHBOARD_GIT_URL  WEBINO_DASHBOARD_GIT_REF  WEBINO_DASHBOARD_GIT_TOKEN
 #   WEBINO_DASHBOARD_SRC      WEBINO_DASHBOARD_PATH (local checkout, skips git)
+#   WEBINO_IRAN_DOCKER       auto|1|0 — use Hub mirrors (default auto=on)
+#   FRANKENPHP_IMAGE  COMPOSER_IMAGE  NODE_IMAGE — base image overrides
 set -euo pipefail
 
 GIT_URL="${WEBINO_DASHBOARD_GIT_URL:-https://github.com/Webinadev/WebinoDashboard.git}"
 GIT_REF="${WEBINO_DASHBOARD_GIT_REF:-main}"
 SRC="${WEBINO_DASHBOARD_SRC:-/var/lib/webino/src/WebinoDashboard}"
+WEBINO_IRAN_DOCKER="${WEBINO_IRAN_DOCKER:-auto}"
 
 log() { echo "$*" >&2; }
+
+iran_docker_enabled() {
+  case "${WEBINO_IRAN_DOCKER}" in
+    0|false|no|NO) return 1 ;;
+    *) return 0 ;;
+  esac
+}
+
+# Resolve base images: explicit env wins; else Iran mirrors when enabled; else Hub.
+if iran_docker_enabled; then
+  FRANKENPHP_IMAGE="${FRANKENPHP_IMAGE:-hub.hamdocker.ir/dunglas/frankenphp:1-php8.3-bookworm}"
+  COMPOSER_IMAGE="${COMPOSER_IMAGE:-hub.hamdocker.ir/library/composer:2}"
+  NODE_IMAGE="${NODE_IMAGE:-hub.hamdocker.ir/library/node:22-alpine}"
+  log "Iran Docker mirrors enabled (WEBINO_IRAN_DOCKER=${WEBINO_IRAN_DOCKER})"
+else
+  FRANKENPHP_IMAGE="${FRANKENPHP_IMAGE:-dunglas/frankenphp:1-php8.3-bookworm}"
+  COMPOSER_IMAGE="${COMPOSER_IMAGE:-composer:2}"
+  NODE_IMAGE="${NODE_IMAGE:-node:22-alpine}"
+  log "Using Docker Hub base images (WEBINO_IRAN_DOCKER=${WEBINO_IRAN_DOCKER})"
+fi
+
+log "Base images: FRANKENPHP_IMAGE=${FRANKENPHP_IMAGE}"
+log "Base images: COMPOSER_IMAGE=${COMPOSER_IMAGE}"
+log "Base images: NODE_IMAGE=${NODE_IMAGE}"
 
 has_dockerfiles() {
   local root="${1:-}"
@@ -72,6 +99,8 @@ build_one() {
   local tag="$1"
   local dockerfile="$2"
   local context="$3"
+  shift 3
+  local -a extra_args=("$@")
 
   log "Building ${tag} from ${context} (-f ${dockerfile})"
 
@@ -85,9 +114,17 @@ build_one() {
   fi
 
   if docker buildx version >/dev/null 2>&1; then
-    docker buildx build --load -t "${tag}" -f "${context}/${dockerfile}" "${context}"
+    docker buildx build --load \
+      "${extra_args[@]}" \
+      -t "${tag}" \
+      -f "${context}/${dockerfile}" \
+      "${context}"
   else
-    docker build -t "${tag}" -f "${context}/${dockerfile}" "${context}"
+    docker build \
+      "${extra_args[@]}" \
+      -t "${tag}" \
+      -f "${context}/${dockerfile}" \
+      "${context}"
   fi
 }
 
@@ -101,8 +138,12 @@ fi
 
 log "Dashboard source: ${CONTEXT}"
 
-build_one webino-backend:latest docker/php/Dockerfile.platform "$CONTEXT"
-build_one webino-next:latest docker/next/Dockerfile "$CONTEXT"
+build_one webino-backend:latest docker/php/Dockerfile.platform "$CONTEXT" \
+  --build-arg "FRANKENPHP_IMAGE=${FRANKENPHP_IMAGE}" \
+  --build-arg "COMPOSER_IMAGE=${COMPOSER_IMAGE}"
+
+build_one webino-next:latest docker/next/Dockerfile "$CONTEXT" \
+  --build-arg "NODE_IMAGE=${NODE_IMAGE}"
 
 # Optional channel tag (beta). latest is always built; channel tag is an additional tag.
 IMAGE_TAG="${WEBINO_IMAGE_TAG:-}"
