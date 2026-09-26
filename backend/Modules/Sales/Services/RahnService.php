@@ -665,6 +665,7 @@ class RahnService
                 'choice_group' => (string) ($item['choice_group'] ?? ''),
                 'choice_value' => (string) ($item['choice_value'] ?? ''),
                 'fee_label' => (string) ($item['fee_label'] ?? ''),
+                'show_when_item_id' => (string) ($item['show_when_item_id'] ?? ''),
                 'sort_order' => (int) ($item['sort_order'] ?? 0),
             ];
         }
@@ -683,6 +684,10 @@ class RahnService
             'domains' => array_values(array_filter((array) ($settings['domains'] ?? []), fn ($t) => is_array($t) && (! isset($t['active']) || ! empty($t['active'])))),
             'categories' => array_values(array_filter((array) ($settings['categories'] ?? []), fn ($t) => is_array($t) && (! isset($t['active']) || ! empty($t['active'])))),
             'duration_options' => array_values((array) ($settings['duration_options'] ?? RahnSettingsService::DURATION_OPTIONS)),
+            'wizard_steps' => array_values(array_filter(
+                (array) ($settings['wizard_steps'] ?? RahnSettingsService::defaultWizardSteps()),
+                fn ($s) => is_array($s) && (! isset($s['active']) || ! empty($s['active']))
+            )),
             'public' => $calc['public'],
             'p_min' => (float) $settings['p_min'],
             'p_max' => (float) $settings['p_max'],

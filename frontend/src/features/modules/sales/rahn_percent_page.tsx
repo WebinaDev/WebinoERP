@@ -10,7 +10,7 @@ import { RahnCalculatorTab } from './rahn_percent/rahn_calculator_tab';
 import { RahnQuotesTab } from './rahn_percent/rahn_quotes_tab';
 import { RahnSettingsTab } from './rahn_percent/rahn_settings_tab';
 import { RahnStatementsTab } from './rahn_percent/rahn_statements_tab';
-import { RAHN_API, type RahnSettings } from './rahn_percent/types';
+import { RAHN_API, DEFAULT_WIZARD_STEPS, type RahnSettings } from './rahn_percent/types';
 
 export function RahnPercentPage() {
   const t = useTranslations('sales.rahn');
@@ -35,6 +35,7 @@ export function RahnPercentPage() {
           domains: settings.domains ?? [],
           categories: settings.categories ?? [],
           duration_options: settings.duration_options?.length ? settings.duration_options : [6, 9, 12, 18, 24],
+          wizard_steps: settings.wizard_steps?.length ? settings.wizard_steps : [...DEFAULT_WIZARD_STEPS],
         });
       })
       .catch(() => setError(t('loadError')))

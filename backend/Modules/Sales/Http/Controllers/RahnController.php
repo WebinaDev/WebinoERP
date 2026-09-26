@@ -27,7 +27,7 @@ class RahnController extends Controller
             $payload = $payload['settings'];
         }
 
-        foreach (['catalog', 'review', 'sales_definition', 'topics', 'domains', 'categories', 'duration_options'] as $key) {
+        foreach (['catalog', 'review', 'sales_definition', 'topics', 'domains', 'categories', 'duration_options', 'wizard_steps'] as $key) {
             if (isset($payload[$key]) && is_string($payload[$key])) {
                 $decoded = json_decode($payload[$key], true);
                 if (is_array($decoded)) {

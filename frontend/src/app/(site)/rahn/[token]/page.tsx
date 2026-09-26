@@ -43,11 +43,27 @@ type CatalogItem = {
   fee_label?: string;
   sort_order?: number;
   active?: boolean;
+  show_when_item_id?: string;
 };
 
 type Topic = { id: string; name: string; description?: string; sort_order: number };
 type Domain = { id: string; topic_id: string; name: string; description?: string; p_suggest: number; sort_order: number };
-type Category = { id: string; name: string; description?: string; sort_order: number };
+type Category = {
+  id: string;
+  name: string;
+  description?: string;
+  sort_order: number;
+  topic_id?: string;
+  domain_id?: string;
+};
+type WizardStep = {
+  id: string;
+  type: string;
+  label: string;
+  body?: string;
+  sort_order: number;
+  active?: boolean;
+};
 
 function money(n: number) {
   return Math.round(n).toLocaleString('fa-IR');
@@ -78,17 +94,14 @@ function toggleSelection(catalog: CatalogItem[], selected: string[], id: string,
   return checked ? (selected.includes(id) ? selected : [...selected, id]) : selected.filter((x) => x !== id);
 }
 
-const STEPS = ['business', 'topic', 'domain', 'services', 'deal', 'contact'] as const;
-type Step = (typeof STEPS)[number];
-
-const STEP_LABELS: Record<Step, string> = {
-  business: 'کسب‌وکار',
-  topic: 'موضوع',
-  domain: 'حوزه',
-  services: 'خدمات',
-  deal: 'تعرفه',
-  contact: 'ثبت درخواست',
-};
+const DEFAULT_STEPS: WizardStep[] = [
+  { id: 'business', type: 'business', label: 'کسب‌وکار', sort_order: 1, active: true },
+  { id: 'topic', type: 'topic', label: 'موضوع', sort_order: 2, active: true },
+  { id: 'domain', type: 'domain', label: 'حوزه', sort_order: 3, active: true },
+  { id: 'services', type: 'services', label: 'خدمات', sort_order: 4, active: true },
+  { id: 'deal', type: 'deal', label: 'تعرفه', sort_order: 5, active: true },
+  { id: 'contact', type: 'summary', label: 'ثبت درخواست', sort_order: 6, active: true },
+];
 
 export default function RahnPublicPage() {
   const params = useParams();
@@ -102,6 +115,7 @@ export default function RahnPublicPage() {
   const [topics, setTopics] = useState<Topic[]>([]);
   const [domains, setDomains] = useState<Domain[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
+  const [wizardSteps, setWizardSteps] = useState<WizardStep[]>(DEFAULT_STEPS);
   const [durationOptions, setDurationOptions] = useState<number[]>([6, 9, 12, 18, 24]);
   const [selected, setSelected] = useState<string[]>([]);
   const [pub, setPub] = useState<PublicPayload | null>(null);
@@ -121,7 +135,21 @@ export default function RahnPublicPage() {
   const [note, setNote] = useState('');
   const [submitted, setSubmitted] = useState(false);
   const [siteName, setSiteName] = useState('Webino');
-  const [step, setStep] = useState<Step>('business');
+  const [stepId, setStepId] = useState('business');
+
+  const activeSteps = useMemo(
+    () =>
+      [...wizardSteps]
+        .filter((s) => s.active !== false)
+        .sort((a, b) => a.sort_order - b.sort_order)
+        .map((s) => ({
+          ...s,
+          type: s.type === 'summary' ? 'contact' : s.type,
+        })),
+    [wizardSteps],
+  );
+  const currentStep = activeSteps.find((s) => s.id === stepId) ?? activeSteps[0];
+  const stepType = currentStep?.type ?? 'business';
 
   const load = useCallback(async () => {
     if (!token) return;
@@ -135,6 +163,7 @@ export default function RahnPublicPage() {
         domains?: Domain[];
         categories?: Category[];
         duration_options?: number[];
+        wizard_steps?: WizardStep[];
         selected_ids: string[];
         public: PublicPayload;
         p_min: number;
@@ -154,6 +183,7 @@ export default function RahnPublicPage() {
       setTopics(res.data.topics || []);
       setDomains(res.data.domains || []);
       setCategories(res.data.categories || []);
+      setWizardSteps(res.data.wizard_steps?.length ? res.data.wizard_steps : DEFAULT_STEPS);
       setDurationOptions(res.data.duration_options?.length ? res.data.duration_options : [6, 9, 12, 18, 24]);
       setSelected(res.data.selected_ids || []);
       setPub(res.data.public);
@@ -167,6 +197,9 @@ export default function RahnPublicPage() {
       if (res.data.wizard?.topic_id) setTopicId(res.data.wizard.topic_id);
       if (res.data.wizard?.domain_id) setDomainId(res.data.wizard.domain_id);
       if (res.data.site_name) setSiteName(res.data.site_name);
+      const steps = res.data.wizard_steps?.length ? res.data.wizard_steps : DEFAULT_STEPS;
+      const first = [...steps].filter((s) => s.active !== false).sort((a, b) => a.sort_order - b.sort_order)[0];
+      if (first) setStepId(first.id);
     } catch {
       setError('خطا در دریافت اطلاعات.');
     } finally {
@@ -256,39 +289,60 @@ export default function RahnPublicPage() {
     setSubmitted(true);
   };
 
-  const stepIndex = STEPS.indexOf(step);
+  const stepIndex = activeSteps.findIndex((s) => s.id === stepId);
   const goNext = () => {
-    if (step === 'business' && !businessName.trim()) {
+    if (stepType === 'business' && !businessName.trim()) {
       setError('نام کسب‌وکار را وارد کنید.');
       return;
     }
-    if (step === 'topic' && !topicId) {
+    if (stepType === 'topic' && !topicId) {
       setError('موضوع را انتخاب کنید.');
       return;
     }
-    if (step === 'domain' && !domainId) {
+    if (stepType === 'domain' && !domainId) {
       setError('حوزه کسب‌وکار را انتخاب کنید.');
       return;
     }
     setError(null);
-    const next = STEPS[stepIndex + 1];
-    if (next) setStep(next);
+    const next = activeSteps[stepIndex + 1];
+    if (next) setStepId(next.id);
   };
   const goPrev = () => {
-    const prev = STEPS[stepIndex - 1];
-    if (prev) setStep(prev);
+    const prev = activeSteps[stepIndex - 1];
+    if (prev) setStepId(prev.id);
   };
+
+  const visibleCategories = useMemo(() => {
+    return categories.filter((c) => {
+      if (c.topic_id && topicId && c.topic_id !== topicId) return false;
+      if (c.domain_id && domainId && c.domain_id !== domainId) return false;
+      return true;
+    });
+  }, [categories, topicId, domainId]);
+
+  const visibleCatalog = useMemo(() => {
+    const allowed = new Set(visibleCategories.map((c) => c.id));
+    const hasScoped = categories.some((c) => c.topic_id || c.domain_id);
+    return catalog.filter((item) => {
+      if (item.show_when_item_id && !selected.includes(item.show_when_item_id)) return false;
+      if (item.category_id && hasScoped) {
+        const cat = categories.find((c) => c.id === item.category_id);
+        if (cat && (cat.topic_id || cat.domain_id) && !allowed.has(cat.id)) return false;
+      }
+      return true;
+    });
+  }, [catalog, categories, visibleCategories, selected]);
 
   const serviceGroups = useMemo(() => {
     const map = new Map<string, CatalogItem[]>();
-    for (const item of catalog) {
+    for (const item of visibleCatalog) {
       const key = item.category_id || item.category || 'other';
       const list = map.get(key) ?? [];
       list.push(item);
       map.set(key, list);
     }
     const ordered: Array<{ title: string; items: CatalogItem[] }> = [];
-    for (const cat of [...categories].sort((a, b) => a.sort_order - b.sort_order)) {
+    for (const cat of [...visibleCategories].sort((a, b) => a.sort_order - b.sort_order)) {
       const list = map.get(cat.id);
       if (list?.length) {
         ordered.push({ title: cat.name, items: list });
@@ -299,7 +353,7 @@ export default function RahnPublicPage() {
       ordered.push({ title: list[0]?.category || key, items: list });
     }
     return ordered;
-  }, [catalog, categories]);
+  }, [visibleCatalog, visibleCategories]);
 
   const selectedItems = catalog.filter((c) => selected.includes(c.id));
   const pMinPct = pMin * 100;
@@ -332,22 +386,29 @@ export default function RahnPublicPage() {
 
       {!locked ? (
         <ol className="flex flex-wrap justify-center gap-2">
-          {STEPS.map((s, i) => (
+          {activeSteps.map((s, i) => (
             <li
-              key={s}
+              key={s.id}
               className={`rounded-full border px-3 py-1 text-xs ${
-                s === step ? 'border-primary bg-primary text-primary-foreground' : 'bg-muted/40 text-muted-foreground'
+                s.id === stepId ? 'border-primary bg-primary text-primary-foreground' : 'bg-muted/40 text-muted-foreground'
               }`}
             >
-              {i + 1}. {STEP_LABELS[s]}
+              {i + 1}. {s.label}
             </li>
           ))}
         </ol>
       ) : null}
 
+      {!locked && stepType === 'note' ? (
+        <section className="space-y-3 rounded-2xl border p-5">
+          <h2 className="font-semibold">{currentStep?.label}</h2>
+          <p className="whitespace-pre-wrap text-sm leading-7 text-muted-foreground">{currentStep?.body || '—'}</p>
+        </section>
+      ) : null}
+
       {error ? <p className="text-center text-sm text-destructive">{error}</p> : null}
 
-      {step === 'business' || locked ? (
+      {stepType === 'business' || locked ? (
         <section className="space-y-3 rounded-2xl border bg-gradient-to-bl from-primary/10 to-background p-5">
           <h2 className="font-semibold">نام کسب‌وکار</h2>
           <input
@@ -360,7 +421,7 @@ export default function RahnPublicPage() {
         </section>
       ) : null}
 
-      {!locked && step === 'topic' ? (
+      {!locked && stepType === 'topic' ? (
         <section className="grid gap-3 sm:grid-cols-2">
           {topics.map((topic) => (
             <button
@@ -381,7 +442,7 @@ export default function RahnPublicPage() {
         </section>
       ) : null}
 
-      {!locked && step === 'domain' ? (
+      {!locked && stepType === 'domain' ? (
         <section className="grid gap-3 sm:grid-cols-2">
           {domainOptions.map((domain) => (
             <button
@@ -404,7 +465,7 @@ export default function RahnPublicPage() {
         </section>
       ) : null}
 
-      {(!locked && step === 'services') || locked ? (
+      {(!locked && stepType === 'services') || locked ? (
         <section className="space-y-4">
           {serviceGroups.map((group) => (
             <div key={group.title} className="overflow-hidden rounded-2xl border">
@@ -436,7 +497,7 @@ export default function RahnPublicPage() {
         </section>
       ) : null}
 
-      {!locked && step === 'deal' ? (
+      {!locked && stepType === 'deal' ? (
         <section className="space-y-5 rounded-2xl border p-5">
           <div>
             <div className="mb-2 flex justify-between text-sm">
@@ -522,7 +583,7 @@ export default function RahnPublicPage() {
         </section>
       ) : null}
 
-      {pub && (step === 'deal' || step === 'contact' || locked) ? (
+      {pub && (stepType === 'deal' || stepType === 'contact' || locked) ? (
         <section className="grid gap-3 sm:grid-cols-2">
           <div className="rounded-2xl border bg-primary/5 p-4">
             <div className="text-xs text-muted-foreground">ثابت ماهانه</div>
@@ -538,7 +599,7 @@ export default function RahnPublicPage() {
         </section>
       ) : null}
 
-      {(step === 'contact' || locked) && selectedItems.length ? (
+      {(stepType === 'contact' || locked) && selectedItems.length ? (
         <section className="space-y-3">
           <h2 className="font-semibold">خدمات انتخابی</h2>
           {serviceGroups.map((group) => {
@@ -561,7 +622,7 @@ export default function RahnPublicPage() {
         </section>
       ) : null}
 
-      {!locked && step === 'contact' ? (
+      {!locked && stepType === 'contact' ? (
         submitted ? (
           <div className="rounded-2xl border bg-emerald-500/10 p-4 text-center">
             درخواست شما ثبت شد. به‌زودی تماس می‌گیریم.
@@ -618,7 +679,7 @@ export default function RahnPublicPage() {
             <ArrowRight className="size-4" />
             قبلی
           </button>
-          {step !== 'contact' ? (
+          {stepType !== 'contact' ? (
             <button
               type="button"
               className="inline-flex items-center gap-2 rounded-xl bg-primary px-4 py-2 text-sm text-primary-foreground"

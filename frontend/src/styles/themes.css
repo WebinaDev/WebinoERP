@@ -322,6 +322,10 @@ body[data-scroll-locked] {
   overflow-y: scroll !important;
   padding: 0 !important;
   margin: 0 !important;
+  position: static !important;
+  top: auto !important;
+  left: auto !important;
+  right: auto !important;
   --removed-body-scroll-bar-size: 0 !important;
 }
 
@@ -1160,6 +1164,10 @@ body[data-scroll-locked] {
   overflow-y: scroll !important;
   padding: 0 !important;
   margin: 0 !important;
+  position: static !important;
+  top: auto !important;
+  left: auto !important;
+  right: auto !important;
   --removed-body-scroll-bar-size: 0 !important;
 }
 

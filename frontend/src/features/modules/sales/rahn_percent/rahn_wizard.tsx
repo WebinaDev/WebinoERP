@@ -18,7 +18,7 @@ export const RAHN_WIZARD_STEPS = [
 
 export type RahnWizardStep = (typeof RAHN_WIZARD_STEPS)[number];
 
-type StepMeta = { id: RahnWizardStep; label: string };
+type StepMeta = { id: string; label: string };
 
 export function RahnWizardProgress({
   steps,
@@ -26,8 +26,8 @@ export function RahnWizardProgress({
   onSelect,
 }: {
   steps: StepMeta[];
-  current: RahnWizardStep;
-  onSelect?: (id: RahnWizardStep) => void;
+  current: string;
+  onSelect?: (id: string) => void;
 }) {
   const idx = steps.findIndex((s) => s.id === current);
   return (
@@ -131,6 +131,50 @@ export function groupCatalogByCategory(
     });
   }
   return ordered;
+}
+
+/** Categories matching selected topic/domain (empty scope = all). */
+export function filterCategoriesForContext(
+  categories: RahnServiceCategory[],
+  topicId: string,
+  domainId: string,
+): RahnServiceCategory[] {
+  return categories.filter((c) => {
+    if (c.active === false) return false;
+    if (c.topic_id && topicId && c.topic_id !== topicId) return false;
+    if (c.domain_id && domainId && c.domain_id !== domainId) return false;
+    return true;
+  });
+}
+
+/** Catalog items visible given selection + show_when + category scope. */
+export function filterCatalogForContext(
+  catalog: RahnCatalogItem[],
+  categories: RahnServiceCategory[],
+  selected: string[],
+  topicId: string,
+  domainId: string,
+): RahnCatalogItem[] {
+  const allowedCats = new Set(filterCategoriesForContext(categories, topicId, domainId).map((c) => c.id));
+  const hasScopedCats = categories.some((c) => c.topic_id || c.domain_id);
+  return catalog.filter((item) => {
+    if (item.active === false) return false;
+    if (item.show_when_item_id && !selected.includes(item.show_when_item_id)) return false;
+    if (item.category_id && hasScopedCats && allowedCats.size > 0 && !allowedCats.has(item.category_id)) {
+      // Keep items whose category has no topic/domain restriction.
+      const cat = categories.find((c) => c.id === item.category_id);
+      if (cat && (cat.topic_id || cat.domain_id) && !allowedCats.has(cat.id)) return false;
+    }
+    return true;
+  });
+}
+
+export function activeWizardSteps(
+  steps: Array<{ id: string; type: string; label: string; body?: string; sort_order: number; active?: boolean }>,
+) {
+  return [...steps]
+    .filter((s) => s.active !== false)
+    .sort((a, b) => a.sort_order - b.sort_order);
 }
 
 /** Apply radio semantics for choice_group when toggling a catalog id. */

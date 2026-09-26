@@ -13,6 +13,21 @@ class RahnSettingsService
     public const DURATION_OPTIONS = [6, 9, 12, 18, 24];
 
     /**
+     * @return list<array<string, mixed>>
+     */
+    public static function defaultWizardSteps(): array
+    {
+        return [
+            ['id' => 'business', 'type' => 'business', 'label' => 'کسب‌وکار', 'body' => '', 'sort_order' => 1, 'active' => true, 'system' => true],
+            ['id' => 'topic', 'type' => 'topic', 'label' => 'موضوع', 'body' => '', 'sort_order' => 2, 'active' => true, 'system' => true],
+            ['id' => 'domain', 'type' => 'domain', 'label' => 'حوزه', 'body' => '', 'sort_order' => 3, 'active' => true, 'system' => true],
+            ['id' => 'services', 'type' => 'services', 'label' => 'خدمات', 'body' => '', 'sort_order' => 4, 'active' => true, 'system' => true],
+            ['id' => 'deal', 'type' => 'deal', 'label' => 'تعرفه', 'body' => '', 'sort_order' => 5, 'active' => true, 'system' => true],
+            ['id' => 'summary', 'type' => 'summary', 'label' => 'خلاصه', 'body' => '', 'sort_order' => 6, 'active' => true, 'system' => true],
+        ];
+    }
+
+    /**
      * @return array<string, mixed>
      */
     public static function defaults(): array
@@ -42,6 +57,7 @@ class RahnSettingsService
             'domains' => self::seedDomains(),
             'categories' => self::seedCategories(),
             'catalog' => self::seedCatalog(),
+            'wizard_steps' => self::defaultWizardSteps(),
         ];
     }
 
@@ -285,6 +301,9 @@ class RahnSettingsService
         if (empty($out['duration_options']) || ! is_array($out['duration_options'])) {
             $out['duration_options'] = $defaults['duration_options'];
         }
+        if (empty($out['wizard_steps']) || ! is_array($out['wizard_steps'])) {
+            $out['wizard_steps'] = $defaults['wizard_steps'];
+        }
 
         return self::sanitize($out);
     }
@@ -325,6 +344,7 @@ class RahnSettingsService
                     'choice_group' => preg_replace('/[^a-z0-9_\-]/i', '', (string) ($row['choice_group'] ?? '')) ?: '',
                     'choice_value' => preg_replace('/[^a-z0-9_\-]/i', '', (string) ($row['choice_value'] ?? '')) ?: '',
                     'fee_label' => trim((string) ($row['fee_label'] ?? '')),
+                    'show_when_item_id' => preg_replace('/[^a-z0-9_\-]/i', '', (string) ($row['show_when_item_id'] ?? '')) ?: '',
                     'sort_order' => isset($row['sort_order']) ? (int) $row['sort_order'] : $order,
                 ];
             }
@@ -333,7 +353,8 @@ class RahnSettingsService
 
         $topics = self::sanitizeNamedList($data['topics'] ?? null, $defaults['topics'], false);
         $domains = self::sanitizeDomains($data['domains'] ?? null, $defaults['domains']);
-        $categories = self::sanitizeNamedList($data['categories'] ?? null, $defaults['categories'], false);
+        $categories = self::sanitizeCategories($data['categories'] ?? null, $defaults['categories']);
+        $wizardSteps = self::sanitizeWizardSteps($data['wizard_steps'] ?? null, $defaults['wizard_steps']);
 
         $salesDef = $defaults['sales_definition'];
         if (! empty($data['sales_definition']) && is_array($data['sales_definition'])) {
@@ -397,6 +418,7 @@ class RahnSettingsService
             'domains' => $domains,
             'categories' => $categories,
             'catalog' => $catalog ?: $defaults['catalog'],
+            'wizard_steps' => $wizardSteps,
         ];
     }
 
@@ -444,6 +466,89 @@ class RahnSettingsService
     private static function sanitizeDomains(mixed $raw, array $fallback): array
     {
         return self::sanitizeNamedList($raw, $fallback, true);
+    }
+
+    /**
+     * @param  mixed  $raw
+     * @param  list<array<string, mixed>>  $fallback
+     * @return list<array<string, mixed>>
+     */
+    private static function sanitizeCategories(mixed $raw, array $fallback): array
+    {
+        $list = self::sanitizeNamedList($raw, $fallback, false);
+        if (! is_array($raw) || $raw === []) {
+            return $list;
+        }
+        $byId = [];
+        foreach ($raw as $row) {
+            if (! is_array($row) || empty($row['id'])) {
+                continue;
+            }
+            $byId[(string) $row['id']] = $row;
+        }
+        foreach ($list as &$item) {
+            $src = $byId[(string) $item['id']] ?? [];
+            $item['topic_id'] = preg_replace('/[^a-z0-9_\-]/i', '', (string) ($src['topic_id'] ?? $item['topic_id'] ?? '')) ?: '';
+            $item['domain_id'] = preg_replace('/[^a-z0-9_\-]/i', '', (string) ($src['domain_id'] ?? $item['domain_id'] ?? '')) ?: '';
+        }
+        unset($item);
+
+        return $list;
+    }
+
+    /**
+     * @param  mixed  $raw
+     * @param  list<array<string, mixed>>  $fallback
+     * @return list<array<string, mixed>>
+     */
+    private static function sanitizeWizardSteps(mixed $raw, array $fallback): array
+    {
+        $allowedTypes = ['business', 'topic', 'domain', 'services', 'deal', 'summary', 'note'];
+        if (! is_array($raw) || $raw === []) {
+            return $fallback;
+        }
+        $out = [];
+        $order = 0;
+        $seenSystem = [];
+        foreach ($raw as $row) {
+            if (! is_array($row)) {
+                continue;
+            }
+            ++$order;
+            $type = strtolower((string) ($row['type'] ?? 'note'));
+            if (! in_array($type, $allowedTypes, true)) {
+                $type = 'note';
+            }
+            $id = preg_replace('/[^a-z0-9_\-]/i', '', (string) ($row['id'] ?? '')) ?: ('step_'.bin2hex(random_bytes(3)));
+            $system = ! empty($row['system']) || in_array($type, ['business', 'topic', 'domain', 'services', 'deal', 'summary'], true);
+            if ($system && $type !== 'note') {
+                $id = $type;
+                if (isset($seenSystem[$type])) {
+                    continue;
+                }
+                $seenSystem[$type] = true;
+            }
+            $out[] = [
+                'id' => $id,
+                'type' => $type,
+                'label' => trim((string) ($row['label'] ?? $type)) ?: $type,
+                'body' => trim((string) ($row['body'] ?? '')),
+                'sort_order' => isset($row['sort_order']) ? (int) $row['sort_order'] : $order,
+                'active' => ! isset($row['active']) || ! empty($row['active']),
+                'system' => $system && $type !== 'note',
+            ];
+        }
+        // Ensure all system steps exist.
+        foreach ($fallback as $seed) {
+            $type = (string) $seed['type'];
+            if (! isset($seenSystem[$type])) {
+                $out[] = $seed;
+                $seenSystem[$type] = true;
+            }
+        }
+        usort($out, static fn ($a, $b) => (int) $a['sort_order'] <=> (int) $b['sort_order']);
+
+        return $out ?: $fallback;
     }
 
     /**

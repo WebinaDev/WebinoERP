@@ -25,12 +25,15 @@ import {
   RahnCategorizedSummary,
   RahnChoiceCard,
   RahnWizardProgress,
+  activeWizardSteps,
   defaultSelectedIds,
+  filterCatalogForContext,
+  filterCategoriesForContext,
   groupCatalogByCategory,
   toggleCatalogSelection,
-  type RahnWizardStep,
 } from './rahn_wizard';
 import {
+  DEFAULT_WIZARD_STEPS,
   RAHN_API,
   RAHN_DURATION_OPTIONS,
   clampRahnDuration,
@@ -65,7 +68,17 @@ export function RahnCalculatorTab({ settings }: Props) {
     [settings.categories],
   );
 
-  const [step, setStep] = useState<RahnWizardStep>('business');
+  const steps = useMemo(() => {
+    const source = settings.wizard_steps?.length ? settings.wizard_steps : DEFAULT_WIZARD_STEPS;
+    return activeWizardSteps(source).map((s) => ({
+      id: s.id,
+      type: s.type,
+      label: s.label,
+      body: s.body,
+    }));
+  }, [settings.wizard_steps]);
+
+  const [stepId, setStepId] = useState(() => steps[0]?.id ?? 'business');
   const [businessName, setBusinessName] = useState('');
   const [topicId, setTopicId] = useState('');
   const [domainId, setDomainId] = useState('');
@@ -86,29 +99,36 @@ export function RahnCalculatorTab({ settings }: Props) {
   const pMinPct = settings.p_min * 100;
   const pMaxPct = settings.p_max * 100;
 
+  const currentStep = steps.find((s) => s.id === stepId) ?? steps[0];
+  const stepType = currentStep?.type ?? 'business';
+
   const domainOptions = useMemo(
     () => domains.filter((d) => !topicId || d.topic_id === topicId),
     [domains, topicId],
   );
 
   const selectedDomain = domains.find((d) => d.id === domainId);
+
+  const visibleCategories = useMemo(
+    () => filterCategoriesForContext(categories, topicId, domainId),
+    [categories, topicId, domainId],
+  );
+
+  const visibleCatalog = useMemo(
+    () => filterCatalogForContext(activeCatalog, categories, selected, topicId, domainId),
+    [activeCatalog, categories, selected, topicId, domainId],
+  );
+
   const selectedItems = useMemo(
     () => activeCatalog.filter((c) => selected.includes(c.id)),
     [activeCatalog, selected],
   );
 
-  const steps = useMemo(
-    () =>
-      [
-        { id: 'business' as const, label: t('wizard.stepBusiness') },
-        { id: 'topic' as const, label: t('wizard.stepTopic') },
-        { id: 'domain' as const, label: t('wizard.stepDomain') },
-        { id: 'services' as const, label: t('wizard.stepServices') },
-        { id: 'deal' as const, label: t('wizard.stepDeal') },
-        { id: 'summary' as const, label: t('wizard.stepSummary') },
-      ] satisfies Array<{ id: RahnWizardStep; label: string }>,
-    [t],
-  );
+  useEffect(() => {
+    if (!steps.some((s) => s.id === stepId) && steps[0]) {
+      setStepId(steps[0].id);
+    }
+  }, [steps, stepId]);
 
   const runCalc = useCallback(async () => {
     setLoading(true);
@@ -141,12 +161,12 @@ export function RahnCalculatorTab({ settings }: Props) {
   }, [selected, sHat, duration, mode, pPercent, fWanted, businessName, topicId, domainId, t]);
 
   useEffect(() => {
-    if (step !== 'deal' && step !== 'summary') return;
+    if (stepType !== 'deal' && stepType !== 'summary') return;
     const timer = window.setTimeout(() => {
       void runCalc();
     }, 250);
     return () => window.clearTimeout(timer);
-  }, [runCalc, step]);
+  }, [runCalc, stepType]);
 
   useEffect(() => {
     void apiClient
@@ -276,35 +296,52 @@ export function RahnCalculatorTab({ settings }: Props) {
     }
   };
 
-  const stepIndex = steps.findIndex((s) => s.id === step);
+  const stepIndex = steps.findIndex((s) => s.id === stepId);
   const goNext = () => {
-    if (step === 'business' && !businessName.trim()) {
+    if (stepType === 'business' && !businessName.trim()) {
       toast.error(t('wizard.businessRequired'));
       return;
     }
-    if (step === 'topic' && !topicId) {
+    if (stepType === 'topic' && !topicId) {
       toast.error(t('wizard.topicRequired'));
       return;
     }
-    if (step === 'domain' && !domainId) {
+    if (stepType === 'domain' && !domainId) {
       toast.error(t('wizard.domainRequired'));
       return;
     }
     const next = steps[stepIndex + 1];
-    if (next) setStep(next.id);
+    if (next) setStepId(next.id);
   };
   const goPrev = () => {
     const prev = steps[stepIndex - 1];
-    if (prev) setStep(prev.id);
+    if (prev) setStepId(prev.id);
   };
 
-  const serviceGroups = groupCatalogByCategory(activeCatalog, categories);
+  const serviceGroups = groupCatalogByCategory(visibleCatalog, visibleCategories);
 
   return (
     <div className="space-y-6 text-start" dir="rtl">
-      <RahnWizardProgress steps={steps} current={step} onSelect={setStep} />
+      <RahnWizardProgress
+        steps={steps.map((s) => ({ id: s.id, label: s.label }))}
+        current={stepId}
+        onSelect={setStepId}
+      />
 
-      {step === 'business' ? (
+      {stepType === 'note' ? (
+        <Card>
+          <CardHeader>
+            <CardTitle>{currentStep?.label}</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <p className="whitespace-pre-wrap text-sm leading-7 text-muted-foreground">
+              {currentStep?.body || '—'}
+            </p>
+          </CardContent>
+        </Card>
+      ) : null}
+
+      {stepType === 'business' ? (
         <Card className="overflow-hidden border-primary/20 bg-gradient-to-bl from-primary/10 via-background to-background">
           <CardHeader>
             <CardTitle className="text-xl">{t('wizard.businessTitle')}</CardTitle>
@@ -343,7 +380,7 @@ export function RahnCalculatorTab({ settings }: Props) {
         </Card>
       ) : null}
 
-      {step === 'topic' ? (
+      {stepType === 'topic' ? (
         <div className="grid gap-3 sm:grid-cols-2">
           {topics.map((topic) => (
             <RahnChoiceCard
@@ -362,7 +399,7 @@ export function RahnCalculatorTab({ settings }: Props) {
         </div>
       ) : null}
 
-      {step === 'domain' ? (
+      {stepType === 'domain' ? (
         <div className="space-y-3">
           <p className="text-sm text-muted-foreground">{t('wizard.domainHint')}</p>
           <div className="grid gap-3 sm:grid-cols-2">
@@ -380,7 +417,7 @@ export function RahnCalculatorTab({ settings }: Props) {
         </div>
       ) : null}
 
-      {step === 'services' ? (
+      {stepType === 'services' ? (
         <div className="space-y-5">
           {serviceGroups.map(({ category, items }) => {
             const hasGroup = items.some((i) => i.choice_group);
@@ -432,7 +469,7 @@ export function RahnCalculatorTab({ settings }: Props) {
         </div>
       ) : null}
 
-      {step === 'deal' ? (
+      {stepType === 'deal' ? (
         <div className="grid gap-6 lg:grid-cols-5">
           <Card className="lg:col-span-2">
             <CardHeader>
@@ -591,7 +628,7 @@ export function RahnCalculatorTab({ settings }: Props) {
         </div>
       ) : null}
 
-      {step === 'summary' ? (
+      {stepType === 'summary' ? (
         <div className="space-y-6">
           <Card>
             <CardHeader>
@@ -657,7 +694,7 @@ export function RahnCalculatorTab({ settings }: Props) {
           <ArrowRight className="h-4 w-4" />
           {t('wizard.prev')}
         </Button>
-        {step !== 'summary' ? (
+        {stepType !== 'summary' ? (
           <Button type="button" onClick={goNext}>
             {t('wizard.next')}
             <ArrowLeft className="h-4 w-4" />

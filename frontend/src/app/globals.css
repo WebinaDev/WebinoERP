@@ -68,12 +68,16 @@
   }
 
   /* Radix dropdown/select locks scroll and adds padding — keep layout still. */
+  html[data-scroll-locked],
   body[data-scroll-locked] {
-    padding-right: 0 !important;
-    padding-left: 0 !important;
-    padding-inline: 0 !important;
-    margin-right: 0 !important;
-    margin-inline: 0 !important;
-    overflow: hidden !important;
+    overflow: visible !important;
+    overflow-y: scroll !important;
+    padding: 0 !important;
+    margin: 0 !important;
+    position: static !important;
+    top: auto !important;
+    left: auto !important;
+    right: auto !important;
+    --removed-body-scroll-bar-size: 0 !important;
   }
 }
