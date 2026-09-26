@@ -155,12 +155,9 @@ log "Restoring env files"
 
 PARENT_DIR="$(dirname "${ERP_DIR}")"
 UI_PKG="${PARENT_DIR}/packages/webina-ui/package.json"
-UI_THEMES="${PARENT_DIR}/packages/webina-ui/src/styles/themes.css"
-# Stale UI packages (pre-glass tokens) break frontend build; refresh when themes lack --color-border.
-if [ "${FORCE_UI}" != "1" ] && [ -f "${UI_PKG}" ] && { [ ! -f "${UI_THEMES}" ] || ! grep -q -- '--color-border' "${UI_THEMES}"; }; then
-  log "Existing @webina/ui themes.css is missing --color-border; refreshing package"
-  FORCE_UI=1
-fi
+# Accent palette + themes.css live inside WebinoERP/frontend (vendored). Sibling
+# @webina/ui is only needed for shared helpers (api envelope, locale, charts).
+# Do not force-refresh from private WebinaDashboard — clone failure must not block builds.
 if [ "${SKIP_UI}" = "1" ]; then
   log "Skipping @webina/ui (SKIP_UI=1)"
 elif [ -f "${UI_PKG}" ] && [ "${FORCE_UI}" != "1" ]; then
@@ -178,7 +175,7 @@ else
   elif [ -f "${UI_PKG}" ]; then
     echo "WARN: could not clone ${UI_REPO} (private/unauthenticated). Keeping existing @webina/ui." >&2
   else
-    echo "WARN: @webina/ui missing and ${UI_REPO} is not clonable without credentials. Frontend build may fail." >&2
+    echo "WARN: @webina/ui missing and ${UI_REPO} is not clonable without credentials. Shared helpers may be unavailable." >&2
   fi
   rm -rf "${tmp}"
 fi

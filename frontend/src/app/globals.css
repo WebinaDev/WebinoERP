@@ -1,11 +1,11 @@
 @import "tailwindcss";
 @import "tw-animate-css";
 
-@import "@webina/ui/styles/themes.css";
+@import "../styles/themes.css";
 
 @custom-variant dark (&:is(.dark *));
 
-/* Fonts only — colors come from @webina/ui themes.css @theme OKLCH (--color-*). */
+/* Fonts only — colors come from local themes.css @theme OKLCH (--color-*). */
 @theme inline {
   --font-sans: var(--font-yekan), var(--wd-font-body), ui-sans-serif, system-ui, sans-serif;
   --font-mono: ui-monospace, SFMono-Regular, Menlo, monospace;
