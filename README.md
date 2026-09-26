@@ -83,6 +83,21 @@ docker compose exec backend php artisan migrate --force
 docker compose exec backend php artisan db:seed --force
 ```
 
+#### سرور ایران (Docker Hub 403)
+
+Docker Hub آی‌پی ایران را بلاک می‌کند (`403 Forbidden` روی `registry-1.docker.io`). یکی از این دو:
+
+```bash
+# ۱) میرور سراسری daemon (پیشنهادی)
+sudo bash docker/setup-iran-registry-mirrors.sh
+docker pull node:22-alpine   # تست
+
+# ۲) یا فقط برای این پروژه، ایمیج‌ها از hub.hamdocker.ir
+docker compose -f docker-compose.yml -f docker-compose.iran.yml up -d --build
+```
+
+اگر ایمیج خاصی روی hamdocker نبود، متغیرها را عوض کنید (مثلاً `NODE_IMAGE=docker.arvancloud.ir/library/node:22-alpine`).
+
 ### بدون Docker (Development)
 
 #### Backend

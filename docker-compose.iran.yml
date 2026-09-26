@@ -1,0 +1,54 @@
+# Iranian Docker Hub mirrors (Hub returns 403 for IR IPs).
+# Usage from WebinoERP/:
+#   sudo bash docker/setup-iran-registry-mirrors.sh
+#   docker compose -f docker-compose.yml -f docker-compose.iran.yml up -d --build
+#
+# Or only override base images via env without restarting dockerd:
+#   NODE_IMAGE=hub.hamdocker.ir/library/node:22-alpine \
+#   PHP_IMAGE=hub.hamdocker.ir/library/php:8.3-cli-bookworm \
+#   COMPOSER_IMAGE=hub.hamdocker.ir/library/composer:2 \
+#   docker compose -f docker-compose.yml -f docker-compose.iran.yml up -d --build
+
+services:
+  db:
+    image: ${POSTGRES_IMAGE:-hub.hamdocker.ir/library/postgres:15-alpine}
+
+  redis:
+    image: ${REDIS_IMAGE:-hub.hamdocker.ir/library/redis:7-alpine}
+
+  backend:
+    build:
+      args:
+        PHP_IMAGE: ${PHP_IMAGE:-hub.hamdocker.ir/library/php:8.3-cli-bookworm}
+        COMPOSER_IMAGE: ${COMPOSER_IMAGE:-hub.hamdocker.ir/library/composer:2}
+        FRANKENPHP_IMAGE: ${FRANKENPHP_IMAGE:-hub.hamdocker.ir/dunglas/frankenphp:1-php8.3-bookworm}
+        DOCKER_CLI_IMAGE: ${DOCKER_CLI_IMAGE:-hub.hamdocker.ir/library/docker:27-cli}
+
+  worker:
+    build:
+      args:
+        PHP_IMAGE: ${PHP_IMAGE:-hub.hamdocker.ir/library/php:8.3-cli-bookworm}
+        COMPOSER_IMAGE: ${COMPOSER_IMAGE:-hub.hamdocker.ir/library/composer:2}
+        FRANKENPHP_IMAGE: ${FRANKENPHP_IMAGE:-hub.hamdocker.ir/dunglas/frankenphp:1-php8.3-bookworm}
+        DOCKER_CLI_IMAGE: ${DOCKER_CLI_IMAGE:-hub.hamdocker.ir/library/docker:27-cli}
+
+  scheduler:
+    build:
+      args:
+        PHP_IMAGE: ${PHP_IMAGE:-hub.hamdocker.ir/library/php:8.3-cli-bookworm}
+        COMPOSER_IMAGE: ${COMPOSER_IMAGE:-hub.hamdocker.ir/library/composer:2}
+        FRANKENPHP_IMAGE: ${FRANKENPHP_IMAGE:-hub.hamdocker.ir/dunglas/frankenphp:1-php8.3-bookworm}
+        DOCKER_CLI_IMAGE: ${DOCKER_CLI_IMAGE:-hub.hamdocker.ir/library/docker:27-cli}
+
+  ws:
+    build:
+      args:
+        PHP_IMAGE: ${PHP_IMAGE:-hub.hamdocker.ir/library/php:8.3-cli-bookworm}
+        COMPOSER_IMAGE: ${COMPOSER_IMAGE:-hub.hamdocker.ir/library/composer:2}
+        FRANKENPHP_IMAGE: ${FRANKENPHP_IMAGE:-hub.hamdocker.ir/dunglas/frankenphp:1-php8.3-bookworm}
+        DOCKER_CLI_IMAGE: ${DOCKER_CLI_IMAGE:-hub.hamdocker.ir/library/docker:27-cli}
+
+  frontend:
+    build:
+      args:
+        NODE_IMAGE: ${NODE_IMAGE:-hub.hamdocker.ir/library/node:22-alpine}

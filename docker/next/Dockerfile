@@ -1,5 +1,7 @@
 # Build context: Plugins/Webina workspace root (includes packages/webina-ui)
-FROM node:22-alpine AS deps
+# NODE_IMAGE: override for Iranian mirrors, e.g. hub.hamdocker.ir/library/node:22-alpine
+ARG NODE_IMAGE=node:22-alpine
+FROM ${NODE_IMAGE} AS deps
 WORKDIR /src
 COPY packages/webina-ui ./packages/webina-ui
 COPY WebinoERP/frontend/package.json WebinoERP/frontend/package-lock.json ./WebinoERP/frontend/
@@ -8,7 +10,8 @@ RUN npm ci --no-audit --no-fund 2>/dev/null || npm install --no-audit --no-fund
 WORKDIR /src/WebinoERP/frontend
 RUN npm ci --no-audit --no-fund
 
-FROM node:22-alpine AS builder
+ARG NODE_IMAGE=node:22-alpine
+FROM ${NODE_IMAGE} AS builder
 WORKDIR /src
 COPY packages/webina-ui ./packages/webina-ui
 COPY WebinoERP/frontend ./WebinoERP/frontend
@@ -24,7 +27,8 @@ ARG NEXT_PUBLIC_API_URL=/api
 ENV NEXT_PUBLIC_API_URL=${NEXT_PUBLIC_API_URL}
 RUN npm run build
 
-FROM node:22-alpine AS runner
+ARG NODE_IMAGE=node:22-alpine
+FROM ${NODE_IMAGE} AS runner
 WORKDIR /app
 ENV NODE_ENV=production
 ENV NEXT_TELEMETRY_DISABLED=1
