@@ -155,6 +155,12 @@ log "Restoring env files"
 
 PARENT_DIR="$(dirname "${ERP_DIR}")"
 UI_PKG="${PARENT_DIR}/packages/webina-ui/package.json"
+UI_THEMES="${PARENT_DIR}/packages/webina-ui/src/styles/themes.css"
+# Stale UI packages (pre-glass tokens) break frontend build; refresh when themes lack --color-border.
+if [ "${FORCE_UI}" != "1" ] && [ -f "${UI_PKG}" ] && { [ ! -f "${UI_THEMES}" ] || ! grep -q -- '--color-border' "${UI_THEMES}"; }; then
+  log "Existing @webina/ui themes.css is missing --color-border; refreshing package"
+  FORCE_UI=1
+fi
 if [ "${SKIP_UI}" = "1" ]; then
   log "Skipping @webina/ui (SKIP_UI=1)"
 elif [ -f "${UI_PKG}" ] && [ "${FORCE_UI}" != "1" ]; then

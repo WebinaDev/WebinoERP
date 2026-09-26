@@ -13,6 +13,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { cn } from '@/lib/utils';
 import { login, registerUser, sendAdminTwoFactor, sendLoginOtp, verifyAdminTwoFactor, verifyLoginOtp } from '@/lib/auth';
 import { getAxiosMessage } from '@/lib/api-helpers';
+import { DASHBOARD_BASE, legacyAdminToDashboardPath } from '@/lib/paths';
 import { toast } from 'sonner';
 
 export function LoginForm({ className, ...props }: ComponentProps<'div'>) {
