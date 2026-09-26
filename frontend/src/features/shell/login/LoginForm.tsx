@@ -46,7 +46,10 @@ export function LoginForm({ className, ...props }: ComponentProps<'div'>) {
 
   function goDashboard() {
     const next = new URLSearchParams(window.location.search).get('next');
-    const dest = next && next.startsWith('/') ? next : '/admin';
+    const dest =
+      next && next.startsWith('/')
+        ? legacyAdminToDashboardPath(next)
+        : DASHBOARD_BASE;
     window.location.assign(dest);
   }
 

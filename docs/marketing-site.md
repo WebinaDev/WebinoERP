@@ -16,7 +16,7 @@
 
 ## نصب و پروویژن (از WebinoERP Platform)
 
-پروویژن سایت از **Site Builder** در WebinoERP انجام می‌شود (`/admin/platform/sites`). ماژول **Platform** (SSH + Docker + Caddy) استک WebinoDashboard را deploy می‌کند. کنترل پنل هر سایت در `/admin/platform/sites/{id}` است.
+پروویژن سایت از **Site Builder** در WebinoERP انجام می‌شود (`/dashboard/platform/sites`). ماژول **Platform** (SSH + Docker + Caddy) استک WebinoDashboard را deploy می‌کند. کنترل پنل هر سایت در `/dashboard/platform/sites/{id}` است.
 
 ```bash
 # از UI: admin/platform/sites/new

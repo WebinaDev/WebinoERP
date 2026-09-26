@@ -5,7 +5,7 @@
 | کانتینر | نقش |
 |---------|-----|
 | **web** | پروکسی Caddy (`/`, `/api`, `/app`، `/docs`) |
-| **frontend** | Next.js 15 SSR (`/admin`) |
+| **frontend** | Next.js 15 SSR (`/dashboard`) |
 | **backend** | API Laravel 13 + Octane/FrankenPHP |
 | **docs** | مستندات Docusaurus 3 (FA/EN) |
 | **db** | Postgres 15 |

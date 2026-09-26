@@ -9,10 +9,10 @@ test.describe('Cafe site provision path', () => {
     await page.goto('/login');
     await expect(page.getByRole('heading', { level: 1 })).toBeVisible();
 
-    await page.goto('/admin/platform');
+    await page.goto('/dashboard/admin/platform');
     await expect(page).toHaveURL(/login|platform/);
 
-    await page.goto('/admin/platform/sites/new');
+    await page.goto('/dashboard/admin/platform/sites/new');
     await expect(page).toHaveURL(/login|sites\/new/);
 
     const url = page.url();
@@ -25,12 +25,12 @@ test.describe('Cafe site provision path', () => {
 
   test('platform servers list route resolves when authenticated cookie present', async ({ page }) => {
     // Unauthenticated users are redirected to login — documents the protected surface.
-    await page.goto('/admin/platform/servers');
+    await page.goto('/dashboard/admin/platform/servers');
     await expect(page).toHaveURL(/login|servers/);
   });
 
   test('sites fleet and control panel routes exist', async ({ page }) => {
-    await page.goto('/admin/platform/sites');
+    await page.goto('/dashboard/admin/platform/sites');
     await expect(page).toHaveURL(/login|sites/);
 
     if (!page.url().includes('login')) {

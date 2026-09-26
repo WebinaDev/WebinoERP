@@ -19,4 +19,4 @@ SMS، پرداخت، بله، تلگرام، مدیرپیامک.
 
 API ادمین تحت `/modirpayamak/admin`.
 
-فرانت‌اند: `/admin/integrations/modirpayamak/*`
+فرانت‌اند: `/dashboard/integrations/modirpayamak/*`

@@ -79,7 +79,7 @@ export function NavUser({ user, logoutLabel, onLogout }: Props) {
             </DropdownMenuLabel>
             <DropdownMenuSeparator />
             <DropdownMenuItem asChild>
-              <Link href="/admin/profile">
+              <Link href="/dashboard/profile">
                 <User className="me-2 size-4" />
                 {t('nav.erp.profile')}
               </Link>

@@ -1,6 +1,12 @@
 import { NextResponse } from "next/server"
 import type { NextRequest } from "next/server"
 
+import {
+  DASHBOARD_BASE,
+  isDashboardPathname,
+  isLegacyAdminPathname,
+  legacyAdminToDashboardPath,
+} from "@/lib/paths"
 import { getServerApiBase } from "@/lib/server-api-base"
 
 const LOCALES = ["fa", "en"] as const
@@ -45,9 +51,10 @@ async function fetchGate(request: NextRequest): Promise<GateData | null> {
 export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl
 
-  if (pathname === "/dashboard" || pathname.startsWith("/dashboard/")) {
+  // Legacy /admin → /dashboard (bookmarks & old links)
+  if (isLegacyAdminPathname(pathname)) {
     const url = request.nextUrl.clone()
-    url.pathname = pathname.replace(/^\/dashboard/, "/admin") || "/admin"
+    url.pathname = legacyAdminToDashboardPath(pathname)
     return NextResponse.redirect(url)
   }
 
@@ -69,7 +76,7 @@ export async function middleware(request: NextRequest) {
   res.headers.set("x-webina-locale", locale)
 
   const isLogin = pathname === "/login"
-  const isAdmin = pathname === "/admin" || pathname.startsWith("/admin/")
+  const isDashboard = isDashboardPathname(pathname)
   const isPublicAsset =
     pathname.startsWith("/_next") ||
     pathname.startsWith("/api") ||
@@ -79,7 +86,7 @@ export async function middleware(request: NextRequest) {
     return res
   }
 
-  if (isAdmin) {
+  if (isDashboard) {
     const gate = await fetchGate(request)
     if (!gate?.authenticated) {
       const loginUrl = request.nextUrl.clone()
@@ -92,9 +99,13 @@ export async function middleware(request: NextRequest) {
   if (isLogin) {
     const gate = await fetchGate(request)
     if (gate?.authenticated) {
-      const dest = request.nextUrl.searchParams.get("next") ?? "/admin"
+      const rawNext = request.nextUrl.searchParams.get("next")
+      const dest =
+        rawNext && rawNext.startsWith("/")
+          ? legacyAdminToDashboardPath(rawNext)
+          : DASHBOARD_BASE
       const redirectUrl = request.nextUrl.clone()
-      redirectUrl.pathname = dest.startsWith("/") ? dest : "/admin"
+      redirectUrl.pathname = dest.startsWith("/") ? dest : DASHBOARD_BASE
       redirectUrl.search = ""
       return NextResponse.redirect(redirectUrl)
     }

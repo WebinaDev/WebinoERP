@@ -25,4 +25,4 @@ Distribution marketplace: products, categories, orders, Gitea integration, and m
 
 ## Related frontend
 
-`/admin/marketplace/products`, `/admin/marketplace/modules`, `/admin/marketplace/gitea`
+`/dashboard/marketplace/products`, `/dashboard/marketplace/modules`, `/dashboard/marketplace/gitea`

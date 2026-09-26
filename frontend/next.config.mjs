@@ -29,8 +29,8 @@ const nextConfig = {
   },
   async redirects() {
     return [
-      { source: "/dashboard", destination: "/admin", permanent: false },
-      { source: "/dashboard/:path*", destination: "/admin/:path*", permanent: false },
+      { source: "/admin", destination: "/dashboard", permanent: false },
+      { source: "/admin/:path*", destination: "/dashboard/:path*", permanent: false },
     ]
   },
   async rewrites() {

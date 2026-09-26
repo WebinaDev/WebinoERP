@@ -7,7 +7,7 @@
 ```
 webina-enterprise/
 ├── backend/          # Laravel 13 + Octane/FrankenPHP (nwidart Modules/)
-├── frontend/         # Next.js 15 App Router (`src/app`, `/admin`)
+├── frontend/         # Next.js 15 App Router (`src/app`, `/dashboard`)
 ├── docker/           # Caddy, PHP, Next Dockerfiles
 └── docker-compose.yml
 ```

@@ -5,7 +5,7 @@ WebinoERM is a **containerized modular monolith**:
 | Container | Role |
 |-----------|------|
 | **web** | Caddy reverse proxy (`/`, `/api`, `/app` WebSocket, `/docs`) |
-| **frontend** | Next.js 15 SSR (`/admin`) |
+| **frontend** | Next.js 15 SSR (`/dashboard`) |
 | **backend** | Laravel 13 API + Octane/FrankenPHP (`nwidart/laravel-modules`) |
 | **docs** | Docusaurus 3 static API docs (FA/EN) |
 | **db** | Postgres 15 |
@@ -20,7 +20,7 @@ Each ERP domain is a Laravel module with its own migrations, entities, routes, a
 
 | Backend module | Frontend route prefix |
 |----------------|----------------------|
-| Core | `/admin`, shell, profile |
+| Core | `/dashboard`, shell, profile |
 | HRM | `/hrm/*` |
 | Finance (Accounting) | `/finance/*` |
 | CRM | `/crm/*` |
@@ -28,8 +28,8 @@ Each ERP domain is a Laravel module with its own migrations, entities, routes, a
 | SCM | `/scm/*` |
 | Sales | `/sales/*` |
 | Docs | `/docs/*` |
-| Marketplace | `/admin/marketplace/*` |
-| Integrations | `/admin/integrations/*` |
+| Marketplace | `/dashboard/marketplace/*` |
+| Integrations | `/dashboard/integrations/*` |
 
 ## API documentation pipeline
 

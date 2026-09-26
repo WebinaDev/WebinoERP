@@ -73,6 +73,6 @@ See [webinocrm/v1 Hosting (legacy)](../legacy/webinocrm-hosting.md) — Git sour
 
 ## Related frontend
 
-- `/admin/integrations/modirpayamak/*` — send, reports, tickets, users, drafts
-- `/admin/integrations/bale` — Bale business dashboard (settings, campaigns, logs)
+- `/dashboard/integrations/modirpayamak/*` — send, reports, tickets, users, drafts
+- `/dashboard/integrations/bale` — Bale business dashboard (settings, campaigns, logs)
 - Admin **Settings → SMS** tab — unified with IntegrationSetting via `/sms/settings`

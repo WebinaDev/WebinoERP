@@ -31,8 +31,12 @@ import { usePathname, useRouter } from '@/lib/i18n-navigation';
 
 function toDashboardUrl(path: string): string {
   const raw = path.replace(/^\//, '');
-  if (!raw) return '/admin';
-  return `/admin/${raw}`;
+  if (!raw) return '/dashboard';
+  // Avoid /dashboard/dashboard when basePath was already absolute under the shell.
+  if (raw === 'dashboard' || raw.startsWith('dashboard/')) {
+    return `/${raw}`;
+  }
+  return `/dashboard/${raw}`;
 }
 
 export function DashboardShell({ children }: { children: React.ReactNode }) {

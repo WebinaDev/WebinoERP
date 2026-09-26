@@ -97,7 +97,7 @@
 **Notes:**
 - **SCM DB ✅** — Owned `scm_*` migrations + entities; `Scm\Services\WarehouseService`; upgrade via `scm:migrate-from-accounting`.
 - **MFG ✅** — `Modules/Mfg` schema + API + FE pages (`/mfg/*`); `MfgApiTest`; Docusaurus `api/modules/mfg.md`.
-- **Hosting-infra ✅** — `/admin/hosting-infra` in ERP nav; i18n `hosting.*`; `HostingApiTest`; legacy redirect from `hosting-infra`.
+- **Hosting-infra ✅** — `/dashboard/hosting-infra` in ERP nav; i18n `hosting.*`; `HostingApiTest`; legacy redirect from `hosting-infra`.
 - **webinocrm/v1 ✅** — Legacy envelope opt-in; warehouse `code`/`description`/`location`; pagination/search; `WebinocrmV1ApiTest`.
 
 ---
@@ -308,7 +308,7 @@ All routes render dedicated pages under `features/modules/finance/*` (wired via 
 
 ---
 
-### Distribution (Marketplace) — `/admin/marketplace` (7 routes)
+### Distribution (Marketplace) — `/dashboard/marketplace` (7 routes)
 
 | Route | Legacy | Menu ID | Component | API | DB | FE | API | i18n | Tests | Notes |
 |-------|--------|---------|-----------|-----|:--:|:--:|:---:|:----:|:-----:|-------|
@@ -322,7 +322,7 @@ All routes render dedicated pages under `features/modules/finance/*` (wired via 
 
 ---
 
-### Admin — `/admin` (9 routes)
+### Admin — `/dashboard` (9 routes)
 
 | Route | Legacy | Menu ID | Component | API | DB | FE | API | i18n | Tests | Notes |
 |-------|--------|---------|-----------|-----|:--:|:--:|:---:|:----:|:-----:|-------|
@@ -349,7 +349,7 @@ All routes render dedicated pages under `features/modules/finance/*` (wired via 
 
 ---
 
-### Admin hosting — `/admin/hosting-infra`
+### Admin hosting — `/dashboard/hosting-infra`
 
 | Route | Legacy | Menu ID | Component | API | DB | FE | API | i18n | Tests | Notes |
 |-------|--------|---------|-----------|-----|:--:|:--:|:---:|:----:|:-----:|-------|

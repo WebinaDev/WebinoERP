@@ -18,7 +18,7 @@ export function ModuleRouteGuard({ permission, role, children }: Props) {
     if (loading) return;
     const denied = (permission && !can(permission)) || (role && !hasRole(role));
     if (denied) {
-      router.replace('/admin');
+      router.replace('/dashboard');
     }
   }, [loading, can, hasRole, permission, role, router]);
 

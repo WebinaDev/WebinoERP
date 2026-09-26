@@ -3,7 +3,7 @@
 **توسعه‌دهنده:** شرکت توسعه کسب و کار وبینا
 **تاریخ تدوین:** ژانویه 2026 · **به‌روزرسانی استک:** سپتامبر 2026
 
-> **استک فعلی (الزامی، هم‌تراز WebinoDashboard):** Laravel 13 + Octane/FrankenPHP · nwidart `backend/Modules/` + `manifest.json` · Next.js 15 App Router (`src/app`، بدون `[locale]`) · shadcn login-04 / sidebar-07 · i18n کوکی `NEXT_LOCALE` بدون `next-intl/plugin` · ادمین `/admin` · کرنل `frontend/modules` + `src/kernel` · Caddy + `@webina/ui`. قوانین Cursor: `.cursor/rules/`.
+> **استک فعلی (الزامی، هم‌تراز WebinoDashboard):** Laravel 13 + Octane/FrankenPHP · nwidart `backend/Modules/` + `manifest.json` · Next.js 15 App Router (`src/app`، بدون `[locale]`) · shadcn login-04 / sidebar-07 · i18n کوکی `NEXT_LOCALE` بدون `next-intl/plugin` · ادمین `/dashboard` · کرنل `frontend/modules` + `src/kernel` · Caddy + `@webina/ui`. قوانین Cursor: `.cursor/rules/`.
 
 ---
 
@@ -34,7 +34,7 @@
 * **State Management/Data Fetching:** TanStack Query (React Query)
 * **Internationalization (i18n):** `next-intl` با کوکی `NEXT_LOCALE` (بدون plugin؛ سازگار با Docker standalone)
 * **Icons:** Lucide React
-* **Admin path:** `/admin` (redirect از `/dashboard`)
+* **Admin path:** `/dashboard` (redirect از `/dashboard`)
 
 ### DevOps & Infrastructure
 * **Containerization:** Docker & Docker Compose

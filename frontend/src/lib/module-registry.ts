@@ -486,7 +486,6 @@ export const ERP_MODULES: ErpModuleDef[] = [
     settingsKey: 'admin',
     legacySettingsKeys: ['general', 'bots'],
     basePath: '/admin',
-    sidebarCategoryKey: 'nav.module.admin',
     defaultEnabled: true,
     menuItems: [
       {

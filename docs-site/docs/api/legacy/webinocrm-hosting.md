@@ -5,7 +5,7 @@
 
 ## Overview
 
-Hosting and infrastructure settings for Git sources, Portainer stack control, and audit logging. Used by the ERP page `/admin/hosting-infra`.
+Hosting and infrastructure settings for Git sources, Portainer stack control, and audit logging. Used by the ERP page `/dashboard/hosting-infra`.
 
 ## Endpoints
 
@@ -24,7 +24,7 @@ Hosting and infrastructure settings for Git sources, Portainer stack control, an
 
 ## Related frontend
 
-- `/admin/hosting-infra` — dedicated hosting page (canonical)
+- `/dashboard/hosting-infra` — dedicated hosting page (canonical)
 - Settings → Accounting → Hosting tab links to the dedicated page
 
 ## Tests

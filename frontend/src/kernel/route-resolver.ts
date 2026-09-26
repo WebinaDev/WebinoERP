@@ -28,7 +28,7 @@ export function resolveAdminRoute(
       labelKey: "nav.erp.dashboard",
       section: "overview",
       order: 0,
-      fullPath: "/admin",
+      fullPath: "/dashboard",
     }
   }
 
@@ -43,7 +43,7 @@ export function resolveAdminRoute(
         return {
           ...route,
           moduleSlug: mod.slug,
-          fullPath: `/admin/${route.path}`,
+          fullPath: `/dashboard/${route.path}`,
         }
       }
     }

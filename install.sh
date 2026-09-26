@@ -474,7 +474,7 @@ echo
 echo "╔══════════════════════════════════════════════╗"
 echo "║           WebinoERP installed! 🎉            ║"
 echo "╠══════════════════════════════════════════════╣"
-echo "║  Admin:  ${APP_URL}/admin"
+echo "║  Admin:  ${APP_URL}/dashboard"
 echo "║  API:    ${APP_URL}/api/v1"
 echo "║  Login:  admin@webina.local  /  password"
 echo "╠══════════════════════════════════════════════╣"
