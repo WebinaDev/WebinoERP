@@ -28,15 +28,18 @@ iran_docker_enabled() {
 
 # Resolve base images: explicit env wins; else Iran mirrors when enabled; else Hub.
 # Use library/php (not dunglas/frankenphp) — frankenphp is often missing on IR mirrors.
+# COMPOSER_MIRROR: Packagist itself often fails from IR (curl HTTP/2 error 18).
 if iran_docker_enabled; then
   PHP_IMAGE="${PHP_IMAGE:-hub.hamdocker.ir/library/php:8.3-cli-bookworm}"
   COMPOSER_IMAGE="${COMPOSER_IMAGE:-hub.hamdocker.ir/library/composer:2}"
   NODE_IMAGE="${NODE_IMAGE:-hub.hamdocker.ir/library/node:22-alpine}"
+  COMPOSER_MIRROR="${COMPOSER_MIRROR:-https://mirrors.aliyun.com/composer/}"
   log "Iran Docker mirrors enabled (WEBINO_IRAN_DOCKER=${WEBINO_IRAN_DOCKER})"
 else
   PHP_IMAGE="${PHP_IMAGE:-php:8.3-cli-bookworm}"
   COMPOSER_IMAGE="${COMPOSER_IMAGE:-composer:2}"
   NODE_IMAGE="${NODE_IMAGE:-node:22-alpine}"
+  COMPOSER_MIRROR="${COMPOSER_MIRROR:-}"
   log "Using Docker Hub base images (WEBINO_IRAN_DOCKER=${WEBINO_IRAN_DOCKER})"
 fi
 
@@ -53,6 +56,7 @@ done
 log "Base images: PHP_IMAGE=${PHP_IMAGE}"
 log "Base images: COMPOSER_IMAGE=${COMPOSER_IMAGE}"
 log "Base images: NODE_IMAGE=${NODE_IMAGE}"
+log "Composer mirror: ${COMPOSER_MIRROR:-<packagist.org>}"
 
 has_dockerfiles() {
   local root="${1:-}"
@@ -149,9 +153,16 @@ fi
 
 log "Dashboard source: ${CONTEXT}"
 
-build_one webino-backend:latest docker/php/Dockerfile.platform "$CONTEXT" \
-  --build-arg "PHP_IMAGE=${PHP_IMAGE}" \
+backend_args=(
+  --build-arg "PHP_IMAGE=${PHP_IMAGE}"
   --build-arg "COMPOSER_IMAGE=${COMPOSER_IMAGE}"
+)
+if [[ -n "${COMPOSER_MIRROR}" ]]; then
+  backend_args+=(--build-arg "COMPOSER_MIRROR=${COMPOSER_MIRROR}")
+fi
+
+build_one webino-backend:latest docker/php/Dockerfile.platform "$CONTEXT" \
+  "${backend_args[@]}"
 
 build_one webino-next:latest docker/next/Dockerfile "$CONTEXT" \
   --build-arg "NODE_IMAGE=${NODE_IMAGE}"
