@@ -45,6 +45,8 @@ COMPOSE_FILES=(-f docker-compose.yml -f docker-compose.prod.yml)
 
 # Append docker-compose.iran.yml when forced or Docker Hub returns 403 (common on IR IPs).
 # Must run from the ERP repo root after git sync so the overlay file exists.
+# Note: GET /v2/ often returns 401 (auth required) even when Hub is reachable; IR blocks
+# show up as 403 on image manifest HEAD (e.g. dunglas/frankenphp).
 maybe_enable_iran_compose_overlay() {
   local want=0
   local code
@@ -52,9 +54,16 @@ maybe_enable_iran_compose_overlay() {
     want=1
   else
     code="$(curl -sS -o /dev/null -w '%{http_code}' --connect-timeout 5 --max-time 10 \
-      https://registry-1.docker.io/v2/ 2>/dev/null || echo 000)"
+      -I "https://registry-1.docker.io/v2/dunglas/frankenphp/manifests/1-php8.3-bookworm" \
+      2>/dev/null || echo 000)"
     if [ "${code}" = "403" ]; then
       want=1
+    else
+      code="$(curl -sS -o /dev/null -w '%{http_code}' --connect-timeout 5 --max-time 10 \
+        https://registry-1.docker.io/v2/ 2>/dev/null || echo 000)"
+      if [ "${code}" = "403" ]; then
+        want=1
+      fi
     fi
   fi
   if [ "${want}" != "1" ]; then
