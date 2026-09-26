@@ -17,8 +17,9 @@ INSTALL_DIR="${INSTALL_DIR:-/opt/webina}"
 WEB_HTTP_PORT="${WEB_HTTP_PORT:-3080}"
 WEB_HTTPS_PORT="${WEB_HTTPS_PORT:-3443}"
 SKIP_DEPS="${SKIP_DEPS:-0}"
-# 1 = force docker-compose.iran.yml (Hub mirrors); also auto-enabled if Hub returns 403
-WEBINO_IRAN_DOCKER="${WEBINO_IRAN_DOCKER:-0}"
+# 1 = force docker-compose.iran.yml; 0 = never; auto/default = enable when file exists
+# (Hub 403 on IR is unreliable to detect via curl — unauthenticated requests often get 401.)
+WEBINO_IRAN_DOCKER="${WEBINO_IRAN_DOCKER:-auto}"
 
 # ─────────────────────────── auto-detect APP_URL ──────────────────────────────
 if [ -z "${APP_URL:-}" ]; then
@@ -61,34 +62,24 @@ run_apt_get() {
 # Always apply production overlay for server installs (APP_ENV=production, APP_DEBUG=false).
 COMPOSE_FILES=(-f docker-compose.yml -f docker-compose.prod.yml)
 
-# Append docker-compose.iran.yml when forced or Docker Hub returns 403 (common on IR IPs).
-# Must run from the ERP repo root after clone so the overlay file exists.
-# Note: GET /v2/ often returns 401 (auth required) even when Hub is reachable; IR blocks
-# show up as 403 on image manifest HEAD (e.g. dunglas/frankenphp).
+# Hub blocks many IR IPs with 403 on authenticated pulls. Default ON when overlay
+# exists; set WEBINO_IRAN_DOCKER=0 on non-IR hosts that use Docker Hub directly.
 maybe_enable_iran_compose_overlay() {
-  local want=0
-  local code
-  if [ "${WEBINO_IRAN_DOCKER}" = "1" ]; then
-    want=1
-  else
-    code="$(curl -sS -o /dev/null -w '%{http_code}' --connect-timeout 5 --max-time 10 \
-      -I "https://registry-1.docker.io/v2/dunglas/frankenphp/manifests/1-php8.3-bookworm" \
-      2>/dev/null || echo 000)"
-    if [ "${code}" = "403" ]; then
+  local want=1
+  case "${WEBINO_IRAN_DOCKER}" in
+    0|false|no|NO)
+      want=0
+      ;;
+    1|true|yes|YES|auto|*)
       want=1
-    else
-      code="$(curl -sS -o /dev/null -w '%{http_code}' --connect-timeout 5 --max-time 10 \
-        https://registry-1.docker.io/v2/ 2>/dev/null || echo 000)"
-      if [ "${code}" = "403" ]; then
-        want=1
-      fi
-    fi
-  fi
+      ;;
+  esac
   if [ "${want}" != "1" ]; then
+    log "Iran Docker overlay skipped (WEBINO_IRAN_DOCKER=${WEBINO_IRAN_DOCKER})"
     return 0
   fi
   if [ ! -f docker-compose.iran.yml ]; then
-    echo "WARN: Iran Docker requested/detected but docker-compose.iran.yml is missing." >&2
+    echo "WARN: Iran Docker overlay wanted but docker-compose.iran.yml is missing." >&2
     return 0
   fi
   COMPOSE_FILES+=(-f docker-compose.iran.yml)

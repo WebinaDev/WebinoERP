@@ -1,13 +1,14 @@
-# PHP_IMAGE / COMPOSER_IMAGE / FRANKENPHP_IMAGE / DOCKER_CLI_IMAGE:
+# PHP_IMAGE / COMPOSER_IMAGE / DOCKER_CLI_IMAGE:
 # override for Iranian mirrors, e.g. hub.hamdocker.ir/library/php:8.3-cli-bookworm
 ARG PHP_IMAGE=php:8.3-cli-bookworm
 ARG COMPOSER_IMAGE=composer:2
-ARG FRANKENPHP_IMAGE=dunglas/frankenphp:1-php8.3-bookworm
 ARG DOCKER_CLI_IMAGE=docker:27-cli
 
 # BuildKit does not allow COPY --from=${VAR}; use named stages instead.
+# FrankenPHP image is intentionally omitted: entrypoint forces `artisan serve`
+# (copied frankenphp lacked libwatcher and Octane exited 127). Skipping that
+# FROM also avoids a Hub pull that IR IPs often 403.
 FROM ${COMPOSER_IMAGE} AS composer_src
-FROM ${FRANKENPHP_IMAGE} AS frankenphp_src
 FROM ${DOCKER_CLI_IMAGE} AS docker_cli_src
 
 FROM ${PHP_IMAGE}
@@ -34,12 +35,11 @@ RUN echo "opcache.enable=1" >> /usr/local/etc/php/conf.d/opcache.ini \
     && echo "opcache.validate_timestamps=1" >> /usr/local/etc/php/conf.d/opcache.ini
 
 COPY --from=composer_src /usr/bin/composer /usr/bin/composer
-COPY --from=frankenphp_src /usr/local/bin/frankenphp /usr/local/bin/frankenphp
 # Host Docker for LocalSameVpsProvisioner (docker.sock mounted at runtime).
 COPY --from=docker_cli_src /usr/local/bin/docker /usr/local/bin/docker
 COPY --from=docker_cli_src /usr/local/libexec/docker/cli-plugins/docker-compose /usr/local/libexec/docker/cli-plugins/docker-compose
 COPY --from=docker_cli_src /usr/local/libexec/docker/cli-plugins/docker-buildx /usr/local/libexec/docker/cli-plugins/docker-buildx
-RUN chmod +x /usr/local/bin/frankenphp /usr/local/bin/docker \
+RUN chmod +x /usr/local/bin/docker \
     && mkdir -p /usr/local/lib/docker/cli-plugins \
     && ln -sf /usr/local/libexec/docker/cli-plugins/docker-compose /usr/local/lib/docker/cli-plugins/docker-compose \
     && ln -sf /usr/local/libexec/docker/cli-plugins/docker-buildx /usr/local/lib/docker/cli-plugins/docker-buildx \
