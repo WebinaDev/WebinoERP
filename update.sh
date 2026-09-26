@@ -7,11 +7,12 @@
 #   curl -fsSL ... | INSTALL_DIR=/opt/webina bash
 #
 # Optional env:
-#   INSTALL_DIR   parent dir of the clone (default /opt/webina)
-#   ERP_DIR       exact repo path if not INSTALL_DIR/WebinoERP
-#   ERP_REF       git branch (default main)
-#   SKIP_UI       1 = never touch packages/webina-ui (default if it already exists)
-#   FORCE_UI      1 = re-clone @webina/ui even if present (needs access to UI_REPO)
+#   INSTALL_DIR         parent dir of the clone (default /opt/webina)
+#   ERP_DIR             exact repo path if not INSTALL_DIR/WebinoERP
+#   ERP_REF             git branch (default main)
+#   SKIP_UI             1 = never touch packages/webina-ui (default if it already exists)
+#   FORCE_UI            1 = re-clone @webina/ui even if present (needs access to UI_REPO)
+#   WEBINO_IRAN_DOCKER  1 = force docker-compose.iran.yml (Hub mirrors); also auto if Hub returns 403
 set -euo pipefail
 trap 'echo "ERROR: update.sh failed at line ${LINENO} (exit $?)" >&2' ERR
 export GIT_TERMINAL_PROMPT=0
@@ -23,6 +24,7 @@ UI_REPO="${UI_REPO:-https://github.com/WebinaDev/WebinaDashboard.git}"
 INSTALL_DIR="${INSTALL_DIR:-/opt/webina}"
 SKIP_UI="${SKIP_UI:-0}"
 FORCE_UI="${FORCE_UI:-0}"
+WEBINO_IRAN_DOCKER="${WEBINO_IRAN_DOCKER:-0}"
 
 if [ "$(id -u)" -eq 0 ]; then
   SUDO=""
@@ -40,6 +42,31 @@ run_cmd() {
 }
 
 COMPOSE_FILES=(-f docker-compose.yml -f docker-compose.prod.yml)
+
+# Append docker-compose.iran.yml when forced or Docker Hub returns 403 (common on IR IPs).
+# Must run from the ERP repo root after git sync so the overlay file exists.
+maybe_enable_iran_compose_overlay() {
+  local want=0
+  local code
+  if [ "${WEBINO_IRAN_DOCKER}" = "1" ]; then
+    want=1
+  else
+    code="$(curl -sS -o /dev/null -w '%{http_code}' --connect-timeout 5 --max-time 10 \
+      https://registry-1.docker.io/v2/ 2>/dev/null || echo 000)"
+    if [ "${code}" = "403" ]; then
+      want=1
+    fi
+  fi
+  if [ "${want}" != "1" ]; then
+    return 0
+  fi
+  if [ ! -f docker-compose.iran.yml ]; then
+    echo "WARN: Iran Docker requested/detected but docker-compose.iran.yml is missing." >&2
+    return 0
+  fi
+  COMPOSE_FILES+=(-f docker-compose.iran.yml)
+  log "Iran Docker overlay enabled"
+}
 
 compose_cli() {
   if docker compose version >/dev/null 2>&1 && docker info >/dev/null 2>&1; then
@@ -156,6 +183,8 @@ run_cmd mkdir -p /var/lib/webino/caddy.d
 if [ ! -f /var/lib/webino/caddy.d/_keep.caddy ]; then
   echo '# keep import glob non-empty' | run_cmd tee /var/lib/webino/caddy.d/_keep.caddy >/dev/null
 fi
+
+maybe_enable_iran_compose_overlay
 
 log "Rebuilding containers (named volumes db_data / redis_data / caddy_data are untouched)"
 # Never add -v / --volumes here — wiping caddy_data re-triggers Let's Encrypt and hits rate limits.
