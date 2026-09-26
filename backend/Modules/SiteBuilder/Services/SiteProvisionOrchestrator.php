@@ -210,10 +210,16 @@ class SiteProvisionOrchestrator
         }
 
         $payload = $provision->fresh()->wizard_payload ?? [];
+        $fullLog = (string) ($result['log'] ?? '');
+        // Keep the tail so Syncing/Dashboard HEAD and recreate lines survive truncation.
+        $maxLog = 24000;
+        if (strlen($fullLog) > $maxLog) {
+            $fullLog = "...(truncated)...\n".substr($fullLog, -$maxLog);
+        }
         $payload['update'] = [
             'target' => $target,
             'status' => ($result['exit_code'] ?? 1) === 0 ? 'done' : 'failed',
-            'log' => substr((string) ($result['log'] ?? ''), 0, 8000),
+            'log' => $fullLog,
             'finished_at' => now()->toIso8601String(),
         ];
         $provision->update(['wizard_payload' => $payload]);

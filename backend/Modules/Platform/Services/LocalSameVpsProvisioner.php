@@ -365,10 +365,11 @@ class LocalSameVpsProvisioner
     public function updateFrontend(WebinoSiteProvision $provision): array
     {
         $channel = $this->effectiveTag($provision);
-        $this->forceBuildImages($channel, only: 'frontend');
+        $buildLog = $this->forceBuildImages($channel, only: 'frontend');
         $this->rewriteComposeImages($provision, $channel);
+        $recreate = $this->recreateServices($provision, ['frontend']);
 
-        return $this->recreateServices($provision, ['frontend']);
+        return $this->withBuildLog($recreate, $buildLog);
     }
 
     /**
@@ -380,10 +381,11 @@ class LocalSameVpsProvisioner
     public function updateBackend(WebinoSiteProvision $provision): array
     {
         $channel = $this->effectiveTag($provision);
-        $this->forceBuildImages($channel, only: 'backend');
+        $buildLog = $this->forceBuildImages($channel, only: 'backend');
         $this->rewriteComposeImages($provision, $channel);
+        $recreate = $this->recreateServices($provision, ['backend']);
 
-        return $this->recreateServices($provision, ['backend']);
+        return $this->withBuildLog($recreate, $buildLog);
     }
 
     /**
@@ -417,10 +419,11 @@ class LocalSameVpsProvisioner
     public function updateApp(WebinoSiteProvision $provision): array
     {
         $channel = $this->effectiveTag($provision);
-        $this->forceBuildImages($channel, only: 'all');
+        $buildLog = $this->forceBuildImages($channel, only: 'all');
         $this->rewriteComposeImages($provision, $channel);
+        $recreate = $this->recreateServices($provision, ['backend', 'frontend']);
 
-        return $this->recreateServices($provision, ['backend', 'frontend']);
+        return $this->withBuildLog($recreate, $buildLog);
     }
 
     /**
@@ -1475,8 +1478,9 @@ class LocalSameVpsProvisioner
      * Always git-fetch and rebuild (unlike ensureImages which skips when present).
      *
      * @param  'frontend'|'backend'|'all'  $only
+     * @return string Combined build stdout/stderr for control-panel update log
      */
-    protected function forceBuildImages(string $tag, string $only = 'all'): void
+    protected function forceBuildImages(string $tag, string $only = 'all'): string
     {
         $script = (string) (env('WEBINO_DASHBOARD_BUILD_SCRIPT')
             ?: ($this->erpRoot().'/scripts/build-webino-dashboard-images.sh'));
@@ -1492,11 +1496,25 @@ class LocalSameVpsProvisioner
         // Build script always builds both; selective recreate happens afterwards.
         unset($only);
         $build = $this->runEnv(['bash', $script], 2400, $env);
+        $log = trim($build['stdout']."\n".$build['stderr']);
         if ($build['exit_code'] !== 0) {
             throw new RuntimeException(
-                'platform.dashboard_rebuild_failed: '.trim($build['stderr'] ?: $build['stdout'])
+                'platform.dashboard_rebuild_failed: '.($log !== '' ? $log : 'unknown error')
             );
         }
+
+        return $log;
+    }
+
+    /**
+     * @param  array{exit_code:int,stdout:string,stderr:string,log:string}  $recreate
+     * @return array{exit_code:int,stdout:string,stderr:string,log:string}
+     */
+    protected function withBuildLog(array $recreate, string $buildLog): array
+    {
+        $recreate['log'] = trim($buildLog."\n\n".$recreate['log']);
+
+        return $recreate;
     }
 
     protected function rewriteComposeImages(WebinoSiteProvision $provision, string $channel): void
