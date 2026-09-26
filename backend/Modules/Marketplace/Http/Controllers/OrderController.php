@@ -23,38 +23,61 @@ class OrderController extends Controller
 
     public function index(Request $request): JsonResponse
     {
-        $query = MarketplaceOrder::query()->with('items')->orderByDesc('created_at');
-        if ($request->filled('status')) {
-            $query->where('status', $request->string('status'));
+        try {
+            $query = MarketplaceOrder::query()->with('items')->orderByDesc('created_at');
+            if ($request->filled('status')) {
+                $query->where('status', $request->string('status'));
+            }
+
+            $orders = $query->paginate($this->perPage($request));
+            $entitlements = MarketplaceEntitlement::query()
+                ->with('module:id,slug,name,version')
+                ->orderByDesc('updated_at')
+                ->limit(500)
+                ->get();
+
+            return response()->json([
+                'data' => [
+                    'orders' => $orders->items(),
+                    'entitlements' => $entitlements,
+                ],
+                'meta' => [
+                    'current_page' => $orders->currentPage(),
+                    'per_page' => $orders->perPage(),
+                    'total' => $orders->total(),
+                    'last_page' => $orders->lastPage(),
+                    'from' => $orders->firstItem(),
+                    'to' => $orders->lastItem(),
+                ],
+                'links' => [
+                    'first' => $orders->url(1),
+                    'last' => $orders->url(max($orders->lastPage(), 1)),
+                    'prev' => $orders->previousPageUrl(),
+                    'next' => $orders->nextPageUrl(),
+                ],
+            ]);
+        } catch (\Illuminate\Database\QueryException|\Throwable) {
+            return response()->json([
+                'data' => [
+                    'orders' => [],
+                    'entitlements' => [],
+                ],
+                'meta' => [
+                    'current_page' => 1,
+                    'per_page' => $this->perPage($request),
+                    'total' => 0,
+                    'last_page' => 1,
+                    'from' => null,
+                    'to' => null,
+                ],
+                'links' => [
+                    'first' => null,
+                    'last' => null,
+                    'prev' => null,
+                    'next' => null,
+                ],
+            ]);
         }
-
-        $orders = $query->paginate($this->perPage($request));
-        $entitlements = MarketplaceEntitlement::query()
-            ->with('module:id,slug,name,version')
-            ->orderByDesc('updated_at')
-            ->limit(500)
-            ->get();
-
-        return response()->json([
-            'data' => [
-                'orders' => $orders->items(),
-                'entitlements' => $entitlements,
-            ],
-            'meta' => [
-                'current_page' => $orders->currentPage(),
-                'per_page' => $orders->perPage(),
-                'total' => $orders->total(),
-                'last_page' => $orders->lastPage(),
-                'from' => $orders->firstItem(),
-                'to' => $orders->lastItem(),
-            ],
-            'links' => [
-                'first' => $orders->url(1),
-                'last' => $orders->url(max($orders->lastPage(), 1)),
-                'prev' => $orders->previousPageUrl(),
-                'next' => $orders->nextPageUrl(),
-            ],
-        ]);
     }
 
     public function store(Request $request): JsonResponse

@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import { useCallback, useEffect, useState } from 'react';
-import { useLocale, useTranslations } from 'next-intl';
+import { useLocale as useNextIntlLocale, useTranslations } from 'next-intl';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -11,6 +11,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Badge } from '@/components/ui/badge';
 import { Switch } from '@/components/ui/switch';
 import { dashboardHref } from '@/lib/route-resolver';
+import { useLocale } from '@/hooks/use-locale-next';
 import {
   addResourceDomain,
   cloneResource,
@@ -46,7 +47,8 @@ type Props = { id: string };
 export function ResourceDetailPage({ id }: Props) {
   const t = useTranslations('platform.resources');
   const tP = useTranslations('platform');
-  const locale = useLocale();
+  const locale = useNextIntlLocale();
+  const { formatDate } = useLocale();
   const [resource, setResource] = useState<PlatformResource | null>(null);
   const [deployments, setDeployments] = useState<PlatformDeployment[]>([]);
   const [envVars, setEnvVars] = useState<PlatformEnvVar[]>([]);
@@ -544,7 +546,9 @@ export function ResourceDetailPage({ id }: Props) {
                   <div key={d.id} className="flex items-center justify-between rounded-md border p-3 text-sm">
                     <span>#{d.id}</span>
                     <Badge variant="secondary">{d.status}</Badge>
-                    <span className="font-mono text-xs">{d.started_at ?? '—'}</span>
+                    <span className="font-mono text-xs">
+                      {d.started_at ? formatDate(d.started_at, { includeTime: true }) || d.started_at : '—'}
+                    </span>
                   </div>
                 ))}
                 {!deployments.length ? <p className="text-sm text-muted-foreground">{tP('noData')}</p> : null}

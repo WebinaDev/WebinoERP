@@ -12,9 +12,15 @@ class BasalamConnectionsController extends Controller
 
     public function index(): JsonResponse
     {
-        return response()->json([
-            'connections' => $this->oauth->listConnections(),
-        ]);
+        try {
+            return response()->json([
+                'connections' => $this->oauth->listConnections(),
+            ]);
+        } catch (\Illuminate\Database\QueryException|\Throwable) {
+            return response()->json([
+                'connections' => [],
+            ]);
+        }
     }
 
     public function disconnect(Request $request): JsonResponse

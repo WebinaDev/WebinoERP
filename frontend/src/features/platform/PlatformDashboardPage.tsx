@@ -2,17 +2,19 @@
 
 import Link from 'next/link';
 import { useCallback, useEffect, useState } from 'react';
-import { useLocale, useTranslations } from 'next-intl';
+import { useLocale as useNextIntlLocale, useTranslations } from 'next-intl';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { dashboardHref } from '@/lib/route-resolver';
+import { useLocale } from '@/hooks/use-locale-next';
 import { fetchPlatformDashboard, type PlatformDashboard } from '@/lib/api/platform';
 import { PlatformPageLayout, RefreshButton } from '@/features/platform/PlatformPageLayout';
 
 export function PlatformDashboardPage() {
   const t = useTranslations('platform');
-  const locale = useLocale();
+  const locale = useNextIntlLocale();
+  const { formatDate, formatNumber } = useLocale();
   const [data, setData] = useState<PlatformDashboard | null>(null);
   const [error, setError] = useState<string | null>(null);
 
@@ -45,7 +47,7 @@ export function PlatformDashboardPage() {
         ].map((s) => (
           <Card key={s.label}>
             <CardHeader className="pb-2"><CardTitle className="text-sm font-medium text-muted-foreground">{s.label}</CardTitle></CardHeader>
-            <CardContent><p className="text-3xl font-semibold">{s.value}</p></CardContent>
+            <CardContent><p className="text-3xl font-semibold">{formatNumber(s.value)}</p></CardContent>
           </Card>
         ))}
       </div>
@@ -101,7 +103,9 @@ export function PlatformDashboardPage() {
                   <td className="py-2">{d.id}</td>
                   <td className="py-2">{d.resource_id}</td>
                   <td className="py-2"><Badge variant="secondary">{d.status}</Badge></td>
-                  <td className="py-2 font-mono text-xs">{d.started_at ?? '—'}</td>
+                  <td className="py-2 font-mono text-xs">
+                    {d.started_at ? formatDate(d.started_at, { includeTime: true }) || d.started_at : '—'}
+                  </td>
                 </tr>
               ))}
               {!data?.recent_deployments?.length ? (

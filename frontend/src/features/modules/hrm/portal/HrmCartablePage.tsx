@@ -6,11 +6,13 @@ import { CrmPageLayout } from '@/features/shared/layout/CrmPageLayout';
 import { useCrmFeedback } from '@/features/shared/hooks/useCrmFeedback';
 import { Card, CardContent } from '@/components/ui/card';
 import { PageLoadingState } from '@/features/shared/ui/PageStates';
+import { useLocale } from '@/hooks/use-locale-next';
 import { getCartableInbox } from '@/lib/api/hrm';
 
 export function HrmCartablePage() {
   const t = useTranslations('hrm');
   const tNav = useTranslations();
+  const { formatDate } = useLocale();
   const { layoutProps, applyAxiosError } = useCrmFeedback();
   const [items, setItems] = useState<
     Array<{ id: number; type: string; status: string; user_name?: string; created_at?: string }>
@@ -51,7 +53,9 @@ export function HrmCartablePage() {
                   <span className="text-muted-foreground">{r.status}</span>
                 </div>
                 {r.created_at ? (
-                  <div className="text-xs text-muted-foreground">{r.created_at}</div>
+                  <div className="text-xs text-muted-foreground">
+                    {formatDate(r.created_at) || r.created_at}
+                  </div>
                 ) : null}
                 <div className="text-xs text-muted-foreground">{t('portal.cartableHint')}</div>
               </CardContent>

@@ -1,27 +1,25 @@
 'use client';
 
 import { useCallback, useEffect, useState } from 'react';
-import { useLocale, useTranslations } from 'next-intl';
+import { useTranslations } from 'next-intl';
 import { CrmPageLayout } from '@/features/shared/layout/CrmPageLayout';
 import { useCrmFeedback } from '@/features/shared/hooks/useCrmFeedback';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { PageLoadingState } from '@/features/shared/ui/PageStates';
+import { useLocale } from '@/hooks/use-locale-next';
 import { getMyAttendance, getMyShift, punchMyAttendance } from '@/lib/api/hrm';
 
 export function MyTimePage() {
   const t = useTranslations('hrm');
   const tNav = useTranslations();
-  const intlLocale = useLocale();
+  const { formatDate, formatNumber } = useLocale();
   const { layoutProps, setSuccess, applyAxiosError } = useCrmFeedback();
   const [attendance, setAttendance] = useState<
     Array<{ id: number; work_date: string; check_in?: string; check_out?: string }>
   >([]);
   const [shift, setShift] = useState<{ name: string; start_time?: string; end_time?: string } | null>(null);
   const [loading, setLoading] = useState(true);
-
-  const formatNumber = (n: number) =>
-    new Intl.NumberFormat(intlLocale === 'fa' ? 'fa-IR' : 'en-US').format(n);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -82,7 +80,7 @@ export function MyTimePage() {
               ) : (
                 attendance.map((a) => (
                   <div key={a.id} className="flex justify-between rounded border px-3 py-2">
-                    <span>{a.work_date}</span>
+                    <span>{formatDate(a.work_date) || a.work_date}</span>
                     <span>
                       {a.check_in || '—'} – {a.check_out || '—'}
                     </span>

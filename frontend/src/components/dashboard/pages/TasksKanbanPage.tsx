@@ -168,6 +168,14 @@ export function TasksKanbanPage() {
   const t = useTranslations('pm.tasks');
   const tc = useTranslations('common');
 
+  const statusLabel = useCallback(
+    (status: string) => {
+      if (t.has(status as 'todo')) return t(status as 'todo');
+      return status;
+    },
+    [t]
+  );
+
   const [view, setView] = useState<ViewMode>('kanban');
   const [data, setData] = useState<KanbanData | null>(null);
   const [listRows, setListRows] = useState<TaskRow[]>([]);
@@ -532,7 +540,7 @@ export function TasksKanbanPage() {
               <SelectContent>
                 {statusOptions.map((s) => (
                   <SelectItem key={s} value={s}>
-                    {s}
+                    {statusLabel(s)}
                   </SelectItem>
                 ))}
               </SelectContent>
@@ -637,7 +645,9 @@ export function TasksKanbanPage() {
                             {String(row.title ?? `#${id}`)}
                           </button>
                         </TableCell>
-                        <TableCell>{String(row.status ?? '—')}</TableCell>
+                        <TableCell>
+                          {row.status ? statusLabel(String(row.status)) : '—'}
+                        </TableCell>
                         <TableCell>{String(row.priority ?? '—')}</TableCell>
                         <TableCell>{String(row.label ?? '—')}</TableCell>
                         <TableCell>{u?.name ?? (row.assignee_id ? String(row.assignee_id) : '—')}</TableCell>

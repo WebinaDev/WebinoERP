@@ -2,43 +2,53 @@
 
 namespace Modules\Sales\Http\Controllers;
 
+use Illuminate\Database\QueryException;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Modules\Docs\Entities\DocsContract;
 use Modules\Projects\Entities\PrjTaskTemplate;
 use Modules\Sales\Entities\SalesCatalogItem;
+use Throwable;
 
 class ServicesController extends Controller
 {
     public function subscriptions(): JsonResponse
     {
-        $items = SalesCatalogItem::query()
-            ->where('type', 'subscription')
-            ->orderBy('name')
-            ->get();
+        try {
+            $items = SalesCatalogItem::query()
+                ->where('type', 'subscription')
+                ->orderBy('name')
+                ->get();
 
-        return response()->json(['data' => $items]);
+            return response()->json(['data' => $items]);
+        } catch (QueryException|Throwable) {
+            return response()->json(['data' => []]);
+        }
     }
 
     public function products(): JsonResponse
     {
-        $items = SalesCatalogItem::query()
-            ->where(function ($q) {
-                $q->where('type', 'product')->orWhereNull('type');
-            })
-            ->orderBy('name')
-            ->get()
-            ->map(function (SalesCatalogItem $item) {
-                $meta = $item->meta ?? [];
+        try {
+            $items = SalesCatalogItem::query()
+                ->where(function ($q) {
+                    $q->where('type', 'product')->orWhereNull('type');
+                })
+                ->orderBy('name')
+                ->get()
+                ->map(function (SalesCatalogItem $item) {
+                    $meta = $item->meta ?? [];
 
-                return array_merge($item->toArray(), [
-                    'task_template_id' => $meta['task_template_id'] ?? null,
-                    'service_task_type' => $meta['service_task_type'] ?? 'onetime',
-                    'task_template_title' => $meta['task_template_title'] ?? null,
-                ]);
-            });
+                    return array_merge($item->toArray(), [
+                        'task_template_id' => $meta['task_template_id'] ?? null,
+                        'service_task_type' => $meta['service_task_type'] ?? 'onetime',
+                        'task_template_title' => $meta['task_template_title'] ?? null,
+                    ]);
+                });
 
-        return response()->json(['data' => $items]);
+            return response()->json(['data' => $items]);
+        } catch (QueryException|Throwable) {
+            return response()->json(['data' => []]);
+        }
     }
 
     public function taskTemplates(): JsonResponse
@@ -47,9 +57,13 @@ class ServicesController extends Controller
             return response()->json(['data' => []]);
         }
 
-        return response()->json([
-            'data' => PrjTaskTemplate::query()->orderByDesc('id')->limit(200)->get(),
-        ]);
+        try {
+            return response()->json([
+                'data' => PrjTaskTemplate::query()->orderByDesc('id')->limit(200)->get(),
+            ]);
+        } catch (QueryException|Throwable) {
+            return response()->json(['data' => []]);
+        }
     }
 
     public function updateProductTaskTemplate(Request $request, SalesCatalogItem $catalog): JsonResponse

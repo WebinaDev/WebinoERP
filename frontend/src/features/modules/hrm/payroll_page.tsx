@@ -26,6 +26,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
+import { useLocale } from '@/hooks/use-locale-next';
 import { PageEmptyState, PageLoadingState } from '@/features/shared/ui/PageStates';
 import {
   createPayrollRun,
@@ -43,6 +44,7 @@ export function PayrollPage() {
   const tNav = useTranslations();
   const params = useParams();
   const locale = (params?.locale as string) || 'fa';
+  const { formatNumber } = useLocale();
   const { layoutProps, setSuccess, applyAxiosError } = useCrmFeedback();
   const [tab, setTab] = useState('runs');
   const [rows, setRows] = useState<Record<string, unknown>[]>([]);
@@ -201,7 +203,11 @@ export function PayrollPage() {
                             : String(r.period ?? '—')}
                         </TableCell>
                         <TableCell>{String(r.status ?? '')}</TableCell>
-                        <TableCell>{String(r.total_amount ?? r.total_net ?? r.total ?? '')}</TableCell>
+                        <TableCell>
+                          {r.total_amount != null || r.total_net != null || r.total != null
+                            ? formatNumber(Number(r.total_amount ?? r.total_net ?? r.total ?? 0))
+                            : '—'}
+                        </TableCell>
                         <TableCell>
                           <Button variant="link" size="sm" asChild>
                             <Link href={dashboardHref(locale, `hrm/payroll/${r.id}`)}>{tNav('common.view')}</Link>
@@ -258,7 +264,11 @@ export function PayrollPage() {
                       <TableRow key={String(c.id)}>
                         <TableCell>{String(c.name ?? '')}</TableCell>
                         <TableCell>{String(c.type ?? '')}</TableCell>
-                        <TableCell>{String(c.default_amount ?? '')}</TableCell>
+                        <TableCell>
+                          {c.default_amount != null && c.default_amount !== ''
+                            ? formatNumber(Number(c.default_amount))
+                            : '—'}
+                        </TableCell>
                         <TableCell>{c.is_active === false ? t('inactive') : t('active')}</TableCell>
                       </TableRow>
                     ))

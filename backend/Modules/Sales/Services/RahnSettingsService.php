@@ -82,10 +82,14 @@ class RahnSettingsService
      */
     public static function get(): array
     {
-        $row = SalesRahnSetting::query()->first();
-        $raw = is_array($row?->payload) ? $row->payload : [];
+        try {
+            $row = SalesRahnSetting::query()->first();
+            $raw = is_array($row?->payload) ? $row->payload : [];
 
-        return self::mergeDefaults($raw);
+            return self::mergeDefaults($raw);
+        } catch (\Throwable) {
+            return self::mergeDefaults([]);
+        }
     }
 
     /**

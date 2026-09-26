@@ -3,12 +3,13 @@
 import { useCallback, useEffect, useState } from 'react';
 import Link from 'next/link';
 import { useParams } from 'next/navigation';
-import { useLocale, useTranslations } from 'next-intl';
+import { useTranslations } from 'next-intl';
 import { CrmPageLayout } from '@/features/shared/layout/CrmPageLayout';
 import { useCrmFeedback } from '@/features/shared/hooks/useCrmFeedback';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { PageLoadingState } from '@/features/shared/ui/PageStates';
+import { useLocale } from '@/hooks/use-locale-next';
 import { getHrmMe, type HrmMeResponse } from '@/lib/api/hrm';
 import { dashboardHref } from '@/lib/route-resolver';
 
@@ -17,13 +18,10 @@ export function MyPortalPage() {
   const tNav = useTranslations();
   const params = useParams();
   const locale = (params?.locale as string) || 'fa';
-  const intlLocale = useLocale();
+  const { formatDate, formatNumber } = useLocale();
   const { layoutProps, applyAxiosError } = useCrmFeedback();
   const [data, setData] = useState<HrmMeResponse | null>(null);
   const [loading, setLoading] = useState(true);
-
-  const formatNumber = (n: number) =>
-    new Intl.NumberFormat(intlLocale === 'fa' ? 'fa-IR' : 'en-US').format(n);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -69,7 +67,8 @@ export function MyPortalPage() {
                 {t('portal.manager')}: {id.direct_manager?.name || '—'}
               </div>
               <div>
-                {t('portal.hireDate')}: {id.hire_date || '—'}
+                {t('portal.hireDate')}:{' '}
+                {id.hire_date ? formatDate(id.hire_date) || id.hire_date : '—'}
               </div>
             </CardContent>
           </Card>

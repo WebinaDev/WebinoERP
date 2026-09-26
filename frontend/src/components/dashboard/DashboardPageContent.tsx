@@ -26,21 +26,16 @@ export function DashboardPageContent({ path, meta, initialStats = null }: Props)
   const locale = (params?.locale as string) || 'fa';
   const normalized = normalizeDashboardPath(path);
   const title = locale === 'fa' ? meta.titleFa : meta.titleEn;
-  const subtitle = locale === 'fa' ? meta.titleEn : meta.titleFa;
 
   return (
     <InitialDashboardStatsProvider value={initialStats}>
-      <div className="space-y-6">
-      <div className="space-y-1">
-        <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
-          {meta.group ?? 'ERP'}
-        </p>
-        <h1 className="text-2xl font-semibold tracking-tight">{title}</h1>
-        <p className="text-sm text-muted-foreground">{subtitle}</p>
-      </div>
-      <ModuleRouteGuard permission={resolveRoutePermission(normalized)}>
-        {renderDashboardPage(normalized, meta)}
-      </ModuleRouteGuard>
+      <div className="space-y-6 text-start">
+        <div className="space-y-1">
+          <h1 className="text-2xl font-bold tracking-tight">{title}</h1>
+        </div>
+        <ModuleRouteGuard permission={resolveRoutePermission(normalized)}>
+          {renderDashboardPage(normalized, meta)}
+        </ModuleRouteGuard>
       </div>
     </InitialDashboardStatsProvider>
   );

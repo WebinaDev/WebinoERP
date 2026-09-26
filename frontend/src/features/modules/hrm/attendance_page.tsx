@@ -8,6 +8,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import apiClient from '@/lib/api-client';
+import { useLocale } from '@/hooks/use-locale-next';
 import { attendanceCheckIn, attendanceCheckOut } from '@/lib/api/hrm';
 import { normalizeListPayload } from '@/lib/list-utils';
 import { PageEmptyState } from '@/features/shared/ui/PageStates';
@@ -15,6 +16,7 @@ import { PageEmptyState } from '@/features/shared/ui/PageStates';
 export function AttendancePage() {
   const t = useTranslations('hrm');
   const tNav = useTranslations();
+  const { formatDate } = useLocale();
   const { layoutProps, setSuccess, applyAxiosError } = useCrmFeedback();
   const [rows, setRows] = useState<Record<string, unknown>[]>([]);
 
@@ -72,9 +74,19 @@ export function AttendancePage() {
                 rows.map((r) => (
                   <TableRow key={String(r.id)}>
                     <TableCell>{String(r.employee_id ?? '')}</TableCell>
-                    <TableCell>{String(r.date ?? '')}</TableCell>
-                    <TableCell>{String(r.check_in_at ?? '')}</TableCell>
-                    <TableCell>{String(r.check_out_at ?? '')}</TableCell>
+                    <TableCell>
+                      {r.date ? formatDate(String(r.date)) || String(r.date) : '—'}
+                    </TableCell>
+                    <TableCell>
+                      {r.check_in_at
+                        ? formatDate(String(r.check_in_at), { includeTime: true }) || String(r.check_in_at)
+                        : '—'}
+                    </TableCell>
+                    <TableCell>
+                      {r.check_out_at
+                        ? formatDate(String(r.check_out_at), { includeTime: true }) || String(r.check_out_at)
+                        : '—'}
+                    </TableCell>
                   </TableRow>
                 ))
               )}

@@ -3,6 +3,7 @@
 import { useTranslations } from 'next-intl';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { AccentBarChart } from '@/components/charts/AccentCharts';
+import { useLocale } from '@/hooks/use-locale-next';
 import type { ReportsPayload } from './types';
 
 type Props = {
@@ -10,7 +11,31 @@ type Props = {
   payload: ReportsPayload;
 };
 
+function looksLikeIsoDate(value: unknown): boolean {
+  if (typeof value !== 'string' || !value.trim()) return false;
+  return /^\d{4}-\d{2}(-\d{2})?/.test(value.trim());
+}
+
+function isDateKey(key: string): boolean {
+  const k = key.toLowerCase();
+  return k.includes('date') || k.endsWith('_at') || k === 'month';
+}
+
 function StatGrid({ stats, keys }: { stats: Record<string, unknown>; keys: { key: string; label: string }[] }) {
+  const { formatNumber, formatDate } = useLocale();
+
+  const formatStat = (key: string, value: unknown): string => {
+    if (value == null || value === '') return '—';
+    if (isDateKey(key) && looksLikeIsoDate(value)) {
+      return formatDate(String(value)) || String(value);
+    }
+    if (typeof value === 'number') return formatNumber(value);
+    if (typeof value === 'string' && value.trim() !== '' && !Number.isNaN(Number(value)) && /^-?\d+(\.\d+)?$/.test(value.trim())) {
+      return formatNumber(Number(value));
+    }
+    return String(value);
+  };
+
   return (
     <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
       {keys.map(({ key, label }) =>
@@ -20,7 +45,7 @@ function StatGrid({ stats, keys }: { stats: Record<string, unknown>; keys: { key
               <CardTitle className="text-sm text-muted-foreground">{label}</CardTitle>
             </CardHeader>
             <CardContent className="text-2xl font-semibold tabular-nums">
-              {String(stats[key] ?? '—')}
+              {formatStat(key, stats[key])}
             </CardContent>
           </Card>
         ) : null,
@@ -38,6 +63,20 @@ function DataTable({
   rows: Record<string, unknown>[];
   columns: { key: string; label: string }[];
 }) {
+  const { formatNumber, formatDate } = useLocale();
+
+  const formatCell = (key: string, value: unknown): string => {
+    if (value == null || value === '') return '—';
+    if (
+      (key.toLowerCase().includes('date') || key.toLowerCase().endsWith('_at') || key === 'month') &&
+      looksLikeIsoDate(value)
+    ) {
+      return formatDate(String(value)) || String(value);
+    }
+    if (typeof value === 'number') return formatNumber(value);
+    return String(value);
+  };
+
   return (
     <Card>
       <CardHeader className="py-3">
@@ -66,7 +105,7 @@ function DataTable({
                 <tr key={i} className="border-b border-border/60">
                   {columns.map((c) => (
                     <td key={c.key} className="px-2 py-2 tabular-nums">
-                      {String(row[c.key] ?? '—')}
+                      {formatCell(c.key, row[c.key])}
                     </td>
                   ))}
                 </tr>

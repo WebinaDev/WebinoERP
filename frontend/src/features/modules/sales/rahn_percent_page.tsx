@@ -23,12 +23,13 @@ export function RahnPercentPage() {
     void apiClient
       .get(`${RAHN_API}/settings`)
       .then((res) => {
-        const data = res.data as { settings?: RahnSettings };
-        if (!data?.settings) {
+        const body = res.data as any;
+        const settings = body?.settings ?? body?.data?.settings ?? null;
+        if (!settings) {
           setError(t('loadError'));
           return;
         }
-        setSettings(data.settings);
+        setSettings(settings);
       })
       .catch(() => setError(t('loadError')))
       .finally(() => setLoading(false));

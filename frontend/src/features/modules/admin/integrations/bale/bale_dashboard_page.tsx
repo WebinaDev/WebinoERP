@@ -242,6 +242,7 @@ export function BaleDashboardPage() {
         </Button>
       }
     >
+      <div className="text-start">
       <PermissionGate permission="integrations.bale.manage">
         <Tabs defaultValue="settings" className="space-y-4">
           <TabsList className="grid h-auto w-full max-w-xl grid-cols-4">
@@ -548,6 +549,7 @@ export function BaleDashboardPage() {
           </TabsContent>
         </Tabs>
       </PermissionGate>
+      </div>
     </CrmPageLayout>
   );
 }

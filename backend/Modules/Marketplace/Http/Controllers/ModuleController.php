@@ -20,42 +20,74 @@ class ModuleController extends Controller
 
     public function index(Request $request): JsonResponse
     {
-        $wantsAdminList = $request->boolean('include_core')
-            || $request->boolean('list')
-            || $request->query('format') === 'admin'
-            || ! $request->has('page');
+        try {
+            $wantsAdminList = $request->boolean('include_core')
+                || $request->boolean('list')
+                || $request->query('format') === 'admin'
+                || ! $request->has('page');
 
-        $query = MarketplaceModule::query()
-            ->with(['repo', 'releases', 'gitSource', 'category', 'parent', 'children'])
-            ->orderBy('sort')
-            ->orderByDesc('updated_at');
+            $query = MarketplaceModule::query()
+                ->with(['repo', 'releases', 'gitSource', 'category', 'parent', 'children'])
+                ->orderBy('sort')
+                ->orderByDesc('updated_at');
 
-        if (! $request->boolean('include_core')) {
-            $query->where(function ($q) {
-                $q->where('is_core', false)->orWhereNull('is_core');
-            });
-        }
+            if (! $request->boolean('include_core')) {
+                $query->where(function ($q) {
+                    $q->where('is_core', false)->orWhereNull('is_core');
+                });
+            }
 
-        if ($request->filled('category_id')) {
-            $query->where('category_id', $request->integer('category_id'));
-        }
-        if ($request->filled('status')) {
-            $query->where('status', $request->string('status'));
-        }
+            if ($request->filled('category_id')) {
+                $query->where('category_id', $request->integer('category_id'));
+            }
+            if ($request->filled('status')) {
+                $query->where('status', $request->string('status'));
+            }
 
-        if ($wantsAdminList) {
-            $modules = $query->get();
-            $categories = MarketplaceCategory::query()->orderBy('sort')->orderBy('name')->get();
+            if ($wantsAdminList) {
+                $modules = $query->get();
+                $categories = MarketplaceCategory::query()->orderBy('sort')->orderBy('name')->get();
+
+                return response()->json([
+                    'data' => [
+                        'modules' => $modules,
+                        'categories' => $categories,
+                    ],
+                ]);
+            }
+
+            return $this->paginatedResponse($query->paginate($this->perPage($request)));
+        } catch (\Illuminate\Database\QueryException|\Throwable) {
+            if ($request->boolean('include_core')
+                || $request->boolean('list')
+                || $request->query('format') === 'admin'
+                || ! $request->has('page')) {
+                return response()->json([
+                    'data' => [
+                        'modules' => [],
+                        'categories' => [],
+                    ],
+                ]);
+            }
 
             return response()->json([
-                'data' => [
-                    'modules' => $modules,
-                    'categories' => $categories,
+                'data' => [],
+                'meta' => [
+                    'current_page' => 1,
+                    'per_page' => $this->perPage($request),
+                    'total' => 0,
+                    'last_page' => 1,
+                    'from' => null,
+                    'to' => null,
+                ],
+                'links' => [
+                    'first' => null,
+                    'last' => null,
+                    'prev' => null,
+                    'next' => null,
                 ],
             ]);
         }
-
-        return $this->paginatedResponse($query->paginate($this->perPage($request)));
     }
 
     public function store(Request $request): JsonResponse

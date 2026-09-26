@@ -72,28 +72,44 @@ class ModirPayamakAdminController extends Controller
 
     public function customers(Request $request): JsonResponse
     {
-        $accounts = ModirPayamakAccount::query()->orderBy('domain')->get()
-            ->map(fn (ModirPayamakAccount $a) => $this->manager->formatAccountPublic($a))
-            ->values()
-            ->all();
+        try {
+            $accounts = ModirPayamakAccount::query()->orderBy('domain')->get()
+                ->map(fn (ModirPayamakAccount $a) => $this->manager->formatAccountPublic($a))
+                ->values()
+                ->all();
 
-        if ($request->boolean('paginate')) {
-            $page = max(1, (int) $request->query('page', 1));
-            $perPage = $this->perPage($request);
-            $slice = array_slice($accounts, ($page - 1) * $perPage, $perPage);
+            if ($request->boolean('paginate')) {
+                $page = max(1, (int) $request->query('page', 1));
+                $perPage = $this->perPage($request);
+                $slice = array_slice($accounts, ($page - 1) * $perPage, $perPage);
 
-            return response()->json([
-                'data' => $slice,
-                'meta' => [
-                    'current_page' => $page,
-                    'per_page' => $perPage,
-                    'total' => count($accounts),
-                    'last_page' => max(1, (int) ceil(count($accounts) / $perPage)),
-                ],
-            ]);
+                return response()->json([
+                    'data' => $slice,
+                    'meta' => [
+                        'current_page' => $page,
+                        'per_page' => $perPage,
+                        'total' => count($accounts),
+                        'last_page' => max(1, (int) ceil(count($accounts) / $perPage)),
+                    ],
+                ]);
+            }
+
+            return response()->json(['data' => ['accounts' => $accounts]]);
+        } catch (\Illuminate\Database\QueryException|\Throwable) {
+            if ($request->boolean('paginate')) {
+                return response()->json([
+                    'data' => [],
+                    'meta' => [
+                        'current_page' => 1,
+                        'per_page' => $this->perPage($request),
+                        'total' => 0,
+                        'last_page' => 1,
+                    ],
+                ]);
+            }
+
+            return response()->json(['data' => ['accounts' => []]]);
         }
-
-        return response()->json(['data' => ['accounts' => $accounts]]);
     }
 
     public function customerBalance(Request $request): JsonResponse
@@ -139,16 +155,32 @@ class ModirPayamakAdminController extends Controller
 
     public function packagesIndex(Request $request): JsonResponse
     {
-        $packages = ModirPayamakPackage::query()->orderBy('sort_order')->get()
-            ->map(fn (ModirPayamakPackage $p) => $this->manager->formatPackage($p))
-            ->values()
-            ->all();
+        try {
+            $packages = ModirPayamakPackage::query()->orderBy('sort_order')->get()
+                ->map(fn (ModirPayamakPackage $p) => $this->manager->formatPackage($p))
+                ->values()
+                ->all();
 
-        if ($request->boolean('paginate')) {
-            return $this->paginatedResponse(ModirPayamakPackage::query()->orderBy('sort_order')->paginate($this->perPage($request)));
+            if ($request->boolean('paginate')) {
+                return $this->paginatedResponse(ModirPayamakPackage::query()->orderBy('sort_order')->paginate($this->perPage($request)));
+            }
+
+            return response()->json(['data' => ['packages' => $packages]]);
+        } catch (\Illuminate\Database\QueryException|\Throwable) {
+            if ($request->boolean('paginate')) {
+                return response()->json([
+                    'data' => [],
+                    'meta' => [
+                        'current_page' => 1,
+                        'per_page' => $this->perPage($request),
+                        'total' => 0,
+                        'last_page' => 1,
+                    ],
+                ]);
+            }
+
+            return response()->json(['data' => ['packages' => []]]);
         }
-
-        return response()->json(['data' => ['packages' => $packages]]);
     }
 
     public function packagesStore(Request $request): JsonResponse
@@ -201,13 +233,23 @@ class ModirPayamakAdminController extends Controller
 
     public function tariffsIndex(): JsonResponse
     {
-        return response()->json([
-            'data' => [
-                'tariffs' => ModirPayamakTariff::query()->orderBy('sort')->orderBy('line_type')->orderBy('operator')->get(),
-                'tax_percent' => (float) IntegrationSetting::getString('modirpayamak', 'sms_tax_percent', '10'),
-                'surcharge_rial' => (float) IntegrationSetting::getString('modirpayamak', 'sms_surcharge_rial', '40'),
-            ],
-        ]);
+        try {
+            return response()->json([
+                'data' => [
+                    'tariffs' => ModirPayamakTariff::query()->orderBy('sort')->orderBy('line_type')->orderBy('operator')->get(),
+                    'tax_percent' => (float) IntegrationSetting::getString('modirpayamak', 'sms_tax_percent', '10'),
+                    'surcharge_rial' => (float) IntegrationSetting::getString('modirpayamak', 'sms_surcharge_rial', '40'),
+                ],
+            ]);
+        } catch (\Illuminate\Database\QueryException|\Throwable) {
+            return response()->json([
+                'data' => [
+                    'tariffs' => [],
+                    'tax_percent' => 10.0,
+                    'surcharge_rial' => 40.0,
+                ],
+            ]);
+        }
     }
 
     public function tariffsStore(Request $request): JsonResponse
@@ -330,32 +372,46 @@ class ModirPayamakAdminController extends Controller
 
     public function orders(Request $request): JsonResponse
     {
-        $paginator = ModirPayamakOrder::query()->with('package')->orderByDesc('created_at')->paginate($this->perPage($request));
-        $orders = collect($paginator->items())->map(function (ModirPayamakOrder $order) {
-            return [
-                'id' => $order->id,
-                'domain' => $order->domain,
-                'package_id' => $order->package_id,
-                'amount' => (float) $order->amount,
-                'credit_amount' => (float) ($order->credit_amount ?? $order->package?->sms_units ?? 0),
-                'status' => $order->status,
-                'authority' => $order->authority,
-                'ref_id' => $order->ref_id,
-                'created_at' => optional($order->created_at)?->toIso8601String(),
-            ];
-        })->values()->all();
+        try {
+            $paginator = ModirPayamakOrder::query()->with('package')->orderByDesc('created_at')->paginate($this->perPage($request));
+            $orders = collect($paginator->items())->map(function (ModirPayamakOrder $order) {
+                return [
+                    'id' => $order->id,
+                    'domain' => $order->domain,
+                    'package_id' => $order->package_id,
+                    'amount' => (float) $order->amount,
+                    'credit_amount' => (float) ($order->credit_amount ?? $order->package?->sms_units ?? 0),
+                    'status' => $order->status,
+                    'authority' => $order->authority,
+                    'ref_id' => $order->ref_id,
+                    'created_at' => optional($order->created_at)?->toIso8601String(),
+                ];
+            })->values()->all();
 
-        return response()->json([
-            'data' => [
-                'orders' => $orders,
-            ],
-            'meta' => [
-                'current_page' => $paginator->currentPage(),
-                'last_page' => $paginator->lastPage(),
-                'per_page' => $paginator->perPage(),
-                'total' => $paginator->total(),
-            ],
-        ]);
+            return response()->json([
+                'data' => [
+                    'orders' => $orders,
+                ],
+                'meta' => [
+                    'current_page' => $paginator->currentPage(),
+                    'last_page' => $paginator->lastPage(),
+                    'per_page' => $paginator->perPage(),
+                    'total' => $paginator->total(),
+                ],
+            ]);
+        } catch (\Illuminate\Database\QueryException|\Throwable) {
+            return response()->json([
+                'data' => [
+                    'orders' => [],
+                ],
+                'meta' => [
+                    'current_page' => 1,
+                    'last_page' => 1,
+                    'per_page' => $this->perPage($request),
+                    'total' => 0,
+                ],
+            ]);
+        }
     }
 
     public function adminSend(Request $request): JsonResponse
@@ -558,13 +614,17 @@ class ModirPayamakAdminController extends Controller
         if (! $this->edge->isConfigured()) {
             abort(503, 'ModirPayamak is not configured');
         }
-        $result = $this->edge->reportOutbox(
-            (int) $request->query('page', 1),
-            (int) $request->query('limit', 20),
-            (array) $request->query('filters', [])
-        );
+        try {
+            $result = $this->edge->reportOutbox(
+                (int) $request->query('page', 1),
+                (int) $request->query('limit', 20),
+                (array) $request->query('filters', [])
+            );
 
-        return response()->json(['data' => $result['data'], 'meta' => $result['meta']], $result['ok'] ? 200 : 422);
+            return response()->json(['data' => $result['data'], 'meta' => $result['meta']], $result['ok'] ? 200 : 422);
+        } catch (\Illuminate\Database\QueryException|\Throwable) {
+            return response()->json(['data' => []]);
+        }
     }
 
     public function reportsInbox(Request $request): JsonResponse
@@ -572,13 +632,17 @@ class ModirPayamakAdminController extends Controller
         if (! $this->edge->isConfigured()) {
             abort(503, 'ModirPayamak is not configured');
         }
-        $result = $this->edge->reportInbox(
-            (int) $request->query('page', 1),
-            (int) $request->query('limit', 20),
-            (array) $request->query('filters', [])
-        );
+        try {
+            $result = $this->edge->reportInbox(
+                (int) $request->query('page', 1),
+                (int) $request->query('limit', 20),
+                (array) $request->query('filters', [])
+            );
 
-        return response()->json(['data' => $result['data'], 'meta' => $result['meta']], $result['ok'] ? 200 : 422);
+            return response()->json(['data' => $result['data'], 'meta' => $result['meta']], $result['ok'] ? 200 : 422);
+        } catch (\Illuminate\Database\QueryException|\Throwable) {
+            return response()->json(['data' => []]);
+        }
     }
 
     public function reportOutboxDetail(string $id): JsonResponse
@@ -596,9 +660,13 @@ class ModirPayamakAdminController extends Controller
         if (! $this->edge->isConfigured()) {
             abort(503, 'ModirPayamak is not configured');
         }
-        $result = $this->edge->listPatterns($request->query());
+        try {
+            $result = $this->edge->listPatterns($request->query());
 
-        return response()->json(['data' => $result['data']], $result['ok'] ? 200 : 422);
+            return response()->json(['data' => $result['data']], $result['ok'] ? 200 : 422);
+        } catch (\Illuminate\Database\QueryException|\Throwable) {
+            return response()->json(['data' => []]);
+        }
     }
 
     public function numbers(Request $request): JsonResponse

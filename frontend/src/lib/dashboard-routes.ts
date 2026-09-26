@@ -114,7 +114,7 @@ const EXACT: Record<string, DashboardRouteMeta> = {
   'sales/invoices': { titleFa: 'فاکتور فروش', titleEn: 'Sales invoices', group: 'sales', apiHint: '/v1/sales/invoices' },
   'sales/catalog': { titleFa: 'کاتالوگ', titleEn: 'Catalog', group: 'sales', apiHint: '/v1/sales/catalog' },
   'sales/campaigns': { titleFa: 'کمپین‌ها', titleEn: 'Campaigns', group: 'sales', apiHint: '/v1/sales/campaigns' },
-  'sales/rahn-percent': { titleFa: 'رهن‌درصد', titleEn: 'Rahn percent', group: 'sales', apiHint: '/v1/sales/rahn' },
+  'sales/rahn-percent': { titleFa: 'محاسبه تعرفه قرارداد', titleEn: 'Contract tariff calculator', group: 'sales', apiHint: '/v1/sales/rahn' },
   'docs/contracts': { titleFa: 'قراردادها', titleEn: 'Contracts', group: 'docs', apiHint: '/v1/docs/contracts' },
   'docs/files': { titleFa: 'فایل‌ها', titleEn: 'Files', group: 'docs', apiHint: '/v1/docs/files' },
   'ai-content': { titleFa: 'هوش مصنوعی محتوا', titleEn: 'AI Content', group: 'ai_content', apiHint: '/v1/ai-content/overview' },
