@@ -216,7 +216,38 @@ class RahnSettingsService
 
             return self::mergeDefaults($raw);
         } catch (\Throwable) {
-            return self::mergeDefaults([]);
+            // Corrupt / legacy payload or sanitize failure must not 500 the settings page.
+            try {
+                return self::defaults();
+            } catch (\Throwable) {
+                return [
+                    'T' => 12,
+                    'm' => 0.60,
+                    'k' => 0.70,
+                    'p_min' => 0.05,
+                    'p_max' => 0.25,
+                    'p_default' => 0.10,
+                    's_hat_default' => 100000000,
+                    'duration_options' => self::DURATION_OPTIONS,
+                    'clause_template' => 'هر ماه {F} تومان ثابت + {p} درصد از فروش خالص در طول {T} ماه',
+                    'review' => [
+                        'enabled' => false,
+                        'deviation_percent' => 25,
+                        'consecutive_months' => 3,
+                    ],
+                    'sales_definition' => [
+                        'G' => ['enabled' => true, 'label' => 'فروش ثبت‌شده سایت'],
+                        'R' => ['enabled' => true, 'label' => 'لغو و مرجوعی قطعی'],
+                        'D' => ['enabled' => true, 'label' => 'کارمزد درگاه / پلتفرم / تخفیف کانال'],
+                        'X' => ['enabled' => true, 'label' => 'سفارش تست و فروش خارج از اسکوپ'],
+                    ],
+                    'topics' => [],
+                    'domains' => [],
+                    'categories' => [],
+                    'catalog' => [],
+                    'wizard_steps' => self::defaultWizardSteps(),
+                ];
+            }
         }
     }
 
