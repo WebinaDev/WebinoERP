@@ -339,22 +339,56 @@ class AccountingWpActionService
 
     private function settingsGet(): array
     {
+        $currency = (string) SystemSetting::get('accounting_currency', 'IRT');
+        $currency = strtoupper($currency) === 'IRR' ? 'IRR' : 'IRT';
+        $symbol = (string) SystemSetting::get('accounting_currency_symbol', 'default');
+        $symbol = $this->normalizeAccountingCurrencySymbol($currency, $symbol);
+
         return [
-            'currency' => SystemSetting::get('accounting_currency', 'IRR'),
+            'currency' => $currency,
+            'currency_symbol' => $symbol,
             'fiscal_year_id' => SystemSetting::get('accounting_default_fiscal_year_id'),
         ];
     }
 
     private function settingsSave(array $p): array
     {
+        $currency = isset($p['currency'])
+            ? (strtoupper((string) $p['currency']) === 'IRR' ? 'IRR' : 'IRT')
+            : (string) SystemSetting::get('accounting_currency', 'IRT');
+        $currency = strtoupper($currency) === 'IRR' ? 'IRR' : 'IRT';
+
         if (isset($p['currency'])) {
-            SystemSetting::set('accounting_currency', (string) $p['currency'], 'accounting');
+            SystemSetting::set('accounting_currency', $currency, 'accounting');
         }
+
+        if (isset($p['currency_symbol']) || isset($p['currency'])) {
+            $requested = isset($p['currency_symbol'])
+                ? (string) $p['currency_symbol']
+                : (string) SystemSetting::get('accounting_currency_symbol', 'default');
+            $symbol = $this->normalizeAccountingCurrencySymbol($currency, $requested);
+            SystemSetting::set('accounting_currency_symbol', $symbol, 'accounting');
+        }
+
         if (isset($p['fiscal_year_id'])) {
             SystemSetting::set('accounting_default_fiscal_year_id', (string) $p['fiscal_year_id'], 'accounting');
         }
 
         return $this->settingsGet();
+    }
+
+    private function normalizeAccountingCurrencySymbol(string $currency, string $symbol): string
+    {
+        $allowed = $currency === 'IRR'
+            ? ['rial-1', 'rial-2']
+            : ['default', 'toman-1', 'toman-2'];
+        $id = trim($symbol);
+
+        if (in_array($id, $allowed, true)) {
+            return $id;
+        }
+
+        return $currency === 'IRR' ? 'rial-1' : 'default';
     }
 
     private function seedChart(): array

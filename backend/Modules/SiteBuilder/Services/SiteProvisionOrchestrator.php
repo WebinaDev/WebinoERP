@@ -476,7 +476,7 @@ class SiteProvisionOrchestrator
         return [
             'tenant_name' => $payload['site_name'] ?? $provision->slug,
             'store_display_name' => $payload['site_name'] ?? $provision->slug,
-            'default_currency' => $payload['currency'] ?? 'IRR',
+            'default_currency' => $payload['currency'] ?? 'IRT',
             'domain' => $provision->domain,
             'license_key' => $provision->license?->license_key,
             'provision_token' => $provision->provision_token,
@@ -490,6 +490,7 @@ class SiteProvisionOrchestrator
             'branding' => [
                 'logo_url' => $payload['logo_url'] ?? null,
                 'description' => $payload['description'] ?? null,
+                'currency_symbol' => $payload['currency_symbol'] ?? 'default',
             ],
             'admin_email' => $payload['admin_email'] ?? null,
             'admin_name' => $payload['admin_name'] ?? 'Admin',

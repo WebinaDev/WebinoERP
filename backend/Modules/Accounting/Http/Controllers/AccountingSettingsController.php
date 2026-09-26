@@ -11,12 +11,21 @@ class AccountingSettingsController extends Controller
 {
     public function settings(): JsonResponse
     {
-        $currency = SystemSetting::get('accounting_currency', 'IRR');
+        $currency = (string) SystemSetting::get('accounting_currency', 'IRT');
+        $currency = strtoupper($currency) === 'IRR' ? 'IRR' : 'IRT';
+        $symbol = (string) SystemSetting::get('accounting_currency_symbol', 'default');
+        $allowed = $currency === 'IRR'
+            ? ['rial-1', 'rial-2']
+            : ['default', 'toman-1', 'toman-2'];
+        if (! in_array($symbol, $allowed, true)) {
+            $symbol = $currency === 'IRR' ? 'rial-1' : 'default';
+        }
         $fyId = SystemSetting::get('accounting_default_fiscal_year_id');
 
         return response()->json([
             'data' => [
                 'currency' => $currency,
+                'currency_symbol' => $symbol,
                 'fiscal_year_id' => $fyId ? (int) $fyId : null,
             ],
         ]);

@@ -64,7 +64,8 @@ export function SiteProvisionWizardPage() {
   const [newCustomerName, setNewCustomerName] = useState('');
   const [siteName, setSiteName] = useState('');
   const [slug, setSlug] = useState('');
-  const [currency, setCurrency] = useState('IRR');
+  const [currency, setCurrency] = useState('IRT');
+  const [currencySymbol, setCurrencySymbol] = useState('default');
   const [adminEmail, setAdminEmail] = useState('');
   const [adminName, setAdminName] = useState('');
   const [usesCustomDomain, setUsesCustomDomain] = useState(false);
@@ -157,6 +158,7 @@ export function SiteProvisionWizardPage() {
       wizard_payload: {
         site_name: siteName,
         currency,
+        currency_symbol: currencySymbol,
         admin_email: adminEmail || undefined,
         admin_name: adminName || undefined,
         uses_custom_domain: usesCustomDomain,
@@ -182,6 +184,7 @@ export function SiteProvisionWizardPage() {
     slug,
     siteName,
     currency,
+    currencySymbol,
     adminEmail,
     adminName,
     usesCustomDomain,
@@ -388,6 +391,7 @@ export function SiteProvisionWizardPage() {
           adminName={adminName}
           adminEmail={adminEmail}
           currency={currency}
+          currencySymbol={currencySymbol}
           siteTypeSlug={siteTypeSlug}
           serverId={serverId}
           servers={servers}
@@ -397,6 +401,7 @@ export function SiteProvisionWizardPage() {
             if (patch.adminName !== undefined) setAdminName(patch.adminName);
             if (patch.adminEmail !== undefined) setAdminEmail(patch.adminEmail);
             if (patch.currency !== undefined) setCurrency(patch.currency);
+            if (patch.currencySymbol !== undefined) setCurrencySymbol(patch.currencySymbol);
             if (patch.siteTypeSlug !== undefined) setSiteTypeSlug(patch.siteTypeSlug);
             if (patch.serverId !== undefined) setServerId(patch.serverId);
           }}

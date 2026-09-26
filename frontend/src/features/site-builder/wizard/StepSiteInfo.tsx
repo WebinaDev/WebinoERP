@@ -1,9 +1,16 @@
 'use client';
 
 import { useTranslations } from 'next-intl';
+import { CurrencySettingsFields } from '@/components/CurrencySettingsFields';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import type { PlatformServer } from '@/lib/api/platform';
+import {
+  normalizeCurrencySymbol,
+  normalizeStoreCurrency,
+  type CurrencySymbolId,
+  type StoreCurrencyCode,
+} from '@/lib/currencies';
 import { StepHeroArt } from './illustrations';
 
 const SITE_TYPE_LABELS: Record<string, string> = {
@@ -20,6 +27,7 @@ type Props = {
   adminName: string;
   adminEmail: string;
   currency: string;
+  currencySymbol: string;
   siteTypeSlug: string;
   serverId: number | null;
   servers: PlatformServer[];
@@ -30,6 +38,7 @@ type Props = {
     adminName: string;
     adminEmail: string;
     currency: string;
+    currencySymbol: string;
     siteTypeSlug: string;
     serverId: number | null;
   }>) => void;
@@ -44,6 +53,7 @@ export function StepSiteInfo(props: Props) {
     adminName,
     adminEmail,
     currency,
+    currencySymbol,
     siteTypeSlug,
     serverId,
     servers,
@@ -51,6 +61,9 @@ export function StepSiteInfo(props: Props) {
     onChange,
     onSiteName,
   } = props;
+
+  const currencyCode = normalizeStoreCurrency(currency);
+  const symbolId = normalizeCurrencySymbol(currencyCode, currencySymbol);
 
   return (
     <div className="grid gap-6 lg:grid-cols-[1.4fr_1fr]" data-testid="wizard-step-site-info">
@@ -65,7 +78,7 @@ export function StepSiteInfo(props: Props) {
             <Label>{t('siteName')}</Label>
             <Input value={siteName} onChange={(e) => onSiteName(e.target.value)} data-testid="site-name" />
           </div>
-          <div className="grid gap-2">
+          <div className="grid gap-2 sm:col-span-2">
             <Label>{t('slug')}</Label>
             <Input
               value={slug}
@@ -75,12 +88,14 @@ export function StepSiteInfo(props: Props) {
               data-testid="site-slug"
             />
           </div>
-          <div className="grid gap-2">
-            <Label>{t('currency')}</Label>
-            <Input
-              value={currency}
-              onChange={(e) => onChange({ currency: e.target.value })}
-              dir="ltr"
+          <div className="grid gap-2 sm:col-span-2">
+            <CurrencySettingsFields
+              currency={currencyCode}
+              symbol={symbolId}
+              onCurrencyChange={(code: StoreCurrencyCode) => onChange({ currency: code })}
+              onSymbolChange={(id: CurrencySymbolId) => onChange({ currencySymbol: id })}
+              currencyLabel={t('currency')}
+              symbolLabel="نماد واحد پول"
             />
           </div>
           <div className="grid gap-2">
