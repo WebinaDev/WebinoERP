@@ -160,8 +160,8 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
         }}
       />
       <SidebarInset dir={htmlDir(locale)}>
-        <header className="sticky top-0 z-30 flex h-16 shrink-0 items-center gap-2 border-b bg-background/95 backdrop-blur transition-[width,height] ease-linear supports-[backdrop-filter]:bg-background/80 group-has-[[data-collapsible=icon]]/sidebar-wrapper:h-12">
-          <div className="flex w-full items-center gap-2 px-4">
+        <header className="sticky top-0 z-30 flex h-14 shrink-0 items-center gap-2 border-b border-border/60 bg-background/80 backdrop-blur-md transition-[width,height] ease-linear supports-[backdrop-filter]:bg-background/70 group-has-[[data-collapsible=icon]]/sidebar-wrapper:h-12 sm:h-16">
+          <div className="flex w-full min-w-0 items-center gap-2 px-3 sm:px-4">
             <SidebarTrigger className="-ms-1" />
             <Separator orientation="vertical" className="me-2 data-[orientation=vertical]:h-4" />
             <Breadcrumb>
@@ -201,7 +201,9 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
             </div>
           </div>
         </header>
-        <div className="@container/main flex min-w-0 flex-1 flex-col gap-4 p-4 pt-6 md:p-6">{children}</div>
+        <div className="@container/main wd-app-atmosphere flex min-w-0 flex-1 flex-col gap-3 p-3 pt-0 sm:gap-4 sm:p-4 sm:pt-0">
+          {children}
+        </div>
       </SidebarInset>
     </SidebarProvider>
   );

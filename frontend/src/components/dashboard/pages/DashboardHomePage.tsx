@@ -246,35 +246,32 @@ export function DashboardHomePage() {
 
   return (
     <div className="space-y-6">
-      <div className="flex flex-wrap items-center gap-2">
-        <span className="text-sm text-muted-foreground">{t('roleLabel')}:</span>
-        <Badge variant="secondary">{roleLabel}</Badge>
-        {user?.name ? (
-          <span className="text-sm text-muted-foreground">
-            {user.name} ({user.email})
-          </span>
-        ) : null}
-      </div>
-
-      <Card className="bg-gradient-to-br from-primary/90 to-primary text-primary-foreground">
-        <CardContent className="flex flex-wrap items-center justify-between gap-3 p-4">
-          <div>
-            <p className="font-medium">{t('heroTitle')}</p>
-            <p className="text-sm opacity-90">{t('heroSubtitle')}</p>
-          </div>
-          <div className="flex flex-wrap gap-2">
-            {quickLinks.map((link) => (
-              <Button key={link.href} asChild size="sm" variant="secondary">
-                <Link href={dashboardHref(locale, link.href)}>{t(link.labelKey as 'quickLinks.projects')}</Link>
-              </Button>
-            ))}
-          </div>
-        </CardContent>
-      </Card>
+      <header className="wd-home-hero relative z-0 space-y-3">
+        <div className="flex flex-wrap items-center gap-2">
+          <span className="text-sm text-muted-foreground">{t('roleLabel')}:</span>
+          <Badge variant="secondary">{roleLabel}</Badge>
+          {user?.name ? (
+            <span className="text-sm text-muted-foreground">
+              {user.name} ({user.email})
+            </span>
+          ) : null}
+        </div>
+        <div>
+          <h1 className="text-xl font-semibold tracking-tight sm:text-2xl">{t('heroTitle')}</h1>
+          <p className="text-muted-foreground mt-1 max-w-2xl text-sm">{t('heroSubtitle')}</p>
+        </div>
+        <div className="flex flex-wrap gap-2">
+          {quickLinks.map((link) => (
+            <Button key={link.href} asChild size="sm" variant="secondary">
+              <Link href={dashboardHref(locale, link.href)}>{t(link.labelKey as 'quickLinks.projects')}</Link>
+            </Button>
+          ))}
+        </div>
+      </header>
 
       {role === 'team_member' && teamMember ? (
         <div className="grid gap-4 sm:grid-cols-2">
-          <Card>
+          <Card variant="stat" className="wd-mini-tint">
             <CardHeader className="pb-2">
               <CardDescription>{t('teamMember.tasksAssigned')}</CardDescription>
               <CardTitle className="text-3xl tabular-nums">
@@ -282,7 +279,7 @@ export function DashboardHomePage() {
               </CardTitle>
             </CardHeader>
           </Card>
-          <Card>
+          <Card variant="stat" className="wd-mini-tint">
             <CardHeader className="pb-2">
               <CardDescription>{t('teamMember.ticketsAssigned')}</CardDescription>
               <CardTitle className="text-3xl tabular-nums">
@@ -339,7 +336,7 @@ export function DashboardHomePage() {
               { label: t('stats.tickets'), value: merged.tickets, key: 'tickets' },
               { label: t('stats.revenue'), value: merged.contracts, key: 'contracts' },
             ].map((card) => (
-              <Card key={card.key}>
+              <Card key={card.key} variant="stat" className="wd-mini-tint">
                 <CardHeader className="pb-2">
                   <CardDescription>{card.label}</CardDescription>
                   <CardTitle className="text-3xl tabular-nums">
@@ -355,7 +352,7 @@ export function DashboardHomePage() {
           ) : null}
 
           {showFullOverview ? (
-          <Card>
+          <Card variant="glass">
             <CardHeader>
               <CardTitle className="text-base">{t('charts.monthlyActivity')}</CardTitle>
             </CardHeader>
@@ -374,7 +371,7 @@ export function DashboardHomePage() {
           ) : null}
 
           {showFullOverview ? (
-          <Card>
+          <Card variant="glass">
             <CardHeader>
               <CardTitle className="text-base">{t('charts.statusDistribution')}</CardTitle>
             </CardHeader>

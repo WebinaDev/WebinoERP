@@ -444,7 +444,7 @@ export function TasksKanbanPage() {
         }
       />
 
-      <Card>
+      <Card variant="glass">
         <CardHeader>
           <CardTitle className="mb-2 text-base">{t('filters')}</CardTitle>
           <PmFilterBar

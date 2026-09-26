@@ -18,6 +18,9 @@ import {
   Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle,
 } from '@/components/ui/dialog';
 import { Plus, Trash2 } from 'lucide-react';
+import { PageShell } from '@/components/PageShell';
+import { ListStatsStrip } from '@/components/ListStatsStrip';
+import { Card } from '@/components/ui/card';
 
 type Journal = {
   id: number;
@@ -185,9 +188,9 @@ export default function AccJournals() {
   };
 
   return (
-    <div className="space-y-6">
-      <div className="flex flex-wrap items-center justify-between gap-2">
-        <h2 className="text-lg font-semibold">{t('auto.accounting_AccJournals.s_d7bbadb3')}</h2>
+    <PageShell
+      title={t('auto.accounting_AccJournals.s_d7bbadb3')}
+      actions={
         <div className="flex items-center gap-2">
           <Select
             value={fyId}
@@ -211,14 +214,20 @@ export default function AccJournals() {
             {tj('new')}
           </Button>
         </div>
-      </div>
-
+      }
+    >
+      <ListStatsStrip
+        items={[
+          { id: 'total', label: t('auto.accounting_AccJournals.s_d7bbadb3'), value: journals.length },
+        ]}
+      />
       {error && <p className="text-sm text-destructive">{error}</p>}
       {loading && <p className="text-sm text-muted-foreground">{t('auto.accounting_AccJournals.s_51617f69')}</p>}
 
       {!loading && journals.length > 0 && (
         <>
-          <div className="overflow-x-auto rounded-md border">
+          <Card variant="glass" className="overflow-hidden">
+          <div className="overflow-x-auto">
             <table className="w-full min-w-[700px] text-sm">
               <thead>
                 <tr className="border-b bg-muted/40">
@@ -259,6 +268,7 @@ export default function AccJournals() {
               </tbody>
             </table>
           </div>
+          </Card>
 
           <div className="flex items-center justify-center gap-2">
             <Button
@@ -424,6 +434,6 @@ export default function AccJournals() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
-    </div>
+    </PageShell>
   );
 }

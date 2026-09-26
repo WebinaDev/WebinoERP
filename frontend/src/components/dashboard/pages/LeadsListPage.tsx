@@ -26,6 +26,8 @@ import { toast } from 'sonner';
 import { PageEmptyState, PageErrorState, PageLoadingState } from '@/features/shared/ui/PageStates';
 import { PmViewToggle } from '@/features/shared/pm';
 import { ImportCsvDialog } from '@/features/modules/crm/ImportCsvDialog';
+import { PageShell } from '@/components/PageShell';
+import { ListStatsStrip } from '@/components/ListStatsStrip';
 
 type StatusRow = { id: number; name: string; color?: string };
 type LeadRow = Record<string, unknown>;
@@ -338,8 +340,30 @@ export function LeadsListPage() {
   }
 
   return (
-    <div className="space-y-4">
-      <Card>
+    <PageShell
+      title={t('title')}
+      actions={
+        <div className="flex flex-wrap items-center gap-2">
+          <Button type="button" size="sm" variant="outline" disabled={exporting} onClick={() => void handleExport()}>
+            {t('exportCsv')}
+          </Button>
+          <Button type="button" size="sm" variant="outline" onClick={() => setImportOpen(true)}>
+            {t('importCsv')}
+          </Button>
+          <Button type="button" size="sm" onClick={() => setAddOpen(true)}>
+            {t('newLead')}
+          </Button>
+        </div>
+      }
+    >
+      <ListStatsStrip
+        items={[
+          { id: 'total', label: t('title'), value: meta.total ?? rows.length },
+          { id: 'selected', label: t('bulkAssign'), value: selected.size },
+          { id: 'page', label: 'Page', value: meta.current_page ?? page },
+        ]}
+      />
+      <Card variant="glass">
         <CardHeader className="flex flex-row flex-wrap items-center justify-between gap-2 space-y-0">
           <CardTitle className="text-base">{t('title')}</CardTitle>
           <div className="flex flex-wrap items-center gap-2">
@@ -376,15 +400,6 @@ export function LeadsListPage() {
                 </Button>
               </>
             ) : null}
-            <Button type="button" size="sm" variant="outline" disabled={exporting} onClick={() => void handleExport()}>
-              {t('exportCsv')}
-            </Button>
-            <Button type="button" size="sm" variant="outline" onClick={() => setImportOpen(true)}>
-              {t('importCsv')}
-            </Button>
-            <Button type="button" size="sm" onClick={() => setAddOpen(true)}>
-              {t('newLead')}
-            </Button>
           </div>
         </CardHeader>
         <CardContent className="space-y-4">
@@ -725,6 +740,6 @@ export function LeadsListPage() {
         importPath="/v1/crm/leads/import"
         onImported={() => void load()}
       />
-    </div>
+    </PageShell>
   );
 }

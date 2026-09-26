@@ -26,6 +26,8 @@ import { Badge } from '@/components/ui/badge';
 import { Label } from '@/components/ui/label';
 import { sanitizeHtml } from '@/lib/sanitize-html';
 import { CannedResponsePicker } from '@/features/modules/crm/components/CannedResponsePicker';
+import { PageShell } from '@/components/PageShell';
+import { ListStatsStrip } from '@/components/ListStatsStrip';
 
 type Row = Record<string, unknown>;
 type Meta = { current_page?: number; last_page?: number; total?: number };
@@ -354,13 +356,23 @@ export function TicketsListPage() {
   }
 
   return (
-    <div className="space-y-4">
-      <Card>
+    <PageShell
+      title={t('title')}
+      actions={
+        <Button type="button" size="sm" onClick={openNew}>
+          {t('newTicket')}
+        </Button>
+      }
+    >
+      <ListStatsStrip
+        items={[
+          { id: 'total', label: t('title'), value: meta.total ?? rows.length },
+          { id: 'open', label: 'open', value: rows.filter((r) => String(r.status ?? '') === 'open').length },
+        ]}
+      />
+      <Card variant="glass">
         <CardHeader className="flex flex-row flex-wrap items-center justify-between gap-2 space-y-0">
           <CardTitle className="text-base">{t('title')}</CardTitle>
-          <Button type="button" size="sm" onClick={openNew}>
-            {t('newTicket')}
-          </Button>
         </CardHeader>
         <CardContent className="space-y-4">
           {error ? <p className="text-sm text-destructive">{error}</p> : null}
@@ -453,6 +465,6 @@ export function TicketsListPage() {
           <Pagination page={meta.current_page ?? page} pageCount={lastPage} total={meta.total} onPageChange={setPage} />
         </CardContent>
       </Card>
-    </div>
+    </PageShell>
   );
 }

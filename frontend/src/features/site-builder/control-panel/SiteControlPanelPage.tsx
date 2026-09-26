@@ -68,7 +68,7 @@ function Section({
   testId?: string;
 }) {
   return (
-    <Card className="border-border/70 overflow-hidden" data-testid={testId}>
+    <Card variant="glass" className="border-border/70 overflow-hidden" data-testid={testId}>
       <CardHeader className="border-b bg-muted/30 pb-4">
         <div className="flex items-start gap-3">
           <div className="bg-primary/10 text-primary flex size-10 shrink-0 items-center justify-center rounded-xl">
