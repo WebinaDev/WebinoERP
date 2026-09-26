@@ -18,12 +18,14 @@ import {
   runDueJobs,
   setAiQueuePaused,
 } from '../lib/ai-content-api';
+import { useLocale } from '@/hooks/use-locale-next';
 
 const FILTERS = ['', 'pending', 'running', 'failed', 'cancelled', 'done'] as const;
 
 export function AiJobsPage() {
   const t = useTranslations('aiContent');
   const tNav = useTranslations();
+  const { formatNumber } = useLocale();
   const { layoutProps, setSuccess, applyAxiosError } = useCrmFeedback();
   const searchParams = useSearchParams();
   const router = useRouter();
@@ -130,7 +132,7 @@ export function AiJobsPage() {
             {t('cancelPending')}
           </Button>
           <span className="text-sm text-muted-foreground">
-            {t('stat.spend')}: {costSum.toLocaleString()}
+            {t('stat.spend')}: {formatNumber(costSum)}
           </span>
         </div>
 

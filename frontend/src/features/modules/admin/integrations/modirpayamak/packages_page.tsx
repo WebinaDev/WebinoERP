@@ -1,7 +1,7 @@
 'use client';
 
 import { useCallback, useEffect, useState } from 'react';
-import { useFormatter, useTranslations } from 'next-intl';
+import { useTranslations } from 'next-intl';
 import { Pencil, Plus, Trash2 } from 'lucide-react';
 import { CrmPageLayout } from '@/features/shared/layout/CrmPageLayout';
 import { useCrmFeedback } from '@/features/shared/hooks/useCrmFeedback';
@@ -44,12 +44,13 @@ import { getAxiosMessage } from '@/lib/api-helpers';
 import { ModirPayamakStatusBadge } from './components/status-badge';
 import { ModirPayamakBreadcrumb, ModirPayamakNotConfigured } from './components/shared';
 import { useModirPayamakConfigured } from './hooks/useModirPayamakConfigured';
+import { useLocale } from '@/hooks/use-locale-next';
 
 export function ModirpayamakPackagesPage() {
   const t = useTranslations('modirpayamak');
   const tNav = useTranslations();
   const tCommon = useTranslations('common');
-  const format = useFormatter();
+  const { formatNumber } = useLocale();
   const { layoutProps, setError, setSuccess } = useCrmFeedback();
   const { configured, loading: configLoading } = useModirPayamakConfigured();
   const [packages, setPackages] = useState<ModirPayamakPackage[]>([]);
@@ -194,8 +195,8 @@ export function ModirpayamakPackagesPage() {
                 {packages.map((p) => (
                   <TableRow key={p.id}>
                     <TableCell>{p.name}</TableCell>
-                    <TableCell>{format.number(p.amount)}</TableCell>
-                    <TableCell>{format.number(p.bonus)}</TableCell>
+                    <TableCell>{formatNumber(p.amount)}</TableCell>
+                    <TableCell>{formatNumber(p.bonus)}</TableCell>
                     <TableCell>{p.sort}</TableCell>
                     <TableCell>
                       <ModirPayamakStatusBadge status={p.status} />
@@ -246,7 +247,7 @@ export function ModirpayamakPackagesPage() {
                       <SelectItem key={tr.id} value={String(tr.id)}>
                         {tr.line_type} /{' '}
                         {tr.operator === 'mci' ? t('operatorMci') : t('operatorOther')} (
-                        {format.number(tr.rate_fa)} / {format.number(tr.rate_la)})
+                        {formatNumber(tr.rate_fa)} / {formatNumber(tr.rate_la)})
                       </SelectItem>
                     ))}
                   </SelectContent>

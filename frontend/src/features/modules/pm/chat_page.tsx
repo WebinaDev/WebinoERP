@@ -35,9 +35,11 @@ import {
   type ChatChannel,
   type ChatMessage,
 } from '@/lib/api/chat';
+import { useLocale } from '@/hooks/use-locale-next';
 
 export function ChatPage() {
   const t = useTranslations('pm.chat');
+  const { formatDateTime } = useLocale();
   const tNav = useTranslations();
   const tCommon = useTranslations('common');
   const { layoutProps, setSuccess, applyAxiosError } = useCrmFeedback();
@@ -232,7 +234,9 @@ export function ChatPage() {
                             {String(author?.name ?? '')}
                           </p>
                           <p>{String(m.body ?? '')}</p>
-                          <p className="text-[10px] text-muted-foreground">{String(m.created_at ?? '')}</p>
+                          <p className="text-[10px] text-muted-foreground">
+                            {m.created_at ? formatDateTime(String(m.created_at)) || String(m.created_at) : ''}
+                          </p>
                         </div>
                       );
                     })

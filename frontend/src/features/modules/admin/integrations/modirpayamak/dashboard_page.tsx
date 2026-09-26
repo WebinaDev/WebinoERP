@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useState } from 'react';
 import Link from 'next/link';
 import { useParams } from 'next/navigation';
-import { useFormatter, useTranslations } from 'next-intl';
+import { useTranslations } from 'next-intl';
 import { CrmPageLayout } from '@/features/shared/layout/CrmPageLayout';
 import { useCrmFeedback } from '@/features/shared/hooks/useCrmFeedback';
 import { Button } from '@/components/ui/button';
@@ -12,6 +12,7 @@ import { getModirPayamakDashboard, type ModirPayamakStats } from '@/lib/api/modi
 import { getAxiosMessage } from '@/lib/api-helpers';
 import { dashboardHref } from '@/lib/route-resolver';
 import { ModirPayamakQuickLinks } from './components/shared';
+import { useLocale } from '@/hooks/use-locale-next';
 
 function formatCredit(
   credit: unknown,
@@ -49,17 +50,12 @@ function formatCredit(
 export function ModirpayamakDashboardPage() {
   const t = useTranslations('modirpayamak');
   const tNav = useTranslations();
-  const format = useFormatter();
+  const { formatNumber, formatDate } = useLocale();
   const params = useParams();
   const locale = (params?.locale as string) || 'fa';
   const { layoutProps, setError } = useCrmFeedback();
   const [stats, setStats] = useState<ModirPayamakStats | null>(null);
   const [loading, setLoading] = useState(true);
-
-  const formatNumber = useCallback(
-    (n: number) => format.number(n),
-    [format],
-  );
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -95,6 +91,8 @@ export function ModirpayamakDashboardPage() {
   );
 
   const credit = formatCredit(stats?.reseller_credit, formatNumber);
+  const creditExpiryDisplay =
+    credit.expiry !== '—' ? formatDate(credit.expiry) || credit.expiry : credit.expiry;
 
   return (
     <CrmPageLayout
@@ -161,7 +159,7 @@ export function ModirpayamakDashboardPage() {
                 </div>
                 <div>
                   <p className="text-sm text-muted-foreground">{t('creditExpiry')}</p>
-                  <p className="text-lg font-medium">{credit.expiry}</p>
+                  <p className="text-lg font-medium">{creditExpiryDisplay}</p>
                 </div>
               </CardContent>
             </Card>

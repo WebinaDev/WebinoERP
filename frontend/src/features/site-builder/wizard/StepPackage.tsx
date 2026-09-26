@@ -6,6 +6,7 @@ import { Switch } from '@/components/ui/switch';
 import type { BusinessType, PackageRow } from '@/lib/api/site-builder';
 import { StepHeroArt } from './illustrations';
 import { SelectableCard } from './WizardShell';
+import { useLocale } from '@/hooks/use-locale-next';
 
 type Props = {
   packages: PackageRow[];
@@ -25,6 +26,7 @@ export function StepPackage({
   onToggleFeature,
 }: Props) {
   const t = useTranslations('siteBuilder');
+  const { formatNumber } = useLocale();
   const addons = (selectedType?.features ?? []).filter((f) => f.is_addon);
 
   return (
@@ -56,7 +58,7 @@ export function StepPackage({
                     <p className="text-muted-foreground font-mono text-xs">{p.sku}</p>
                   </div>
                   <div className="from-primary/15 to-accent/20 rounded-xl bg-gradient-to-br px-3 py-2 text-sm font-semibold">
-                    {Number(p.price || 0).toLocaleString('fa-IR')}
+                    {formatNumber(Number(p.price || 0))}
                   </div>
                 </div>
                 {features.length ? (

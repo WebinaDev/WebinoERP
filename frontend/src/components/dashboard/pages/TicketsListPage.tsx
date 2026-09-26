@@ -28,6 +28,7 @@ import { sanitizeHtml } from '@/lib/sanitize-html';
 import { CannedResponsePicker } from '@/features/modules/crm/components/CannedResponsePicker';
 import { PageShell } from '@/components/PageShell';
 import { ListStatsStrip } from '@/components/ListStatsStrip';
+import { useLocale } from '@/hooks/use-locale-next';
 
 type Row = Record<string, unknown>;
 type Meta = { current_page?: number; last_page?: number; total?: number };
@@ -35,6 +36,7 @@ type Meta = { current_page?: number; last_page?: number; total?: number };
 export function TicketsListPage() {
   const t = useTranslations('crm.tickets');
   const tc = useTranslations('common');
+  const { formatDateTime } = useLocale();
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
@@ -305,7 +307,9 @@ export function TicketsListPage() {
                 ) : (
                   replies.map((rep) => (
                     <div key={String(rep.id)} className="rounded-md bg-muted/50 p-2 text-xs">
-                      <p className="text-muted-foreground">{String(rep.created_at ?? '')}</p>
+                      <p className="text-muted-foreground">
+                        {rep.created_at ? formatDateTime(String(rep.created_at)) || String(rep.created_at) : ''}
+                      </p>
                       <div
                         className="prose prose-sm max-w-none dark:prose-invert"
                         dangerouslySetInnerHTML={{ __html: sanitizeHtml(String(rep.body ?? '')) }}

@@ -13,6 +13,7 @@ import { Badge } from '@/components/ui/badge';
 import { Textarea } from '@/components/ui/textarea';
 import { Pagination } from '@/components/ui/pagination';
 import { LocaleDatePicker } from '@/components/ui/locale-date-picker';
+import { useLocale } from '@/hooks/use-locale-next';
 import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from '@/components/ui/select';
@@ -75,6 +76,7 @@ function parsePaginated<T>(axiosData: unknown) {
 
 export default function AccInvoices() {
   const t = useTranslations();
+  const { formatNumber, formatDate } = useLocale();
 
   const [filterType, setFilterType] = useState('all');
   const [filterStatus, setFilterStatus] = useState('all');
@@ -319,14 +321,14 @@ export default function AccInvoices() {
               <tr key={inv.id} className="border-b border-border/60">
                 <td className="px-3 py-1.5">{inv.id}</td>
                 <td className="px-3 py-1.5">{inv.number}</td>
-                <td className="px-3 py-1.5">{inv.date}</td>
+                <td className="px-3 py-1.5">{formatDate(String(inv.date)) || inv.date}</td>
                 <td className="px-3 py-1.5">{inv.person?.name ?? '—'}</td>
                 <td className="px-3 py-1.5">
                   <Badge variant={inv.status === 'confirmed' ? 'default' : 'secondary'}>
                     {inv.status === 'confirmed' ? t('auto.accounting_AccInvoices.s_221e6dfe') : t('auto.accounting_AccInvoices.s_7d739ea1')}
                   </Badge>
                 </td>
-                <td className="px-3 py-1.5 tabular-nums">{Number(inv.total).toLocaleString('fa-IR')}</td>
+                <td className="px-3 py-1.5 tabular-nums">{formatNumber(Number(inv.total))}</td>
                 <td className="px-3 py-1.5">
                   <div className="flex gap-1">
                     <Button variant="ghost" size="sm" onClick={() => void openEdit(inv)}>{t('auto.accounting_AccInvoices.s_ac60ae7a')}</Button>
@@ -458,7 +460,7 @@ export default function AccInvoices() {
               </div>
             ))}
             <p className="text-sm font-medium">
-              {t('auto.accounting_AccInvoices.s_3201170f')} <span className="tabular-nums">{computedTotal.toLocaleString('fa-IR')}</span>
+              {t('auto.accounting_AccInvoices.s_3201170f')} <span className="tabular-nums">{formatNumber(computedTotal)}</span>
             </p>
           </div>
 

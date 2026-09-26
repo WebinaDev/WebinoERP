@@ -71,7 +71,7 @@ const emptyItem = (): ItemRow => ({ title: '', desc: '', price: '', discount: '0
 export function InvoicesPage() {
   const t = useTranslations('sales.invoices');
   const tNav = useTranslations();
-  const { formatNumber } = useLocale();
+  const { formatNumber, formatDate } = useLocale();
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
@@ -430,7 +430,11 @@ export function InvoicesPage() {
                           {formatNumber(Number(inv.final_total ?? inv.total ?? 0))}
                         </TableCell>
                         <TableCell>
-                          {String(inv.date_display ?? (String(inv.issue_date ?? '').slice(0, 10) || '—'))}
+                          {inv.date_display
+                            ? inv.date_display
+                            : inv.issue_date
+                              ? formatDate(String(inv.issue_date)) || '—'
+                              : '—'}
                         </TableCell>
                         <TableCell className="text-end">
                           <div className="flex flex-wrap justify-end gap-2">
@@ -606,13 +610,13 @@ export function InvoicesPage() {
                   </div>
                   <div className="flex flex-wrap gap-4 text-sm">
                     <span>
-                      {t('subtotal')}: <strong dir="ltr">{formatNumber(subtotal)}</strong>
+                      {t('subtotal')}: <strong>{formatNumber(subtotal)}</strong>
                     </span>
                     <span>
-                      {t('discount')}: <strong dir="ltr">{formatNumber(totalDiscount)}</strong>
+                      {t('discount')}: <strong>{formatNumber(totalDiscount)}</strong>
                     </span>
                     <span>
-                      {t('finalTotal')}: <strong dir="ltr">{formatNumber(finalTotal)}</strong>
+                      {t('finalTotal')}: <strong>{formatNumber(finalTotal)}</strong>
                     </span>
                   </div>
                 </div>

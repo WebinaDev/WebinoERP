@@ -10,6 +10,7 @@ import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from '@/components/ui/select';
 import { LocaleDatePicker } from '@/components/ui/locale-date-picker';
+import { useLocale } from '@/hooks/use-locale-next';
 
 type Account = { id: number; code: string; name: string };
 
@@ -30,6 +31,7 @@ type LedgerData = {
 
 export default function AccLedger() {
   const t = useTranslations();
+  const { formatNumber, formatDate } = useLocale();
 
   const [accounts, setAccounts] = useState<Account[]>([]);
   const [accountId, setAccountId] = useState('');
@@ -121,16 +123,16 @@ export default function AccLedger() {
                 <tr key={i} className="border-b border-border/60">
                   <td className="px-2 py-1.5 tabular-nums">{l.document_no}</td>
                   <td className="px-2 py-1.5 tabular-nums">{l.journal_entry_id}</td>
-                  <td className="px-2 py-1.5">{l.document_date}</td>
+                  <td className="px-2 py-1.5">{formatDate(String(l.document_date)) || l.document_date}</td>
                   <td className="px-2 py-1.5">{l.account_name}</td>
                   <td className="px-2 py-1.5 text-end tabular-nums">
-                    {Number(l.debit).toLocaleString()}
+                    {formatNumber(Number(l.debit))}
                   </td>
                   <td className="px-2 py-1.5 text-end tabular-nums">
-                    {Number(l.credit).toLocaleString()}
+                    {formatNumber(Number(l.credit))}
                   </td>
                   <td className="px-2 py-1.5 text-end tabular-nums">
-                    {Number((Number(l.debit) || 0) - (Number(l.credit) || 0)).toLocaleString()}
+                    {formatNumber((Number(l.debit) || 0) - (Number(l.credit) || 0))}
                   </td>
                   <td className="max-w-[200px] truncate px-2 py-1.5">{l.line_description}</td>
                 </tr>
@@ -138,13 +140,13 @@ export default function AccLedger() {
               <tr className="bg-muted/40 font-medium">
                 <td colSpan={4} className="px-2 py-2 text-start">{t('auto.accounting_AccLedger.s_b1f76dbb')}</td>
                 <td className="px-2 py-2 text-end tabular-nums">
-                  {Number(data.totals.debit).toLocaleString()}
+                  {formatNumber(Number(data.totals.debit))}
                 </td>
                 <td className="px-2 py-2 text-end tabular-nums">
-                  {Number(data.totals.credit).toLocaleString()}
+                  {formatNumber(Number(data.totals.credit))}
                 </td>
                 <td className="px-2 py-2 text-end tabular-nums">
-                  {Number((Number(data.totals.debit) || 0) - (Number(data.totals.credit) || 0)).toLocaleString()}
+                  {formatNumber((Number(data.totals.debit) || 0) - (Number(data.totals.credit) || 0))}
                 </td>
                 <td />
               </tr>

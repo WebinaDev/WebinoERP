@@ -4,6 +4,8 @@ import Link from 'next/link';
 import { useCallback, useEffect, useMemo, useState, type ComponentType, type ReactNode } from 'react';
 import { useLocale, useTranslations } from 'next-intl';
 import { useRouter } from 'next/navigation';
+import { useLocale as useAppLocale } from '@/hooks/use-locale-next';
+import { LocaleDatePicker } from '@/components/ui/locale-date-picker';
 import {
   ArrowLeft,
   ClipboardCopy,
@@ -101,6 +103,7 @@ const ACTION_MSG: Record<string, string> = {
 export function SiteControlPanelPage({ id }: { id: string }) {
   const t = useTranslations('siteBuilder');
   const locale = useLocale();
+  const { formatDate, formatDateTime } = useAppLocale();
   const router = useRouter();
   const provisionId = Number(id);
   const [data, setData] = useState<SiteControlPayload | null>(null);
@@ -239,7 +242,7 @@ export function SiteControlPanelPage({ id }: { id: string }) {
                   ? t('controlLicenseExpired')
                   : t('controlLicenseUntil', {
                       date: data.license.expires_at
-                        ? new Date(data.license.expires_at).toLocaleDateString()
+                        ? formatDate(data.license.expires_at) || '—'
                         : '—',
                     })}
               </Badge>
@@ -440,15 +443,16 @@ export function SiteControlPanelPage({ id }: { id: string }) {
                 </div>
                 <div>
                   {t('controlLicenseActivated')}:{' '}
-                  {data.license.start_date ||
-                    (data.license.created_at
-                      ? new Date(data.license.created_at).toLocaleDateString()
-                      : '—')}
+                  {data.license.start_date
+                    ? formatDate(String(data.license.start_date)) || data.license.start_date
+                    : data.license.created_at
+                      ? formatDate(data.license.created_at) || '—'
+                      : '—'}
                 </div>
                 <div>
                   {t('controlLicenseExpires')}:{' '}
                   {data.license.expires_at
-                    ? new Date(data.license.expires_at).toLocaleDateString()
+                    ? formatDate(data.license.expires_at) || '—'
                     : t('controlLicenseOpen')}
                 </div>
                 {data.license.days_remaining != null ? (
@@ -463,11 +467,11 @@ export function SiteControlPanelPage({ id }: { id: string }) {
             <div className="grid gap-3 sm:grid-cols-2">
               <div className="space-y-1.5">
                 <Label>{t('controlLicenseStart')}</Label>
-                <Input type="date" value={startDate} onChange={(e) => setStartDate(e.target.value)} />
+                <LocaleDatePicker value={startDate} onChange={(v) => setStartDate(v || '')} />
               </div>
               <div className="space-y-1.5">
                 <Label>{t('controlLicenseExpires')}</Label>
-                <Input type="date" value={expiresAt} onChange={(e) => setExpiresAt(e.target.value)} />
+                <LocaleDatePicker value={expiresAt} onChange={(v) => setExpiresAt(v || '')} />
               </div>
             </div>
             <Button
@@ -652,7 +656,7 @@ export function SiteControlPanelPage({ id }: { id: string }) {
               <div>
                 {t('controlSslExpires')}:{' '}
                 {data.ssl?.expires_at
-                  ? new Date(data.ssl.expires_at).toLocaleString()
+                  ? formatDateTime(data.ssl.expires_at) || '—'
                   : t('controlSslUnknown')}
               </div>
             </div>

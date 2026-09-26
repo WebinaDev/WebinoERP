@@ -416,7 +416,7 @@ export function RahnCalculatorTab({ settings }: Props) {
               </Button>
             </div>
             {shareUrl ? (
-              <p className="text-xs text-muted-foreground break-all dir-ltr text-left">{shareUrl}</p>
+              <p className="text-xs text-muted-foreground break-all text-start" dir="ltr">{shareUrl}</p>
             ) : null}
           </CardContent>
         </Card>

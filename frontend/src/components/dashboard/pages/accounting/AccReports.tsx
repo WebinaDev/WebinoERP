@@ -8,6 +8,7 @@ import { unwrapData, getAxiosMessage } from '@/lib/api-helpers';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { LocaleDatePicker } from '@/components/ui/locale-date-picker';
+import { useLocale } from '@/hooks/use-locale-next';
 
 type TrialRow = { code: string; name: string; debit: number; credit: number; balance: number };
 type BSRow = { code: string; name: string; balance: number };
@@ -95,6 +96,7 @@ export default function AccReports() {
 
 function TrialBalanceTable({ rows }: { rows: TrialRow[] }) {
   const t = useTranslations();
+  const { formatNumber } = useLocale();
 
   if (!Array.isArray(rows) || rows.length === 0)
     return <p className="text-sm text-muted-foreground">{t('auto.accounting_AccReports.s_5a395258')}</p>;
@@ -116,9 +118,9 @@ function TrialBalanceTable({ rows }: { rows: TrialRow[] }) {
             <tr key={i} className="border-b border-border/60">
               <td className="px-2 py-1.5 tabular-nums">{r.code}</td>
               <td className="px-2 py-1.5">{r.name}</td>
-              <td className="px-2 py-1.5 text-end tabular-nums">{Number(r.debit).toLocaleString()}</td>
-              <td className="px-2 py-1.5 text-end tabular-nums">{Number(r.credit).toLocaleString()}</td>
-              <td className="px-2 py-1.5 text-end tabular-nums">{Number(r.balance).toLocaleString()}</td>
+              <td className="px-2 py-1.5 text-end tabular-nums">{formatNumber(Number(r.debit))}</td>
+              <td className="px-2 py-1.5 text-end tabular-nums">{formatNumber(Number(r.credit))}</td>
+              <td className="px-2 py-1.5 text-end tabular-nums">{formatNumber(Number(r.balance))}</td>
             </tr>
           ))}
         </tbody>
@@ -148,6 +150,7 @@ function BalanceSheetView({ data }: { data: BSData }) {
 
 function BSSection({ title, rows }: { title: string; rows: BSRow[] }) {
   const t = useTranslations();
+  const { formatNumber } = useLocale();
 
   return (
     <div>
@@ -169,7 +172,7 @@ function BSSection({ title, rows }: { title: string; rows: BSRow[] }) {
                 <tr key={i} className="border-b border-border/60">
                   <td className="px-2 py-1.5 tabular-nums">{r.code}</td>
                   <td className="px-2 py-1.5">{r.name}</td>
-                  <td className="px-2 py-1.5 text-end tabular-nums">{Number(r.balance).toLocaleString()}</td>
+                  <td className="px-2 py-1.5 text-end tabular-nums">{formatNumber(Number(r.balance))}</td>
                 </tr>
               ))}
             </tbody>
@@ -184,6 +187,7 @@ function BSSection({ title, rows }: { title: string; rows: BSRow[] }) {
 
 function ProfitLossTable({ rows }: { rows: PLRow[] }) {
   const t = useTranslations();
+  const { formatNumber } = useLocale();
 
   if (!Array.isArray(rows) || rows.length === 0)
     return <p className="text-sm text-muted-foreground">{t('auto.accounting_AccReports.s_5a395258')}</p>;
@@ -205,7 +209,7 @@ function ProfitLossTable({ rows }: { rows: PLRow[] }) {
               <td className="px-2 py-1.5 tabular-nums">{r.code}</td>
               <td className="px-2 py-1.5">{r.name}</td>
               <td className="px-2 py-1.5">{r.type}</td>
-              <td className="px-2 py-1.5 text-end tabular-nums">{Number(r.balance).toLocaleString()}</td>
+              <td className="px-2 py-1.5 text-end tabular-nums">{formatNumber(Number(r.balance))}</td>
             </tr>
           ))}
         </tbody>

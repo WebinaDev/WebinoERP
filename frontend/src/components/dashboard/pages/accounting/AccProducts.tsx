@@ -25,6 +25,7 @@ import { FolderTree, Ruler } from 'lucide-react';
 import { PriceListsTab } from '@/features/modules/finance/products/PriceListsTab';
 import { UnitsManagerDialog } from '@/features/modules/finance/products/UnitsManagerDialog';
 import { CategoryManagerSheet } from '@/features/modules/finance/products/CategoryManagerSheet';
+import { useLocale } from '@/hooks/use-locale-next';
 
 type Product = {
   id: number;
@@ -52,6 +53,7 @@ const BLANK = {
 export default function AccProducts() {
   const t = useTranslations();
   const tp = useTranslations('finance.products');
+  const { formatNumber } = useLocale();
 
   const [rows, setRows] = useState<Product[]>([]);
   const [page, setPage] = useState(1);
@@ -228,8 +230,8 @@ export default function AccProducts() {
                     <td className="px-3 py-2">{row.id}</td>
                     <td className="px-3 py-2">{row.name}</td>
                     <td className="px-3 py-2">{row.barcode}</td>
-                    <td className="px-3 py-2">{Number(row.buy_price).toLocaleString()}</td>
-                    <td className="px-3 py-2">{Number(row.sell_price).toLocaleString()}</td>
+                    <td className="px-3 py-2">{formatNumber(Number(row.buy_price))}</td>
+                    <td className="px-3 py-2">{formatNumber(Number(row.sell_price))}</td>
                     <td className="px-3 py-2 gap-x-1 rtl:gap-x-reverse">
                       <Button variant="ghost" size="sm" onClick={() => openEdit(row)}>{t('auto.accounting_AccProducts.s_ac60ae7a')}</Button>
                       <Button variant="ghost" size="sm" className="text-destructive" onClick={() => setDeleteTarget(row)}>{t('auto.accounting_AccProducts.s_2d2bbdc2')}</Button>

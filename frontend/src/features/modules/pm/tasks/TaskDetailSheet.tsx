@@ -21,6 +21,7 @@ import type {
   TaskRow,
   TaskTimeLog,
 } from './types';
+import { useLocale } from '@/hooks/use-locale-next';
 
 type Props = {
   taskId: number | null;
@@ -59,6 +60,7 @@ function normalizeTimeLogs(raw: unknown): TaskTimeLog[] {
 export function TaskDetailSheet({ taskId, open, onOpenChange, onUpdated }: Props) {
   const t = useTranslations('pm.tasks');
   const tc = useTranslations('common');
+  const { formatDate, formatDateTime } = useLocale();
   const [task, setTask] = useState<TaskRow | null>(null);
   const [comments, setComments] = useState<TaskCommentRow[]>([]);
   const [attachments, setAttachments] = useState<TaskAttachmentRow[]>([]);
@@ -252,7 +254,7 @@ export function TaskDetailSheet({ taskId, open, onOpenChange, onUpdated }: Props
               <div>
                 <Label>{t('colDue')}</Label>
                 <p className="mt-1 text-muted-foreground">
-                  {task.due_at ? String(task.due_at).slice(0, 10) : '—'}
+                  {task.due_at ? formatDate(String(task.due_at)) || String(task.due_at).slice(0, 10) : '—'}
                 </p>
               </div>
               <div>
@@ -376,7 +378,9 @@ export function TaskDetailSheet({ taskId, open, onOpenChange, onUpdated }: Props
                     <p className="font-medium">{c.user_name || `#${c.user_id}`}</p>
                     <p className="whitespace-pre-wrap text-muted-foreground">{c.body}</p>
                     {c.created_at ? (
-                      <span className="text-xs text-muted-foreground">{c.created_at.slice(0, 16)}</span>
+                      <span className="text-xs text-muted-foreground">
+                        {formatDateTime(c.created_at) || c.created_at.slice(0, 16)}
+                      </span>
                     ) : null}
                   </li>
                 ))}

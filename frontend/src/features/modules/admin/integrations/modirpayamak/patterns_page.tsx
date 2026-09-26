@@ -3,7 +3,8 @@
 import { useCallback, useEffect, useState } from 'react';
 import Link from 'next/link';
 import { useParams, useRouter } from 'next/navigation';
-import { useFormatter, useTranslations } from 'next-intl';
+import { useTranslations } from 'next-intl';
+import { useLocale } from '@/hooks/use-locale-next';
 import { Eye, Link2, Pencil, Plus, Send, Trash2 } from 'lucide-react';
 import { CrmPageLayout } from '@/features/shared/layout/CrmPageLayout';
 import { useCrmFeedback } from '@/features/shared/hooks/useCrmFeedback';
@@ -108,7 +109,7 @@ export function ModirpayamakPatternsPage() {
   const t = useTranslations('modirpayamak');
   const tNav = useTranslations();
   const tCommon = useTranslations('common');
-  const format = useFormatter();
+  const { formatDateTime } = useLocale();
   const params = useParams();
   const locale = (params?.locale as string) || 'fa';
   const router = useRouter();
@@ -336,10 +337,8 @@ export function ModirpayamakPatternsPage() {
   const formatDate = (raw: string) => {
     if (!raw || raw === '—') return '—';
     try {
-      return format.dateTime(new Date(raw.replace(/-/g, '/').slice(0, 16)), {
-        dateStyle: 'short',
-        timeStyle: 'short',
-      });
+      const iso = raw.includes('T') ? raw : raw.replace(/-/g, '/').slice(0, 16);
+      return formatDateTime(new Date(iso).toISOString()) || raw.slice(0, 16);
     } catch {
       return raw.slice(0, 16);
     }

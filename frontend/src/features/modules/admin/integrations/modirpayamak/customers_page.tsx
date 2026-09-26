@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useState } from 'react';
 import Link from 'next/link';
 import { useParams } from 'next/navigation';
-import { useFormatter, useTranslations } from 'next-intl';
+import { useTranslations } from 'next-intl';
 import { ExternalLink, MinusCircle, PlusCircle, ScrollText } from 'lucide-react';
 import { CrmPageLayout } from '@/features/shared/layout/CrmPageLayout';
 import { useCrmFeedback } from '@/features/shared/hooks/useCrmFeedback';
@@ -41,6 +41,7 @@ import { dashboardHref } from '@/lib/route-resolver';
 import { ModirPayamakStatusBadge } from './components/status-badge';
 import { ModirPayamakBreadcrumb, ModirPayamakNotConfigured } from './components/shared';
 import { useModirPayamakConfigured } from './hooks/useModirPayamakConfigured';
+import { useLocale } from '@/hooks/use-locale-next';
 
 type CreditDialog = { domain: string; mode: 'credit' | 'debit' } | null;
 
@@ -48,7 +49,7 @@ export function ModirpayamakCustomersPage() {
   const t = useTranslations('modirpayamak');
   const tNav = useTranslations();
   const tCommon = useTranslations('common');
-  const format = useFormatter();
+  const { formatNumber, formatDateTime } = useLocale();
   const params = useParams();
   const locale = (params?.locale as string) || 'fa';
   const { layoutProps, setError, setSuccess } = useCrmFeedback();
@@ -137,10 +138,8 @@ export function ModirpayamakCustomersPage() {
   const formatDate = (raw?: string | null) => {
     if (!raw) return '—';
     try {
-      return format.dateTime(new Date(raw.replace(/-/g, '/').slice(0, 16)), {
-        dateStyle: 'short',
-        timeStyle: 'short',
-      });
+      const iso = raw.includes('T') ? raw : raw.replace(/-/g, '/').slice(0, 16);
+      return formatDateTime(new Date(iso).toISOString()) || raw.slice(0, 16);
     } catch {
       return raw.slice(0, 16);
     }
@@ -175,7 +174,7 @@ export function ModirpayamakCustomersPage() {
                 {accounts.map((a) => (
                   <TableRow key={a.id}>
                     <TableCell className="font-mono">{a.domain}</TableCell>
-                    <TableCell>{format.number(a.balance)}</TableCell>
+                    <TableCell>{formatNumber(a.balance)}</TableCell>
                     <TableCell className="max-w-xs truncate text-sm" dir="ltr" title={lineLabel(a)}>
                       {lineLabel(a)}
                     </TableCell>
@@ -287,7 +286,7 @@ export function ModirpayamakCustomersPage() {
                 <li key={row.id} className="rounded border px-3 py-2">
                   <div className="flex justify-between gap-2">
                     <span className="font-medium">{row.type}</span>
-                    <span dir="ltr">{format.number(row.amount)}</span>
+                    <span>{formatNumber(row.amount)}</span>
                   </div>
                   <div className="flex justify-between gap-2 text-xs text-muted-foreground">
                     <span>{row.note || '—'}</span>

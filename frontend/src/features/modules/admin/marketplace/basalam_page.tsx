@@ -25,21 +25,22 @@ import {
   listBasalamConnections,
   saveBasalamOAuthConfig,
 } from '@/lib/api/marketplace';
+import { useLocale } from '@/hooks/use-locale-next';
 
 const DEFAULT_REDIRECT = 'https://webina.dev/api/basalam/oauth/callback';
 const DEFAULT_CLIENT_ID = '2357';
 const DEFAULT_SCOPES =
   'vendor.product.write vendor.product.read vendor.parcel.write vendor.parcel.read vendor.profile.read vendor.profile.write customer.profile.read customer.profile.write customer.order.read customer.order.write customer.chat.read customer.chat.write customer.wallet.read customer.wallet.write order-processing customer.identity.read';
 
-function formatTs(value?: string) {
+function formatTs(value: string | undefined, formatDateTime: (iso: string) => string) {
   if (!value) return '—';
-  const d = new Date(value);
-  if (Number.isNaN(d.getTime())) return value;
-  return d.toLocaleString();
+  const formatted = formatDateTime(value);
+  return formatted && formatted !== '—' ? formatted : value;
 }
 
 export function BasalamPage() {
   const t = useTranslations('marketplace.basalam');
+  const { formatDateTime } = useLocale();
   const { layoutProps, setError, setSuccess, applyAxiosError } = useCrmFeedback();
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -222,7 +223,7 @@ export function BasalamPage() {
                         <TableCell>{row.vendor_id ? String(row.vendor_id) : '—'}</TableCell>
                         <TableCell>{statusLabel(row.status)}</TableCell>
                         <TableCell className="text-muted-foreground text-sm">
-                          {formatTs(row.last_seen_at)}
+                          {formatTs(row.last_seen_at, formatDateTime)}
                         </TableCell>
                         <TableCell>
                           {row.status === 'connected' ? (

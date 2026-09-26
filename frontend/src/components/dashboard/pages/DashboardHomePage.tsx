@@ -16,6 +16,7 @@ import { Button } from '@/components/ui/button';
 import { AccentBarChart, AccentDonutChart } from '@/components/charts/AccentCharts';
 import { useInitialDashboardStats } from '@/lib/initial-dashboard-context';
 import { dashboardHref } from '@/lib/route-resolver';
+import { useLocale } from '@/hooks/use-locale-next';
 
 type Stats = {
   leads_total?: number;
@@ -74,6 +75,7 @@ function roleQuickLinks(role: string): QuickLink[] {
 export function DashboardHomePage() {
   const t = useTranslations('dashboard');
   const tCommon = useTranslations('common');
+  const { formatNumber } = useLocale();
   const params = useParams();
   const locale = (params?.locale as string) || 'fa';
   const initialStats = useInitialDashboardStats();
@@ -257,7 +259,7 @@ export function DashboardHomePage() {
           ) : null}
         </div>
         <div>
-          <h1 className="text-xl font-semibold tracking-tight sm:text-2xl">{t('heroTitle')}</h1>
+          <h1 className="text-xl font-bold tracking-tight sm:text-2xl">{t('heroTitle')}</h1>
           <p className="text-muted-foreground mt-1 max-w-2xl text-sm">{t('heroSubtitle')}</p>
         </div>
         <div className="flex flex-wrap gap-2">
@@ -274,16 +276,16 @@ export function DashboardHomePage() {
           <Card variant="stat" className="wd-mini-tint">
             <CardHeader className="pb-2">
               <CardDescription>{t('teamMember.tasksAssigned')}</CardDescription>
-              <CardTitle className="text-3xl tabular-nums">
-                {loading ? '…' : teamMember.tasks_assigned ?? 0}
+              <CardTitle className="text-3xl font-bold tabular-nums">
+                {loading ? '…' : formatNumber(teamMember.tasks_assigned ?? 0)}
               </CardTitle>
             </CardHeader>
           </Card>
           <Card variant="stat" className="wd-mini-tint">
             <CardHeader className="pb-2">
               <CardDescription>{t('teamMember.ticketsAssigned')}</CardDescription>
-              <CardTitle className="text-3xl tabular-nums">
-                {loading ? '…' : teamMember.tickets_assigned ?? 0}
+              <CardTitle className="text-3xl font-bold tabular-nums">
+                {loading ? '…' : formatNumber(teamMember.tickets_assigned ?? 0)}
               </CardTitle>
             </CardHeader>
           </Card>
@@ -294,7 +296,7 @@ export function DashboardHomePage() {
         <Card>
           <CardHeader className="pb-2">
             <CardDescription>{t('client.projects')}</CardDescription>
-            <CardTitle className="text-3xl tabular-nums">{clientDash.projects ?? 0}</CardTitle>
+            <CardTitle className="text-3xl font-bold tabular-nums">{formatNumber(clientDash.projects ?? 0)}</CardTitle>
           </CardHeader>
         </Card>
       ) : null}
@@ -309,15 +311,15 @@ export function DashboardHomePage() {
 
       {role === 'sales_consultant' && salesSummary ? (
         <div className="grid gap-4 sm:grid-cols-2">
-          <Card><CardHeader className="pb-2"><CardDescription>{t('sales.openDeals')}</CardDescription><CardTitle className="text-3xl tabular-nums">{salesSummary.open_deals ?? 0}</CardTitle></CardHeader></Card>
-          <Card><CardHeader className="pb-2"><CardDescription>{t('sales.newLeads')}</CardDescription><CardTitle className="text-3xl tabular-nums">{salesSummary.new_leads ?? 0}</CardTitle></CardHeader></Card>
+          <Card><CardHeader className="pb-2"><CardDescription>{t('sales.openDeals')}</CardDescription><CardTitle className="text-3xl font-bold tabular-nums">{formatNumber(salesSummary.open_deals ?? 0)}</CardTitle></CardHeader></Card>
+          <Card><CardHeader className="pb-2"><CardDescription>{t('sales.newLeads')}</CardDescription><CardTitle className="text-3xl font-bold tabular-nums">{formatNumber(salesSummary.new_leads ?? 0)}</CardTitle></CardHeader></Card>
         </div>
       ) : null}
 
       {role === 'system_manager' && adminSummary ? (
         <div className="grid gap-4 sm:grid-cols-2">
-          <Card><CardHeader className="pb-2"><CardDescription>{t('admin.licenses')}</CardDescription><CardTitle className="text-3xl tabular-nums">{adminSummary.licenses ?? 0}</CardTitle></CardHeader></Card>
-          <Card><CardHeader className="pb-2"><CardDescription>{t('admin.visitors')}</CardDescription><CardTitle className="text-3xl tabular-nums">{adminSummary.visitors ?? 0}</CardTitle></CardHeader></Card>
+          <Card><CardHeader className="pb-2"><CardDescription>{t('admin.licenses')}</CardDescription><CardTitle className="text-3xl font-bold tabular-nums">{formatNumber(adminSummary.licenses ?? 0)}</CardTitle></CardHeader></Card>
+          <Card><CardHeader className="pb-2"><CardDescription>{t('admin.visitors')}</CardDescription><CardTitle className="text-3xl font-bold tabular-nums">{formatNumber(adminSummary.visitors ?? 0)}</CardTitle></CardHeader></Card>
         </div>
       ) : null}
 
@@ -339,8 +341,8 @@ export function DashboardHomePage() {
               <Card key={card.key} variant="stat" className="wd-mini-tint">
                 <CardHeader className="pb-2">
                   <CardDescription>{card.label}</CardDescription>
-                  <CardTitle className="text-3xl tabular-nums">
-                    {loading ? '…' : error ? '—' : card.value}
+                  <CardTitle className="text-3xl font-bold tabular-nums">
+                    {loading ? '…' : error ? '—' : formatNumber(card.value)}
                   </CardTitle>
                 </CardHeader>
                 <CardContent>

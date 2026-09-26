@@ -1,9 +1,10 @@
 'use client';
 
-import { useFormatter, useTranslations } from 'next-intl';
+import { useTranslations } from 'next-intl';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { edgeField, type EdgeRow } from '@/lib/api/modirpayamak-edge';
 import { ModirPayamakStatusBadge } from './status-badge';
+import { useLocale } from '@/hooks/use-locale-next';
 
 type Props = {
   items: EdgeRow[];
@@ -12,13 +13,13 @@ type Props = {
 
 export function ModirPayamakOutboxTable({ items, onRowClick }: Props) {
   const t = useTranslations('modirpayamak');
-  const format = useFormatter();
+  const { formatDateTime } = useLocale();
 
   const formatDate = (row: EdgeRow) => {
     const raw = edgeField(row, 'created_at', 'sent_at', 'date', 'time');
     if (raw === '—') return raw;
     try {
-      return format.dateTime(new Date(raw), { dateStyle: 'short', timeStyle: 'short' });
+      return formatDateTime(raw) || raw.slice(0, 19);
     } catch {
       return raw.slice(0, 19);
     }

@@ -18,6 +18,7 @@ import type { MarketplaceModule } from '@/lib/api/marketplace';
 import { dashboardHref } from '@/lib/route-resolver';
 import { cn } from '@/lib/utils';
 import { ExternalLink, Package, Settings, Tag, Trash2 } from 'lucide-react';
+import { useLocale } from '@/hooks/use-locale-next';
 
 type Props = {
   module: MarketplaceModule;
@@ -28,6 +29,7 @@ type Props = {
 
 export function MarketplaceProductCard({ module: m, statusBusy, onStatusToggle, onDelete }: Props) {
   const t = useTranslations('marketplace');
+  const { formatNumber } = useLocale();
   const params = useParams();
   const locale = (params?.locale as string) || 'fa';
   const repoUrl = m.gitea_html_url || m.gitea_repo_url || '';
@@ -35,7 +37,7 @@ export function MarketplaceProductCard({ module: m, statusBusy, onStatusToggle, 
 
   const priceLabel = m.is_free
     ? t('free')
-    : `${(m.price ?? 0).toLocaleString()} ${m.currency ?? 'IRT'}`;
+    : `${formatNumber(m.price ?? 0)} ${m.currency ?? 'IRT'}`;
 
   const categoryLabel = m.category_name?.trim() ? m.category_name : t('noCategory');
 

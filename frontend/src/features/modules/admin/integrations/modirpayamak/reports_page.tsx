@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useState } from 'react';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
-import { useFormatter, useTranslations } from 'next-intl';
+import { useTranslations } from 'next-intl';
 import { CrmPageLayout } from '@/features/shared/layout/CrmPageLayout';
 import { useCrmFeedback } from '@/features/shared/hooks/useCrmFeedback';
 import { PmEmptyState, PmFilterBar } from '@/features/shared/pm';
@@ -20,6 +20,8 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table';
+import { LocaleDatePicker } from '@/components/ui/locale-date-picker';
+import { useLocale } from '@/hooks/use-locale-next';
 import { getModirPayamakMessages } from '@/lib/api/modirpayamak';
 import {
   edgeField,
@@ -37,7 +39,7 @@ export function ModirpayamakReportsPage() {
   const t = useTranslations('modirpayamak');
   const tNav = useTranslations();
   const tCommon = useTranslations('common');
-  const format = useFormatter();
+  const { formatDateTime } = useLocale();
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
@@ -138,10 +140,8 @@ export function ModirpayamakReportsPage() {
     if (!raw) return '—';
     const s = String(raw);
     try {
-      return format.dateTime(new Date(s.replace(/-/g, '/').slice(0, 16)), {
-        dateStyle: 'short',
-        timeStyle: 'short',
-      });
+      const iso = s.includes('T') ? s : s.replace(/-/g, '/').slice(0, 16);
+      return formatDateTime(new Date(iso).toISOString()) || s.slice(0, 16);
     } catch {
       return s.slice(0, 16);
     }
@@ -211,19 +211,17 @@ export function ModirpayamakReportsPage() {
                     <>
                       <div className="space-y-1">
                         <Label>{t('dateFrom')}</Label>
-                        <Input
-                          type="date"
+                        <LocaleDatePicker
                           value={dateFrom}
-                          onChange={(e) => setDateFrom(e.target.value)}
+                          onChange={(v) => setDateFrom(v || '')}
                           className="w-[160px]"
                         />
                       </div>
                       <div className="space-y-1">
                         <Label>{t('dateTo')}</Label>
-                        <Input
-                          type="date"
+                        <LocaleDatePicker
                           value={dateTo}
-                          onChange={(e) => setDateTo(e.target.value)}
+                          onChange={(v) => setDateTo(v || '')}
                           className="w-[160px]"
                         />
                       </div>

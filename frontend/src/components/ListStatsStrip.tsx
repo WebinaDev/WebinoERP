@@ -1,6 +1,7 @@
 "use client"
 
 import { Card, CardContent } from "@/components/ui/card"
+import { useLocale } from "@/hooks/use-locale-next"
 import { cn } from "@/lib/utils"
 
 export type ListStatItem = {
@@ -16,6 +17,7 @@ export function ListStatsStrip({
   items: ListStatItem[]
   className?: string
 }) {
+  const { formatNumber } = useLocale()
   if (!items.length) return null
   const cols =
     items.length <= 3
@@ -34,9 +36,11 @@ export function ListStatsStrip({
     >
       {items.map((item) => (
         <Card key={item.id} variant="stat" className="wd-mini-tint min-w-[9.5rem] shrink-0 overflow-hidden md:min-w-0">
-          <CardContent className="space-y-1 pt-3.5 pb-3">
+          <CardContent className="space-y-1 pt-3.5 pb-3 text-start">
             <p className="text-muted-foreground text-[11px] font-medium tracking-wide uppercase">{item.label}</p>
-            <p className="text-base font-semibold tracking-tight sm:text-lg">{item.value}</p>
+            <p className="text-base font-semibold tracking-tight sm:text-lg">
+              {typeof item.value === "number" ? formatNumber(item.value) : item.value}
+            </p>
           </CardContent>
         </Card>
       ))}

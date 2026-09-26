@@ -7,6 +7,7 @@ import apiClient from '@/lib/api-client';
 import { unwrapData, getAxiosMessage } from '@/lib/api-helpers';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
+import { useLocale } from '@/hooks/use-locale-next';
 
 const ENDPOINTS: Record<string, (id: string) => string | null> = {
   'pm/projects': (id) => `/v1/projects/projects/${id}/details`,
@@ -36,6 +37,7 @@ type Props = {
 
 function ProjectDetailView({ data }: { data: Record<string, unknown> }) {
   const t = useTranslations();
+  const { formatDateTime } = useLocale();
 
   const tasks = (Array.isArray(data.tasks) ? data.tasks : []) as Record<string, unknown>[];
 
@@ -140,7 +142,9 @@ function ProjectDetailView({ data }: { data: Record<string, unknown> }) {
                 <tr key={String(t.id)} className="border-b border-border/60">
                   <td className="py-2">{String(t.subject ?? '—')}</td>
                   <td className="py-2">{String(t.status ?? '—')}</td>
-                  <td className="py-2">{String(t.created_at ?? '—')}</td>
+                  <td className="py-2">
+                    {t.created_at ? formatDateTime(String(t.created_at)) || String(t.created_at) : '—'}
+                  </td>
                 </tr>
               ))}
               {!((Array.isArray(data.tickets) ? data.tickets : []) as Record<string, unknown>[]).length ? (

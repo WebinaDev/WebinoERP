@@ -83,7 +83,7 @@ export function RahnQuotesTab() {
                 {formatNumber(Math.round(q.F))} {t('toman')} +{' '}
                 {formatNumber(Math.round(q.p_percent * 100) / 100)}%
               </div>
-              <div className="text-xs text-muted-foreground break-all dir-ltr text-left mt-1">{q.share_url}</div>
+              <div className="text-xs text-muted-foreground break-all mt-1 text-start" dir="ltr">{q.share_url}</div>
             </div>
             <Button type="button" size="sm" variant="outline" onClick={() => void copy(q.share_url)}>
               <Copy className="h-4 w-4" />

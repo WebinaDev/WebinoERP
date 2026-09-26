@@ -79,7 +79,7 @@ type Props = {
 export function LicenseCard({ license, onEdit, onRenew, onCancel, onDelete, onCopyKey }: Props) {
   const t = useTranslations();
   const tl = useTranslations('licenses');
-  const { isRtl, formatDate } = useLocale();
+  const { formatDate } = useLocale();
   const days = remainingDays(license);
   const progress = licenseProgress(license);
 
@@ -181,22 +181,22 @@ export function LicenseCard({ license, onEdit, onRenew, onCancel, onDelete, onCo
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end">
               <DropdownMenuItem onClick={() => onEdit(license)}>
-                <Pencil className={cn('h-4 w-4 shrink-0', isRtl ? 'ms-2' : 'me-2')} />
+                <Pencil className="me-2 h-4 w-4 shrink-0" />
                 {tl('editMeta')}
               </DropdownMenuItem>
               <DropdownMenuItem onClick={() => license.id && onRenew(license.id)}>
-                <RefreshCw className={cn('h-4 w-4 shrink-0', isRtl ? 'ms-2' : 'me-2')} />
+                <RefreshCw className="me-2 h-4 w-4 shrink-0" />
                 {tl('renew')}
               </DropdownMenuItem>
               <DropdownMenuItem onClick={() => license.id && onCancel(license.id)}>
-                <XCircle className={cn('h-4 w-4 shrink-0', isRtl ? 'ms-2' : 'me-2')} />
+                <XCircle className="me-2 h-4 w-4 shrink-0" />
                 {tl('cancel')}
               </DropdownMenuItem>
               <DropdownMenuItem
                 className="text-destructive"
                 onClick={() => license.id && onDelete(license.id)}
               >
-                <Trash2 className={cn('h-4 w-4 shrink-0', isRtl ? 'ms-2' : 'me-2')} />
+                <Trash2 className="me-2 h-4 w-4 shrink-0" />
                 {t('common.delete')}
               </DropdownMenuItem>
             </DropdownMenuContent>

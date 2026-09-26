@@ -268,7 +268,7 @@ export function CampaignsPage() {
                         {c.status ? t(`status_${String(c.status)}`) : '—'}
                       </Badge>
                     </TableCell>
-                    <TableCell dir="ltr">{formatNumber(Number(c.budget ?? 0))}</TableCell>
+                    <TableCell>{formatNumber(Number(c.budget ?? 0))}</TableCell>
                     <TableCell>{formatDate(String(c.starts_at ?? '')) || '—'}</TableCell>
                     <TableCell>{formatDate(String(c.ends_at ?? '')) || '—'}</TableCell>
                     <TableCell>{Number(c.lead_count ?? 0)}</TableCell>

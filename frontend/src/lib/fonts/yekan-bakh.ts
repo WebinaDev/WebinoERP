@@ -17,6 +17,12 @@ export const yekanBakh = localFont({
       weight: "400",
       style: "normal",
     },
+    // No Medium.woff2 in the kit — map 500 (Tailwind font-medium) to SemiBold.
+    {
+      path: "../../../public/fonts/yekan-bakh/woff2/YekanBakh-SemiBold.woff2",
+      weight: "500",
+      style: "normal",
+    },
     {
       path: "../../../public/fonts/yekan-bakh/woff2/YekanBakh-SemiBold.woff2",
       weight: "600",

@@ -12,6 +12,7 @@ import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { Pagination } from '@/components/ui/pagination';
 import { LocaleDatePicker } from '@/components/ui/locale-date-picker';
+import { useLocale } from '@/hooks/use-locale-next';
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter,
 } from '@/components/ui/dialog';
@@ -48,6 +49,7 @@ const BLANK = {
 
 export default function AccReceipts() {
   const t = useTranslations();
+  const { formatNumber, formatDate } = useLocale();
 
   const [rows, setRows] = useState<Receipt[]>([]);
   const [page, setPage] = useState(1);
@@ -203,9 +205,9 @@ export default function AccReceipts() {
               <tr key={row.id} className="border-b">
                 <td className="px-3 py-2">{row.id}</td>
                 <td className="px-3 py-2">{row.number}</td>
-                <td className="px-3 py-2">{row.date}</td>
+                <td className="px-3 py-2">{formatDate(String(row.date)) || row.date}</td>
                 <td className="px-3 py-2">{row.type === 'payment' ? t('auto.accounting_AccReceipts.s_29444d5c') : t('auto.accounting_AccReceipts.s_6afda7e1')}</td>
-                <td className="px-3 py-2">{Number(row.amount).toLocaleString()}</td>
+                <td className="px-3 py-2">{formatNumber(Number(row.amount))}</td>
                 <td className="px-3 py-2">
                   <Badge variant={row.status === 'posted' ? 'default' : 'outline'}>
                     {row.status === 'posted' ? t('auto.accounting_AccReceipts.s_1223f269') : t('auto.accounting_AccReceipts.s_7d739ea1')}

@@ -12,6 +12,7 @@ import { Pagination } from '@/components/ui/pagination';
 import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from '@/components/ui/select';
+import { useLocale } from '@/hooks/use-locale-next';
 
 type Warehouse = { id: number; name: string };
 
@@ -43,6 +44,7 @@ function parsePaginated<T>(axiosData: unknown) {
 
 export default function AccWarehouseStock() {
   const t = useTranslations();
+  const { formatNumber } = useLocale();
 
   const [warehouses, setWarehouses] = useState<Warehouse[]>([]);
   const [filterWarehouse, setFilterWarehouse] = useState('all');
@@ -133,8 +135,8 @@ export default function AccWarehouseStock() {
                 >
                   <td className="px-3 py-1.5">{row.product?.name ?? '—'}</td>
                   <td className="px-3 py-1.5">{row.warehouse?.name ?? '—'}</td>
-                  <td className="px-3 py-1.5 tabular-nums">{Number(row.quantity).toLocaleString('fa-IR')}</td>
-                  <td className="px-3 py-1.5 tabular-nums">{Number(row.reorder_point).toLocaleString('fa-IR')}</td>
+                  <td className="px-3 py-1.5 tabular-nums">{formatNumber(Number(row.quantity))}</td>
+                  <td className="px-3 py-1.5 tabular-nums">{formatNumber(Number(row.reorder_point))}</td>
                 </tr>
               );
             })}

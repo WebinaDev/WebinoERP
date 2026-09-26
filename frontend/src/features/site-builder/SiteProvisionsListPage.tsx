@@ -3,6 +3,7 @@
 import Link from 'next/link';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useLocale, useTranslations } from 'next-intl';
+import { useLocale as useAppLocale } from '@/hooks/use-locale-next';
 import {
   Coffee,
   ExternalLink,
@@ -70,13 +71,17 @@ function powerTone(power?: string): string {
   }
 }
 
-function licenseLabel(row: SiteProvision, t: ReturnType<typeof useTranslations>) {
+function licenseLabel(
+  row: SiteProvision,
+  t: ReturnType<typeof useTranslations>,
+  formatDate: (iso: string) => string,
+) {
   const exp = row.license?.expires_at;
   if (!exp) return t('controlLicenseOpen');
   const d = new Date(exp);
   if (Number.isNaN(d.getTime())) return t('controlLicenseOpen');
   if (d.getTime() < Date.now()) return t('controlLicenseExpired');
-  return t('controlLicenseUntil', { date: d.toLocaleDateString() });
+  return t('controlLicenseUntil', { date: formatDate(exp) || exp });
 }
 
 function canPower(row: SiteProvision): boolean {
@@ -86,6 +91,7 @@ function canPower(row: SiteProvision): boolean {
 export function SiteProvisionsListPage() {
   const t = useTranslations('siteBuilder');
   const locale = useLocale();
+  const { formatDate } = useAppLocale();
   const [rows, setRows] = useState<SiteProvision[]>([]);
   const [page, setPage] = useState(1);
   const [lastPage, setLastPage] = useState(1);
@@ -223,7 +229,7 @@ export function SiteProvisionsListPage() {
                   </Badge>
                   <Badge variant="outline" className="gap-1">
                     <ShieldCheck className="size-3" />
-                    {licenseLabel(row, t)}
+                    {licenseLabel(row, t, formatDate)}
                   </Badge>
                 </div>
                 {row.status === 'failed' && row.error_log ? (

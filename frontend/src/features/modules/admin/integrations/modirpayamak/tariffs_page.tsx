@@ -1,7 +1,7 @@
 'use client';
 
 import { useCallback, useEffect, useState } from 'react';
-import { useFormatter, useTranslations } from 'next-intl';
+import { useTranslations } from 'next-intl';
 import { Pencil, Plus, Trash2 } from 'lucide-react';
 import { CrmPageLayout } from '@/features/shared/layout/CrmPageLayout';
 import { useCrmFeedback } from '@/features/shared/hooks/useCrmFeedback';
@@ -42,6 +42,7 @@ import { getAxiosMessage } from '@/lib/api-helpers';
 import { ModirPayamakStatusBadge } from './components/status-badge';
 import { ModirPayamakBreadcrumb, ModirPayamakNotConfigured } from './components/shared';
 import { useModirPayamakConfigured } from './hooks/useModirPayamakConfigured';
+import { useLocale } from '@/hooks/use-locale-next';
 
 function emptyForm() {
   return {
@@ -58,7 +59,7 @@ export function ModirpayamakTariffsPage() {
   const t = useTranslations('modirpayamak');
   const tNav = useTranslations();
   const tCommon = useTranslations('common');
-  const format = useFormatter();
+  const { formatNumber } = useLocale();
   const { layoutProps, setError } = useCrmFeedback();
   const { configured, loading: configLoading } = useModirPayamakConfigured();
   const [tariffs, setTariffs] = useState<ModirPayamakTariff[]>([]);
@@ -159,7 +160,7 @@ export function ModirpayamakTariffsPage() {
       <ModirPayamakBreadcrumb current={tNav('nav.erp.admin.mpTariffs')} />
       {configLoading ? null : !configured ? <ModirPayamakNotConfigured /> : null}
       <p className="mb-3 text-sm text-muted-foreground">
-        {t('tariffsHint', { tax: String(taxPercent), surcharge: format.number(surcharge) })}
+        {t('tariffsHint', { tax: String(taxPercent), surcharge: formatNumber(surcharge) })}
       </p>
 
       {loading ? (
@@ -190,9 +191,9 @@ export function ModirpayamakTariffsPage() {
                     <TableCell>
                       {row.operator === 'mci' ? t('operatorMci') : t('operatorOther')}
                     </TableCell>
-                    <TableCell dir="ltr">{format.number(Number(row.rate_fa))}</TableCell>
-                    <TableCell dir="ltr">{format.number(Number(row.rate_la))}</TableCell>
-                    <TableCell dir="ltr">{format.number(billable(Number(row.rate_fa)))}</TableCell>
+                    <TableCell>{formatNumber(Number(row.rate_fa))}</TableCell>
+                    <TableCell>{formatNumber(Number(row.rate_la))}</TableCell>
+                    <TableCell>{formatNumber(billable(Number(row.rate_fa)))}</TableCell>
                     <TableCell>
                       <ModirPayamakStatusBadge status={row.status} />
                     </TableCell>

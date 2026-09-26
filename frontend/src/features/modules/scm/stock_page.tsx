@@ -12,6 +12,7 @@ import {
 } from '@/components/ui/select';
 import { listStock, listWarehouses } from '@/lib/api/scm';
 import { normalizeListPayload } from '@/lib/list-utils';
+import { useLocale } from '@/hooks/use-locale-next';
 
 type Warehouse = { id: number; name: string };
 type StockRow = {
@@ -42,6 +43,7 @@ function parsePaginated<T>(axiosData: unknown) {
 export function StockPage() {
   const t = useTranslations('scm');
   const tNav = useTranslations();
+  const { formatNumber } = useLocale();
   const { layoutProps, applyAxiosError } = useCrmFeedback();
   const [warehouses, setWarehouses] = useState<Warehouse[]>([]);
   const [warehouseId, setWarehouseId] = useState('all');
@@ -121,9 +123,9 @@ export function StockPage() {
                   <TableRow key={row.id ?? i} className={cn(isLow && 'bg-destructive/10 text-destructive')}>
                     <TableCell>{row.product?.name ?? '—'}</TableCell>
                     <TableCell>{row.warehouse?.name ?? '—'}</TableCell>
-                    <TableCell className="tabular-nums">{Number(row.quantity).toLocaleString()}</TableCell>
+                    <TableCell className="tabular-nums">{formatNumber(Number(row.quantity))}</TableCell>
                     <TableCell className="tabular-nums">
-                      {row.reorder_point != null ? Number(row.reorder_point).toLocaleString() : '—'}
+                      {row.reorder_point != null ? formatNumber(Number(row.reorder_point)) : '—'}
                     </TableCell>
                   </TableRow>
                 );

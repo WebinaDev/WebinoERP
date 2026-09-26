@@ -1,7 +1,7 @@
 'use client';
 
 import { useCallback, useEffect, useState } from 'react';
-import { useFormatter, useTranslations } from 'next-intl';
+import { useTranslations } from 'next-intl';
 import { CrmPageLayout } from '@/features/shared/layout/CrmPageLayout';
 import { useCrmFeedback } from '@/features/shared/hooks/useCrmFeedback';
 import { PmEmptyState, PmPagination } from '@/features/shared/pm';
@@ -19,11 +19,12 @@ import { getAxiosMessage } from '@/lib/api-helpers';
 import { ModirPayamakStatusBadge } from './components/status-badge';
 import { ModirPayamakBreadcrumb, ModirPayamakNotConfigured } from './components/shared';
 import { useModirPayamakConfigured } from './hooks/useModirPayamakConfigured';
+import { useLocale } from '@/hooks/use-locale-next';
 
 export function ModirpayamakOrdersPage() {
   const t = useTranslations('modirpayamak');
   const tNav = useTranslations();
-  const format = useFormatter();
+  const { formatNumber, formatDateTime } = useLocale();
   const { layoutProps, setError } = useCrmFeedback();
   const { configured, loading: configLoading } = useModirPayamakConfigured();
   const [orders, setOrders] = useState<ModirPayamakOrder[]>([]);
@@ -63,7 +64,7 @@ export function ModirpayamakOrdersPage() {
   const formatDate = (raw?: string) => {
     if (!raw) return '—';
     try {
-      return format.dateTime(new Date(raw), { dateStyle: 'short', timeStyle: 'short' });
+      return formatDateTime(raw) || raw;
     } catch {
       return raw;
     }
@@ -99,8 +100,8 @@ export function ModirpayamakOrdersPage() {
                   <TableRow key={o.id}>
                     <TableCell>{o.id}</TableCell>
                     <TableCell className="font-mono">{o.domain}</TableCell>
-                    <TableCell>{format.number(o.amount)}</TableCell>
-                    <TableCell>{format.number(o.credit_amount ?? 0)}</TableCell>
+                    <TableCell>{formatNumber(o.amount)}</TableCell>
+                    <TableCell>{formatNumber(o.credit_amount ?? 0)}</TableCell>
                     <TableCell>
                       <ModirPayamakStatusBadge status={o.status} />
                     </TableCell>

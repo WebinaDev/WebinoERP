@@ -8,6 +8,7 @@ import { Card, CardContent } from '@/components/ui/card';
 import { cn } from '@/lib/utils';
 import { useLocale } from '@/hooks/use-locale';
 import { buildMonthGrid } from '@/lib/locale/month-grid';
+import { toLocaleDigits } from '@/lib/locale';
 
 export type CalendarAppointment = {
   id: number;
@@ -160,7 +161,9 @@ export function AppointmentsCalendarPanel({
                           onDayDrop(iso);
                         }}
                       >
-                        <div className="text-muted-foreground mb-1 text-xs font-medium">{cell.day}</div>
+                        <div className="text-muted-foreground mb-1 text-xs font-medium">
+                          {toLocaleDigits(String(cell.day), locale)}
+                        </div>
                         <div className="flex max-h-[48px] flex-col gap-0.5 overflow-y-auto">
                           {dayAppts.slice(0, 3).map((ap) => (
                             <button

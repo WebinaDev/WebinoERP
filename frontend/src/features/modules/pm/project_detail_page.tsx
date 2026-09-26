@@ -13,11 +13,13 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
 import { dashboardHref } from '@/lib/route-resolver';
+import { useLocale } from '@/hooks/use-locale-next';
 
 type Props = { id: string };
 
 function ProjectDetailContent({ data }: { data: Record<string, unknown> }) {
   const t = useTranslations('pm.projects');
+  const { formatDateTime } = useLocale();
   const tasks = (Array.isArray(data.tasks) ? data.tasks : []) as Record<string, unknown>[];
   const contracts = (Array.isArray(data.contracts) ? data.contracts : []) as Record<string, unknown>[];
   const tickets = (Array.isArray(data.tickets) ? data.tickets : []) as Record<string, unknown>[];
@@ -123,7 +125,9 @@ function ProjectDetailContent({ data }: { data: Record<string, unknown> }) {
                 <tr key={String(row.id)} className="border-b border-border/60">
                   <td className="py-2">{String(row.subject ?? '—')}</td>
                   <td className="py-2">{String(row.status ?? '—')}</td>
-                  <td className="py-2">{String(row.created_at ?? '—')}</td>
+                  <td className="py-2">
+                    {row.created_at ? formatDateTime(String(row.created_at)) || String(row.created_at) : '—'}
+                  </td>
                 </tr>
               ))}
               {!tickets.length ? (

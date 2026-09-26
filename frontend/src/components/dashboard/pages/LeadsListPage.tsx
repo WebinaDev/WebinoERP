@@ -28,6 +28,7 @@ import { PmViewToggle } from '@/features/shared/pm';
 import { ImportCsvDialog } from '@/features/modules/crm/ImportCsvDialog';
 import { PageShell } from '@/components/PageShell';
 import { ListStatsStrip } from '@/components/ListStatsStrip';
+import { useLocale } from '@/hooks/use-locale-next';
 
 type StatusRow = { id: number; name: string; color?: string };
 type LeadRow = Record<string, unknown>;
@@ -37,6 +38,7 @@ type Meta = { current_page?: number; last_page?: number; total?: number };
 export function LeadsListPage() {
   const t = useTranslations('crm.leads');
   const tc = useTranslations('common');
+  const { formatDateTime } = useLocale();
 
   const [rows, setRows] = useState<LeadRow[]>([]);
   const [statuses, setStatuses] = useState<StatusRow[]>([]);
@@ -592,7 +594,8 @@ export function LeadsListPage() {
                 <strong>{t('description')}:</strong> {String(detail.description ?? '—')}
               </p>
               <p>
-                <strong>{t('createdAt')}:</strong> {String(detail.created_at ?? '—')}
+                <strong>{t('createdAt')}:</strong>{' '}
+                {detail.created_at ? formatDateTime(String(detail.created_at)) || String(detail.created_at) : '—'}
               </p>
               <p>
                 <strong>{t('assignee')}:</strong>{' '}

@@ -11,6 +11,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { normalizeListPayload } from '@/lib/list-utils';
 import { SettingsPageView } from '@/components/dashboard/pages/settings-view';
+import { useLocale } from '@/hooks/use-locale-next';
 
 export { SettingsPageView };
 
@@ -19,6 +20,7 @@ export { LicensesPageView } from '@/features/modules/core/licenses/LicensesPage'
 
 export function LogsPageView() {
   const t = useTranslations();
+  const { formatDateTime } = useLocale();
 
   const [tab, setTab] = useState<'events' | 'system' | 'user' | 'bale'>('events');
   const [rows, setRows] = useState<Record<string, unknown>[]>([]);
@@ -113,11 +115,23 @@ export function LogsPageView() {
               ) : (
                 slice.map((r, i) => (
                   <tr key={i} className="border-b border-border/60">
-                    {cols.map((c) => (
-                      <td key={c} className="max-w-[200px] truncate px-2 py-1" dir="ltr">
-                        {formatCell((r as Record<string, unknown>)[c])}
-                      </td>
-                    ))}
+                    {cols.map((c) => {
+                      const raw = (r as Record<string, unknown>)[c];
+                      const isDateCol = /(_at|_date|created|updated|visited)/i.test(c);
+                      const text =
+                        isDateCol && typeof raw === 'string' && raw
+                          ? formatDateTime(raw) || formatCell(raw)
+                          : formatCell(raw);
+                      return (
+                        <td
+                          key={c}
+                          className="max-w-[200px] truncate px-2 py-1"
+                          dir={isDateCol ? undefined : 'ltr'}
+                        >
+                          {text}
+                        </td>
+                      );
+                    })}
                   </tr>
                 ))
               )}
@@ -167,6 +181,7 @@ type VisitorPayload = {
 
 export function VisitorStatsPageView() {
   const t = useTranslations();
+  const { formatDateTime, formatDate, formatNumber } = useLocale();
 
   const [days, setDays] = useState(14);
   const [data, setData] = useState<VisitorPayload | null>(null);
@@ -223,7 +238,7 @@ export function VisitorStatsPageView() {
               <CardTitle className="text-muted-foreground text-sm">{t('auto.CoreStaticPages.s_c4a2d62a')}</CardTitle>
             </CardHeader>
             <CardContent className="text-2xl font-semibold tabular-nums">
-              {loading ? '…' : data?.total_visits ?? '—'}
+              {loading ? '…' : formatNumber(Number(data?.total_visits ?? 0))}
             </CardContent>
           </Card>
           <Card>
@@ -231,7 +246,7 @@ export function VisitorStatsPageView() {
               <CardTitle className="text-muted-foreground text-sm">{t('auto.CoreStaticPages.s_13097bf2')}</CardTitle>
             </CardHeader>
             <CardContent className="text-2xl font-semibold tabular-nums">
-              {loading ? '…' : data?.unique_visitors ?? '—'}
+              {loading ? '…' : formatNumber(Number(data?.unique_visitors ?? 0))}
             </CardContent>
           </Card>
           <Card>
@@ -261,8 +276,8 @@ export function VisitorStatsPageView() {
                   className="bg-primary/80 w-full max-w-[24px] rounded-t"
                   style={{ height: `${Math.max(4, (Number(d.visits ?? 0) / maxV) * 120)}px` }}
                 />
-                <span className="text-muted-foreground max-w-[48px] truncate text-[10px]" dir="ltr">
-                  {String(d.day ?? '').slice(5)}
+                <span className="text-muted-foreground max-w-[48px] truncate text-[10px]">
+                  {d.day ? formatDate(String(d.day)) || String(d.day).slice(5) : ''}
                 </span>
               </div>
             ))}
@@ -306,8 +321,11 @@ export function VisitorStatsPageView() {
                 <tbody>
                   {(data?.recent_visits ?? []).map((r, i) => (
                     <tr key={i} className="border-b">
-                      <td className="px-2 py-1" dir="ltr">
-                        {String(r.visited_at ?? r.created_at ?? '—')}
+                      <td className="px-2 py-1">
+                        {(() => {
+                          const raw = String(r.visited_at ?? r.created_at ?? '');
+                          return raw ? formatDateTime(raw) || raw : '—';
+                        })()}
                       </td>
                       <td className="max-w-[200px] truncate px-2 py-1" dir="ltr">
                         {String(r.path ?? '—')}

@@ -8,6 +8,7 @@ import { cn } from '@/lib/utils';
 import type { TaskCalendarEvent } from './types';
 import { useLocale } from '@/hooks/use-locale-next';
 import { buildMonthGrid, shiftMonth } from '@/lib/locale/month-grid';
+import { toLocaleDigits } from '@/lib/locale';
 
 type Props = {
   events: TaskCalendarEvent[];
@@ -88,7 +89,9 @@ export function TaskCalendarPanel({ events, month, onMonthChange, onSelectTask }
                     >
                       {cell.day ? (
                         <>
-                          <div className="text-muted-foreground mb-1 text-xs font-medium">{cell.day}</div>
+                          <div className="text-muted-foreground mb-1 text-xs font-medium">
+                            {toLocaleDigits(String(cell.day), locale)}
+                          </div>
                           <div className="flex max-h-[56px] flex-col gap-0.5 overflow-y-auto">
                             {dayEvents.slice(0, 3).map((ev) => (
                               <span

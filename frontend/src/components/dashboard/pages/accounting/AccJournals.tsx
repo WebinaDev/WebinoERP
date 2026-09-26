@@ -11,6 +11,7 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
 import { LocaleDatePicker } from '@/components/ui/locale-date-picker';
+import { useLocale } from '@/hooks/use-locale-next';
 import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from '@/components/ui/select';
@@ -57,6 +58,7 @@ function todayIso() {
 export default function AccJournals() {
   const t = useTranslations();
   const tj = useTranslations('finance.journals');
+  const { formatNumber, formatDate } = useLocale();
 
   const [journals, setJournals] = useState<Journal[]>([]);
   const [fys, setFys] = useState<FiscalYear[]>([]);
@@ -244,7 +246,7 @@ export default function AccJournals() {
                   <tr key={j.id} className="border-b border-border/60">
                     <td className="px-2 py-1.5 tabular-nums">{j.id}</td>
                     <td className="px-2 py-1.5 tabular-nums">{j.document_no}</td>
-                    <td className="px-2 py-1.5">{j.document_date}</td>
+                    <td className="px-2 py-1.5">{formatDate(String(j.document_date)) || j.document_date}</td>
                     <td className="max-w-[260px] truncate px-2 py-1.5">{j.description}</td>
                     <td className="px-2 py-1.5">
                       <Badge variant={j.status === 'posted' ? 'default' : 'outline'}>
@@ -415,8 +417,8 @@ export default function AccJournals() {
 
               <p className={`text-sm ${balanced ? 'text-muted-foreground' : 'text-destructive'}`}>
                 {tj('totals', {
-                  debit: debitTotal.toLocaleString(),
-                  credit: creditTotal.toLocaleString(),
+                  debit: formatNumber(debitTotal),
+                  credit: formatNumber(creditTotal),
                 })}
               </p>
             </div>
