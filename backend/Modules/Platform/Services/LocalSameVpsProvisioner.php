@@ -364,7 +364,7 @@ class LocalSameVpsProvisioner
      */
     public function updateFrontend(WebinoSiteProvision $provision): array
     {
-        $channel = $this->channelOf($provision);
+        $channel = $this->effectiveTag($provision);
         $this->forceBuildImages($channel, only: 'frontend');
         $this->rewriteComposeImages($provision, $channel);
 
@@ -379,7 +379,7 @@ class LocalSameVpsProvisioner
      */
     public function updateBackend(WebinoSiteProvision $provision): array
     {
-        $channel = $this->channelOf($provision);
+        $channel = $this->effectiveTag($provision);
         $this->forceBuildImages($channel, only: 'backend');
         $this->rewriteComposeImages($provision, $channel);
 
@@ -416,7 +416,7 @@ class LocalSameVpsProvisioner
      */
     public function updateApp(WebinoSiteProvision $provision): array
     {
-        $channel = $this->channelOf($provision);
+        $channel = $this->effectiveTag($provision);
         $this->forceBuildImages($channel, only: 'all');
         $this->rewriteComposeImages($provision, $channel);
 
@@ -1420,17 +1420,16 @@ class LocalSameVpsProvisioner
     }
 
     /**
-     * Always git-fetch and rebuild (unlike ensureImages which skips when present).
-     *
-     * @param  'frontend'|'backend'|'all'  $only
-     */
-    /**
      * Env passed to scripts/build-webino-dashboard-images.sh (git + IR Hub mirrors).
      *
+     * @param  array{force_git?:bool,no_cache?:bool}  $options
      * @return array<string, string>
      */
-    protected function dashboardBuildEnv(string $imageTag = ''): array
+    protected function dashboardBuildEnv(string $imageTag = '', array $options = []): array
     {
+        $forceGit = (bool) ($options['force_git'] ?? false);
+        $noCache = (bool) ($options['no_cache'] ?? false);
+
         $env = [
             'WEBINO_DASHBOARD_GIT_URL' => (string) env(
                 'WEBINO_DASHBOARD_GIT_URL',
@@ -1443,9 +1442,20 @@ class LocalSameVpsProvisioner
         if ($imageTag !== '' && $imageTag !== 'latest') {
             $env['WEBINO_IMAGE_TAG'] = $imageTag;
         }
-        $dashboardPath = (string) env('WEBINO_DASHBOARD_PATH', '');
-        if ($dashboardPath !== '' && is_file($dashboardPath.'/docker/php/Dockerfile.platform')) {
-            $env['WEBINO_DASHBOARD_PATH'] = $dashboardPath;
+        // Forced rebuilds always sync from git so a stale WEBINO_DASHBOARD_PATH
+        // cannot produce a seconds-long cached build with no code change.
+        if ($forceGit) {
+            $env['WEBINO_FORCE_GIT'] = '1';
+            $env['WEBINO_DOCKER_NO_CACHE'] = $noCache ? '1' : (string) env('WEBINO_DOCKER_NO_CACHE', '1');
+        } else {
+            $dashboardPath = (string) env('WEBINO_DASHBOARD_PATH', '');
+            if ($dashboardPath !== '' && is_file($dashboardPath.'/docker/php/Dockerfile.platform')) {
+                $env['WEBINO_DASHBOARD_PATH'] = $dashboardPath;
+            }
+            $noCacheEnv = (string) env('WEBINO_DOCKER_NO_CACHE', '');
+            if ($noCacheEnv !== '') {
+                $env['WEBINO_DOCKER_NO_CACHE'] = $noCacheEnv;
+            }
         }
         $token = (string) env('WEBINO_DASHBOARD_GIT_TOKEN', '');
         if ($token !== '') {
@@ -1461,6 +1471,11 @@ class LocalSameVpsProvisioner
         return $env;
     }
 
+    /**
+     * Always git-fetch and rebuild (unlike ensureImages which skips when present).
+     *
+     * @param  'frontend'|'backend'|'all'  $only
+     */
     protected function forceBuildImages(string $tag, string $only = 'all'): void
     {
         $script = (string) (env('WEBINO_DASHBOARD_BUILD_SCRIPT')
@@ -1469,7 +1484,10 @@ class LocalSameVpsProvisioner
             throw new RuntimeException('platform.build_script_missing');
         }
 
-        $env = $this->dashboardBuildEnv($tag);
+        $env = $this->dashboardBuildEnv($tag, [
+            'force_git' => true,
+            'no_cache' => true,
+        ]);
 
         // Build script always builds both; selective recreate happens afterwards.
         unset($only);

@@ -8,6 +8,8 @@
 # Override:
 #   WEBINO_DASHBOARD_GIT_URL  WEBINO_DASHBOARD_GIT_REF  WEBINO_DASHBOARD_GIT_TOKEN
 #   WEBINO_DASHBOARD_SRC      WEBINO_DASHBOARD_PATH (local checkout, skips git)
+#   WEBINO_FORCE_GIT=1       ignore WEBINO_DASHBOARD_PATH; always sync from git
+#   WEBINO_DOCKER_NO_CACHE=1 pass --no-cache to docker build (backend + frontend)
 #   WEBINO_IRAN_DOCKER       auto|1|0 — use Hub mirrors (default auto=on)
 #   PHP_IMAGE  COMPOSER_IMAGE  NODE_IMAGE — base image overrides
 set -euo pipefail
@@ -16,6 +18,8 @@ GIT_URL="${WEBINO_DASHBOARD_GIT_URL:-https://github.com/Webinadev/WebinoDashboar
 GIT_REF="${WEBINO_DASHBOARD_GIT_REF:-main}"
 SRC="${WEBINO_DASHBOARD_SRC:-/var/lib/webino/src/WebinoDashboard}"
 WEBINO_IRAN_DOCKER="${WEBINO_IRAN_DOCKER:-auto}"
+WEBINO_FORCE_GIT="${WEBINO_FORCE_GIT:-0}"
+WEBINO_DOCKER_NO_CACHE="${WEBINO_DOCKER_NO_CACHE:-0}"
 
 log() { echo "$*" >&2; }
 
@@ -128,6 +132,13 @@ build_one() {
     exit 1
   fi
 
+  case "${WEBINO_DOCKER_NO_CACHE}" in
+    1|true|yes|YES)
+      extra_args+=(--no-cache)
+      log "Docker --no-cache enabled (WEBINO_DOCKER_NO_CACHE=${WEBINO_DOCKER_NO_CACHE})"
+      ;;
+  esac
+
   if docker buildx version >/dev/null 2>&1; then
     docker buildx build --load \
       "${extra_args[@]}" \
@@ -144,14 +155,31 @@ build_one() {
 }
 
 CONTEXT=""
-if has_dockerfiles "${WEBINO_DASHBOARD_PATH:-}"; then
+FORCE_GIT=0
+case "${WEBINO_FORCE_GIT}" in
+  1|true|yes|YES) FORCE_GIT=1 ;;
+esac
+
+if [[ "$FORCE_GIT" -eq 1 ]]; then
+  log "Force git sync (WEBINO_FORCE_GIT=${WEBINO_FORCE_GIT}); ignoring WEBINO_DASHBOARD_PATH"
+  sync_from_git
+  CONTEXT="$SRC"
+elif has_dockerfiles "${WEBINO_DASHBOARD_PATH:-}"; then
   CONTEXT="$(cd "${WEBINO_DASHBOARD_PATH}" && pwd)"
+  log "Using local dashboard path (skips git): ${CONTEXT}"
 else
   sync_from_git
   CONTEXT="$SRC"
 fi
 
 log "Dashboard source: ${CONTEXT}"
+if [[ -d "${CONTEXT}/.git" ]] && command -v git >/dev/null 2>&1; then
+  HEAD_SHA="$(git -C "$CONTEXT" rev-parse --short HEAD 2>/dev/null || true)"
+  HEAD_FULL="$(git -C "$CONTEXT" rev-parse HEAD 2>/dev/null || true)"
+  log "Dashboard HEAD=${HEAD_SHA:-unknown} (${HEAD_FULL:-unknown})"
+else
+  log "Dashboard HEAD=<no .git in context>"
+fi
 
 backend_args=(
   --build-arg "PHP_IMAGE=${PHP_IMAGE}"
