@@ -7,6 +7,7 @@ use Illuminate\Http\Request;
 use Modules\Core\Entities\CoreLicense;
 use Modules\Integrations\Entities\ModirPayamakMessage;
 use Modules\Integrations\Services\ModirPayamakManager;
+use Modules\Integrations\Services\ModirPayamakSiteSmsService;
 
 /**
  * WordPress-era proxy for tenant Dashboard SMS panel.
@@ -22,12 +23,21 @@ class WebinocrmModirPayamakCompatController extends Controller
         'dashboard' => 'tenantDashboard',
         'ledger' => 'customerLedger',
         'settings/shop' => 'shopSettings',
+        'settings/site' => 'siteSettings',
+        'templates' => 'templates',
+        'templates/shortcodes' => 'templateShortcodes',
+        'patterns/registry' => 'patternRegistry',
+        'patterns/sync' => 'patternSync',
+        'patterns/detach' => 'patternDetach',
+        'auth/send-otp' => 'authSendOtp',
+        'site/settings/sms' => 'siteSettings',
     ];
 
     public function __construct(
         private ModirPayamakManager $manager,
         private ModirPayamakCustomerController $customer,
         private ModirPayamakAdminController $admin,
+        private ModirPayamakSiteSmsService $siteSms,
     ) {}
 
     public function handle(Request $request, string $path = ''): JsonResponse
@@ -102,8 +112,139 @@ class WebinocrmModirPayamakCompatController extends Controller
             'event_keys' => $this->manager::ORDER_EVENTS,
             'templates' => [],
             'shortcodes' => [],
-            'registry' => [],
+            'registry' => $this->siteSms->listRegistry($domain),
         ]);
+    }
+
+    protected function siteSettings(Request $request, string $domain): JsonResponse
+    {
+        if ($request->isMethod('post') || $request->isMethod('put') || $request->isMethod('patch')) {
+            $body = $request->all();
+            $input = is_array($body['settings'] ?? null) ? $body['settings'] : $body;
+            unset($input['domain'], $input['license_key'], $input['path'], $input['settings']);
+            $settings = $this->siteSms->saveSiteSettings($domain, $input);
+
+            return $this->ok(['saved' => true, 'settings' => $settings]);
+        }
+
+        return $this->ok([
+            'settings' => $this->siteSms->getSiteSettings($domain),
+            'unavailable' => false,
+        ]);
+    }
+
+    protected function templates(Request $request, string $domain): JsonResponse
+    {
+        if ($request->isMethod('post') || $request->isMethod('put') || $request->isMethod('patch')) {
+            $templates = $request->input('templates', []);
+            if (! is_array($templates)) {
+                $templates = [];
+            }
+            $saved = $this->siteSms->saveTemplates($domain, $templates);
+
+            return $this->ok(['templates' => $saved]);
+        }
+
+        $scope = $request->query('scope');
+        $eventKey = $request->query('event_key');
+
+        return $this->ok([
+            'templates' => $this->siteSms->listTemplates(
+                $domain,
+                is_string($scope) && $scope !== '' ? $scope : null,
+                is_string($eventKey) && $eventKey !== '' ? $eventKey : null,
+            ),
+        ]);
+    }
+
+    protected function templateShortcodes(Request $request, string $domain): JsonResponse
+    {
+        return $this->ok([
+            'shortcodes' => [
+                ['key' => 'code', 'label' => 'OTP code', 'scope' => ModirPayamakSiteSmsService::SCOPE_SITE],
+            ],
+            'event_keys' => $this->manager::SITE_EVENTS,
+        ]);
+    }
+
+    protected function patternRegistry(Request $request, string $domain): JsonResponse
+    {
+        return $this->ok(['registry' => $this->siteSms->listRegistry($domain)]);
+    }
+
+    protected function patternSync(Request $request, string $domain): JsonResponse
+    {
+        $scope = (string) $request->input('scope', '');
+        $eventKey = (string) $request->input('event_key', '');
+        $code = (string) ($request->input('pattern_code') ?? $request->input('ippanel_code') ?? '');
+        $paramMap = $request->input('param_map', []);
+        if (! is_array($paramMap)) {
+            $paramMap = [];
+        }
+
+        if ($code !== '' && $request->boolean('bind_only')) {
+            $result = $this->siteSms->bindPattern($domain, $scope, $eventKey, $code, $paramMap);
+            if (empty($result['ok'])) {
+                return response()->json([
+                    'ok' => false,
+                    'message' => (string) ($result['message'] ?? 'Pattern bind failed'),
+                ], 422);
+            }
+
+            return $this->ok($result);
+        }
+
+        if ($code !== '') {
+            $body = (string) $request->input('body', '');
+            if ($body !== '') {
+                $this->siteSms->saveTemplates($domain, [[
+                    'scope' => $scope,
+                    'event_key' => $eventKey,
+                    'body' => $body,
+                    'pattern_code' => $code,
+                    'enabled' => true,
+                ]]);
+            }
+            $result = $this->siteSms->bindPattern($domain, $scope, $eventKey, $code, $paramMap);
+            if (empty($result['ok'])) {
+                return response()->json([
+                    'ok' => false,
+                    'message' => (string) ($result['message'] ?? 'Pattern sync failed'),
+                ], 422);
+            }
+
+            return $this->ok($result);
+        }
+
+        return response()->json(['ok' => false, 'message' => 'pattern_code is required'], 422);
+    }
+
+    protected function patternDetach(Request $request, string $domain): JsonResponse
+    {
+        $scope = (string) $request->input('scope', '');
+        $eventKey = (string) $request->input('event_key', '');
+        \Modules\Integrations\Entities\ModirPayamakPatternRegistry::query()
+            ->where('domain', $domain)
+            ->where('scope', $scope)
+            ->where('event_key', $eventKey)
+            ->delete();
+
+        return $this->ok(['registry' => $this->siteSms->listRegistry($domain)]);
+    }
+
+    protected function authSendOtp(Request $request, string $domain): JsonResponse
+    {
+        $phone = (string) $request->input('phone', '');
+        $purpose = (string) $request->input('purpose', 'login');
+        $result = $this->siteSms->sendOtp($domain, $phone, $purpose);
+        if (empty($result['ok'])) {
+            return response()->json([
+                'ok' => false,
+                'message' => (string) ($result['message'] ?? 'OTP send failed'),
+            ], 422);
+        }
+
+        return $this->ok($result);
     }
 
     protected function forward(Request $request, string $path): JsonResponse
@@ -183,17 +324,11 @@ class WebinocrmModirPayamakCompatController extends Controller
     protected function isUnavailablePath(string $path): bool
     {
         $prefixes = [
-            'templates',
             'drafts',
             'newsletter',
-            'auth/',
-            'patterns/sync',
-            'patterns/registry',
-            'patterns/detach',
             'phonebooks/edge',
             'reports/bulk-',
             'send/cancel-scheduled',
-            'site/settings/sms',
         ];
 
         foreach ($prefixes as $prefix) {
