@@ -4340,6 +4340,7 @@
       "tabQuotes": "Quotes",
       "tabSettings": "Settings",
       "loadError": "Failed to load Rahn-percent settings.",
+      "quotesLoadError": "Failed to load quotes.",
       "calcError": "Calculation failed.",
       "saveError": "Save failed.",
       "lockError": "Lock failed.",

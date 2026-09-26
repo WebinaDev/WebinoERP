@@ -10,6 +10,7 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { RAHN_API, type RahnQuote } from './types';
+import { unwrapRahnList } from './unwrap';
 
 export function RahnQuotesTab() {
   const t = useTranslations('sales.rahn');
@@ -22,10 +23,9 @@ export function RahnQuotesTab() {
     setLoading(true);
     try {
       const res = await apiClient.get(`${RAHN_API}/quotes`, { params: { paged: 1 } });
-      const body = res.data as { quotes?: RahnQuote[]; data?: { quotes?: RahnQuote[] } };
-      setQuotes(body?.quotes ?? body?.data?.quotes ?? []);
+      setQuotes(unwrapRahnList<RahnQuote>(res.data, 'quotes'));
     } catch {
-      toast.error(t('loadError'));
+      toast.error(t('quotesLoadError'));
     } finally {
       setLoading(false);
     }
@@ -56,16 +56,16 @@ export function RahnQuotesTab() {
   };
 
   if (loading) {
-    return <p className="text-sm text-muted-foreground">{tCommon('loading')}</p>;
+    return <p className="text-sm text-muted-foreground text-right" dir="rtl">{tCommon('loading')}</p>;
   }
 
   if (quotes.length === 0) {
-    return <p className="text-sm text-muted-foreground">{t('noQuotes')}</p>;
+    return <p className="text-sm text-muted-foreground text-right" dir="rtl">{t('noQuotes')}</p>;
   }
 
   return (
-    <div className="space-y-3 text-start" dir="rtl">
-      <div className="flex justify-end">
+    <div className="space-y-3 text-right" dir="rtl">
+      <div className="flex justify-start">
         <Button type="button" size="sm" variant="outline" onClick={() => void load()}>
           <RefreshCw className="h-4 w-4" />
           {tCommon('refresh')}
@@ -73,8 +73,8 @@ export function RahnQuotesTab() {
       </div>
       {quotes.map((q) => (
         <Card key={q.id}>
-          <CardContent className="flex flex-wrap items-center gap-3 p-4">
-            <div className="min-w-0 flex-1">
+          <CardContent className="flex flex-wrap items-center gap-3 p-4" dir="rtl">
+            <div className="min-w-0 flex-1 text-right">
               <div className="flex flex-wrap items-center gap-2">
                 <span className="font-medium">{q.title}</span>
                 <Badge variant="secondary">{q.status}</Badge>
@@ -93,7 +93,7 @@ export function RahnQuotesTab() {
                   ? ` · ${t('lockedAt')}: ${formatDate(q.locked_at, { includeTime: true }) || q.locked_at}`
                   : null}
               </div>
-              <div className="mt-1 break-all text-start text-xs text-muted-foreground" dir="ltr">
+              <div className="mt-1 break-all text-left text-xs text-muted-foreground" dir="ltr">
                 {q.share_url}
               </div>
             </div>

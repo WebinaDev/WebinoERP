@@ -156,9 +156,9 @@ export function RahnSettingsTab({ settings, onSaved }: Props) {
   };
 
   return (
-    <div className="space-y-4 text-start" dir="rtl">
+    <div className="space-y-4 text-right" dir="rtl">
       <Tabs defaultValue="formula">
-        <TabsList className="flex h-auto flex-wrap gap-1">
+        <TabsList className="flex h-auto flex-wrap gap-1" dir="rtl">
           <TabsTrigger value="formula">{t('formulaSettings')}</TabsTrigger>
           <TabsTrigger value="topics">{t('wizard.topics')}</TabsTrigger>
           <TabsTrigger value="domains">{t('wizard.domains')}</TabsTrigger>
@@ -167,7 +167,7 @@ export function RahnSettingsTab({ settings, onSaved }: Props) {
           <TabsTrigger value="wizard">{t('settingsWizardSteps')}</TabsTrigger>
         </TabsList>
 
-        <TabsContent value="formula" className="mt-4 space-y-4">
+        <TabsContent value="formula" dir="rtl" className="mt-4 text-right space-y-4">
           <Card>
             <CardHeader>
               <CardTitle className="text-base">{t('formulaSettings')}</CardTitle>
@@ -314,7 +314,7 @@ export function RahnSettingsTab({ settings, onSaved }: Props) {
           </Card>
         </TabsContent>
 
-        <TabsContent value="topics" className="mt-4">
+        <TabsContent value="topics" dir="rtl" className="mt-4 text-right">
           <EntityList
             title={t('wizard.topics')}
             addLabel={t('wizard.addTopic')}
@@ -338,7 +338,7 @@ export function RahnSettingsTab({ settings, onSaved }: Props) {
           />
         </TabsContent>
 
-        <TabsContent value="domains" className="mt-4">
+        <TabsContent value="domains" dir="rtl" className="mt-4 text-right">
           <EntityList
             title={t('wizard.domains')}
             addLabel={t('wizard.addDomain')}
@@ -368,7 +368,7 @@ export function RahnSettingsTab({ settings, onSaved }: Props) {
           />
         </TabsContent>
 
-        <TabsContent value="categories" className="mt-4">
+        <TabsContent value="categories" dir="rtl" className="mt-4 text-right">
           <EntityList
             title={t('wizard.categories')}
             addLabel={t('wizard.addCategory')}
@@ -404,7 +404,7 @@ export function RahnSettingsTab({ settings, onSaved }: Props) {
           />
         </TabsContent>
 
-        <TabsContent value="catalog" className="mt-4">
+        <TabsContent value="catalog" dir="rtl" className="mt-4 text-right">
           <EntityList
             title={t('catalog')}
             addLabel={t('addService')}
@@ -430,10 +430,10 @@ export function RahnSettingsTab({ settings, onSaved }: Props) {
           />
         </TabsContent>
 
-        <TabsContent value="wizard" className="mt-4 space-y-4">
+        <TabsContent value="wizard" dir="rtl" className="mt-4 text-right space-y-4">
           <Card>
-            <CardHeader className="flex flex-row items-center justify-between">
-              <CardTitle className="text-base">{t('settingsWizardSteps')}</CardTitle>
+            <CardHeader className="flex flex-row items-center justify-between gap-3" dir="rtl">
+              <CardTitle className="text-base text-right">{t('settingsWizardSteps')}</CardTitle>
               <Button
                 type="button"
                 size="sm"
@@ -577,7 +577,7 @@ export function RahnSettingsTab({ settings, onSaved }: Props) {
 
       {/* Topic dialog */}
       <Dialog open={!!topicDialog} onOpenChange={(o) => !o && setTopicDialog(null)}>
-        <DialogContent className="max-h-[90vh] overflow-y-auto sm:max-w-md">
+        <DialogContent dir="rtl" className="max-h-[90vh] overflow-y-auto text-right sm:max-w-md">
           <DialogHeader>
             <DialogTitle>{topicDialog && draft.topics.some((x) => x.id === topicDialog.id) ? t('wizard.editTopic') : t('wizard.addTopic')}</DialogTitle>
           </DialogHeader>
@@ -645,7 +645,7 @@ export function RahnSettingsTab({ settings, onSaved }: Props) {
 
       {/* Domain dialog */}
       <Dialog open={!!domainDialog} onOpenChange={(o) => !o && setDomainDialog(null)}>
-        <DialogContent className="max-h-[90vh] overflow-y-auto sm:max-w-md">
+        <DialogContent dir="rtl" className="max-h-[90vh] overflow-y-auto text-right sm:max-w-md">
           <DialogHeader>
             <DialogTitle>
               {domainDialog && draft.domains.some((x) => x.id === domainDialog.id)
@@ -743,7 +743,7 @@ export function RahnSettingsTab({ settings, onSaved }: Props) {
 
       {/* Category dialog */}
       <Dialog open={!!categoryDialog} onOpenChange={(o) => !o && setCategoryDialog(null)}>
-        <DialogContent className="max-h-[90vh] overflow-y-auto sm:max-w-md">
+        <DialogContent dir="rtl" className="max-h-[90vh] overflow-y-auto text-right sm:max-w-md">
           <DialogHeader>
             <DialogTitle>
               {categoryDialog && draft.categories.some((x) => x.id === categoryDialog.id)
@@ -862,7 +862,7 @@ export function RahnSettingsTab({ settings, onSaved }: Props) {
 
       {/* Catalog dialog */}
       <Dialog open={!!catalogDialog} onOpenChange={(o) => !o && setCatalogDialog(null)}>
-        <DialogContent className="max-h-[90vh] overflow-y-auto sm:max-w-lg">
+        <DialogContent dir="rtl" className="max-h-[90vh] overflow-y-auto text-right sm:max-w-lg">
           <DialogHeader>
             <DialogTitle>
               {catalogDialog && draft.catalog.some((x) => x.id === catalogDialog.id)
@@ -1063,7 +1063,7 @@ export function RahnSettingsTab({ settings, onSaved }: Props) {
 
       {/* Wizard step dialog */}
       <Dialog open={!!stepDialog} onOpenChange={(o) => !o && setStepDialog(null)}>
-        <DialogContent className="max-h-[90vh] overflow-y-auto sm:max-w-md">
+        <DialogContent dir="rtl" className="max-h-[90vh] overflow-y-auto text-right sm:max-w-md">
           <DialogHeader>
             <DialogTitle>{t('wizard.editStep')}</DialogTitle>
           </DialogHeader>
@@ -1142,40 +1142,40 @@ function EntityList<T extends { id: string }>({
   onDelete: (id: string) => void;
 }) {
   return (
-    <Card>
-      <CardHeader className="flex flex-row items-center justify-between">
-        <CardTitle className="text-base">{title}</CardTitle>
+    <Card dir="rtl">
+      <CardHeader className="flex flex-row items-center justify-between gap-3" dir="rtl">
+        <CardTitle className="text-base text-right">{title}</CardTitle>
         <Button type="button" size="sm" variant="secondary" onClick={onAdd}>
           <Plus className="h-4 w-4" />
           {addLabel}
         </Button>
       </CardHeader>
-      <CardContent className="space-y-2">
+      <CardContent className="space-y-2" dir="rtl">
         {rows.length === 0 ? (
-          <p className="text-sm text-muted-foreground">—</p>
+          <p className="text-sm text-muted-foreground text-right">—</p>
         ) : (
-          <div className="overflow-x-auto rounded-lg border">
-            <table className="w-full text-sm">
+          <div className="overflow-x-auto rounded-lg border" dir="rtl">
+            <table className="w-full text-sm text-right">
               <thead className="bg-muted/40 text-muted-foreground">
                 <tr>
                   {columns.map((c) => (
-                    <th key={c.key} className="px-3 py-2 text-start font-medium">
+                    <th key={c.key} className="px-3 py-2 text-right font-medium">
                       {c.label}
                     </th>
                   ))}
-                  <th className="px-3 py-2 text-start font-medium w-24" />
+                  <th className="w-24 px-3 py-2 text-right font-medium" />
                 </tr>
               </thead>
               <tbody>
                 {rows.map((row) => (
                   <tr key={row.id} className="border-t">
                     {columns.map((c) => (
-                      <td key={c.key} className="px-3 py-2">
+                      <td key={c.key} className="px-3 py-2 text-right">
                         {c.render(row)}
                       </td>
                     ))}
                     <td className="px-3 py-2">
-                      <div className="flex gap-1">
+                      <div className="flex justify-start gap-1">
                         <Button type="button" size="icon" variant="ghost" onClick={() => onEdit(row)}>
                           <Pencil className="h-4 w-4" />
                         </Button>

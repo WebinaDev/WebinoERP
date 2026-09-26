@@ -11,6 +11,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { LocaleDatePicker } from '@/components/ui/locale-date-picker';
 import {
   Select,
   SelectContent,
@@ -19,18 +20,34 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { RAHN_API, type RahnBill, type RahnContract, type RahnSettings } from './types';
+import { unwrapRahnList } from './unwrap';
 
 type Props = { settings: RahnSettings };
 
+function currentMonthIsoDay(): string {
+  const d = new Date();
+  const pad = (n: number) => String(n).padStart(2, '0');
+  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-01`;
+}
+
+function toYearMonth(isoDay: string): string {
+  const m = /^(\d{4}-\d{2})/.exec(isoDay);
+  return m?.[1] ?? isoDay.slice(0, 7);
+}
+
+function normalizeMonthDay(isoOrYm: string): string {
+  if (/^\d{4}-\d{2}-\d{2}/.test(isoOrYm)) return isoOrYm.slice(0, 10);
+  if (/^\d{4}-\d{2}$/.test(isoOrYm)) return `${isoOrYm}-01`;
+  return currentMonthIsoDay();
+}
+
 export function RahnStatementsTab({ settings }: Props) {
   const t = useTranslations('sales.rahn');
-  const { formatNumber } = useLocale();
+  const { formatNumber, formatDate } = useLocale();
   const [contracts, setContracts] = useState<RahnContract[]>([]);
   const [contractId, setContractId] = useState('');
-  const [yearMonth, setYearMonth] = useState(() => {
-    const d = new Date();
-    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
-  });
+  /** ISO day for LocaleDatePicker; API gets YYYY-MM via toYearMonth. */
+  const [monthDay, setMonthDay] = useState(currentMonthIsoDay);
   const [G, setG] = useState(0);
   const [R, setR] = useState(0);
   const [D, setD] = useState(0);
@@ -39,12 +56,13 @@ export function RahnStatementsTab({ settings }: Props) {
   const [reviewAlert, setReviewAlert] = useState<string | null>(null);
   const [history, setHistory] = useState<Record<string, unknown>[]>([]);
 
+  const yearMonth = toYearMonth(monthDay);
+
   useEffect(() => {
     void apiClient
       .get(`${RAHN_API}/contracts`)
       .then((res) => {
-        const data = res.data as { contracts?: RahnContract[] };
-        if (data?.contracts) setContracts(data.contracts);
+        setContracts(unwrapRahnList<RahnContract>(res.data, 'contracts'));
       })
       .catch(() => undefined);
   }, []);
@@ -57,8 +75,7 @@ export function RahnStatementsTab({ settings }: Props) {
     void apiClient
       .get(`${RAHN_API}/statements`, { params: { contract_id: Number(contractId) } })
       .then((res) => {
-        const data = res.data as { statements?: Record<string, unknown>[] };
-        if (data?.statements) setHistory(data.statements);
+        setHistory(unwrapRahnList<Record<string, unknown>>(res.data, 'statements'));
       })
       .catch(() => undefined);
   }, [contractId]);
@@ -80,11 +97,13 @@ export function RahnStatementsTab({ settings }: Props) {
         X,
       });
       const data = res.data as {
-        bill: RahnBill;
-        review_alert: { message: string } | null;
+        bill?: RahnBill;
+        review_alert?: { message: string } | null;
+        data?: { bill?: RahnBill; review_alert?: { message: string } | null };
       };
-      setBill(data.bill);
-      setReviewAlert(data.review_alert?.message ?? null);
+      const payload = data.bill ? data : data.data;
+      if (payload?.bill) setBill(payload.bill);
+      setReviewAlert(payload?.review_alert?.message ?? null);
     } catch {
       toast.error(t('calcError'));
     }
@@ -103,18 +122,23 @@ export function RahnStatementsTab({ settings }: Props) {
         create_invoice: createInvoice,
       });
       const data = res.data as {
-        bill: RahnBill;
-        review_alert: { message: string } | null;
+        bill?: RahnBill;
+        review_alert?: { message: string } | null;
         message?: string;
+        data?: {
+          bill?: RahnBill;
+          review_alert?: { message: string } | null;
+          message?: string;
+        };
       };
-      setBill(data.bill);
-      setReviewAlert(data.review_alert?.message ?? null);
-      toast.success(data.message || t('statementSaved'));
+      const payload = data.bill ? data : data.data;
+      if (payload?.bill) setBill(payload.bill);
+      setReviewAlert(payload?.review_alert?.message ?? null);
+      toast.success(payload?.message || data.message || t('statementSaved'));
       const hist = await apiClient.get(`${RAHN_API}/statements`, {
         params: { contract_id: Number(contractId) },
       });
-      const histData = hist.data as { statements?: Record<string, unknown>[] };
-      if (histData?.statements) setHistory(histData.statements);
+      setHistory(unwrapRahnList<Record<string, unknown>>(hist.data, 'statements'));
     } catch {
       toast.error(t('saveError'));
     }
@@ -130,10 +154,10 @@ export function RahnStatementsTab({ settings }: Props) {
   ).filter(([key]) => settings.sales_definition[key]?.enabled);
 
   return (
-    <div className="grid gap-6 text-start lg:grid-cols-2" dir="rtl">
+    <div className="grid gap-6 text-right lg:grid-cols-2" dir="rtl">
       <Card>
         <CardHeader>
-          <CardTitle className="text-base">{t('monthlyBilling')}</CardTitle>
+          <CardTitle className="text-base text-right">{t('monthlyBilling')}</CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
           <div className="grid gap-2">
@@ -160,13 +184,22 @@ export function RahnStatementsTab({ settings }: Props) {
           ) : null}
           <div className="grid gap-2">
             <Label>{t('yearMonth')}</Label>
-            <Input type="month" value={yearMonth} onChange={(e) => setYearMonth(e.target.value)} />
+            <LocaleDatePicker
+              value={monthDay}
+              onChange={(iso) => setMonthDay(normalizeMonthDay(iso))}
+              placeholder={t('yearMonth')}
+            />
           </div>
           <div className="grid gap-3 sm:grid-cols-2">
             {salesFields.map(([key, val, setter]) => (
               <div key={key} className="grid gap-2">
                 <Label>{settings.sales_definition[key].label}</Label>
-                <Input type="number" value={val} onChange={(e) => setter(Number(e.target.value) || 0)} />
+                <Input
+                  type="number"
+                  dir="ltr"
+                  value={val}
+                  onChange={(e) => setter(Number(e.target.value) || 0)}
+                />
               </div>
             ))}
           </div>
@@ -195,29 +228,39 @@ export function RahnStatementsTab({ settings }: Props) {
         {bill ? (
           <Card>
             <CardHeader>
-              <CardTitle className="text-base">{t('result')}</CardTitle>
+              <CardTitle className="text-base text-right">{t('result')}</CardTitle>
             </CardHeader>
             <CardContent className="grid gap-3 sm:grid-cols-2">
               <div className="rounded-lg bg-muted/50 p-3">
                 <div className="text-xs text-muted-foreground">S_t</div>
-                <div className="text-xl font-semibold">{formatNumber(Math.round(bill.S))}</div>
+                <div className="text-xl font-semibold tabular-nums" dir="ltr">
+                  {formatNumber(Math.round(bill.S))}
+                </div>
               </div>
               <div className="rounded-lg bg-primary/10 p-3">
                 <div className="text-xs text-muted-foreground">V_t = F + p·S</div>
-                <div className="text-xl font-semibold">{formatNumber(Math.round(bill.V))}</div>
+                <div className="text-xl font-semibold tabular-nums" dir="ltr">
+                  {formatNumber(Math.round(bill.V))}
+                </div>
               </div>
               <div className="rounded-lg border p-3">
                 <div className="text-xs text-muted-foreground">F</div>
-                <div className="font-medium">{formatNumber(Math.round(bill.F))}</div>
+                <div className="font-medium tabular-nums" dir="ltr">
+                  {formatNumber(Math.round(bill.F))}
+                </div>
               </div>
               <div className="rounded-lg border p-3">
                 <div className="text-xs text-muted-foreground">p·S</div>
-                <div className="font-medium">{formatNumber(Math.round(bill.p_share))}</div>
+                <div className="font-medium tabular-nums" dir="ltr">
+                  {formatNumber(Math.round(bill.p_share))}
+                </div>
               </div>
               {typeof bill.Pi === 'number' ? (
                 <div className="rounded-lg border p-3 sm:col-span-2">
                   <div className="text-xs text-muted-foreground">Π_t</div>
-                  <div className="font-medium">{formatNumber(Math.round(bill.Pi))}</div>
+                  <div className="font-medium tabular-nums" dir="ltr">
+                    {formatNumber(Math.round(bill.Pi))}
+                  </div>
                 </div>
               ) : null}
             </CardContent>
@@ -226,23 +269,28 @@ export function RahnStatementsTab({ settings }: Props) {
 
         <Card>
           <CardHeader>
-            <CardTitle className="text-base">{t('history')}</CardTitle>
+            <CardTitle className="text-base text-right">{t('history')}</CardTitle>
           </CardHeader>
           <CardContent className="space-y-2">
             {history.length === 0 ? (
               <p className="text-sm text-muted-foreground">{t('noHistory')}</p>
             ) : (
-              history.map((row) => (
-                <div
-                  key={String(row.id)}
-                  className="flex items-center justify-between gap-2 rounded-lg border p-3 text-sm"
-                >
-                  <span>{String(row.year_month)}</span>
-                  <span className="font-medium tabular-nums">
-                    {formatNumber(Math.round(Number(row.V) || 0))}
-                  </span>
-                </div>
-              ))
+              history.map((row) => {
+                const ym = String(row.year_month ?? '');
+                const label = formatDate(normalizeMonthDay(ym)) || ym;
+                return (
+                  <div
+                    key={String(row.id)}
+                    className="flex items-center justify-between gap-2 rounded-lg border p-3 text-sm"
+                    dir="rtl"
+                  >
+                    <span>{label}</span>
+                    <span className="font-medium tabular-nums" dir="ltr">
+                      {formatNumber(Math.round(Number(row.V) || 0))}
+                    </span>
+                  </div>
+                );
+              })
             )}
           </CardContent>
         </Card>
