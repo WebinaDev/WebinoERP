@@ -402,8 +402,21 @@ class WebinocrmModirPayamakCompatController extends Controller
         return response()->json([
             'ok' => false,
             'unavailable' => true,
-            'message' => $message,
+            'message' => $this->publicSmsErrorMessage($message),
             'crm_status' => $crmStatus,
         ], 200);
+    }
+
+    protected function publicSmsErrorMessage(string $message): string
+    {
+        $trimmed = trim($message);
+        if ($trimmed === '') {
+            return 'SMS service is temporarily unavailable.';
+        }
+        if (preg_match('/SQLSTATE|Undefined table|relation\s+"|modirpayamak_|ippanel|stack\s+trace/i', $trimmed)) {
+            return 'SMS service is temporarily unavailable.';
+        }
+
+        return $trimmed;
     }
 }
