@@ -95,6 +95,38 @@ class ModirPayamakSiteSmsService
     }
 
     /**
+     * @return array<string, mixed>
+     */
+    public function getShopSettings(string $domain): array
+    {
+        $domain = $this->manager->normalizeDomain($domain);
+        $stored = IntegrationSetting::getJson('modirpayamak', $this->shopSettingsKey($domain), []);
+
+        return array_merge(['enabled' => true, 'events' => []], is_array($stored) ? $stored : []);
+    }
+
+    /**
+     * @param  array<string, mixed>  $input
+     * @return array<string, mixed>
+     */
+    public function saveShopSettings(string $domain, array $input): array
+    {
+        $domain = $this->manager->normalizeDomain($domain);
+        $out = $this->getShopSettings($domain);
+
+        foreach ($input as $k => $v) {
+            if (is_string($k) && ! in_array($k, ['domain', 'license_key', 'path', 'templates'], true)) {
+                $out[$k] = $v;
+            }
+        }
+        $out['enabled'] = (bool) ($out['enabled'] ?? true);
+
+        IntegrationSetting::putJson('modirpayamak', $this->shopSettingsKey($domain), $out);
+
+        return $out;
+    }
+
+    /**
      * @return list<array<string, mixed>>
      */
     public function listTemplates(string $domain, ?string $scope = null, ?string $eventKey = null): array
@@ -404,6 +436,11 @@ class ModirPayamakSiteSmsService
     protected function settingsKey(string $domain): string
     {
         return 'domain.'.$domain.'.site_settings';
+    }
+
+    protected function shopSettingsKey(string $domain): string
+    {
+        return 'domain.'.$domain.'.shop_settings';
     }
 
     protected function templatesKey(string $domain): string

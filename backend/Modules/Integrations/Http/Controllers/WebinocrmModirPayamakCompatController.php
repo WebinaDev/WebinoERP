@@ -100,17 +100,21 @@ class WebinocrmModirPayamakCompatController extends Controller
     protected function shopSettings(Request $request, string $domain): JsonResponse
     {
         if ($request->isMethod('post') || $request->isMethod('put') || $request->isMethod('patch')) {
-            return $this->ok(['saved' => true, 'settings' => []]);
+            $body = $request->all();
+            $input = is_array($body['settings'] ?? null) ? $body['settings'] : [];
+            $settings = $this->siteSms->saveShopSettings($domain, $input);
+            $templates = is_array($body['templates'] ?? null)
+                ? $this->siteSms->saveTemplates($domain, $body['templates'])
+                : $this->siteSms->listTemplates($domain);
+
+            return $this->ok(['saved' => true, 'settings' => $settings, 'templates' => $templates]);
         }
 
         return $this->ok([
             'provider' => 'modirpayamak',
-            'settings' => [
-                'enabled' => true,
-                'events' => [],
-            ],
+            'settings' => $this->siteSms->getShopSettings($domain),
             'event_keys' => $this->manager::ORDER_EVENTS,
-            'templates' => [],
+            'templates' => $this->siteSms->listTemplates($domain),
             'shortcodes' => [],
             'registry' => $this->siteSms->listRegistry($domain),
         ]);
@@ -252,7 +256,7 @@ class WebinocrmModirPayamakCompatController extends Controller
         $segments = explode('/', $path);
         $resource = $segments[0] ?? '';
 
-        $response = match ($resource) {
+        $response = $path === 'reports/inbox' ? $this->forwardAdmin($request, $path) : match ($resource) {
             'account', 'packages', 'topup', 'send', 'reports', 'patterns', 'numbers', 'phonebooks' => $this->forwardCustomer($request, $path),
             'secretaries', 'orders' => $this->forwardAdmin($request, $path),
             default => null,
