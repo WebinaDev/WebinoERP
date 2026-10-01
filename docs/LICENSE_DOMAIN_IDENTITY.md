@@ -61,3 +61,13 @@ A license registered as `bluecafe.webinaagency.ir` also matches checks for `blue
 Full URL example: `POST https://webinaagency.ir/api/webinocrm/v1/license/check` with JSON `{ "domain", "product", "ts" }` (signature optional).
 
 Same-VPS uses Docker DNS so license checks do **not** hairpin through the public CDN. ERP `backend` must join `webino_sites` with alias `erp-backend` (see `docker-compose.yml`).
+
+## Bootstrap note (HTTP 500 / «CRM license check failed»)
+
+`spatie/laravel-backup` vendor config references `ZipArchive::CM_*` while merging config.
+If PHP `ext-zip` is missing, **every** Laravel request (including `POST /api/webinocrm/v1/license/check`) fatals with `Class "ZipArchive" not found` — CDN then shows «Upstream Error».
+
+Mitigation in this repo:
+- `spatie/laravel-backup` is in Composer `dont-discover`
+- `AppServiceProvider` registers `BackupServiceProvider` only when `ZipArchive` exists
+- Docker PHP images install `zip`; keep that in platform images

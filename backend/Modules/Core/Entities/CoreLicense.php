@@ -73,6 +73,12 @@ class CoreLicense extends Model
         return self::$presentColumns;
     }
 
+    /** Clear cached column list (tests / after migrate). */
+    public static function forgetPresentColumns(): void
+    {
+        self::$presentColumns = null;
+    }
+
     public function creator(): BelongsTo
     {
         return $this->belongsTo(User::class, 'created_by');

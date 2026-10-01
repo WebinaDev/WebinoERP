@@ -43,6 +43,13 @@ class AppServiceProvider extends ServiceProvider
         if ($this->app->environment('local') && class_exists(\Laravel\Telescope\TelescopeServiceProvider::class)) {
             $this->app->register(\Laravel\Telescope\TelescopeServiceProvider::class);
         }
+
+        // Spatie backup vendor config references ZipArchive::CM_* at merge time.
+        // Without ext-zip that fatals during bootstrap and every route (incl. license/check) 500s.
+        // Package is in dont-discover; register only when the extension is present.
+        if (class_exists(\ZipArchive::class) && class_exists(\Spatie\Backup\BackupServiceProvider::class)) {
+            $this->app->register(\Spatie\Backup\BackupServiceProvider::class);
+        }
     }
 
     public function boot(): void

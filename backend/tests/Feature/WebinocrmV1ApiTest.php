@@ -203,4 +203,64 @@ class WebinocrmV1ApiTest extends TestCase
             ->assertJsonPath('data.status', 'active')
             ->assertJsonPath('data.valid', true);
     }
+
+    public function test_license_check_unsigned_bluecafe_does_not_500(): void
+    {
+        // Regression: Dashboard posts unsigned domain+product+ts; ERP must not 500
+        // (historically Spatie backup ZipArchive::CM_* fatals during bootstrap without ext-zip).
+        if (! class_exists(\ZipArchive::class)) {
+            $this->assertArrayNotHasKey(
+                \Spatie\Backup\BackupServiceProvider::class,
+                $this->app->getLoadedProviders(),
+                'BackupServiceProvider must not be loaded when ZipArchive is missing'
+            );
+        }
+
+        $ts = time();
+        $this->postJson('/api/webinocrm/v1/license/check', [
+            'domain' => 'bluecafe.webinaagency.ir',
+            'product' => 'webinodashboard',
+            'ts' => $ts,
+        ])->assertOk()
+            ->assertJsonPath('data.domain', 'bluecafe.webinaagency.ir')
+            ->assertJsonPath('data.product', 'webinodashboard')
+            ->assertJsonStructure(['data' => ['status', 'valid', 'domain', 'product']]);
+    }
+
+    public function test_license_check_survives_missing_product_column(): void
+    {
+        // If domain+product migration not applied, resolver must not SQL-error on product.
+        \Illuminate\Support\Facades\Schema::table('core_licenses', function (\Illuminate\Database\Schema\Blueprint $table) {
+            try {
+                $table->dropUnique('core_licenses_domain_product_unique');
+            } catch (\Throwable) {
+            }
+        });
+        \Illuminate\Support\Facades\Schema::table('core_licenses', function (\Illuminate\Database\Schema\Blueprint $table) {
+            if (\Illuminate\Support\Facades\Schema::hasColumn('core_licenses', 'product')) {
+                $table->dropColumn('product');
+            }
+        });
+        \Modules\Core\Entities\CoreLicense::forgetPresentColumns();
+
+        \Modules\Core\Entities\CoreLicense::query()->create(
+            \Modules\Core\Entities\CoreLicense::attributesForSchema([
+                'license_key' => 'dom:bluecafe.webinaagency.ir',
+                'project_name' => 'Bluecafe',
+                'domain' => 'bluecafe.webinaagency.ir',
+                'status' => 'active',
+                'start_date' => now()->toDateString(),
+                'expires_at' => now()->addYear(),
+                'meta' => ['modules' => ['shop']],
+            ])
+        );
+
+        $this->postJson('/api/webinocrm/v1/license/check', [
+            'domain' => 'bluecafe.webinaagency.ir',
+            'product' => 'webinodashboard',
+            'ts' => time(),
+        ])->assertOk()
+            ->assertJsonPath('data.status', 'active')
+            ->assertJsonPath('data.valid', true);
+    }
 }

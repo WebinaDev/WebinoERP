@@ -2,6 +2,7 @@
 
 namespace Modules\Core\Services;
 
+use Illuminate\Support\Facades\Schema;
 use Modules\Core\Entities\CoreLicense;
 
 /**
@@ -104,30 +105,36 @@ final class CoreLicenseResolver
 
         $product = self::normalizeProduct($product);
         $candidates = self::relatedDomains($domain);
+        $hasProduct = Schema::hasTable('core_licenses')
+            && Schema::hasColumn('core_licenses', 'product');
 
-        foreach ($candidates as $host) {
-            $base = CoreLicense::query()->where('domain', $host);
-
-            $exact = (clone $base)->where('product', $product)->orderByDesc('id')->first();
-            if ($exact) {
-                return $exact;
-            }
-        }
-
-        if ($product !== 'webino') {
+        if ($hasProduct) {
             foreach ($candidates as $host) {
-                $fallback = CoreLicense::query()
+                $exact = CoreLicense::query()
                     ->where('domain', $host)
-                    ->where('product', 'webino')
+                    ->where('product', $product)
                     ->orderByDesc('id')
                     ->first();
-                if ($fallback) {
-                    return $fallback;
+                if ($exact) {
+                    return $exact;
+                }
+            }
+
+            if ($product !== 'webino') {
+                foreach ($candidates as $host) {
+                    $fallback = CoreLicense::query()
+                        ->where('domain', $host)
+                        ->where('product', 'webino')
+                        ->orderByDesc('id')
+                        ->first();
+                    if ($fallback) {
+                        return $fallback;
+                    }
                 }
             }
         }
 
-        // Pre-migration rows or legacy single-domain licenses (any product).
+        // Pre-migration rows (no product column) or legacy single-domain licenses (any product).
         foreach ($candidates as $host) {
             $any = CoreLicense::query()->where('domain', $host)->orderByDesc('id')->first();
             if ($any) {
