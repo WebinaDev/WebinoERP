@@ -3202,6 +3202,7 @@
     "controlSslUnknown": "Unknown",
     "controlDiagnostics": "Logs & diagnostics",
     "controlDiagnosticsHint": "Docker stack health, Caddy→backend reachability, and compose logs — copy for debugging login/502.",
+    "controlLoadDiagnostics": "Load stack diagnostics",
     "controlStackHealth": "Stack health",
     "controlDbAuth": "DB auth with .env password",
     "controlBackendSelf": "Backend self (is the app up?)",

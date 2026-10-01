@@ -645,28 +645,34 @@ class LocalSameVpsProvisioner
      *   log:string
      * }
      */
-    public function stackDiagnostics(WebinoSiteProvision $provision): array
+    public function stackDiagnostics(WebinoSiteProvision $provision, float $budgetSeconds = 120): array
     {
         $project = TenantSiteStack::projectName($provision->slug);
         $backend = TenantSiteStack::backendService($provision->slug);
         $frontend = TenantSiteStack::frontendService($provision->slug);
         $db = $project.'-db';
         $redis = $project.'-redis';
+        $deadline = microtime(true) + max(2.0, $budgetSeconds);
 
         $containers = [];
         $lines = [];
         foreach ([$backend, $frontend, $db, $redis] as $name) {
+            if (microtime(true) >= $deadline) {
+                $lines[] = 'truncated: soft budget exhausted during container inspect';
+                break;
+            }
+            $t = max(2, min(15, (int) floor($deadline - microtime(true))));
             $status = $this->run([
                 'docker', 'inspect', '-f', '{{.State.Status}}', $name,
-            ], 15);
+            ], $t);
             $nets = $this->run([
                 'docker', 'inspect', '-f',
                 '{{range $k, $v := .NetworkSettings.Networks}}{{$k}} {{end}}',
                 $name,
-            ], 15);
+            ], $t);
             $restarts = $this->run([
                 'docker', 'inspect', '-f', '{{.RestartCount}}', $name,
-            ], 15);
+            ], $t);
             $statusStr = $status['exit_code'] === 0 ? trim($status['stdout']) : 'missing';
             $netList = preg_split('/\s+/', trim($nets['stdout'] ?? '')) ?: [];
             $netList = array_values(array_filter($netList, fn ($n) => $n !== ''));
@@ -690,9 +696,35 @@ class LocalSameVpsProvisioner
         $lines[] = 'on_webino_sites backend='.($onSites['backend'] ? 'yes' : 'no')
             .' frontend='.($onSites['frontend'] ? 'yes' : 'no');
 
+        if (microtime(true) >= $deadline) {
+            $lines[] = 'truncated: soft budget exhausted; skipped deep probes';
+
+            return [
+                'project' => $project,
+                'containers' => $containers,
+                'on_webino_sites' => $onSites,
+                'db_auth_ok' => false,
+                'backend_self' => false,
+                'readiness_ok' => false,
+                'caddy_snippet_ok' => false,
+                'caddy_config_has_upstream' => false,
+                'caddy_exec_to_backend' => false,
+                'redis_ok' => false,
+                'env_pw_fp' => '',
+                'backend_pw_fp' => '',
+                'caddy_to_backend' => false,
+                'frontend_to_backend' => false,
+                'app_log' => '',
+                'log' => implode("\n", $lines),
+            ];
+        }
+
         $envPassword = $this->readEnvMap($this->siteDir($provision).'/.env')['DB_PASSWORD'] ?? '';
         $envPwFp = $this->passwordFingerprint($envPassword);
-        $backendPw = $this->run(['docker', 'exec', $backend, 'printenv', 'DB_PASSWORD'], 15);
+        $backendPw = $this->run(
+            ['docker', 'exec', $backend, 'printenv', 'DB_PASSWORD'],
+            max(2, min(15, (int) floor($deadline - microtime(true))))
+        );
         $backendPwFp = 'unavailable';
         if ($backendPw['exit_code'] === 0) {
             $backendPwFp = $this->passwordFingerprint(rtrim($backendPw['stdout'], "\r\n"));
@@ -700,16 +732,28 @@ class LocalSameVpsProvisioner
         $fpMatch = ($backendPwFp !== 'unavailable' && $envPwFp === $backendPwFp) ? 'yes' : 'no';
         $lines[] = 'db password fp env='.$envPwFp.' backend='.$backendPwFp.' match='.$fpMatch;
 
-        $dbAuthOk = $this->probeDatabaseAuth($provision);
+        if (microtime(true) >= $deadline) {
+            $lines[] = 'truncated: soft budget exhausted before deep probes';
+        }
+
+        $dbAuthOk = microtime(true) < $deadline ? $this->probeDatabaseAuth($provision) : false;
         $lines[] = 'db auth with .env password: '.($dbAuthOk ? 'ok' : 'FAIL');
 
-        $redisProbe = $this->probeBackendRedis($backend);
+        $redisProbe = microtime(true) < $deadline
+            ? $this->probeBackendRedis($backend)
+            : ['ok' => false, 'detail' => 'skipped'];
         $redisOk = $redisProbe['ok'];
         $lines[] = 'redis (ext+cache from backend): '
             .($redisOk ? 'ok' : 'FAIL')
             .($redisProbe['detail'] !== '' ? ' '.$redisProbe['detail'] : '');
 
-        $selfProbe = $this->probeHttp($backend, 'http://127.0.0.1:8080/api/v1/health/metrics');
+        $selfProbe = microtime(true) < $deadline
+            ? $this->probeHttp(
+                $backend,
+                'http://127.0.0.1:8080/api/v1/health/metrics',
+                max(5, min(20, (int) floor($deadline - microtime(true))))
+            )
+            : ['status' => 0, 'body' => '', 'error' => 'skipped'];
         $backendSelf = $selfProbe['status'] >= 200
             && $selfProbe['status'] < 300
             && str_contains($selfProbe['body'], 'data');
@@ -727,23 +771,31 @@ class LocalSameVpsProvisioner
                 .' pgsql='.($hasPgsql ? 'yes' : 'NO');
         }
 
-        $readiness = $this->probeBackendReadiness($backend);
+        $readiness = microtime(true) < $deadline
+            ? $this->probeBackendReadiness($backend)
+            : ['ok' => false, 'detail' => 'skipped'];
         $readinessOk = $readiness['ok'];
         $lines[] = 'backend_readiness (db/redis/queue): '
             .($readinessOk ? 'ok' : 'FAIL')
             .($readiness['detail'] !== '' ? ' '.$readiness['detail'] : '');
 
-        $caddySnippetOk = $this->caddyContainerSeesSnippet($provision->slug);
+        $caddySnippetOk = microtime(true) < $deadline
+            ? $this->caddyContainerSeesSnippet($provision->slug)
+            : false;
         $lines[] = 'caddy_snippet_ok (/etc/caddy/sites/'.$provision->slug.'.caddy): '
             .($caddySnippetOk ? 'yes' : 'no');
 
         $upstream = $backend.':8080';
-        $caddyConfigHasUpstream = $this->caddyConfigHasUpstream($upstream);
+        $caddyConfigHasUpstream = microtime(true) < $deadline
+            ? $this->caddyConfigHasUpstream($upstream)
+            : false;
         $lines[] = 'caddy_config_has_upstream ('.$upstream.'): '
             .($caddyConfigHasUpstream ? 'yes' : 'no');
 
         $healthUrl = 'http://'.$backend.':8080/api/v1/health/metrics';
-        $caddyExecProbe = $this->probeFromCaddyContainerDetailed($healthUrl);
+        $caddyExecProbe = microtime(true) < $deadline
+            ? $this->probeFromCaddyContainerDetailed($healthUrl)
+            : ['status' => 0, 'body' => '', 'error' => 'skipped'];
         $caddyExecToBackend = $caddyExecProbe['status'] >= 200
             && $caddyExecProbe['status'] < 300
             && str_contains($caddyExecProbe['body'], 'data');
@@ -751,10 +803,18 @@ class LocalSameVpsProvisioner
             .($caddyExecToBackend ? 'ok' : 'FAIL')
             .' '.$this->formatProbeSummary($caddyExecProbe);
 
-        $caddyToBackend = $this->probeOnProxyNetwork($healthUrl);
+        $caddyToBackend = microtime(true) < $deadline
+            ? $this->probeOnProxyNetwork($healthUrl)
+            : false;
         $lines[] = 'caddy→'.$backend.'/api/v1/health/metrics: '.($caddyToBackend ? 'ok' : 'FAIL');
 
-        $feProbe = $this->probeHttp($frontend, 'http://backend:8080/api/v1/health/metrics');
+        $feProbe = microtime(true) < $deadline
+            ? $this->probeHttp(
+                $frontend,
+                'http://backend:8080/api/v1/health/metrics',
+                max(5, min(20, (int) floor($deadline - microtime(true))))
+            )
+            : ['status' => 0, 'body' => '', 'error' => 'skipped'];
         $frontendToBackend = $feProbe['status'] >= 200
             && $feProbe['status'] < 300
             && str_contains($feProbe['body'], 'data');
@@ -762,7 +822,7 @@ class LocalSameVpsProvisioner
             .($frontendToBackend ? 'ok' : 'FAIL')
             .' '.$this->formatProbeSummary($feProbe);
 
-        $appLog = $this->tailBackendErrors($backend);
+        $appLog = microtime(true) < $deadline ? $this->tailBackendErrors($backend) : '';
         if ($appLog !== '') {
             $lines[] = '--- app_errors ---';
             $lines[] = $appLog;

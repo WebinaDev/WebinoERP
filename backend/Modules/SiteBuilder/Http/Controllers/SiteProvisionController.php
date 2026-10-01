@@ -483,7 +483,21 @@ class SiteProvisionController extends Controller
         }
         $channel = (string) (($wizard['channel'] ?? null) ?: 'beta');
         $orchestrator = app(SiteProvisionOrchestrator::class);
-        $powerState = $orchestrator->powerState($siteProvision);
+
+        // Axios client times out at 15s. Docker/SSH diagnostics routinely exceed that
+        // (many inspect/exec probes at 15–20s each). Keep the core panel payload fast;
+        // heavy probes are opt-in via ?light=0 and soft-budgeted below.
+        $includeDiagnostics = ! filter_var($request->query('light', true), FILTER_VALIDATE_BOOLEAN);
+        $startedAt = microtime(true);
+        // Leave headroom under the 15s frontend timeout for JSON encode + network.
+        $deadline = $startedAt + ($includeDiagnostics ? 10.0 : 4.0);
+
+        $powerState = 'unknown';
+        try {
+            $powerState = $orchestrator->powerState($siteProvision);
+        } catch (Throwable $e) {
+            report($e);
+        }
 
         $ssl = [
             'ssl_status' => null,
@@ -491,11 +505,29 @@ class SiteProvisionController extends Controller
             'domain' => $siteProvision->domain,
             'log' => null,
         ];
+        // DB / wizard snapshot — no docker. Always safe for light panel load.
         try {
-            $ssl = $orchestrator->sslInfo($siteProvision);
+            $domain = (string) ($siteProvision->domain ?? '');
+            $stored = is_array($wizard['ssl'] ?? null) ? $wizard['ssl'] : [];
+            $row = null;
+            if ($domain !== '') {
+                $row = \Modules\Platform\Entities\PlatformDomain::query()->where('domain', $domain)->first();
+            }
+            $ssl['ssl_status'] = $row?->ssl_status ?? ($stored['ssl_status'] ?? null);
+            $ssl['expires_at'] = $stored['expires_at'] ?? null;
+            $ssl['log'] = isset($stored['log']) ? (string) $stored['log'] : null;
         } catch (Throwable $e) {
             report($e);
             $ssl['log'] = $e->getMessage();
+        }
+
+        if ($includeDiagnostics && microtime(true) < $deadline) {
+            try {
+                $ssl = $orchestrator->sslInfo($siteProvision);
+            } catch (Throwable $e) {
+                report($e);
+                $ssl['log'] = $e->getMessage();
+            }
         }
 
         $stack = [
@@ -506,13 +538,17 @@ class SiteProvisionController extends Controller
             'frontend_to_backend' => false,
             'log' => null,
         ];
-        $includeDiagnostics = ! filter_var($request->query('light', false), FILTER_VALIDATE_BOOLEAN);
         if ($includeDiagnostics) {
-            try {
-                $stack = $orchestrator->stackDiagnostics($siteProvision);
-            } catch (Throwable $e) {
-                report($e);
-                $stack['log'] = $e->getMessage();
+            if (microtime(true) < $deadline) {
+                try {
+                    $budget = max(1.0, $deadline - microtime(true));
+                    $stack = $orchestrator->stackDiagnostics($siteProvision, $budget);
+                } catch (Throwable $e) {
+                    report($e);
+                    $stack['log'] = $e->getMessage();
+                }
+            } else {
+                $stack['log'] = 'Skipped stack diagnostics: soft deadline to stay under client timeout.';
             }
         }
 

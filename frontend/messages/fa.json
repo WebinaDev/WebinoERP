@@ -3201,6 +3201,7 @@
     "controlSslUnknown": "نامشخص",
     "controlDiagnostics": "لاگ و تشخیص",
     "controlDiagnosticsHint": "سلامت استک Docker، دسترسی Caddy به بک‌اند، و لاگ compose — برای دیباگ لاگین/۵۰۲ کپی کنید.",
+    "controlLoadDiagnostics": "بارگذاری تشخیص استک",
     "controlStackHealth": "سلامت استک",
     "controlDbAuth": "احراز هویت دیتابیس با رمز .env",
     "controlBackendSelf": "بک‌اند از داخل خودش (اپ بالا است؟)",

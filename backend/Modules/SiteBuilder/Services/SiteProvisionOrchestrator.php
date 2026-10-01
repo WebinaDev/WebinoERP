@@ -305,12 +305,12 @@ class SiteProvisionOrchestrator
     /**
      * @return array<string, mixed>
      */
-    public function stackDiagnostics(WebinoSiteProvision $provision): array
+    public function stackDiagnostics(WebinoSiteProvision $provision, float $budgetSeconds = 120): array
     {
         try {
             return $this->shouldUseLocal($provision)
-                ? $this->local->stackDiagnostics($provision)
-                : $this->remote->stackDiagnostics($provision);
+                ? $this->local->stackDiagnostics($provision, $budgetSeconds)
+                : $this->remote->stackDiagnostics($provision, $budgetSeconds);
         } catch (Throwable $e) {
             report($e);
 

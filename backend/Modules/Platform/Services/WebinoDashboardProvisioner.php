@@ -336,13 +336,14 @@ class WebinoDashboardProvisioner
     /**
      * @return array<string, mixed>
      */
-    public function stackDiagnostics(WebinoSiteProvision $provision): array
+    public function stackDiagnostics(WebinoSiteProvision $provision, float $budgetSeconds = 120): array
     {
         $project = TenantSiteStack::projectName($provision->slug);
         $backend = TenantSiteStack::backendService($provision->slug);
         $frontend = TenantSiteStack::frontendService($provision->slug);
         $db = $project.'-db';
         $redis = $project.'-redis';
+        $deadline = microtime(true) + max(2.0, $budgetSeconds);
 
         try {
             $server = $this->serverFor($provision);
@@ -360,20 +361,24 @@ class WebinoDashboardProvisioner
 
         $containers = [];
         foreach ([$backend, $frontend, $db, $redis] as $name) {
+            if (microtime(true) >= $deadline) {
+                break;
+            }
+            $t = max(2, min(15, (int) floor($deadline - microtime(true))));
             $status = $this->docker->sshRun(
                 $server,
                 'docker inspect -f "{{.State.Status}}" '.escapeshellarg($name).' 2>/dev/null || echo missing',
-                15
+                $t
             );
             $nets = $this->docker->sshRun(
                 $server,
                 'docker inspect -f "{{range \$k,\$v := .NetworkSettings.Networks}}{{\$k}} {{end}}" '.escapeshellarg($name).' 2>/dev/null || true',
-                15
+                $t
             );
             $restarts = $this->docker->sshRun(
                 $server,
                 'docker inspect -f "{{.RestartCount}}" '.escapeshellarg($name).' 2>/dev/null || echo 0',
-                15
+                $t
             );
             $netList = array_values(array_filter(preg_split('/\s+/', trim($nets['stdout'])) ?: []));
             $containers[$name] = [
@@ -385,15 +390,18 @@ class WebinoDashboardProvisioner
 
         $onBackend = in_array('webino_sites', $containers[$backend]['networks'] ?? [], true);
         $onFrontend = in_array('webino_sites', $containers[$frontend]['networks'] ?? [], true);
-        $snippetOk = $this->caddyContainerSeesSnippet($server, $provision->slug);
-
-        $caddyProbe = $this->docker->sshRun(
-            $server,
-            $this->caddyExecPrefix($server)
-            .'wget -q -O - --timeout=5 http://'.$backend.':8080/api/v1/health/metrics 2>/dev/null | head -c 80 || true',
-            30
-        );
-        $caddyToBackend = trim($caddyProbe['stdout']) !== '';
+        $snippetOk = false;
+        $caddyToBackend = false;
+        if (microtime(true) < $deadline) {
+            $snippetOk = $this->caddyContainerSeesSnippet($server, $provision->slug);
+            $caddyProbe = $this->docker->sshRun(
+                $server,
+                $this->caddyExecPrefix($server)
+                .'wget -q -O - --timeout=5 http://'.$backend.':8080/api/v1/health/metrics 2>/dev/null | head -c 80 || true',
+                max(5, min(30, (int) floor($deadline - microtime(true))))
+            );
+            $caddyToBackend = trim($caddyProbe['stdout']) !== '';
+        }
 
         return [
             'project' => $project,

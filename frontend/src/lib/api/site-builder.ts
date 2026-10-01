@@ -234,8 +234,15 @@ export async function fetchProvision(id: number) {
   return unwrapData<SiteProvision>(res);
 }
 
-export async function fetchProvisionControl(id: number) {
-  const res = await apiClient.get(`${BASE}/provisions/${id}/control`);
+export async function fetchProvisionControl(
+  id: number,
+  opts?: { light?: boolean; timeoutMs?: number },
+) {
+  const light = opts?.light !== false; // default light=true — skip docker/SSH diagnostics
+  const res = await apiClient.get(`${BASE}/provisions/${id}/control`, {
+    params: { light: light ? 1 : 0 },
+    timeout: opts?.timeoutMs,
+  });
   return unwrapData<SiteControlPayload>(res);
 }
 

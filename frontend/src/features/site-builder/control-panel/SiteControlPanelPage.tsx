@@ -109,6 +109,8 @@ export function SiteControlPanelPage({ id }: { id: string }) {
   const provisionId = Number(id);
   const [data, setData] = useState<SiteControlPayload | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [diagBusy, setDiagBusy] = useState(false);
   const [busy, setBusy] = useState<string | null>(null);
   const [msg, setMsg] = useState<string | null>(null);
 
@@ -125,23 +127,46 @@ export function SiteControlPanelPage({ id }: { id: string }) {
   const [composeLogs, setComposeLogs] = useState('');
   const [logsBusy, setLogsBusy] = useState(false);
 
+  const applyControl = useCallback((ctrl: SiteControlPayload) => {
+    setData(ctrl);
+    setAdminName(ctrl.admin?.name ?? '');
+    setAdminEmail(ctrl.admin?.email ?? '');
+    setDomain(ctrl.provision?.domain ?? '');
+    setLogoUrl(ctrl.license?.logo_url ?? String(ctrl.provision?.wizard_payload?.logo_url ?? ''));
+    setSiteName(String(ctrl.provision?.wizard_payload?.site_name ?? ctrl.license?.project_name ?? ''));
+    setExpiresAt(ctrl.license?.expires_at ? ctrl.license.expires_at.slice(0, 10) : '');
+    setStartDate(ctrl.license?.start_date ?? '');
+  }, []);
+
+  /** Light load: identity / license / modules / power — no docker diagnostics (avoids 15s axios timeout). */
   const load = useCallback(async () => {
     if (!Number.isFinite(provisionId)) return;
     setError(null);
+    setLoading(true);
     try {
-      const ctrl = await fetchProvisionControl(provisionId);
-      setData(ctrl);
-      setAdminName(ctrl.admin?.name ?? '');
-      setAdminEmail(ctrl.admin?.email ?? '');
-      setDomain(ctrl.provision?.domain ?? '');
-      setLogoUrl(ctrl.license?.logo_url ?? String(ctrl.provision?.wizard_payload?.logo_url ?? ''));
-      setSiteName(String(ctrl.provision?.wizard_payload?.site_name ?? ctrl.license?.project_name ?? ''));
-      setExpiresAt(ctrl.license?.expires_at ? ctrl.license.expires_at.slice(0, 10) : '');
-      setStartDate(ctrl.license?.start_date ?? '');
+      const ctrl = await fetchProvisionControl(provisionId, { light: true });
+      applyControl(ctrl);
     } catch (e) {
       setError(getAxiosMessage(e) || t('loadError'));
+    } finally {
+      setLoading(false);
     }
-  }, [provisionId, t]);
+  }, [applyControl, provisionId, t]);
+
+  /** Full diagnostics (docker/SSH) — soft-fails; keeps existing panel data on timeout. */
+  const loadDiagnostics = useCallback(async () => {
+    if (!Number.isFinite(provisionId)) return;
+    setDiagBusy(true);
+    setError(null);
+    try {
+      const ctrl = await fetchProvisionControl(provisionId, { light: false, timeoutMs: 60_000 });
+      applyControl(ctrl);
+    } catch (e) {
+      setError(getAxiosMessage(e) || t('loadError'));
+    } finally {
+      setDiagBusy(false);
+    }
+  }, [applyControl, provisionId, t]);
 
   const loadLogs = useCallback(async () => {
     if (!Number.isFinite(provisionId)) return;
@@ -321,13 +346,30 @@ export function SiteControlPanelPage({ id }: { id: string }) {
         </div>
       </div>
 
-      {error ? <p className="text-destructive text-sm whitespace-pre-wrap">{error}</p> : null}
+      {error ? (
+        <div className="border-destructive/40 bg-destructive/5 flex flex-wrap items-center gap-3 rounded-lg border p-3 text-sm">
+          <p className="text-destructive flex-1 whitespace-pre-wrap">{error}</p>
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            className="gap-1.5"
+            disabled={loading || diagBusy}
+            onClick={() => void load()}
+          >
+            {loading ? <Loader2 className="size-3.5 animate-spin" /> : <RefreshCw className="size-3.5" />}
+            {t('retry')}
+          </Button>
+        </div>
+      ) : null}
       {msg ? <p className="text-sm text-emerald-600">{msg}</p> : null}
-      {!data ? (
+      {loading && !data ? (
         <div className="text-muted-foreground flex items-center gap-2 text-sm">
           <Loader2 className="size-4 animate-spin" />
           {t('loading')}
         </div>
+      ) : !data ? (
+        <p className="text-muted-foreground text-sm">{t('loadError')}</p>
       ) : (
         <div className="grid gap-4 xl:grid-cols-2">
           <Section icon={Power} title={t('controlPower')} description={t('controlPowerHint')} testId="control-power">
@@ -809,6 +851,17 @@ export function SiteControlPanelPage({ id }: { id: string }) {
               </pre>
             ) : null}
             <div className="flex flex-wrap gap-2">
+              <Button
+                type="button"
+                variant="secondary"
+                className="gap-1.5"
+                disabled={busy !== null || logsBusy || diagBusy || loading}
+                data-testid="control-load-diagnostics"
+                onClick={() => void loadDiagnostics()}
+              >
+                {diagBusy ? <Loader2 className="size-4 animate-spin" /> : <RefreshCw className="size-4" />}
+                {t('controlLoadDiagnostics')}
+              </Button>
               <Button
                 type="button"
                 variant="default"
