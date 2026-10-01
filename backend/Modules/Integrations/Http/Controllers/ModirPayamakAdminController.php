@@ -745,4 +745,278 @@ class ModirPayamakAdminController extends Controller
 
         return response()->json(['data' => ['messages' => $rows]]);
     }
+
+    /**
+     * Process inbox against domain secretary rules and send replies via Edge.
+     *
+     * @return JsonResponse
+     */
+    public function secretariesProcess(Request $request): JsonResponse
+    {
+        $domain = $this->manager->normalizeDomain((string) ($request->input('domain') ?? $request->query('domain', '')));
+        if ($domain === '') {
+            return response()->json(['message' => 'Domain is required'], 422);
+        }
+        if (! filter_var(env('MODIRPAYAMAK_MOCK', false), FILTER_VALIDATE_BOOLEAN) && ! $this->edge->isConfigured()) {
+            return response()->json([
+                'message' => 'ModirPayamak Edge is not configured; secretaries cannot process inbox.',
+                'unavailable' => true,
+                'processed' => 0,
+                'matched' => 0,
+                'replied' => 0,
+                'results' => [],
+            ], 503);
+        }
+
+        $rules = ModirPayamakSecretary::query()
+            ->where('domain', $domain)
+            ->where('enabled', true)
+            ->orderBy('id')
+            ->get();
+
+        if ($rules->isEmpty()) {
+            return response()->json([
+                'data' => [
+                    'ok' => true,
+                    'processed' => 0,
+                    'matched' => 0,
+                    'replied' => 0,
+                    'results' => [],
+                    'reason' => 'no_rules',
+                ],
+            ]);
+        }
+
+        $inbox = $this->edge->reportInbox(1, 100);
+        if (! ($inbox['ok'] ?? false)) {
+            return response()->json([
+                'message' => $inbox['message'] ?: 'Inbox unavailable',
+                'unavailable' => true,
+                'processed' => 0,
+                'matched' => 0,
+                'replied' => 0,
+                'results' => [],
+                'reason' => 'inbox_unavailable',
+            ], 503);
+        }
+
+        $data = is_array($inbox['data']) ? $inbox['data'] : [];
+        $messages = $data['entries'] ?? $data['messages'] ?? $data['data'] ?? [];
+        if (! is_array($messages)) {
+            $messages = [];
+        }
+        $messages = array_values(array_filter($messages, 'is_array'));
+
+        $processed = 0;
+        $matched = 0;
+        $replied = 0;
+        $results = [];
+        $fromNumber = $this->edge->defaultFrom();
+
+        foreach ($messages as $msg) {
+            $text = (string) ($msg['message'] ?? $msg['text'] ?? $msg['body'] ?? '');
+            $from = (string) ($msg['from'] ?? $msg['sender'] ?? $msg['recipient'] ?? '');
+            $processed++;
+
+            $rule = null;
+            foreach ($rules as $candidate) {
+                if ($this->secretaryMatches($candidate->keywords ?? '*', $text)) {
+                    $rule = $candidate;
+                    break;
+                }
+            }
+            if (! $rule) {
+                continue;
+            }
+            $matched++;
+
+            [$to, $reply] = $this->secretaryAction($rule, $from, $text);
+            $ok = false;
+            $error = null;
+            if ($to === '' || $reply === '') {
+                $error = $to === '' ? 'no_target' : 'empty_reply';
+            } else {
+                if (filled($rule->pattern_code)) {
+                    $send = $this->edge->sendPattern($fromNumber, (string) $rule->pattern_code, [$to], [
+                        'message' => $text,
+                        'phone' => $from,
+                    ]);
+                } else {
+                    $send = $this->edge->sendWebservice($fromNumber, $reply, [$to]);
+                }
+                $ok = (bool) ($send['ok'] ?? false);
+                $error = $ok ? null : (string) ($send['message'] ?? 'send_failed');
+            }
+            if ($ok) {
+                $replied++;
+            }
+            $results[] = [
+                'rule_id' => $rule->id,
+                'type' => $rule->type,
+                'phone' => $to,
+                'ok' => $ok,
+                'error' => $error,
+            ];
+        }
+
+        $out = [
+            'ok' => true,
+            'processed' => $processed,
+            'matched' => $matched,
+            'replied' => $replied,
+            'results' => $results,
+        ];
+        if ($processed === 0) {
+            $out['reason'] = 'no_messages';
+        } elseif ($matched === 0) {
+            $out['reason'] = 'no_match';
+        }
+
+        return response()->json(['data' => $out]);
+    }
+
+    /**
+     * Send order-event SMS using pattern registry for the domain.
+     * Requires event_key + recipients (or phone). Never returns silent skipped=true.
+     */
+    public function ordersNotify(Request $request, bool $test = false): JsonResponse
+    {
+        $domain = $this->manager->normalizeDomain((string) ($request->input('domain') ?? $request->query('domain', '')));
+        if ($domain === '') {
+            return response()->json(['message' => 'Domain is required'], 422);
+        }
+
+        $eventKey = trim((string) $request->input('event_key', ''));
+        if ($eventKey === '') {
+            return response()->json([
+                'message' => 'event_key is required',
+                'ok' => false,
+                'results' => [],
+                'reason' => 'no_event',
+            ], 422);
+        }
+
+        if (! in_array($eventKey, ModirPayamakManager::ORDER_EVENTS, true)
+            && ! in_array($eventKey, ModirPayamakManager::SITE_EVENTS, true)) {
+            return response()->json([
+                'message' => 'Unknown event_key: '.$eventKey,
+                'ok' => false,
+                'event_key' => $eventKey,
+                'results' => [],
+                'reason' => 'unknown_event',
+            ], 422);
+        }
+
+        if (! filter_var(env('MODIRPAYAMAK_MOCK', false), FILTER_VALIDATE_BOOLEAN) && ! $this->edge->isConfigured()) {
+            return response()->json([
+                'message' => 'ModirPayamak Edge is not configured; order notify unavailable.',
+                'unavailable' => true,
+                'ok' => false,
+                'event_key' => $eventKey,
+                'results' => [],
+                'reason' => 'edge_not_configured',
+            ], 503);
+        }
+
+        $scope = (string) $request->input('scope', 'order_customer');
+        if (! in_array($scope, ModirPayamakManager::PATTERN_SCOPES, true)) {
+            $scope = 'order_customer';
+        }
+
+        $registry = collect($this->manager->listPatternRegistry($domain))
+            ->first(fn ($r) => is_array($r) && ($r['scope'] ?? '') === $scope && ($r['event_key'] ?? '') === $eventKey);
+
+        $code = is_array($registry) ? trim((string) ($registry['ippanel_code'] ?? '')) : '';
+        if ($code === '') {
+            return response()->json([
+                'ok' => false,
+                'event_key' => $eventKey,
+                'results' => [],
+                'reason' => 'pattern_not_bound',
+                'message' => 'No pattern bound for event '.$eventKey,
+            ], 422);
+        }
+
+        $phone = (string) ($request->input('phone') ?? '');
+        $recipients = $request->input('recipients');
+        if (! is_array($recipients)) {
+            $recipients = $phone !== '' ? [$phone] : [];
+        }
+        $recipients = array_values(array_filter(array_map(fn ($v) => is_scalar($v) ? trim((string) $v) : '', $recipients)));
+        if ($recipients === []) {
+            return response()->json([
+                'ok' => false,
+                'event_key' => $eventKey,
+                'results' => [],
+                'reason' => 'no_recipients',
+                'message' => 'phone or recipients required',
+            ], 422);
+        }
+
+        $params = $request->input('params');
+        if (! is_array($params)) {
+            $params = is_array($request->input('order')) ? $request->input('order') : [];
+        }
+        $params = array_merge(['event' => $eventKey, 'test' => $test ? '1' : '0'], $params);
+
+        $from = (string) ($request->input('from_number') ?? $this->edge->defaultFrom());
+        $results = [];
+        $allOk = true;
+        foreach ($recipients as $to) {
+            $send = $this->edge->sendPattern($from, $code, [$to], $params);
+            $ok = (bool) ($send['ok'] ?? false);
+            $allOk = $allOk && $ok;
+            $results[] = [
+                'phone' => $to,
+                'ok' => $ok,
+                'pattern_code' => $code,
+                'message' => $ok ? null : (string) ($send['message'] ?? 'send_failed'),
+                'edge' => $send['data'] ?? null,
+            ];
+        }
+
+        return response()->json([
+            'data' => [
+                'ok' => $allOk,
+                'event_key' => $eventKey,
+                'test' => $test,
+                'results' => $results,
+                'reason' => $allOk ? null : 'send_failed',
+            ],
+        ], $allOk ? 200 : 422);
+    }
+
+    protected function secretaryMatches(string $keywords, string $text): bool
+    {
+        $parts = preg_split('/[,\n،]+/u', $keywords) ?: [];
+        foreach ($parts as $keyword) {
+            $keyword = trim($keyword);
+            if ($keyword === '*') {
+                return true;
+            }
+            if ($keyword !== '' && mb_stripos($text, $keyword) !== false) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    /**
+     * @return array{0: string, 1: string}
+     */
+    protected function secretaryAction(ModirPayamakSecretary $rule, string $from, string $text): array
+    {
+        $vars = ['{message}' => $text, '{phone}' => $from, '{from}' => $from];
+        if ($rule->type === 'inbox_forward') {
+            $to = trim((string) $rule->forward_to);
+            $body = trim((string) $rule->reply_body);
+
+            return [$to, $body !== '' ? strtr($body, $vars) : $from.': '.$text];
+        }
+
+        return [$from, strtr(trim((string) $rule->reply_body), $vars)];
+    }
+
+
 }

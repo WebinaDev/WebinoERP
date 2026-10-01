@@ -4,6 +4,7 @@ namespace Modules\Accounting\Providers;
 
 use Illuminate\Support\Facades\Route;
 use Illuminate\Support\ServiceProvider;
+use Modules\Accounting\Http\Controllers\WebinocrmAccountingCompatController;
 use Modules\Accounting\Http\Controllers\WebinocrmLicenseCompatController;
 use Modules\Accounting\Http\Controllers\WebinocrmModuleCloneUrlController;
 
@@ -25,6 +26,7 @@ class AccountingServiceProvider extends ServiceProvider
                 Route::post('/license/check', [WebinocrmLicenseCompatController::class, 'check']);
                 Route::post('/license/activate', [WebinocrmLicenseCompatController::class, 'activate']);
                 Route::post('/license/module-clone-url', [WebinocrmModuleCloneUrlController::class, 'handle']);
+                Route::match(['get', 'post'], '/accounting/ledger', [WebinocrmAccountingCompatController::class, 'ledger']);
             });
 
         Route::prefix('api/webinocrm/v1')

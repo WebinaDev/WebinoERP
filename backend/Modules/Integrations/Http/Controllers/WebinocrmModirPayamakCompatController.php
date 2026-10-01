@@ -56,6 +56,10 @@ class WebinocrmModirPayamakCompatController extends Controller
             }
 
             if ($this->isUnavailablePath($path)) {
+                if ($path === 'newsletter' || str_starts_with($path, 'newsletter/')) {
+                    return $this->unavailable('Newsletter SMS is not available on ERP Edge; use Dashboard local newsletter.');
+                }
+
                 return $this->unavailable("Path not implemented: {$path}");
             }
 
@@ -257,7 +261,7 @@ class WebinocrmModirPayamakCompatController extends Controller
         $resource = $segments[0] ?? '';
 
         $response = $path === 'reports/inbox' ? $this->forwardAdmin($request, $path) : match ($resource) {
-            'account', 'packages', 'topup', 'send', 'reports', 'patterns', 'numbers', 'phonebooks' => $this->forwardCustomer($request, $path),
+            'account', 'packages', 'topup', 'send', 'reports', 'patterns', 'numbers', 'phonebooks', 'drafts' => $this->forwardCustomer($request, $path),
             'secretaries', 'orders' => $this->forwardAdmin($request, $path),
             default => null,
         };
@@ -279,11 +283,14 @@ class WebinocrmModirPayamakCompatController extends Controller
             'send' => 'send',
             'send/peer-to-peer' => 'sendPeerToPeer',
             'send/calculate-price' => 'calculatePrice',
+            'send/cancel-scheduled' => 'cancelScheduled',
             'reports/messages' => 'reportsMessages',
             'reports/outbox' => 'reportsOutbox',
             'patterns' => 'patterns',
             'numbers' => 'numbers',
             'phonebooks' => 'phonebooks',
+            'drafts' => 'drafts',
+            'drafts/groups' => 'draftGroups',
             default => null,
         };
 
@@ -295,8 +302,24 @@ class WebinocrmModirPayamakCompatController extends Controller
             return $this->customer->phonebookContacts($request, (int) explode('/', $path)[1]);
         }
 
+        if ($method === null && ($path === 'phonebooks/edge' || str_starts_with($path, 'phonebooks/edge/'))) {
+            $sub = $path === 'phonebooks/edge' ? '' : substr($path, strlen('phonebooks/edge/'));
+
+            return $this->customer->phonebooksEdge($request, $sub);
+        }
+
         if ($method === null && str_starts_with($path, 'reports/outbox/')) {
             return $this->customer->reportOutboxDetail($request, (string) explode('/', $path)[2]);
+        }
+
+        if ($method === null && str_starts_with($path, 'reports/bulk-')) {
+            $outboxId = substr($path, strlen('reports/bulk-'));
+
+            return $this->customer->reportsBulk($request, $outboxId !== '' ? $outboxId : (string) $request->query('messages_outbox_id', ''));
+        }
+
+        if ($method === null && preg_match('#^drafts/([^/]+)$#', $path, $m)) {
+            return $this->customer->draftShow($request, $m[1]);
         }
 
         if ($method === null) {
@@ -318,8 +341,9 @@ class WebinocrmModirPayamakCompatController extends Controller
 
         return match ($path) {
             'secretaries/delete' => $this->admin->secretariesDestroy($request),
-            'secretaries/process' => $this->ok(['processed' => 0, 'matched' => 0, 'skipped' => true]),
-            'orders/notify', 'orders/test-notify' => $this->ok(['results' => [], 'skipped' => true, 'reason' => 'not_configured']),
+            'secretaries/process' => $this->admin->secretariesProcess($request),
+            'orders/notify' => $this->admin->ordersNotify($request, false),
+            'orders/test-notify' => $this->admin->ordersNotify($request, true),
             'reports/inbox' => $this->admin->reportsInbox($request),
             default => abort(404, "Unknown admin path: {$path}"),
         };
@@ -327,18 +351,9 @@ class WebinocrmModirPayamakCompatController extends Controller
 
     protected function isUnavailablePath(string $path): bool
     {
-        $prefixes = [
-            'drafts',
-            'newsletter',
-            'phonebooks/edge',
-            'reports/bulk-',
-            'send/cancel-scheduled',
-        ];
-
-        foreach ($prefixes as $prefix) {
-            if ($path === $prefix || str_starts_with($path, $prefix)) {
-                return true;
-            }
+        // Newsletter has no Edge product — honest unavailable (Dashboard local newsletter covers tenants).
+        if ($path === 'newsletter' || str_starts_with($path, 'newsletter/')) {
+            return true;
         }
 
         return false;

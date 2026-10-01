@@ -53,6 +53,9 @@ Route::get('/accounts/list', [CrmParityController::class, 'accountsList']);
 Route::get('/accounts/export', [CrmParityController::class, 'exportAccounts']);
 Route::post('/accounts/import', [CrmParityController::class, 'importAccounts']);
 Route::get('/accounts/{id}/360', [CrmParityController::class, 'account360'])->middleware('fieldsec:account')->whereNumber('id');
+Route::get('/accounts/{id}/notes', [CrmParityController::class, 'accountNotes'])->middleware('fieldsec:account')->whereNumber('id');
+Route::post('/accounts/{id}/notes', [CrmParityController::class, 'storeAccountNote'])->middleware('fieldsec:account')->whereNumber('id');
+Route::delete('/accounts/{id}/notes/{noteId}', [CrmParityController::class, 'destroyAccountNote'])->middleware('fieldsec:account')->whereNumber('id')->whereNumber('noteId');
 
 Route::get('/consultations', [ConsultationController::class, 'index']);
 Route::post('/consultations', [ConsultationController::class, 'store']);

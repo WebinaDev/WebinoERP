@@ -51,21 +51,41 @@ class WebinocrmLicenseCompatController extends Controller
             }
 
             $exp = $row->expires_at;
-            $remaining = $exp ? max(0, now()->diffInDays($exp, false)) : 365;
+            $remaining = $exp ? max(0, (int) now()->diffInDays($exp, false)) : 365;
             $maxUsers = (int) ($row->max_users ?? 0);
             $userCount = (int) DB::table('users')->count();
-            $valid = $row->status === 'active'
-                && ($exp === null || $exp->isFuture())
-                && ($maxUsers <= 0 || $userCount <= $maxUsers);
+            $expired = $exp !== null && $exp->isPast();
+            $metaRaw = is_array($row->meta) ? $row->meta : [];
+            $isDemo = filter_var($metaRaw['demo'] ?? $metaRaw['is_demo'] ?? false, FILTER_VALIDATE_BOOLEAN)
+                || str_starts_with(strtolower((string) $row->license_key), 'demo-')
+                || (($metaRaw['sku'] ?? null) === 'demo');
+            $activeRow = $row->status === 'active' && ! $expired && ($maxUsers <= 0 || $userCount <= $maxUsers);
+            // Lifecycle for Dashboard: active | expired | demo | invalid (keep valid boolean for older clients).
+            if ($activeRow && $isDemo) {
+                $lifecycle = 'demo';
+            } elseif ($activeRow) {
+                $lifecycle = 'active';
+            } elseif ($expired || $row->status === 'expired') {
+                $lifecycle = 'expired';
+            } else {
+                $lifecycle = 'invalid';
+            }
+            $valid = in_array($lifecycle, ['active', 'demo'], true);
 
             $norm = CoreLicenseMetaNormalizer::normalize($row->meta);
             $repos = CoreLicenseMetaNormalizer::mergeModuleGitReposWithRegistry($norm['module_git_repos']);
 
             return [
-                'status' => $valid ? 'valid' : 'invalid',
+                'status' => $lifecycle,
+                'valid' => $valid,
+                // Backward-compat alias used by older Dashboard clients.
+                'legacy_status' => $valid ? 'valid' : 'invalid',
                 'expiry_date' => $exp?->toDateString(),
                 'remaining_days' => $remaining,
-                'remaining_percentage' => $exp ? min(100, (int) round($remaining / max(1, $exp->diffInDays($row->created_at ?? now())) * 100)) : 100,
+                'remaining_percentage' => $exp ? min(100, (int) round($remaining / max(1, max(1, $exp->diffInDays($row->created_at ?? now()))) * 100)) : 100,
+                'demo' => $lifecycle === 'demo',
+                'active' => $lifecycle === 'active' || $lifecycle === 'demo',
+                'expired' => $lifecycle === 'expired',
                 'licensed_modules' => $norm['licensed_modules'],
                 'vertical' => $norm['vertical'],
                 'sku' => $norm['sku'],

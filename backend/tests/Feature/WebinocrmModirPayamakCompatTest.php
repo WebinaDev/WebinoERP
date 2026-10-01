@@ -45,4 +45,50 @@ class WebinocrmModirPayamakCompatTest extends TestCase
             ->assertJsonPath('ok', false)
             ->assertJsonPath('unavailable', true);
     }
+
+    public function test_secretaries_process_never_returns_silent_skipped(): void
+    {
+        $license = \Modules\Core\Entities\CoreLicense::query()->create([
+            'license_key' => 'wb-test-phase11',
+            'project_name' => 'Phase11',
+            'domain' => 'phase11.example.com',
+            'status' => 'active',
+        ]);
+
+        $res = $this->postJson('/api/webinocrm/v1/modirpayamak/secretaries/process', [
+            'domain' => 'phase11.example.com',
+            'license_key' => $license->license_key,
+        ]);
+
+        $res->assertOk();
+        $this->assertNotTrue($res->json('skipped'));
+        // Either real processing payload or honest unavailable
+        $this->assertTrue(
+            $res->json('ok') === true
+            || $res->json('unavailable') === true
+            || is_array($res->json('data'))
+            || is_array($res->json('results'))
+        );
+    }
+
+    public function test_orders_notify_never_returns_silent_skipped(): void
+    {
+        $license = \Modules\Core\Entities\CoreLicense::query()->create([
+            'license_key' => 'wb-test-phase11-notify',
+            'project_name' => 'Phase11',
+            'domain' => 'phase11-notify.example.com',
+            'status' => 'active',
+        ]);
+
+        $res = $this->postJson('/api/webinocrm/v1/modirpayamak/orders/notify', [
+            'domain' => 'phase11-notify.example.com',
+            'license_key' => $license->license_key,
+            'event_key' => 'return-requested',
+            'phone' => '09120000000',
+        ]);
+
+        $this->assertNotTrue($res->json('skipped'));
+        $this->assertNotTrue(data_get($res->json(), 'data.skipped'));
+    }
+
 }

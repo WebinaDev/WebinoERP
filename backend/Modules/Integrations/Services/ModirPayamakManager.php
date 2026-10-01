@@ -5,6 +5,7 @@ namespace Modules\Integrations\Services;
 use Modules\Integrations\Entities\ModirPayamakAccount;
 use Modules\Integrations\Entities\ModirPayamakBalanceLedger;
 use Modules\Integrations\Entities\ModirPayamakDomainNumber;
+use Illuminate\Support\Facades\Schema;
 use Modules\Integrations\Entities\ModirPayamakPackage;
 use Modules\Integrations\Entities\ModirPayamakPatternRegistry;
 
@@ -30,6 +31,11 @@ class ModirPayamakManager
         'cancelled',
         'failed',
         'refunded',
+        'return-requested',
+        'return-approved',
+        'return-rejected',
+        'return-received',
+        'return-refunded',
         'checkout-draft',
         'cart-abandoned',
         'order-abandoned',
@@ -119,14 +125,21 @@ class ModirPayamakManager
      */
     public function formatAccountPublic(ModirPayamakAccount $account): array
     {
-        $numbers = ModirPayamakDomainNumber::query()
-            ->where('domain', $account->domain)
-            ->orderBy('role')
-            ->orderByDesc('is_default')
-            ->orderBy('id')
-            ->get()
-            ->map(fn (ModirPayamakDomainNumber $n) => $this->formatDomainNumber($n))
-            ->all();
+        $numbers = [];
+        if (Schema::hasTable('modirpayamak_domain_numbers')) {
+            try {
+                $numbers = ModirPayamakDomainNumber::query()
+                    ->where('domain', $account->domain)
+                    ->orderBy('role')
+                    ->orderByDesc('is_default')
+                    ->orderBy('id')
+                    ->get()
+                    ->map(fn (ModirPayamakDomainNumber $n) => $this->formatDomainNumber($n))
+                    ->all();
+            } catch (\Throwable) {
+                $numbers = [];
+            }
+        }
 
         return [
             'id' => $account->id,
@@ -136,6 +149,7 @@ class ModirPayamakManager
             'status' => $account->status,
             'expires_at' => null,
             'numbers' => $numbers,
+            'domain_numbers_ready' => Schema::hasTable('modirpayamak_domain_numbers'),
         ];
     }
 
@@ -189,6 +203,9 @@ class ModirPayamakManager
      */
     public function attachDomainNumber(string $domain, string $number, string $role = self::ROLE_SERVICE, string $label = '', bool $makeDefault = true): array
     {
+        if (! Schema::hasTable('modirpayamak_domain_numbers')) {
+            abort(503, 'modirpayamak_domain_numbers table is missing; run php artisan migrate --force');
+        }
         $domain = $this->normalizeDomain($domain);
         $number = trim($number);
         $role = $this->normalizeNumberRole($role);
@@ -244,6 +261,9 @@ class ModirPayamakManager
 
     public function detachDomainNumber(string $domain, string $role, ?string $number = null): void
     {
+        if (! Schema::hasTable('modirpayamak_domain_numbers')) {
+            return;
+        }
         $domain = $this->normalizeDomain($domain);
         $role = $this->normalizeNumberRole($role);
         $number = $number !== null ? trim($number) : '';
@@ -263,6 +283,9 @@ class ModirPayamakManager
      */
     public function getNumberAttachments(string $number): array
     {
+        if (! Schema::hasTable('modirpayamak_domain_numbers')) {
+            return [];
+        }
         $number = trim($number);
         if ($number === '') {
             return [];

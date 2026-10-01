@@ -2,6 +2,8 @@
 
 namespace Modules\Integrations\Services;
 
+use Illuminate\Support\Facades\Schema;
+
 use Illuminate\Support\Facades\Cache;
 use Modules\Integrations\Entities\IntegrationSetting;
 use Modules\Integrations\Entities\ModirPayamakDomainNumber;
@@ -368,6 +370,10 @@ class ModirPayamakSiteSmsService
      */
     protected function enrichSenderLines(string $domain, array $settings): array
     {
+        if (! Schema::hasTable('modirpayamak_domain_numbers')) {
+            return $settings;
+        }
+
         $service = ModirPayamakDomainNumber::query()
             ->where('domain', $domain)
             ->where('role', ModirPayamakManager::ROLE_SERVICE)

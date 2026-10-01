@@ -8,6 +8,7 @@ return new class extends Migration
 {
     public function up(): void
     {
+        if (! Schema::hasTable('modirpayamak_domain_numbers')) {
         Schema::create('modirpayamak_domain_numbers', function (Blueprint $table) {
             $table->id();
             $table->string('domain', 255);
@@ -21,7 +22,9 @@ return new class extends Migration
             $table->index('number');
             $table->index(['domain', 'role'], 'domain_role');
         });
+        }
 
+        if (! Schema::hasTable('modirpayamak_pattern_registry')) {
         Schema::create('modirpayamak_pattern_registry', function (Blueprint $table) {
             $table->id();
             $table->string('domain', 255);
@@ -37,7 +40,9 @@ return new class extends Migration
             $table->index('sync_status');
             $table->index('ippanel_code');
         });
+        }
 
+        if (! Schema::hasTable('modirpayamak_messages')) {
         Schema::create('modirpayamak_messages', function (Blueprint $table) {
             $table->id();
             $table->string('domain', 255)->nullable();
@@ -53,6 +58,7 @@ return new class extends Migration
             $table->index(['domain', 'created_at']);
             $table->index('status');
         });
+        }
 
         if (Schema::hasTable('modirpayamak_orders') && ! Schema::hasColumn('modirpayamak_orders', 'credit_amount')) {
             Schema::table('modirpayamak_orders', function (Blueprint $table) {

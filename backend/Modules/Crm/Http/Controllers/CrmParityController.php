@@ -8,6 +8,7 @@ use Illuminate\Http\Request;
 use Symfony\Component\HttpFoundation\StreamedResponse;
 use Modules\Core\Database\Seeders\RolesAndPermissionsSeeder;
 use Modules\Crm\Entities\CrmAccount;
+use Modules\Crm\Entities\CrmActivity;
 use Modules\Crm\Entities\CrmConsultation;
 use Modules\Crm\Entities\CrmLead;
 use Modules\Crm\Entities\CrmStatus;
@@ -357,4 +358,57 @@ class CrmParityController extends Controller
 
         return response()->json(['data' => ['project_id' => $project->id, 'project' => $project]]);
     }
+
+    public function accountNotes(int $id): JsonResponse
+    {
+        CrmAccount::query()->findOrFail($id);
+        $notes = CrmActivity::query()
+            ->where('related_model', CrmAccount::class)
+            ->where('related_id', $id)
+            ->where('type', 'note')
+            ->orderByDesc('id')
+            ->limit(200)
+            ->get();
+
+        return response()->json(['data' => ['notes' => $notes]]);
+    }
+
+    public function storeAccountNote(Request $request, int $id): JsonResponse
+    {
+        CrmAccount::query()->findOrFail($id);
+        $data = $request->validate([
+            'subject' => 'nullable|string|max:255',
+            'body' => 'nullable|string',
+            'description' => 'nullable|string',
+        ]);
+        $body = (string) ($data['body'] ?? $data['description'] ?? '');
+        if ($body === '') {
+            return response()->json(['message' => 'body is required'], 422);
+        }
+        $note = CrmActivity::query()->create([
+            'type' => 'note',
+            'subject' => (string) ($data['subject'] ?? mb_substr($body, 0, 80)),
+            'description' => $body,
+            'related_model' => CrmAccount::class,
+            'related_id' => $id,
+            'created_by' => $request->user()?->id,
+        ]);
+
+        return response()->json(['data' => $note], 201);
+    }
+
+    public function destroyAccountNote(int $id, int $noteId): JsonResponse
+    {
+        $note = CrmActivity::query()
+            ->where('related_model', CrmAccount::class)
+            ->where('related_id', $id)
+            ->where('type', 'note')
+            ->where('id', $noteId)
+            ->firstOrFail();
+        $note->delete();
+
+        return response()->json([], 204);
+    }
+
+
 }

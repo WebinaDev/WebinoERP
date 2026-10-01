@@ -199,6 +199,83 @@ class ModirPayamakEdgeClient
         return $this->request('POST', 'api/phonebooks/numbers/add-list-new', ['list' => [$item]]);
     }
 
+    public function listDrafts(array $query = []): array
+    {
+        return $this->request('GET', 'api/user/draft', [], $query);
+    }
+
+    public function createDraft(array $payload): array
+    {
+        return $this->request('POST', 'api/user/draft', $payload);
+    }
+
+    public function updateDraft(int|string $id, array $payload): array
+    {
+        return $this->request('PUT', 'api/user/draft/'.$id, $payload);
+    }
+
+    public function deleteDraft(int|string $id): array
+    {
+        return $this->request('DELETE', 'api/user/draft/'.$id);
+    }
+
+    public function listDraftGroups(array $query = []): array
+    {
+        return $this->request('GET', 'api/user/draft/group', [], $query);
+    }
+
+    /**
+     * Raw edge proxy for phonebook edge helpers (CRM phonebooks/edge parity).
+     *
+     * @param  array<string, mixed>  $body
+     * @param  array<string, mixed>  $query
+     */
+    public function phonebooksEdge(string $method, string $subPath = '', array $body = [], array $query = []): array
+    {
+        $path = 'api/phonebooks'.($subPath !== '' ? '/'.ltrim($subPath, '/') : '');
+
+        return $this->request(strtoupper($method), $path, $body, $query);
+    }
+
+    /**
+     * Bulk outbox report by messages_outbox_id (reports/bulk-* parity).
+     *
+     * @param  array<string, mixed>  $query
+     */
+    public function reportBulk(string $outboxId, array $query = []): array
+    {
+        return $this->request('GET', 'api/report/by_bulk', [], array_merge($query, [
+            'messages_outbox_id' => $outboxId,
+        ]));
+    }
+
+    /**
+     * Cancel a scheduled edge send when the provider supports it.
+     *
+     * @param  array<string, mixed>  $payload
+     */
+    public function cancelScheduled(array $payload): array
+    {
+        return $this->request('POST', 'api/send/cancel', $payload);
+    }
+
+    /**
+     * Newsletter is not an Edge API product — callers must treat 501 as unavailable.
+     *
+     * @param  array<string, mixed>  $body
+     * @param  array<string, mixed>  $query
+     */
+    public function newsletterUnavailable(string $method = 'GET', array $body = [], array $query = []): array
+    {
+        return [
+            'ok' => false,
+            'code' => 501,
+            'data' => null,
+            'meta' => [],
+            'message' => 'Newsletter SMS is not available on the Edge provider; use Dashboard local newsletter.',
+        ];
+    }
+
     /**
      * @param  array<string, mixed>  $body
      * @param  array<string, mixed>  $query

@@ -5,6 +5,7 @@ namespace Modules\Marketplace\Providers;
 use Illuminate\Support\Facades\Route;
 use Illuminate\Support\ServiceProvider;
 use Modules\Marketplace\Http\Controllers\BasalamOAuthController;
+use Modules\Marketplace\Http\Controllers\WebinocrmMarketplaceCompatController;
 
 class MarketplaceServiceProvider extends ServiceProvider
 {
@@ -12,6 +13,15 @@ class MarketplaceServiceProvider extends ServiceProvider
 
     public function boot(): void
     {
+
+        Route::prefix('api/webinocrm/v1/marketplace')
+            ->middleware('api')
+            ->group(function () {
+                Route::match(['get', 'post'], '/catalog', [WebinocrmMarketplaceCompatController::class, 'catalog']);
+                Route::post('/purchase', [WebinocrmMarketplaceCompatController::class, 'purchase']);
+                Route::match(['get', 'post'], '/payment-callback', [WebinocrmMarketplaceCompatController::class, 'paymentCallback']);
+            });
+
         $this->loadMigrationsFrom(module_path($this->moduleName, 'Database/Migrations'));
 
         Route::prefix('api/v1/marketplace')

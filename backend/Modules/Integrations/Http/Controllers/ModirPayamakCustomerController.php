@@ -21,7 +21,8 @@ class ModirPayamakCustomerController extends Controller
     {
         $domain = (string) ($request->input('domain') ?? $request->query('domain', ''));
         $this->manager->assertLicensedDomain($domain);
-        if (! $this->edge->isConfigured()) {
+        $mock = filter_var(env('MODIRPAYAMAK_MOCK', false), FILTER_VALIDATE_BOOLEAN);
+        if (! $mock && ! $this->edge->isConfigured()) {
             abort(503, 'ModirPayamak is not configured');
         }
 
@@ -225,4 +226,108 @@ class ModirPayamakCustomerController extends Controller
 
         return response()->json(['data' => $result['data']], $result['ok'] ? 200 : 422);
     }
+
+    public function drafts(Request $request): JsonResponse
+    {
+        $this->domain($request);
+        if ($request->isMethod('post') || $request->isMethod('put') || $request->isMethod('patch')) {
+            $payload = $request->validate([
+                'id' => 'nullable',
+                'title' => 'nullable|string|max:190',
+                'message' => 'nullable|string',
+                'body' => 'nullable|string',
+            ]);
+            if (empty($payload['message']) && ! empty($payload['body'])) {
+                $payload['message'] = $payload['body'];
+            }
+            if (! empty($payload['id'])) {
+                $result = $this->edge->updateDraft($payload['id'], $payload);
+            } else {
+                $result = $this->edge->createDraft($payload);
+            }
+
+            return response()->json(['data' => $result['data'] ?? $result], $result['ok'] ? 200 : 422);
+        }
+
+        $result = $this->edge->listDrafts($request->query());
+
+        return response()->json(['data' => $result['data'] ?? []], $result['ok'] ? 200 : 422);
+    }
+
+    public function draftShow(Request $request, string $id): JsonResponse
+    {
+        $this->domain($request);
+        if ($request->isMethod('delete')) {
+            $result = $this->edge->deleteDraft($id);
+
+            return response()->json(['data' => $result['data'] ?? ['ok' => $result['ok']]], $result['ok'] ? 200 : 422);
+        }
+        $result = $this->edge->listDrafts(array_merge($request->query(), ['id' => $id]));
+
+        return response()->json(['data' => $result['data'] ?? []], $result['ok'] ? 200 : 422);
+    }
+
+    public function draftGroups(Request $request): JsonResponse
+    {
+        $this->domain($request);
+        $result = $this->edge->listDraftGroups($request->query());
+
+        return response()->json(['data' => $result['data'] ?? []], $result['ok'] ? 200 : 422);
+    }
+
+    public function phonebooksEdge(Request $request, string $sub = ''): JsonResponse
+    {
+        $this->domain($request);
+        $body = $request->except(['domain', 'license_key', 'path']);
+        $result = $this->edge->phonebooksEdge($request->method(), $sub, $body, $request->query());
+
+        return response()->json(['data' => $result['data'] ?? []], $result['ok'] ? 200 : ($result['code'] ?: 422));
+    }
+
+    public function reportsBulk(Request $request, string $outboxId): JsonResponse
+    {
+        $this->domain($request);
+        $result = $this->edge->reportBulk($outboxId, $request->query());
+
+        return response()->json(['data' => $result['data'] ?? []], $result['ok'] ? 200 : 422);
+    }
+
+    public function cancelScheduled(Request $request): JsonResponse
+    {
+        $this->domain($request);
+        $payload = $request->validate([
+            'messages_outbox_id' => 'nullable|string|max:100',
+            'outbox_id' => 'nullable|string|max:100',
+            'id' => 'nullable|string|max:100',
+        ]);
+        $id = $payload['messages_outbox_id'] ?? $payload['outbox_id'] ?? $payload['id'] ?? '';
+        if ($id === '') {
+            return response()->json(['message' => 'messages_outbox_id is required', 'ok' => false], 422);
+        }
+        $result = $this->edge->cancelScheduled(['messages_outbox_id' => $id]);
+        if (! ($result['ok'] ?? false)) {
+            return response()->json([
+                'ok' => false,
+                'unavailable' => true,
+                'message' => $result['message'] ?: 'Cancel scheduled is not available on Edge for this message.',
+                'messages_outbox_id' => $id,
+            ], 200);
+        }
+
+        return response()->json(['data' => array_merge(['ok' => true, 'messages_outbox_id' => $id], is_array($result['data']) ? $result['data'] : [])]);
+    }
+
+    public function newsletter(Request $request): JsonResponse
+    {
+        $this->domain($request);
+        $result = $this->edge->newsletterUnavailable($request->method());
+
+        return response()->json([
+            'ok' => false,
+            'unavailable' => true,
+            'message' => $result['message'],
+        ], 200);
+    }
+
+
 }
