@@ -33,6 +33,8 @@ export const apiClient: AxiosInstance = axios.create({
     'X-Requested-With': 'XMLHttpRequest',
   },
   withCredentials: true,
+  // Prevent AuthGuard / shell from waiting forever when API hangs (DB down, ZipArchive boot, etc.).
+  timeout: 15_000,
 });
 
 apiClient.interceptors.response.use(

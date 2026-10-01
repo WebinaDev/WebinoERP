@@ -53,7 +53,35 @@ class WebinocrmLicenseCompatController extends Controller
         );
         $cacheKey = CoreLicenseResolver::cacheKey($domain, $product);
 
-        $payload = Cache::remember($cacheKey, 3600, function () use ($domain, $product) {
+        $invalidPayload = static function (string $domain, string $product): array {
+            return [
+                'status' => 'invalid',
+                'valid' => false,
+                'legacy_status' => 'invalid',
+                'expiry_date' => null,
+                'remaining_days' => 0,
+                'remaining_percentage' => 0,
+                'demo' => false,
+                'active' => false,
+                'expired' => false,
+                'domain' => $domain,
+                'product' => $product,
+                'licensed_modules' => [],
+                'vertical' => null,
+                'sku' => null,
+                'module_git_repos' => [],
+                'modules' => [],
+                'entitlements' => [],
+            ];
+        };
+
+        try {
+            $payload = Cache::remember($cacheKey, 3600, function () use ($domain, $product, $invalidPayload) {
+            $row = CoreLicenseResolver::find($domain, $product);
+
+            if (! $row) {
+                return $invalidPayload($domain, $product);
+            }
             $row = CoreLicenseResolver::find($domain, $product);
 
             if (! $row) {
@@ -128,6 +156,10 @@ class WebinocrmLicenseCompatController extends Controller
                 'entitlements' => $norm['licensed_modules'],
             ];
         });
+        } catch (\Throwable) {
+            // Optional license store / cache / schema — never block Dashboard/ERP bootstrap with 500.
+            $payload = $invalidPayload($domain, $product);
+        }
 
         return response()->json(['data' => $payload]);
     }

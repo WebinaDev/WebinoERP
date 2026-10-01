@@ -255,6 +255,11 @@ class WebinocrmV1ApiTest extends TestCase
             ])
         );
 
+        \Modules\Core\Services\CoreLicenseResolver::forgetCheckCache(
+            'bluecafe.webinaagency.ir',
+            'webinodashboard'
+        );
+
         $this->postJson('/api/webinocrm/v1/license/check', [
             'domain' => 'bluecafe.webinaagency.ir',
             'product' => 'webinodashboard',
@@ -263,4 +268,28 @@ class WebinocrmV1ApiTest extends TestCase
             ->assertJsonPath('data.status', 'active')
             ->assertJsonPath('data.valid', true);
     }
+
+    public function test_license_check_survives_missing_core_licenses_table(): void
+    {
+        // Pre-migrate DB must soft-return invalid, not HTTP 500 (blocks Dashboard/ERP bootstrap).
+        if (\Illuminate\Support\Facades\DB::getDriverName() !== 'sqlite') {
+            $this->markTestSkipped('Safe DROP of core_licenses requires sqlite (pgsql has FKs).');
+        }
+
+        \Illuminate\Support\Facades\Schema::dropIfExists('core_licenses');
+        \Modules\Core\Entities\CoreLicense::forgetPresentColumns();
+        \Modules\Core\Services\CoreLicenseResolver::forgetCheckCache(
+            'bluecafe.webinaagency.ir',
+            'webinodashboard'
+        );
+
+        $this->postJson('/api/webinocrm/v1/license/check', [
+            'domain' => 'bluecafe.webinaagency.ir',
+            'product' => 'webinodashboard',
+            'ts' => time(),
+        ])->assertOk()
+            ->assertJsonPath('data.valid', false)
+            ->assertJsonPath('data.status', 'invalid');
+    }
+
 }

@@ -6,6 +6,9 @@ import { useRouter } from '@/lib/i18n-navigation';
 import { getCurrentUser } from '@/lib/auth';
 import { useLocaleSync } from '@/hooks/useLocaleSync';
 
+/** Max wait for /auth/user — then treat as logged-out so UI is not stuck on loading. */
+const AUTH_BOOT_TIMEOUT_MS = 15_000;
+
 export function DashboardAuthGuard({ children }: { children: React.ReactNode }) {
   const router = useRouter();
   const t = useTranslations();
@@ -14,17 +17,36 @@ export function DashboardAuthGuard({ children }: { children: React.ReactNode }) 
 
   useEffect(() => {
     let cancelled = false;
-    void (async () => {
-      const user = await getCurrentUser();
-      if (cancelled) return;
-      if (!user) {
+
+    const goLogin = () => {
+      if (!cancelled) {
         router.replace('/login');
-        return;
       }
-      setReady(true);
+    };
+
+    const timer = window.setTimeout(() => {
+      goLogin();
+    }, AUTH_BOOT_TIMEOUT_MS);
+
+    void (async () => {
+      try {
+        const user = await getCurrentUser();
+        if (cancelled) return;
+        if (!user) {
+          goLogin();
+          return;
+        }
+        setReady(true);
+      } catch {
+        goLogin();
+      } finally {
+        window.clearTimeout(timer);
+      }
     })();
+
     return () => {
       cancelled = true;
+      window.clearTimeout(timer);
     };
   }, [router]);
 

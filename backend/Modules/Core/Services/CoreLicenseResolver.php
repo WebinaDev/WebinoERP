@@ -103,10 +103,18 @@ final class CoreLicenseResolver
             return null;
         }
 
+        try {
+            if (! Schema::hasTable('core_licenses')) {
+                return null;
+            }
+        } catch (\Throwable) {
+            // DB down / pre-migrate — treat as no license rather than 500 the SPA/bootstrap.
+            return null;
+        }
+
         $product = self::normalizeProduct($product);
         $candidates = self::relatedDomains($domain);
-        $hasProduct = Schema::hasTable('core_licenses')
-            && Schema::hasColumn('core_licenses', 'product');
+        $hasProduct = Schema::hasColumn('core_licenses', 'product');
 
         if ($hasProduct) {
             foreach ($candidates as $host) {

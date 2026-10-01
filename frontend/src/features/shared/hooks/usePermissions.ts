@@ -9,12 +9,16 @@ export function usePermissions() {
 
   useEffect(() => {
     let cancelled = false;
-    void getCurrentUser().then((u) => {
-      if (!cancelled) {
-        setUser(u);
-        setLoading(false);
-      }
-    });
+    void getCurrentUser()
+      .then((u) => {
+        if (!cancelled) setUser(u);
+      })
+      .catch(() => {
+        if (!cancelled) setUser(null);
+      })
+      .finally(() => {
+        if (!cancelled) setLoading(false);
+      });
     return () => {
       cancelled = true;
     };
