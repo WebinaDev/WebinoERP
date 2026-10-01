@@ -9,6 +9,7 @@ use Modules\Platform\Entities\PlatformDeployment;
 use Modules\Platform\Entities\PlatformDomain;
 use Modules\Platform\Entities\PlatformResource;
 use Modules\Platform\Entities\PlatformServer;
+use Modules\Platform\Support\StackHealthReport;
 use Modules\Platform\Support\TenantEnvBuilder;
 use Modules\Platform\Support\TenantSiteStack;
 use Modules\SiteBuilder\Entities\WebinoSiteProvision;
@@ -348,15 +349,10 @@ class WebinoDashboardProvisioner
         try {
             $server = $this->serverFor($provision);
         } catch (Throwable $e) {
-            return [
-                'project' => $project,
-                'containers' => [],
-                'on_webino_sites' => ['backend' => false, 'frontend' => false],
-                'caddy_to_backend' => false,
-                'frontend_to_backend' => false,
-                'db_auth_ok' => false,
-                'log' => $e->getMessage(),
-            ];
+            $empty = StackHealthReport::notRun($e->getMessage());
+            $empty['project'] = $project;
+
+            return $empty;
         }
 
         $containers = [];
@@ -392,15 +388,41 @@ class WebinoDashboardProvisioner
         $onFrontend = in_array('webino_sites', $containers[$frontend]['networks'] ?? [], true);
         $snippetOk = false;
         $caddyToBackend = false;
+        $caddyAttempted = false;
         if (microtime(true) < $deadline) {
+            $caddyAttempted = true;
             $snippetOk = $this->caddyContainerSeesSnippet($server, $provision->slug);
             $caddyProbe = $this->docker->sshRun(
                 $server,
                 $this->caddyExecPrefix($server)
                 .'wget -q -O - --timeout=5 http://'.$backend.':8080/api/v1/health/metrics 2>/dev/null | head -c 80 || true',
-                max(5, min(30, (int) floor($deadline - microtime(true))))
+                max(5, min(12, (int) floor($deadline - microtime(true))))
             );
             $caddyToBackend = trim($caddyProbe['stdout']) !== '';
+        }
+
+        $running = static fn (array $containers, string $name): bool => ($containers[$name]['status'] ?? '') === 'running';
+        $checks = StackHealthReport::checks('skipped');
+        $checks['on_webino_sites_backend'] = isset($containers[$backend])
+            ? ($onBackend ? 'ok' : 'fail')
+            : 'skipped';
+        $checks['on_webino_sites_frontend'] = isset($containers[$frontend])
+            ? ($onFrontend ? 'ok' : 'fail')
+            : 'skipped';
+        $checks['caddy_to_backend'] = $caddyAttempted
+            ? ($caddyToBackend ? 'ok' : 'fail')
+            : 'skipped';
+        // Remote SSH path does not exec a password or HTTP probe for these.
+        // Leave them not_run so the panel does not show a false failure.
+        $checks['db_auth'] = 'not_run';
+        $checks['backend_self'] = 'not_run';
+        $checks['readiness'] = 'not_run';
+        $checks['redis'] = 'not_run';
+        $checks['frontend_to_backend'] = 'not_run';
+
+        $log = 'remote diagnostics: db auth, backend self, readiness, redis, and frontend→backend are not probed over SSH.';
+        if (! $caddyAttempted) {
+            $log .= "\nnote: probes marked skipped (budget) were not executed and are not failures.";
         }
 
         return [
@@ -409,15 +431,16 @@ class WebinoDashboardProvisioner
             'on_webino_sites' => ['backend' => $onBackend, 'frontend' => $onFrontend],
             'caddy_to_backend' => $caddyToBackend,
             'frontend_to_backend' => false,
-            'db_auth_ok' => ($containers[$db]['status'] ?? '') === 'running',
-            'backend_self' => ($containers[$backend]['status'] ?? '') === 'running',
-            'readiness_ok' => ($containers[$backend]['status'] ?? '') === 'running'
-                && ($containers[$frontend]['status'] ?? '') === 'running',
-            'redis_ok' => ($containers[$redis]['status'] ?? '') === 'running',
+            'db_auth_ok' => $running($containers, $db),
+            'backend_self' => $running($containers, $backend),
+            'readiness_ok' => $running($containers, $backend) && $running($containers, $frontend),
+            'redis_ok' => $running($containers, $redis),
             'caddy_snippet_ok' => $snippetOk,
             'caddy_config_has_upstream' => $snippetOk,
             'caddy_exec_to_backend' => $caddyToBackend,
-            'log' => '',
+            'diagnostics_ran' => true,
+            'checks' => $checks,
+            'log' => $log,
         ];
     }
 
@@ -490,10 +513,79 @@ class WebinoDashboardProvisioner
         $this->attachProxyNetwork($server, $provision->slug);
         $log[] = 'recreate exit='.$result['exit_code'];
 
+        if (($result['exit_code'] ?? 1) === 0 && $target !== 'frontend') {
+            $wait = $this->waitForRemoteBackend($server, TenantSiteStack::backendService($provision->slug));
+            $log[] = $wait['log'];
+            if ($wait['failed']) {
+                $result['exit_code'] = 1;
+                $result['stderr'] = trim(($result['stderr'] ?? '')."\n".$wait['log']);
+            }
+        }
+
         return [
             ...$result,
             'log' => implode("\n", $log)."\n".trim($result['stdout']."\n".$result['stderr']),
         ];
+    }
+
+    /**
+     * Poll backend health after recreate. Timeout without a crash stays non-failed.
+     *
+     * @return array{failed:bool,log:string}
+     */
+    protected function waitForRemoteBackend(PlatformServer $server, string $backend): array
+    {
+        $attempts = 12;
+        for ($i = 1; $i <= $attempts; $i++) {
+            $probe = $this->docker->sshRun(
+                $server,
+                'docker exec '.escapeshellarg($backend)
+                .' wget -q -O - --timeout=4 http://127.0.0.1:8080/api/v1/health/metrics 2>/dev/null || true',
+                12
+            );
+            if (str_contains((string) ($probe['stdout'] ?? ''), 'data')) {
+                return [
+                    'failed' => false,
+                    'log' => 'backend ready after attempt '.$i.'/'.$attempts,
+                ];
+            }
+            sleep(3);
+        }
+
+        $inspect = $this->docker->sshRun(
+            $server,
+            'docker inspect -f "{{.State.Status}}\t{{.State.ExitCode}}\t{{.RestartCount}}\t{{.State.OOMKilled}}\t{{.State.Error}}" '
+            .escapeshellarg($backend).' 2>/dev/null || echo missing',
+            15
+        );
+        $parts = explode("\t", trim((string) ($inspect['stdout'] ?? '')), 5);
+        $status = $parts[0] !== '' ? $parts[0] : 'missing';
+        $exitCode = isset($parts[1]) && is_numeric($parts[1]) ? (int) $parts[1] : -1;
+        $restarts = isset($parts[2]) && is_numeric($parts[2]) ? (int) $parts[2] : 0;
+        $oom = $parts[3] ?? '';
+        $error = trim($parts[4] ?? '');
+        $logs = $this->docker->sshRun(
+            $server,
+            'docker logs --tail 60 '.escapeshellarg($backend).' 2>&1 || true',
+            15
+        );
+        $tail = trim((string) ($logs['stdout'] ?? ''));
+        if (strlen($tail) > 2000) {
+            $tail = substr($tail, -2000);
+        }
+        $failed = $oom === 'true' || StackHealthReport::backendStartupFailed($status, $exitCode, $restarts, false, $tail);
+        $lines = [
+            'backend NOT ready after '.$attempts.' attempts',
+            'backend health: '.($failed ? 'FAIL' : 'timeout (still starting, not marked failed)'),
+            'inspect status='.$status.' exit='.$exitCode.' restarts='.$restarts
+                .' oom='.($oom !== '' ? $oom : '?')
+                .($error !== '' ? ' error='.$error : ''),
+        ];
+        if ($tail !== '') {
+            $lines[] = "--- backend logs (tail) ---\n".$tail;
+        }
+
+        return ['failed' => $failed, 'log' => implode("\n", $lines)];
     }
 
     /**

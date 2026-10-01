@@ -55,7 +55,10 @@ import {
   updateProvisionAdmin,
   updateProvisionModules,
   type SiteControlPayload,
+  type StackCheckKey,
+  type StackCheckState,
 } from '@/lib/api/site-builder';
+import { stackProbeState } from '@/features/site-builder/control-panel/stack-probe';
 
 function Section({
   icon: Icon,
@@ -219,6 +222,29 @@ export function SiteControlPanelPage({ id }: { id: string }) {
   const power = data?.power_state ?? data?.provision?.power_state ?? 'unknown';
   const updateStatus = data?.update?.status;
   const containers = data?.stack?.containers ?? {};
+  const diagnosticsRan = data?.stack?.diagnostics_ran === true;
+
+  function probeBadge(check: StackCheckKey, legacy?: boolean | null) {
+    const state: StackCheckState = stackProbeState(
+      data?.stack?.diagnostics_ran,
+      data?.stack?.checks?.[check],
+      legacy,
+    );
+    if (state === 'ok') {
+      return <Badge variant="default">{t('controlOk')}</Badge>;
+    }
+    if (state === 'fail') {
+      return <Badge variant="destructive">{t('controlFail')}</Badge>;
+    }
+    if (state === 'skipped') {
+      return (
+        <Badge variant="secondary" title={t('controlSkippedHint')}>
+          {t('controlSkipped')}
+        </Badge>
+      );
+    }
+    return <Badge variant="outline">{t('controlPending')}</Badge>;
+  }
 
   if (!Number.isFinite(provisionId)) {
     return <p className="text-destructive text-sm">{t('loadError')}</p>;
@@ -776,46 +802,34 @@ export function SiteControlPanelPage({ id }: { id: string }) {
           >
             <div className="grid gap-2 text-sm" data-testid="control-stack-health">
               <div className="font-medium">{t('controlStackHealth')}</div>
+              {diagnosticsRan ? null : (
+                <p className="text-muted-foreground text-xs" data-testid="control-diagnostics-pending">
+                  {t('controlDiagnosticsNotRun')}
+                </p>
+              )}
               <div>
-                {t('controlDbAuth')}:{' '}
-                <Badge variant={data?.stack?.db_auth_ok ? 'default' : 'destructive'}>
-                  {data?.stack?.db_auth_ok ? t('controlOk') : t('controlFail')}
-                </Badge>
+                {t('controlDbAuth')}: {probeBadge('db_auth', data?.stack?.db_auth_ok)}
               </div>
               <div>
-                {t('controlBackendSelf')}:{' '}
-                <Badge variant={data?.stack?.backend_self ? 'default' : 'destructive'}>
-                  {data?.stack?.backend_self ? t('controlOk') : t('controlFail')}
-                </Badge>
+                {t('controlBackendSelf')}: {probeBadge('backend_self', data?.stack?.backend_self)}
               </div>
               <div>
-                {t('controlReadiness')}:{' '}
-                <Badge variant={data?.stack?.readiness_ok ? 'default' : 'destructive'}>
-                  {data?.stack?.readiness_ok ? t('controlOk') : t('controlFail')}
-                </Badge>
+                {t('controlReadiness')}: {probeBadge('readiness', data?.stack?.readiness_ok)}
               </div>
               <div>
-                {t('controlRedis')}:{' '}
-                <Badge variant={data?.stack?.redis_ok ? 'default' : 'destructive'}>
-                  {data?.stack?.redis_ok ? t('controlOk') : t('controlFail')}
-                </Badge>
+                {t('controlRedis')}: {probeBadge('redis', data?.stack?.redis_ok)}
               </div>
               <div>
-                {t('controlCaddyToBackend')}:{' '}
-                <Badge variant={data?.stack?.caddy_to_backend ? 'default' : 'destructive'}>
-                  {data?.stack?.caddy_to_backend ? t('controlOk') : t('controlFail')}
-                </Badge>
+                {t('controlCaddyToBackend')}: {probeBadge('caddy_to_backend', data?.stack?.caddy_to_backend)}
               </div>
               <div>
                 {t('controlFrontendToBackend')}:{' '}
-                <Badge variant={data?.stack?.frontend_to_backend ? 'default' : 'destructive'}>
-                  {data?.stack?.frontend_to_backend ? t('controlOk') : t('controlFail')}
-                </Badge>
+                {probeBadge('frontend_to_backend', data?.stack?.frontend_to_backend)}
               </div>
-              <div>
-                {t('controlOnProxyNet')}: backend=
-                {data?.stack?.on_webino_sites?.backend ? t('controlOk') : t('controlFail')}, frontend=
-                {data?.stack?.on_webino_sites?.frontend ? t('controlOk') : t('controlFail')}
+              <div className="flex flex-wrap items-center gap-2">
+                <span>{t('controlOnProxyNet')}:</span>
+                <span>backend={probeBadge('on_webino_sites_backend', data?.stack?.on_webino_sites?.backend)}</span>
+                <span>frontend={probeBadge('on_webino_sites_frontend', data?.stack?.on_webino_sites?.frontend)}</span>
               </div>
             </div>
 

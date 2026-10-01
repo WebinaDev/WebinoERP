@@ -3,12 +3,22 @@
 namespace Tests\Feature;
 
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\Bus;
 use Laravel\Sanctum\Sanctum;
 use Modules\Core\Entities\SystemModule;
+use Modules\Crm\Entities\CrmAccount;
+use Modules\Platform\Entities\PlatformEnvironment;
+use Modules\Platform\Entities\PlatformProject;
+use Modules\Platform\Entities\PlatformResource;
+use Modules\Platform\Entities\PlatformServer;
+use Modules\Platform\Services\LocalSameVpsProvisioner;
 use Modules\SiteBuilder\Database\Seeders\SiteBuilderSeeder;
 use Modules\SiteBuilder\Entities\WebinoBusinessCategory;
 use Modules\SiteBuilder\Entities\WebinoPackage;
 use Modules\SiteBuilder\Entities\WebinoSiteProvision;
+use Modules\SiteBuilder\Jobs\ProvisionWebinoSiteJob;
+use Modules\SiteBuilder\Jobs\UpdateWebinoSiteJob;
+use Modules\SiteBuilder\Services\SiteProvisionOrchestrator;
 use Tests\Concerns\SeedsRbac;
 use Tests\TestCase;
 
@@ -77,7 +87,7 @@ class SiteBuilderApiTest extends TestCase
         $resume = WebinoPackage::query()->where('sku', 'pkg-resume-starter')->first();
         $this->assertNotNull($resume);
 
-        $account = \Modules\Crm\Entities\CrmAccount::query()->create([
+        $account = CrmAccount::query()->create([
             'name' => 'مبین حبیبی',
             'type' => 'individual',
         ]);
@@ -192,7 +202,7 @@ class SiteBuilderApiTest extends TestCase
         $user = $this->actingAsRole('system_manager');
         Sanctum::actingAs($user);
 
-        \Illuminate\Support\Facades\Bus::fake();
+        Bus::fake();
 
         $package = WebinoPackage::query()->first();
         $provision = WebinoSiteProvision::query()->create([
@@ -218,8 +228,8 @@ class SiteBuilderApiTest extends TestCase
             ->assertJsonPath('data.wizard_payload.update.status', 'queued')
             ->assertJsonPath('data.wizard_payload.update.target', 'frontend');
 
-        \Illuminate\Support\Facades\Bus::assertDispatched(
-            \Modules\SiteBuilder\Jobs\UpdateWebinoSiteJob::class
+        Bus::assertDispatched(
+            UpdateWebinoSiteJob::class
         );
     }
 
@@ -238,7 +248,7 @@ class SiteBuilderApiTest extends TestCase
             'provision_token' => 'tok-renew-cafe',
         ]);
 
-        $this->mock(\Modules\Platform\Services\LocalSameVpsProvisioner::class, function ($mock) use ($provision) {
+        $this->mock(LocalSameVpsProvisioner::class, function ($mock) use ($provision) {
             $mock->shouldReceive('renewSsl')
                 ->once()
                 ->withArgs(fn ($p, $force) => $p->id === $provision->id && $force === false)
@@ -298,14 +308,14 @@ class SiteBuilderApiTest extends TestCase
             'provision_token' => 'tok-power-cafe',
         ]);
 
-        $project = \Modules\Platform\Entities\PlatformProject::query()->firstOrCreate(
+        $project = PlatformProject::query()->firstOrCreate(
             ['name' => 'power-cafe-test'],
             ['description' => 'test']
         );
-        $env = \Modules\Platform\Entities\PlatformEnvironment::query()->firstOrCreate(
+        $env = PlatformEnvironment::query()->firstOrCreate(
             ['project_id' => $project->id, 'name' => 'production']
         );
-        $server = \Modules\Platform\Entities\PlatformServer::query()->firstOrCreate(
+        $server = PlatformServer::query()->firstOrCreate(
             ['name' => 'localhost'],
             [
                 'ip' => '127.0.0.1',
@@ -315,7 +325,7 @@ class SiteBuilderApiTest extends TestCase
                 'is_localhost' => true,
             ]
         );
-        \Modules\Platform\Entities\PlatformResource::query()->create([
+        PlatformResource::query()->create([
             'environment_id' => $env->id,
             'server_id' => $server->id,
             'type' => 'webino_dashboard',
@@ -325,9 +335,9 @@ class SiteBuilderApiTest extends TestCase
             'provision_id' => $provision->id,
         ]);
 
-        $this->mock(\Modules\Platform\Services\LocalSameVpsProvisioner::class, function ($mock) {
+        $this->mock(LocalSameVpsProvisioner::class, function ($mock) {
             $mock->shouldReceive('powerState')->andReturnUsing(function ($p) {
-                $status = (string) (\Modules\Platform\Entities\PlatformResource::query()
+                $status = (string) (PlatformResource::query()
                     ->where('provision_id', $p->id)
                     ->value('status') ?? '');
 
@@ -352,7 +362,7 @@ class SiteBuilderApiTest extends TestCase
                 'log' => '',
             ]);
             $mock->shouldReceive('stop')->once()->andReturnUsing(function ($p) {
-                \Modules\Platform\Entities\PlatformResource::query()
+                PlatformResource::query()
                     ->where('provision_id', $p->id)
                     ->update(['status' => 'stopped']);
 
@@ -408,7 +418,7 @@ class SiteBuilderApiTest extends TestCase
             'channel' => 'stable',
         ])->assertStatus(503);
 
-        \Illuminate\Support\Facades\Bus::fake();
+        Bus::fake();
 
         $this->postJson('/api/v1/site-builder/provisions/'.$provision->id.'/update', [
             'target' => 'migrate',
@@ -419,10 +429,10 @@ class SiteBuilderApiTest extends TestCase
     {
         $user = $this->actingAsRole('system_manager');
         Sanctum::actingAs($user);
-        \Illuminate\Support\Facades\Bus::fake();
+        Bus::fake();
 
         $package = WebinoPackage::query()->first();
-        $server = \Modules\Platform\Entities\PlatformServer::query()->firstOrCreate(
+        $server = PlatformServer::query()->firstOrCreate(
             ['name' => 'localhost'],
             [
                 'ip' => '127.0.0.1',
@@ -446,8 +456,8 @@ class SiteBuilderApiTest extends TestCase
             'server_id' => $server->id,
         ])->assertStatus(202);
 
-        \Illuminate\Support\Facades\Bus::assertDispatched(
-            \Modules\SiteBuilder\Jobs\ProvisionWebinoSiteJob::class
+        Bus::assertDispatched(
+            ProvisionWebinoSiteJob::class
         );
     }
 
@@ -466,7 +476,7 @@ class SiteBuilderApiTest extends TestCase
             'provision_token' => 'tok-compose-cafe',
         ]);
 
-        $this->mock(\Modules\SiteBuilder\Services\SiteProvisionOrchestrator::class, function ($mock) use ($provision) {
+        $this->mock(SiteProvisionOrchestrator::class, function ($mock) use ($provision) {
             $mock->shouldReceive('repairDatabase')->once()->andReturn([
                 'exit_code' => 0,
                 'stdout' => 'ok',
@@ -504,5 +514,88 @@ class SiteBuilderApiTest extends TestCase
             ->assertOk()
             ->assertJsonPath('meta.compose.exit_code', 0)
             ->assertJsonPath('data.id', $provision->id);
+    }
+
+    public function test_light_control_does_not_pretend_diagnostics_failed(): void
+    {
+        $user = $this->actingAsRole('system_manager');
+        Sanctum::actingAs($user);
+
+        $package = WebinoPackage::query()->first();
+        $provision = WebinoSiteProvision::query()->create([
+            'package_id' => $package->id,
+            'slug' => 'light-cafe',
+            'domain' => 'light-cafe.webinaagency.ir',
+            'status' => WebinoSiteProvision::STATUS_READY,
+            'wizard_payload' => ['site_name' => 'Light Cafe'],
+            'provision_token' => 'tok-light-cafe',
+        ]);
+
+        $this->mock(LocalSameVpsProvisioner::class, function ($mock) {
+            $mock->shouldReceive('powerState')->andReturn('running');
+            $mock->shouldReceive('stackDiagnostics')->never();
+            $mock->shouldReceive('sslInfo')->never();
+        });
+
+        $this->getJson('/api/v1/site-builder/provisions/'.$provision->id.'/control?light=1')
+            ->assertOk()
+            ->assertJsonPath('data.stack.diagnostics_ran', false)
+            ->assertJsonPath('data.stack.checks.db_auth', 'not_run')
+            ->assertJsonPath('data.stack.checks.backend_self', 'not_run')
+            ->assertJsonPath('data.stack.checks.caddy_to_backend', 'not_run')
+            ->assertJsonPath('data.stack.checks.on_webino_sites_frontend', 'not_run')
+            ->assertJsonPath('data.stack.db_auth_ok', null);
+    }
+
+    public function test_full_control_gives_stack_diagnostics_the_client_budget(): void
+    {
+        $user = $this->actingAsRole('system_manager');
+        Sanctum::actingAs($user);
+
+        $package = WebinoPackage::query()->first();
+        $provision = WebinoSiteProvision::query()->create([
+            'package_id' => $package->id,
+            'slug' => 'full-cafe',
+            'domain' => 'full-cafe.webinaagency.ir',
+            'status' => WebinoSiteProvision::STATUS_READY,
+            'wizard_payload' => ['site_name' => 'Full Cafe'],
+            'provision_token' => 'tok-full-cafe',
+        ]);
+
+        $this->mock(LocalSameVpsProvisioner::class, function ($mock) use ($provision) {
+            $mock->shouldReceive('powerState')->andReturn('running');
+            $mock->shouldReceive('sslInfo')->andReturn([
+                'ssl_status' => null,
+                'expires_at' => null,
+                'domain' => $provision->domain,
+            ]);
+            $mock->shouldReceive('stackDiagnostics')
+                ->once()
+                ->withArgs(function ($p, $budget) use ($provision) {
+                    return $p->id === $provision->id
+                        && is_numeric($budget)
+                        && (float) $budget >= 40.0
+                        && (float) $budget <= 50.5;
+                })
+                ->andReturn([
+                    'project' => 'ws-full-cafe',
+                    'containers' => [],
+                    'on_webino_sites' => ['backend' => true, 'frontend' => true],
+                    'db_auth_ok' => true,
+                    'backend_self' => false,
+                    'diagnostics_ran' => true,
+                    'checks' => [
+                        'db_auth' => 'ok',
+                        'backend_self' => 'skipped',
+                    ],
+                    'log' => 'backend_self: skipped (budget)',
+                ]);
+        });
+
+        $this->getJson('/api/v1/site-builder/provisions/'.$provision->id.'/control?light=0')
+            ->assertOk()
+            ->assertJsonPath('data.stack.diagnostics_ran', true)
+            ->assertJsonPath('data.stack.checks.db_auth', 'ok')
+            ->assertJsonPath('data.stack.checks.backend_self', 'skipped');
     }
 }
