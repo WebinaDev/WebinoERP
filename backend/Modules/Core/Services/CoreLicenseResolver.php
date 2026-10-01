@@ -9,6 +9,17 @@ use Modules\Core\Entities\CoreLicense;
  */
 final class CoreLicenseResolver
 {
+    /**
+     * Apex hosts treated as one license family (subdomain ↔ sibling under any apex).
+     * Example: bluecafe.webinaagency.ir ≡ bluecafe.webina.dev
+     *
+     * @var list<string>
+     */
+    public const DOMAIN_FAMILIES = [
+        'webina.dev',
+        'webinaagency.ir',
+    ];
+
     public static function normalizeDomain(string $domain): string
     {
         $domain = strtolower(trim($domain));
@@ -36,7 +47,52 @@ final class CoreLicenseResolver
     }
 
     /**
+     * Related hostnames under the Webina apex family (self first).
+     *
+     * @return list<string>
+     */
+    public static function relatedDomains(string $domain): array
+    {
+        $domain = self::normalizeDomain($domain);
+        if ($domain === '') {
+            return [];
+        }
+
+        $out = [$domain];
+        $apex = null;
+        $sub = null;
+
+        foreach (self::DOMAIN_FAMILIES as $candidate) {
+            if ($domain === $candidate) {
+                $apex = $candidate;
+                $sub = '';
+                break;
+            }
+            if (str_ends_with($domain, '.'.$candidate)) {
+                $apex = $candidate;
+                $sub = substr($domain, 0, -(strlen($candidate) + 1));
+                break;
+            }
+        }
+
+        if ($apex === null) {
+            return $out;
+        }
+
+        foreach (self::DOMAIN_FAMILIES as $other) {
+            if ($other === $apex) {
+                continue;
+            }
+            $candidate = $sub === '' ? $other : $sub.'.'.$other;
+            $out[] = $candidate;
+        }
+
+        return array_values(array_unique($out));
+    }
+
+    /**
      * Resolve entitlement row by domain (+ optional product).
+     * Also matches sibling hosts under DOMAIN_FAMILIES (webina.dev ↔ webinaagency.ir).
      * Never filters by license_key. If product-specific row missing, falls back to product=webino then any domain row.
      */
     public static function find(string $domain, ?string $product = null): ?CoreLicense
@@ -47,23 +103,39 @@ final class CoreLicenseResolver
         }
 
         $product = self::normalizeProduct($product);
+        $candidates = self::relatedDomains($domain);
 
-        $base = CoreLicense::query()->where('domain', $domain);
+        foreach ($candidates as $host) {
+            $base = CoreLicense::query()->where('domain', $host);
 
-        $exact = (clone $base)->where('product', $product)->orderByDesc('id')->first();
-        if ($exact) {
-            return $exact;
-        }
-
-        if ($product !== 'webino') {
-            $fallback = (clone $base)->where('product', 'webino')->orderByDesc('id')->first();
-            if ($fallback) {
-                return $fallback;
+            $exact = (clone $base)->where('product', $product)->orderByDesc('id')->first();
+            if ($exact) {
+                return $exact;
             }
         }
 
-        // Pre-migration rows (no product column match) or legacy single-domain licenses.
-        return (clone $base)->orderByDesc('id')->first();
+        if ($product !== 'webino') {
+            foreach ($candidates as $host) {
+                $fallback = CoreLicense::query()
+                    ->where('domain', $host)
+                    ->where('product', 'webino')
+                    ->orderByDesc('id')
+                    ->first();
+                if ($fallback) {
+                    return $fallback;
+                }
+            }
+        }
+
+        // Pre-migration rows or legacy single-domain licenses (any product).
+        foreach ($candidates as $host) {
+            $any = CoreLicense::query()->where('domain', $host)->orderByDesc('id')->first();
+            if ($any) {
+                return $any;
+            }
+        }
+
+        return null;
     }
 
     /**
@@ -87,8 +159,10 @@ final class CoreLicenseResolver
         if ($domain === null || trim($domain) === '') {
             return;
         }
-        \Illuminate\Support\Facades\Cache::forget(self::cacheKey($domain, $product));
-        // Also forget legacy cache key shapes (domain|license_key).
-        \Illuminate\Support\Facades\Cache::forget('license_check:'.md5(self::normalizeDomain($domain).'|'));
+        foreach (self::relatedDomains($domain) as $host) {
+            \Illuminate\Support\Facades\Cache::forget(self::cacheKey($host, $product));
+            // Also forget legacy cache key shapes (domain|license_key).
+            \Illuminate\Support\Facades\Cache::forget('license_check:'.md5(self::normalizeDomain($host).'|'));
+        }
     }
 }

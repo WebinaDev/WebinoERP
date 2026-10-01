@@ -90,6 +90,9 @@ services:
     networks:
       webino_erp:
         aliases: [erp-backend]
+      # Same-VPS Dashboard tenants call http://erp-backend:8080 (bypass public CDN).
+      webino_sites:
+        aliases: [erp-backend]
 
   worker:
     build:

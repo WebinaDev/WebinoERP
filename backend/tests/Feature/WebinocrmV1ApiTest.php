@@ -7,6 +7,7 @@ use Laravel\Sanctum\Sanctum;
 use Modules\Accounting\Entities\AccProduct;
 use Modules\Accounting\Entities\AccWarehouse;
 use Modules\Accounting\Entities\AccWarehouseDocument;
+use Modules\Core\Entities\CoreLicense;
 use Tests\Concerns\SeedsRbac;
 use Tests\TestCase;
 
@@ -170,5 +171,36 @@ class WebinocrmV1ApiTest extends TestCase
         ])->assertOk()
             ->assertJsonPath('data.domain', $domain)
             ->assertJsonPath('data.status', 'invalid');
+    }
+
+    public function test_license_check_matches_webina_domain_family(): void
+    {
+        CoreLicense::query()->create([
+            'license_key' => 'dom:bluecafe.webinaagency.ir:webinodashboard',
+            'project_name' => 'Bluecafe',
+            'domain' => 'bluecafe.webinaagency.ir',
+            'product' => 'webinodashboard',
+            'status' => 'active',
+            'start_date' => now()->toDateString(),
+            'expires_at' => now()->addYear(),
+            'meta' => ['modules' => ['shop']],
+        ]);
+
+        // Registered under webinaagency.ir — check via webina.dev sibling must succeed.
+        $this->postJson('/api/webinocrm/v1/license/check', [
+            'domain' => 'bluecafe.webina.dev',
+            'product' => 'webinodashboard',
+        ])->assertOk()
+            ->assertJsonPath('data.status', 'active')
+            ->assertJsonPath('data.valid', true)
+            ->assertJsonPath('data.domain', 'bluecafe.webinaagency.ir');
+
+        // Exact registered domain still works unsigned.
+        $this->postJson('/api/webinocrm/v1/license/check', [
+            'domain' => 'bluecafe.webinaagency.ir',
+            'product' => 'webinodashboard',
+        ])->assertOk()
+            ->assertJsonPath('data.status', 'active')
+            ->assertJsonPath('data.valid', true);
     }
 }

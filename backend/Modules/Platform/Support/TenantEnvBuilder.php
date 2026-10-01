@@ -19,9 +19,14 @@ final class TenantEnvBuilder
         string $siteType,
         string $token,
         array $previous = [],
+        bool $sameVpsInternalCrm = false,
     ): string {
         $settings = CoreHostingSetting::current();
-        $crm = self::resolvePublicCrmUrl($settings);
+        // Same-VPS tenants on webino_sites should call ERP over Docker DNS
+        // (http://erp-backend:8080) to avoid hairpinthrough public CDN.
+        $crm = $sameVpsInternalCrm
+            ? self::resolveInternalCrmUrl($settings)
+            : self::resolvePublicCrmUrl($settings);
         $domain = strtolower(trim((string) $provision->domain));
         $seed = json_encode([
             'tenant_name' => $provision->wizard_payload['site_name'] ?? $provision->slug,
@@ -91,6 +96,21 @@ final class TenantEnvBuilder
         }
 
         return $crm;
+    }
+
+    /**
+     * Docker DNS base URL for same-VPS Dashboard tenants on webino_sites.
+     * Override with WEBINO_TENANT_CRM_INTERNAL_URL if the alias differs.
+     */
+    public static function resolveInternalCrmUrl(?CoreHostingSetting $settings = null): string
+    {
+        $override = rtrim((string) env('WEBINO_TENANT_CRM_INTERNAL_URL', ''), '/');
+        if ($override !== '') {
+            return $override;
+        }
+
+        // erp-backend must also join webino_sites (see docker-compose.yml).
+        return 'http://erp-backend:8080';
     }
 
     protected static function line(string $key, string $value): string

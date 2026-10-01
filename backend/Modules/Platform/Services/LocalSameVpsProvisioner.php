@@ -1638,7 +1638,7 @@ class LocalSameVpsProvisioner
     {
         $previous = $this->readEnvMap($this->siteDir($provision).'/.env');
 
-        return TenantEnvBuilder::build($provision, $siteType, $token, $previous);
+        return TenantEnvBuilder::build($provision, $siteType, $token, $previous, true);
     }
 
     /**

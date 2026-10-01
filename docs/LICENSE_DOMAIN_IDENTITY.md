@@ -41,3 +41,23 @@ Optional: shared `WEBINOCRM_LICENSE_HMAC_SECRET` on ERP + tenants (injected by P
 ## WP license-management
 
 Old WordPress WebinaDashboard / license-management clients may still POST `license_key`. ERP accepts the field for HMAC/compat, maps domain from `domain` (or Host / domain-like key), and checks status by domain + product.
+
+## Domain family (webina.dev ↔ webinaagency.ir)
+
+`CoreLicenseResolver` treats these apexes as one license host family:
+
+- `webina.dev`
+- `webinaagency.ir`
+
+A license registered as `bluecafe.webinaagency.ir` also matches checks for `bluecafe.webina.dev` (and the reverse). Apex↔apex is included (`webinaagency.ir` ↔ `webina.dev`). Other domains are exact-match only.
+
+## WEBINO_BASE_URL (Dashboard → ERP)
+
+| Deploy | Expected value | License path |
+|--------|----------------|--------------|
+| Same-VPS tenant (Platform local) | `http://erp-backend:8080` | `POST /api/webinocrm/v1/license/check` |
+| Public / remote tenant | `https://webinaagency.ir` (or configured `public_crm_url`) | same path |
+
+Full URL example: `POST https://webinaagency.ir/api/webinocrm/v1/license/check` with JSON `{ "domain", "product", "ts" }` (signature optional).
+
+Same-VPS uses Docker DNS so license checks do **not** hairpin through the public CDN. ERP `backend` must join `webino_sites` with alias `erp-backend` (see `docker-compose.yml`).
