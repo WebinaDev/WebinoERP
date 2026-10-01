@@ -81,9 +81,37 @@ const KEY_MESSAGES: Record<string, string> = {
   'platform.license_customer_conflict':
     'این دامنه برای مشتری دیگری لایسنس دارد. همان مشتری را انتخاب کنید یا دامنهٔ دیگری بگذارید.',
   'platform.license_reused': 'لایسنس موجود این دامنه دوباره استفاده شد.',
+  'platform.queue_unavailable':
+    'ساخت سایت در صف قرار نگرفت. worker و اتصال Redis (یا صف database) را بررسی کنید.',
+  'Unable to queue site provisioning.':
+    'ساخت سایت در صف قرار نگرفت. worker و اتصال Redis (یا صف database) را بررسی کنید.',
+  'platform.schema_outdated':
+    'ستون progress در جدول سایت‌ها نیست چون مایگریشن‌ها اعمال نشده‌اند. روی سرور php artisan migrate --force را اجرا کنید و دوباره «ایجاد سایت» بزنید.',
   'Site must be ready.': 'سایت باید در وضعیت آماده (ready) باشد.',
   'Provision cannot be edited in current status.': 'سایت در این وضعیت قابل ویرایش نیست.',
 };
+
+/** Queue outage and the missing `progress` column must not look like form validation. */
+function schemaOrQueueMessage(text: string): string | undefined {
+  const trimmed = text.trim()
+  if (KEY_MESSAGES[trimmed]) {
+    return KEY_MESSAGES[trimmed]
+  }
+  const lower = trimmed.toLowerCase()
+  if (lower.includes('unable to queue site provisioning')) {
+    return KEY_MESSAGES['Unable to queue site provisioning.']
+  }
+  if (
+    lower.includes('platform.schema_outdated')
+    || (
+      lower.includes('progress')
+      && (lower.includes('webino_site_provisions') || lower.includes('column') || lower.includes('sqlstate'))
+    )
+  ) {
+    return KEY_MESSAGES['platform.schema_outdated']
+  }
+  return undefined
+}
 
 function mapPlatformKey(message: string): string | undefined {
   const key = message.split(/[:\s]/)[0] ?? '';
@@ -120,6 +148,10 @@ export function formatProvisionError(raw: string): string {
   const text = raw.trim();
   if (KEY_MESSAGES[text]) {
     return KEY_MESSAGES[text];
+  }
+  const schemaOrQueue = schemaOrQueueMessage(text);
+  if (schemaOrQueue) {
+    return schemaOrQueue;
   }
   if (text.startsWith('platform.license_')) {
     const key = text.split(/[:\s]/)[0] ?? '';
@@ -170,6 +202,10 @@ export function getAxiosMessage(err: unknown): string {
 
   const validation = firstValidationError(err);
   if (validation && validation !== 'Server Error') {
+    const schemaOrQueue = schemaOrQueueMessage(validation);
+    if (schemaOrQueue) {
+      return schemaOrQueue;
+    }
     const mappedValidation = KEY_MESSAGES[validation] ?? mapPlatformKey(validation);
     return mappedValidation ?? validation;
   }
@@ -193,8 +229,12 @@ export function getAxiosMessage(err: unknown): string {
       );
     }
     const mapped = mapPlatformKey(message);
-    if (mapped) {
+    if (mapped && mapped !== message) {
       return mapped;
+    }
+    const schemaOrQueue = schemaOrQueueMessage(message);
+    if (schemaOrQueue) {
+      return schemaOrQueue;
     }
     // Prefer any real server message over generic HTTP status text (e.g. bare 422).
     return message;

@@ -10,6 +10,7 @@ use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\RateLimiter;
+use Illuminate\Support\Facades\Schema;
 use Laravel\Sanctum\Sanctum;
 use Modules\Core\Entities\CoreHostingSetting;
 use Modules\Core\Entities\CoreLicense;
@@ -992,13 +993,39 @@ class SiteBuilderApiTest extends TestCase
 
         $this->postJson('/api/v1/site-builder/provisions/'.$provision->id.'/launch')
             ->assertStatus(422)
-            ->assertJsonPath('message', 'Unable to queue site provisioning.');
+            ->assertJsonPath('message', 'platform.queue_unavailable')
+            ->assertJsonPath('errors.code', 'platform.queue_unavailable');
 
         $this->assertDatabaseHas('webino_site_provisions', [
             'id' => $provision->id,
             'status' => 'draft',
         ]);
         $this->assertSame(0, DB::table('jobs')->count());
+    }
+
+    public function test_launch_reports_missing_progress_column_and_stays_draft(): void
+    {
+        $user = $this->actingAsRole('system_manager');
+        Sanctum::actingAs($user);
+        $provision = $this->draftProvision('schema-shop');
+
+        Schema::shouldReceive('hasTable')->with('webino_site_provisions')->andReturn(true);
+        Schema::shouldReceive('hasColumn')->with('webino_site_provisions', 'progress')->andReturn(false);
+
+        $this->postJson('/api/v1/site-builder/provisions/'.$provision->id.'/launch')
+            ->assertStatus(422)
+            ->assertJsonPath('message', 'platform.schema_outdated')
+            ->assertJsonPath('errors.code', 'platform.schema_outdated');
+
+        $this->assertDatabaseHas('webino_site_provisions', [
+            'id' => $provision->id,
+            'status' => 'draft',
+        ]);
+    }
+
+    public function test_assert_schema_command_passes_after_migrations(): void
+    {
+        $this->artisan('site-builder:assert-schema')->assertSuccessful();
     }
 
     private function draftProvision(string $slug): WebinoSiteProvision

@@ -216,21 +216,25 @@ for i in $(seq 1 60); do
   fi
 done
 
-log "Applying migrations only (no seed, no fresh)"
-# Wait for backend container to be running (force-recreate can race)
-for i in $(seq 1 30); do
+# Wait for backend container to be running (force-recreate can race).
+# RUN_MIGRATIONS=1 also migrates during boot and refuses to start if the
+# progress column is still missing; this check fails the update the same way.
+for i in $(seq 1 90); do
   if compose_cli exec -T backend php -v >/dev/null 2>&1; then
     break
   fi
   sleep 2
-  if [ "${i}" -eq 30 ]; then
-    echo "ERROR: backend is not running." >&2
+  if [ "${i}" -eq 90 ]; then
+    echo "ERROR: backend is not running (migrate on boot may have failed; see logs)." >&2
     compose_cli ps -a
-    compose_cli logs --tail=80 backend
+    compose_cli logs --tail=120 backend
     exit 1
   fi
 done
-compose_cli exec -T backend php artisan migrate --force
+# shellcheck source=scripts/apply-erp-migrations.sh
+source "${ERP_DIR}/scripts/apply-erp-migrations.sh"
+log "Applying migrations only (no seed, no fresh)"
+apply_erp_migrations
 compose_cli exec -T backend php artisan db:seed --class='Modules\\SiteBuilder\\Database\\Seeders\\SiteBuilderSeeder' --force || true
 compose_cli exec -T backend php artisan site-builder:ensure-hosting-defaults || true
 # Stacks first (compose + attach backend to webino_sites), then Caddy snippets

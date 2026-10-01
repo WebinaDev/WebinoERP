@@ -479,7 +479,9 @@ fi
 
 # ── migrate & seed ────────────────────────────────────────────────────────────
 log "Running database migrations"
-compose_cli exec -T backend php artisan migrate --force
+# shellcheck source=scripts/apply-erp-migrations.sh
+source "${INSTALL_DIR}/WebinoERP/scripts/apply-erp-migrations.sh"
+apply_erp_migrations
 
 log "Seeding database"
 compose_cli exec -T backend php artisan db:seed --force

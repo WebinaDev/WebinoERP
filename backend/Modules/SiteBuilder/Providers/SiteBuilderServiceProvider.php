@@ -4,6 +4,7 @@ namespace Modules\SiteBuilder\Providers;
 
 use Illuminate\Support\Facades\Route;
 use Illuminate\Support\ServiceProvider;
+use Modules\SiteBuilder\Console\AssertSchemaCommand;
 use Modules\SiteBuilder\Console\EnsureHostingDefaultsCommand;
 use Modules\SiteBuilder\Console\ResyncCaddySnippetsCommand;
 use Modules\SiteBuilder\Console\ResyncTenantStacksCommand;
@@ -38,6 +39,7 @@ class SiteBuilderServiceProvider extends ServiceProvider
     public function register(): void
     {
         $this->commands([
+            AssertSchemaCommand::class,
             EnsureHostingDefaultsCommand::class,
             ResyncCaddySnippetsCommand::class,
             ResyncTenantStacksCommand::class,

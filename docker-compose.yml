@@ -64,6 +64,8 @@ services:
       SESSION_SECURE_COOKIE: "${SESSION_SECURE_COOKIE:-false}"
       SANCTUM_STATEFUL_DOMAINS: "${SANCTUM_STATEFUL_DOMAINS:-localhost,localhost:3000,127.0.0.1,127.0.0.1:8000,webinaagency.ir,www.webinaagency.ir}"
       QUEUE_CONNECTION: redis
+      # Boot fails if migrate leaves webino_site_provisions.progress missing.
+      RUN_MIGRATIONS: "1"
       BROADCAST_CONNECTION: reverb
       REVERB_APP_ID: ${REVERB_APP_ID:-webino}
       REVERB_APP_KEY: ${REVERB_APP_KEY:-CHANGE_ME}

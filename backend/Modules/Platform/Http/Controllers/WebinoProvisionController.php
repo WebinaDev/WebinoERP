@@ -3,10 +3,12 @@
 namespace Modules\Platform\Http\Controllers;
 
 use Illuminate\Contracts\Encryption\DecryptException;
+use Illuminate\Database\QueryException;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Modules\SiteBuilder\Entities\WebinoSiteProvision;
 use Modules\SiteBuilder\Jobs\ProvisionWebinoSiteJob;
+use Modules\SiteBuilder\Support\LaunchSchema;
 use Modules\SiteBuilder\Support\ProvisionProgress;
 use Throwable;
 
@@ -31,6 +33,10 @@ class WebinoProvisionController extends Controller
                 $wizard['site_type_slug'] = $data['site_type_slug'];
             }
 
+            if (LaunchSchema::missingProgressColumn()) {
+                return response()->json($this->failureEnvelope(LaunchSchema::outdatedPayload()), 422);
+            }
+
             $previousStatus = $provision->status;
             $provision->update([
                 'wizard_payload' => $wizard,
@@ -43,16 +49,10 @@ class WebinoProvisionController extends Controller
                 $provision->update([
                     'status' => $previousStatus,
                     'progress' => null,
-                    'error_log' => 'Unable to queue site provisioning.',
+                    'error_log' => LaunchSchema::QUEUE_UNAVAILABLE,
                 ]);
 
-                return response()->json([
-                    'success' => false,
-                    'data' => null,
-                    'message' => 'Unable to queue site provisioning.',
-                    'meta' => null,
-                    'errors' => null,
-                ], 422);
+                return response()->json($this->failureEnvelope(LaunchSchema::queueUnavailablePayload()), 422);
             }
 
             try {
@@ -75,23 +75,34 @@ class WebinoProvisionController extends Controller
         } catch (DecryptException $e) {
             report($e);
 
-            return response()->json([
-                'success' => false,
-                'data' => null,
-                'message' => 'Unable to queue site provisioning.',
-                'meta' => null,
-                'errors' => null,
-            ], 422);
+            return response()->json($this->failureEnvelope(LaunchSchema::queueUnavailablePayload()), 422);
+        } catch (QueryException $e) {
+            report($e);
+
+            return response()->json($this->failureEnvelope(LaunchSchema::outdatedPayload($e->getMessage())), 422);
         } catch (Throwable $e) {
             report($e);
 
-            return response()->json([
-                'success' => false,
-                'data' => null,
-                'message' => 'Unable to queue site provisioning.',
-                'meta' => null,
-                'errors' => null,
-            ], 422);
+            $payload = LaunchSchema::isProgressFailure($e)
+                ? LaunchSchema::outdatedPayload($e->getMessage())
+                : LaunchSchema::queueUnavailablePayload();
+
+            return response()->json($this->failureEnvelope($payload), 422);
         }
+    }
+
+    /**
+     * @param  array{message: string, errors: array<string, mixed>}  $payload
+     * @return array<string, mixed>
+     */
+    private function failureEnvelope(array $payload): array
+    {
+        return [
+            'success' => false,
+            'data' => null,
+            'message' => $payload['message'],
+            'meta' => null,
+            'errors' => $payload['errors'],
+        ];
     }
 }

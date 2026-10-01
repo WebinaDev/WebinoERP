@@ -19,6 +19,8 @@ touch database/database.sqlite 2>/dev/null || true
 if [ "${RUN_MIGRATIONS:-0}" = "1" ]; then
   echo "[webinoerm] Running migrations (RUN_MIGRATIONS=1)"
   php artisan migrate --force
+  echo "[webinoerm] Verifying pending migrations and webino_site_provisions.progress"
+  php artisan site-builder:assert-schema
 fi
 
 # Copied frankenphp is missing libwatcher-c.so.0 — Octane dies with exit 127.

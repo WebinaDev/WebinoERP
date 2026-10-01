@@ -3,6 +3,7 @@
 namespace Modules\SiteBuilder\Http\Controllers;
 
 use Illuminate\Contracts\Encryption\DecryptException;
+use Illuminate\Database\QueryException;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Str;
@@ -20,6 +21,7 @@ use Modules\SiteBuilder\Services\LicenseProvisionerService;
 use Modules\SiteBuilder\Services\ModuleInstallOrchestrator;
 use Modules\SiteBuilder\Services\SiteProvisionAuditLogger;
 use Modules\SiteBuilder\Services\SiteProvisionOrchestrator;
+use Modules\SiteBuilder\Support\LaunchSchema;
 use Modules\SiteBuilder\Support\ProvisionProgress;
 use Throwable;
 
@@ -297,6 +299,10 @@ class SiteProvisionController extends Controller
                 return response()->json(['message' => 'Package is required.'], 422);
             }
 
+            if ($schema = $this->schemaOutdatedResponse()) {
+                return $schema;
+            }
+
             $previousStatus = $siteProvision->status;
             $siteProvision->update([
                 'status' => WebinoSiteProvision::STATUS_PENDING,
@@ -309,12 +315,10 @@ class SiteProvisionController extends Controller
                 $siteProvision->update([
                     'status' => $previousStatus,
                     'progress' => null,
-                    'error_log' => 'Unable to queue site provisioning.',
+                    'error_log' => LaunchSchema::QUEUE_UNAVAILABLE,
                 ]);
 
-                return response()->json([
-                    'message' => 'Unable to queue site provisioning.',
-                ], 422);
+                return response()->json(LaunchSchema::queueUnavailablePayload(), 422);
             }
 
             app(SiteProvisionAuditLogger::class)->log($request->user()?->id, 'provision.launch_queued', $siteProvision);
@@ -326,12 +330,25 @@ class SiteProvisionController extends Controller
         } catch (DecryptException $e) {
             report($e);
 
-            return $this->launchExceptionResponse($siteProvision);
+            return $this->launchExceptionResponse($siteProvision, $e);
+        } catch (QueryException $e) {
+            report($e);
+
+            return $this->launchExceptionResponse($siteProvision, $e);
         } catch (Throwable $e) {
             report($e);
 
-            return $this->launchExceptionResponse($siteProvision);
+            return $this->launchExceptionResponse($siteProvision, $e);
         }
+    }
+
+    private function schemaOutdatedResponse(): ?JsonResponse
+    {
+        if (! LaunchSchema::missingProgressColumn()) {
+            return null;
+        }
+
+        return response()->json(LaunchSchema::outdatedPayload(), 422);
     }
 
     private function safeProvisionPayload(WebinoSiteProvision $siteProvision): WebinoSiteProvision
@@ -353,12 +370,16 @@ class SiteProvisionController extends Controller
         }
     }
 
-    private function launchExceptionResponse(WebinoSiteProvision $siteProvision): JsonResponse
+    private function launchExceptionResponse(WebinoSiteProvision $siteProvision, ?Throwable $e = null): JsonResponse
     {
+        if ($e instanceof QueryException || ($e && LaunchSchema::isProgressFailure($e))) {
+            return response()->json(LaunchSchema::outdatedPayload($e->getMessage()), 422);
+        }
+
         try {
             $fresh = $siteProvision->fresh() ?? $siteProvision;
-        } catch (Throwable $e) {
-            report($e);
+        } catch (Throwable $refreshError) {
+            report($refreshError);
             $fresh = $siteProvision;
         }
 
@@ -374,9 +395,7 @@ class SiteProvisionController extends Controller
             ]);
         }
 
-        return response()->json([
-            'message' => 'Unable to queue site provisioning.',
-        ], 422);
+        return response()->json(LaunchSchema::queueUnavailablePayload(), 422);
     }
 
     public function status(WebinoSiteProvision $siteProvision, SiteProvisionOrchestrator $orchestrator): JsonResponse
@@ -412,6 +431,10 @@ class SiteProvisionController extends Controller
                 return response()->json(['message' => 'Only failed or cancelled provisions can be retried.'], 422);
             }
 
+            if ($schema = $this->schemaOutdatedResponse()) {
+                return $schema;
+            }
+
             $previousStatus = $siteProvision->status;
             $siteProvision->update([
                 'status' => WebinoSiteProvision::STATUS_PENDING,
@@ -422,23 +445,30 @@ class SiteProvisionController extends Controller
                 $siteProvision->update([
                     'status' => $previousStatus,
                     'progress' => null,
-                    'error_log' => 'Unable to queue site provisioning.',
+                    'error_log' => LaunchSchema::QUEUE_UNAVAILABLE,
                 ]);
 
-                return response()->json([
-                    'message' => 'Unable to queue site provisioning.',
-                ], 422);
+                return response()->json(LaunchSchema::queueUnavailablePayload(), 422);
             }
 
             return response()->json(['data' => $siteProvision, 'message' => 'Retry queued.']);
         } catch (DecryptException $e) {
             report($e);
 
-            return response()->json(['message' => 'Unable to queue site provisioning.'], 422);
+            return response()->json(LaunchSchema::queueUnavailablePayload(), 422);
+        } catch (QueryException $e) {
+            report($e);
+
+            return response()->json(LaunchSchema::outdatedPayload($e->getMessage()), 422);
         } catch (Throwable $e) {
             report($e);
 
-            return response()->json(['message' => 'Unable to queue site provisioning.'], 422);
+            return response()->json(
+                LaunchSchema::isProgressFailure($e)
+                    ? LaunchSchema::outdatedPayload($e->getMessage())
+                    : LaunchSchema::queueUnavailablePayload(),
+                422,
+            );
         }
     }
 

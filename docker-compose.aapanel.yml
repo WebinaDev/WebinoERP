@@ -51,6 +51,7 @@ services:
       REDIS_HOST: redis
       REDIS_PASSWORD: ""
       QUEUE_CONNECTION: redis
+      RUN_MIGRATIONS: "1"
       OCTANE_SERVER: frankenphp
     volumes:
       - backend_storage:/var/www/html/storage

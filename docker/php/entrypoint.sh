@@ -41,6 +41,8 @@ esac
 if [ "${RUN_MIGRATIONS:-0}" = "1" ]; then
   echo "[webinoerp] Running migrations (RUN_MIGRATIONS=1)"
   php artisan migrate --force
+  echo "[webinoerp] Verifying pending migrations and webino_site_provisions.progress"
+  php artisan site-builder:assert-schema
 fi
 
 exec "$@"
