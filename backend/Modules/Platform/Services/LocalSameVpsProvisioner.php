@@ -880,23 +880,13 @@ class LocalSameVpsProvisioner
             $lines[] = 'caddy→'.$backend.'/api/v1/health/metrics: '.($caddyToBackend ? 'ok' : 'FAIL');
         }
 
-        $feSlice = $this->budgetLeft($deadline, 3);
-        if ($feSlice === null) {
-            $checks['frontend_to_backend'] = 'skipped';
-            $lines[] = 'frontend→http://backend:8080 (internal alias): skipped (budget)';
-        } else {
-            $feProbe = $this->probeHttp(
-                $frontend,
-                'http://backend:8080/api/v1/health/metrics',
-                min(8, $feSlice)
-            );
-            $frontendToBackend = $feProbe['status'] >= 200
-                && $feProbe['status'] < 300
-                && str_contains($feProbe['body'], 'data');
-            $checks['frontend_to_backend'] = $frontendToBackend ? 'ok' : 'fail';
-            $lines[] = 'frontend→http://backend:8080 (internal alias): '
-                .($frontendToBackend ? 'ok' : 'FAIL')
-                .' '.$this->formatProbeSummary($feProbe);
+        $feProbe = $this->probeFrontendToBackend($frontend, $provision->slug, $deadline);
+        $frontendToBackend = $feProbe['ok'];
+        $checks['frontend_to_backend'] = $feProbe['attempted']
+            ? ($frontendToBackend ? 'ok' : 'fail')
+            : 'skipped';
+        foreach ($feProbe['lines'] as $feLine) {
+            $lines[] = $feLine;
         }
 
         $logSlice = $this->budgetLeft($deadline, 3);
@@ -1255,6 +1245,51 @@ class LocalSameVpsProvisioner
         }
 
         return 'backend NOT ready after '.$attempts.' attempts (~'.($attempts * 3).'s)';
+    }
+
+    /**
+     * Reachability from the tenant frontend container to its own backend.
+     *
+     * Prefer ws-{slug}-backend, which exists on both the private net and
+     * webino_sites. Fall back to the private-net alias "backend" when that
+     * unique name does not answer. Do not change INTERNAL_API_URL.
+     *
+     * @return array{ok:bool,attempted:bool,lines:list<string>}
+     */
+    protected function probeFrontendToBackend(string $frontendContainer, string $slug, float $deadline): array
+    {
+        $urls = TenantSiteStack::frontendBackendProbeUrls($slug);
+        $lines = [];
+        $ok = false;
+        $attempted = false;
+
+        foreach ($urls as $index => $url) {
+            $slice = $this->budgetLeft($deadline, 3);
+            if ($slice === null) {
+                $suffix = $index > 0 ? ' (internal alias fallback)' : '';
+                $lines[] = 'frontend→'.$url.$suffix.': skipped (budget)';
+                break;
+            }
+
+            $attempted = true;
+            $probe = $this->probeHttp($frontendContainer, $url, min(8, $slice));
+            $ok = $probe['status'] >= 200
+                && $probe['status'] < 300
+                && str_contains($probe['body'], 'data');
+            $suffix = $index > 0 ? ' (internal alias fallback)' : '';
+            $lines[] = 'frontend→'.$url.$suffix.': '
+                .($ok ? 'ok' : 'FAIL')
+                .' '.$this->formatProbeSummary($probe);
+            if ($ok) {
+                break;
+            }
+        }
+
+        return [
+            'ok' => $ok,
+            'attempted' => $attempted,
+            'lines' => $lines,
+        ];
     }
 
     /**
