@@ -5,6 +5,7 @@ namespace Modules\Integrations\Http\Controllers;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Modules\Core\Entities\CoreLicense;
+use Modules\Core\Services\CoreLicenseResolver;
 use Modules\Integrations\Entities\ModirPayamakMessage;
 use Modules\Integrations\Services\ModirPayamakManager;
 use Modules\Integrations\Services\ModirPayamakSiteSmsService;
@@ -366,16 +367,10 @@ class WebinocrmModirPayamakCompatController extends Controller
             abort(422, 'Domain is required');
         }
 
-        $licenseKey = $request->input('license_key') ?? $request->query('license_key');
-        if (filled($licenseKey)) {
-            $valid = CoreLicense::query()
-                ->where('domain', $domain)
-                ->where('license_key', $licenseKey)
-                ->where('status', 'active')
-                ->exists();
-            if (! $valid) {
-                abort(403, 'Invalid license for domain');
-            }
+        // Entitlement is domain-only; optional license_key from WP clients is ignored.
+        $license = CoreLicenseResolver::find($domain, $request->input('product') ?? $request->query('product'));
+        if ($license && $license->status !== 'active') {
+            abort(403, 'License inactive for domain');
         }
 
         $this->manager->assertLicensedDomain($domain);

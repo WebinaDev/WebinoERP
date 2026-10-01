@@ -262,9 +262,9 @@ export function LaunchControlPanel({
               </div>
             </div>
             {packageSku ? <p className="text-muted-foreground mt-2 font-mono text-xs">{packageSku}</p> : null}
-            {provision?.license?.license_key ? (
+            {provision?.license?.domain ? (
               <p className="mt-2 break-all font-mono text-[11px]" dir="ltr">
-                {provision.license.license_key}
+                {provision.license.domain}
               </p>
             ) : null}
             {usesCustomDomain ? (

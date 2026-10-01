@@ -193,9 +193,9 @@ class SiteProvisionController extends Controller
                     'project_name' => $data['site_name'] ?? null,
                 ], fn ($v) => $v !== null));
                 $siteProvision->license->save();
-                \Modules\Core\Services\CoreLicenseMetaNormalizer::forgetCheckCache(
+                \Modules\Core\Services\CoreLicenseResolver::forgetCheckCache(
                     $siteProvision->license->domain,
-                    $siteProvision->license->license_key,
+                    $siteProvision->license->product ?? null,
                 );
             }
 
@@ -253,7 +253,9 @@ class SiteProvisionController extends Controller
             }
             $siteProvision->update(['license_id' => $license->id]);
             app(SiteProvisionAuditLogger::class)->log($request->user()?->id, 'license.prepared', $siteProvision, [
-                'license_key' => $license->license_key,
+                'domain' => $license->domain,
+                'product' => $license->product ?? 'webinodashboard',
+                'license_key' => null, // deprecated — identity is domain
             ]);
         }
 
@@ -520,7 +522,9 @@ class SiteProvisionController extends Controller
                 $expires = $license->expires_at;
                 $licensePayload = [
                     'id' => $license->id,
-                    'license_key' => $license->license_key,
+                    'domain' => $license->domain,
+                'product' => $license->product ?? 'webinodashboard',
+                'license_key' => null, // deprecated — identity is domain
                     'status' => $license->status,
                     'domain' => $license->domain,
                     'logo_url' => $license->logo_url,
@@ -728,7 +732,8 @@ class SiteProvisionController extends Controller
         $meta['modules'] = $current;
         $license->meta = $meta;
         $license->save();
-        \Modules\Core\Services\CoreLicenseMetaNormalizer::forgetCheckCache($license->domain, $license->license_key);
+        \Modules\Core\Services\CoreLicenseResolver::forgetCheckCache($license->domain, $license->product ?? null);
+        \Modules\Core\Services\CoreLicenseMetaNormalizer::forgetCheckCache($license->domain, null);
 
         $installResult = null;
         if (! empty($data['install'])) {

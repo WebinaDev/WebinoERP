@@ -4,9 +4,11 @@ namespace Modules\Core\Http\Controllers;
 
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Schema;
 use InvalidArgumentException;
 use Modules\Core\Entities\CoreLicense;
 use Modules\Core\Services\CoreLicenseMetaNormalizer;
+use Modules\Core\Services\CoreLicenseResolver;
 use Modules\Platform\Support\SiteTypeProfiles;
 use Modules\SiteBuilder\Entities\WebinoPackage;
 use Modules\SiteBuilder\Services\LicenseProvisionerService;
@@ -21,9 +23,9 @@ class LicenseParityController extends Controller
     public function store(Request $request, LicenseProvisionerService $licenses): JsonResponse
     {
         $data = $request->validate([
-            'license_key' => 'nullable|string|max:191|unique:core_licenses,license_key',
             'project_name' => 'required|string|max:255',
             'domain' => 'required|string|max:255',
+            'product' => 'nullable|string|max:64',
             'logo_url' => 'nullable|string|max:1000',
             'status' => 'nullable|string|max:50|in:active,inactive,cancelled,revoked',
             'start_date' => 'nullable|date',
@@ -34,18 +36,21 @@ class LicenseParityController extends Controller
             'meta' => 'nullable|array',
         ]);
 
-        $domain = $this->normalizeDomain($data['domain']);
+        $domain = CoreLicenseResolver::normalizeDomain($data['domain']);
+        $product = CoreLicenseResolver::normalizeProduct($data['product'] ?? 'webinodashboard');
         if ($domain === '' || ! $this->isValidDomain($domain)) {
             return response()->json(['message' => 'Invalid domain'], 422);
         }
-        if (CoreLicense::query()->where('domain', $domain)->exists()) {
-            return response()->json(['message' => 'Domain already licensed'], 422);
+
+        $existsQ = CoreLicense::query()->where('domain', $domain);
+        if (Schema::hasColumn('core_licenses', 'product')) {
+            $existsQ->where('product', $product);
+        }
+        if ($existsQ->exists()) {
+            return response()->json(['message' => 'Domain already licensed for this product'], 422);
         }
 
-        $key = trim((string) ($data['license_key'] ?? ''));
-        if ($key === '') {
-            $key = $licenses->generateLicenseKey();
-        }
+        $key = CoreLicenseResolver::internalKeyFor($domain, $product);
 
         if (! empty($data['package_id'])) {
             $package = WebinoPackage::query()->with(['businessType.category', 'features'])->find((int) $data['package_id']);
@@ -60,21 +65,21 @@ class LicenseParityController extends Controller
                         'start_date' => $data['start_date'] ?? now()->toDateString(),
                         'expires_at' => $data['expires_at'] ?? null,
                         'max_users' => $data['max_users'] ?? null,
+                        'product' => $product,
                     ],
                     $request->user()?->id,
                 );
-                // Prefer explicit key when admin supplied one; otherwise keep auto wb-* key.
                 $updates = [
                     'project_name' => $data['project_name'],
                     'logo_url' => $data['logo_url'] ?? null,
                     'start_date' => $data['start_date'] ?? now()->toDateString(),
                     'status' => $data['status'] ?? 'active',
+                    'product' => $product,
+                    'license_key' => $key,
                 ];
-                if (! empty($data['license_key'])) {
-                    $updates['license_key'] = $key;
-                }
                 $created->update(CoreLicense::attributesForSchema($updates));
-                CoreLicenseMetaNormalizer::forgetCheckCache($created->domain, $created->license_key);
+                CoreLicenseResolver::forgetCheckCache($created->domain, $created->product ?? $product);
+                CoreLicenseMetaNormalizer::forgetCheckCache($created->domain, null);
 
                 return response()->json(['data' => $created->fresh()], 201);
             }
@@ -102,6 +107,7 @@ class LicenseParityController extends Controller
             'license_key' => $key,
             'project_name' => $data['project_name'],
             'domain' => $domain,
+            'product' => $product,
             'logo_url' => $data['logo_url'] ?? null,
             'status' => $data['status'] ?? 'active',
             'start_date' => $data['start_date'] ?? now()->toDateString(),
@@ -111,7 +117,8 @@ class LicenseParityController extends Controller
             'created_by' => $request->user()?->id,
         ]);
 
-        CoreLicenseMetaNormalizer::forgetCheckCache($license->domain, $license->license_key);
+        CoreLicenseResolver::forgetCheckCache($license->domain, $license->product ?? $product);
+        CoreLicenseMetaNormalizer::forgetCheckCache($license->domain, null);
 
         return response()->json(['data' => $license], 201);
     }
@@ -122,6 +129,7 @@ class LicenseParityController extends Controller
         $data = $request->validate([
             'project_name' => 'sometimes|string|max:255',
             'domain' => 'sometimes|string|max:255',
+            'product' => 'sometimes|nullable|string|max:64',
             'logo_url' => 'nullable|string|max:1000',
             'status' => 'sometimes|string|max:50',
             'start_date' => 'nullable|date',
@@ -132,14 +140,30 @@ class LicenseParityController extends Controller
         ]);
 
         if (array_key_exists('domain', $data)) {
-            $domain = $this->normalizeDomain((string) $data['domain']);
+            $domain = CoreLicenseResolver::normalizeDomain((string) $data['domain']);
             if ($domain === '' || ! $this->isValidDomain($domain)) {
                 return response()->json(['message' => 'Invalid domain'], 422);
             }
-            if (CoreLicense::query()->where('domain', $domain)->where('id', '!=', $license->id)->exists()) {
-                return response()->json(['message' => 'Domain already licensed'], 422);
+            $product = CoreLicenseResolver::normalizeProduct(
+                $data['product'] ?? $license->product ?? 'webino'
+            );
+            $dup = CoreLicense::query()->where('domain', $domain)->where('id', '!=', $license->id);
+            if (Schema::hasColumn('core_licenses', 'product')) {
+                $dup->where('product', $product);
+            }
+            if ($dup->exists()) {
+                return response()->json(['message' => 'Domain already licensed for this product'], 422);
             }
             $data['domain'] = $domain;
+            $data['license_key'] = CoreLicenseResolver::internalKeyFor($domain, $product);
+        }
+
+        if (array_key_exists('product', $data)) {
+            $data['product'] = CoreLicenseResolver::normalizeProduct($data['product']);
+            $data['license_key'] = CoreLicenseResolver::internalKeyFor(
+                (string) ($data['domain'] ?? $license->domain),
+                $data['product']
+            );
         }
 
         $replaceMeta = (bool) ($data['replace_meta'] ?? false);
@@ -163,7 +187,8 @@ class LicenseParityController extends Controller
 
         $license->update(CoreLicense::attributesForSchema($data));
 
-        CoreLicenseMetaNormalizer::forgetCheckCache($license->domain, $license->license_key);
+        CoreLicenseResolver::forgetCheckCache($license->domain, $license->product ?? null);
+        CoreLicenseMetaNormalizer::forgetCheckCache($license->domain, null);
 
         return response()->json(['data' => $license->fresh()]);
     }
@@ -179,7 +204,8 @@ class LicenseParityController extends Controller
             'status' => 'active',
         ]);
 
-        CoreLicenseMetaNormalizer::forgetCheckCache($license->domain, $license->license_key);
+        CoreLicenseResolver::forgetCheckCache($license->domain, $license->product ?? null);
+        CoreLicenseMetaNormalizer::forgetCheckCache($license->domain, null);
 
         return response()->json(['data' => $license]);
     }
@@ -189,7 +215,8 @@ class LicenseParityController extends Controller
         $license = CoreLicense::query()->findOrFail($id);
         $license->update(['status' => 'cancelled']);
 
-        CoreLicenseMetaNormalizer::forgetCheckCache($license->domain, $license->license_key);
+        CoreLicenseResolver::forgetCheckCache($license->domain, $license->product ?? null);
+        CoreLicenseMetaNormalizer::forgetCheckCache($license->domain, null);
 
         return response()->json(['data' => $license]);
     }
@@ -198,22 +225,13 @@ class LicenseParityController extends Controller
     {
         $license = CoreLicense::query()->findOrFail($id);
         $domain = $license->domain;
-        $key = $license->license_key;
+        $product = $license->product ?? null;
         $license->delete();
 
-        CoreLicenseMetaNormalizer::forgetCheckCache($domain, $key);
+        CoreLicenseResolver::forgetCheckCache($domain, $product);
+        CoreLicenseMetaNormalizer::forgetCheckCache($domain, null);
 
         return response()->json([], 204);
-    }
-
-    protected function normalizeDomain(string $domain): string
-    {
-        $domain = strtolower(trim($domain));
-        $domain = preg_replace('#^https?://#', '', $domain) ?? $domain;
-        $domain = preg_replace('#/.*$#', '', $domain) ?? $domain;
-        $domain = preg_replace('/^www\./', '', $domain) ?? $domain;
-
-        return rtrim($domain, '.');
     }
 
     protected function isValidDomain(string $domain): bool

@@ -2027,7 +2027,8 @@ class LocalSameVpsProvisioner
         $seed = [
             'tenant_name' => $provision->wizard_payload['site_name'] ?? $provision->slug,
             'domain' => $provision->domain,
-            'license_key' => $provision->license?->license_key,
+            'product' => $provision->license?->product ?? 'webinodashboard',
+            'domain' => $provision->domain,
             'site_type_slug' => $siteType,
             'business_type_slug' => $siteType,
             'crm_account_id' => $provision->crm_account_id,

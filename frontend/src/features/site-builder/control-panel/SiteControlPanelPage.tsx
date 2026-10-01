@@ -468,7 +468,7 @@ export function SiteControlPanelPage({ id }: { id: string }) {
           >
             {data.license ? (
               <div className="grid gap-2 text-sm" data-testid="control-license-dates">
-                <div className="font-mono text-xs">{data.license.license_key}</div>
+                <div className="font-mono text-xs">{data.license.domain ?? data.domain}</div>
                 <div>
                   {t('controlLicenseStatus')}: <strong>{data.license.status ?? '—'}</strong>
                 </div>

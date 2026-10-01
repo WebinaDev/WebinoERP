@@ -98,11 +98,11 @@ class MarketplaceLicensePipelineTest extends TestCase
         ]);
 
         $ts = time();
-        $sig = hash_hmac('sha256', 'clone.example.test|'.$license->license_key.'|'.$ts, 'test-secret');
+        $sig = hash_hmac('sha256', 'clone.example.test|webinodashboard|'.$ts, 'test-secret');
 
         $this->postJson('/api/webinocrm/v1/license/module-clone-url', [
             'domain' => 'clone.example.test',
-            'license_key' => $license->license_key,
+            'product' => 'webinodashboard',
             'module_slug' => 'demo_paid',
             'ts' => $ts,
             'signature' => $sig,

@@ -8,6 +8,7 @@ use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Str;
 use Modules\Accounting\Http\Controllers\Concerns\VerifiesWebinocrmLicenseSignature;
 use Modules\Core\Entities\CoreLicense;
+use Modules\Core\Services\CoreLicenseResolver;
 use Modules\Marketplace\Entities\MarketplaceCategory;
 use Modules\Marketplace\Entities\MarketplaceEntitlement;
 use Modules\Marketplace\Entities\MarketplaceModule;
@@ -93,7 +94,8 @@ class WebinocrmMarketplaceCompatController extends Controller
 
         $data = $request->validate([
             'domain' => 'required|string|max:255',
-            'license_key' => 'required|string|max:255',
+            'license_key' => 'nullable|string|max:255',
+            'product' => 'nullable|string|max:64',
             'module_id' => 'nullable|integer|exists:marketplace_modules,id',
             'module_slug' => 'nullable|string|max:64',
             'callback_url' => 'nullable|url',
@@ -101,12 +103,9 @@ class WebinocrmMarketplaceCompatController extends Controller
             'mark_paid' => 'nullable|boolean',
         ]);
 
-        $domain = strtolower(trim($data['domain']));
-        $license = CoreLicense::query()
-            ->where('domain', $domain)
-            ->where('license_key', $data['license_key'])
-            ->orderByDesc('id')
-            ->first();
+        $domain = CoreLicenseResolver::normalizeDomain($data['domain']);
+        $product = CoreLicenseResolver::normalizeProduct($data['product'] ?? null);
+        $license = CoreLicenseResolver::find($domain, $product);
         if (! $license) {
             return response()->json(['error' => ['code' => 'LICENSE_NOT_FOUND', 'message' => 'License not found for domain']], 404);
         }

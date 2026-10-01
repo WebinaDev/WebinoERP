@@ -40,6 +40,7 @@ class WebinocrmModirPayamakCompatTest extends TestCase
 
     public function test_invalid_license_returns_unavailable(): void
     {
+        // license_key ignored for entitlement — domain identity wins
         $this->getJson('/api/webinocrm/v1/modirpayamak/dashboard?domain=shop.test&license_key=wrong')
             ->assertOk()
             ->assertJsonPath('ok', false)

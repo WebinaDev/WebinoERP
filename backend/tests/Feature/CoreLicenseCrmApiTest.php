@@ -37,9 +37,10 @@ class CoreLicenseCrmApiTest extends TestCase
         ])->assertCreated();
 
         $key = $res->json('data.license_key');
-        $this->assertNotEmpty($key);
-        $this->assertStringStartsWith('wb-', $key);
         $this->assertSame('demo-shop.example.com', $res->json('data.domain'));
+        $this->assertSame('webinodashboard', $res->json('data.product'));
+        // Internal placeholder only — not a user-facing license code.
+        $this->assertSame('dom:demo-shop.example.com:webinodashboard', $key);
         $this->assertSame('Demo Shop', $res->json('data.project_name'));
         $this->assertSame('ecommerce', $res->json('data.meta.site_type'));
         $this->assertIsArray($res->json('data.meta.modules'));

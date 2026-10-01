@@ -117,7 +117,9 @@ export type SiteProvision = {
   wizard_payload?: Record<string, unknown>;
   license?: {
     id?: number;
-    license_key?: string;
+    domain?: string;
+    product?: string;
+    license_key?: string | null; // deprecated
     status?: string;
     logo_url?: string;
     project_name?: string;
@@ -143,7 +145,9 @@ export type SiteControlPayload = {
   admin: { name?: string | null; email?: string | null };
   license: {
     id: number;
-    license_key: string;
+    domain: string;
+    product?: string;
+    license_key?: string | null;
     status?: string;
     domain?: string;
     logo_url?: string | null;

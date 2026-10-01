@@ -104,7 +104,7 @@ export function LicensesPageView() {
       setFormExpires('');
       setFormStatus('active');
       setFormSiteType('corporate');
-      setCreatedKey(String(created?.license_key ?? ''));
+      setCreatedKey(String(created?.domain ?? ''));
       void load();
     } catch (e) {
       setFormErr(getAxiosMessage(e));
@@ -231,7 +231,7 @@ export function LicensesPageView() {
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
           {rows.map((lic) => (
             <LicenseCard
-              key={String(lic.id ?? lic.license_key)}
+              key={String(lic.id ?? lic.domain)}
               license={lic}
               onEdit={openEditMeta}
               onRenew={(id) => {
@@ -389,21 +389,13 @@ export function LicensesPageView() {
       <Dialog open={!!createdKey} onOpenChange={(o) => !o && setCreatedKey(null)}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>{tl('keyCreated')}</DialogTitle>
+            <DialogTitle>{tl('licenseCreated')}</DialogTitle>
           </DialogHeader>
-          <p className="text-muted-foreground text-sm">{tl('keyCreatedHint')}</p>
-          <div className="flex items-center gap-2">
-            <code className="bg-muted flex-1 truncate rounded px-2 py-1 text-xs" dir="ltr">
+          <p className="text-muted-foreground text-sm">{tl('licenseCreatedHint')}</p>
+          <div className="bg-muted rounded px-2 py-1">
+            <code className="block truncate text-xs" dir="ltr">
               {createdKey}
             </code>
-            <Button
-              type="button"
-              size="sm"
-              variant="outline"
-              onClick={() => createdKey && void copyKey(createdKey)}
-            >
-              Copy
-            </Button>
           </div>
           <DialogFooter>
             <Button type="button" onClick={() => setCreatedKey(null)}>

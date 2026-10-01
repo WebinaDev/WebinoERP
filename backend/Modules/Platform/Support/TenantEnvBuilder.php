@@ -26,7 +26,7 @@ final class TenantEnvBuilder
         $seed = json_encode([
             'tenant_name' => $provision->wizard_payload['site_name'] ?? $provision->slug,
             'domain' => $provision->domain,
-            'license_key' => $provision->license?->license_key,
+            'product' => $provision->license?->product ?? 'webinodashboard',
             'site_type_slug' => $siteType,
             'business_type_slug' => $siteType,
             'crm_account_id' => $provision->crm_account_id,
@@ -68,7 +68,7 @@ final class TenantEnvBuilder
             self::line('RUN_MIGRATIONS', '1'),
             self::line('WEBINO_BASE_URL', $crm),
             self::line('WEBINOCRM_LICENSE_HMAC_SECRET', $licenseHmac),
-            self::line('TENANT_LICENSE_KEY', (string) ($provision->license?->license_key ?? '')),
+            self::line('TENANT_PRODUCT', (string) ($provision->license?->product ?? 'webinodashboard')),
             self::line('TENANT_PROVISION_TOKEN', $token),
             self::line('TENANT_SEED_JSON', (string) $seed),
             self::line('WEBINO_PROVISION_HMAC_SECRET', $provisionSecret),

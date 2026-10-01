@@ -9,6 +9,7 @@ use Illuminate\Queue\InteractsWithQueue;
 use Illuminate\Queue\SerializesModels;
 use Modules\Core\Entities\CoreLicense;
 use Modules\Core\Services\CoreLicenseMetaNormalizer;
+use Modules\Core\Services\CoreLicenseResolver;
 
 class InvalidateAllLicenseCheckCachesJob implements ShouldQueue
 {
@@ -16,9 +17,10 @@ class InvalidateAllLicenseCheckCachesJob implements ShouldQueue
 
     public function handle(): void
     {
-        CoreLicense::query()->select(['domain', 'license_key'])->orderBy('id')->chunk(100, function ($rows): void {
+        CoreLicense::query()->select(['domain', 'product', 'license_key'])->orderBy('id')->chunk(100, function ($rows): void {
             foreach ($rows as $license) {
-                CoreLicenseMetaNormalizer::forgetCheckCache($license->domain, $license->license_key);
+                CoreLicenseResolver::forgetCheckCache($license->domain, $license->product ?? null);
+                CoreLicenseMetaNormalizer::forgetCheckCache($license->domain, null);
             }
         });
     }

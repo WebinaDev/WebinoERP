@@ -780,7 +780,7 @@
     "teamReadyPeriod": "تیم {name} آماده پاسخگویی به سوالات شماست.",
     "projectCreated": "پروژه ایجاد شد: #{id}",
     "projectHash": "پروژه #{id}",
-    "licenseKey": "کلید: {key}",
+    "licenseKey": "دامنه: {key}",
     "licenseExpires": "انقضا: {date}",
     "licenseModules": "ماژول‌ها: {modules}",
     "periodDays": "{days} روز",
@@ -3079,8 +3079,8 @@
     "stepSiteInfoSubtitle": "نام، شناسه، ادمین و سرور استقرار را مشخص کنید.",
     "stepDomainTitle": "دامنهٔ سایت",
     "stepDomainSubtitle": "ساب‌دامین آژانس یا دامنهٔ اختصاصی مشتری را انتخاب کنید.",
-    "stepLicenseTitle": "صدور لایسنس",
-    "stepLicenseSubtitle": "قبل از اجرا، کلید لایسنس صادر و ماژول‌ها قفل می‌شوند.",
+    "stepLicenseTitle": "ثبت لایسنس دامنه",
+    "stepLicenseSubtitle": "هویت لایسنس همان دامنه سایت است. ماژول‌ها از ERP با دامنه + محصول باز می‌شوند.",
     "stepLaunchTitle": "اجرا و کنترل پنل",
     "stepLaunchSubtitle": "ساخت سایت در پس‌زمینه اجرا می‌شود؛ پیشرفت، ترمینال و کنترل‌ها اینجاست.",
     "searchCustomer": "جستجوی مشتری…",
@@ -3090,7 +3090,7 @@
     "livePreview": "پیش‌نمایش زنده",
     "agencySubdomain": "ساب‌دامین آژانس",
     "prepareLicense": "آماده‌سازی لایسنس",
-    "licenseReady": "لایسنس آماده است",
+    "licenseReady": "دامنه لایسنس شد",
     "phaseQueued": "در صف اجرا",
     "phaseFetchSource": "دریافت هسته از GitHub",
     "phaseBuildImages": "ساخت ایمیج‌های Docker",
@@ -3117,8 +3117,8 @@
     "currency": "ارز پیش‌فرض",
     "customDomain": "دامنه اختصاصی",
     "subdomainHint": "ساب‌دامین: {slug}.{domain}",
-    "licenseHint": "لایسنس قبل از اجرا صادر می‌شود — کلید را بررسی کنید",
-    "licensePending": "برای ادامه، لایسنس را آماده کنید",
+    "licenseHint": "قبل از اجرا لایسنس دامنه را آماده کنید — کد لایسنس صادر نمی‌شود.",
+    "licensePending": "برای ادامه، لایسنس دامنه را آماده کنید",
     "reviewDomain": "دامنه نهایی",
     "launch": "ایجاد سایت",
     "done": "بازگشت به لیست",
@@ -3166,7 +3166,7 @@
     "controlLogoUrl": "آدرس لوگو",
     "controlSaveLogo": "ذخیره لوگو",
     "controlLicense": "لایسنس",
-    "controlLicenseHint": "بازه اعتبار و کلید این سایت.",
+    "controlLicenseHint": "بازه اعتبار این دامنه.",
     "controlLicenseStatus": "وضعیت",
     "controlLicenseActivated": "فعال‌شده از",
     "controlLicenseExpires": "انقضا",
@@ -3242,7 +3242,8 @@
       "stopped": "خاموش",
       "unknown": "نامشخص"
     },
-    "loading": "در حال بارگذاری…"
+    "loading": "در حال بارگذاری…",
+    "domainIdentityHint": "هویت لایسنس (دامنه)"
   },
   "platform": {
     "dashboardTitle": "داشبورد پلتفرم",
@@ -3592,9 +3593,11 @@
     "expires": "انقضا",
     "vipUnlimited": "VIP / نامحدود",
     "remainingDays": "{days} روز باقی‌مانده",
-    "domainIsLicenseHint": "دامنه هویت لایسنس است؛ کلید wb-* به‌صورت خودکار ساخته می‌شود و برای WebinoDashboard استفاده می‌شود.",
-    "keyCreated": "کلید لایسنس ساخته شد",
-    "keyCreatedHint": "این کلید را کپی کنید و در داشبورد سایت وارد کنید."
+    "domainIsLicenseHint": "هویت لایسنس همان نام دامنه است. وضعیت فقط با دامنه + محصول چک می‌شود — کد لایسنس لازم نیست.",
+    "keyCreated": "لایسنس ثبت شد",
+    "keyCreatedHint": "این دامنه اکنون لایسنس دارد. سایت‌ها فقط با دامنه اعتبارسنجی می‌شوند (کلیدی برای کپی نیست).",
+    "licenseCreated": "لایسنس ثبت شد",
+    "licenseCreatedHint": "این دامنه لایسنس شد. داشبورد/ERP فقط با دامنه + محصول وضعیت را چک می‌کنند."
   },
   "modirpayamak": {
     "notConfigured": "مدیرپیامک پیکربندی نشده است",

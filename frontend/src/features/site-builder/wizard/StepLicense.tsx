@@ -1,8 +1,7 @@
 'use client';
 
 import { useTranslations } from 'next-intl';
-import { Check, Copy, KeyRound, ShieldCheck } from 'lucide-react';
-import { useState } from 'react';
+import { Globe2, ShieldCheck } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import type { SiteProvision } from '@/lib/api/site-builder';
 import { StepHeroArt } from './illustrations';
@@ -15,20 +14,10 @@ type Props = {
 
 export function StepLicense({ provision, pending, onPrepare }: Props) {
   const t = useTranslations('siteBuilder');
-  const [copied, setCopied] = useState(false);
-  const key = provision?.license?.license_key;
+  const domain = provision?.license?.domain ?? provision?.domain ?? null;
+  const product = provision?.license?.product ?? 'webinodashboard';
   const modules = provision?.license?.meta?.modules ?? [];
-
-  async function copyKey() {
-    if (!key) return;
-    try {
-      await navigator.clipboard.writeText(key);
-      setCopied(true);
-      setTimeout(() => setCopied(false), 1500);
-    } catch {
-      /* ignore */
-    }
-  }
+  const ready = Boolean(domain && provision?.license);
 
   return (
     <div className="grid gap-6" data-testid="wizard-step-license">
@@ -38,9 +27,9 @@ export function StepLicense({ provision, pending, onPrepare }: Props) {
         <p className="text-muted-foreground text-sm">{t('stepLicenseSubtitle')}</p>
       </div>
 
-      {!key ? (
+      {!ready ? (
         <div className="border-border/70 space-y-4 rounded-2xl border border-dashed p-6 text-center">
-          <KeyRound className="text-primary mx-auto h-10 w-10" />
+          <Globe2 className="text-primary mx-auto h-10 w-10" />
           <p className="text-sm">{t('licensePending')}</p>
           <p className="text-muted-foreground text-xs">{t('licenseHint')}</p>
           <Button disabled={pending} onClick={onPrepare} data-testid="prepare-license">
@@ -53,13 +42,14 @@ export function StepLicense({ provision, pending, onPrepare }: Props) {
             <ShieldCheck className="h-5 w-5" />
             {t('licenseReady')}
           </div>
-          <div className="bg-background/80 flex flex-wrap items-center gap-2 rounded-xl border p-3">
-            <code className="flex-1 break-all font-mono text-xs" dir="ltr" data-testid="license-key">
-              {key}
+          <div className="bg-background/80 space-y-1 rounded-xl border p-3">
+            <p className="text-muted-foreground text-xs">{t('domainIdentityHint')}</p>
+            <code className="block break-all font-mono text-sm" dir="ltr" data-testid="license-domain">
+              {domain}
             </code>
-            <Button type="button" size="sm" variant="outline" onClick={() => void copyKey()}>
-              {copied ? <Check className="h-4 w-4" /> : <Copy className="h-4 w-4" />}
-            </Button>
+            <p className="text-muted-foreground text-xs" dir="ltr">
+              product: {product}
+            </p>
           </div>
           {Array.isArray(modules) && modules.length > 0 ? (
             <div className="flex flex-wrap gap-2">

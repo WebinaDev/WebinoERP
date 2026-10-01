@@ -328,13 +328,21 @@ class CoreLicenseMetaNormalizer
         return $out;
     }
 
-    public static function forgetCheckCache(?string $domain, ?string $licenseKey): void
+    /**
+     * @param  string|null  $licenseKey  Deprecated; ignored. Prefer CoreLicenseResolver::forgetCheckCache.
+     */
+    public static function forgetCheckCache(?string $domain, ?string $licenseKey = null): void
     {
         if ($domain === null || $domain === '') {
             return;
         }
-        $key = 'license_check:'.md5($domain.'|'.$licenseKey);
-
-        \Illuminate\Support\Facades\Cache::forget($key);
+        // Legacy key shape (domain|license_key) + domain-only / product defaults.
+        \Illuminate\Support\Facades\Cache::forget('license_check:'.md5($domain.'|'.$licenseKey));
+        \Illuminate\Support\Facades\Cache::forget('license_check:'.md5($domain.'|'));
+        if (class_exists(CoreLicenseResolver::class)) {
+            CoreLicenseResolver::forgetCheckCache($domain, null);
+            CoreLicenseResolver::forgetCheckCache($domain, 'webino');
+            CoreLicenseResolver::forgetCheckCache($domain, 'webinodashboard');
+        }
     }
 }

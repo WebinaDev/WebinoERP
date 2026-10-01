@@ -215,7 +215,7 @@ export function SiteProvisionWizardPage() {
     }
 
     if (step === 6) {
-      if (!provision?.license?.license_key) {
+      if (!provision?.license?.domain) {
         setError(t('licensePending'));
         return;
       }
@@ -303,7 +303,7 @@ export function SiteProvisionWizardPage() {
     (step === 3 && !!packageId) ||
     (step === 4 && !!siteName.trim()) ||
     step === 5 ||
-    (step === 6 && !!provision?.license?.license_key);
+    (step === 6 && !!provision?.license?.domain);
 
   return (
     <WizardShell

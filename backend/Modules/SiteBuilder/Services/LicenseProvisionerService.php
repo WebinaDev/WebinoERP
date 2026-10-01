@@ -2,9 +2,9 @@
 
 namespace Modules\SiteBuilder\Services;
 
-use Illuminate\Support\Str;
 use Modules\Core\Entities\CoreLicense;
 use Modules\Core\Services\CoreLicenseMetaNormalizer;
+use Modules\Core\Services\CoreLicenseResolver;
 use Modules\Platform\Support\SiteTypeProfiles;
 use Modules\SiteBuilder\Entities\WebinoPackage;
 
@@ -53,7 +53,9 @@ class LicenseProvisionerService
             'module_matrix' => SiteTypeProfiles::modulesFor($siteType),
         ]) ?? [];
 
-        $licenseKey = $this->generateLicenseKey();
+        $domain = CoreLicenseResolver::normalizeDomain($domain);
+        $product = CoreLicenseResolver::normalizeProduct($context['product'] ?? 'webinodashboard');
+        $licenseKey = CoreLicenseResolver::internalKeyFor($domain, $product);
 
         $projectName = (string) ($context['project_name'] ?? $context['site_name'] ?? $domain);
         if (! isset($meta['sku'])) {
@@ -64,6 +66,7 @@ class LicenseProvisionerService
             'license_key' => $licenseKey,
             'project_name' => $projectName,
             'domain' => $domain,
+            'product' => $product,
             'logo_url' => $context['logo_url'] ?? null,
             'status' => 'active',
             'start_date' => $context['start_date'] ?? now()->toDateString(),
@@ -74,18 +77,19 @@ class LicenseProvisionerService
         ]);
     }
 
+    /**
+     * @deprecated License identity is domain; kept for callers that still invoke key generation.
+     */
     public function generateLicenseKey(): string
     {
-        do {
-            $key = 'wb-'.Str::lower(Str::random(24));
-        } while (CoreLicense::query()->where('license_key', $key)->exists());
-
-        return $key;
+        // Deterministic-looking placeholder is not used as entitlement; callers should prefer internalKeyFor(domain).
+        return CoreLicenseResolver::internalKeyFor('pending.local', 'webino').'-'.substr(bin2hex(random_bytes(4)), 0, 8);
     }
 
     public function revoke(CoreLicense $license): void
     {
         $license->update(['status' => 'revoked']);
-        CoreLicenseMetaNormalizer::forgetCheckCache($license->domain, $license->license_key);
+        CoreLicenseResolver::forgetCheckCache($license->domain, $license->product ?? null);
+        CoreLicenseMetaNormalizer::forgetCheckCache($license->domain, null);
     }
 }

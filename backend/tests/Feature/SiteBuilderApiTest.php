@@ -59,7 +59,7 @@ class SiteBuilderApiTest extends TestCase
 
         $this->postJson('/api/v1/site-builder/provisions/'.$id.'/prepare-license')
             ->assertOk()
-            ->assertJsonStructure(['data' => ['license' => ['license_key']]]);
+            ->assertJsonStructure(['data' => ['license' => ['domain']]]);
 
         $this->postJson('/api/v1/site-builder/categories', [
             'slug' => 'test_cat',

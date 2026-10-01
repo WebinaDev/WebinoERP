@@ -12,7 +12,7 @@ class CoreLicense extends Model
     protected $table = 'core_licenses';
 
     protected $fillable = [
-        'license_key', 'project_name', 'domain', 'logo_url', 'status', 'start_date',
+        'license_key', 'project_name', 'domain', 'product', 'logo_url', 'status', 'start_date',
         'expires_at', 'max_users', 'meta', 'created_by',
     ];
 
@@ -27,6 +27,16 @@ class CoreLicense extends Model
             'meta' => 'array',
         ];
     }
+
+    /**
+     * Hide deprecated license_key from API/JSON when possible (still fillable for DB).
+     * Controllers that need the raw row can use makeVisible.
+     *
+     * @var list<string>
+     */
+    protected $hidden = [
+        // Keep visible for admin tooling that still serializes full models; UI should stop showing it.
+    ];
 
     /**
      * @param  array<string, mixed>  $attributes

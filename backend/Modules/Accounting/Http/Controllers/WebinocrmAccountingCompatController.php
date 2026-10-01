@@ -6,10 +6,11 @@ use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Modules\Accounting\Http\Controllers\Concerns\VerifiesWebinocrmLicenseSignature;
-use Modules\Core\Entities\CoreLicense;
+use Modules\Core\Services\CoreLicenseResolver;
 
 /**
  * Live ledger readout for Dashboard tenants (HMAC license auth).
+ * Entitlement: domain (+ product). license_key ignored for lookup.
  * GET|POST /api/webinocrm/v1/accounting/ledger
  */
 class WebinocrmAccountingCompatController extends Controller
@@ -22,13 +23,9 @@ class WebinocrmAccountingCompatController extends Controller
             return response()->json(['error' => ['code' => 'INVALID_SIGNATURE', 'message' => 'Invalid signature']], 403);
         }
 
-        $domain = strtolower(trim((string) $request->input('domain', '')));
-        $licenseKey = (string) $request->input('license_key', '');
-        $license = CoreLicense::query()
-            ->where('domain', $domain)
-            ->when($licenseKey !== '', fn ($q) => $q->where('license_key', $licenseKey))
-            ->orderByDesc('id')
-            ->first();
+        $domain = CoreLicenseResolver::normalizeDomain((string) $request->input('domain', ''));
+        $product = CoreLicenseResolver::normalizeProduct($request->input('product'));
+        $license = CoreLicenseResolver::find($domain, $product);
         if (! $license) {
             return response()->json(['error' => ['code' => 'LICENSE_NOT_FOUND', 'message' => 'License not found']], 404);
         }

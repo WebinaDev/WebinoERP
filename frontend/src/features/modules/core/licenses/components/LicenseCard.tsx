@@ -17,7 +17,8 @@ import { cn } from '@/lib/utils';
 
 export type LicenseCardRow = {
   id?: number;
-  license_key?: string;
+  license_key?: string | null; // deprecated
+  product?: string;
   project_name?: string | null;
   domain?: string | null;
   logo_url?: string | null;
@@ -118,23 +119,11 @@ export function LicenseCard({ license, onEdit, onRenew, onCancel, onDelete, onCo
           </p>
         </div>
 
-        {license.license_key ? (
-          <div className="mb-3 flex items-center justify-center gap-1">
-            <p className="text-muted-foreground truncate font-mono text-xs" dir="ltr">
-              {String(license.license_key)}
-            </p>
-            {onCopyKey ? (
-              <Button
-                type="button"
-                size="icon"
-                variant="ghost"
-                className="size-7"
-                onClick={() => onCopyKey(String(license.license_key))}
-              >
-                <Copy className="size-3.5" />
-              </Button>
-            ) : null}
-          </div>
+        {license.domain ? (
+          <p className="text-muted-foreground mb-3 text-center text-xs" dir="ltr">
+            {String(license.domain)}
+            {license.product ? ` · ${String(license.product)}` : ''}
+          </p>
         ) : null}
 
         <div className="mb-4 space-y-2">

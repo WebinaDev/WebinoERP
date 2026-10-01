@@ -10,12 +10,14 @@ use Illuminate\Support\Facades\DB;
 use Modules\Accounting\Http\Controllers\Concerns\VerifiesWebinocrmLicenseSignature;
 use Modules\Core\Entities\CoreLicense;
 use Modules\Core\Services\CoreLicenseMetaNormalizer;
+use Modules\Core\Services\CoreLicenseResolver;
 
 /**
- * Public REST parity with webinocrm includes/class-license-api.php
+ * Public REST parity with webinocrm / WP license-management APIs.
  * Routes: POST /api/webinocrm/v1/license/check|activate
  *
- * Body: domain, license_key, signature = HMAC_SHA256(secret, domain + "|" + license_key + "|" + ts), ts (unix)
+ * Entitlement identity: domain (+ product). license_key is ignored for lookup
+ * (accepted for HMAC/WP compat only). HMAC: domain|{product}|ts (legacy middle slot OK).
  */
 class WebinocrmLicenseCompatController extends Controller
 {
@@ -27,26 +29,43 @@ class WebinocrmLicenseCompatController extends Controller
             return response()->json(['error' => ['code' => 'INVALID_SIGNATURE', 'message' => 'Invalid signature']], 403);
         }
 
-        $domain = (string) $request->input('domain', $request->getHost());
-        $cacheKey = 'license_check:'.md5($domain.'|'.$request->input('license_key'));
+        $domain = CoreLicenseResolver::normalizeDomain(
+            (string) ($request->input('domain') ?: $request->getHost())
+        );
+        // WP compat: if license_key looks like a hostname and domain empty, use it as domain.
+        if ($domain === '' && $request->filled('license_key')) {
+            $maybe = CoreLicenseResolver::normalizeDomain((string) $request->input('license_key'));
+            if ($maybe !== '' && str_contains($maybe, '.')) {
+                $domain = $maybe;
+            }
+        }
+        $product = CoreLicenseResolver::normalizeProduct(
+            $request->input('product', $request->input('product_slug'))
+        );
+        $cacheKey = CoreLicenseResolver::cacheKey($domain, $product);
 
-        $payload = Cache::remember($cacheKey, 3600, function () use ($domain, $request) {
-            $row = CoreLicense::query()
-                ->where('domain', $domain)
-                ->when($request->filled('license_key'), fn ($q) => $q->where('license_key', $request->input('license_key')))
-                ->orderByDesc('id')
-                ->first();
+        $payload = Cache::remember($cacheKey, 3600, function () use ($domain, $product) {
+            $row = CoreLicenseResolver::find($domain, $product);
 
             if (! $row) {
                 return [
                     'status' => 'invalid',
+                    'valid' => false,
+                    'legacy_status' => 'invalid',
                     'expiry_date' => null,
                     'remaining_days' => 0,
                     'remaining_percentage' => 0,
+                    'demo' => false,
+                    'active' => false,
+                    'expired' => false,
+                    'domain' => $domain,
+                    'product' => $product,
                     'licensed_modules' => [],
                     'vertical' => null,
                     'sku' => null,
                     'module_git_repos' => [],
+                    'modules' => [],
+                    'entitlements' => [],
                 ];
             }
 
@@ -57,10 +76,9 @@ class WebinocrmLicenseCompatController extends Controller
             $expired = $exp !== null && $exp->isPast();
             $metaRaw = is_array($row->meta) ? $row->meta : [];
             $isDemo = filter_var($metaRaw['demo'] ?? $metaRaw['is_demo'] ?? false, FILTER_VALIDATE_BOOLEAN)
-                || str_starts_with(strtolower((string) $row->license_key), 'demo-')
+                || str_starts_with(strtolower((string) ($row->license_key ?? '')), 'demo-')
                 || (($metaRaw['sku'] ?? null) === 'demo');
             $activeRow = $row->status === 'active' && ! $expired && ($maxUsers <= 0 || $userCount <= $maxUsers);
-            // Lifecycle for Dashboard: active | expired | demo | invalid (keep valid boolean for older clients).
             if ($activeRow && $isDemo) {
                 $lifecycle = 'demo';
             } elseif ($activeRow) {
@@ -78,7 +96,6 @@ class WebinocrmLicenseCompatController extends Controller
             return [
                 'status' => $lifecycle,
                 'valid' => $valid,
-                // Backward-compat alias used by older Dashboard clients.
                 'legacy_status' => $valid ? 'valid' : 'invalid',
                 'expiry_date' => $exp?->toDateString(),
                 'remaining_days' => $remaining,
@@ -86,6 +103,8 @@ class WebinocrmLicenseCompatController extends Controller
                 'demo' => $lifecycle === 'demo',
                 'active' => $lifecycle === 'active' || $lifecycle === 'demo',
                 'expired' => $lifecycle === 'expired',
+                'domain' => $row->domain,
+                'product' => $row->product ?? $product,
                 'licensed_modules' => $norm['licensed_modules'],
                 'vertical' => $norm['vertical'],
                 'sku' => $norm['sku'],
@@ -112,11 +131,17 @@ class WebinocrmLicenseCompatController extends Controller
 
         $data = $request->validate([
             'domain' => 'required|string|max:255',
-            'license_key' => 'required|string|max:255',
+            // Deprecated: accepted for WP clients; ignored for identity (domain+product win).
+            'license_key' => 'nullable|string|max:255',
+            'product' => 'nullable|string|max:64',
+            'product_slug' => 'nullable|string|max:64',
             'expires_at' => 'nullable|date',
             'max_users' => 'nullable|integer|min:0',
             'meta' => 'nullable|array',
         ]);
+
+        $domain = CoreLicenseResolver::normalizeDomain($data['domain']);
+        $product = CoreLicenseResolver::normalizeProduct($data['product'] ?? $data['product_slug'] ?? null);
 
         try {
             $metaIn = isset($data['meta']) ? CoreLicenseMetaNormalizer::validateForStorage($data['meta']) : null;
@@ -130,24 +155,37 @@ class WebinocrmLicenseCompatController extends Controller
             is_array($metaIn) ? $metaIn : []
         );
 
+        $internalKey = CoreLicenseResolver::internalKeyFor($domain, $product);
+        $attrs = CoreLicense::attributesForSchema([
+            'status' => 'active',
+            'expires_at' => $data['expires_at'] ?? null,
+            'max_users' => $data['max_users'] ?? 0,
+            'meta' => $meta,
+            'created_by' => null,
+            'license_key' => $internalKey,
+            'product' => $product,
+        ]);
+
+        $match = ['domain' => $domain];
+        if (\Illuminate\Support\Facades\Schema::hasColumn('core_licenses', 'product')) {
+            $match['product'] = $product;
+        }
+
         $row = CoreLicense::query()->updateOrCreate(
-            ['domain' => $data['domain'], 'license_key' => $data['license_key']],
-            [
-                'status' => 'active',
-                'expires_at' => $data['expires_at'] ?? null,
-                'max_users' => $data['max_users'] ?? 0,
-                'meta' => $meta,
-                'created_by' => null,
-            ]
+            CoreLicense::attributesForSchema($match),
+            $attrs
         );
 
-        CoreLicenseMetaNormalizer::forgetCheckCache($data['domain'], $data['license_key']);
+        CoreLicenseResolver::forgetCheckCache($domain, $product);
+        CoreLicenseMetaNormalizer::forgetCheckCache($domain, null);
 
         return response()->json([
             'data' => [
                 'status' => 'ok',
                 'message' => 'License stored',
                 'license_id' => $row->id,
+                'domain' => $domain,
+                'product' => $product,
             ],
         ]);
     }

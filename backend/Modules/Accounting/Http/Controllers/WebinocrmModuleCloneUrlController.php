@@ -5,12 +5,13 @@ namespace Modules\Accounting\Http\Controllers;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Modules\Accounting\Http\Controllers\Concerns\VerifiesWebinocrmLicenseSignature;
-use Modules\Core\Entities\CoreLicense;
 use Modules\Core\Services\CoreLicenseMetaNormalizer;
+use Modules\Core\Services\CoreLicenseResolver;
 use Modules\Core\Services\OrgGit\OrgGitProviderFactory;
 
 /**
  * Authenticated clone URL for dashboard git installs (HMAC same as license/check).
+ * Entitlement: domain (+ product). license_key ignored for lookup.
  * POST /api/webinocrm/v1/license/module-clone-url
  */
 class WebinocrmModuleCloneUrlController extends Controller
@@ -26,18 +27,17 @@ class WebinocrmModuleCloneUrlController extends Controller
         $data = $request->validate([
             'domain' => 'required|string|max:255',
             'license_key' => 'nullable|string|max:255',
+            'product' => 'nullable|string|max:64',
             'module_slug' => 'required|string|max:64',
             'ts' => 'required|integer',
             'signature' => 'nullable|string',
         ]);
 
         $slug = $data['module_slug'];
+        $domain = CoreLicenseResolver::normalizeDomain($data['domain']);
+        $product = CoreLicenseResolver::normalizeProduct($data['product'] ?? null);
 
-        $row = CoreLicense::query()
-            ->where('domain', $data['domain'])
-            ->when($request->filled('license_key'), fn ($q) => $q->where('license_key', $request->input('license_key')))
-            ->orderByDesc('id')
-            ->first();
+        $row = CoreLicenseResolver::find($domain, $product);
 
         if (! $row) {
             return response()->json(['error' => ['code' => 'NOT_FOUND', 'message' => 'License not found']], 404);

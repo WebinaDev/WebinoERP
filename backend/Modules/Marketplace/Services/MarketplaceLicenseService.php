@@ -68,7 +68,8 @@ class MarketplaceLicenseService
             $license->meta = CoreLicenseMetaNormalizer::validateForStorage($meta) ?? $meta;
             $license->save();
 
-            CoreLicenseMetaNormalizer::forgetCheckCache($license->domain, $license->license_key);
+            CoreLicenseResolver::forgetCheckCache($license->domain, $license->product ?? null);
+            CoreLicenseMetaNormalizer::forgetCheckCache($license->domain, null);
 
             $order->license_id = $license->id;
             if ($order->status === 'pending' || $order->status === 'paid') {
@@ -137,7 +138,8 @@ class MarketplaceLicenseService
         $meta['module_repos'] = array_values($repos);
         $license->meta = CoreLicenseMetaNormalizer::validateForStorage($meta) ?? $meta;
         $license->save();
-        CoreLicenseMetaNormalizer::forgetCheckCache($license->domain, $license->license_key);
+        CoreLicenseResolver::forgetCheckCache($license->domain, $license->product ?? null);
+            CoreLicenseMetaNormalizer::forgetCheckCache($license->domain, null);
 
         return $license->fresh();
     }

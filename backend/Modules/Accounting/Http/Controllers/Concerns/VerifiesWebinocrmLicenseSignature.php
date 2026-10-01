@@ -3,6 +3,7 @@
 namespace Modules\Accounting\Http\Controllers\Concerns;
 
 use Illuminate\Http\Request;
+use Modules\Core\Services\CoreLicenseResolver;
 
 trait VerifiesWebinocrmLicenseSignature
 {
@@ -11,22 +12,46 @@ trait VerifiesWebinocrmLicenseSignature
         return (string) (config('app.webinocrm_license_hmac_secret') ?? '');
     }
 
+    /**
+     * HMAC auth for service-to-service calls (NOT a license code).
+     * Canonical payload: domain|{product}|ts
+     * Legacy WP / old Dashboard: domain|{license_key}|ts (license_key ignored for entitlement)
+     */
     protected function verifyLicenseRequest(Request $request): bool
     {
         $secret = $this->licenseHmacSecret();
         if ($secret === '') {
             return false;
         }
-        $domain = (string) $request->input('domain', '');
-        $key = (string) $request->input('license_key', '');
+        $domain = CoreLicenseResolver::normalizeDomain((string) $request->input('domain', ''));
+        $product = CoreLicenseResolver::normalizeProduct(
+            $request->input('product', $request->input('product_slug'))
+        );
+        $legacyKey = (string) $request->input('license_key', '');
+        // WP compat: if clients still post license_key that looks like a domain, treat as domain echo.
+        if ($legacyKey !== '' && CoreLicenseResolver::normalizeDomain($legacyKey) === $domain) {
+            $legacyKey = $domain;
+        }
         $ts = (int) $request->input('ts', 0);
         $sig = (string) $request->input('signature', '');
         if ($sig === '' || abs(time() - $ts) > 600) {
             return false;
         }
-        $payload = $domain.'|'.$key.'|'.$ts;
-        $expect = hash_hmac('sha256', $payload, $secret);
 
-        return hash_equals($expect, $sig);
+        $candidates = array_unique([
+            $domain.'|'.$product.'|'.$ts,
+            $domain.'|'.'|'.$ts,
+            $domain.'|'.$legacyKey.'|'.$ts,
+            $domain.'|'.$domain.'|'.$ts,
+        ]);
+
+        foreach ($candidates as $payload) {
+            $expect = hash_hmac('sha256', $payload, $secret);
+            if (hash_equals($expect, $sig)) {
+                return true;
+            }
+        }
+
+        return false;
     }
 }
