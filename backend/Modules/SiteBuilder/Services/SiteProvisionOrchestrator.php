@@ -2,6 +2,7 @@
 
 namespace Modules\SiteBuilder\Services;
 
+use Illuminate\Contracts\Encryption\DecryptException;
 use Illuminate\Support\Facades\Http;
 use Modules\Core\Entities\CoreHostingSetting;
 use Modules\Platform\Entities\PlatformServer;
@@ -23,29 +24,29 @@ class SiteProvisionOrchestrator
 
     public function launch(WebinoSiteProvision $provision): WebinoSiteProvision
     {
-        $provision->load(['package.businessType.category', 'package.features', 'crmAccount']);
-
-        if ($provision->status === WebinoSiteProvision::STATUS_CANCELLED) {
-            return $provision;
-        }
-
-        $serverId = (int) (($provision->wizard_payload['server_id'] ?? 0) ?: 0);
-        $server = $serverId ? PlatformServer::query()->find($serverId) : null;
-
-        $useRemote = $server && ! $this->isLocalhostServer($server);
-        if (! $useRemote) {
-            $server = $this->ensureLocalhostServer();
-        }
-
-        if (! $server) {
-            return $this->fail($provision, 'platform.no_ready_server');
-        }
-
-        $siteType = $provision->wizard_payload['site_type_slug']
-            ?? $provision->package?->businessType?->slug
-            ?? 'corporate';
-
         try {
+            $provision->load(['package.businessType.category', 'package.features', 'crmAccount']);
+
+            if ($provision->status === WebinoSiteProvision::STATUS_CANCELLED) {
+                return $provision;
+            }
+
+            $serverId = (int) (($provision->wizard_payload['server_id'] ?? 0) ?: 0);
+            $server = $serverId ? PlatformServer::query()->find($serverId) : null;
+
+            $useRemote = $server && ! $this->isLocalhostServer($server);
+            if (! $useRemote) {
+                $server = $this->ensureLocalhostServer();
+            }
+
+            if (! $server) {
+                return $this->fail($provision, 'platform.no_ready_server');
+            }
+
+            $siteType = $provision->wizard_payload['site_type_slug']
+                ?? $provision->package?->businessType?->slug
+                ?? 'corporate';
+
             ProvisionProgress::assertNotCancelled($provision);
             if ($useRemote) {
                 $this->remote->provisionFromSiteBuilder($provision, $server, $siteType);
@@ -429,11 +430,11 @@ class SiteProvisionOrchestrator
     {
         $settings = CoreHostingSetting::current();
         $dirty = false;
-        if (! filled($settings->platform_base_domain)) {
+        if (! filled($this->hostingValue($settings, 'platform_base_domain'))) {
             $settings->platform_base_domain = 'webinaagency.ir';
             $dirty = true;
         }
-        if (! filled($settings->provision_webhook_secret)) {
+        if (! filled($this->hostingValue($settings, 'provision_webhook_secret'))) {
             $settings->provision_webhook_secret = bin2hex(random_bytes(32));
             $dirty = true;
         }
@@ -453,6 +454,28 @@ class SiteProvisionOrchestrator
                 'meta' => ['managed_by' => 'site_builder'],
             ]
         );
+    }
+
+    /**
+     * Encrypted hosting columns throw DecryptException ("The payload is invalid.")
+     * when the stored value is not ciphertext. That used to escape the sync
+     * launch job and become HTTP 500. Treat it as empty so the caller can rewrite it.
+     *
+     * The raw value is also cleared on the model. `save()` compares encrypted
+     * casts by decrypting the original, which would throw the same exception.
+     */
+    protected function hostingValue(CoreHostingSetting $settings, string $attribute): mixed
+    {
+        try {
+            return $settings->getAttribute($attribute);
+        } catch (DecryptException) {
+            $raw = $settings->getAttributes();
+            $raw[$attribute] = null;
+            $settings->setRawAttributes($raw);
+            $settings->syncOriginalAttribute($attribute);
+
+            return null;
+        }
     }
 
     /**

@@ -23,6 +23,25 @@ class ProvisionWebinoSiteJob implements ShouldQueue
 
     public function __construct(public int $provisionId) {}
 
+    /**
+     * Push the build onto a real queue.
+     *
+     * `dispatch()->afterResponse()` calls `dispatchSync()`, which forces the
+     * sync connection and runs this job before `php artisan serve` finishes
+     * the request. An exception then (for example DecryptException while
+     * reading the hosting webhook secret) makes the built-in server answer
+     * HTTP 500, so the wizard stays on draft and Redis never receives the job.
+     */
+    public static function enqueue(int $provisionId): void
+    {
+        $connection = config('queue.default');
+        if (! is_string($connection) || $connection === '' || $connection === 'sync') {
+            $connection = 'redis';
+        }
+
+        static::dispatch($provisionId)->onConnection($connection);
+    }
+
     public function handle(SiteProvisionOrchestrator $orchestrator): void
     {
         $provision = WebinoSiteProvision::query()->find($this->provisionId);

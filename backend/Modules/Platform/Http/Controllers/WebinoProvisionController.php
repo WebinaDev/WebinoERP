@@ -37,7 +37,7 @@ class WebinoProvisionController extends Controller
                 'progress' => ProvisionProgress::make(ProvisionProgress::PHASE_QUEUED),
             ]);
 
-            ProvisionWebinoSiteJob::dispatch($provision->id);
+            ProvisionWebinoSiteJob::enqueue($provision->id);
 
             return response()->json([
                 'success' => true,

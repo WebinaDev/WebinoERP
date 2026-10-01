@@ -293,10 +293,9 @@ class SiteProvisionController extends Controller
             'error_log' => null,
             'progress' => ProvisionProgress::make(ProvisionProgress::PHASE_QUEUED),
         ]);
-        // afterResponse: QUEUE_CONNECTION=sync (and a slow redis push) must not hold
-        // the HTTP request open until images are built. The browser treats a reset
-        // connection as Axios "Network Error".
-        ProvisionWebinoSiteJob::dispatch($siteProvision->id)->afterResponse();
+        // Never afterResponse()/sync: that runs the build in this process and
+        // artisan serve turns the thrown exception into HTTP 500.
+        ProvisionWebinoSiteJob::enqueue($siteProvision->id);
         app(SiteProvisionAuditLogger::class)->log($request->user()?->id, 'provision.launch_queued', $siteProvision);
 
         return response()->json([
@@ -342,7 +341,7 @@ class SiteProvisionController extends Controller
             'error_log' => null,
             'progress' => ProvisionProgress::make(ProvisionProgress::PHASE_QUEUED),
         ]);
-        ProvisionWebinoSiteJob::dispatch($siteProvision->id)->afterResponse();
+        ProvisionWebinoSiteJob::enqueue($siteProvision->id);
 
         return response()->json(['data' => $siteProvision, 'message' => 'Retry queued.']);
     }

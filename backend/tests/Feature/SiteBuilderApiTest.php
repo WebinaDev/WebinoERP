@@ -770,6 +770,10 @@ class SiteBuilderApiTest extends TestCase
             ->assertJsonPath('data.progress.percent', 5);
 
         Bus::assertDispatchedTimes(ProvisionWebinoSiteJob::class, 1);
+        Bus::assertDispatched(ProvisionWebinoSiteJob::class, function (ProvisionWebinoSiteJob $job) use ($provision) {
+            return $job->provisionId === $provision->id && $job->connection === 'redis';
+        });
+        Bus::assertNotDispatchedAfterResponse(ProvisionWebinoSiteJob::class);
 
         $this->postJson('/api/v1/site-builder/provisions/'.$provision->id.'/launch')
             ->assertOk()
@@ -780,5 +784,99 @@ class SiteBuilderApiTest extends TestCase
             'id' => $provision->id,
             'status' => 'pending',
         ]);
+    }
+
+    public function test_launch_after_reused_license_sets_pending_and_queues_job(): void
+    {
+        $user = $this->actingAsRole('system_manager');
+        Sanctum::actingAs($user);
+        Bus::fake();
+
+        $package = WebinoPackage::query()->where('sku', 'pkg-ecommerce-starter')->first()
+            ?? WebinoPackage::query()->first();
+        $this->assertNotNull($package);
+
+        $domain = 'parisma.webinaagency.ir';
+        $existing = CoreLicense::createForSchema([
+            'license_key' => CoreLicenseResolver::internalKeyFor($domain, 'webinodashboard'),
+            'project_name' => 'Parisma',
+            'domain' => $domain,
+            'product' => 'webinodashboard',
+            'status' => 'active',
+            'start_date' => now()->toDateString(),
+            'meta' => [
+                'modules' => ['shop', 'cms'],
+                'vertical' => 'ecommerce',
+                'module_matrix' => ['shop' => true],
+            ],
+        ]);
+
+        $account = CrmAccount::query()->create([
+            'name' => 'Parisma',
+            'type' => 'customer',
+        ]);
+
+        $provision = WebinoSiteProvision::query()->create([
+            'crm_account_id' => $account->id,
+            'package_id' => $package->id,
+            'slug' => 'parisma',
+            'domain' => $domain,
+            'status' => WebinoSiteProvision::STATUS_DRAFT,
+            'wizard_payload' => [
+                'site_name' => 'Parisma',
+                'site_type_slug' => 'ecommerce',
+                'admin_name' => 'Admin',
+                'admin_email' => 'admin@parisma.test',
+            ],
+            'provision_token' => 'tok-parisma',
+        ]);
+
+        $this->postJson('/api/v1/site-builder/provisions/'.$provision->id.'/prepare-license')
+            ->assertOk()
+            ->assertJsonPath('data.license.id', $existing->id)
+            ->assertJsonPath('data.status', 'draft');
+
+        $this->withoutExceptionHandling();
+        $launch = $this->postJson('/api/v1/site-builder/provisions/'.$provision->id.'/launch');
+        $launch->assertOk()
+            ->assertJsonPath('data.status', 'pending')
+            ->assertJsonPath('data.progress.phase', 'queued');
+
+        Bus::assertDispatchedTimes(ProvisionWebinoSiteJob::class, 1);
+        $this->assertDatabaseHas('webino_site_provisions', [
+            'id' => $provision->id,
+            'status' => 'pending',
+            'license_id' => $existing->id,
+        ]);
+        $this->assertSame(1, CoreLicense::query()->where('domain', $domain)->count());
+
+        Bus::assertDispatched(ProvisionWebinoSiteJob::class, function (ProvisionWebinoSiteJob $job) use ($provision) {
+            return $job->provisionId === $provision->id && $job->connection === 'redis';
+        });
+        Bus::assertNotDispatchedAfterResponse(ProvisionWebinoSiteJob::class);
+    }
+
+    public function test_invalid_hosting_secret_is_rewritten_instead_of_throwing(): void
+    {
+        \Illuminate\Support\Facades\DB::table('core_hosting_settings')->insert([
+            'platform_base_domain' => 'webinaagency.ir',
+            'provision_webhook_secret' => 'not-a-valid-laravel-payload',
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+
+        $orchestrator = app(SiteProvisionOrchestrator::class);
+        $method = new \ReflectionMethod($orchestrator, 'ensureLocalhostServer');
+        $server = $method->invoke($orchestrator);
+
+        $this->assertNotNull($server);
+        $this->assertTrue((bool) $server->is_localhost);
+
+        $settings = \Modules\Core\Entities\CoreHostingSetting::query()->first();
+        $this->assertNotNull($settings);
+        $secret = $settings->provision_webhook_secret;
+        $this->assertIsString($secret);
+        $this->assertNotSame('', $secret);
+        $this->assertNotSame('not-a-valid-laravel-payload', $secret);
     }
 }
