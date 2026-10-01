@@ -1,19 +1,18 @@
 import axios, { AxiosInstance, AxiosError } from 'axios';
 import { unwrapApiResponse } from '@webina/ui';
+import { resolveApiBase } from '@/lib/api-base';
 
 /**
  * Browser calls must be same-origin `/api` so Caddy can proxy to Laravel.
  * `http://localhost/api` is wrong on a remote server and causes Axios "Network Error".
  */
-function resolveApiBase(): string {
+function browserApiBase(): string {
   const raw = process.env.NEXT_PUBLIC_API_URL?.trim()
-  if (raw) {
-    return raw.replace(/\/$/, '')
-  }
-  return '/api'
+  const pageOrigin = typeof window !== 'undefined' ? window.location.origin : undefined
+  return resolveApiBase(raw, pageOrigin)
 }
 
-const API_URL = resolveApiBase()
+const API_URL = browserApiBase()
 
 /** Sibling fields Site Builder (and similar) attach next to `data` before/after envelope. */
 const RESPONSE_SIBLING_KEYS = [

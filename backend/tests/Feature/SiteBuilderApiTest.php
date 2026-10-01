@@ -5,7 +5,9 @@ namespace Tests\Feature;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Bus;
 use Laravel\Sanctum\Sanctum;
+use Modules\Core\Entities\CoreLicense;
 use Modules\Core\Entities\SystemModule;
+use Modules\Core\Services\CoreLicenseResolver;
 use Modules\Crm\Entities\CrmAccount;
 use Modules\Platform\Entities\PlatformEnvironment;
 use Modules\Platform\Entities\PlatformProject;
@@ -597,5 +599,186 @@ class SiteBuilderApiTest extends TestCase
             ->assertJsonPath('data.stack.diagnostics_ran', true)
             ->assertJsonPath('data.stack.checks.db_auth', 'ok')
             ->assertJsonPath('data.stack.checks.backend_self', 'skipped');
+    }
+
+    public function test_prepare_license_reuses_existing_domain_product_license(): void
+    {
+        $user = $this->actingAsRole('system_manager');
+        Sanctum::actingAs($user);
+
+        $package = WebinoPackage::query()->where('sku', 'pkg-ecommerce-starter')->first()
+            ?? WebinoPackage::query()->first();
+        $this->assertNotNull($package);
+
+        $domain = 'parisma.webinaagency.ir';
+        $existing = CoreLicense::createForSchema([
+            'license_key' => CoreLicenseResolver::internalKeyFor($domain, 'webinodashboard'),
+            'project_name' => 'Parisma',
+            'domain' => $domain,
+            'product' => 'webinodashboard',
+            'status' => 'active',
+            'start_date' => now()->toDateString(),
+        ]);
+
+        $account = CrmAccount::query()->create([
+            'name' => 'Parisma',
+            'type' => 'customer',
+        ]);
+
+        $provision = WebinoSiteProvision::query()->create([
+            'crm_account_id' => $account->id,
+            'package_id' => $package->id,
+            'slug' => 'parisma',
+            'domain' => $domain,
+            'status' => WebinoSiteProvision::STATUS_DRAFT,
+            'wizard_payload' => [
+                'site_name' => 'Parisma',
+                'site_type_slug' => 'ecommerce',
+            ],
+            'provision_token' => 'tok-parisma',
+        ]);
+
+        $first = $this->postJson('/api/v1/site-builder/provisions/'.$provision->id.'/prepare-license');
+        $first->assertOk()
+            ->assertJsonPath('data.license.id', $existing->id)
+            ->assertJsonPath('data.license.domain', $domain)
+            ->assertJsonPath('data.status', 'draft');
+
+        $this->assertSame(1, CoreLicense::query()->where('domain', $domain)->count());
+
+        $this->postJson('/api/v1/site-builder/provisions/'.$provision->id.'/prepare-license')
+            ->assertOk()
+            ->assertJsonPath('data.license.id', $existing->id);
+
+        $this->assertSame(1, CoreLicense::query()->where('domain', $domain)->count());
+    }
+
+    public function test_prepare_license_reports_revoked_wrong_product_and_customer_conflicts(): void
+    {
+        $user = $this->actingAsRole('system_manager');
+        Sanctum::actingAs($user);
+        $package = WebinoPackage::query()->first();
+        $this->assertNotNull($package);
+
+        $revokedDomain = 'revoked-shop.webinaagency.ir';
+        $revoked = CoreLicense::createForSchema([
+            'license_key' => CoreLicenseResolver::internalKeyFor($revokedDomain, 'webinodashboard'),
+            'project_name' => 'Revoked',
+            'domain' => $revokedDomain,
+            'product' => 'webinodashboard',
+            'status' => 'revoked',
+            'start_date' => now()->toDateString(),
+        ]);
+        $revokedProvision = WebinoSiteProvision::query()->create([
+            'package_id' => $package->id,
+            'slug' => 'revoked-shop',
+            'domain' => $revokedDomain,
+            'status' => WebinoSiteProvision::STATUS_DRAFT,
+            'wizard_payload' => ['site_name' => 'Revoked', 'site_type_slug' => 'ecommerce'],
+        ]);
+        $this->postJson('/api/v1/site-builder/provisions/'.$revokedProvision->id.'/prepare-license')
+            ->assertStatus(422)
+            ->assertJsonPath('errors.code', 'platform.license_revoked')
+            ->assertJsonPath('message', 'platform.license_revoked');
+        $this->assertNull($revokedProvision->fresh()->license_id);
+        $this->assertSame($revoked->id, CoreLicense::query()->where('domain', $revokedDomain)->value('id'));
+
+        $wpDomain = 'wp-shop.webinaagency.ir';
+        CoreLicense::createForSchema([
+            'license_key' => CoreLicenseResolver::internalKeyFor($wpDomain, 'wordpress'),
+            'project_name' => 'WP',
+            'domain' => $wpDomain,
+            'product' => 'wordpress',
+            'status' => 'active',
+            'start_date' => now()->toDateString(),
+        ]);
+        $wpProvision = WebinoSiteProvision::query()->create([
+            'package_id' => $package->id,
+            'slug' => 'wp-shop',
+            'domain' => $wpDomain,
+            'status' => WebinoSiteProvision::STATUS_DRAFT,
+            'wizard_payload' => ['site_name' => 'WP', 'site_type_slug' => 'ecommerce'],
+        ]);
+        $this->postJson('/api/v1/site-builder/provisions/'.$wpProvision->id.'/prepare-license')
+            ->assertStatus(422)
+            ->assertJsonPath('errors.code', 'platform.license_wrong_product');
+
+        $sharedDomain = 'shared-shop.webinaagency.ir';
+        $shared = CoreLicense::createForSchema([
+            'license_key' => CoreLicenseResolver::internalKeyFor($sharedDomain, 'webinodashboard'),
+            'project_name' => 'Shared',
+            'domain' => $sharedDomain,
+            'product' => 'webinodashboard',
+            'status' => 'active',
+            'start_date' => now()->toDateString(),
+        ]);
+        $owner = CrmAccount::query()->create(['name' => 'Owner', 'type' => 'customer']);
+        $other = CrmAccount::query()->create(['name' => 'Other', 'type' => 'customer']);
+        WebinoSiteProvision::query()->create([
+            'crm_account_id' => $owner->id,
+            'package_id' => $package->id,
+            'license_id' => $shared->id,
+            'slug' => 'shared-owner',
+            'domain' => $sharedDomain,
+            'status' => WebinoSiteProvision::STATUS_READY,
+            'wizard_payload' => ['site_name' => 'Owner'],
+        ]);
+        $challenger = WebinoSiteProvision::query()->create([
+            'crm_account_id' => $other->id,
+            'package_id' => $package->id,
+            'slug' => 'shared-other',
+            'domain' => $sharedDomain,
+            'status' => WebinoSiteProvision::STATUS_DRAFT,
+            'wizard_payload' => ['site_name' => 'Other', 'site_type_slug' => 'ecommerce'],
+        ]);
+        $this->postJson('/api/v1/site-builder/provisions/'.$challenger->id.'/prepare-license')
+            ->assertStatus(422)
+            ->assertJsonPath('errors.code', 'platform.license_customer_conflict');
+
+        $sameCustomer = WebinoSiteProvision::query()->create([
+            'crm_account_id' => $owner->id,
+            'package_id' => $package->id,
+            'slug' => 'shared-owner-retry',
+            'domain' => $sharedDomain,
+            'status' => WebinoSiteProvision::STATUS_DRAFT,
+            'wizard_payload' => ['site_name' => 'Owner retry', 'site_type_slug' => 'ecommerce'],
+        ]);
+        $this->postJson('/api/v1/site-builder/provisions/'.$sameCustomer->id.'/prepare-license')
+            ->assertOk()
+            ->assertJsonPath('data.license.id', $shared->id);
+    }
+
+    public function test_launch_queues_job_and_repeat_launch_does_not_dispatch_again(): void
+    {
+        $user = $this->actingAsRole('system_manager');
+        Sanctum::actingAs($user);
+        Bus::fake();
+
+        $package = WebinoPackage::query()->first();
+        $provision = WebinoSiteProvision::query()->create([
+            'package_id' => $package->id,
+            'slug' => 'queue-shop',
+            'domain' => 'queue-shop.webinaagency.ir',
+            'status' => WebinoSiteProvision::STATUS_DRAFT,
+            'wizard_payload' => ['site_name' => 'Queue', 'site_type_slug' => 'ecommerce'],
+        ]);
+
+        $this->postJson('/api/v1/site-builder/provisions/'.$provision->id.'/launch')
+            ->assertOk()
+            ->assertJsonPath('data.status', 'pending')
+            ->assertJsonPath('data.progress.phase', 'queued')
+            ->assertJsonPath('data.progress.percent', 5);
+
+        Bus::assertDispatchedTimes(ProvisionWebinoSiteJob::class, 1);
+
+        $this->postJson('/api/v1/site-builder/provisions/'.$provision->id.'/launch')
+            ->assertOk()
+            ->assertJsonPath('data.status', 'pending');
+
+        Bus::assertDispatchedTimes(ProvisionWebinoSiteJob::class, 1);
+        $this->assertDatabaseHas('webino_site_provisions', [
+            'id' => $provision->id,
+            'status' => 'pending',
+        ]);
     }
 }

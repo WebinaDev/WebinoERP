@@ -54,6 +54,14 @@ class AppServiceProvider extends ServiceProvider
 
     public function boot(): void
     {
+        // Site provision builds can run ~40 minutes. The framework default
+        // redis retry_after (90s) releases the job while the first worker is
+        // still cloning/building, so the site sits queued or starts twice.
+        $retryAfter = (int) config('queue.connections.redis.retry_after', 90);
+        if ($retryAfter < 2500) {
+            config(['queue.connections.redis.retry_after' => 2500]);
+        }
+
         RateLimiter::for('auth-public', function (Request $request) {
             return Limit::perMinute(20)->by($request->ip());
         });

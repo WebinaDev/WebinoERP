@@ -3106,6 +3106,8 @@
     "cachedImagesHint": "Images already cached",
     "terminalTitle": "Deploy terminal",
     "terminalEmpty": "No output yet…",
+    "launchNotStarted": "Not started yet. Launch queues the build — until then 0% and an empty terminal are expected.",
+    "terminalQueued": "Queued or building. Container logs show up here once services start.",
     "cancelLaunch": "Cancel",
     "continueInBackground": "Continue in background",
     "cancelError": "Cancel failed",

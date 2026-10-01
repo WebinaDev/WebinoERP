@@ -366,7 +366,7 @@ export async function prepareProvisionLicense(id: number) {
 }
 
 export async function launchProvision(id: number) {
-  const res = await apiClient.post(`${BASE}/provisions/${id}/launch`);
+  const res = await apiClient.post(`${BASE}/provisions/${id}/launch`, {}, { timeout: 30_000 });
   return unwrapData<SiteProvision>(res);
 }
 

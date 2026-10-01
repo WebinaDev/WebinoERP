@@ -18,6 +18,9 @@ class ProvisionWebinoSiteJob implements ShouldQueue
 
     public int $timeout = 2400;
 
+    /** One attempt. A second try overlaps docker builds; the UI retries explicitly. */
+    public int $tries = 1;
+
     public function __construct(public int $provisionId) {}
 
     public function handle(SiteProvisionOrchestrator $orchestrator): void

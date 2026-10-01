@@ -6,7 +6,6 @@ use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Str;
 use Modules\Core\Entities\CoreHostingSetting;
-use Modules\Core\Entities\CoreLicense;
 use Modules\Platform\Support\StackHealthReport;
 use Modules\SiteBuilder\Entities\WebinoSiteProvision;
 use Modules\SiteBuilder\Jobs\ProvisionWebinoSiteJob;
@@ -226,50 +225,59 @@ class SiteProvisionController extends Controller
             return response()->json(['message' => 'Package is required.'], 422);
         }
 
-        $siteProvision->load(['package.businessType.category', 'package.features']);
+        $siteProvision->load(['package.businessType.category', 'package.features', 'license']);
 
-        if (! $siteProvision->license_id) {
-            $payload = $siteProvision->wizard_payload ?? [];
-            $siteType = (string) ($payload['site_type_slug'] ?? $siteProvision->package?->businessType?->slug ?? 'corporate');
-            if (CoreLicense::query()->where('domain', $siteProvision->domain)->exists()) {
-                return response()->json(['message' => 'Domain already licensed. Choose another slug or domain.'], 422);
+        try {
+            $license = $licenses->attachForProvision($siteProvision, $request->user()?->id);
+        } catch (Throwable $e) {
+            report($e);
+            $code = $e->getMessage();
+            if (str_starts_with($code, 'platform.license_') || $code === 'platform.invalid_domain') {
+                return response()->json([
+                    'message' => $code,
+                    'errors' => ['code' => $code],
+                ], 422);
             }
-            try {
-                $license = $licenses->createForProvision(
-                    $siteProvision->domain,
-                    $siteProvision->package,
-                    [
-                        'selected_feature_slugs' => $payload['selected_feature_slugs'] ?? [],
-                        'site_type' => $siteType,
-                        'site_type_slug' => $siteType,
-                        'site_name' => $payload['site_name'] ?? $siteProvision->slug,
-                        'project_name' => $payload['site_name'] ?? $siteProvision->slug,
-                    ],
-                    $request->user()?->id,
-                );
-            } catch (Throwable $e) {
-                report($e);
 
-                return response()->json(['message' => $e->getMessage() ?: 'Failed to prepare license.'], 422);
-            }
-            $siteProvision->update(['license_id' => $license->id]);
-            app(SiteProvisionAuditLogger::class)->log($request->user()?->id, 'license.prepared', $siteProvision, [
-                'domain' => $license->domain,
-                'product' => $license->product ?? 'webinodashboard',
-                'license_key' => null, // deprecated — identity is domain
-            ]);
+            return response()->json(['message' => $code !== '' ? $code : 'Failed to prepare license.'], 422);
         }
+
+        $reused = $license->wasRecentlyCreated !== true;
+        if ((int) $siteProvision->license_id !== (int) $license->id) {
+            $siteProvision->update(['license_id' => $license->id]);
+        }
+
+        app(SiteProvisionAuditLogger::class)->log($request->user()?->id, 'license.prepared', $siteProvision, [
+            'domain' => $license->domain,
+            'product' => $license->product ?? LicenseProvisionerService::PRODUCT,
+            'reused' => $reused,
+            'license_key' => null, // deprecated — identity is domain
+        ]);
 
         return response()->json([
             'data' => $siteProvision->fresh(['license', 'package']),
+            'message' => $reused ? 'platform.license_reused' : null,
         ]);
     }
 
     public function launch(WebinoSiteProvision $siteProvision, Request $request): JsonResponse
     {
+        if (in_array($siteProvision->status, [
+            WebinoSiteProvision::STATUS_PENDING,
+            WebinoSiteProvision::STATUS_PROVISIONING,
+            WebinoSiteProvision::STATUS_SSL_PENDING,
+            WebinoSiteProvision::STATUS_READY,
+        ], true)) {
+            // Idempotent: a lost response must not look like a failed connect,
+            // and must not enqueue a second build.
+            return response()->json([
+                'data' => $siteProvision->fresh(['license', 'package']),
+                'message' => 'Provisioning queued.',
+            ]);
+        }
+
         if (! in_array($siteProvision->status, [
             WebinoSiteProvision::STATUS_DRAFT,
-            WebinoSiteProvision::STATUS_PENDING,
             WebinoSiteProvision::STATUS_FAILED,
             WebinoSiteProvision::STATUS_CANCELLED,
         ], true)) {
@@ -285,7 +293,10 @@ class SiteProvisionController extends Controller
             'error_log' => null,
             'progress' => ProvisionProgress::make(ProvisionProgress::PHASE_QUEUED),
         ]);
-        ProvisionWebinoSiteJob::dispatch($siteProvision->id);
+        // afterResponse: QUEUE_CONNECTION=sync (and a slow redis push) must not hold
+        // the HTTP request open until images are built. The browser treats a reset
+        // connection as Axios "Network Error".
+        ProvisionWebinoSiteJob::dispatch($siteProvision->id)->afterResponse();
         app(SiteProvisionAuditLogger::class)->log($request->user()?->id, 'provision.launch_queued', $siteProvision);
 
         return response()->json([
@@ -331,7 +342,7 @@ class SiteProvisionController extends Controller
             'error_log' => null,
             'progress' => ProvisionProgress::make(ProvisionProgress::PHASE_QUEUED),
         ]);
-        ProvisionWebinoSiteJob::dispatch($siteProvision->id);
+        ProvisionWebinoSiteJob::dispatch($siteProvision->id)->afterResponse();
 
         return response()->json(['data' => $siteProvision, 'message' => 'Retry queued.']);
     }

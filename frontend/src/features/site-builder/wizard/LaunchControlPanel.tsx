@@ -30,7 +30,7 @@ import {
   type ProvisionProgress,
   type SiteProvision,
 } from '@/lib/api/site-builder';
-import { formatProvisionError, getAxiosMessage } from '@/lib/api-helpers';
+import { formatProvisionError, getAxiosMessage, isAxiosTransportError } from '@/lib/api-helpers';
 import { StepHeroArt } from './illustrations';
 
 const PHASE_ORDER = [
@@ -80,8 +80,13 @@ function phaseStatus(
   if (provisionStatus === 'ready' || current === 'done') {
     return 'done';
   }
-  const ci = PHASE_ORDER.indexOf((current as PhaseKey) || 'queued');
-  const pi = PHASE_ORDER.indexOf((phase as PhaseKey) || 'queued');
+  // Draft (and any row with no progress yet) is not queued. Treating a missing
+  // phase as "queued" made a never-launched site look stuck at 0%.
+  if (!current || provisionStatus === 'draft') {
+    return 'waiting';
+  }
+  const ci = PHASE_ORDER.indexOf(current as PhaseKey);
+  const pi = PHASE_ORDER.indexOf(phase as PhaseKey);
   if (pi < ci) return 'done';
   if (pi === ci) return 'active';
   return 'waiting';
@@ -174,6 +179,19 @@ export function LaunchControlPanel({
       const row = await launchProvision(provision.id);
       onProvision(row);
     } catch (e) {
+      // A reset or timeout can happen after the server already queued the job.
+      // If status left draft, keep the panel in sync instead of a false "check API URL".
+      if (isAxiosTransportError(e)) {
+        try {
+          const st = await pollProvisionStatus(provision.id);
+          if (st?.status && st.status !== 'draft') {
+            onProvision(st);
+            return;
+          }
+        } catch {
+          /* status is unreachable too */
+        }
+      }
       onError(getAxiosMessage(e) || t('launchError'));
     } finally {
       setPending(false);
@@ -280,6 +298,11 @@ export function LaunchControlPanel({
               <span className="text-muted-foreground">{percent}%</span>
             </div>
             <Progress value={percent} className="h-3" data-testid="launch-progress" />
+            {provision?.status === 'draft' || !provision?.status ? (
+              <p className="text-muted-foreground text-xs" data-testid="launch-not-started">
+                {t('launchNotStarted')}
+              </p>
+            ) : null}
             <p className="text-muted-foreground text-xs">
               {t('etaLabel')}: {formatEta(progress?.eta_seconds, locale)}
               {progress?.images_cached === false ? ` · ${t('firstBuildHint')}` : null}
@@ -324,7 +347,7 @@ export function LaunchControlPanel({
             className="bg-zinc-950 text-zinc-100 dark:bg-black/80 max-h-80 min-h-52 overflow-auto rounded-2xl border p-3 font-mono text-[11px] leading-relaxed whitespace-pre-wrap"
             data-testid="launch-terminal"
           >
-            {logs || t('terminalEmpty')}
+            {logs || (running ? t('terminalQueued') : t('terminalEmpty'))}
           </pre>
 
           {provision?.status === 'failed' && provision.error_log ? (

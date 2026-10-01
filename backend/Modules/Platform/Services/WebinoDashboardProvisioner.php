@@ -49,18 +49,7 @@ class WebinoDashboardProvisioner
             ?: 'corporate';
 
         if (! $provision->license_id) {
-            $license = $this->licenses->createForProvision(
-                $provision->domain,
-                $provision->package,
-                [
-                    'selected_feature_slugs' => $payload['selected_feature_slugs'] ?? [],
-                    'expires_at' => $payload['expires_at'] ?? null,
-                    'max_users' => $payload['max_users'] ?? null,
-                    'site_type' => $siteType,
-                    'site_name' => $payload['site_name'] ?? $provision->slug,
-                ],
-                $provision->created_by,
-            );
+            $license = $this->licenses->attachForProvision($provision, $provision->created_by);
             $provision->license_id = $license->id;
             $provision->save();
             $provision->load('license');

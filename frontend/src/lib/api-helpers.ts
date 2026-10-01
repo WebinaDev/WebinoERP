@@ -74,6 +74,13 @@ const KEY_MESSAGES: Record<string, string> = {
   'platform.build_script_missing': 'اسکریپت ساخت ایمیج داشبورد روی سرور ERP پیدا نشد.',
   'platform.invalid_domain': 'دامنه نامعتبر است.',
   'platform.no_ready_server': 'سرور آماده‌ای برای پروویژن پیدا نشد.',
+  'platform.license_revoked':
+    'لایسنس این دامنه لغو یا ابطال شده است. در مدیریت لایسنس آن را فعال کنید، یا دامنهٔ دیگری انتخاب کنید.',
+  'platform.license_wrong_product':
+    'برای این دامنه لایسنس محصول دیگری ثبت شده است. ساخت سایت فقط با لایسنس محصول داشبورد (webinodashboard) ممکن است.',
+  'platform.license_customer_conflict':
+    'این دامنه برای مشتری دیگری لایسنس دارد. همان مشتری را انتخاب کنید یا دامنهٔ دیگری بگذارید.',
+  'platform.license_reused': 'لایسنس موجود این دامنه دوباره استفاده شد.',
   'Site must be ready.': 'سایت باید در وضعیت آماده (ready) باشد.',
   'Provision cannot be edited in current status.': 'سایت در این وضعیت قابل ویرایش نیست.',
 };
@@ -111,6 +118,15 @@ function firstValidationError(err: unknown): string | undefined {
 
 export function formatProvisionError(raw: string): string {
   const text = raw.trim();
+  if (KEY_MESSAGES[text]) {
+    return KEY_MESSAGES[text];
+  }
+  if (text.startsWith('platform.license_')) {
+    const key = text.split(/[:\s]/)[0] ?? '';
+    if (key && KEY_MESSAGES[key]) {
+      return KEY_MESSAGES[key];
+    }
+  }
   if (
     text.includes('platform.dashboard_images_missing')
     || text.includes('/opt/WebinoDashboard/docker')
@@ -125,9 +141,30 @@ export function formatProvisionError(raw: string): string {
   return text;
 }
 
+function axiosCode(err: unknown): string | undefined {
+  if (!err || typeof err !== 'object' || !('code' in err)) {
+    return undefined;
+  }
+  const code = (err as { code?: unknown }).code;
+  return typeof code === 'string' && code !== '' ? code : undefined;
+}
+
+/** Browser never received an HTTP response (reset, DNS, CORS, mixed content, or client timeout). */
+export function isAxiosTransportError(err: unknown): boolean {
+  const code = axiosCode(err);
+  if (code === 'ERR_NETWORK' || code === 'ECONNABORTED') {
+    return true;
+  }
+  if (err instanceof Error) {
+    if (err.message === 'Network Error') return true;
+    if (/timeout of \d+ms exceeded/i.test(err.message)) return true;
+  }
+  return false;
+}
+
 export function getAxiosMessage(err: unknown): string {
   const code = errorCode(err);
-  if (code && KEY_MESSAGES[code]) {
+  if (code && code !== 'validation.failed' && KEY_MESSAGES[code]) {
     return KEY_MESSAGES[code];
   }
 
@@ -171,10 +208,17 @@ export function getAxiosMessage(err: unknown): string {
     return STATUS_MESSAGES[status];
   }
 
-  if (err instanceof Error) {
-    if (err.message === 'Network Error') {
-      return 'اتصال به سرور برقرار نشد. آدرس API را بررسی کنید.';
+  if (isAxiosTransportError(err)) {
+    const timedOut =
+      axiosCode(err) === 'ECONNABORTED'
+      || (err instanceof Error && /timeout of \d+ms exceeded/i.test(err.message));
+    if (timedOut) {
+      return 'زمان درخواست تمام شد. اگر ساخت سایت را زده‌اید صفحه را تازه کنید — ممکن است کار در صف باشد و این پیام به‌خاطر قطع‌شدن پاسخ باشد.';
     }
+    return 'اتصال به سرور برقرار نشد. درخواست به API همین سایت نرسید (باید /api روی همین دامنه باشد، نه localhost). اگر ساخت سایت را زده‌اید یک‌بار وضعیت را تازه کنید.';
+  }
+
+  if (err instanceof Error) {
     if (/^Request failed with status code (\d+)/i.test(err.message)) {
       const n = Number(RegExp.$1);
       return STATUS_MESSAGES[n] ?? 'درخواست ناموفق بود.';
