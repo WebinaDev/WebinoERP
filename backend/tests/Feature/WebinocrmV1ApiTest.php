@@ -131,11 +131,44 @@ class WebinocrmV1ApiTest extends TestCase
         ])->assertCreated();
     }
 
-    public function test_license_check_requires_valid_signature(): void
+    public function test_license_check_allows_unsigned_domain_status(): void
     {
+        // Entitlement is domain-based; HMAC is optional. Unsigned check must work.
         $this->postJson('/api/webinocrm/v1/license/check', [
             'domain' => 'example.test',
-            'license_key' => 'missing',
+            'product' => 'webinodashboard',
+        ])->assertOk()
+            ->assertJsonPath('data.domain', 'example.test')
+            ->assertJsonPath('data.status', 'invalid');
+    }
+
+    public function test_license_check_rejects_bad_signature_when_secret_configured(): void
+    {
+        config(['app.webinocrm_license_hmac_secret' => 'test-secret']);
+
+        $this->postJson('/api/webinocrm/v1/license/check', [
+            'domain' => 'example.test',
+            'product' => 'webinodashboard',
+            'ts' => time(),
+            'signature' => 'deadbeef',
         ])->assertForbidden();
+    }
+
+    public function test_license_check_accepts_valid_signature_when_secret_configured(): void
+    {
+        config(['app.webinocrm_license_hmac_secret' => 'test-secret']);
+        $domain = 'signed.example.test';
+        $product = 'webinodashboard';
+        $ts = time();
+        $sig = hash_hmac('sha256', $domain.'|'.$product.'|'.$ts, 'test-secret');
+
+        $this->postJson('/api/webinocrm/v1/license/check', [
+            'domain' => $domain,
+            'product' => $product,
+            'ts' => $ts,
+            'signature' => $sig,
+        ])->assertOk()
+            ->assertJsonPath('data.domain', $domain)
+            ->assertJsonPath('data.status', 'invalid');
     }
 }

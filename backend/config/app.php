@@ -25,6 +25,7 @@ return [
         'store' => env('APP_MAINTENANCE_STORE', 'database'),
     ],
 
+    // Optional Dashboard↔ERP service auth — NOT license identity (identity = domain + product).
     'webinocrm_license_hmac_secret' => env('WEBINOCRM_LICENSE_HMAC_SECRET'),
 
 ];

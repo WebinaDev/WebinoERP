@@ -16,12 +16,16 @@ trait VerifiesWebinocrmLicenseSignature
      * HMAC auth for service-to-service calls (NOT a license code).
      * Canonical payload: domain|{product}|ts
      * Legacy WP / old Dashboard: domain|{license_key}|ts (license_key ignored for entitlement)
+     *
+     * When ERP has no HMAC secret configured, unsigned requests are accepted
+     * (domain entitlement does not depend on a tenant-side secret).
      */
     protected function verifyLicenseRequest(Request $request): bool
     {
         $secret = $this->licenseHmacSecret();
         if ($secret === '') {
-            return false;
+            // Optional service auth: no shared secret → allow domain-based calls.
+            return true;
         }
         $domain = CoreLicenseResolver::normalizeDomain((string) $request->input('domain', ''));
         $product = CoreLicenseResolver::normalizeProduct(
@@ -53,5 +57,27 @@ trait VerifiesWebinocrmLicenseSignature
         }
 
         return false;
+    }
+
+    /**
+     * Domain-status / entitlement check may be unsigned (public, rate-limited).
+     * If a signature is present, it must still verify when a secret is configured.
+     */
+    protected function authorizeLicenseCheck(Request $request): bool
+    {
+        $secret = $this->licenseHmacSecret();
+        $sig = (string) $request->input('signature', '');
+
+        if ($sig === '') {
+            // Public domain-status path — no per-tenant HMAC required.
+            return true;
+        }
+
+        if ($secret === '') {
+            // Signature sent but ERP has no secret: ignore signature, allow domain lookup.
+            return true;
+        }
+
+        return $this->verifyLicenseRequest($request);
     }
 }

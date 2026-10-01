@@ -6,6 +6,7 @@ use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use InvalidArgumentException;
 use Illuminate\Support\Facades\Cache;
+use Illuminate\Support\Facades\RateLimiter;
 use Illuminate\Support\Facades\DB;
 use Modules\Accounting\Http\Controllers\Concerns\VerifiesWebinocrmLicenseSignature;
 use Modules\Core\Entities\CoreLicense;
@@ -17,7 +18,8 @@ use Modules\Core\Services\CoreLicenseResolver;
  * Routes: POST /api/webinocrm/v1/license/check|activate
  *
  * Entitlement identity: domain (+ product). license_key is ignored for lookup
- * (accepted for HMAC/WP compat only). HMAC: domain|{product}|ts (legacy middle slot OK).
+ * (accepted for HMAC/WP compat only). HMAC is optional service auth:
+ * domain|{product}|ts. check() allows unsigned domain-status (rate-limited).
  */
 class WebinocrmLicenseCompatController extends Controller
 {
@@ -25,13 +27,20 @@ class WebinocrmLicenseCompatController extends Controller
 
     public function check(Request $request): JsonResponse
     {
-        if (! $this->verifyLicenseRequest($request)) {
+        // Domain (+ product) entitlement. HMAC is optional service auth.
+        // Unsigned checks are allowed (rate-limited); bad signatures still rejected.
+        if (! $this->authorizeLicenseCheck($request)) {
             return response()->json(['error' => ['code' => 'INVALID_SIGNATURE', 'message' => 'Invalid signature']], 403);
         }
 
         $domain = CoreLicenseResolver::normalizeDomain(
             (string) ($request->input('domain') ?: $request->getHost())
         );
+        $rateKey = 'license-domain-check:'.$request->ip().':'.$domain;
+        if (RateLimiter::tooManyAttempts($rateKey, 60)) {
+            return response()->json(['error' => ['code' => 'RATE_LIMITED', 'message' => 'Too many license checks']], 429);
+        }
+        RateLimiter::hit($rateKey, 60);
         // WP compat: if license_key looks like a hostname and domain empty, use it as domain.
         if ($domain === '' && $request->filled('license_key')) {
             $maybe = CoreLicenseResolver::normalizeDomain((string) $request->input('license_key'));
