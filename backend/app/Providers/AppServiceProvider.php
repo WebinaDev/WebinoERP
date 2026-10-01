@@ -9,27 +9,30 @@ use Dedoc\Scramble\Support\Generator\OpenApi;
 use Dedoc\Scramble\Support\Generator\Operation;
 use Dedoc\Scramble\Support\Generator\SecurityScheme;
 use Dedoc\Scramble\Support\RouteInfo;
+use Illuminate\Cache\RateLimiting\Limit;
+use Illuminate\Http\Request;
 use Illuminate\Routing\Route;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Facades\RateLimiter;
-use Illuminate\Cache\RateLimiting\Limit;
-use Illuminate\Http\Request;
 use Illuminate\Support\ServiceProvider;
 use Illuminate\Support\Str;
-use Modules\Crm\Entities\CrmAccount;
-use Modules\Crm\Entities\CrmLead;
+use Laravel\Telescope\TelescopeServiceProvider;
 use Modules\Core\Entities\CoreChatChannel;
 use Modules\Core\Observers\ActivityObserver;
 use Modules\Core\Policies\ChatChannelPolicy;
+use Modules\Crm\Entities\CrmAccount;
+use Modules\Crm\Entities\CrmLead;
 use Modules\Crm\Policies\CrmAccountPolicy;
 use Modules\Crm\Policies\LeadPolicy;
 use Modules\Hrm\Entities\HrmEmployee;
 use Modules\Hrm\Policies\HrmEmployeePolicy;
-use Modules\Projects\Policies\ProjectPolicy;
-use Modules\Projects\Policies\ProjectTaskPolicy;
 use Modules\Projects\Entities\Contract;
 use Modules\Projects\Entities\Project;
 use Modules\Projects\Entities\ProjectTask;
+use Modules\Projects\Policies\ProjectPolicy;
+use Modules\Projects\Policies\ProjectTaskPolicy;
+use Sentry\SentrySdk;
+use Spatie\Backup\BackupServiceProvider;
 
 class AppServiceProvider extends ServiceProvider
 {
@@ -40,15 +43,15 @@ class AppServiceProvider extends ServiceProvider
 
         Scramble::ignoreDefaultRoutes();
 
-        if ($this->app->environment('local') && class_exists(\Laravel\Telescope\TelescopeServiceProvider::class)) {
-            $this->app->register(\Laravel\Telescope\TelescopeServiceProvider::class);
+        if ($this->app->environment('local') && class_exists(TelescopeServiceProvider::class)) {
+            $this->app->register(TelescopeServiceProvider::class);
         }
 
         // Spatie backup vendor config references ZipArchive::CM_* at merge time.
         // Without ext-zip that fatals during bootstrap and every route (incl. license/check) 500s.
         // Package is in dont-discover; register only when the extension is present.
-        if (class_exists(\ZipArchive::class) && class_exists(\Spatie\Backup\BackupServiceProvider::class)) {
-            $this->app->register(\Spatie\Backup\BackupServiceProvider::class);
+        if (class_exists(\ZipArchive::class) && class_exists(BackupServiceProvider::class)) {
+            $this->app->register(BackupServiceProvider::class);
         }
     }
 
@@ -61,6 +64,12 @@ class AppServiceProvider extends ServiceProvider
         if ($retryAfter < 2500) {
             config(['queue.connections.redis.retry_after' => 2500]);
         }
+
+        // Authenticated wizard traffic: status and logs poll every few seconds,
+        // and launch / prepare-license are retried. 600/min leaves room for that.
+        RateLimiter::for('site-builder', function (Request $request) {
+            return Limit::perMinute(600)->by('site-builder:'.($request->user()?->id ?: $request->ip()));
+        });
 
         RateLimiter::for('auth-public', function (Request $request) {
             return Limit::perMinute(20)->by($request->ip());
@@ -80,7 +89,7 @@ class AppServiceProvider extends ServiceProvider
 
         User::observe(UserObserver::class);
 
-        if (env('SENTRY_LARAVEL_DSN') && class_exists(\Sentry\SentrySdk::class)) {
+        if (env('SENTRY_LARAVEL_DSN') && class_exists(SentrySdk::class)) {
             \Sentry\init(['dsn' => env('SENTRY_LARAVEL_DSN'), 'environment' => config('app.env')]);
         }
 

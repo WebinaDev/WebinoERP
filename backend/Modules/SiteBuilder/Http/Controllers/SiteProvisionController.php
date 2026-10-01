@@ -2,14 +2,22 @@
 
 namespace Modules\SiteBuilder\Http\Controllers;
 
+use Illuminate\Contracts\Encryption\DecryptException;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Str;
 use Modules\Core\Entities\CoreHostingSetting;
+use Modules\Core\Services\CoreLicenseMetaNormalizer;
+use Modules\Core\Services\CoreLicenseResolver;
+use Modules\Platform\Entities\PlatformDomain;
+use Modules\Platform\Entities\PlatformResource;
+use Modules\Platform\Entities\PlatformServer;
 use Modules\Platform\Support\StackHealthReport;
 use Modules\SiteBuilder\Entities\WebinoSiteProvision;
 use Modules\SiteBuilder\Jobs\ProvisionWebinoSiteJob;
+use Modules\SiteBuilder\Jobs\UpdateWebinoSiteJob;
 use Modules\SiteBuilder\Services\LicenseProvisionerService;
+use Modules\SiteBuilder\Services\ModuleInstallOrchestrator;
 use Modules\SiteBuilder\Services\SiteProvisionAuditLogger;
 use Modules\SiteBuilder\Services\SiteProvisionOrchestrator;
 use Modules\SiteBuilder\Support\ProvisionProgress;
@@ -193,7 +201,7 @@ class SiteProvisionController extends Controller
                     'project_name' => $data['site_name'] ?? null,
                 ], fn ($v) => $v !== null));
                 $siteProvision->license->save();
-                \Modules\Core\Services\CoreLicenseResolver::forgetCheckCache(
+                CoreLicenseResolver::forgetCheckCache(
                     $siteProvision->license->domain,
                     $siteProvision->license->product ?? null,
                 );
@@ -262,46 +270,113 @@ class SiteProvisionController extends Controller
 
     public function launch(WebinoSiteProvision $siteProvision, Request $request): JsonResponse
     {
-        if (in_array($siteProvision->status, [
+        try {
+            if (in_array($siteProvision->status, [
+                WebinoSiteProvision::STATUS_PENDING,
+                WebinoSiteProvision::STATUS_PROVISIONING,
+                WebinoSiteProvision::STATUS_SSL_PENDING,
+                WebinoSiteProvision::STATUS_READY,
+            ], true)) {
+                // Idempotent: a lost response must not look like a failed connect,
+                // and must not enqueue a second build.
+                return response()->json([
+                    'data' => $this->safeProvisionPayload($siteProvision),
+                    'message' => 'Provisioning queued.',
+                ]);
+            }
+
+            if (! in_array($siteProvision->status, [
+                WebinoSiteProvision::STATUS_DRAFT,
+                WebinoSiteProvision::STATUS_FAILED,
+                WebinoSiteProvision::STATUS_CANCELLED,
+            ], true)) {
+                return response()->json(['message' => 'Provision already launched.'], 422);
+            }
+
+            if (! $siteProvision->package_id) {
+                return response()->json(['message' => 'Package is required.'], 422);
+            }
+
+            $previousStatus = $siteProvision->status;
+            $siteProvision->update([
+                'status' => WebinoSiteProvision::STATUS_PENDING,
+                'error_log' => null,
+                'progress' => ProvisionProgress::make(ProvisionProgress::PHASE_QUEUED),
+            ]);
+            // enqueue() never throws. A redis or decrypt failure must not become
+            // HTTP 500 from `php artisan serve`.
+            if (! ProvisionWebinoSiteJob::enqueue($siteProvision->id)) {
+                $siteProvision->update([
+                    'status' => $previousStatus,
+                    'progress' => null,
+                    'error_log' => 'Unable to queue site provisioning.',
+                ]);
+
+                return response()->json([
+                    'message' => 'Unable to queue site provisioning.',
+                ], 422);
+            }
+
+            app(SiteProvisionAuditLogger::class)->log($request->user()?->id, 'provision.launch_queued', $siteProvision);
+
+            return response()->json([
+                'data' => $this->safeProvisionPayload($siteProvision),
+                'message' => 'Provisioning queued.',
+            ]);
+        } catch (DecryptException $e) {
+            report($e);
+
+            return $this->launchExceptionResponse($siteProvision);
+        } catch (Throwable $e) {
+            report($e);
+
+            return $this->launchExceptionResponse($siteProvision);
+        }
+    }
+
+    private function safeProvisionPayload(WebinoSiteProvision $siteProvision): WebinoSiteProvision
+    {
+        try {
+            return $siteProvision->fresh(['license', 'package']) ?? $siteProvision;
+        } catch (DecryptException $e) {
+            report($e);
+        } catch (Throwable $e) {
+            report($e);
+        }
+
+        try {
+            return $siteProvision->fresh() ?? $siteProvision;
+        } catch (Throwable $e) {
+            report($e);
+
+            return $siteProvision;
+        }
+    }
+
+    private function launchExceptionResponse(WebinoSiteProvision $siteProvision): JsonResponse
+    {
+        try {
+            $fresh = $siteProvision->fresh() ?? $siteProvision;
+        } catch (Throwable $e) {
+            report($e);
+            $fresh = $siteProvision;
+        }
+
+        if (in_array($fresh->status, [
             WebinoSiteProvision::STATUS_PENDING,
             WebinoSiteProvision::STATUS_PROVISIONING,
             WebinoSiteProvision::STATUS_SSL_PENDING,
             WebinoSiteProvision::STATUS_READY,
         ], true)) {
-            // Idempotent: a lost response must not look like a failed connect,
-            // and must not enqueue a second build.
             return response()->json([
-                'data' => $siteProvision->fresh(['license', 'package']),
+                'data' => $fresh,
                 'message' => 'Provisioning queued.',
             ]);
         }
 
-        if (! in_array($siteProvision->status, [
-            WebinoSiteProvision::STATUS_DRAFT,
-            WebinoSiteProvision::STATUS_FAILED,
-            WebinoSiteProvision::STATUS_CANCELLED,
-        ], true)) {
-            return response()->json(['message' => 'Provision already launched.'], 422);
-        }
-
-        if (! $siteProvision->package_id) {
-            return response()->json(['message' => 'Package is required.'], 422);
-        }
-
-        $siteProvision->update([
-            'status' => WebinoSiteProvision::STATUS_PENDING,
-            'error_log' => null,
-            'progress' => ProvisionProgress::make(ProvisionProgress::PHASE_QUEUED),
-        ]);
-        // Never afterResponse()/sync: that runs the build in this process and
-        // artisan serve turns the thrown exception into HTTP 500.
-        ProvisionWebinoSiteJob::enqueue($siteProvision->id);
-        app(SiteProvisionAuditLogger::class)->log($request->user()?->id, 'provision.launch_queued', $siteProvision);
-
         return response()->json([
-            'data' => $siteProvision->fresh(['license', 'package']),
-            'message' => 'Provisioning queued.',
-        ]);
+            'message' => 'Unable to queue site provisioning.',
+        ], 422);
     }
 
     public function status(WebinoSiteProvision $siteProvision, SiteProvisionOrchestrator $orchestrator): JsonResponse
@@ -322,28 +397,49 @@ class SiteProvisionController extends Controller
             return response()->json(['data' => $row, 'message' => 'Cancelled']);
         } catch (\InvalidArgumentException $e) {
             return response()->json(['message' => $e->getMessage()], 422);
-        } catch (\Throwable $e) {
+        } catch (Throwable $e) {
             return response()->json(['message' => $e->getMessage()], 422);
         }
     }
 
     public function retry(WebinoSiteProvision $siteProvision): JsonResponse
     {
-        if (! in_array($siteProvision->status, [
-            WebinoSiteProvision::STATUS_FAILED,
-            WebinoSiteProvision::STATUS_CANCELLED,
-        ], true)) {
-            return response()->json(['message' => 'Only failed or cancelled provisions can be retried.'], 422);
+        try {
+            if (! in_array($siteProvision->status, [
+                WebinoSiteProvision::STATUS_FAILED,
+                WebinoSiteProvision::STATUS_CANCELLED,
+            ], true)) {
+                return response()->json(['message' => 'Only failed or cancelled provisions can be retried.'], 422);
+            }
+
+            $previousStatus = $siteProvision->status;
+            $siteProvision->update([
+                'status' => WebinoSiteProvision::STATUS_PENDING,
+                'error_log' => null,
+                'progress' => ProvisionProgress::make(ProvisionProgress::PHASE_QUEUED),
+            ]);
+            if (! ProvisionWebinoSiteJob::enqueue($siteProvision->id)) {
+                $siteProvision->update([
+                    'status' => $previousStatus,
+                    'progress' => null,
+                    'error_log' => 'Unable to queue site provisioning.',
+                ]);
+
+                return response()->json([
+                    'message' => 'Unable to queue site provisioning.',
+                ], 422);
+            }
+
+            return response()->json(['data' => $siteProvision, 'message' => 'Retry queued.']);
+        } catch (DecryptException $e) {
+            report($e);
+
+            return response()->json(['message' => 'Unable to queue site provisioning.'], 422);
+        } catch (Throwable $e) {
+            report($e);
+
+            return response()->json(['message' => 'Unable to queue site provisioning.'], 422);
         }
-
-        $siteProvision->update([
-            'status' => WebinoSiteProvision::STATUS_PENDING,
-            'error_log' => null,
-            'progress' => ProvisionProgress::make(ProvisionProgress::PHASE_QUEUED),
-        ]);
-        ProvisionWebinoSiteJob::enqueue($siteProvision->id);
-
-        return response()->json(['data' => $siteProvision, 'message' => 'Retry queued.']);
     }
 
     public function start(WebinoSiteProvision $siteProvision, SiteProvisionOrchestrator $orchestrator): JsonResponse
@@ -359,7 +455,7 @@ class SiteProvisionController extends Controller
                 'power_state' => $fresh?->getAttribute('power_state'),
                 'message' => $result['exit_code'] === 0 ? 'Started' : 'Start failed',
             ], $result['exit_code'] === 0 ? 200 : 422);
-        } catch (\Throwable $e) {
+        } catch (Throwable $e) {
             return response()->json(['message' => $e->getMessage()], 422);
         }
     }
@@ -377,7 +473,7 @@ class SiteProvisionController extends Controller
                 'power_state' => $fresh?->getAttribute('power_state'),
                 'message' => $result['exit_code'] === 0 ? 'Stopped' : 'Stop failed',
             ], $result['exit_code'] === 0 ? 200 : 422);
-        } catch (\Throwable $e) {
+        } catch (Throwable $e) {
             return response()->json(['message' => $e->getMessage()], 422);
         }
     }
@@ -472,7 +568,7 @@ class SiteProvisionController extends Controller
                     'logs' => $logs,
                 ],
             ]);
-        } catch (\Throwable $e) {
+        } catch (Throwable $e) {
             return response()->json(['message' => $e->getMessage()], 422);
         }
     }
@@ -521,7 +617,7 @@ class SiteProvisionController extends Controller
             $stored = is_array($wizard['ssl'] ?? null) ? $wizard['ssl'] : [];
             $row = null;
             if ($domain !== '') {
-                $row = \Modules\Platform\Entities\PlatformDomain::query()->where('domain', $domain)->first();
+                $row = PlatformDomain::query()->where('domain', $domain)->first();
             }
             $ssl['ssl_status'] = $row?->ssl_status ?? ($stored['ssl_status'] ?? null);
             $ssl['expires_at'] = $stored['expires_at'] ?? null;
@@ -778,8 +874,8 @@ class SiteProvisionController extends Controller
         $meta['modules'] = $current;
         $license->meta = $meta;
         $license->save();
-        \Modules\Core\Services\CoreLicenseResolver::forgetCheckCache($license->domain, $license->product ?? null);
-        \Modules\Core\Services\CoreLicenseMetaNormalizer::forgetCheckCache($license->domain, null);
+        CoreLicenseResolver::forgetCheckCache($license->domain, $license->product ?? null);
+        CoreLicenseMetaNormalizer::forgetCheckCache($license->domain, null);
 
         $installResult = null;
         if (! empty($data['install'])) {
@@ -816,7 +912,7 @@ class SiteProvisionController extends Controller
     public function installModule(
         Request $request,
         WebinoSiteProvision $siteProvision,
-        \Modules\SiteBuilder\Services\ModuleInstallOrchestrator $installer,
+        ModuleInstallOrchestrator $installer,
     ): JsonResponse {
         if (! $this->isControlEditable($siteProvision)) {
             return response()->json([
@@ -855,7 +951,7 @@ class SiteProvisionController extends Controller
     public function moduleInstallStatus(
         WebinoSiteProvision $siteProvision,
         string $slug,
-        \Modules\SiteBuilder\Services\ModuleInstallOrchestrator $installer,
+        ModuleInstallOrchestrator $installer,
     ): JsonResponse {
         return response()->json([
             'data' => $installer->status($siteProvision, $slug),
@@ -883,7 +979,7 @@ class SiteProvisionController extends Controller
         $siteProvision->update(['wizard_payload' => $wizard]);
 
         if ($data['channel'] === 'beta') {
-            \Modules\SiteBuilder\Jobs\UpdateWebinoSiteJob::dispatch($siteProvision->id, 'full');
+            UpdateWebinoSiteJob::dispatch($siteProvision->id, 'full');
             $wizard = $siteProvision->wizard_payload ?? [];
             $wizard['update'] = [
                 'target' => 'full',
@@ -916,7 +1012,7 @@ class SiteProvisionController extends Controller
         ];
         $siteProvision->update(['wizard_payload' => $wizard]);
 
-        \Modules\SiteBuilder\Jobs\UpdateWebinoSiteJob::dispatch($siteProvision->id, $data['target']);
+        UpdateWebinoSiteJob::dispatch($siteProvision->id, $data['target']);
 
         return response()->json([
             'data' => $siteProvision->fresh(['license']),
@@ -1032,7 +1128,7 @@ class SiteProvisionController extends Controller
             return true;
         }
 
-        return \Modules\Platform\Entities\PlatformResource::query()
+        return PlatformResource::query()
             ->where('provision_id', $siteProvision->id)
             ->where('status', '!=', 'destroyed')
             ->exists();
@@ -1069,7 +1165,7 @@ class SiteProvisionController extends Controller
         if (! $serverId) {
             return true;
         }
-        $server = \Modules\Platform\Entities\PlatformServer::query()->find($serverId);
+        $server = PlatformServer::query()->find($serverId);
         if (! $server) {
             return true;
         }

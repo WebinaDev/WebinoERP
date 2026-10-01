@@ -2,6 +2,7 @@
 
 namespace Modules\Platform\Http\Controllers;
 
+use Illuminate\Contracts\Encryption\DecryptException;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Modules\SiteBuilder\Entities\WebinoSiteProvision;
@@ -30,6 +31,7 @@ class WebinoProvisionController extends Controller
                 $wizard['site_type_slug'] = $data['site_type_slug'];
             }
 
+            $previousStatus = $provision->status;
             $provision->update([
                 'wizard_payload' => $wizard,
                 'status' => WebinoSiteProvision::STATUS_PENDING,
@@ -37,23 +39,56 @@ class WebinoProvisionController extends Controller
                 'progress' => ProvisionProgress::make(ProvisionProgress::PHASE_QUEUED),
             ]);
 
-            ProvisionWebinoSiteJob::enqueue($provision->id);
+            if (! ProvisionWebinoSiteJob::enqueue($provision->id)) {
+                $provision->update([
+                    'status' => $previousStatus,
+                    'progress' => null,
+                    'error_log' => 'Unable to queue site provisioning.',
+                ]);
+
+                return response()->json([
+                    'success' => false,
+                    'data' => null,
+                    'message' => 'Unable to queue site provisioning.',
+                    'meta' => null,
+                    'errors' => null,
+                ], 422);
+            }
+
+            try {
+                $row = $provision->fresh(['license', 'package', 'crmAccount']);
+            } catch (DecryptException $e) {
+                report($e);
+                $row = $provision->fresh();
+            }
 
             return response()->json([
                 'success' => true,
                 'data' => [
-                    'provision' => $provision->fresh(['license', 'package', 'crmAccount']),
+                    'provision' => $row,
                     'queued' => true,
                 ],
                 'message' => 'Launch queued.',
                 'meta' => null,
                 'errors' => null,
             ], 202);
-        } catch (Throwable $e) {
+        } catch (DecryptException $e) {
+            report($e);
+
             return response()->json([
                 'success' => false,
                 'data' => null,
-                'message' => $e->getMessage(),
+                'message' => 'Unable to queue site provisioning.',
+                'meta' => null,
+                'errors' => null,
+            ], 422);
+        } catch (Throwable $e) {
+            report($e);
+
+            return response()->json([
+                'success' => false,
+                'data' => null,
+                'message' => 'Unable to queue site provisioning.',
                 'meta' => null,
                 'errors' => null,
             ], 422);

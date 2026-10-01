@@ -3,8 +3,15 @@
 namespace Tests\Feature;
 
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Http\Request;
+use Illuminate\Queue\Connectors\ConnectorInterface;
 use Illuminate\Support\Facades\Bus;
+use Illuminate\Support\Facades\Cache;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\RateLimiter;
 use Laravel\Sanctum\Sanctum;
+use Modules\Core\Entities\CoreHostingSetting;
 use Modules\Core\Entities\CoreLicense;
 use Modules\Core\Entities\SystemModule;
 use Modules\Core\Services\CoreLicenseResolver;
@@ -858,7 +865,7 @@ class SiteBuilderApiTest extends TestCase
 
     public function test_invalid_hosting_secret_is_rewritten_instead_of_throwing(): void
     {
-        \Illuminate\Support\Facades\DB::table('core_hosting_settings')->insert([
+        DB::table('core_hosting_settings')->insert([
             'platform_base_domain' => 'webinaagency.ir',
             'provision_webhook_secret' => 'not-a-valid-laravel-payload',
             'created_at' => now(),
@@ -872,11 +879,158 @@ class SiteBuilderApiTest extends TestCase
         $this->assertNotNull($server);
         $this->assertTrue((bool) $server->is_localhost);
 
-        $settings = \Modules\Core\Entities\CoreHostingSetting::query()->first();
+        $settings = CoreHostingSetting::query()->first();
         $this->assertNotNull($settings);
         $secret = $settings->provision_webhook_secret;
         $this->assertIsString($secret);
         $this->assertNotSame('', $secret);
         $this->assertNotSame('not-a-valid-laravel-payload', $secret);
+    }
+
+    public function test_auth_limiters_stay_tighter_than_site_builder(): void
+    {
+        $request = Request::create('/api/v1/auth/login', 'POST');
+        $auth = RateLimiter::limiter('auth-public')($request);
+        $otp = RateLimiter::limiter('otp-send')($request);
+        $siteBuilder = RateLimiter::limiter('site-builder')($request);
+
+        $this->assertSame(20, $auth->maxAttempts);
+        $this->assertSame(3, $otp->maxAttempts);
+        $this->assertSame(600, $siteBuilder->maxAttempts);
+    }
+
+    public function test_status_polling_and_repeated_launch_are_not_throttled(): void
+    {
+        Cache::flush();
+        $user = $this->actingAsRole('system_manager');
+        Sanctum::actingAs($user);
+        Bus::fake();
+
+        $provision = $this->draftProvision('throttle-shop');
+
+        for ($i = 0; $i < 65; $i++) {
+            $this->getJson('/api/v1/site-builder/provisions/'.$provision->id.'/status')->assertOk();
+        }
+
+        $this->postJson('/api/v1/site-builder/provisions/'.$provision->id.'/prepare-license')
+            ->assertOk();
+
+        for ($i = 0; $i < 11; $i++) {
+            $this->postJson('/api/v1/site-builder/provisions/'.$provision->id.'/launch')
+                ->assertOk()
+                ->assertJsonPath('data.status', 'pending');
+        }
+
+        Bus::assertDispatchedTimes(ProvisionWebinoSiteJob::class, 1);
+    }
+
+    public function test_launch_does_not_share_the_global_api_token_bucket(): void
+    {
+        Cache::flush();
+        config(['api.rate_limit_per_minute' => 2]);
+
+        $user = $this->actingAsRole('system_manager');
+        Sanctum::actingAs($user);
+        Bus::fake();
+
+        $provision = $this->draftProvision('token-bucket-shop');
+
+        $this->getJson('/api/v1/site-builder/catalog')->assertOk();
+        $this->getJson('/api/v1/site-builder/catalog')->assertOk();
+        $this->getJson('/api/v1/site-builder/catalog')->assertStatus(429);
+
+        $this->postJson('/api/v1/site-builder/provisions/'.$provision->id.'/launch')
+            ->assertOk()
+            ->assertJsonPath('data.status', 'pending');
+
+        Bus::assertDispatchedTimes(ProvisionWebinoSiteJob::class, 1);
+    }
+
+    public function test_launch_returns_pending_when_redis_is_down_and_database_queue_accepts_the_job(): void
+    {
+        $this->withoutExceptionHandling();
+        $user = $this->actingAsRole('system_manager');
+        Sanctum::actingAs($user);
+        $provision = $this->draftProvision('redis-down-shop');
+        $this->breakRedisQueue();
+
+        $logged = [];
+        Log::listen(function (object $event) use (&$logged): void {
+            $logged[] = (string) $event->message;
+        });
+
+        $this->postJson('/api/v1/site-builder/provisions/'.$provision->id.'/launch')
+            ->assertOk()
+            ->assertJsonPath('data.status', 'pending')
+            ->assertJsonPath('data.progress.phase', 'queued');
+
+        $this->assertDatabaseHas('webino_site_provisions', [
+            'id' => $provision->id,
+            'status' => 'pending',
+        ]);
+        $payload = (string) DB::table('jobs')->value('payload');
+        $this->assertStringContainsString('ProvisionWebinoSiteJob', $payload);
+        $this->assertTrue(
+            collect($logged)->contains(fn (string $message) => str_contains($message, 'database fallback')),
+            'Expected a logged error for the redis fallback. Got: '.implode(' | ', $logged),
+        );
+    }
+
+    public function test_launch_returns_422_instead_of_500_when_every_queue_is_unavailable(): void
+    {
+        $this->withoutExceptionHandling();
+        $user = $this->actingAsRole('system_manager');
+        Sanctum::actingAs($user);
+        $provision = $this->draftProvision('no-queue-shop');
+        $this->breakRedisQueue();
+        config(['queue.connections.database.connection' => 'broken_queue']);
+        config(['database.connections.broken_queue' => [
+            'driver' => 'sqlite',
+            'database' => '/no/such/dir/webino-queue.sqlite',
+            'prefix' => '',
+        ]]);
+
+        $this->postJson('/api/v1/site-builder/provisions/'.$provision->id.'/launch')
+            ->assertStatus(422)
+            ->assertJsonPath('message', 'Unable to queue site provisioning.');
+
+        $this->assertDatabaseHas('webino_site_provisions', [
+            'id' => $provision->id,
+            'status' => 'draft',
+        ]);
+        $this->assertSame(0, DB::table('jobs')->count());
+    }
+
+    private function draftProvision(string $slug): WebinoSiteProvision
+    {
+        $package = WebinoPackage::query()->first();
+        $this->assertNotNull($package);
+
+        return WebinoSiteProvision::query()->create([
+            'package_id' => $package->id,
+            'slug' => $slug,
+            'domain' => $slug.'.webinaagency.ir',
+            'status' => WebinoSiteProvision::STATUS_DRAFT,
+            'wizard_payload' => ['site_name' => $slug, 'site_type_slug' => 'ecommerce'],
+            'provision_token' => 'tok-'.$slug,
+        ]);
+    }
+
+    private function breakRedisQueue(): void
+    {
+        app('queue')->addConnector('failing-redis', function () {
+            return new class implements ConnectorInterface
+            {
+                public function connect(array $config)
+                {
+                    throw new \RuntimeException('redis connection refused');
+                }
+            };
+        });
+
+        config([
+            'queue.default' => 'redis',
+            'queue.connections.redis.driver' => 'failing-redis',
+        ]);
     }
 }

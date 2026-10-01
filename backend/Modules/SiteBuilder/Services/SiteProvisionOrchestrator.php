@@ -540,7 +540,7 @@ class SiteProvisionOrchestrator
     protected function bootstrapRemoteSite(string $domain, string $token, array $seed): void
     {
         $settings = CoreHostingSetting::current();
-        $secret = (string) ($settings->provision_webhook_secret ?? '');
+        $secret = (string) ($this->hostingValue($settings, 'provision_webhook_secret') ?? '');
         if ($secret === '') {
             throw new \RuntimeException('platform.provision_hmac_missing');
         }

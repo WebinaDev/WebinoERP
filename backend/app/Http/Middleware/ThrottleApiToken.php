@@ -12,13 +12,18 @@ class ThrottleApiToken
     public function handle(Request $request, Closure $next): Response
     {
         $user = $request->user();
-        $limit = (int) env('API_RATE_LIMIT_PER_MINUTE', 120);
-        $limit = max(1, $limit);
+        $wizard = $this->isSiteBuilderWizardRequest($request);
+        $limit = $this->maxAttempts($wizard);
 
         $token = $user?->currentAccessToken();
-        $key = $token !== null
-            ? 'api-token:'.$token->id
-            : 'api-user:'.($user?->id ?? 'guest').'|'.$request->ip();
+        // Wizard launch/status/prepare-license polling must not consume the
+        // shared API token bucket (default 120/min) or auth stays protected
+        // on its own limiters while a provision is in progress.
+        $key = $wizard
+            ? 'site-builder-wizard:'.($user?->id ?? 'guest').'|'.$request->ip()
+            : ($token !== null
+                ? 'api-token:'.$token->id
+                : 'api-user:'.($user?->id ?? 'guest').'|'.$request->ip());
 
         if (RateLimiter::tooManyAttempts($key, $limit)) {
             $retryAfter = RateLimiter::availableIn($key);
@@ -43,5 +48,30 @@ class ThrottleApiToken
         }
 
         return $response;
+    }
+
+    private function maxAttempts(bool $wizard): int
+    {
+        if ($wizard) {
+            return max(1, (int) config('sitebuilder.wizard_rate_limit_per_minute', 600));
+        }
+
+        $configured = config('api.rate_limit_per_minute');
+        if ($configured !== null && $configured !== '') {
+            return max(1, (int) $configured);
+        }
+
+        return max(1, (int) env('API_RATE_LIMIT_PER_MINUTE', 120));
+    }
+
+    private function isSiteBuilderWizardRequest(Request $request): bool
+    {
+        return $request->is(
+            'api/v1/site-builder/provisions/*/launch',
+            'api/v1/site-builder/provisions/*/status',
+            'api/v1/site-builder/provisions/*/prepare-license',
+            'api/v1/site-builder/provisions/*/retry',
+            'api/v1/site-builder/provisions/*/logs',
+        );
     }
 }
