@@ -147,9 +147,8 @@ export type SiteControlPayload = {
     id: number;
     domain: string;
     product?: string;
-    license_key?: string | null;
+    license_key?: string | null; // deprecated
     status?: string;
-    domain?: string;
     logo_url?: string | null;
     project_name?: string | null;
     start_date?: string | null;
