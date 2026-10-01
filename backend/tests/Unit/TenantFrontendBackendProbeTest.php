@@ -18,12 +18,15 @@ class TenantFrontendBackendProbeTest extends TestCase
         ], TenantSiteStack::frontendBackendProbeUrls('bluecafe'));
     }
 
-    public function test_compose_keeps_private_net_alias_for_the_app(): void
+    public function test_compose_points_app_at_unique_backend_and_keeps_private_alias(): void
     {
         $yaml = TenantSiteStack::composeYaml('bluecafe');
 
-        $this->assertStringContainsString('INTERNAL_API_URL: http://backend:8080', $yaml);
-        $this->assertStringContainsString('API_PROXY_TARGET: http://backend:8080', $yaml);
+        $this->assertStringContainsString('INTERNAL_API_URL: http://ws-bluecafe-backend:8080', $yaml);
+        $this->assertStringContainsString('API_PROXY_TARGET: http://ws-bluecafe-backend:8080', $yaml);
+        $this->assertStringContainsString('WEBINO_SITE_SLUG: "bluecafe"', $yaml);
+        $this->assertDoesNotMatchRegularExpression('/INTERNAL_API_URL:\s+http:\/\/backend:8080/', $yaml);
+        $this->assertDoesNotMatchRegularExpression('/API_PROXY_TARGET:\s+http:\/\/backend:8080/', $yaml);
         $this->assertSame(1, substr_count($yaml, 'aliases: [backend]'));
 
         $backend = $this->serviceBlock($yaml, 'ws-bluecafe-backend');
@@ -35,6 +38,16 @@ class TenantFrontendBackendProbeTest extends TestCase
 
         $caddy = TenantSiteStack::caddySnippet('bluecafe.example', 'bluecafe');
         $this->assertStringContainsString('reverse_proxy ws-bluecafe-backend:8080', $caddy);
+        $this->assertStringNotContainsString('letsencrypt', strtolower($yaml));
+    }
+
+    public function test_compose_slug_matches_service_dns_and_site_slug_env(): void
+    {
+        $yaml = TenantSiteStack::composeYaml('blue-cafe');
+
+        $this->assertStringContainsString('INTERNAL_API_URL: http://ws-blue-cafe-backend:8080', $yaml);
+        $this->assertStringContainsString('API_PROXY_TARGET: http://ws-blue-cafe-backend:8080', $yaml);
+        $this->assertStringContainsString('WEBINO_SITE_SLUG: "blue-cafe"', $yaml);
     }
 
     public function test_unique_hostname_success_does_not_fall_back(): void

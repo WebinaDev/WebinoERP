@@ -36,9 +36,9 @@ final class TenantSiteStack
      * URLs to probe from inside the tenant frontend container.
      *
      * The unique service hostname resolves on both the private net and
-     * webino_sites (the same name Caddy uses). "backend" is only an alias on
-     * the private net and can resolve to the ERP backend on webino_sites, so
-     * it is a fallback. The app itself still uses INTERNAL_API_URL=http://backend:8080.
+     * webino_sites (the same name Caddy and the Next app use). "backend" is
+     * only an alias on the private net and can resolve to the ERP backend on
+     * webino_sites, so it is a probe fallback only.
      *
      * @return list<string>
      */
@@ -71,15 +71,21 @@ final class TenantSiteStack
         $tag = self::imageTag($channel);
         $backendSvc = $project.'-backend';
         $frontendSvc = $project.'-frontend';
+        // Same sanitized slug as ws-{slug}-backend. Dashboard middleware uses
+        // WEBINO_SITE_SLUG to rewrite a leftover "backend" host to this name.
+        $safeSlug = substr($project, 3);
+        $api = 'http://'.$backendSvc.':8080';
 
         return <<<YAML
 # Isolated tenant stack. Images: webino-backend:{$tag}, webino-next:{$tag}
 # Built from https://github.com/Webinadev/WebinoDashboard
 # Service names are unique (not "backend"/"frontend") so they do not steal
-# Docker DNS from ERP Caddy on webino_sites. Internal aliases keep
-# INTERNAL_API_URL=http://backend:8080 working on the private net.
-# The short alias "backend" is only on that private net. On webino_sites the
-# name "backend" belongs to ERP, so health probes must use {$backendSvc}.
+# Docker DNS from ERP Caddy on webino_sites.
+# The frontend is on both the private net and webino_sites. On webino_sites
+# the short name "backend" is the ERP API, so Next middleware and the API
+# proxy must call {$api}. WEBINO_SITE_SLUG={$safeSlug} is the same slug the
+# dashboard image uses if a generic "backend" host is still configured.
+# A private-net alias "backend" remains for health-probe fallback only.
 services:
   db:
     image: postgres:15-alpine
@@ -124,8 +130,9 @@ services:
     container_name: {$project}-frontend
     restart: unless-stopped
     environment:
-      INTERNAL_API_URL: http://backend:8080
-      API_PROXY_TARGET: http://backend:8080
+      INTERNAL_API_URL: {$api}
+      API_PROXY_TARGET: {$api}
+      WEBINO_SITE_SLUG: "{$safeSlug}"
     depends_on:
       - {$backendSvc}
     networks:

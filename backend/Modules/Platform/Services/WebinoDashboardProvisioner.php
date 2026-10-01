@@ -502,6 +502,24 @@ class WebinoDashboardProvisioner
             ],
         };
 
+        // Rewrite compose env (unique backend DNS) before recreate. Keep the
+        // image tag already on disk. Do not rewrite Caddy or Let's Encrypt.
+        $existing = $this->docker->sshRun(
+            $server,
+            'cat '.escapeshellarg($dir.'/docker-compose.yml').' 2>/dev/null || true',
+            20
+        );
+        $tag = $channel;
+        if (preg_match('/webino-backend:([^\s"\']+)/', (string) ($existing['stdout'] ?? ''), $m)) {
+            $tag = TenantSiteStack::imageTag($m[1]);
+        }
+        $compose = TenantSiteStack::composeYaml($provision->slug, $tag);
+        $this->docker->writeFile($server, $dir.'/docker-compose.yml', $compose);
+        PlatformResource::query()
+            ->where('provision_id', $provision->id)
+            ->update(['docker_compose_raw' => $compose]);
+        $log[] = 'rewrote compose api=http://'.TenantSiteStack::backendService($provision->slug).':8080 (caddy unchanged)';
+
         $result = $this->docker->sshRun(
             $server,
             'cd '.escapeshellarg($dir)

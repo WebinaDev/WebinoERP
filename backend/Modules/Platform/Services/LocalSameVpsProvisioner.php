@@ -1251,8 +1251,9 @@ class LocalSameVpsProvisioner
      * Reachability from the tenant frontend container to its own backend.
      *
      * Prefer ws-{slug}-backend, which exists on both the private net and
-     * webino_sites. Fall back to the private-net alias "backend" when that
-     * unique name does not answer. Do not change INTERNAL_API_URL.
+     * webino_sites (and is what compose sets as INTERNAL_API_URL). Fall back
+     * to the private-net alias "backend" when that unique name does not
+     * answer. This probe does not rewrite compose or Caddy.
      *
      * @return array{ok:bool,attempted:bool,lines:list<string>}
      */
@@ -1740,6 +1741,11 @@ class LocalSameVpsProvisioner
         $dir = $this->siteDir($provision);
         $compose = TenantSiteStack::composeYaml($provision->slug, $channel);
         $this->writeFile($dir.'/docker-compose.yml', $compose);
+        // Keep the stored copy aligned so a later generic deploy cannot restore
+        // the shared "backend" hostname. Does not touch Caddy or certificates.
+        PlatformResource::query()
+            ->where('provision_id', $provision->id)
+            ->update(['docker_compose_raw' => $compose]);
     }
 
     /**
