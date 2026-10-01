@@ -7,6 +7,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Str;
 use Modules\Core\Entities\CoreHostingSetting;
 use Modules\Core\Entities\CoreLicense;
+use Modules\Platform\Support\StackHealthReport;
 use Modules\SiteBuilder\Entities\WebinoSiteProvision;
 use Modules\SiteBuilder\Jobs\ProvisionWebinoSiteJob;
 use Modules\SiteBuilder\Services\LicenseProvisionerService;
@@ -311,7 +312,7 @@ class SiteProvisionController extends Controller
             return response()->json(['data' => $row, 'message' => 'Cancelled']);
         } catch (\InvalidArgumentException $e) {
             return response()->json(['message' => $e->getMessage()], 422);
-        } catch (Throwable $e) {
+        } catch (\Throwable $e) {
             return response()->json(['message' => $e->getMessage()], 422);
         }
     }
@@ -391,7 +392,7 @@ class SiteProvisionController extends Controller
                 'compose' => $result,
                 'message' => $message,
             ]);
-        } catch (\Throwable $e) {
+        } catch (Throwable $e) {
             $msg = $e->getMessage() !== '' ? $e->getMessage() : 'Database repair failed';
 
             return response()->json([
@@ -432,7 +433,7 @@ class SiteProvisionController extends Controller
                 'compose' => $result,
                 'message' => $message,
             ]);
-        } catch (\Throwable $e) {
+        } catch (Throwable $e) {
             $msg = $e->getMessage() !== '' ? $e->getMessage() : 'Bootstrap failed';
 
             return response()->json([
@@ -484,13 +485,12 @@ class SiteProvisionController extends Controller
         $channel = (string) (($wizard['channel'] ?? null) ?: 'beta');
         $orchestrator = app(SiteProvisionOrchestrator::class);
 
-        // Axios client times out at 15s. Docker/SSH diagnostics routinely exceed that
-        // (many inspect/exec probes at 15–20s each). Keep the core panel payload fast;
-        // heavy probes are opt-in via ?light=0 and soft-budgeted below.
+        // Light load stays under the 15s axios default (no docker).
+        // Full diagnostics (?light=0) match fetchProvisionControl's 60s client timeout,
+        // with ~10s headroom for JSON encode + network (~50s of probes).
         $includeDiagnostics = ! filter_var($request->query('light', true), FILTER_VALIDATE_BOOLEAN);
         $startedAt = microtime(true);
-        // Leave headroom under the 15s frontend timeout for JSON encode + network.
-        $deadline = $startedAt + ($includeDiagnostics ? 10.0 : 4.0);
+        $deadline = $startedAt + ($includeDiagnostics ? 50.0 : 4.0);
 
         $powerState = 'unknown';
         try {
@@ -521,34 +521,34 @@ class SiteProvisionController extends Controller
             $ssl['log'] = $e->getMessage();
         }
 
+        // Stack probes first so the 50s budget is not eaten by the live SSL inspect.
+        // The DB/wizard SSL snapshot above is always present for the panel.
+        $stack = StackHealthReport::notRun();
+        if ($includeDiagnostics) {
+            if (microtime(true) < $deadline) {
+                try {
+                    $budget = max(1.0, $deadline - microtime(true));
+                    $stack = $orchestrator->stackDiagnostics($siteProvision, $budget);
+                    if (! array_key_exists('diagnostics_ran', $stack)) {
+                        $stack['diagnostics_ran'] = true;
+                    }
+                } catch (Throwable $e) {
+                    report($e);
+                    $stack = StackHealthReport::notRun($e->getMessage());
+                }
+            } else {
+                $stack = StackHealthReport::notRun(
+                    'Skipped stack diagnostics: soft deadline to stay under client timeout.'
+                );
+            }
+        }
+
         if ($includeDiagnostics && microtime(true) < $deadline) {
             try {
                 $ssl = $orchestrator->sslInfo($siteProvision);
             } catch (Throwable $e) {
                 report($e);
                 $ssl['log'] = $e->getMessage();
-            }
-        }
-
-        $stack = [
-            'project' => null,
-            'containers' => [],
-            'on_webino_sites' => ['backend' => false, 'frontend' => false],
-            'caddy_to_backend' => false,
-            'frontend_to_backend' => false,
-            'log' => null,
-        ];
-        if ($includeDiagnostics) {
-            if (microtime(true) < $deadline) {
-                try {
-                    $budget = max(1.0, $deadline - microtime(true));
-                    $stack = $orchestrator->stackDiagnostics($siteProvision, $budget);
-                } catch (Throwable $e) {
-                    report($e);
-                    $stack['log'] = $e->getMessage();
-                }
-            } else {
-                $stack['log'] = 'Skipped stack diagnostics: soft deadline to stay under client timeout.';
             }
         }
 
@@ -559,8 +559,8 @@ class SiteProvisionController extends Controller
                 $licensePayload = [
                     'id' => $license->id,
                     'domain' => $license->domain,
-                'product' => $license->product ?? 'webinodashboard',
-                'license_key' => null, // deprecated — identity is domain
+                    'product' => $license->product ?? 'webinodashboard',
+                    'license_key' => null, // deprecated — identity is domain
                     'status' => $license->status,
                     'domain' => $license->domain,
                     'logo_url' => $license->logo_url,

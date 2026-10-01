@@ -9,6 +9,7 @@ use Modules\Platform\Entities\PlatformDeployment;
 use Modules\Platform\Entities\PlatformDomain;
 use Modules\Platform\Entities\PlatformResource;
 use Modules\Platform\Entities\PlatformServer;
+use Modules\Platform\Support\StackHealthReport;
 use Modules\Platform\Support\TenantEnvBuilder;
 use Modules\Platform\Support\TenantSiteStack;
 use Modules\SiteBuilder\Entities\WebinoSiteProvision;
@@ -345,6 +346,7 @@ class LocalSameVpsProvisioner
         foreach ($lines as $line) {
             if ($line === $prev) {
                 $count++;
+
                 continue;
             }
             $flush();
@@ -384,6 +386,7 @@ class LocalSameVpsProvisioner
         $buildLog = $this->forceBuildImages($channel, only: 'backend');
         $this->rewriteComposeImages($provision, $channel);
         $recreate = $this->recreateServices($provision, ['backend']);
+        $recreate = $this->appendBackendReadyWait($provision, $recreate);
 
         return $this->withBuildLog($recreate, $buildLog);
     }
@@ -422,6 +425,7 @@ class LocalSameVpsProvisioner
         $buildLog = $this->forceBuildImages($channel, only: 'all');
         $this->rewriteComposeImages($provision, $channel);
         $recreate = $this->recreateServices($provision, ['backend', 'frontend']);
+        $recreate = $this->appendBackendReadyWait($provision, $recreate);
 
         return $this->withBuildLog($recreate, $buildLog);
     }
@@ -642,6 +646,8 @@ class LocalSameVpsProvisioner
      *   env_pw_fp:string,
      *   backend_pw_fp:string,
      *   app_log:string,
+     *   diagnostics_ran:bool,
+     *   checks:array<string, string>,
      *   log:string
      * }
      */
@@ -656,114 +662,161 @@ class LocalSameVpsProvisioner
 
         $containers = [];
         $lines = [];
+        $checks = StackHealthReport::checks('skipped');
         foreach ([$backend, $frontend, $db, $redis] as $name) {
             if (microtime(true) >= $deadline) {
                 $lines[] = 'truncated: soft budget exhausted during container inspect';
                 break;
             }
-            $t = max(2, min(15, (int) floor($deadline - microtime(true))));
+            $t = max(2, min(8, (int) floor($deadline - microtime(true))));
             $status = $this->run([
-                'docker', 'inspect', '-f', '{{.State.Status}}', $name,
-            ], $t);
-            $nets = $this->run([
                 'docker', 'inspect', '-f',
-                '{{range $k, $v := .NetworkSettings.Networks}}{{$k}} {{end}}',
+                '{{.State.Status}}'."\t".'{{.State.ExitCode}}'."\t".'{{.RestartCount}}'."\t".'{{.State.OOMKilled}}'."\t".'{{.State.Error}}'."\t".'{{range $k, $v := .NetworkSettings.Networks}}{{$k}} {{end}}',
                 $name,
             ], $t);
-            $restarts = $this->run([
-                'docker', 'inspect', '-f', '{{.RestartCount}}', $name,
-            ], $t);
-            $statusStr = $status['exit_code'] === 0 ? trim($status['stdout']) : 'missing';
-            $netList = preg_split('/\s+/', trim($nets['stdout'] ?? '')) ?: [];
-            $netList = array_values(array_filter($netList, fn ($n) => $n !== ''));
-            $restartCount = ($restarts['exit_code'] === 0 && is_numeric(trim($restarts['stdout'])))
-                ? (int) trim($restarts['stdout'])
-                : -1;
+            $statusStr = 'missing';
+            $exitCode = -1;
+            $restartCount = -1;
+            $oom = '';
+            $stateError = '';
+            $netList = [];
+            if ($status['exit_code'] === 0) {
+                $parts = explode("\t", trim($status['stdout']), 6);
+                $statusStr = $parts[0] !== '' ? $parts[0] : 'missing';
+                $exitCode = isset($parts[1]) && is_numeric($parts[1]) ? (int) $parts[1] : -1;
+                $restartCount = isset($parts[2]) && is_numeric($parts[2]) ? (int) $parts[2] : -1;
+                $oom = $parts[3] ?? '';
+                $stateError = trim($parts[4] ?? '');
+                $netList = preg_split('/\s+/', trim($parts[5] ?? '')) ?: [];
+                $netList = array_values(array_filter($netList, fn ($n) => $n !== ''));
+            }
             $containers[$name] = [
                 'status' => $statusStr,
                 'networks' => $netList,
                 'restart_count' => $restartCount,
+                'exit_code' => $exitCode,
+                'error' => $stateError,
+                'oom_killed' => $oom === 'true',
             ];
             $lines[] = $name.': '.$statusStr
+                .' exit='.$exitCode
                 .' restarts='.($restartCount >= 0 ? (string) $restartCount : '?')
+                .' oom='.($oom !== '' ? $oom : '?')
+                .($stateError !== '' ? ' error='.$stateError : '')
                 .' nets=['.implode(',', $netList).']';
+            if (
+                in_array($statusStr, ['restarting', 'exited', 'dead'], true)
+                || $restartCount >= 3
+                || $oom === 'true'
+            ) {
+                $lines[] = 'CRASH-LOOP suspect '.$name
+                    .': status='.$statusStr
+                    .' exit='.$exitCode
+                    .' restarts='.$restartCount
+                    .($stateError !== '' ? ' error='.$stateError : '')
+                    .($oom === 'true' ? ' oom=true' : '');
+            }
         }
 
         $onSites = [
             'backend' => in_array('webino_sites', $containers[$backend]['networks'] ?? [], true),
             'frontend' => in_array('webino_sites', $containers[$frontend]['networks'] ?? [], true),
         ];
-        $lines[] = 'on_webino_sites backend='.($onSites['backend'] ? 'yes' : 'no')
-            .' frontend='.($onSites['frontend'] ? 'yes' : 'no');
+        $checks['on_webino_sites_backend'] = isset($containers[$backend])
+            ? ($onSites['backend'] ? 'ok' : 'fail')
+            : 'skipped';
+        $checks['on_webino_sites_frontend'] = isset($containers[$frontend])
+            ? ($onSites['frontend'] ? 'ok' : 'fail')
+            : 'skipped';
+        $lines[] = 'on_webino_sites backend='.$checks['on_webino_sites_backend']
+            .' frontend='.$checks['on_webino_sites_frontend'];
 
-        if (microtime(true) >= $deadline) {
+        $envPwFp = '';
+        $backendPwFp = '';
+        $dbAuthOk = false;
+        $backendSelf = false;
+        $readinessOk = false;
+        $redisOk = false;
+        $caddySnippetOk = false;
+        $caddyConfigHasUpstream = false;
+        $caddyExecToBackend = false;
+        $caddyToBackend = false;
+        $frontendToBackend = false;
+        $appLog = '';
+
+        $pwSlice = $this->budgetLeft($deadline, 2);
+        if ($pwSlice === null) {
             $lines[] = 'truncated: soft budget exhausted; skipped deep probes';
-
-            return [
-                'project' => $project,
-                'containers' => $containers,
-                'on_webino_sites' => $onSites,
-                'db_auth_ok' => false,
-                'backend_self' => false,
-                'readiness_ok' => false,
-                'caddy_snippet_ok' => false,
-                'caddy_config_has_upstream' => false,
-                'caddy_exec_to_backend' => false,
-                'redis_ok' => false,
-                'env_pw_fp' => '',
-                'backend_pw_fp' => '',
-                'caddy_to_backend' => false,
-                'frontend_to_backend' => false,
-                'app_log' => '',
-                'log' => implode("\n", $lines),
-            ];
+        } else {
+            $envPassword = $this->readEnvMap($this->siteDir($provision).'/.env')['DB_PASSWORD'] ?? '';
+            $envPwFp = $this->passwordFingerprint($envPassword);
+            $backendPw = $this->run(
+                ['docker', 'exec', $backend, 'printenv', 'DB_PASSWORD'],
+                min(8, $pwSlice)
+            );
+            $backendPwFp = 'unavailable';
+            if ($backendPw['exit_code'] === 0) {
+                $backendPwFp = $this->passwordFingerprint(rtrim($backendPw['stdout'], "\r\n"));
+            }
+            if ($backendPwFp === 'unavailable') {
+                $lines[] = 'db password fp env='.$envPwFp.' backend=unavailable (container not exec-able; often a crash-loop)';
+            } else {
+                $fpMatch = $envPwFp === $backendPwFp;
+                $lines[] = 'db password fp env='.$envPwFp.' backend='.$backendPwFp.' match='.($fpMatch ? 'yes' : 'NO');
+                if (! $fpMatch) {
+                    $lines[] = 'DB PASSWORD MISMATCH: site .env fingerprint does not match DB_PASSWORD inside the backend container. This is not a diagnostics timeout or a cold start.';
+                }
+            }
         }
 
-        $envPassword = $this->readEnvMap($this->siteDir($provision).'/.env')['DB_PASSWORD'] ?? '';
-        $envPwFp = $this->passwordFingerprint($envPassword);
-        $backendPw = $this->run(
-            ['docker', 'exec', $backend, 'printenv', 'DB_PASSWORD'],
-            max(2, min(15, (int) floor($deadline - microtime(true))))
-        );
-        $backendPwFp = 'unavailable';
-        if ($backendPw['exit_code'] === 0) {
-            $backendPwFp = $this->passwordFingerprint(rtrim($backendPw['stdout'], "\r\n"));
-        }
-        $fpMatch = ($backendPwFp !== 'unavailable' && $envPwFp === $backendPwFp) ? 'yes' : 'no';
-        $lines[] = 'db password fp env='.$envPwFp.' backend='.$backendPwFp.' match='.$fpMatch;
-
-        if (microtime(true) >= $deadline) {
-            $lines[] = 'truncated: soft budget exhausted before deep probes';
+        $authSlice = $this->budgetLeft($deadline, 4);
+        if ($authSlice === null) {
+            $checks['db_auth'] = 'skipped';
+            $lines[] = 'db auth with .env password: skipped (budget)';
+        } else {
+            $auth = $this->probeDatabaseAuthResult($provision, min(12, $authSlice));
+            $dbAuthOk = $auth['ok'];
+            $checks['db_auth'] = $dbAuthOk ? 'ok' : 'fail';
+            $lines[] = 'db auth with .env password: '.($dbAuthOk ? 'ok' : 'FAIL')
+                .($auth['detail'] !== '' ? ' '.$auth['detail'] : '');
         }
 
-        $dbAuthOk = microtime(true) < $deadline ? $this->probeDatabaseAuth($provision) : false;
-        $lines[] = 'db auth with .env password: '.($dbAuthOk ? 'ok' : 'FAIL');
+        $redisSlice = $this->budgetLeft($deadline, 3);
+        if ($redisSlice === null) {
+            $checks['redis'] = 'skipped';
+            $lines[] = 'redis (ext+cache from backend): skipped (budget)';
+        } else {
+            $redisProbe = $this->probeBackendRedis($backend, min(10, $redisSlice));
+            $redisOk = $redisProbe['ok'];
+            $checks['redis'] = $redisOk ? 'ok' : 'fail';
+            $lines[] = 'redis (ext+cache from backend): '
+                .($redisOk ? 'ok' : 'FAIL')
+                .($redisProbe['detail'] !== '' ? ' '.$redisProbe['detail'] : '');
+        }
 
-        $redisProbe = microtime(true) < $deadline
-            ? $this->probeBackendRedis($backend)
-            : ['ok' => false, 'detail' => 'skipped'];
-        $redisOk = $redisProbe['ok'];
-        $lines[] = 'redis (ext+cache from backend): '
-            .($redisOk ? 'ok' : 'FAIL')
-            .($redisProbe['detail'] !== '' ? ' '.$redisProbe['detail'] : '');
-
-        $selfProbe = microtime(true) < $deadline
-            ? $this->probeHttp(
+        $selfSlice = $this->budgetLeft($deadline, 3);
+        $selfProbe = ['status' => 0, 'body' => ''];
+        if ($selfSlice === null) {
+            $checks['backend_self'] = 'skipped';
+            $lines[] = 'backend_self (127.0.0.1:8080/api/v1/health/metrics): skipped (budget)';
+        } else {
+            $selfProbe = $this->probeHttp(
                 $backend,
                 'http://127.0.0.1:8080/api/v1/health/metrics',
-                max(5, min(20, (int) floor($deadline - microtime(true))))
-            )
-            : ['status' => 0, 'body' => '', 'error' => 'skipped'];
-        $backendSelf = $selfProbe['status'] >= 200
-            && $selfProbe['status'] < 300
-            && str_contains($selfProbe['body'], 'data');
+                min(8, $selfSlice)
+            );
+            $backendSelf = $selfProbe['status'] >= 200
+                && $selfProbe['status'] < 300
+                && str_contains($selfProbe['body'], 'data');
+            $checks['backend_self'] = $backendSelf ? 'ok' : 'fail';
+            $lines[] = 'backend_self (127.0.0.1:8080/api/v1/health/metrics): '
+                .($backendSelf ? 'ok' : 'FAIL')
+                .' '.$this->formatProbeSummary($selfProbe);
+        }
         $pdoDrivers = '';
         if (preg_match('/"pdo_drivers"\s*:\s*\[(.*?)\]/s', $selfProbe['body'], $m)) {
             $pdoDrivers = trim(str_replace(['"', ' '], '', $m[1]));
         }
-        $lines[] = 'backend_self (127.0.0.1:8080/api/v1/health/metrics): '
-            .($backendSelf ? 'ok' : 'FAIL')
-            .' '.$this->formatProbeSummary($selfProbe);
         if ($pdoDrivers !== '' || $backendSelf) {
             $hasPgsql = str_contains($pdoDrivers, 'pgsql');
             $lines[] = 'frankenphp_pdo_drivers: '
@@ -771,80 +824,115 @@ class LocalSameVpsProvisioner
                 .' pgsql='.($hasPgsql ? 'yes' : 'NO');
         }
 
-        $readiness = microtime(true) < $deadline
-            ? $this->probeBackendReadiness($backend)
-            : ['ok' => false, 'detail' => 'skipped'];
-        $readinessOk = $readiness['ok'];
-        $lines[] = 'backend_readiness (db/redis/queue): '
-            .($readinessOk ? 'ok' : 'FAIL')
-            .($readiness['detail'] !== '' ? ' '.$readiness['detail'] : '');
+        $readySlice = $this->budgetLeft($deadline, 3);
+        if ($readySlice === null) {
+            $checks['readiness'] = 'skipped';
+            $lines[] = 'backend_readiness (db/redis/queue): skipped (budget)';
+        } else {
+            $readiness = $this->probeBackendReadiness($backend, min(8, $readySlice));
+            $readinessOk = $readiness['ok'];
+            $checks['readiness'] = $readinessOk ? 'ok' : 'fail';
+            $lines[] = 'backend_readiness (db/redis/queue): '
+                .($readinessOk ? 'ok' : 'FAIL')
+                .($readiness['detail'] !== '' ? ' '.$readiness['detail'] : '');
+        }
 
-        $caddySnippetOk = microtime(true) < $deadline
-            ? $this->caddyContainerSeesSnippet($provision->slug)
-            : false;
-        $lines[] = 'caddy_snippet_ok (/etc/caddy/sites/'.$provision->slug.'.caddy): '
-            .($caddySnippetOk ? 'yes' : 'no');
+        $snippetSlice = $this->budgetLeft($deadline, 2);
+        if ($snippetSlice === null) {
+            $lines[] = 'caddy_snippet_ok: skipped (budget)';
+        } else {
+            $caddySnippetOk = $this->caddyContainerSeesSnippet($provision->slug);
+            $lines[] = 'caddy_snippet_ok (/etc/caddy/sites/'.$provision->slug.'.caddy): '
+                .($caddySnippetOk ? 'yes' : 'no');
+        }
 
         $upstream = $backend.':8080';
-        $caddyConfigHasUpstream = microtime(true) < $deadline
-            ? $this->caddyConfigHasUpstream($upstream)
-            : false;
-        $lines[] = 'caddy_config_has_upstream ('.$upstream.'): '
-            .($caddyConfigHasUpstream ? 'yes' : 'no');
+        $configSlice = $this->budgetLeft($deadline, 2);
+        if ($configSlice === null) {
+            $lines[] = 'caddy_config_has_upstream ('.$upstream.'): skipped (budget)';
+        } else {
+            $caddyConfigHasUpstream = $this->caddyConfigHasUpstream($upstream, min(8, $configSlice));
+            $lines[] = 'caddy_config_has_upstream ('.$upstream.'): '
+                .($caddyConfigHasUpstream ? 'yes' : 'no');
+        }
 
         $healthUrl = 'http://'.$backend.':8080/api/v1/health/metrics';
-        $caddyExecProbe = microtime(true) < $deadline
-            ? $this->probeFromCaddyContainerDetailed($healthUrl)
-            : ['status' => 0, 'body' => '', 'error' => 'skipped'];
-        $caddyExecToBackend = $caddyExecProbe['status'] >= 200
-            && $caddyExecProbe['status'] < 300
-            && str_contains($caddyExecProbe['body'], 'data');
-        $lines[] = 'caddy_exec_to_backend: '
-            .($caddyExecToBackend ? 'ok' : 'FAIL')
-            .' '.$this->formatProbeSummary($caddyExecProbe);
+        $execSlice = $this->budgetLeft($deadline, 3);
+        if ($execSlice === null) {
+            $lines[] = 'caddy_exec_to_backend: skipped (budget)';
+        } else {
+            $caddyExecProbe = $this->probeFromCaddyContainerDetailed($healthUrl, min(8, $execSlice));
+            $caddyExecToBackend = $caddyExecProbe['status'] >= 200
+                && $caddyExecProbe['status'] < 300
+                && str_contains($caddyExecProbe['body'], 'data');
+            $lines[] = 'caddy_exec_to_backend: '
+                .($caddyExecToBackend ? 'ok' : 'FAIL')
+                .' '.$this->formatProbeSummary($caddyExecProbe);
+        }
 
-        $caddyToBackend = microtime(true) < $deadline
-            ? $this->probeOnProxyNetwork($healthUrl)
-            : false;
-        $lines[] = 'caddy→'.$backend.'/api/v1/health/metrics: '.($caddyToBackend ? 'ok' : 'FAIL');
+        $proxySlice = $this->budgetLeft($deadline, 3);
+        if ($proxySlice === null) {
+            $checks['caddy_to_backend'] = 'skipped';
+            $lines[] = 'caddy→'.$backend.'/api/v1/health/metrics: skipped (budget)';
+        } else {
+            $caddyToBackend = $this->probeOnProxyNetwork($healthUrl, min(8, $proxySlice));
+            $checks['caddy_to_backend'] = $caddyToBackend ? 'ok' : 'fail';
+            $lines[] = 'caddy→'.$backend.'/api/v1/health/metrics: '.($caddyToBackend ? 'ok' : 'FAIL');
+        }
 
-        $feProbe = microtime(true) < $deadline
-            ? $this->probeHttp(
+        $feSlice = $this->budgetLeft($deadline, 3);
+        if ($feSlice === null) {
+            $checks['frontend_to_backend'] = 'skipped';
+            $lines[] = 'frontend→http://backend:8080 (internal alias): skipped (budget)';
+        } else {
+            $feProbe = $this->probeHttp(
                 $frontend,
                 'http://backend:8080/api/v1/health/metrics',
-                max(5, min(20, (int) floor($deadline - microtime(true))))
-            )
-            : ['status' => 0, 'body' => '', 'error' => 'skipped'];
-        $frontendToBackend = $feProbe['status'] >= 200
-            && $feProbe['status'] < 300
-            && str_contains($feProbe['body'], 'data');
-        $lines[] = 'frontend→http://backend:8080 (internal alias): '
-            .($frontendToBackend ? 'ok' : 'FAIL')
-            .' '.$this->formatProbeSummary($feProbe);
+                min(8, $feSlice)
+            );
+            $frontendToBackend = $feProbe['status'] >= 200
+                && $feProbe['status'] < 300
+                && str_contains($feProbe['body'], 'data');
+            $checks['frontend_to_backend'] = $frontendToBackend ? 'ok' : 'fail';
+            $lines[] = 'frontend→http://backend:8080 (internal alias): '
+                .($frontendToBackend ? 'ok' : 'FAIL')
+                .' '.$this->formatProbeSummary($feProbe);
+        }
 
-        $appLog = microtime(true) < $deadline ? $this->tailBackendErrors($backend) : '';
-        if ($appLog !== '') {
-            $lines[] = '--- app_errors ---';
-            $lines[] = $appLog;
+        $logSlice = $this->budgetLeft($deadline, 3);
+        if ($logSlice === null) {
+            $lines[] = 'app_errors: skipped (budget)';
         } else {
-            $lines[] = 'app_errors: (empty or unavailable)';
+            $appLog = $this->tailBackendErrors($backend);
+            if ($appLog !== '') {
+                $lines[] = '--- app_errors ---';
+                $lines[] = $appLog;
+            } else {
+                $lines[] = 'app_errors: (empty or unavailable)';
+            }
+        }
+
+        if (in_array('skipped', $checks, true)) {
+            $lines[] = 'note: probes marked skipped (budget) were not executed and are not failures.';
         }
 
         return [
             'project' => $project,
             'containers' => $containers,
             'on_webino_sites' => $onSites,
-            'db_auth_ok' => $dbAuthOk,
-            'backend_self' => $backendSelf,
-            'readiness_ok' => $readinessOk,
+            'db_auth_ok' => $checks['db_auth'] === 'ok',
+            'backend_self' => $checks['backend_self'] === 'ok',
+            'readiness_ok' => $checks['readiness'] === 'ok',
             'caddy_snippet_ok' => $caddySnippetOk,
             'caddy_config_has_upstream' => $caddyConfigHasUpstream,
             'caddy_exec_to_backend' => $caddyExecToBackend,
-            'redis_ok' => $redisOk,
+            'redis_ok' => $checks['redis'] === 'ok',
             'env_pw_fp' => $envPwFp,
             'backend_pw_fp' => $backendPwFp,
-            'caddy_to_backend' => $caddyToBackend,
-            'frontend_to_backend' => $frontendToBackend,
+            'caddy_to_backend' => $checks['caddy_to_backend'] === 'ok',
+            'frontend_to_backend' => $checks['frontend_to_backend'] === 'ok',
+            'diagnostics_ran' => true,
+            'checks' => $checks,
             'app_log' => $appLog,
             'log' => implode("\n", $lines),
         ];
@@ -1009,23 +1097,55 @@ class LocalSameVpsProvisioner
      * Probe TCP auth to Postgres the same way the backend does: connect to host
      * "db" on the tenant private network (scram-sha-256), not loopback trust.
      */
-    protected function probeDatabaseAuth(WebinoSiteProvision $provision): bool
+    protected function probeDatabaseAuth(WebinoSiteProvision $provision, int $timeout = 45): bool
+    {
+        return $this->probeDatabaseAuthResult($provision, $timeout)['ok'];
+    }
+
+    /**
+     * @return array{ok:bool,detail:string}
+     */
+    protected function probeDatabaseAuthResult(WebinoSiteProvision $provision, int $timeout = 45): array
     {
         $password = $this->readEnvMap($this->siteDir($provision).'/.env')['DB_PASSWORD'] ?? '';
         if ($password === '') {
-            return false;
+            return ['ok' => false, 'detail' => 'DB_PASSWORD empty in site .env'];
         }
 
         $network = TenantSiteStack::projectName($provision->slug).'_net';
+        $timeout = max(5, $timeout);
         $result = $this->run([
             'docker', 'run', '--rm',
             '--network', $network,
             '-e', 'PGPASSWORD='.$password,
             'postgres:15-alpine',
             'psql', '-h', 'db', '-U', 'webino', '-d', 'webino', '-tAc', 'select 1',
-        ], 45);
+        ], $timeout);
 
-        return $result['exit_code'] === 0 && str_contains(trim($result['stdout']), '1');
+        $ok = $result['exit_code'] === 0 && str_contains(trim($result['stdout']), '1');
+        $detail = trim(($result['stderr'] ?? '').' '.($result['stdout'] ?? ''));
+        $detail = trim(preg_replace('/\s+/', ' ', $detail) ?? $detail);
+        if (! $ok && $detail === '') {
+            $detail = 'exit='.$result['exit_code'];
+        }
+        if (strlen($detail) > 240) {
+            $detail = substr($detail, 0, 240);
+        }
+
+        return ['ok' => $ok, 'detail' => $ok ? '' : $detail];
+    }
+
+    /**
+     * Seconds still inside the diagnostic deadline, or null when the probe must be skipped.
+     */
+    protected function budgetLeft(float $deadline, int $minSeconds = 2): ?int
+    {
+        $left = (int) floor($deadline - microtime(true));
+        if ($left < $minSeconds) {
+            return null;
+        }
+
+        return $left;
     }
 
     /**
@@ -1255,9 +1375,9 @@ class LocalSameVpsProvisioner
     /**
      * Probe health from inside the backend container (independent of Docker DNS / Caddy).
      */
-    protected function probeBackendSelf(string $backendContainer): bool
+    protected function probeBackendSelf(string $backendContainer, int $timeout = 8): bool
     {
-        $probe = $this->probeHttp($backendContainer, 'http://127.0.0.1:8080/api/v1/health/metrics');
+        $probe = $this->probeHttp($backendContainer, 'http://127.0.0.1:8080/api/v1/health/metrics', $timeout);
 
         return $probe['status'] >= 200
             && $probe['status'] < 300
@@ -1269,9 +1389,9 @@ class LocalSameVpsProvisioner
      *
      * @return array{ok:bool,detail:string}
      */
-    protected function probeBackendReadiness(string $backendContainer): array
+    protected function probeBackendReadiness(string $backendContainer, int $timeout = 20): array
     {
-        $probe = $this->probeHttp($backendContainer, 'http://127.0.0.1:8080/api/v1/health/readiness');
+        $probe = $this->probeHttp($backendContainer, 'http://127.0.0.1:8080/api/v1/health/readiness', $timeout);
         $body = $probe['body'];
 
         if ($body === '' && $probe['status'] === 0) {
@@ -1323,12 +1443,13 @@ class LocalSameVpsProvisioner
      *
      * @return array{ok:bool,detail:string}
      */
-    protected function probeBackendRedis(string $backendContainer): array
+    protected function probeBackendRedis(string $backendContainer, int $timeout = 20): array
     {
+        $step = max(3, min(8, $timeout));
         $ext = $this->run([
             'docker', 'exec', $backendContainer,
             'php', '-r', 'echo extension_loaded("redis") ? "yes" : "no";',
-        ], 15);
+        ], $step);
         $extLoaded = trim($ext['stdout'] ?? '') === 'yes';
 
         // Prefer phpredis direct ping (no artisan/tinker dependency in prod image).
@@ -1339,17 +1460,18 @@ class LocalSameVpsProvisioner
             .'try { $r=new Redis(); $ok=@$r->connect($h,$p,2.0);'
             .'echo $ok && $r->ping() ? "redis_ping=ok" : "redis_ping=FAIL connect";'
             .'} catch (Throwable $e) { echo "redis_ping=FAIL ".$e->getMessage(); }',
-        ], 20);
+        ], $step);
 
         $directOut = trim(($direct['stdout'] ?? '')."\n".($direct['stderr'] ?? ''));
         $pingOk = str_contains($directOut, 'redis_ping=ok');
 
         // If extension missing, still try Laravel Redis facade via artisan (may use predis).
-        if (! $extLoaded && ! $pingOk) {
+        // cache:clear is a slow predis fallback. Skip it on a short diagnostic budget.
+        if (! $extLoaded && ! $pingOk && $timeout >= 18) {
             $artisan = $this->run([
                 'docker', 'exec', $backendContainer,
                 'php', 'artisan', 'cache:clear',
-            ], 25);
+            ], min(15, $timeout));
             $artisanOut = trim(($artisan['stdout'] ?? '')."\n".($artisan['stderr'] ?? ''));
             if (($artisan['exit_code'] ?? 1) === 0) {
                 $pingOk = true;
@@ -1383,7 +1505,7 @@ class LocalSameVpsProvisioner
             'docker', 'exec', $backendContainer,
             'sh', '-c',
             "grep -a -E '\\.(ERROR|CRITICAL|EMERGENCY):' storage/logs/laravel.log 2>/dev/null | tail -n 5 || true",
-        ], 20);
+        ], 8);
         $fileText = trim($fileErrors['stdout'] ?? '');
         if ($fileText !== '') {
             $parts[] = '[laravel.log]';
@@ -1392,13 +1514,13 @@ class LocalSameVpsProvisioner
 
         $dockerLogs = $this->run([
             'docker', 'logs', '--tail', '400', $backendContainer,
-        ], 25);
+        ], 10);
         $combined = trim(($dockerLogs['stdout'] ?? '')."\n".($dockerLogs['stderr'] ?? ''));
         if ($combined !== '') {
             $filtered = [];
             foreach (preg_split('/\r?\n/', $combined) ?: [] as $line) {
                 if (preg_match(
-                    '/ERROR|CRITICAL|EMERGENCY|Fatal error|Uncaught|Unable to load dynamic library|PHP Warning|SQLSTATE/i',
+                    '/ERROR|CRITICAL|EMERGENCY|Fatal error|Uncaught|Unable to load dynamic library|PHP Warning|SQLSTATE|password authentication failed|entrypoint|libwatcher|OOMKilled|panic/i',
                     $line
                 )) {
                     $filtered[] = $line;
@@ -1433,22 +1555,23 @@ class LocalSameVpsProvisioner
     /**
      * Check whether the live Caddy config JSON mentions the tenant backend upstream.
      */
-    protected function caddyConfigHasUpstream(string $upstream): bool
+    protected function caddyConfigHasUpstream(string $upstream, int $timeout = 20): bool
     {
         $web = $this->findErpWebContainer();
         if ($web === null) {
             return false;
         }
 
+        $timeout = max(3, $timeout);
         $result = $this->run([
             'docker', 'exec', $web,
             'wget', '-q', '-O', '-', 'http://127.0.0.1:2019/config/',
-        ], 20);
+        ], $timeout);
         if ($result['exit_code'] !== 0 || trim($result['stdout']) === '') {
             $result = $this->run([
                 'docker', 'exec', $web,
                 'wget', '-q', '-O', '-', 'http://localhost:2019/config/',
-            ], 20);
+            ], $timeout);
         }
         if ($result['exit_code'] !== 0) {
             return false;
@@ -1460,9 +1583,9 @@ class LocalSameVpsProvisioner
     /**
      * Probe a URL from inside the ERP Caddy container (same network path as reverse_proxy).
      */
-    protected function probeFromCaddyContainer(string $url): bool
+    protected function probeFromCaddyContainer(string $url, int $timeout = 30): bool
     {
-        $probe = $this->probeFromCaddyContainerDetailed($url);
+        $probe = $this->probeFromCaddyContainerDetailed($url, $timeout);
 
         return $probe['status'] >= 200
             && $probe['status'] < 300
@@ -1472,14 +1595,14 @@ class LocalSameVpsProvisioner
     /**
      * @return array{status:int,body:string}
      */
-    protected function probeFromCaddyContainerDetailed(string $url): array
+    protected function probeFromCaddyContainerDetailed(string $url, int $timeout = 30): array
     {
         $web = $this->findErpWebContainer();
         if ($web === null) {
             return ['status' => 0, 'body' => 'caddy container missing'];
         }
 
-        return $this->probeHttp($web, $url, 30);
+        return $this->probeHttp($web, $url, max(4, $timeout));
     }
 
     /**
@@ -1615,6 +1738,111 @@ class LocalSameVpsProvisioner
             ...$result,
             'log' => trim($result['stdout']."\n".$result['stderr']."\n".$attachLog),
         ];
+    }
+
+    /**
+     * Block until the recreated backend answers health, or record why it did not.
+     * A slow boot stays exit 0 with an explicit timeout. A crash-loop or DB password
+     * mismatch fails the update so it is not reported as a clean recreate.
+     *
+     * @param  array{exit_code:int,stdout:string,stderr:string,log:string}  $recreate
+     * @return array{exit_code:int,stdout:string,stderr:string,log:string}
+     */
+    protected function appendBackendReadyWait(WebinoSiteProvision $provision, array $recreate): array
+    {
+        if (($recreate['exit_code'] ?? 1) !== 0) {
+            $recreate['log'] = trim(($recreate['log'] ?? '')."\nbackend health wait skipped: recreate failed");
+
+            return $recreate;
+        }
+
+        $backend = TenantSiteStack::backendService($provision->slug);
+        // ~15 * 3s between short probes. Enough for a cold Octane/artisan boot
+        // without waiting out a crash-loop for the full migration window.
+        $waitLine = $this->waitUntilBackendReady($backend, 15);
+        $chunks = [$waitLine];
+
+        if (! str_starts_with($waitLine, 'backend ready')) {
+            $diagnosis = $this->diagnoseUnreadyBackend($provision, $backend);
+            $chunks[] = $diagnosis['log'];
+            if ($diagnosis['failed']) {
+                $recreate['exit_code'] = 1;
+                $recreate['stderr'] = trim(($recreate['stderr'] ?? '')."\n".$diagnosis['log']);
+            }
+        }
+
+        $recreate['log'] = trim(($recreate['log'] ?? '')."\n".implode("\n", $chunks));
+
+        return $recreate;
+    }
+
+    /**
+     * @return array{failed:bool,log:string}
+     */
+    protected function diagnoseUnreadyBackend(WebinoSiteProvision $provision, string $backend): array
+    {
+        $inspect = $this->run([
+            'docker', 'inspect', '-f',
+            '{{.State.Status}}'."\t".'{{.State.ExitCode}}'."\t".'{{.RestartCount}}'."\t".'{{.State.OOMKilled}}'."\t".'{{.State.Error}}',
+            $backend,
+        ], 15);
+        $raw = trim($inspect['stdout'] ?? '');
+        $parts = explode("\t", $raw, 5);
+        $status = $parts[0] ?? 'missing';
+        $exitCode = isset($parts[1]) && is_numeric($parts[1]) ? (int) $parts[1] : -1;
+        $restarts = isset($parts[2]) && is_numeric($parts[2]) ? (int) $parts[2] : -1;
+        $oom = $parts[3] ?? '';
+        $error = trim($parts[4] ?? '');
+        if (($inspect['exit_code'] ?? 1) !== 0) {
+            $status = 'missing';
+            $error = trim(($inspect['stderr'] ?? '') ?: $raw);
+        }
+
+        $envPassword = $this->readEnvMap($this->siteDir($provision).'/.env')['DB_PASSWORD'] ?? '';
+        $envFp = $this->passwordFingerprint($envPassword);
+        $backendPw = $this->run(['docker', 'exec', $backend, 'printenv', 'DB_PASSWORD'], 10);
+        $passwordMismatch = false;
+        $fpLine = 'db password fp env='.$envFp.' backend=unavailable';
+        if (($backendPw['exit_code'] ?? 1) === 0) {
+            $beFp = $this->passwordFingerprint(rtrim((string) $backendPw['stdout'], "\r\n"));
+            $passwordMismatch = $envFp !== $beFp;
+            $fpLine = 'db password fp env='.$envFp.' backend='.$beFp.' match='.($passwordMismatch ? 'NO' : 'yes');
+        }
+
+        $logs = $this->run(['docker', 'logs', '--tail', '80', $backend], 15);
+        $tail = trim(($logs['stdout'] ?? '')."\n".($logs['stderr'] ?? ''));
+        if (strlen($tail) > 2500) {
+            $tail = substr($tail, -2500);
+        }
+
+        $failed = $oom === 'true' || StackHealthReport::backendStartupFailed(
+            $status,
+            $exitCode,
+            max(0, $restarts),
+            $passwordMismatch,
+            $tail
+        );
+
+        $lines = [
+            'backend health: '.($failed ? 'FAIL' : 'timeout (still starting, not marked failed)'),
+            'inspect status='.$status.' exit='.$exitCode.' oom='.($oom !== '' ? $oom : '?')
+                .' restarts='.$restarts
+                .($error !== '' ? ' error='.$error : ''),
+            $fpLine,
+        ];
+        if ($passwordMismatch) {
+            $lines[] = 'DB PASSWORD MISMATCH: site .env does not match the password inside the backend container. This is not a cold-start false negative.';
+        }
+        if ($oom === 'true') {
+            $lines[] = 'OOMKilled: backend container was killed by the kernel (not a diagnostics timeout).';
+        }
+        if ($tail !== '') {
+            $lines[] = "--- backend logs (tail) ---\n".$tail;
+        } else {
+            $lines[] = 'backend logs: (empty)';
+        }
+
+        return ['failed' => $failed, 'log' => implode("\n", $lines)];
     }
 
     protected function siteDir(WebinoSiteProvision $provision): string
@@ -2059,11 +2287,12 @@ class LocalSameVpsProvisioner
         return false;
     }
 
-    protected function probeOnProxyNetwork(string $url): bool
+    protected function probeOnProxyNetwork(string $url, int $timeout = 30): bool
     {
         // Prefer probing from the real Caddy container — same path as reverse_proxy.
         // A disposable curl image may be missing on the host and fails silently.
-        if ($this->probeFromCaddyContainer($url)) {
+        $timeout = max(4, $timeout);
+        if ($this->probeFromCaddyContainer($url, $timeout)) {
             return true;
         }
 
@@ -2072,7 +2301,7 @@ class LocalSameVpsProvisioner
             '--network', 'webino_sites',
             'curlimages/curl:8.5.0',
             '-sf', $url,
-        ], 30);
+        ], $timeout);
 
         return $viaCurl['exit_code'] === 0;
     }

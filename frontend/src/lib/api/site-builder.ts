@@ -180,21 +180,35 @@ export type SiteControlPayload = {
     project?: string | null;
     containers?: Record<string, { status?: string; networks?: string[]; restart_count?: number }>;
     on_webino_sites?: { backend?: boolean; frontend?: boolean };
-    db_auth_ok?: boolean;
-    backend_self?: boolean;
-    readiness_ok?: boolean;
-    redis_ok?: boolean;
+    db_auth_ok?: boolean | null;
+    backend_self?: boolean | null;
+    readiness_ok?: boolean | null;
+    redis_ok?: boolean | null;
     caddy_snippet_ok?: boolean;
     caddy_config_has_upstream?: boolean;
     caddy_exec_to_backend?: boolean;
     env_pw_fp?: string;
     backend_pw_fp?: string;
-    caddy_to_backend?: boolean;
-    frontend_to_backend?: boolean;
+    caddy_to_backend?: boolean | null;
+    frontend_to_backend?: boolean | null;
+    diagnostics_ran?: boolean;
+    checks?: Partial<Record<StackCheckKey, StackCheckState>>;
     app_log?: string;
     log?: string | null;
   } | null;
 };
+
+export type StackCheckState = 'ok' | 'fail' | 'skipped' | 'not_run';
+
+export type StackCheckKey =
+  | 'db_auth'
+  | 'backend_self'
+  | 'readiness'
+  | 'redis'
+  | 'caddy_to_backend'
+  | 'frontend_to_backend'
+  | 'on_webino_sites_backend'
+  | 'on_webino_sites_frontend';
 
 export async function fetchCatalog() {
   const res = await apiClient.get(`${BASE}/catalog`);

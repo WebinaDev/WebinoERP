@@ -7,6 +7,7 @@ use Modules\Core\Entities\CoreHostingSetting;
 use Modules\Platform\Entities\PlatformServer;
 use Modules\Platform\Services\LocalSameVpsProvisioner;
 use Modules\Platform\Services\WebinoDashboardProvisioner;
+use Modules\Platform\Support\StackHealthReport;
 use Modules\SiteBuilder\Entities\WebinoSiteProvision;
 use Modules\SiteBuilder\Support\ProvisionProgress;
 use Throwable;
@@ -314,15 +315,7 @@ class SiteProvisionOrchestrator
         } catch (Throwable $e) {
             report($e);
 
-            return [
-                'project' => null,
-                'containers' => [],
-                'on_webino_sites' => ['backend' => false, 'frontend' => false],
-                'caddy_to_backend' => false,
-                'frontend_to_backend' => false,
-                'db_auth_ok' => false,
-                'log' => $e->getMessage(),
-            ];
+            return StackHealthReport::notRun($e->getMessage());
         }
     }
 
