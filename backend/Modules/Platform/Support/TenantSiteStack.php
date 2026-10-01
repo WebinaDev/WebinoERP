@@ -32,6 +32,26 @@ final class TenantSiteStack
         return self::projectName($slug).'-frontend';
     }
 
+    /**
+     * URLs to probe from inside the tenant frontend container.
+     *
+     * The unique service hostname resolves on both the private net and
+     * webino_sites (the same name Caddy uses). "backend" is only an alias on
+     * the private net and can resolve to the ERP backend on webino_sites, so
+     * it is a fallback. The app itself still uses INTERNAL_API_URL=http://backend:8080.
+     *
+     * @return list<string>
+     */
+    public static function frontendBackendProbeUrls(string $slug): array
+    {
+        $service = self::backendService($slug);
+
+        return array_values(array_unique([
+            'http://'.$service.':8080/api/v1/health/metrics',
+            'http://backend:8080/api/v1/health/metrics',
+        ]));
+    }
+
     /** Normalize product channel to a docker image tag suffix. */
     public static function imageTag(string $channel = 'latest'): string
     {
@@ -58,6 +78,8 @@ final class TenantSiteStack
 # Service names are unique (not "backend"/"frontend") so they do not steal
 # Docker DNS from ERP Caddy on webino_sites. Internal aliases keep
 # INTERNAL_API_URL=http://backend:8080 working on the private net.
+# The short alias "backend" is only on that private net. On webino_sites the
+# name "backend" belongs to ERP, so health probes must use {$backendSvc}.
 services:
   db:
     image: postgres:15-alpine
