@@ -16,8 +16,10 @@ import {
   ImageIcon,
   KeyRound,
   Layers,
+  LayoutTemplate,
   Loader2,
   LogIn,
+  Palette,
   PackagePlus,
   Power,
   PowerOff,
@@ -197,6 +199,27 @@ export function SiteControlPanelPage({ id }: { id: string }) {
     return () => clearInterval(timer);
   }, [data?.update?.status, load]);
 
+  async function openCustomerSurface(next: string, busyKey: string) {
+    const domainName = data?.provision.domain;
+    if (!domainName) return;
+    setBusy(busyKey);
+    setError(null);
+    const loginFallback = `https://${domainName}/login?next=${encodeURIComponent(next)}`;
+    try {
+      const result = await fetchProvisionPanelLogin(provisionId, next);
+      const url = typeof result?.url === 'string' && result.url ? result.url : loginFallback;
+      if (result?.fallback && result.message) {
+        setError(result.message);
+      }
+      window.open(url, '_blank', 'noopener,noreferrer');
+    } catch (e) {
+      window.open(loginFallback, '_blank', 'noopener,noreferrer');
+      setError(getAxiosMessage(e) || t('saveError'));
+    } finally {
+      setBusy(null);
+    }
+  }
+
   async function run(key: string, fn: () => Promise<unknown>) {
     setBusy(key);
     setError(null);
@@ -319,29 +342,8 @@ export function SiteControlPanelPage({ id }: { id: string }) {
                 size="sm"
                 className="gap-1.5"
                 disabled={busy !== null}
-                onClick={() => {
-                  void (async () => {
-                    setBusy('panel-login');
-                    setError(null);
-                    try {
-                      const result = await fetchProvisionPanelLogin(provisionId);
-                      const url =
-                        typeof result?.url === 'string' && result.url
-                          ? result.url
-                          : `https://${data.provision.domain}/login`;
-                      window.open(url, '_blank', 'noopener,noreferrer');
-                    } catch (e) {
-                      window.open(
-                        `https://${data.provision.domain}/login`,
-                        '_blank',
-                        'noopener,noreferrer',
-                      );
-                      setError(getAxiosMessage(e) || t('saveError'));
-                    } finally {
-                      setBusy(null);
-                    }
-                  })();
-                }}
+                data-testid="control-open-dashboard"
+                onClick={() => void openCustomerSurface('/dashboard', 'panel-login')}
               >
                 {busy === 'panel-login' ? (
                   <Loader2 className="size-3.5 animate-spin" />
@@ -349,6 +351,38 @@ export function SiteControlPanelPage({ id }: { id: string }) {
                   <LogIn className="size-3.5" />
                 )}
                 {t('controlOpenAdmin')}
+              </Button>
+              <Button
+                type="button"
+                size="sm"
+                variant="outline"
+                className="gap-1.5"
+                disabled={busy !== null}
+                data-testid="control-open-builder"
+                onClick={() => void openCustomerSurface('/dashboard/builder', 'panel-builder')}
+              >
+                {busy === 'panel-builder' ? (
+                  <Loader2 className="size-3.5 animate-spin" />
+                ) : (
+                  <LayoutTemplate className="size-3.5" />
+                )}
+                {t('controlOpenBuilder')}
+              </Button>
+              <Button
+                type="button"
+                size="sm"
+                variant="outline"
+                className="gap-1.5"
+                disabled={busy !== null}
+                data-testid="control-open-theme-builder"
+                onClick={() => void openCustomerSurface('/dashboard/theme-builder', 'panel-theme')}
+              >
+                {busy === 'panel-theme' ? (
+                  <Loader2 className="size-3.5 animate-spin" />
+                ) : (
+                  <Palette className="size-3.5" />
+                )}
+                {t('controlOpenThemeBuilder')}
               </Button>
             </>
           ) : null}

@@ -2,6 +2,7 @@
 
 namespace Modules\SiteBuilder\Http\Controllers;
 
+use App\Models\User;
 use Illuminate\Contracts\Encryption\DecryptException;
 use Illuminate\Database\QueryException;
 use Illuminate\Http\JsonResponse;
@@ -17,10 +18,13 @@ use Modules\Platform\Support\StackHealthReport;
 use Modules\SiteBuilder\Entities\WebinoSiteProvision;
 use Modules\SiteBuilder\Jobs\ProvisionWebinoSiteJob;
 use Modules\SiteBuilder\Jobs\UpdateWebinoSiteJob;
+use Modules\SiteBuilder\Exceptions\SiteImpersonationException;
 use Modules\SiteBuilder\Services\LicenseProvisionerService;
 use Modules\SiteBuilder\Services\ModuleInstallOrchestrator;
+use Modules\SiteBuilder\Services\SiteImpersonationService;
 use Modules\SiteBuilder\Services\SiteProvisionAuditLogger;
 use Modules\SiteBuilder\Services\SiteProvisionOrchestrator;
+use Modules\SiteBuilder\Support\ImpersonationNextPath;
 use Modules\SiteBuilder\Support\LaunchSchema;
 use Modules\SiteBuilder\Support\ProvisionProgress;
 use Throwable;
@@ -812,7 +816,7 @@ class SiteProvisionController extends Controller
         }
     }
 
-    public function panelLogin(WebinoSiteProvision $siteProvision, SiteProvisionOrchestrator $orchestrator): JsonResponse
+    public function panelLogin(Request $request, WebinoSiteProvision $siteProvision, SiteImpersonationService $impersonation): JsonResponse
     {
         if (! $this->isControlEditable($siteProvision)) {
             return response()->json([
@@ -820,37 +824,38 @@ class SiteProvisionController extends Controller
             ], 422);
         }
 
+        $data = $request->validate([
+            'next' => ['nullable', 'string', 'max:200'],
+        ]);
+        $next = ImpersonationNextPath::normalize($data['next'] ?? null);
+
         $domain = is_string($siteProvision->domain) ? trim($siteProvision->domain) : '';
         $fallbackLogin = $domain !== ''
-            ? 'https://'.preg_replace('#^https?://#i', '', $domain).'/login'
+            ? 'https://'.preg_replace('#^https?://#i', '', $domain).'/login?next='.rawurlencode($next)
             : null;
 
+        $staff = $request->user();
+        if (! $staff instanceof User) {
+            return response()->json(['message' => 'دسترسی کافی ندارید.'], 401);
+        }
+
         try {
-            $result = $orchestrator->callTenantApi($siteProvision, 'provision/panel-login', []);
-            $payload = is_array($result['data'] ?? null) ? $result['data'] : $result;
-            $url = $payload['login_url'] ?? $payload['one_shot_url'] ?? null;
-            if (! is_string($url) || $url === '') {
-                throw new \RuntimeException('Tenant did not return a panel login URL.');
+            $result = $impersonation->enter($staff, $siteProvision, $next, $request->ip());
+
+            return response()->json(['data' => $result]);
+        } catch (SiteImpersonationException $e) {
+            if ($e->status === 403 || ! $fallbackLogin) {
+                return response()->json(['message' => $e->getMessage()], $e->status);
             }
 
             return response()->json([
                 'data' => [
-                    'url' => $url,
-                    'expires_in' => $payload['expires_in'] ?? 300,
+                    'url' => $fallbackLogin,
+                    'fallback' => true,
+                    'expires_in' => 0,
+                    'message' => $e->getMessage() ?: 'ورود یک‌بارمصرف در دسترس نبود.',
                 ],
             ]);
-        } catch (Throwable $e) {
-            if ($fallbackLogin) {
-                return response()->json([
-                    'data' => [
-                        'url' => $fallbackLogin,
-                        'fallback' => true,
-                        'message' => $e->getMessage() ?: 'ورود یک‌بارمصرف در دسترس نبود.',
-                    ],
-                ]);
-            }
-
-            return response()->json(['message' => $e->getMessage() ?: 'ساخت لینک ورود پنل ناموفق بود.'], 422);
         }
     }
 
