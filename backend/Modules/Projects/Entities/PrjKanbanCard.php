@@ -17,6 +17,7 @@ class PrjKanbanCard extends Model
         'sort_order',
         'cardable_type',
         'cardable_id',
+        'swimlane_key',
     ];
 
     public function column(): BelongsTo

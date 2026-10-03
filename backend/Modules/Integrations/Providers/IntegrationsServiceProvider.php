@@ -12,6 +12,7 @@ use Modules\Integrations\Services\Bale\BaleSettingsStore;
 use Modules\Integrations\Services\Bale\WoobaleSettingsStore;
 use Modules\Integrations\Services\BaleBusinessService;
 use Modules\Integrations\Services\BaleWebhookHandler;
+use Modules\Integrations\Console\SyncCalendarsCommand;
 use Modules\Integrations\Services\ModirPayamakEdgeClient;
 use Modules\Integrations\Services\ModirPayamakManager;
 
@@ -32,6 +33,10 @@ class IntegrationsServiceProvider extends ServiceProvider
 
     public function boot(): void
     {
+        if ($this->app->runningInConsole()) {
+            $this->commands([SyncCalendarsCommand::class]);
+        }
+
         $this->loadMigrationsFrom(module_path($this->moduleName, 'Database/Migrations'));
 
         // Seed default packages only when DB is reachable (skip during composer install/package:discover)

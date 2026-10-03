@@ -5,8 +5,10 @@ namespace Modules\Crm\Providers;
 use Illuminate\Support\Facades\Route;
 use Illuminate\Support\ServiceProvider;
 use Modules\Crm\Console\RecomputeLeadScoresCommand;
+use Modules\Crm\Console\DispatchContentRemindersCommand;
 use Modules\Crm\Http\Controllers\ConsultationIngestController;
 use Modules\Crm\Http\Controllers\ElementorLeadController;
+use Modules\Crm\Http\Controllers\PublicLeadFormController;
 
 class CrmServiceProvider extends ServiceProvider
 {
@@ -15,7 +17,10 @@ class CrmServiceProvider extends ServiceProvider
     public function boot(): void
     {
         if ($this->app->runningInConsole()) {
-            $this->commands([RecomputeLeadScoresCommand::class]);
+            $this->commands([
+                RecomputeLeadScoresCommand::class,
+                DispatchContentRemindersCommand::class,
+            ]);
         }
 
         $this->loadMigrationsFrom(module_path($this->moduleName, 'Database/Migrations'));
@@ -24,6 +29,8 @@ class CrmServiceProvider extends ServiceProvider
             ->middleware(['api', 'throttle:60,1'])
             ->group(function () {
                 Route::post('/leads/elementor', [ElementorLeadController::class, 'store']);
+                Route::post('/public/forms/{slug}', [PublicLeadFormController::class, 'store'])
+                    ->where('slug', '[a-z0-9\-]+');
             });
 
         Route::prefix('api/webinocrm/v1')

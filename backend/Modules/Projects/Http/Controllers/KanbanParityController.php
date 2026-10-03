@@ -125,6 +125,7 @@ class KanbanParityController extends Controller
             'color' => $c->color,
             'sort_order' => $c->sort_order,
             'wip_limit' => $c->wip_limit,
+            'card_count' => $c->cards->count(),
         ]);
         $cards = $board->columns->flatMap(fn (PrjKanbanColumn $c) => $c->cards->map(fn (PrjKanbanCard $card) => [
             'id' => $card->id,
@@ -132,6 +133,7 @@ class KanbanParityController extends Controller
             'title' => $card->title,
             'body' => $card->body,
             'sort_order' => $card->sort_order,
+            'swimlane_key' => $card->swimlane_key,
             'cardable_type' => $card->cardable_type,
             'cardable_id' => $card->cardable_id,
         ]));
@@ -139,6 +141,7 @@ class KanbanParityController extends Controller
         return [
             'mode' => 'generic',
             'board_id' => $board->id,
+            'swimlane_field' => $board->meta['swimlane_field'] ?? 'none',
             'columns' => $columns,
             'cards' => $cards->values(),
         ];
@@ -159,8 +162,17 @@ class KanbanParityController extends Controller
                 'sort_order' => 'nullable|integer|min:0',
             ]);
             if (isset($data['column_id'])) {
-                PrjKanbanColumn::query()->where('board_id', $board->id)->whereKey($data['column_id'])->firstOrFail();
-                $card->column_id = (int) $data['column_id'];
+                $column = PrjKanbanColumn::query()->where('board_id', $board->id)->whereKey($data['column_id'])->firstOrFail();
+                if ((int) $card->column_id !== (int) $column->id) {
+                    $blocked = $this->wipResponse($column, (int) $card->id);
+                    if ($blocked) {
+                        return $blocked;
+                    }
+                }
+                $card->column_id = (int) $column->id;
+            }
+            if ($request->exists('swimlane_key')) {
+                $card->swimlane_key = $request->input('swimlane_key');
             }
             if (array_key_exists('title', $data)) {
                 $card->title = $data['title'];
@@ -200,7 +212,11 @@ class KanbanParityController extends Controller
                 'sort_order' => 'nullable|integer|min:0',
                 'link_task_id' => 'nullable|exists:prj_tasks,id',
             ]);
-            PrjKanbanColumn::query()->where('board_id', $board->id)->whereKey($data['column_id'])->firstOrFail();
+            $column = PrjKanbanColumn::query()->where('board_id', $board->id)->whereKey($data['column_id'])->firstOrFail();
+            $blocked = $this->wipResponse($column);
+            if ($blocked) {
+                return $blocked;
+            }
             $max = (int) PrjKanbanCard::query()->where('column_id', $data['column_id'])->max('sort_order');
             $card = PrjKanbanCard::query()->create([
                 'column_id' => $data['column_id'],
@@ -209,6 +225,7 @@ class KanbanParityController extends Controller
                 'sort_order' => $data['sort_order'] ?? $max + 1,
                 'cardable_type' => isset($data['link_task_id']) ? ProjectTask::class : null,
                 'cardable_id' => $data['link_task_id'] ?? null,
+                'swimlane_key' => $request->input('swimlane_key'),
             ]);
 
             return response()->json(['data' => ['id' => $card->id, 'card' => $card]], 201);
@@ -325,5 +342,24 @@ class KanbanParityController extends Controller
         WorkflowStatus::query()->whereKey($id)->delete();
 
         return response()->json([], 204);
+    }
+
+    private function wipResponse(PrjKanbanColumn $column, ?int $ignoreCardId = null): ?JsonResponse
+    {
+        if ($column->wip_limit === null) {
+            return null;
+        }
+        $count = PrjKanbanCard::query()
+            ->where('column_id', $column->id)
+            ->when($ignoreCardId, fn ($q) => $q->where('id', '!=', $ignoreCardId))
+            ->count();
+        if ($count >= (int) $column->wip_limit) {
+            return response()->json([
+                'message' => 'wip_limit_exceeded',
+                'errors' => ['wip_limit' => ['This column is at its WIP limit.']],
+            ], 422);
+        }
+
+        return null;
     }
 }

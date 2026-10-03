@@ -35,6 +35,17 @@ class ApiResponseFormatter
             return $next($request);
         }
 
+        foreach ([
+            'api/v1/core/scim',
+            'api/v1/integrations/calendars/webhook',
+            'api/v1/integrations/bridges/webhook',
+            'api/v1/core/sso/saml',
+        ] as $prefix) {
+            if (str_starts_with($request->path(), $prefix)) {
+                return $next($request);
+            }
+        }
+
         $response = $next($request);
 
         if ($response->isEmpty() || $response->getStatusCode() === 204) {

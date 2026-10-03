@@ -27,6 +27,7 @@ use Modules\Core\Http\Controllers\SessionController;
 use Modules\Core\Http\Controllers\SystemConfigController;
 use Modules\Core\Http\Controllers\SystemLogController;
 use Modules\Core\Http\Controllers\TwoFactorController;
+use Modules\Core\Http\Controllers\StudioController;
 use Modules\Core\Http\Controllers\VisitorStatsController;
 
 /*
@@ -182,5 +183,28 @@ Route::middleware(['auth:sanctum', 'module.permission:core'])->group(function ()
     Route::post('/maintenance/cache/clear', [MaintenanceParityController::class, 'cacheClear']);
     Route::get('/maintenance/cache/stats', [MaintenanceParityController::class, 'cacheStats']);
     Route::get('/logs/system', [SystemLogController::class, 'index']);
+
+    Route::get('/workflows', [StudioController::class, 'workflows']);
+    Route::post('/workflows', [StudioController::class, 'storeWorkflow']);
+    Route::post('/workflows/{id}/run', [StudioController::class, 'runWorkflow'])->whereNumber('id');
+    Route::get('/bi-reports', [StudioController::class, 'reports']);
+    Route::post('/bi-reports', [StudioController::class, 'storeReport']);
+    Route::get('/bi-reports/{id}/run', [StudioController::class, 'runReport'])->whereNumber('id');
+    Route::get('/bi-reports/{id}/export.csv', [StudioController::class, 'exportReport'])->whereNumber('id');
+    Route::get('/flags', [StudioController::class, 'flags']);
+    Route::post('/flags', [StudioController::class, 'storeFlag']);
+    Route::get('/flags/evaluate', [StudioController::class, 'evaluate']);
+    Route::get('/sso', [StudioController::class, 'ssoIndex']);
+    Route::post('/sso', [StudioController::class, 'storeSso']);
+    Route::get('/sso/oidc/{id}/redirect', [StudioController::class, 'oidcRedirect'])->whereNumber('id');
+    Route::post('/sso/scim-tokens', [StudioController::class, 'issueScim']);
 });
+
+Route::get('/sso/oidc/callback', [StudioController::class, 'oidcCallback']);
+Route::get('/sso/saml/{id}/metadata', [StudioController::class, 'samlMetadata'])->whereNumber('id');
+Route::post('/sso/saml/{id}/acs', [StudioController::class, 'samlAcs'])->whereNumber('id');
+Route::get('/scim/v2/Users', [StudioController::class, 'scimUsers']);
+Route::post('/scim/v2/Users', [StudioController::class, 'scimCreate']);
+Route::patch('/scim/v2/Users/{id}', [StudioController::class, 'scimPatch'])->whereNumber('id');
+Route::delete('/scim/v2/Users/{id}', [StudioController::class, 'scimDelete'])->whereNumber('id');
 

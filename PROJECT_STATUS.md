@@ -618,3 +618,17 @@ cd docs-site && npm run build && npm run build -- --locale fa
 ```
 
 **Rule:** Do not mark ✅ without citing the actual component file and API controller. EntityCrudPage alone is always 🟡 FE.
+
+---
+
+## Expansion slice (2026-10-03)
+
+| Area | API | UI | Tests |
+| --- | --- | --- | --- |
+| Calendars, chat bridges, mailbox, SMS policy, notification feed | `Modules/Integrations/Http/Controllers/LiveConnectController.php` | `frontend/src/features/expansion/ConnectPage.tsx` plus header bell | `tests/Feature/ExpansionApiTest.php` |
+| Companies, FX, CPQ, public forms, e-sign, e-invoice, content calendars, CRM AI | `Modules/Crm/Http/Controllers/CrmExpansionController.php` | `CompaniesPage`, `PriceBookPage`, `LeadFormsPage`, `EsignPage`, `ContentCalendarPage` | same feature test |
+| Critical path, baseline, capacity, leave, offline ops, Kanban WIP and swimlanes | `PmPlanningController`, `KanbanParityController` | `PlanningPage`, WIP/swimlane on `TasksKanbanPage` | unit `CriticalPathServiceTest` plus feature test |
+| Workflows, BI export, flags, OIDC, SAML ACS, SCIM | `Modules/Core/Http/Controllers/StudioController.php` | `StudioPage` | feature test |
+| PWA shell | existing manifest route plus `frontend/public/sw.js` and `offline.html` | `PwaRegistrar` | manual shell only |
+
+Narrative: [docs/EXPANSION.md](docs/EXPANSION.md).
