@@ -233,7 +233,7 @@ export function FilesPage() {
                       )}
                     </TableCell>
                     <TableCell>{isFolder(r) ? t('folder') : String(r.mime_type ?? '')}</TableCell>
-                    <TableCell dir="ltr">{isFolder(r) ? '—' : String(r.size ?? '')}</TableCell>
+                    <TableCell dir="ltr">{isFolder(r) ? tNav('common.none') : String(r.size ?? '')}</TableCell>
                     <TableCell dir="ltr">{String(r.version ?? 1)}</TableCell>
                     <TableCell className="text-end">
                       <div className="flex flex-wrap justify-end gap-1">

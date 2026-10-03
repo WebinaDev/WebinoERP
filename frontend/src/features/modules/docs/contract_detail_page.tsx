@@ -93,11 +93,11 @@ export function ContractDetailPage({ id }: Props) {
       {...layoutProps}
     >
       <Card>
-        <CardHeader><CardTitle className="text-lg">{String(data?.title ?? '—')}</CardTitle></CardHeader>
+        <CardHeader><CardTitle className="text-lg">{String(data?.title ?? tNav('common.none'))}</CardTitle></CardHeader>
         <CardContent className="space-y-2 text-sm">
           <p>
-            {t('amount')}: <strong>{String(data?.amount ?? '—')}</strong> — {t('status')}:{' '}
-            <Badge variant="secondary">{String(data?.status ?? '—')}</Badge>
+            {t('amount')}: <strong>{String(data?.amount ?? tNav('common.none'))}</strong> — {t('status')}:{' '}
+            <Badge variant="secondary">{String(data?.status ?? tNav('common.none'))}</Badge>
           </p>
           {data?.description ? <p>{String(data.description)}</p> : null}
         </CardContent>
@@ -117,9 +117,9 @@ export function ContractDetailPage({ id }: Props) {
               <tbody>
                 {installments.map((row) => (
                   <tr key={String(row.id ?? Math.random())} className="border-b border-border/60">
-                    <td className="py-2">{String(row.amount ?? '—')}</td>
-                    <td className="py-2">{String(row.due_date ?? '—')}</td>
-                    <td className="py-2">{row.paid_at ? String(row.paid_at) : '—'}</td>
+                    <td className="py-2">{String(row.amount ?? tNav('common.none'))}</td>
+                    <td className="py-2">{String(row.due_date ?? tNav('common.none'))}</td>
+                    <td className="py-2">{row.paid_at ? String(row.paid_at) : tNav('common.none')}</td>
                   </tr>
                 ))}
               </tbody>
@@ -131,9 +131,9 @@ export function ContractDetailPage({ id }: Props) {
         <Card className="mt-4">
           <CardHeader><CardTitle className="text-base">{t('leadInfo')}</CardTitle></CardHeader>
           <CardContent className="space-y-2 text-sm">
-            <p><span className="text-muted-foreground">{t('topic')}: </span>{String(lead.topic ?? '—')}</p>
-            <p><span className="text-muted-foreground">{t('email')}: </span>{String(lead.email ?? '—')}</p>
-            <p><span className="text-muted-foreground">{t('mobile')}: </span>{String(lead.mobile ?? '—')}</p>
+            <p><span className="text-muted-foreground">{t('topic')}: </span>{String(lead.topic ?? tNav('common.none'))}</p>
+            <p><span className="text-muted-foreground">{t('email')}: </span>{String(lead.email ?? tNav('common.none'))}</p>
+            <p><span className="text-muted-foreground">{t('mobile')}: </span>{String(lead.mobile ?? tNav('common.none'))}</p>
           </CardContent>
         </Card>
       ) : null}

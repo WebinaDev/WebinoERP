@@ -2,6 +2,7 @@
 
 use Illuminate\Support\Facades\Route;
 use Modules\Projects\Http\Controllers\AppointmentController;
+use Modules\Projects\Http\Controllers\EpicController;
 use Modules\Projects\Http\Controllers\ContractController;
 use Modules\Projects\Http\Controllers\CustomerPortalController;
 use Modules\Projects\Http\Controllers\MilestoneController;
@@ -47,6 +48,12 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('/projects/{id}/milestones', [MilestoneController::class, 'index'])->whereNumber('id');
     Route::post('/projects/{id}/milestones', [MilestoneController::class, 'store'])->whereNumber('id');
     Route::patch('/milestones/{id}', [MilestoneController::class, 'update'])->whereNumber('id');
+    Route::delete('/milestones/{id}', [MilestoneController::class, 'destroy'])->whereNumber('id');
+
+    Route::get('/epics', [EpicController::class, 'index']);
+    Route::post('/epics', [EpicController::class, 'store']);
+    Route::patch('/epics/{id}', [EpicController::class, 'update'])->whereNumber('id');
+    Route::delete('/epics/{id}', [EpicController::class, 'destroy'])->whereNumber('id');
 
     Route::get('/portal/summary', [CustomerPortalController::class, 'summary']);
     Route::post('/portal/tickets', [CustomerPortalController::class, 'storeTicket']);

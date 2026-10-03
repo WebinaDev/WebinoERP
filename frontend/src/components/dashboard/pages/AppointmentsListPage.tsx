@@ -1,6 +1,7 @@
 'use client';
 
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
+import { useSearchParams } from 'next/navigation';
 import { useTranslations } from 'next-intl';
 import apiClient from '@/lib/api-client';
 import { getAxiosMessage, unwrapData } from '@/lib/api-helpers';
@@ -59,12 +60,12 @@ function parseIsoTimePart(iso: string): string {
   return t || '09:00';
 }
 
-function toCalendarEvent(r: Row): CalendarAppointment | null {
+function toCalendarEvent(r: Row, emptyTitle: string): CalendarAppointment | null {
   const id = Number(r.id);
   if (!Number.isFinite(id)) return null;
   return {
     id,
-    title: String(r.title ?? '—'),
+    title: String(r.title ?? emptyTitle),
     starts_at: String(r.starts_at ?? ''),
     ends_at: r.ends_at != null ? String(r.ends_at) : null,
     status: r.status != null ? String(r.status) : undefined,
@@ -72,6 +73,8 @@ function toCalendarEvent(r: Row): CalendarAppointment | null {
 }
 
 export function AppointmentsListPage() {
+  const searchParams = useSearchParams();
+  const openedFromQuery = useRef(false);
   const t = useTranslations('pm.appointments');
   const tNav = useTranslations();
   const tCommon = useTranslations('common');
@@ -124,12 +127,14 @@ export function AppointmentsListPage() {
       const res = await apiClient.get('/v1/projects/appointments/calendar');
       const list = normalizeListPayload(unwrapData(res));
       setCalendarEvents(
-        list.map(toCalendarEvent).filter((x): x is CalendarAppointment => x !== null),
+        list
+          .map((row) => toCalendarEvent(row, tCommon('none')))
+          .filter((x): x is CalendarAppointment => x !== null),
       );
     } catch {
       setCalendarEvents([]);
     }
-  }, []);
+  }, [tCommon]);
 
   useEffect(() => {
     void loadList();
@@ -194,6 +199,15 @@ export function AppointmentsListPage() {
     }
   }
 
+  useEffect(() => {
+    const requested = searchParams.get('appointment_id');
+    if (!requested || openedFromQuery.current) return;
+    const match = rows.find((row) => String(row.id) === requested);
+    if (!match) return;
+    openedFromQuery.current = true;
+    openEdit(match);
+  }, [rows, searchParams]);
+
   function combineDateTime(day: string | null, time: string): string | null {
     if (!day || !time) return null;
     return `${day} ${time}:00`;
@@ -253,7 +267,7 @@ export function AppointmentsListPage() {
       calendarEvents.find((e) => e.id === appointmentId) ??
       (() => {
         const r = rows.find((x) => Number(x.id) === appointmentId);
-        return r ? toCalendarEvent(r) : null;
+        return r ? toCalendarEvent(r, tCommon('none')) : null;
       })();
     if (!source) return;
 
@@ -362,10 +376,10 @@ export function AppointmentsListPage() {
                   <tr key={String(r.id)} className="border-b">
                     <td className="px-2 py-2">{String(r.title ?? '')}</td>
                     <td className="px-2 py-2">
-                      {r.starts_at ? formatDateTime(String(r.starts_at)) : '—'}
+                      {r.starts_at ? formatDateTime(String(r.starts_at)) : tCommon('none')}
                     </td>
                     <td className="px-2 py-2">
-                      <Badge variant="outline">{String(r.status ?? '—')}</Badge>
+                      <Badge variant="outline">{String(r.status ?? tCommon('none'))}</Badge>
                     </td>
                     <td className="px-2 py-2">
                       {canManage ? (

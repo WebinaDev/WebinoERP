@@ -19,23 +19,111 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { LocaleDatePicker } from '@/components/ui/locale-date-picker';
 import { cn } from '@/lib/utils';
 import apiClient from '@/lib/api-client';
 import { normalizeListPayload } from '@/lib/list-utils';
 import { getPipelineKanban, listPipelines, moveDeal, saveDeal } from '@/lib/api/crm-deals';
 
 type Stage = { id: number; name: string; color?: string | null; is_closed?: boolean; is_won?: boolean };
-type Deal = { id: number; name: string; title?: string; stage_id?: number; amount?: number | string };
+type Deal = {
+  id: number;
+  name: string;
+  title?: string;
+  stage_id?: number;
+  amount?: number | string | null;
+  probability?: number | string | null;
+  close_date?: string | null;
+};
 type AccountOpt = { id: number; name?: string; company_name?: string };
 
-function DealCard({ deal, amountLabel }: { deal: Deal; amountLabel?: string }) {
+function isoDay(value: unknown): string {
+  const match = /^(\d{4}-\d{2}-\d{2})/.exec(String(value ?? ''));
+  return match ? match[1] : '';
+}
+
+function DealCard({
+  deal,
+  amountLabel,
+  onSave,
+}: {
+  deal: Deal;
+  amountLabel?: string;
+  onSave: (payload: { amount: number | null; probability: number | null; close_date: string | null }) => Promise<void>;
+}) {
+  const t = useTranslations('crm.deals');
+  const tCommon = useTranslations('common');
   const { attributes, listeners, setNodeRef, transform, isDragging } = useDraggable({ id: `deal-${deal.id}` });
   const style = transform ? { transform: `translate3d(${transform.x}px, ${transform.y}px, 0)` } : undefined;
   const label = deal.name ?? deal.title ?? `#${deal.id}`;
+  const [open, setOpen] = useState(false);
+  const [amount, setAmount] = useState(deal.amount != null && deal.amount !== '' ? String(deal.amount) : '');
+  const [probability, setProbability] = useState(deal.probability != null && deal.probability !== '' ? String(deal.probability) : '');
+  const [closeDate, setCloseDate] = useState(isoDay(deal.close_date));
+  const [saving, setSaving] = useState(false);
+
+  useEffect(() => {
+    setAmount(deal.amount != null && deal.amount !== '' ? String(deal.amount) : '');
+    setProbability(deal.probability != null && deal.probability !== '' ? String(deal.probability) : '');
+    setCloseDate(isoDay(deal.close_date));
+  }, [deal.amount, deal.probability, deal.close_date]);
+
   return (
-    <div ref={setNodeRef} style={style} className={cn('rounded-md border bg-background p-2 text-start text-sm shadow-sm', isDragging && 'opacity-60')} {...listeners} {...attributes}>
-      <p className="font-medium">{label}</p>
-      {amountLabel ? <p className="text-xs tabular-nums text-muted-foreground">{amountLabel}</p> : null}
+    <div ref={setNodeRef} style={style} className={cn('rounded-md border bg-background p-2 text-start text-sm shadow-sm', isDragging && 'opacity-60')}>
+      <div {...listeners} {...attributes} className="cursor-grab">
+        <p className="font-medium">{label}</p>
+        {amountLabel ? <p className="text-xs tabular-nums text-muted-foreground">{amountLabel}</p> : null}
+        {deal.probability != null && deal.probability !== '' ? (
+          <p className="text-xs text-muted-foreground">{t('probability')}: {deal.probability}</p>
+        ) : null}
+      </div>
+      <div className="mt-2" onPointerDown={(event) => event.stopPropagation()}>
+        <Button type="button" variant="ghost" size="sm" className="h-7 px-2" onClick={() => setOpen((value) => !value)}>
+          {t('quickEdit')}
+        </Button>
+        {open ? (
+          <div className="mt-2 space-y-2">
+            <Input
+              type="number"
+              min={0}
+              value={amount}
+              onChange={(e) => setAmount(e.target.value)}
+              placeholder={t('amount')}
+            />
+            <Input
+              type="number"
+              min={0}
+              max={100}
+              value={probability}
+              onChange={(e) => setProbability(e.target.value)}
+              placeholder={t('probability')}
+            />
+            <LocaleDatePicker value={closeDate} onChange={setCloseDate} placeholder={t('closeDate')} />
+            <div className="flex gap-2">
+              <Button
+                type="button"
+                size="sm"
+                disabled={saving}
+                onClick={() => {
+                  setSaving(true);
+                  void onSave({
+                    amount: amount.trim() === '' ? null : Number(amount),
+                    probability: probability.trim() === '' ? null : Number(probability),
+                    close_date: closeDate || null,
+                  }).finally(() => setSaving(false));
+                }}
+              >
+                {tCommon('save')}
+              </Button>
+              {closeDate ? (
+                <Button type="button" size="sm" variant="ghost" onClick={() => setCloseDate('')}>
+                  {tCommon('none')}
+                </Button>
+              ) : null}
+            </div>
+          </div>
+        ) : null}
+      </div>
     </div>
   );
 }
@@ -201,6 +289,15 @@ export function DealsKanbanPage() {
                     key={deal.id}
                     deal={{ ...deal, name: deal.name ?? deal.title ?? `#${formatDigits(deal.id)}` }}
                     amountLabel={deal.amount != null && deal.amount !== '' ? formatNumber(Number(deal.amount)) : undefined}
+                    onSave={async (payload) => {
+                      try {
+                        await saveDeal(payload, deal.id);
+                        setSuccess(t('updated'));
+                        void loadKanban();
+                      } catch (err) {
+                        applyAxiosError(err);
+                      }
+                    }}
                   />
                 ))}
               </StageColumn>

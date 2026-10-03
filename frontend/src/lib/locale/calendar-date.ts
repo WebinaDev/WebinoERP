@@ -141,10 +141,10 @@ export function displayDateKey(iso: string, locale: AppDateLocale = 'fa'): strin
 }
 
 export function formatCalendarDate(iso: string, locale: AppDateLocale = 'fa', includeTime = false): string {
-  if (!iso) return '—';
+  if (!iso) return '';
   const dateOnly = /^\d{4}-\d{2}-\d{2}$/.test(iso.trim());
   const parts = gregorianParts(iso, locale === 'fa' ? TEHRAN : 'UTC');
-  if (!parts) return '—';
+  if (!parts) return '';
   if (locale === 'fa') {
     const j = toJalali(parts.y, parts.m, parts.d);
     let text = `${j.jy}/${pad(j.jm)}/${pad(j.jd)}`;

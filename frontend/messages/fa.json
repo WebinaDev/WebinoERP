@@ -750,7 +750,7 @@
     "view": "مشاهده",
     "prevPage": "صفحهٔ قبل",
     "nextPage": "صفحهٔ بعد",
-    "emptyValue": "—",
+    "emptyValue": "ندارد",
     "none": "ندارد",
     "cancel": "انصراف",
     "confirm": "تأیید",
@@ -2644,7 +2644,11 @@
       "emptyColumn": "معامله‌ای در این مرحله نیست",
       "lossReason": "دلیل باخت",
       "lossReasonRequired": "برای مرحله باخت، دلیل را بنویسید",
-      "created": "معامله ایجاد شد"
+      "created": "معامله ایجاد شد",
+      "probability": "احتمال",
+      "closeDate": "تاریخ بسته شدن مورد انتظار",
+      "quickEdit": "ویرایش سریع",
+      "updated": "معامله به‌روز شد"
     },
     "pipelines": {
       "title": "قیف‌های فروش",
@@ -2654,7 +2658,11 @@
       "colName": "نام",
       "colStages": "مراحل",
       "empty": "قیف فروشی ثبت نشده",
-      "stagesHint": "نام مرحله را بنویسید و اضافه کنید"
+      "stagesHint": "نام مرحله را بنویسید و اضافه کنید",
+      "color": "رنگ",
+      "moveUp": "بالا",
+      "moveDown": "پایین",
+      "confirmDeleteStage": "این مرحله حذف شود؟"
     },
     "consultations": {
       "title": "مشاوره‌ها",
@@ -2678,7 +2686,8 @@
       "statusPending": "در انتظار",
       "statusDone": "انجام‌شده",
       "statusConverted": "تبدیل‌شده",
-      "statusCancelled": "لغوشده"
+      "statusCancelled": "لغوشده",
+      "allStatuses": "همه وضعیت‌ها"
     },
     "leads": {
       "title": "سرنخ‌ها",
@@ -3676,7 +3685,7 @@
     "licenseCreatedHint": "این دامنه لایسنس شد. داشبورد/ERP فقط با دامنه + محصول وضعیت را چک می‌کنند."
   },
   "modirpayamak": {
-    "notConfigured": "مدیرپیامک پیکربندی نشده است",
+    "notConfigured": "پیامک پیکربندی نشده است",
     "sendSimple": "ارسال ساده",
     "sendPattern": "ارسال پترن",
     "recipients": "گیرندگان",
@@ -3717,13 +3726,13 @@
     "simpleSend": "ارسال ساده",
     "useTariffForAmount": "محاسبه مبلغ از تعرفه",
     "configureCta": "رفتن به تنظیمات",
-    "settingsEnabled": "فعال‌سازی مدیرپیامک",
+    "settingsEnabled": "فعال‌سازی پیامک",
     "settingsApiKey": "کلید API",
     "settingsApiKeyKeep": "برای حفظ کلید فعلی خالی بگذارید",
-    "settingsApiKeyHint": "کلید API پنل IPPanel / مدیرپیامک را وارد کنید.",
+    "settingsApiKeyHint": "کلید API پنل IPPanel را وارد کنید.",
     "settingsApiKeyStored": "کلید ذخیره‌شده: {mask}",
     "settingsDefaultFrom": "خط پیش‌فرض (فرستنده)",
-    "dashboardTitle": "پنل مدیرپیامک",
+    "dashboardTitle": "پنل پیامک",
     "dashboardDesc": "داشبورد پیامک ریسلر (IPPanel Edge).",
     "customers": "حساب‌های مشتری",
     "customersEmpty": "هنوز حساب مشتری پیامک ثبت نشده است.",
@@ -4131,6 +4140,26 @@
       "openContract": "قرارداد",
       "openBuilder": "سازنده سایت",
       "openSite": "مشاهده سایت",
+      "openInvoice": "فاکتور",
+      "openTicket": "تیکت",
+      "openAppointment": "قرار",
+      "milestones": "نقاط عطف",
+      "sprints": "اسپرینت‌ها",
+      "epics": "اپیک‌ها",
+      "noMilestones": "نقطه عطفی ثبت نشده",
+      "noSprints": "اسپرینتی ثبت نشده",
+      "noEpics": "اپی ثبت نشده",
+      "noInvoices": "فاکتوری ثبت نشده",
+      "noAppointments": "قراری ثبت نشده",
+      "invoices": "فاکتورها",
+      "appointments": "قرارها",
+      "dueDate": "سررسید",
+      "startDate": "تاریخ شروع",
+      "endDate": "تاریخ پایان",
+      "statusDone": "انجام‌شده",
+      "sprintPlanned": "برنامه‌ریزی‌شده",
+      "sprintStart": "شروع",
+      "sprintFinish": "پایان اسپرینت",
       "deleteTitle": "حذف پروژه",
       "wizard": {
         "title": "ایجاد پروژه",
@@ -4257,6 +4286,14 @@
       "timeNote": "یادداشت زمان",
       "loadError": "بارگذاری وظیفه ناموفق بود",
       "description": "توضیحات",
+      "recurrence": "تکرار",
+      "recurrenceNone": "بدون تکرار",
+      "recurrenceDaily": "روزانه",
+      "recurrenceWeekly": "هفتگی",
+      "recurrenceMonthly": "ماهانه",
+      "dependencies": "وابستگی‌ها",
+      "dependsOn": "وابسته به",
+      "noDependencies": "وابستگی ندارد",
       "columnCount": "{name}: {count}"
     },
     "timeTracking": {

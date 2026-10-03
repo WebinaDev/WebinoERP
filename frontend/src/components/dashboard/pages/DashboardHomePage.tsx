@@ -292,9 +292,9 @@ export function DashboardHomePage() {
 
       {role === 'finance_manager' && financeSummary ? (
         <div className="grid gap-4 sm:grid-cols-3">
-          <Card><CardHeader className="pb-2"><CardDescription>{t('finance.summary')}</CardDescription><CardTitle className="text-2xl">{String(financeSummary.total_invoices ?? '—')}</CardTitle></CardHeader></Card>
-          <Card><CardHeader className="pb-2"><CardDescription>{t('finance.invoices')}</CardDescription><CardTitle className="text-2xl">{String(financeSummary.invoices_count ?? '—')}</CardTitle></CardHeader></Card>
-          <Card><CardHeader className="pb-2"><CardDescription>{t('finance.receipts')}</CardDescription><CardTitle className="text-2xl">{String(financeSummary.receipts_count ?? '—')}</CardTitle></CardHeader></Card>
+          <Card><CardHeader className="pb-2"><CardDescription>{t('finance.summary')}</CardDescription><CardTitle className="text-2xl">{String(financeSummary.total_invoices ?? tCommon('emptyValue'))}</CardTitle></CardHeader></Card>
+          <Card><CardHeader className="pb-2"><CardDescription>{t('finance.invoices')}</CardDescription><CardTitle className="text-2xl">{String(financeSummary.invoices_count ?? tCommon('emptyValue'))}</CardTitle></CardHeader></Card>
+          <Card><CardHeader className="pb-2"><CardDescription>{t('finance.receipts')}</CardDescription><CardTitle className="text-2xl">{String(financeSummary.receipts_count ?? tCommon('emptyValue'))}</CardTitle></CardHeader></Card>
         </div>
       ) : null}
 
@@ -331,7 +331,7 @@ export function DashboardHomePage() {
                 <CardHeader className="pb-2">
                   <CardDescription>{card.label}</CardDescription>
                   <CardTitle className="text-3xl font-bold tabular-nums">
-                    {loading ? '…' : error ? '—' : formatNumber(card.value)}
+                    {loading ? '…' : error ? tCommon('emptyValue') : formatNumber(card.value)}
                   </CardTitle>
                 </CardHeader>
                 <CardContent>

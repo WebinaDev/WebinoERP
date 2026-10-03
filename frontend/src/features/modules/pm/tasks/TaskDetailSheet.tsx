@@ -5,7 +5,7 @@ import { useTranslations } from 'next-intl';
 import { Paperclip, Trash2, X } from 'lucide-react';
 import apiClient from '@/lib/api-client';
 import { getAxiosMessage } from '@/lib/api-helpers';
-import { readEntity } from '@/lib/list-utils';
+import { normalizeListPayload, readEntity } from '@/lib/list-utils';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
@@ -13,6 +13,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Separator } from '@/components/ui/separator';
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sheet';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
 import type {
   TaskAttachmentRow,
@@ -71,6 +72,10 @@ export function TaskDetailSheet({ taskId, open, onOpenChange, onUpdated }: Props
   const [newComment, setNewComment] = useState('');
   const [minutes, setMinutes] = useState('');
   const [timeNote, setTimeNote] = useState('');
+  const [repeat, setRepeat] = useState('none');
+  const [dependencies, setDependencies] = useState<{ id: number; title?: string | null }[]>([]);
+  const [taskOptions, setTaskOptions] = useState<{ id: number; title: string }[]>([]);
+  const [dependOn, setDependOn] = useState('');
   const fileRef = useRef<HTMLInputElement>(null);
 
   const load = useCallback(async () => {
@@ -83,6 +88,7 @@ export function TaskDetailSheet({ taskId, open, onOpenChange, onUpdated }: Props
         task?: TaskRow;
         comments?: TaskCommentRow[];
         attachments?: TaskAttachmentRow[];
+        dependencies?: { id: number; title?: string | null }[];
       }>(res.data);
       if (payload?.task) {
         setTask({
@@ -90,8 +96,22 @@ export function TaskDetailSheet({ taskId, open, onOpenChange, onUpdated }: Props
           checklist: normalizeChecklist(payload.task.checklist),
           time_logs: normalizeTimeLogs(payload.task.time_logs),
         });
+        setRepeat(payload.task.recurrence?.repeat || 'none');
+        setDependencies(Array.isArray(payload.dependencies) ? payload.dependencies : []);
         setComments(Array.isArray(payload.comments) ? payload.comments : []);
         setAttachments(Array.isArray(payload.attachments) ? payload.attachments : []);
+        if (payload.task.project_id) {
+          const related = await apiClient.get('/v1/projects/tasks', {
+            params: { project_id: payload.task.project_id, per_page: 100 },
+          });
+          setTaskOptions(
+            normalizeListPayload(related.data)
+              .map((row) => ({ id: Number(row.id), title: String(row.title ?? row.id) }))
+              .filter((row) => Number.isFinite(row.id) && row.id !== payload.task?.id),
+          );
+        } else {
+          setTaskOptions([]);
+        }
       } else {
         setError(t('loadError'));
       }
@@ -203,6 +223,23 @@ export function TaskDetailSheet({ taskId, open, onOpenChange, onUpdated }: Props
     }
   };
 
+  const savePlanning = async (nextDependencies = dependencies, nextRepeat = repeat) => {
+    if (!taskId) return;
+    setBusy(true);
+    setError(null);
+    try {
+      await apiClient.patch(`/v1/projects/tasks/${taskId}`, {
+        recurrence: nextRepeat === 'none' ? null : { repeat: nextRepeat },
+        dependencies: nextDependencies.map((item) => item.id),
+      });
+      await refresh();
+    } catch (e) {
+      setError(getAxiosMessage(e));
+    } finally {
+      setBusy(false);
+    }
+  };
+
   const handleLogTime = async () => {
     if (!taskId) return;
     const m = parseInt(minutes, 10);
@@ -289,6 +326,92 @@ export function TaskDetailSheet({ taskId, open, onOpenChange, onUpdated }: Props
                 </div>
               </div>
             ) : null}
+
+            <Separator />
+
+            <div className="space-y-3">
+              <div>
+                <Label>{t('recurrence')}</Label>
+                <Select
+                  value={repeat}
+                  onValueChange={(value) => {
+                    setRepeat(value);
+                    void savePlanning(dependencies, value);
+                  }}
+                >
+                  <SelectTrigger className="mt-1">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="none">{t('recurrenceNone')}</SelectItem>
+                    <SelectItem value="daily">{t('recurrenceDaily')}</SelectItem>
+                    <SelectItem value="weekly">{t('recurrenceWeekly')}</SelectItem>
+                    <SelectItem value="monthly">{t('recurrenceMonthly')}</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div>
+                <Label className="mb-2 block">{t('dependencies')}</Label>
+                {dependencies.length === 0 ? (
+                  <p className="text-sm text-muted-foreground">{t('noDependencies')}</p>
+                ) : (
+                  <ul className="space-y-1">
+                    {dependencies.map((item) => (
+                      <li key={item.id} className="flex items-center justify-between gap-2 text-sm">
+                        <span>{item.title || `#${formatDigits(item.id)}`}</span>
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="icon"
+                          className="h-8 w-8"
+                          disabled={busy}
+                          onClick={() => {
+                            const next = dependencies.filter((row) => row.id !== item.id);
+                            setDependencies(next);
+                            void savePlanning(next, repeat);
+                          }}
+                        >
+                          <X className="h-4 w-4" />
+                        </Button>
+                      </li>
+                    ))}
+                  </ul>
+                )}
+                <div className="mt-2 flex gap-2">
+                  <Select value={dependOn || '__none'} onValueChange={(value) => setDependOn(value === '__none' ? '' : value)}>
+                    <SelectTrigger>
+                      <SelectValue placeholder={t('dependsOn')} />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="__none">{tc('none')}</SelectItem>
+                      {taskOptions
+                        .filter((option) => !dependencies.some((item) => item.id === option.id))
+                        .map((option) => (
+                          <SelectItem key={option.id} value={String(option.id)}>
+                            {option.title}
+                          </SelectItem>
+                        ))}
+                    </SelectContent>
+                  </Select>
+                  <Button
+                    type="button"
+                    size="sm"
+                    disabled={busy || !dependOn}
+                    onClick={() => {
+                      const id = Number(dependOn);
+                      const option = taskOptions.find((row) => row.id === id);
+                      if (!option) return;
+                      const next = [...dependencies, option];
+                      setDependOn('');
+                      setDependencies(next);
+                      void savePlanning(next, repeat);
+                    }}
+                  >
+                    {tc('add')}
+                  </Button>
+                </div>
+              </div>
+            </div>
 
             <Separator />
 

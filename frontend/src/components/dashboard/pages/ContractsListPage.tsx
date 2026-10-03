@@ -191,9 +191,9 @@ export function ContractsListPage() {
                   rows.map((r) => (
                     <tr key={String(r.id)} className="border-b border-border/60">
                       <td className="px-3 py-2">{String(r.id)}</td>
-                      <td className="px-3 py-2">{String(r.title ?? '—')}</td>
-                      <td className="px-3 py-2">{String(r.amount ?? '—')}</td>
-                      <td className="px-3 py-2">{String(r.status ?? '—')}</td>
+                      <td className="px-3 py-2">{String(r.title ?? t('common.none'))}</td>
+                      <td className="px-3 py-2">{String(r.amount ?? t('common.none'))}</td>
+                      <td className="px-3 py-2">{String(r.status ?? t('common.none'))}</td>
                       <td className="px-3 py-2">
                         <div className="flex flex-wrap gap-1">
                           <Button type="button" variant="outline" size="sm" onClick={() => void openDetail(r)}>
@@ -322,13 +322,13 @@ export function ContractsListPage() {
                 <strong>{t('auto.ContractsListPage.s_659bbbd1')}</strong> {String(detail.title)}
               </p>
               <p>
-                <strong>{t('auto.ContractsListPage.s_752c66d7')}</strong> {String(detail.amount ?? '—')}
+                <strong>{t('auto.ContractsListPage.s_752c66d7')}</strong> {String(detail.amount ?? t('common.none'))}
               </p>
               <p>
-                <strong>{t('auto.ContractsListPage.s_372c3f95')}</strong> {String(detail.status ?? '—')}
+                <strong>{t('auto.ContractsListPage.s_372c3f95')}</strong> {String(detail.status ?? t('common.none'))}
               </p>
               <p>
-                <strong>{t('auto.ContractsListPage.s_3f3bb2b4')}</strong> {String(detail.notes ?? '—')}
+                <strong>{t('auto.ContractsListPage.s_3f3bb2b4')}</strong> {String(detail.notes ?? t('common.none'))}
               </p>
               <p>
                 <strong>{t('auto.ContractsListPage.s_1cf3b496')}</strong>{' '}
@@ -339,15 +339,15 @@ export function ContractsListPage() {
                   >
                     {t('common.projectHash', { id: String((detailFull ?? detail)?.project_id) })}
                   </a>
-                ) : '—'}
+                ) : t('common.none')}
               </p>
 
               {detailFull?.lead && typeof detailFull.lead === 'object' ? (
                 <div className="rounded-md border p-3 space-y-1">
                   <p className="font-semibold text-xs text-muted-foreground">{t('auto.ContractsListPage.s_ad8f339e')}</p>
-                  <p><strong>{t('auto.ContractsListPage.s_20974cc2')}</strong> {String((detailFull.lead as Record<string, unknown>).topic ?? '—')}</p>
-                  <p><strong>{t('auto.ContractsListPage.s_8b5dcef4')}</strong> {String((detailFull.lead as Record<string, unknown>).email ?? '—')}</p>
-                  <p><strong>{t('auto.ContractsListPage.s_c583452b')}</strong> {String((detailFull.lead as Record<string, unknown>).mobile ?? '—')}</p>
+                  <p><strong>{t('auto.ContractsListPage.s_20974cc2')}</strong> {String((detailFull.lead as Record<string, unknown>).topic ?? t('common.none'))}</p>
+                  <p><strong>{t('auto.ContractsListPage.s_8b5dcef4')}</strong> {String((detailFull.lead as Record<string, unknown>).email ?? t('common.none'))}</p>
+                  <p><strong>{t('auto.ContractsListPage.s_c583452b')}</strong> {String((detailFull.lead as Record<string, unknown>).mobile ?? t('common.none'))}</p>
                 </div>
               ) : null}
 
@@ -366,9 +366,9 @@ export function ContractsListPage() {
                       <tbody>
                         {(detailFull.installments as Record<string, unknown>[]).map((inst, idx) => (
                           <tr key={idx} className="border-b border-border/60">
-                            <td className="px-2 py-1">{String(inst.amount ?? '—')}</td>
-                            <td className="px-2 py-1">{inst.due_date ? formatDate(String(inst.due_date)) || '—' : '—'}</td>
-                            <td className="px-2 py-1">{inst.paid_at ? formatDate(String(inst.paid_at)) || '—' : '—'}</td>
+                            <td className="px-2 py-1">{String(inst.amount ?? t('common.none'))}</td>
+                            <td className="px-2 py-1">{inst.due_date ? formatDate(String(inst.due_date)) || t('common.none') : t('common.none')}</td>
+                            <td className="px-2 py-1">{inst.paid_at ? formatDate(String(inst.paid_at)) || t('common.none') : t('common.none')}</td>
                           </tr>
                         ))}
                       </tbody>

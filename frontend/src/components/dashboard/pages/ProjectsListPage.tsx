@@ -300,6 +300,9 @@ export function ProjectsListPage() {
           {rows.map((p) => {
             const contracts = relatedRows(p.contracts);
             const sites = relatedRows(p.sites);
+            const invoices = relatedRows(p.invoices);
+            const tickets = relatedRows(p.tickets);
+            const appointments = relatedRows(p.appointments);
             const progress = Number(p.progress_percent ?? 0);
             return (
             <Card key={String(p.id)} className="flex flex-col">
@@ -338,6 +341,27 @@ export function ProjectsListPage() {
                   <Button key={`site-${String(site.id)}`} variant="outline" size="sm" asChild>
                     <Link href={dashboardHref(locale, String(site.builder_path ?? `admin/platform/sites/${String(site.id)}`))}>
                       {t('openBuilder')}
+                    </Link>
+                  </Button>
+                ))}
+                {invoices.slice(0, 2).map((invoice) => (
+                  <Button key={`invoice-${String(invoice.path ?? invoice.id)}`} variant="outline" size="sm" asChild>
+                    <Link href={dashboardHref(locale, String(invoice.path ?? `sales/invoices?invoice_id=${String(invoice.id)}`))}>
+                      {t('openInvoice')}
+                    </Link>
+                  </Button>
+                ))}
+                {tickets.slice(0, 2).map((ticket) => (
+                  <Button key={`ticket-${String(ticket.id)}`} variant="outline" size="sm" asChild>
+                    <Link href={dashboardHref(locale, String(ticket.path ?? `crm/tickets?ticket_id=${String(ticket.id)}`))}>
+                      {t('openTicket')}
+                    </Link>
+                  </Button>
+                ))}
+                {appointments.slice(0, 2).map((appointment) => (
+                  <Button key={`appointment-${String(appointment.id)}`} variant="outline" size="sm" asChild>
+                    <Link href={dashboardHref(locale, String(appointment.path ?? `pm/appointments?appointment_id=${String(appointment.id)}`))}>
+                      {t('openAppointment')}
                     </Link>
                   </Button>
                 ))}

@@ -59,6 +59,7 @@ export function AppointmentsCalendarPanel({
   draggingEventId,
 }: Props) {
   const t = useTranslations('pm.appointments');
+  const tCommon = useTranslations('common');
   const { formatDisplayDate, locale } = useLocale();
   const [selectedKey, setSelectedKey] = useState(() => toYmd(new Date()));
 
@@ -231,7 +232,7 @@ export function AppointmentsCalendarPanel({
                     className={cn('ms-2', STATUS_COLORS[ev.status ?? 'scheduled'] ?? 'bg-muted')}
                     variant="secondary"
                   >
-                    {String(ev.starts_at).slice(11, 16) || '—'}
+                    {String(ev.starts_at).slice(11, 16) || tCommon('none')}
                   </Badge>
                 </div>
               ))

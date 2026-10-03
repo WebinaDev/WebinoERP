@@ -71,9 +71,9 @@ export function Customer360Sheet({ accountId, open, onOpenChange }: Props) {
         ) : account ? (
           <div className="mt-4 space-y-4">
             <div>
-              <h3 className="text-lg font-semibold">{String(account.name ?? '—')}</h3>
+              <h3 className="text-lg font-semibold">{String(account.name ?? t('common.none'))}</h3>
               <div className="mt-1 flex flex-wrap gap-2">
-                <Badge variant="secondary">{String(account.type ?? '—')}</Badge>
+                <Badge variant="secondary">{String(account.type ?? t('common.none'))}</Badge>
                 {account.website ? <Badge variant="outline">{String(account.website)}</Badge> : null}
               </div>
               {account.description ? (
@@ -95,7 +95,7 @@ export function Customer360Sheet({ accountId, open, onOpenChange }: Props) {
                   deals.map((d) => (
                     <div key={String(d.id)} className="rounded-md border p-3 text-sm">
                       <p className="font-medium">{String(d.title ?? d.name ?? d.id)}</p>
-                      <p className="text-muted-foreground">{String(d.status ?? '—')}</p>
+                      <p className="text-muted-foreground">{String(d.status ?? t('common.none'))}</p>
                     </div>
                   ))
                 )}
@@ -107,7 +107,7 @@ export function Customer360Sheet({ accountId, open, onOpenChange }: Props) {
                   tickets.map((tk) => (
                     <div key={String(tk.id)} className="rounded-md border p-3 text-sm">
                       <p className="font-medium">{String(tk.subject ?? tk.title ?? tk.id)}</p>
-                      <p className="text-muted-foreground">{String(tk.status ?? '—')}</p>
+                      <p className="text-muted-foreground">{String(tk.status ?? t('common.none'))}</p>
                     </div>
                   ))
                 )}
@@ -119,7 +119,7 @@ export function Customer360Sheet({ accountId, open, onOpenChange }: Props) {
                   contacts.map((c) => (
                     <div key={String(c.id)} className="rounded-md border p-3 text-sm">
                       <p className="font-medium">{[c.first_name, c.last_name].filter(Boolean).join(' ') || String(c.name ?? c.email ?? c.id)}</p>
-                      <p className="text-muted-foreground">{String(c.email ?? c.phone ?? '—')}</p>
+                      <p className="text-muted-foreground">{String(c.email ?? c.phone ?? t('common.none'))}</p>
                     </div>
                   ))
                 )}
@@ -131,7 +131,7 @@ export function Customer360Sheet({ accountId, open, onOpenChange }: Props) {
                   activities.map((a) => (
                     <div key={String(a.id)} className="rounded-md border p-3 text-sm">
                       <p className="font-medium">{String(a.subject ?? a.type ?? a.id)}</p>
-                      <p className="text-muted-foreground">{String(a.description ?? '—')}</p>
+                      <p className="text-muted-foreground">{String(a.description ?? t('common.none'))}</p>
                       {a.created_at ? (
                         <p className="mt-1 text-xs text-muted-foreground">{formatDate(String(a.created_at))}</p>
                       ) : null}

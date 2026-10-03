@@ -750,7 +750,7 @@
     "view": "View",
     "prevPage": "Previous page",
     "nextPage": "Next page",
-    "emptyValue": "—",
+    "emptyValue": "None",
     "none": "None",
     "cancel": "Cancel",
     "confirm": "Confirm",
@@ -2643,7 +2643,11 @@
       "emptyColumn": "No deals in this stage",
       "lossReason": "Loss reason",
       "lossReasonRequired": "A loss reason is required for a lost stage",
-      "created": "Deal created"
+      "created": "Deal created",
+      "probability": "Probability",
+      "closeDate": "Expected close date",
+      "quickEdit": "Quick edit",
+      "updated": "Deal updated"
     },
     "pipelines": {
       "title": "Pipelines",
@@ -2653,7 +2657,11 @@
       "colName": "Name",
       "colStages": "Stages",
       "empty": "No pipelines yet",
-      "stagesHint": "Enter a stage name and add it"
+      "stagesHint": "Enter a stage name and add it",
+      "color": "Color",
+      "moveUp": "Up",
+      "moveDown": "Down",
+      "confirmDeleteStage": "Delete this stage?"
     },
     "consultations": {
       "title": "Consultations",
@@ -2677,7 +2685,8 @@
       "statusPending": "Pending",
       "statusDone": "Done",
       "statusConverted": "Converted",
-      "statusCancelled": "Cancelled"
+      "statusCancelled": "Cancelled",
+      "allStatuses": "All statuses"
     },
     "leads": {
       "title": "Leads",
@@ -4130,6 +4139,26 @@
       "openContract": "Contract",
       "openBuilder": "Site builder",
       "openSite": "Open site",
+      "openInvoice": "Invoice",
+      "openTicket": "Ticket",
+      "openAppointment": "Appointment",
+      "milestones": "Milestones",
+      "sprints": "Sprints",
+      "epics": "Epics",
+      "noMilestones": "No milestones yet",
+      "noSprints": "No sprints yet",
+      "noEpics": "No epics yet",
+      "noInvoices": "No invoices yet",
+      "noAppointments": "No appointments yet",
+      "invoices": "Invoices",
+      "appointments": "Appointments",
+      "dueDate": "Due date",
+      "startDate": "Start date",
+      "endDate": "End date",
+      "statusDone": "Done",
+      "sprintPlanned": "Planned",
+      "sprintStart": "Start",
+      "sprintFinish": "Finish sprint",
       "deleteTitle": "Delete project",
       "wizard": {
         "title": "Create project",
@@ -4256,6 +4285,14 @@
       "timeNote": "Time note",
       "loadError": "Could not load the task",
       "description": "Description",
+      "recurrence": "Recurrence",
+      "recurrenceNone": "Does not repeat",
+      "recurrenceDaily": "Daily",
+      "recurrenceWeekly": "Weekly",
+      "recurrenceMonthly": "Monthly",
+      "dependencies": "Dependencies",
+      "dependsOn": "Depends on",
+      "noDependencies": "No dependencies",
       "columnCount": "{name}: {count}"
     },
     "timeTracking": {

@@ -484,11 +484,11 @@ export function ContractsPage() {
                             </Badge>
                           ) : null}
                         </TableCell>
-                        <TableCell>{String(r.party_name ?? '—')}</TableCell>
+                        <TableCell>{String(r.party_name ?? tNav('common.none'))}</TableCell>
                         <TableCell>
                           <Badge variant="secondary">{String(r.status ?? '')}</Badge>
                         </TableCell>
-                        <TableCell dir="ltr">{String(meta.amount ?? '—')}</TableCell>
+                        <TableCell dir="ltr">{String(meta.amount ?? tNav('common.none'))}</TableCell>
                         <TableCell className="text-end">
                           <div className="flex justify-end gap-2">
                             <Button size="sm" variant="outline" onClick={() => openEdit(r)}>

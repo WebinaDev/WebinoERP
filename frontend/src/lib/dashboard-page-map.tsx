@@ -206,6 +206,7 @@ const EXACT: Record<string, ReactNode> = {
   'pm/tasks': <TasksKanbanPage />,
   tasks: <TasksKanbanPage />,
   'pm/appointments': <AppointmentsListPage />,
+  'pm/invoices': <InvoicesListPage />,
   appointments: <AppointmentsListPage />,
   'pm/chat': <ChatPage />,
   'pm/time-tracking': <TimeTrackingPage />,

@@ -3,6 +3,7 @@
 import { useTranslations } from 'next-intl';
 
 import { useCallback, useEffect, useState } from 'react';
+import { useSearchParams } from 'next/navigation';
 import apiClient from '@/lib/api-client';
 import { getAxiosMessage, unwrapData } from '@/lib/api-helpers';
 import { normalizeListPayload, readPage } from '@/lib/list-utils';
@@ -26,6 +27,7 @@ type IdName = { id: number; name?: string; email?: string };
 
 export function InvoicesListPage() {
   const t = useTranslations();
+  const searchParams = useSearchParams();
 
   const [rows, setRows] = useState<Row[]>([]);
   const [meta, setMeta] = useState<Meta>({});
@@ -35,7 +37,7 @@ export function InvoicesListPage() {
 
   const [filterStatus, setFilterStatus] = useState('');
   const [customerUserId, setCustomerUserId] = useState('');
-  const [projectId, setProjectId] = useState('');
+  const [projectId, setProjectId] = useState(searchParams.get('project_id') ?? '');
 
   const [users, setUsers] = useState<IdName[]>([]);
   const [projects, setProjects] = useState<IdName[]>([]);
@@ -239,11 +241,11 @@ export function InvoicesListPage() {
                 rows.map((r) => (
                   <tr key={String(r.id)} className="border-b">
                     <td className="px-2 py-2">{String(r.id)}</td>
-                    <td className="px-2 py-2">{String(r.number ?? '—')}</td>
+                    <td className="px-2 py-2">{String(r.number ?? t('common.none'))}</td>
                     <td className="px-2 py-2">
-                      <Badge variant="outline">{String(r.status ?? '—')}</Badge>
+                      <Badge variant="outline">{String(r.status ?? t('common.none'))}</Badge>
                     </td>
-                    <td className="px-2 py-2">{String(r.total ?? '—')}</td>
+                    <td className="px-2 py-2">{String(r.total ?? t('common.none'))}</td>
                     <td className="px-2 py-2">
                       <Button type="button" variant="ghost" size="sm" onClick={() => openEdit(r)}>
                         {t('auto.InvoicesListPage.s_ac60ae7a')}
@@ -289,7 +291,7 @@ export function InvoicesListPage() {
                   <SelectValue placeholder={t('auto.InvoicesListPage.s_3fda58af')} />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="__none">—</SelectItem>
+                  <SelectItem value="__none">{t('common.none')}</SelectItem>
                   {users.map((u) => (
                     <SelectItem key={u.id} value={String(u.id)}>
                       {u.name ?? u.email ?? u.id}
@@ -303,7 +305,7 @@ export function InvoicesListPage() {
                 <SelectValue placeholder={t('auto.InvoicesListPage.s_55da48c5')} />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="__none">—</SelectItem>
+                <SelectItem value="__none">{t('common.none')}</SelectItem>
                 {projects.map((p) => (
                   <SelectItem key={p.id} value={String(p.id)}>
                     {String(p.name ?? p.id)}

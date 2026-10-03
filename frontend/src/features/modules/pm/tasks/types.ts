@@ -38,6 +38,7 @@ export type TaskRow = {
   due_at?: string | null;
   created_at?: string | null;
   content?: string | null;
+  recurrence?: { repeat?: string | null; interval?: number | null } | null;
   checklist?: TaskChecklistItem[] | null;
   time_logs?: TaskTimeLog[] | null;
   workflow_status_id?: number | null;

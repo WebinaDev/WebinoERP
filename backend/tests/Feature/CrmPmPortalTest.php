@@ -10,10 +10,14 @@ use Modules\Crm\Entities\CrmAccount;
 use Modules\Crm\Entities\CrmDeal;
 use Modules\Crm\Entities\CrmPipeline;
 use Modules\Crm\Entities\CrmStage;
+use Modules\Crm\Entities\ConsultationStatus;
 use Modules\Projects\Entities\Contract;
+use Modules\Projects\Entities\PrjAppointment;
 use Modules\Projects\Entities\PrjTicket;
+use Modules\Projects\Entities\ProInvoice;
 use Modules\Projects\Entities\Project;
 use Modules\Projects\Entities\ProjectTask;
+use Modules\Sales\Entities\SalesInvoice;
 use Modules\SiteBuilder\Entities\WebinoSiteProvision;
 use Tests\Concerns\SeedsRbac;
 use Tests\TestCase;
@@ -262,6 +266,105 @@ class CrmPmPortalTest extends TestCase
             ->assertJsonPath('data.todos.counts.today', 1)
             ->assertJsonPath('data.todos.counts.mine', 2)
             ->assertJsonPath('data.pm.open_tasks', 2);
+    }
+
+    public function test_project_plan_deal_fields_and_consultation_statuses(): void
+    {
+        $user = $this->actingAsRole(RolesAndPermissionsSeeder::ROLE_SYSTEM_MANAGER);
+        Sanctum::actingAs($user);
+        $account = CrmAccount::query()->create(['name' => 'Plan Co', 'type' => 'customer']);
+        $project = Project::query()->create([
+            'name' => 'Planned',
+            'status' => 'active',
+            'customer_account_id' => $account->id,
+            'created_by' => $user->id,
+        ]);
+
+        $milestone = $this->postJson('/api/v1/projects/projects/'.$project->id.'/milestones', [
+            'title' => 'Launch',
+            'due_date' => '2026-04-01',
+        ]);
+        $milestone->assertCreated()->assertJsonPath('data.title', 'Launch');
+        $this->patchJson('/api/v1/projects/milestones/'.$milestone->json('data.id'), [
+            'status' => 'done',
+        ])->assertOk()->assertJsonPath('data.status', 'done');
+
+        $sprint = $this->postJson('/api/v1/projects/sprints', [
+            'project_id' => $project->id,
+            'name' => 'Sprint 1',
+            'starts_at' => '2026-04-01',
+            'ends_at' => '2026-04-14',
+        ]);
+        $sprint->assertCreated();
+
+        $epic = $this->postJson('/api/v1/projects/epics', [
+            'project_id' => $project->id,
+            'title' => 'Billing',
+        ]);
+        $epic->assertCreated()->assertJsonPath('data.title', 'Billing');
+        $this->getJson('/api/v1/projects/epics?project_id='.$project->id)
+            ->assertOk()
+            ->assertJsonPath('data.0.title', 'Billing');
+
+        $first = ProjectTask::query()->create([
+            'project_id' => $project->id,
+            'title' => 'Design',
+            'status' => 'open',
+            'created_by' => $user->id,
+        ]);
+        $second = ProjectTask::query()->create([
+            'project_id' => $project->id,
+            'title' => 'Build',
+            'status' => 'open',
+            'created_by' => $user->id,
+        ]);
+        $this->patchJson('/api/v1/projects/tasks/'.$second->id, [
+            'recurrence' => ['repeat' => 'daily'],
+            'dependencies' => [$first->id],
+        ])->assertOk()->assertJsonPath('data.recurrence.repeat', 'daily');
+        $this->getJson('/api/v1/projects/tasks/'.$second->id)
+            ->assertOk()
+            ->assertJsonPath('data.dependencies.0.id', $first->id);
+
+        $ticket = PrjTicket::query()->create([
+            'subject' => 'Need logo',
+            'status' => 'open',
+            'project_id' => $project->id,
+        ]);
+        ProInvoice::query()->create([
+            'number' => 'PRJ-1',
+            'status' => 'draft',
+            'total' => 250,
+            'project_id' => $project->id,
+            'created_by' => $user->id,
+        ]);
+        SalesInvoice::query()->create([
+            'number' => 'SAL-1',
+            'customer_name' => 'Plan Co',
+            'total' => 400,
+            'status' => 'draft',
+            'project_id' => $project->id,
+            'created_by' => $user->id,
+        ]);
+        $appointment = PrjAppointment::query()->create([
+            'title' => 'Kickoff',
+            'starts_at' => '2026-04-02 10:00:00',
+            'status' => 'scheduled',
+            'customer_account_id' => $account->id,
+            'created_by' => $user->id,
+        ]);
+
+        $list = $this->getJson('/api/v1/projects/projects');
+        $list->assertOk()
+            ->assertJsonPath('data.0.tickets.0.path', 'crm/tickets?ticket_id='.$ticket->id)
+            ->assertJsonPath('data.0.appointments.0.path', 'pm/appointments?appointment_id='.$appointment->id);
+        $paths = collect($list->json('data.0.invoices'))->pluck('path')->all();
+        $this->assertTrue(collect($paths)->contains(fn ($path) => str_contains((string) $path, 'invoice_id=')));
+
+        $this->assertTrue(ConsultationStatus::query()->where('name', 'new')->exists());
+        $this->getJson('/api/v1/crm/consultation-statuses')
+            ->assertOk()
+            ->assertJsonPath('data.0.name', 'new');
     }
 
     public function test_client_cannot_create_project(): void

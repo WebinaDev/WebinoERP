@@ -137,11 +137,11 @@ export function CustomerDetailPage({ id }: Props) {
             <CardHeader><CardTitle className="text-lg">{t('title')}</CardTitle></CardHeader>
             <CardContent className="space-y-2 text-sm">
               <div className="flex flex-wrap gap-2">
-                <Badge variant="secondary">{String(account.type ?? account.status ?? '—')}</Badge>
+                <Badge variant="secondary">{String(account.type ?? account.status ?? tNav('common.none'))}</Badge>
                 {account.website ? <Badge variant="outline">{String(account.website)}</Badge> : null}
               </div>
-              <p><span className="text-muted-foreground">{tC('email')}: </span>{String(account.email ?? '—')}</p>
-              <p><span className="text-muted-foreground">{tC('phone')}: </span>{String(account.phone ?? account.mobile ?? '—')}</p>
+              <p><span className="text-muted-foreground">{tC('email')}: </span>{String(account.email ?? tNav('common.none'))}</p>
+              <p><span className="text-muted-foreground">{tC('phone')}: </span>{String(account.phone ?? account.mobile ?? tNav('common.none'))}</p>
               {account.description ? <p className="text-muted-foreground">{String(account.description)}</p> : null}
             </CardContent>
           </Card>
@@ -184,7 +184,7 @@ export function CustomerDetailPage({ id }: Props) {
                 deals.map((d) => (
                   <div key={String(d.id)} className="rounded-md border p-3 text-sm">
                     <p className="font-medium">{String(d.title ?? d.name ?? d.id)}</p>
-                    <p className="text-muted-foreground">{String(d.status ?? '—')}</p>
+                    <p className="text-muted-foreground">{String(d.status ?? tNav('common.none'))}</p>
                   </div>
                 ))
               )}
@@ -196,7 +196,7 @@ export function CustomerDetailPage({ id }: Props) {
                 tickets.map((tk) => (
                   <div key={String(tk.id)} className="rounded-md border p-3 text-sm">
                     <p className="font-medium">{String(tk.subject ?? tk.title ?? tk.id)}</p>
-                    <p className="text-muted-foreground">{String(tk.status ?? '—')}</p>
+                    <p className="text-muted-foreground">{String(tk.status ?? tNav('common.none'))}</p>
                   </div>
                 ))
               )}
@@ -208,7 +208,7 @@ export function CustomerDetailPage({ id }: Props) {
                 contacts.map((c) => (
                   <div key={String(c.id)} className="rounded-md border p-3 text-sm">
                     <p className="font-medium">{contactLabel(c)}</p>
-                    <p className="text-muted-foreground">{String(c.email ?? c.phone ?? '—')}</p>
+                    <p className="text-muted-foreground">{String(c.email ?? c.phone ?? tNav('common.none'))}</p>
                   </div>
                 ))
               )}
@@ -221,7 +221,7 @@ export function CustomerDetailPage({ id }: Props) {
                   <div key={String(p.id)} className="rounded-md border p-3 text-sm">
                     <p className="font-medium">{String(p.name ?? p.id)}</p>
                     <p className="text-muted-foreground">
-                      {String(p.status ?? '—')} · {Number(p.progress_percent ?? 0)}%
+                      {String(p.status ?? tNav('common.none'))} · {Number(p.progress_percent ?? 0)}%
                     </p>
                   </div>
                 ))
@@ -236,9 +236,9 @@ export function CustomerDetailPage({ id }: Props) {
                   <div className="flex flex-wrap items-center justify-between gap-2">
                     <div>
                       <p className="font-medium">{site.name}</p>
-                      <p className="font-mono text-xs text-muted-foreground">{site.fqdn ?? site.domains?.[0]?.domain ?? '—'}</p>
+                      <p className="font-mono text-xs text-muted-foreground">{site.fqdn ?? site.domains?.[0]?.domain ?? tNav('common.none')}</p>
                     </div>
-                    <Badge variant="secondary">{site.status ?? '—'}</Badge>
+                    <Badge variant="secondary">{site.status ?? tNav('common.none')}</Badge>
                   </div>
                   <div className="flex flex-wrap gap-2">
                     <Button size="sm" variant="outline" asChild>
@@ -253,7 +253,7 @@ export function CustomerDetailPage({ id }: Props) {
               {platformProvisions.map((p) => (
                 <div key={String(p.id)} className="rounded-md border p-3 text-sm">
                   <p className="font-medium">{String(p.domain ?? p.slug ?? p.id)}</p>
-                  <p className="text-muted-foreground">{String(p.status ?? '—')}</p>
+                  <p className="text-muted-foreground">{String(p.status ?? tNav('common.none'))}</p>
                 </div>
               ))}
             </TabsContent>

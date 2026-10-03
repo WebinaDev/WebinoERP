@@ -20,7 +20,7 @@ export function formatDisplayDate(
   locale: Locale = 'fa'
 ): string {
   if (iso) return formatDate(iso, { locale });
-  return '—';
+  return '';
 }
 
 export function getCalendarConfig(locale: Locale) {

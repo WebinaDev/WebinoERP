@@ -59,6 +59,16 @@ class MilestoneController extends Controller
         return response()->json(['data' => $milestone->fresh()]);
     }
 
+    public function destroy(Request $request, int $id, CustomerAccess $access): JsonResponse
+    {
+        abort_if($access->isPortalCustomer($request->user()), 403);
+        $milestone = PrjMilestone::query()->findOrFail($id);
+        $this->project($request, (int) $milestone->project_id, $access);
+        $milestone->delete();
+
+        return response()->json([], 204);
+    }
+
     private function project(Request $request, int $id, CustomerAccess $access): Project
     {
         $query = Project::query()->whereKey($id);

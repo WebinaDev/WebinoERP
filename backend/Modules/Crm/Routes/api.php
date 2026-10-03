@@ -4,6 +4,7 @@ use Illuminate\Support\Facades\Route;
 use Modules\Crm\Http\Controllers\AccountController;
 use Modules\Crm\Http\Controllers\ActivityController;
 use Modules\Crm\Http\Controllers\ConsultationController;
+use Modules\Crm\Http\Controllers\ConsultationStatusController;
 use Modules\Crm\Http\Controllers\ContactController;
 use Modules\Crm\Http\Controllers\CrmParityController;
 use Modules\Crm\Http\Controllers\DealController;
@@ -58,6 +59,7 @@ Route::get('/accounts/{id}/notes', [CrmParityController::class, 'accountNotes'])
 Route::post('/accounts/{id}/notes', [CrmParityController::class, 'storeAccountNote'])->middleware('fieldsec:account')->whereNumber('id');
 Route::delete('/accounts/{id}/notes/{noteId}', [CrmParityController::class, 'destroyAccountNote'])->middleware('fieldsec:account')->whereNumber('id')->whereNumber('noteId');
 
+Route::get('/consultation-statuses', [ConsultationStatusController::class, 'index']);
 Route::get('/consultations', [ConsultationController::class, 'index']);
 Route::post('/consultations', [ConsultationController::class, 'store']);
 Route::patch('/consultations/{id}', [ConsultationController::class, 'update'])->whereNumber('id');

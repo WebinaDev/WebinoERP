@@ -50,7 +50,7 @@ function ProjectDetailView({ data }: { data: Record<string, unknown> }) {
         <CardContent className="space-y-2 text-sm">
           <p>
             <span className="text-muted-foreground">{t('auto.EntityDetailPage.s_372c3f95')} </span>
-            <Badge variant="secondary">{String(data.status ?? '—')}</Badge>
+            <Badge variant="secondary">{String(data.status ?? t('common.none'))}</Badge>
           </p>
           {data.description ? (
             <p>
@@ -74,11 +74,11 @@ function ProjectDetailView({ data }: { data: Record<string, unknown> }) {
               </tr>
             </thead>
             <tbody>
-              {tasks.map((t) => (
-                <tr key={String(t.id)} className="border-b border-border/60">
-                  <td className="py-2">{String(t.title ?? '—')}</td>
-                  <td className="py-2">{String(t.status ?? '—')}</td>
-                  <td className="py-2">{String(t.priority ?? '—')}</td>
+              {tasks.map((row) => (
+                <tr key={String(row.id)} className="border-b border-border/60">
+                  <td className="py-2">{String(row.title ?? t('common.none'))}</td>
+                  <td className="py-2">{String(row.status ?? t('common.none'))}</td>
+                  <td className="py-2">{String(row.priority ?? t('common.none'))}</td>
                 </tr>
               ))}
               {!tasks.length ? (
@@ -108,9 +108,9 @@ function ProjectDetailView({ data }: { data: Record<string, unknown> }) {
             <tbody>
               {((Array.isArray(data.contracts) ? data.contracts : []) as Record<string, unknown>[]).map((c) => (
                 <tr key={String(c.id)} className="border-b border-border/60">
-                  <td className="py-2">{String(c.title ?? '—')}</td>
-                  <td className="py-2">{String(c.amount ?? '—')}</td>
-                  <td className="py-2">{String(c.status ?? '—')}</td>
+                  <td className="py-2">{String(c.title ?? t('common.none'))}</td>
+                  <td className="py-2">{String(c.amount ?? t('common.none'))}</td>
+                  <td className="py-2">{String(c.status ?? t('common.none'))}</td>
                 </tr>
               ))}
               {!((Array.isArray(data.contracts) ? data.contracts : []) as Record<string, unknown>[]).length ? (
@@ -138,12 +138,12 @@ function ProjectDetailView({ data }: { data: Record<string, unknown> }) {
               </tr>
             </thead>
             <tbody>
-              {((Array.isArray(data.tickets) ? data.tickets : []) as Record<string, unknown>[]).map((t) => (
-                <tr key={String(t.id)} className="border-b border-border/60">
-                  <td className="py-2">{String(t.subject ?? '—')}</td>
-                  <td className="py-2">{String(t.status ?? '—')}</td>
+              {((Array.isArray(data.tickets) ? data.tickets : []) as Record<string, unknown>[]).map((row) => (
+                <tr key={String(row.id)} className="border-b border-border/60">
+                  <td className="py-2">{String(row.subject ?? t('common.none'))}</td>
+                  <td className="py-2">{String(row.status ?? t('common.none'))}</td>
                   <td className="py-2">
-                    {t.created_at ? formatDateTime(String(t.created_at)) || String(t.created_at) : '—'}
+                    {row.created_at ? formatDateTime(String(row.created_at)) || String(row.created_at) : t('common.none')}
                   </td>
                 </tr>
               ))}
@@ -175,8 +175,8 @@ function ContractDetailView({ data }: { data: Record<string, unknown> }) {
         </CardHeader>
         <CardContent className="space-y-2 text-sm">
           <p>
-            {t('auto.EntityDetailPage.s_752c66d7')} <strong>{String(data.amount ?? '—')}</strong> — {t('common.statusColon')}{' '}
-            <Badge variant="secondary">{String(data.status ?? '—')}</Badge>
+            {t('auto.EntityDetailPage.s_752c66d7')} <strong>{String(data.amount ?? t('common.none'))}</strong> — {t('common.statusColon')}{' '}
+            <Badge variant="secondary">{String(data.status ?? t('common.none'))}</Badge>
           </p>
         </CardContent>
       </Card>
@@ -197,9 +197,9 @@ function ContractDetailView({ data }: { data: Record<string, unknown> }) {
               <tbody>
                 {installments.map((row) => (
                   <tr key={String(row.id ?? Math.random())} className="border-b border-border/60">
-                    <td className="py-2">{String(row.amount ?? '—')}</td>
-                    <td className="py-2">{String(row.due_date ?? '—')}</td>
-                    <td className="py-2">{row.paid_at ? String(row.paid_at) : '—'}</td>
+                    <td className="py-2">{String(row.amount ?? t('common.none'))}</td>
+                    <td className="py-2">{String(row.due_date ?? t('common.none'))}</td>
+                    <td className="py-2">{row.paid_at ? String(row.paid_at) : t('common.none')}</td>
                   </tr>
                 ))}
               </tbody>
@@ -218,15 +218,15 @@ function ContractDetailView({ data }: { data: Record<string, unknown> }) {
             <CardContent className="space-y-2 text-sm">
               <p>
                 <span className="text-muted-foreground">{t('auto.EntityDetailPage.s_20974cc2')} </span>
-                {String(lead.topic ?? '—')}
+                {String(lead.topic ?? t('common.none'))}
               </p>
               <p>
                 <span className="text-muted-foreground">{t('auto.EntityDetailPage.s_8b5dcef4')} </span>
-                {String(lead.email ?? '—')}
+                {String(lead.email ?? t('common.none'))}
               </p>
               <p>
                 <span className="text-muted-foreground">{t('auto.EntityDetailPage.s_c583452b')} </span>
-                {String(lead.mobile ?? '—')}
+                {String(lead.mobile ?? t('common.none'))}
               </p>
             </CardContent>
           </Card>

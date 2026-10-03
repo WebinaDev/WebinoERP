@@ -106,11 +106,26 @@ class TaskController extends Controller
             'created_at' => $row->created_at,
         ]);
 
+        $links = TaskLink::query()
+            ->where('source_task_id', $id)
+            ->with('targetTask:id,title')
+            ->orderBy('id')
+            ->get();
+
         return response()->json([
             'data' => [
                 'task' => $task,
                 'comments' => $comments,
                 'attachments' => $attachments,
+                'links' => $links,
+                'dependencies' => $links
+                    ->where('link_type', 'depends')
+                    ->map(fn (TaskLink $link) => [
+                        'link_id' => $link->id,
+                        'id' => $link->target_task_id,
+                        'title' => $link->targetTask?->title,
+                    ])
+                    ->values(),
             ],
         ]);
     }
@@ -188,11 +203,36 @@ class TaskController extends Controller
             'assignee_id' => 'nullable|exists:users,id',
             'due_at' => 'nullable|date',
             'workflow_status_id' => 'nullable|exists:prj_workflow_statuses,id',
+            'epic_id' => 'nullable|exists:prj_epics,id',
+            'sprint_id' => 'nullable|exists:prj_sprints,id',
+            'recurrence' => 'nullable|array',
+            'recurrence.repeat' => 'nullable|in:daily,weekly,monthly',
+            'recurrence.interval' => 'nullable|integer|min:1|max:365',
+            'dependencies' => 'sometimes|array',
+            'dependencies.*' => 'integer|exists:prj_tasks,id',
         ]);
         if (! empty($data['status'])) {
             StatusMachine::assert($task->status, $data['status'], 'task');
         }
+        if (array_key_exists('recurrence', $data)) {
+            $repeat = is_array($data['recurrence']) ? ($data['recurrence']['repeat'] ?? null) : null;
+            if (! $repeat) {
+                $data['recurrence'] = null;
+            }
+        }
+        $dependencyIds = null;
+        if ($request->exists('dependencies')) {
+            $dependencyIds = collect($data['dependencies'] ?? [])
+                ->map(fn ($targetId) => (int) $targetId)
+                ->unique()
+                ->reject(fn (int $targetId) => $targetId === (int) $task->id)
+                ->values();
+            unset($data['dependencies']);
+        }
         $task->update($data);
+        if ($dependencyIds !== null) {
+            $this->syncDependencies($task->id, $dependencyIds->all());
+        }
 
         return response()->json(['data' => $task->fresh()]);
     }
@@ -333,6 +373,35 @@ class TaskController extends Controller
         $rows = DB::table('prj_task_attachments')->where('task_id', $id)->get();
 
         return response()->json(['data' => $rows]);
+    }
+
+    /**
+     * @param  list<int>  $targetIds
+     */
+    private function syncDependencies(int $taskId, array $targetIds): void
+    {
+        $existing = TaskLink::query()
+            ->where('source_task_id', $taskId)
+            ->where('link_type', 'depends');
+
+        if ($targetIds === []) {
+            $existing->delete();
+
+            return;
+        }
+
+        $existing->whereNotIn('target_task_id', $targetIds)->delete();
+
+        foreach ($targetIds as $targetId) {
+            TaskLink::query()->updateOrCreate(
+                [
+                    'source_task_id' => $taskId,
+                    'target_task_id' => $targetId,
+                    'link_type' => 'depends',
+                ],
+                []
+            );
+        }
     }
 
     private function visibleTask(Request $request, int $id, CustomerAccess $access): ProjectTask

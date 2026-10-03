@@ -49,6 +49,15 @@ export async function savePipelineStage(pipelineId: number | string, data: Recor
   return unwrapData(res);
 }
 
+export async function updatePipelineStage(
+  pipelineId: number | string,
+  stageId: number | string,
+  data: Record<string, unknown>,
+) {
+  const res = await apiClient.patch(`${BASE}/pipelines/${pipelineId}/stages/${stageId}`, data);
+  return unwrapData(res);
+}
+
 export async function deletePipelineStage(pipelineId: number | string, stageId: number | string) {
   const res = await apiClient.delete(`${BASE}/pipelines/${pipelineId}/stages/${stageId}`);
   return unwrapData(res);

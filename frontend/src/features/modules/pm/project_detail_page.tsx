@@ -14,6 +14,7 @@ import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
 import { dashboardHref } from '@/lib/route-resolver';
 import { useLocale } from '@/hooks/use-locale-next';
+import { ProjectPlanningPanel } from '@/features/modules/pm/ProjectPlanningPanel';
 
 type Props = { id: string };
 
@@ -21,7 +22,11 @@ function rowsOf(value: unknown): Record<string, unknown>[] {
   return Array.isArray(value) ? (value as Record<string, unknown>[]) : [];
 }
 
-function ProjectDetailContent({ data }: { data: Record<string, unknown> }) {
+function recordPath(row: Record<string, unknown>, fallback: string): string {
+  return row.path ? String(row.path) : fallback;
+}
+
+function ProjectDetailContent({ data, projectId }: { data: Record<string, unknown>; projectId: string }) {
   const t = useTranslations('pm.projects');
   const tTasks = useTranslations('pm.tasks');
   const tCommon = useTranslations('common');
@@ -31,6 +36,8 @@ function ProjectDetailContent({ data }: { data: Record<string, unknown> }) {
   const contracts = rowsOf(data.contracts);
   const tickets = rowsOf(data.tickets);
   const sites = rowsOf(data.sites);
+  const invoices = rowsOf(data.invoices);
+  const appointments = rowsOf(data.appointments);
 
   const projectStatus = (status: unknown) => {
     const key = String(status ?? '');
@@ -99,6 +106,7 @@ function ProjectDetailContent({ data }: { data: Record<string, unknown> }) {
           ) : null}
         </CardContent>
       </Card>
+      <ProjectPlanningPanel projectId={projectId} />
       <Card>
         <CardHeader>
           <CardTitle className="text-start text-base">{t('tasks')} ({formatNumber(tasks.length)})</CardTitle>
@@ -188,7 +196,14 @@ function ProjectDetailContent({ data }: { data: Record<string, unknown> }) {
             <tbody>
               {tickets.map((row) => (
                 <tr key={String(row.id)} className="border-b border-border/60">
-                  <td className="py-2 text-start">{String(row.subject ?? none)}</td>
+                  <td className="py-2 text-start">
+                    <Link
+                      className="text-primary hover:underline"
+                      href={dashboardHref(locale, recordPath(row, `crm/tickets?ticket_id=${String(row.id)}`))}
+                    >
+                      {String(row.subject ?? none)}
+                    </Link>
+                  </td>
                   <td className="py-2 text-start">{taskStatus(row.status)}</td>
                   <td className="py-2 text-start">
                     {row.created_at ? formatDateTime(String(row.created_at)) || formatDigits(String(row.created_at)) : none}
@@ -199,6 +214,85 @@ function ProjectDetailContent({ data }: { data: Record<string, unknown> }) {
                 <tr>
                   <td colSpan={3} className="py-4 text-center text-muted-foreground">
                     {t('noTickets')}
+                  </td>
+                </tr>
+              ) : null}
+            </tbody>
+          </table>
+        </CardContent>
+      </Card>
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-start text-base">{t('invoices')} ({formatNumber(invoices.length)})</CardTitle>
+        </CardHeader>
+        <CardContent className="overflow-x-auto">
+          <table className="w-full text-sm" dir={isRtl ? 'rtl' : 'ltr'}>
+            <thead>
+              <tr className="border-b text-muted-foreground">
+                <th className="py-2 text-start">{t('taskTitle')}</th>
+                <th className="py-2 text-start">{t('amount')}</th>
+                <th className="py-2 text-start">{t('status')}</th>
+              </tr>
+            </thead>
+            <tbody>
+              {invoices.map((row) => (
+                <tr key={`${String(row.path ?? 'invoice')}-${String(row.id)}`} className="border-b border-border/60">
+                  <td className="py-2 text-start">
+                    <Link className="text-primary hover:underline" href={dashboardHref(locale, recordPath(row, `sales/invoices?invoice_id=${String(row.id)}`))}>
+                      {String(row.number ?? row.title ?? t('openInvoice'))}
+                    </Link>
+                  </td>
+                  <td className="py-2 text-start">
+                    {row.total != null && row.total !== '' ? formatNumber(Number(row.total)) : none}
+                  </td>
+                  <td className="py-2 text-start">{projectStatus(row.status)}</td>
+                </tr>
+              ))}
+              {!invoices.length ? (
+                <tr>
+                  <td colSpan={3} className="py-4 text-center text-muted-foreground">
+                    {t('noInvoices')}
+                  </td>
+                </tr>
+              ) : null}
+            </tbody>
+          </table>
+        </CardContent>
+      </Card>
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-start text-base">{t('appointments')} ({formatNumber(appointments.length)})</CardTitle>
+        </CardHeader>
+        <CardContent className="overflow-x-auto">
+          <table className="w-full text-sm" dir={isRtl ? 'rtl' : 'ltr'}>
+            <thead>
+              <tr className="border-b text-muted-foreground">
+                <th className="py-2 text-start">{t('taskTitle')}</th>
+                <th className="py-2 text-start">{t('status')}</th>
+                <th className="py-2 text-start">{t('createdAt')}</th>
+              </tr>
+            </thead>
+            <tbody>
+              {appointments.map((row) => (
+                <tr key={String(row.id)} className="border-b border-border/60">
+                  <td className="py-2 text-start">
+                    <Link
+                      className="text-primary hover:underline"
+                      href={dashboardHref(locale, recordPath(row, `pm/appointments?appointment_id=${String(row.id)}`))}
+                    >
+                      {String(row.title ?? t('openAppointment'))}
+                    </Link>
+                  </td>
+                  <td className="py-2 text-start">{projectStatus(row.status)}</td>
+                  <td className="py-2 text-start">
+                    {row.starts_at ? formatDateTime(String(row.starts_at)) || formatDigits(String(row.starts_at)) : none}
+                  </td>
+                </tr>
+              ))}
+              {!appointments.length ? (
+                <tr>
+                  <td colSpan={3} className="py-4 text-center text-muted-foreground">
+                    {t('noAppointments')}
                   </td>
                 </tr>
               ) : null}
@@ -252,7 +346,7 @@ export function ProjectDetailPage({ id }: Props) {
           <Skeleton className="h-48 w-full" />
         </div>
       ) : data ? (
-        <ProjectDetailContent data={data} />
+        <ProjectDetailContent data={data} projectId={id} />
       ) : (
         <p className="text-sm text-muted-foreground">{tNav('errors.notFoundBody')}</p>
       )}

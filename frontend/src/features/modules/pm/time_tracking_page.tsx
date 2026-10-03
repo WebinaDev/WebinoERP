@@ -68,8 +68,12 @@ function withStatus(entry: TimeEntry): TimeEntry {
   return { ...entry, status: entryStatus(entry) };
 }
 
-function formatDurationMinutes(seconds: number | null | undefined, formatNumber: (n: number) => string) {
-  if (seconds == null || Number.isNaN(Number(seconds))) return '—';
+function formatDurationMinutes(
+  seconds: number | null | undefined,
+  formatNumber: (n: number) => string,
+  empty = '',
+) {
+  if (seconds == null || Number.isNaN(Number(seconds))) return empty;
   return formatNumber(Math.round(Number(seconds) / 60));
 }
 
@@ -324,7 +328,7 @@ export function TimeTrackingPage() {
   };
 
   const projectLabel = (projectId?: number | null) => {
-    if (!projectId) return '—';
+    if (!projectId) return tCommon('none');
     const found = projects.find((p) => p.id === projectId);
     return found ? found.name : `#${projectId}`;
   };
@@ -352,7 +356,7 @@ export function TimeTrackingPage() {
                   ) : null}
                   {timer.description ? <p className="mt-1">{timer.description}</p> : null}
                   <p className="mt-1 text-xs text-muted-foreground">
-                    {timer.started_at ? formatDateTime(timer.started_at) : '—'} — {t(`status_${timer.status ?? 'stopped'}`)}
+                    {timer.started_at ? formatDateTime(timer.started_at) : tCommon('none')} — {t(`status_${timer.status ?? 'stopped'}`)}
                   </p>
                 </div>
                 {timer.status === 'running' ? (
@@ -511,10 +515,10 @@ export function TimeTrackingPage() {
                       {entries.map((e) => (
                         <TableRow key={e.id}>
                           <TableCell>{projectLabel(e.project_id)}</TableCell>
-                          <TableCell className="max-w-[240px] truncate">{e.description || '—'}</TableCell>
-                          <TableCell>{formatDurationMinutes(e.duration_seconds, formatNumber)}</TableCell>
+                          <TableCell className="max-w-[240px] truncate">{e.description || tCommon('none')}</TableCell>
+                          <TableCell>{formatDurationMinutes(e.duration_seconds, formatNumber, tCommon('none'))}</TableCell>
                           <TableCell className="text-sm text-muted-foreground">
-                            {e.started_at ? formatDateTime(e.started_at) : '—'}
+                            {e.started_at ? formatDateTime(e.started_at) : tCommon('none')}
                           </TableCell>
                           <TableCell>{t(`status_${e.status ?? entryStatus(e)}`)}</TableCell>
                           <TableCell>{e.is_billable ? t('yes') : t('no')}</TableCell>
@@ -596,7 +600,7 @@ export function TimeTrackingPage() {
                               <TableCell>
                                 {row.task_id != null ? `${t('task')} #${row.task_id}` : t('noTask')}
                               </TableCell>
-                              <TableCell>{formatDurationMinutes(row.total_seconds, formatNumber)}</TableCell>
+                              <TableCell>{formatDurationMinutes(row.total_seconds, formatNumber, tCommon('none'))}</TableCell>
                             </TableRow>
                           ))}
                         </TableBody>

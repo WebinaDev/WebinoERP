@@ -14,7 +14,7 @@ class SprintController extends Controller
 {
     public function index(Request $request): JsonResponse
     {
-        $q = PrjSprint::query()->with('project')->orderByDesc('id');
+        $q = PrjSprint::query()->with('project')->withCount('tasks')->orderByDesc('id');
         if ($request->filled('project_id')) {
             $q->where('project_id', $request->integer('project_id'));
         }

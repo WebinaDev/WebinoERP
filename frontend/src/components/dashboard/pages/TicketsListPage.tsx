@@ -290,7 +290,7 @@ export function TicketsListPage() {
                     <SelectValue placeholder={t('department')} />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="__none">—</SelectItem>
+                    <SelectItem value="__none">{tc('none')}</SelectItem>
                     <SelectItem value="sales">sales</SelectItem>
                     <SelectItem value="support">support</SelectItem>
                     <SelectItem value="technical">technical</SelectItem>
@@ -448,13 +448,13 @@ export function TicketsListPage() {
                           className="text-start font-medium text-primary hover:underline"
                           onClick={() => openTicket(r)}
                         >
-                          {String(r.subject ?? '—')}
+                          {String(r.subject ?? tc('none'))}
                         </button>
                       </td>
                       <td className="px-3 py-2">
-                        <Badge variant="secondary">{String(r.status ?? '—')}</Badge>
+                        <Badge variant="secondary">{String(r.status ?? tc('none'))}</Badge>
                       </td>
-                      <td className="px-3 py-2">{String(r.priority ?? '—')}</td>
+                      <td className="px-3 py-2">{String(r.priority ?? tc('none'))}</td>
                       <td className="px-3 py-2">
                         <Button type="button" variant="outline" size="sm" onClick={() => openTicket(r)}>
                           {tc('view')}

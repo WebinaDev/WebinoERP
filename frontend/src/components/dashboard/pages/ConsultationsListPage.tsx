@@ -24,6 +24,7 @@ import { ResourceListCard } from '@/components/dashboard/ResourceListCard';
 
 type Row = Record<string, unknown>;
 type AccountOption = { id: number; name: string };
+type StatusOption = { id: number; name: string; color?: string | null };
 
 export function ConsultationsListPage() {
   const t = useTranslations('crm.consultations');
@@ -49,6 +50,8 @@ export function ConsultationsListPage() {
 
   const [rows, setRows] = useState<Row[]>([]);
   const [accounts, setAccounts] = useState<AccountOption[]>([]);
+  const [statuses, setStatuses] = useState<StatusOption[]>([]);
+  const [statusFilter, setStatusFilter] = useState('');
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [dialogOpen, setDialogOpen] = useState(false);
@@ -74,11 +77,31 @@ export function ConsultationsListPage() {
     }
   }, []);
 
+  const loadStatuses = useCallback(async () => {
+    try {
+      const res = await apiClient.get('/v1/crm/consultation-statuses');
+      const list = normalizeListPayload(res.data);
+      setStatuses(
+        list
+          .map((row) => ({
+            id: Number(row.id),
+            name: String(row.name ?? ''),
+            color: row.color != null ? String(row.color) : null,
+          }))
+          .filter((row) => row.name),
+      );
+    } catch {
+      setStatuses([]);
+    }
+  }, []);
+
   const load = useCallback(async () => {
     setLoading(true);
     setError(null);
     try {
-      const res = await apiClient.get('/v1/crm/consultations');
+      const res = await apiClient.get('/v1/crm/consultations', {
+        params: statusFilter ? { filter: { status: statusFilter } } : undefined,
+      });
       const data = unwrapData<Row[]>(res);
       setRows(Array.isArray(data) ? data : []);
     } catch (e) {
@@ -86,12 +109,13 @@ export function ConsultationsListPage() {
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [statusFilter]);
 
   useEffect(() => {
     void load();
     void loadAccounts();
-  }, [load, loadAccounts]);
+    void loadStatuses();
+  }, [load, loadAccounts, loadStatuses]);
 
   function openCreate() {
     setEditId(null);
@@ -126,8 +150,7 @@ export function ConsultationsListPage() {
         payload.account_id = Number(accountId);
       }
       if (editId) {
-        payload.id = editId;
-        await apiClient.put('/v1/crm/consultations', payload);
+        await apiClient.patch(`/v1/crm/consultations/${editId}`, payload);
       } else {
         await apiClient.post('/v1/crm/consultations', payload);
       }
@@ -164,6 +187,22 @@ export function ConsultationsListPage() {
         </Button>
       </CardHeader>
       <CardContent className="space-y-4">
+        <div className="flex flex-wrap items-center gap-2">
+          <label className="text-sm font-medium">{t('status')}</label>
+          <Select value={statusFilter || '__all'} onValueChange={(value) => setStatusFilter(value === '__all' ? '' : value)}>
+            <SelectTrigger className="w-[220px]">
+              <SelectValue placeholder={t('allStatuses')} />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="__all">{t('allStatuses')}</SelectItem>
+              {statuses.map((item) => (
+                <SelectItem key={item.id} value={item.name}>
+                  {statusLabel(item.name)}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
         <ResourceListCard
           title={t('listTitle')}
           description={t('description')}
@@ -236,7 +275,22 @@ export function ConsultationsListPage() {
               </SelectContent>
             </Select>
             <label className="text-sm font-medium">{t('status')}</label>
-            <Input value={status} onChange={(e) => setStatus(e.target.value)} placeholder={t('status')} />
+            <Select value={status || '__none'} onValueChange={(value) => setStatus(value === '__none' ? '' : value)}>
+              <SelectTrigger>
+                <SelectValue placeholder={t('status')} />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="__none">{tCommon('none')}</SelectItem>
+                {statuses.map((item) => (
+                  <SelectItem key={item.id} value={item.name}>
+                    {statusLabel(item.name)}
+                  </SelectItem>
+                ))}
+                {status && !statuses.some((item) => item.name === status) ? (
+                  <SelectItem value={status}>{statusLabel(status)}</SelectItem>
+                ) : null}
+              </SelectContent>
+            </Select>
             <label className="text-sm font-medium">{t('notes')}</label>
             <Textarea value={notes} onChange={(e) => setNotes(e.target.value)} rows={4} />
           </div>
