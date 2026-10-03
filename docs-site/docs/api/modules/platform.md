@@ -34,6 +34,10 @@ Coolify-class control plane inside WebinoERP: SSH servers, Docker destinations, 
 
 Spatie abilities under `platform.*` (see `RolesAndPermissionsSeeder` and `config/module_permissions.php`).
 
+## Site admin announcements
+
+Staff notices for tenant dashboards live under `/api/v1/site-builder/announcements` (not `/api/v1/platform`). Audience is all sites, selected sites, or category, type, or tag. Delivery uses the provision HMAC into `POST /api/v1/provision/announcements` on each site. Contract: `docs/site-admin-announcements.md`.
+
 ## Site types
 
 When launching Webino Dashboard (Site Builder or `/webino/launch`), pass `site_type_slug` ∈ `ecommerce|magazine|cafe|resume|corporate`. License `meta.modules` / `meta.module_matrix` follow `Modules\Platform\Support\SiteTypeProfiles`.

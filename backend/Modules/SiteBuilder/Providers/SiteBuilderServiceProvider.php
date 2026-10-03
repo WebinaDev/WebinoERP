@@ -6,14 +6,18 @@ use Illuminate\Support\Facades\Route;
 use Illuminate\Support\ServiceProvider;
 use Modules\SiteBuilder\Console\AssertSchemaCommand;
 use Modules\SiteBuilder\Console\EnsureHostingDefaultsCommand;
+use Modules\SiteBuilder\Console\PushSiteAnnouncementsCommand;
 use Modules\SiteBuilder\Console\ResyncCaddySnippetsCommand;
 use Modules\SiteBuilder\Console\ResyncTenantStacksCommand;
 use Modules\SiteBuilder\Entities\WebinoBusinessCategory;
 use Modules\SiteBuilder\Entities\WebinoBusinessType;
 use Modules\SiteBuilder\Entities\WebinoDashboardFeature;
 use Modules\SiteBuilder\Entities\WebinoPackage;
+use Modules\SiteBuilder\Entities\WebinoSiteAnnouncement;
 use Modules\SiteBuilder\Entities\WebinoSiteProvision;
+use Modules\SiteBuilder\Http\Controllers\SiteAnnouncementSyncController;
 use Modules\SiteBuilder\Http\Controllers\SiteImpersonationController;
+use Modules\SiteBuilder\Http\Middleware\VerifySiteProvisionSignature;
 
 class SiteBuilderServiceProvider extends ServiceProvider
 {
@@ -29,6 +33,15 @@ class SiteBuilderServiceProvider extends ServiceProvider
         Route::bind('siteType', fn (string $value) => WebinoBusinessType::query()->findOrFail($value));
         Route::bind('siteFeature', fn (string $value) => WebinoDashboardFeature::query()->findOrFail($value));
         Route::bind('sitePackage', fn (string $value) => WebinoPackage::query()->findOrFail($value));
+        Route::bind('siteAnnouncement', fn (string $value) => WebinoSiteAnnouncement::query()->findOrFail($value));
+
+        // Tenant pull and read/dismiss receipts. Auth is the provision HMAC, not Sanctum.
+        Route::prefix('api/v1/site-builder/sync/announcements')
+            ->middleware(['api', 'throttle:60,1', VerifySiteProvisionSignature::class])
+            ->group(function () {
+                Route::post('/pull', [SiteAnnouncementSyncController::class, 'pull']);
+                Route::post('/receipt', [SiteAnnouncementSyncController::class, 'receipt']);
+            });
 
         // Signed staff passport. No Sanctum session: the caller is a tenant
         // backend on another domain. Throttled and rejected unless the HMAC
@@ -54,6 +67,7 @@ class SiteBuilderServiceProvider extends ServiceProvider
             EnsureHostingDefaultsCommand::class,
             ResyncCaddySnippetsCommand::class,
             ResyncTenantStacksCommand::class,
+            PushSiteAnnouncementsCommand::class,
         ]);
     }
 }

@@ -37,6 +37,7 @@ import { SiteBuilderCatalogPage } from '@/features/site-builder/SiteBuilderCatal
 import { SiteProvisionsListPage } from '@/features/site-builder/SiteProvisionsListPage';
 import { SiteProvisionWizardPage } from '@/features/site-builder/SiteProvisionWizardPage';
 import { SiteControlPanelPage } from '@/features/site-builder/control-panel/SiteControlPanelPage';
+import { SiteAnnouncementsPage } from '@/features/site-builder/SiteAnnouncementsPage';
 import { PlatformDashboardPage } from '@/features/platform/PlatformDashboardPage';
 import { ServersListPage } from '@/features/platform/servers/ServersListPage';
 import { ServerDetailPage } from '@/features/platform/servers/ServerDetailPage';
@@ -284,6 +285,7 @@ const EXACT: Record<string, ReactNode> = {
   'admin/platform/catalog': <SiteBuilderCatalogPage />,
   'admin/platform/sites': <SiteProvisionsListPage />,
   'admin/platform/sites/new': <SiteProvisionWizardPage />,
+  'admin/platform/announcements': <SiteAnnouncementsPage />,
   'admin/platform/servers': <ServersListPage />,
   'admin/platform/projects': <PlatformProjectsListPage />,
   'admin/platform/resources': <ResourcesListPage />,

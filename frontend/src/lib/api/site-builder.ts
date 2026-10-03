@@ -434,6 +434,120 @@ export async function saveFeature(body: Partial<DashboardFeature> & { id?: numbe
   return unwrapData<DashboardFeature>(res);
 }
 
+export type SiteAnnouncementAudienceMode = 'all' | 'sites' | 'category' | 'type' | 'tag';
+
+export type SiteAnnouncementDeliverySummary = {
+  total: number;
+  delivered: number;
+  pending: number;
+  failed: number;
+  revoked: number;
+  read: number;
+  dismissed: number;
+};
+
+export type SiteAnnouncement = {
+  id: number;
+  title_fa: string;
+  title_en?: string | null;
+  body_fa: string;
+  body_en?: string | null;
+  level: 'info' | 'warning' | 'critical' | string;
+  status: 'draft' | 'published' | 'archived' | string;
+  audience: {
+    mode: SiteAnnouncementAudienceMode;
+    site_ids?: number[];
+    category_ids?: number[];
+    type_ids?: number[];
+    tags?: string[];
+  };
+  published_at?: string | null;
+  expires_at?: string | null;
+  created_at?: string | null;
+  delivery: SiteAnnouncementDeliverySummary;
+  deliveries?: Array<{
+    id: number;
+    site_id: number;
+    slug?: string | null;
+    domain?: string | null;
+    status: string;
+    last_error?: string | null;
+    read_at?: string | null;
+    dismissed_at?: string | null;
+  }>;
+};
+
+export type SiteAnnouncementOptions = {
+  sites: Array<{
+    id: number;
+    slug: string;
+    domain: string;
+    status: string;
+    site_type_slug?: string | null;
+    category_id?: number | null;
+    tags: string[];
+  }>;
+  categories: Array<{ id: number; slug: string; name_fa: string; name_en: string }>;
+  types: Array<{ id: number; category_id: number; slug: string; name_fa: string; name_en: string }>;
+  tags: string[];
+};
+
+export type SiteAnnouncementInput = {
+  title_fa: string;
+  title_en?: string | null;
+  body_fa: string;
+  body_en?: string | null;
+  level?: string;
+  expires_at?: string | null;
+  publish?: boolean;
+  audience_mode: SiteAnnouncementAudienceMode;
+  site_ids?: number[];
+  category_ids?: number[];
+  type_ids?: number[];
+  tags?: string[];
+};
+
+export async function fetchSiteAnnouncementOptions() {
+  const res = await apiClient.get(`${BASE}/announcements/options`);
+  return unwrapData<SiteAnnouncementOptions>(res);
+}
+
+export async function fetchSiteAnnouncements() {
+  const res = await apiClient.get(`${BASE}/announcements`);
+  return unwrapData<SiteAnnouncement[]>(res);
+}
+
+export async function previewSiteAnnouncement(body: Partial<SiteAnnouncementInput>) {
+  const res = await apiClient.post(`${BASE}/announcements/preview`, body);
+  return unwrapData<{ count: number; sites: SiteAnnouncementOptions['sites'] }>(res);
+}
+
+export async function saveSiteAnnouncement(body: SiteAnnouncementInput & { id?: number }) {
+  const res = body.id
+    ? await apiClient.patch(`${BASE}/announcements/${body.id}`, body)
+    : await apiClient.post(`${BASE}/announcements`, body);
+  return unwrapData<SiteAnnouncement>(res);
+}
+
+export async function publishSiteAnnouncement(id: number) {
+  const res = await apiClient.post(`${BASE}/announcements/${id}/publish`);
+  return unwrapData<SiteAnnouncement>(res);
+}
+
+export async function retrySiteAnnouncement(id: number) {
+  const res = await apiClient.post(`${BASE}/announcements/${id}/retry`);
+  return unwrapData<SiteAnnouncement>(res);
+}
+
+export async function archiveSiteAnnouncement(id: number) {
+  const res = await apiClient.post(`${BASE}/announcements/${id}/archive`);
+  return unwrapData<SiteAnnouncement>(res);
+}
+
+export async function deleteSiteAnnouncement(id: number) {
+  await apiClient.delete(`${BASE}/announcements/${id}`);
+}
+
 export async function savePackage(body: Partial<PackageRow> & { id?: number; feature_ids?: number[] }) {
   const res = body.id
     ? await apiClient.patch(`${BASE}/packages/${body.id}`, body)
