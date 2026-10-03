@@ -10,6 +10,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { LocaleDatePicker } from '@/components/ui/locale-date-picker';
 import { CrmPmSnapshot } from '@/features/modules/dashboard/CrmPmSnapshot';
 import { useLocale } from '@/hooks/use-locale';
+import { jalaliMonthIsoRange } from '@/lib/locale/calendar-date';
 import { ReportsTabPanel } from './ReportsTabPanel';
 import {
   REPORT_TAB_IDS,
@@ -31,10 +32,11 @@ export function ReportsPage() {
   const t = useTranslations('reports');
   const tPages = useTranslations('pages.reports');
   const tCommon = useTranslations('common');
-  const { formatDigits } = useLocale();
+  const { formatDate, isRtl, locale } = useLocale();
+  const initial = locale === 'fa' ? jalaliMonthIsoRange(0) : { from: monthStartIso(), to: todayIso() };
   const [tab, setTab] = useState<string>('overview');
-  const [from, setFrom] = useState<string | null>(monthStartIso());
-  const [to, setTo] = useState<string | null>(todayIso());
+  const [from, setFrom] = useState<string | null>(initial.from);
+  const [to, setTo] = useState<string | null>(locale === 'fa' && initial.to > todayIso() ? todayIso() : initial.to);
   const [payload, setPayload] = useState<ReportsPayload | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
@@ -99,19 +101,31 @@ export function ReportsPage() {
   }
 
   function setPresetThisMonth() {
+    if (locale === 'fa') {
+      const range = jalaliMonthIsoRange(0);
+      setFrom(range.from);
+      setTo(range.to);
+      return;
+    }
     const d = new Date();
     setFrom(new Date(d.getFullYear(), d.getMonth(), 1).toISOString().slice(0, 10));
     setTo(new Date(d.getFullYear(), d.getMonth() + 1, 0).toISOString().slice(0, 10));
   }
 
   function setPresetLastMonth() {
+    if (locale === 'fa') {
+      const range = jalaliMonthIsoRange(-1);
+      setFrom(range.from);
+      setTo(range.to);
+      return;
+    }
     const d = new Date();
     setFrom(new Date(d.getFullYear(), d.getMonth() - 1, 1).toISOString().slice(0, 10));
     setTo(new Date(d.getFullYear(), d.getMonth(), 0).toISOString().slice(0, 10));
   }
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 text-start" dir={isRtl ? 'rtl' : 'ltr'}>
       <CrmPmSnapshot />
     <Card>
       <CardHeader className="flex flex-row flex-wrap items-start justify-between gap-3">
@@ -119,8 +133,8 @@ export function ReportsPage() {
           <CardTitle>{t('title')}</CardTitle>
           <CardDescription>
             {t('description', {
-              from: formatDigits(range?.from ?? tCommon('none')),
-              to: formatDigits(range?.to ?? tCommon('none')),
+              from: range?.from ? formatDate(range.from) : tCommon('none'),
+              to: range?.to ? formatDate(range.to) : tCommon('none'),
             })}
           </CardDescription>
         </div>

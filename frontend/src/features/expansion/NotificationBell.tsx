@@ -3,11 +3,13 @@
 import { useEffect, useState } from 'react';
 import { Bell } from 'lucide-react';
 import { useTranslations } from 'next-intl';
+import { useLocale } from '@/hooks/use-locale';
 import { Button } from '@/components/ui/button';
 import { expansionApi, type Row } from '@/features/expansion/api';
 
 export function NotificationBell() {
   const t = useTranslations('expansion');
+  const { formatNumber, formatDigits } = useLocale();
   const [open, setOpen] = useState(false);
   const [rows, setRows] = useState<Row[]>([]);
 
@@ -37,7 +39,7 @@ export function NotificationBell() {
         <Bell className="size-4" />
         {unread > 0 ? (
           <span className="absolute -top-1 end-0 min-w-4 rounded-full bg-primary px-1 text-[10px] leading-4 text-primary-foreground">
-            {unread > 9 ? '9+' : unread}
+            {unread > 9 ? formatDigits('9+') : formatNumber(unread)}
           </span>
         ) : null}
       </Button>

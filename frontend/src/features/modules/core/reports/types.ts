@@ -9,6 +9,9 @@ export const REPORT_TAB_IDS = [
   'tasks',
   'tickets',
   'agile',
+  'sites',
+  'marketing',
+  'notifications',
 ] as const;
 
 export type ReportTabId = (typeof REPORT_TAB_IDS)[number];

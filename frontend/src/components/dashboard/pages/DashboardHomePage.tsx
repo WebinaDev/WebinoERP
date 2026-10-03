@@ -13,7 +13,8 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Progress } from '@/components/ui/progress';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { AccentBarChart, AccentDonutChart } from '@/components/charts/AccentCharts';
+import { LocaleBarChart, LocaleDonutChart } from '@/components/charts/LocaleCharts';
+import { localizeToken } from '@/features/modules/dashboard/localize';
 import { useInitialDashboardStats } from '@/lib/initial-dashboard-context';
 import { dashboardHref } from '@/lib/route-resolver';
 import { useLocale } from '@/hooks/use-locale-next';
@@ -79,7 +80,7 @@ function roleQuickLinks(role: string): QuickLink[] {
 export function DashboardHomePage() {
   const t = useTranslations('dashboard');
   const tCommon = useTranslations('common');
-  const { formatNumber } = useLocale();
+  const { formatNumber, formatDigits, isRtl } = useLocale();
   const params = useParams();
   const locale = (params?.locale as string) || 'fa';
   const initialStats = useInitialDashboardStats();
@@ -243,8 +244,10 @@ export function DashboardHomePage() {
     return JSON.stringify(it).slice(0, 80);
   }
 
+  const labelOf = (value: string) => localizeToken(value, (key) => t(key as 'badges.open'), formatDigits);
+
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 text-start" dir={isRtl ? 'rtl' : 'ltr'}>
       <header className="wd-home-hero relative z-0 space-y-3">
         <div className="flex flex-wrap items-center gap-2">
           <span className="text-sm text-muted-foreground">{t('roleLabel')}:</span>
@@ -294,9 +297,9 @@ export function DashboardHomePage() {
 
       {role === 'finance_manager' && financeSummary ? (
         <div className="grid gap-4 sm:grid-cols-3">
-          <Card><CardHeader className="pb-2"><CardDescription>{t('finance.summary')}</CardDescription><CardTitle className="text-2xl">{String(financeSummary.total_invoices ?? tCommon('emptyValue'))}</CardTitle></CardHeader></Card>
-          <Card><CardHeader className="pb-2"><CardDescription>{t('finance.invoices')}</CardDescription><CardTitle className="text-2xl">{String(financeSummary.invoices_count ?? tCommon('emptyValue'))}</CardTitle></CardHeader></Card>
-          <Card><CardHeader className="pb-2"><CardDescription>{t('finance.receipts')}</CardDescription><CardTitle className="text-2xl">{String(financeSummary.receipts_count ?? tCommon('emptyValue'))}</CardTitle></CardHeader></Card>
+          <Card><CardHeader className="pb-2"><CardDescription>{t('finance.summary')}</CardDescription><CardTitle className="text-2xl tabular-nums">{financeSummary.total_invoices == null ? tCommon('emptyValue') : formatNumber(Number(financeSummary.total_invoices))}</CardTitle></CardHeader></Card>
+          <Card><CardHeader className="pb-2"><CardDescription>{t('finance.invoices')}</CardDescription><CardTitle className="text-2xl tabular-nums">{financeSummary.invoices_count == null ? tCommon('emptyValue') : formatNumber(Number(financeSummary.invoices_count))}</CardTitle></CardHeader></Card>
+          <Card><CardHeader className="pb-2"><CardDescription>{t('finance.receipts')}</CardDescription><CardTitle className="text-2xl tabular-nums">{financeSummary.receipts_count == null ? tCommon('emptyValue') : formatNumber(Number(financeSummary.receipts_count))}</CardTitle></CardHeader></Card>
         </div>
       ) : null}
 
@@ -350,7 +353,7 @@ export function DashboardHomePage() {
               <CardTitle className="text-base">{t('charts.monthlyActivity')}</CardTitle>
             </CardHeader>
             <CardContent>
-              <AccentBarChart
+              <LocaleBarChart
                 data={[
                   { label: t('stats.users'), value: merged.leads },
                   { label: t('stats.projects'), value: merged.projects },
@@ -369,7 +372,7 @@ export function DashboardHomePage() {
               <CardTitle className="text-base">{t('charts.statusDistribution')}</CardTitle>
             </CardHeader>
             <CardContent>
-              <AccentDonutChart segments={donutSegments} />
+              <LocaleDonutChart segments={donutSegments} />
             </CardContent>
           </Card>
           ) : null}
@@ -418,7 +421,7 @@ export function DashboardHomePage() {
                     {projects.map((p) => (
                       <tr key={String(p.id)} className="border-b border-border/60">
                         <td className="py-2">{String(p.name ?? tCommon('emptyValue'))}</td>
-                        <td className="py-2">{String(p.status ?? tCommon('emptyValue'))}</td>
+                        <td className="py-2">{p.status ? labelOf(String(p.status)) : tCommon('emptyValue')}</td>
                       </tr>
                     ))}
                     {!projects.length && !loading ? (

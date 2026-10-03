@@ -4,7 +4,9 @@ import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { useParams, usePathname } from 'next/navigation';
 import { Menu } from 'lucide-react';
+import { useTranslations } from 'next-intl';
 import { fetchNavigation, type NavItem } from '@/lib/navigation';
+import { roleSlug } from '@/lib/role-label';
 import { Button } from '@/components/ui/button';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Separator } from '@/components/ui/separator';
@@ -54,8 +56,11 @@ export function DashboardSidebar() {
   const params = useParams();
   const pathname = usePathname();
   const locale = (params?.locale as string) || 'fa';
+  const tRoles = useTranslations('nav.roles');
   const [items, setItems] = useState<NavItem[]>([]);
   const [role, setRole] = useState<string>('');
+  const roleKey = roleSlug(role);
+  const roleLabel = roleKey && tRoles.has(roleKey) ? tRoles(roleKey) : '';
 
   useEffect(() => {
     fetchNavigation().then((data) => {
@@ -70,9 +75,9 @@ export function DashboardSidebar() {
     <>
       <div className="flex h-14 items-center border-b border-sidebar-border px-4">
         <span className="font-semibold">Webino CRM</span>
-        {role ? (
-          <span className="ms-auto text-xs text-muted-foreground" title="dashboard role">
-            {role}
+        {roleLabel ? (
+          <span className="ms-auto text-xs text-muted-foreground">
+            {roleLabel}
           </span>
         ) : null}
       </div>

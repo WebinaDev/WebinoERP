@@ -14,6 +14,7 @@ use Modules\Crm\Entities\CrmLead;
 use Modules\Crm\Entities\CrmPipeline;
 use Modules\Core\Entities\DashboardWidgetPref;
 use Modules\Crm\Entities\CrmActivity;
+use Modules\Core\Services\StaffOpsService;
 use Modules\Crm\Services\CrmForecastService;
 use Modules\Projects\Entities\Contract;
 use Modules\Projects\Entities\PrjSprint;
@@ -77,30 +78,21 @@ class DashboardParityController extends Controller
         }
     }
 
-    public function crmPm(Request $request, CustomerAccess $access): JsonResponse
+    public function crmPm(Request $request, CustomerAccess $access, StaffOpsService $ops): JsonResponse
     {
         $user = $request->user();
         $closed = ['done', 'completed', 'cancelled', 'closed'];
-        $start = now()->startOfDay();
-        $end = now()->endOfDay();
-
         $open = ProjectTask::query()->whereNotIn('status', $closed);
         if ($user) {
             $access->scopeTasks($open, $user);
         }
 
-        $mapTask = static fn (ProjectTask $task) => [
-            'id' => $task->id,
-            'title' => $task->title,
-            'status' => $task->status,
-            'priority' => $task->priority,
-            'due_at' => optional($task->due_at)?->utc()->toIso8601String(),
-            'project_id' => $task->project_id,
-        ];
-
-        $overdue = (clone $open)->whereNotNull('due_at')->where('due_at', '<', $start)->orderBy('due_at');
-        $today = (clone $open)->whereBetween('due_at', [$start, $end])->orderBy('due_at');
-        $mine = (clone $open)->when($user, fn ($q) => $q->where('assignee_id', $user->id))->orderByDesc('id');
+        $extra = ['todos' => ['counts' => [], 'overdue' => [], 'today' => [], 'mine' => [], 'work' => [], 'sites' => []], 'ops' => []];
+        try {
+            $extra = $ops->enrich($user);
+        } catch (\Throwable) {
+            // Keep the CRM and PM cards available when a satellite module is missing.
+        }
 
         return response()->json([
             'data' => [
@@ -117,16 +109,8 @@ class DashboardParityController extends Controller
                     'tickets' => $this->safeCount(fn () => PrjTicket::query()->whereIn('status', ['open', 'pending', 'in_progress'])->count()),
                     'contracts' => $this->safeCount(fn () => Contract::query()->count()),
                 ],
-                'todos' => [
-                    'counts' => [
-                        'overdue' => (clone $overdue)->count(),
-                        'today' => (clone $today)->count(),
-                        'mine' => (clone $mine)->count(),
-                    ],
-                    'overdue' => $overdue->limit(8)->get()->map($mapTask)->values(),
-                    'today' => $today->limit(8)->get()->map($mapTask)->values(),
-                    'mine' => $mine->limit(8)->get()->map($mapTask)->values(),
-                ],
+                'todos' => $extra['todos'],
+                'ops' => $extra['ops'],
                 'suite' => $this->suiteWidgets(),
             ],
         ]);

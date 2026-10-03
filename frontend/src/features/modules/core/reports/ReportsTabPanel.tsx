@@ -2,8 +2,10 @@
 
 import { useTranslations } from 'next-intl';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { AccentBarChart } from '@/components/charts/AccentCharts';
+import { LocaleBarChart } from '@/components/charts/LocaleCharts';
 import { useLocale } from '@/hooks/use-locale-next';
+import { formatChartAxis } from '@/lib/locale/calendar-date';
+import { localizeToken } from '@/features/modules/dashboard/localize';
 import type { ReportsPayload } from './types';
 
 type Props = {
@@ -22,18 +24,24 @@ function isDateKey(key: string): boolean {
 }
 
 function StatGrid({ stats, keys }: { stats: Record<string, unknown>; keys: { key: string; label: string }[] }) {
-  const { formatNumber, formatDate } = useLocale();
+  const { formatNumber, formatDate, formatDigits, locale } = useLocale();
+  const tDash = useTranslations('dashboard');
+  const tCommon = useTranslations('common');
+  const percent = locale === 'fa' ? '٪' : '%';
 
   const formatStat = (key: string, value: unknown): string => {
-    if (value == null || value === '') return '—';
+    if (value == null || value === '') return tCommon('emptyValue');
     if (isDateKey(key) && looksLikeIsoDate(value)) {
-      return formatDate(String(value)) || String(value);
+      return formatDate(String(value)) || formatDigits(String(value));
     }
-    if (typeof value === 'number') return formatNumber(value);
+    if (typeof value === 'number') {
+      const text = formatNumber(value);
+      return key.includes('rate') ? `${text}${percent}` : text;
+    }
     if (typeof value === 'string' && value.trim() !== '' && !Number.isNaN(Number(value)) && /^-?\d+(\.\d+)?$/.test(value.trim())) {
       return formatNumber(Number(value));
     }
-    return String(value);
+    return localizeToken(String(value), (token) => tDash(token as 'badges.open'), formatDigits);
   };
 
   return (
@@ -63,18 +71,28 @@ function DataTable({
   rows: Record<string, unknown>[];
   columns: { key: string; label: string }[];
 }) {
-  const { formatNumber, formatDate } = useLocale();
+  const { formatNumber, formatDate, formatDateTime, formatDigits, locale } = useLocale();
+  const tDash = useTranslations('dashboard');
+  const tCommon = useTranslations('common');
 
   const formatCell = (key: string, value: unknown): string => {
-    if (value == null || value === '') return '—';
+    if (value == null || value === '') return tCommon('emptyValue');
+    if (key === 'is_read') return value === true || value === 1 || value === '1' ? tDash('read') : tDash('unread');
+    if (key === 'month' && typeof value === 'string') return formatChartAxis(value, locale === 'fa' ? 'fa' : 'en');
     if (
       (key.toLowerCase().includes('date') || key.toLowerCase().endsWith('_at') || key === 'month') &&
       looksLikeIsoDate(value)
     ) {
-      return formatDate(String(value)) || String(value);
+      return key.endsWith('_at') ? formatDateTime(String(value)) || formatDigits(String(value)) : formatDate(String(value)) || formatDigits(String(value));
     }
     if (typeof value === 'number') return formatNumber(value);
-    return String(value);
+    if (key === 'reason') {
+      return String(value)
+        .split(',')
+        .map((part) => localizeToken(part.trim(), (token) => tDash(token as 'badges.open'), formatDigits))
+        .join(locale === 'fa' ? '، ' : ', ');
+    }
+    return localizeToken(String(value), (token) => tDash(token as 'badges.open'), formatDigits);
   };
 
   return (
@@ -97,14 +115,14 @@ function DataTable({
             {rows.length === 0 ? (
               <tr>
                 <td colSpan={columns.length} className="px-2 py-4 text-center text-muted-foreground">
-                  —
+                  {tCommon('emptyValue')}
                 </td>
               </tr>
             ) : (
               rows.map((row, i) => (
                 <tr key={i} className="border-b border-border/60">
                   {columns.map((c) => (
-                    <td key={c.key} className="px-2 py-2 tabular-nums">
+                    <td key={c.key} className="px-2 py-2 tabular-nums" dir={c.key === 'domain' ? 'ltr' : undefined}>
                       {formatCell(c.key, row[c.key])}
                     </td>
                   ))}
@@ -118,14 +136,33 @@ function DataTable({
   );
 }
 
+function ChartBars({ rows }: { rows: { label: string; value: number }[] }) {
+  const { locale } = useLocale();
+  const axis = locale === 'fa' ? 'fa' : 'en';
+  return (
+    <LocaleBarChart
+      data={rows.map((row) => ({
+        label: formatChartAxis(row.label, axis),
+        value: row.value,
+      }))}
+    />
+  );
+}
+
 export function ReportsTabPanel({ tab, payload }: Props) {
   const t = useTranslations('reports');
   const tPages = useTranslations('pages.reports');
+  const tDash = useTranslations('dashboard');
   const stats = payload.stats ?? {};
   const charts = payload.charts;
   const tables = payload.tables ?? {};
 
   const cols = {
+    domain: t('columns.domain'),
+    reason: t('columns.reason'),
+    title: t('columns.title'),
+    read: t('columns.read'),
+    when: t('columns.when'),
     month: t('columns.month'),
     count: t('columns.count'),
     total: t('columns.total'),
@@ -235,6 +272,10 @@ export function ReportsTabPanel({ tab, payload }: Props) {
           keys={[
             { key: 'total_revenue', label: t('statLabels.total_revenue') },
             { key: 'total_contracts', label: t('metrics.contracts_total') },
+            { key: 'invoice_count', label: tDash('ops.invoices') },
+            { key: 'invoice_total', label: tDash('ops.invoiceTotal') },
+            { key: 'open_invoices', label: tDash('ops.openInvoices') },
+            { key: 'receipts_count', label: tDash('ops.receipts') },
           ]}
         />
         {(charts?.monthly?.length ?? 0) > 0 ? (
@@ -243,12 +284,7 @@ export function ReportsTabPanel({ tab, payload }: Props) {
               <CardTitle className="text-base">{tPages('chart_monthly')}</CardTitle>
             </CardHeader>
             <CardContent>
-              <AccentBarChart
-                data={(charts?.monthly ?? []).map((m) => ({
-                  label: String(m.month ?? '').slice(5) || String(m.month ?? ''),
-                  value: Number(m.total ?? m.contracts ?? 0),
-                }))}
-              />
+              <ChartBars rows={(charts?.monthly ?? []).map((m) => ({ label: String(m.month ?? ''), value: Number(m.total ?? m.contracts ?? 0) }))} />
             </CardContent>
           </Card>
         ) : null}
@@ -312,15 +348,87 @@ export function ReportsTabPanel({ tab, payload }: Props) {
               <CardTitle className="text-base">{tPages('chart_monthly')}</CardTitle>
             </CardHeader>
             <CardContent>
-              <AccentBarChart
-                data={(charts?.monthly ?? []).map((m) => ({
-                  label: String(m.month ?? '').slice(5) || String(m.month ?? ''),
-                  value: Number(m.total ?? 0),
-                }))}
-              />
+              <ChartBars rows={(charts?.monthly ?? []).map((m) => ({ label: String(m.month ?? ''), value: Number(m.total ?? 0) }))} />
             </CardContent>
           </Card>
         ) : null}
+      </div>
+    );
+  }
+
+  if (tab === 'sites') {
+    return (
+      <div className="space-y-4">
+        <StatGrid
+          stats={stats}
+          keys={[
+            { key: 'sites_total', label: tDash('ops.sitesTotal') },
+            { key: 'sites_ready', label: tDash('ops.sitesReady') },
+            { key: 'sites_failed', label: tDash('ops.sitesFailed') },
+            { key: 'sites_problems', label: tDash('ops.sitesProblems') },
+            { key: 'sites_created', label: t('statLabels.sites_created') },
+          ]}
+        />
+        <DataTable
+          title={tPages('problem_sites')}
+          rows={(tables.problem_sites as Record<string, unknown>[]) ?? []}
+          columns={[
+            { key: 'domain', label: cols.domain },
+            { key: 'status', label: cols.status },
+            { key: 'reason', label: cols.reason },
+          ]}
+        />
+      </div>
+    );
+  }
+
+  if (tab === 'marketing') {
+    return (
+      <div className="space-y-4">
+        <StatGrid
+          stats={stats}
+          keys={[
+            { key: 'published_pages', label: tDash('ops.publishedPages') },
+            { key: 'form_submissions', label: tDash('ops.formSubmissions') },
+            { key: 'published_posts', label: tDash('ops.publishedPosts') },
+            { key: 'announcements', label: tDash('ops.announcements') },
+            { key: 'scheduled_content', label: tDash('ops.scheduledContent') },
+            { key: 'leads_in_range', label: t('statLabels.total_leads') },
+          ]}
+        />
+        {(charts?.daily?.length ?? 0) > 0 ? (
+          <Card>
+            <CardHeader className="py-3">
+              <CardTitle className="text-base">{tPages('chart_submissions')}</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <ChartBars rows={(charts?.daily ?? []).map((row) => ({ label: String(row.date ?? ''), value: Number(row.total ?? 0) }))} />
+            </CardContent>
+          </Card>
+        ) : null}
+      </div>
+    );
+  }
+
+  if (tab === 'notifications') {
+    return (
+      <div className="space-y-4">
+        <StatGrid
+          stats={stats}
+          keys={[
+            { key: 'notifications_total', label: tDash('ops.notifications') },
+            { key: 'unread_notifications', label: tDash('ops.unread') },
+          ]}
+        />
+        <DataTable
+          title={tPages('recent_notifications')}
+          rows={(tables.recent_notifications as Record<string, unknown>[]) ?? []}
+          columns={[
+            { key: 'title', label: cols.title },
+            { key: 'created_at', label: cols.when },
+            { key: 'is_read', label: cols.read },
+          ]}
+        />
       </div>
     );
   }
@@ -337,6 +445,10 @@ export function ReportsTabPanel({ tab, payload }: Props) {
           { key: 'conversion_rate', label: tPages('conversion_rate') },
           { key: 'total_revenue', label: t('statLabels.total_revenue') },
           { key: 'total_tickets', label: t('statLabels.total_tickets') },
+          { key: 'sites_problems', label: tDash('ops.sitesProblems') },
+          { key: 'form_submissions', label: tDash('ops.formSubmissions') },
+          { key: 'unread_notifications', label: tDash('ops.unread') },
+          { key: 'invoice_total', label: tDash('ops.invoiceTotal') },
         ]}
       />
       {(charts?.daily?.length ?? 0) > 0 ? (
@@ -345,12 +457,7 @@ export function ReportsTabPanel({ tab, payload }: Props) {
             <CardTitle className="text-base">{tPages('chart_daily')}</CardTitle>
           </CardHeader>
           <CardContent>
-            <AccentBarChart
-              data={(charts?.daily ?? []).slice(-14).map((d) => ({
-                label: String(d.date ?? d.day ?? '').slice(5),
-                value: Number(d.total ?? 0),
-              }))}
-            />
+            <ChartBars rows={(charts?.daily ?? []).slice(-14).map((d) => ({ label: String(d.date ?? d.day ?? ''), value: Number(d.total ?? 0) }))} />
           </CardContent>
         </Card>
       ) : null}
