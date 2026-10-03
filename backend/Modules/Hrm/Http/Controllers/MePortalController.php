@@ -32,7 +32,16 @@ class MePortalController extends Controller
             return null;
         }
 
-        return HrmEmployee::query()->where('user_id', $userId)->first();
+        $employee = HrmEmployee::query()->where('user_id', $userId)->first();
+        if ($employee) {
+            return $employee;
+        }
+        $email = auth()->user()?->email;
+        if (! $email) {
+            return null;
+        }
+
+        return HrmEmployee::query()->where('email', $email)->first();
     }
 
     protected function noEmployeePayload(): array
@@ -287,9 +296,21 @@ class MePortalController extends Controller
         }
 
         $data = $request->validate([
-            'action' => 'nullable|in:in,out',
+            'action' => 'nullable|string|max:32',
+            'type' => 'nullable|string|max:32',
             'notes' => 'nullable|string|max:500',
         ]);
+        $raw = strtolower(str_replace([' ', '-'], '_', (string) ($data['action'] ?? $data['type'] ?? '')));
+        $actionMap = [
+            'in' => 'in', 'check_in' => 'in', 'checkin' => 'in',
+            'out' => 'out', 'check_out' => 'out', 'checkout' => 'out',
+        ];
+        if ($raw !== '' && ! isset($actionMap[$raw])) {
+            throw \Illuminate\Validation\ValidationException::withMessages([
+                'action' => 'Action must be check-in (in) or check-out (out).',
+            ]);
+        }
+        $data['action'] = $raw === '' ? null : $actionMap[$raw];
 
         $today = now()->toDateString();
         $record = HrmAttendanceRecord::query()->firstOrCreate(

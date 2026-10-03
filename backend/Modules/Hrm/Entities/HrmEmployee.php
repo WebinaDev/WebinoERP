@@ -15,7 +15,7 @@ class HrmEmployee extends Model
 
     protected $fillable = [
         'user_id', 'employee_code', 'first_name', 'last_name', 'email', 'mobile',
-        'department', 'position', 'hire_date', 'status', 'base_salary', 'notes',
+        'department', 'position', 'hire_date', 'contract_start_date', 'status', 'base_salary', 'notes',
         'shift_template_id', 'created_by',
         'engagement_type', 'pay_basis', 'project_fee', 'daily_rate', 'hourly_rate',
         'insurance_applicable', 'tax_applicable',
@@ -24,6 +24,7 @@ class HrmEmployee extends Model
 
     protected $casts = [
         'hire_date' => 'date',
+        'contract_start_date' => 'date',
         'contract_end_date' => 'date',
         'base_salary' => 'decimal:2',
         'project_fee' => 'decimal:2',

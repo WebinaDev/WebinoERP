@@ -29,6 +29,12 @@ class StaffNestedController extends Controller
 
     public function store(Request $request): JsonResponse
     {
+        if ($request->boolean('onboarding')) {
+            $employee = app(\Modules\Hrm\Services\HrmEmployeeOnboarding::class)->create($request);
+
+            return response()->json(['data' => $employee, 'message' => 'Staff created'], 201);
+        }
+
         $data = $request->validate([
             'employee_code' => 'required|string|max:50|unique:hrm_employees,employee_code',
             'first_name' => 'required|string|max:100',

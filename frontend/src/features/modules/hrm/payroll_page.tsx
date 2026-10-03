@@ -8,8 +8,6 @@ import { HrmPageLayout, HrmStatus } from '@/features/modules/hrm/HrmPageLayout';
 import { useCrmFeedback } from '@/features/shared/hooks/useCrmFeedback';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Textarea } from '@/components/ui/textarea';
 import { Card, CardContent } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -29,14 +27,14 @@ import {
 } from '@/components/ui/select';
 import { useLocale } from '@/hooks/use-locale-next';
 import { toJalali } from '@/lib/locale/calendar-date';
+import { PayrollSettingsPanel } from '@/features/modules/hrm/payroll_settings_panel';
+import { PayrollPeriodFields } from '@/features/modules/hrm/jalali_period_fields';
 import { PageEmptyState, PageLoadingState } from '@/features/shared/ui/PageStates';
 import {
   createPayrollRun,
   getPayrollComponents,
   getPayrollRuns,
-  getPayrollSettings,
   savePayrollComponent,
-  savePayrollSettings,
 } from '@/lib/api/hrm';
 import { dashboardHref } from '@/lib/route-resolver';
 import { normalizeListPayload } from '@/lib/list-utils';
@@ -51,22 +49,6 @@ export function PayrollPage() {
   const [tab, setTab] = useState('runs');
   const [rows, setRows] = useState<Record<string, unknown>[]>([]);
   const [components, setComponents] = useState<Record<string, unknown>[]>([]);
-  const [brackets, setBrackets] = useState('');
-  const [settings, setSettings] = useState<Record<string, string>>({
-    employee_insurance_percent: '7',
-    employer_insurance_percent: '20',
-    unemployment_insurance_percent: '3',
-    overtime_multiplier: '1.4',
-    monthly_hours: '220',
-    mission_daily_allowance: '0',
-    minimum_monthly_wage: '0',
-    minimum_daily_wage: '0',
-    minimum_hourly_wage: '0',
-    working_days_per_month: '30',
-    eydi_month: '12',
-    insurance_ceiling: '0',
-    insurance_deductible_fraction: '0.285714',
-  });
   const [loading, setLoading] = useState(true);
   const [runDialog, setRunDialog] = useState(false);
   const [compDialog, setCompDialog] = useState(false);
@@ -80,6 +62,7 @@ export function PayrollPage() {
   });
   const [compForm, setCompForm] = useState({
     name: '',
+    code: '',
     type: 'earning',
     calculation: 'fixed',
     default_amount: '',
@@ -88,23 +71,12 @@ export function PayrollPage() {
   const load = useCallback(async () => {
     setLoading(true);
     try {
-      const [runsRes, compRes, settingsRes] = await Promise.all([
+      const [runsRes, compRes] = await Promise.all([
         getPayrollRuns(),
         getPayrollComponents(),
-        getPayrollSettings(),
       ]);
       setRows(normalizeListPayload(runsRes as { data?: unknown }));
       setComponents(normalizeListPayload(compRes as { data?: unknown }));
-      const raw = (settingsRes as { data?: Record<string, unknown> })?.data ?? (settingsRes as Record<string, unknown>) ?? {};
-      const s = raw as Record<string, unknown>;
-      setSettings((prev) => {
-        const next = { ...prev };
-        for (const key of Object.keys(next)) {
-          if (s[key] != null && typeof s[key] !== 'object') next[key] = String(s[key]);
-        }
-        return next;
-      });
-      if (s.tax_brackets) setBrackets(JSON.stringify(s.tax_brackets, null, 2));
     } catch (err) {
       applyAxiosError(err);
     } finally {
@@ -136,36 +108,20 @@ export function PayrollPage() {
     }
   };
 
-  const handleSaveSettings = async () => {
-    setSubmitting(true);
-    try {
-      const payload: Record<string, unknown> = {};
-      for (const [k, v] of Object.entries(settings)) {
-        if (v !== '') payload[k] = Number(v);
-      }
-      if (brackets.trim()) payload.tax_brackets = JSON.parse(brackets);
-      await savePayrollSettings(payload);
-      setSuccess(tNav('common.saved'));
-    } catch (err) {
-      applyAxiosError(err);
-    } finally {
-      setSubmitting(false);
-    }
-  };
-
   const handleSaveComponent = async () => {
     if (!compForm.name.trim()) return;
     setSubmitting(true);
     try {
       await savePayrollComponent({
         name: compForm.name.trim(),
+        code: compForm.code.trim() || null,
         type: compForm.type,
-        calculation: compForm.calculation || null,
+        calculation: compForm.calculation || 'fixed',
         default_amount: compForm.default_amount !== '' ? Number(compForm.default_amount) : 0,
         is_active: true,
       });
       setCompDialog(false);
-      setCompForm({ name: '', type: 'earning', calculation: 'fixed', default_amount: '' });
+      setCompForm({ name: '', code: '', type: 'earning', calculation: 'fixed', default_amount: '' });
       setSuccess(tNav('common.saved'));
       void load();
     } catch (err) {
@@ -241,42 +197,7 @@ export function PayrollPage() {
           </Card>
         </TabsContent>
 
-        <TabsContent value="settings">
-          <Card>
-            <CardContent className="grid max-w-xl gap-4 pt-6">
-              <p className="text-sm text-muted-foreground">{t('iranianDefaultsHint')}</p>
-              {(
-                [
-                  ['employee_insurance_percent', 'settings.employeeInsurance'],
-                  ['employer_insurance_percent', 'settings.employerInsurance'],
-                  ['unemployment_insurance_percent', 'settings.unemployment'],
-                  ['overtime_multiplier', 'settings.overtimeMultiplier'],
-                  ['monthly_hours', 'settings.monthlyHours'],
-                  ['mission_daily_allowance', 'settings.missionDaily'],
-                  ['minimum_monthly_wage', 'settings.minimumWage'],
-                  ['minimum_daily_wage', 'settings.minimumDaily'],
-                  ['minimum_hourly_wage', 'settings.minimumHourly'],
-                  ['working_days_per_month', 'settings.workingDays'],
-                  ['eydi_month', 'settings.eydiMonth'],
-                  ['insurance_ceiling', 'settings.insuranceCeiling'],
-                  ['insurance_deductible_fraction', 'settings.insuranceFraction'],
-                ] as const
-              ).map(([key, label]) => (
-                <div key={key} className="space-y-1">
-                  <Label>{t(label)}</Label>
-                  <Input type="number" value={settings[key] ?? ''} onChange={(e) => setSettings((s) => ({ ...s, [key]: e.target.value }))} />
-                </div>
-              ))}
-              <div className="space-y-1">
-                <Label>{t('settings.taxBrackets')}</Label>
-                <Textarea className="min-h-40 font-mono text-xs" value={brackets} onChange={(e) => setBrackets(e.target.value)} />
-              </div>
-              <Button className="w-fit" onClick={() => void handleSaveSettings()} disabled={submitting}>
-                {tNav('common.save')}
-              </Button>
-            </CardContent>
-          </Card>
-        </TabsContent>
+        <TabsContent value="settings"><PayrollSettingsPanel /></TabsContent>
 
         <TabsContent value="components">
           <Card>
@@ -297,7 +218,7 @@ export function PayrollPage() {
                     components.map((c) => (
                       <TableRow key={String(c.id)}>
                         <TableCell>{String(c.name ?? '')}</TableCell>
-                        <TableCell>{String(c.type ?? '')}</TableCell>
+                        <TableCell>{String(c.type) === 'deduction' ? t('deduction') : t('earning')}</TableCell>
                         <TableCell>
                           {c.default_amount != null && c.default_amount !== ''
                             ? formatNumber(Number(c.default_amount))
@@ -319,10 +240,12 @@ export function PayrollPage() {
           <DialogHeader><DialogTitle>{t('newPayrollRun')}</DialogTitle></DialogHeader>
           <div className="space-y-3 py-2">
             <Input placeholder={t('runTitle')} value={runForm.title} onChange={(e) => setRunForm((f) => ({ ...f, title: e.target.value }))} />
-            <div className="grid grid-cols-2 gap-2">
-              <Input type="number" placeholder={t('year')} value={runForm.year} onChange={(e) => setRunForm((f) => ({ ...f, year: e.target.value }))} />
-              <Input type="number" min={1} max={12} placeholder={t('month')} value={runForm.month} onChange={(e) => setRunForm((f) => ({ ...f, month: e.target.value }))} />
-            </div>
+            <PayrollPeriodFields
+              year={runForm.year}
+              month={runForm.month}
+              onYear={(v) => setRunForm((f) => ({ ...f, year: v }))}
+              onMonth={(v) => setRunForm((f) => ({ ...f, month: v }))}
+            />
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setRunDialog(false)}>{tNav('common.cancel')}</Button>
@@ -336,11 +259,20 @@ export function PayrollPage() {
           <DialogHeader><DialogTitle>{t('newComponent')}</DialogTitle></DialogHeader>
           <div className="space-y-3 py-2">
             <Input placeholder={t('componentName')} value={compForm.name} onChange={(e) => setCompForm((f) => ({ ...f, name: e.target.value }))} />
+            <Input placeholder={t('wizard.componentCode')} value={compForm.code} onChange={(e) => setCompForm((f) => ({ ...f, code: e.target.value }))} />
             <Select value={compForm.type} onValueChange={(v) => setCompForm((f) => ({ ...f, type: v }))}>
               <SelectTrigger><SelectValue /></SelectTrigger>
               <SelectContent>
                 <SelectItem value="earning">{t('earning')}</SelectItem>
                 <SelectItem value="deduction">{t('deduction')}</SelectItem>
+              </SelectContent>
+            </Select>
+            <Select value={compForm.calculation} onValueChange={(v) => setCompForm((f) => ({ ...f, calculation: v }))}>
+              <SelectTrigger><SelectValue /></SelectTrigger>
+              <SelectContent>
+                {['fixed', 'percent_base', 'per_insured_dependent', 'marital', 'eydi', 'severance'].map((code) => (
+                  <SelectItem key={code} value={code}>{t(`wizard.calc.${code}`)}</SelectItem>
+                ))}
               </SelectContent>
             </Select>
             <Input placeholder={t('defaultAmount')} type="number" value={compForm.default_amount} onChange={(e) => setCompForm((f) => ({ ...f, default_amount: e.target.value }))} />

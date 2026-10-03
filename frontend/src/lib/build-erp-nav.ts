@@ -16,6 +16,7 @@ function moduleMenuChildren(
 ): DashboardModule[] {
   const children: DashboardModule[] = items
     .filter((item) => allow(item.requiredPermission))
+    .filter((item) => !item.children || item.children.some((ch) => allow(ch.requiredPermission)))
     .map((item) => ({
       id: item.id,
       title: t(item.titleKey),

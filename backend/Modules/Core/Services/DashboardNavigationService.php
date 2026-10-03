@@ -195,7 +195,7 @@ class DashboardNavigationService
             ['id' => 'dashboard', 'title' => 'داشبورد', 'href' => $base, 'icon' => 'Home'],
         ];
         if ($this->moduleEnabled('hrm')) {
-            $items[] = ['type' => 'category', 'title' => 'منابع انسانی'];
+            $items[] = ['type' => 'category', 'title' => 'مدیریت منابع انسانی'];
             foreach ([
                 ['hrm-staff', 'کارکنان', '/hrm/staff', 'Users'],
                 ['hrm-attendance', 'حضور و غیاب', '/hrm/attendance', 'CalendarCheck'],
@@ -213,9 +213,21 @@ class DashboardNavigationService
                 $items[] = ['id' => $id, 'title' => $title, 'href' => $base.$href, 'icon' => $icon];
             }
         }
+        $items[] = ['type' => 'category', 'title' => 'پورتال پرسنلی'];
+        foreach ([
+            ['hrm-me', 'پورتال من', '/hrm/me', 'LayoutDashboard'],
+            ['hrm-my-time', 'زمان و حضور', '/hrm/my-time', 'Clock'],
+            ['hrm-my-payroll', 'فیش من', '/hrm/my-payroll', 'Wallet'],
+            ['hrm-my-docs', 'مدارک من', '/hrm/my-docs', 'FileText'],
+            ['hrm-my-insurance', 'بیمه من', '/hrm/my-insurance', 'Shield'],
+            ['hrm-my-org', 'سازمان من', '/hrm/my-org', 'Building'],
+            ['hrm-my-profile', 'پروفایل پرسنلی', '/hrm/my-profile', 'UserCircle'],
+            ['hrm-my-requests', 'درخواست‌های من', '/hrm/my-requests', 'Inbox'],
+        ] as [$id, $title, $href, $icon]) {
+            $items[] = ['id' => $id, 'title' => $title, 'href' => $base.$href, 'icon' => $icon];
+        }
         $items[] = ['type' => 'category', 'title' => 'حساب کاربری'];
         $items[] = ['id' => 'profile', 'title' => 'پروفایل من', 'href' => $base.'/profile', 'icon' => 'UserCircle'];
-        $items[] = ['id' => 'hrm-me', 'title' => 'پورتال من', 'href' => $base.'/hrm/me', 'icon' => 'LayoutDashboard'];
 
         return $items;
     }
@@ -250,6 +262,9 @@ class DashboardNavigationService
             $items[] = ['id' => 'hrm-my-time', 'title' => 'حضور', 'href' => $base.'/hrm/my-time', 'icon' => 'Clock'];
             $items[] = ['id' => 'hrm-leave', 'title' => 'مرخصی', 'href' => $base.'/hrm/leave', 'icon' => 'Calendar'];
             $items[] = ['id' => 'hrm-my-requests', 'title' => 'درخواست‌ها', 'href' => $base.'/hrm/my-requests', 'icon' => 'Inbox'];
+            $items[] = ['id' => 'hrm-my-insurance', 'title' => 'بیمه من', 'href' => $base.'/hrm/my-insurance', 'icon' => 'Shield'];
+            $items[] = ['id' => 'hrm-my-profile', 'title' => 'پروفایل پرسنلی', 'href' => $base.'/hrm/my-profile', 'icon' => 'UserCircle'];
+            $items[] = ['id' => 'hrm-my-org', 'title' => 'سازمان من', 'href' => $base.'/hrm/my-org', 'icon' => 'Building'];
         }
 
         $items[] = ['type' => 'category', 'title' => 'حساب کاربری'];

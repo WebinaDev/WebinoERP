@@ -13,6 +13,8 @@ import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from '
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { PageEmptyState, PageLoadingState } from '@/features/shared/ui/PageStates';
 import { useLocale } from '@/hooks/use-locale-next';
+import { HrmEmployeeSelect } from '@/features/modules/hrm/hrm_employee_select';
+import { Label } from '@/components/ui/label';
 import { getLoans, saveLoan, settleLoan } from '@/lib/api/hrm';
 import { normalizeListPayload } from '@/lib/list-utils';
 
@@ -124,7 +126,7 @@ export function LoansPage() {
         <DialogContent>
           <DialogHeader><DialogTitle>{t('loans.new')}</DialogTitle></DialogHeader>
           <div className="space-y-3 py-2">
-            <Input placeholder={t('loans.employeeId')} value={form.employee_id} onChange={(e) => setForm((f) => ({ ...f, employee_id: e.target.value }))} />
+            <div className="space-y-1"><Label>{t('employee')}</Label><HrmEmployeeSelect value={form.employee_id} onChange={(id) => setForm((f) => ({ ...f, employee_id: id }))} /></div>
             <Select value={form.type} onValueChange={(v) => setForm((f) => ({ ...f, type: v }))}>
               <SelectTrigger><SelectValue /></SelectTrigger>
               <SelectContent>

@@ -214,7 +214,9 @@
         "myLearning": "آموزش من",
         "myTimesheets": "تایم‌شیت من",
         "myOkrs": "اهداف من",
-        "myShifts": "شیفت من"
+        "myShifts": "شیفت من",
+        "myPortalGroup": "پورتال من",
+        "managerGroup": "مدیریت منابع انسانی"
       },
       "finance": {
         "group": "مدیریت مالی و حسابداری",
@@ -3102,15 +3104,43 @@
       "preview": "پیش‌نمایش",
       "payslipId": "شناسه ردیف فیش",
       "decreeId": "شناسه حکم",
-      "placeholders": "پس از ذخیره، با شناسه رکورد پیش‌نمایش بگیرید."
+      "placeholders": "پس از ذخیره، با شناسه رکورد پیش‌نمایش بگیرید.",
+      "editor": "ویرایش قالب",
+      "pickDecree": "انتخاب حکم",
+      "pickPayslip": "انتخاب فیش",
+      "vars": {
+        "employee_name": "نام",
+        "personnel_code": "کد ملی",
+        "period": "دوره",
+        "base": "مبنا",
+        "gross": "ناخالص",
+        "net": "خالص",
+        "tax": "مالیات",
+        "employee_insurance": "بیمه کارگر",
+        "law_year_label": "سال قانون",
+        "decree_no": "شماره حکم",
+        "job_title": "سمت",
+        "department": "بخش",
+        "contract_type": "نوع قرارداد",
+        "engagement_type": "نوع همکاری",
+        "pay_basis": "مبنای پرداخت",
+        "effective_from": "شروع",
+        "effective_to": "پایان",
+        "base_salary": "حقوق پایه",
+        "benefits_rows": "مزایا"
+      }
     },
     "documents": {
       "hint": "مدارک پرسنلی (کارت ملی، قرارداد و غیره) برای هر کارمند.",
       "title": "عنوان مدرک",
-      "category": "دسته (national_card, contract, other)",
+      "category": "دسته مدرک",
       "upload": "بارگذاری",
       "mine": "مدارک پرسنلی",
-      "missing": "مدارک ناقص"
+      "missing": "مدارک ناقص",
+      "pickEmployee": "کارمند",
+      "pickFirst": "ابتدا کارمند را انتخاب کنید، بعد مدارک را تکمیل کنید.",
+      "file": "فایل",
+      "defaultSigner": "منابع انسانی"
     },
     "requests": {
       "new": "درخواست جدید",
@@ -3136,8 +3166,28 @@
       "eydiMonth": "ماه پرداخت عیدی",
       "insuranceCeiling": "سقف دستمزد مشمول بیمه (۰ = بدون سقف)",
       "insuranceFraction": "کسر مالیاتی حق بیمه (۲/۷)",
-      "taxBrackets": "پلکان مالیات ماهانه (JSON، هم‌واحد با حقوق)",
-      "minWageRule": "کف مزد فقط برای تمام‌وقت اعمال می‌شود مگر min_wage_engagements را تغییر دهید."
+      "taxBrackets": "پلکان مالیات ماهانه",
+      "minWageRule": "کف مزد فقط برای تمام‌وقت اعمال می‌شود مگر min_wage_engagements را تغییر دهید.",
+      "sectionInsurance": "بیمه",
+      "sectionWage": "کف مزد و سنوات",
+      "sectionTime": "زمان، عیدی و سنوات",
+      "sectionFlags": "دامنه و قواعد",
+      "seniorityDaily": "نرخ روزانه پایه سنوات",
+      "seniorityMonthly": "مبلغ ماهانه پایه سنوات",
+      "eydiFactor": "ضریب عیدی (ماه مزد)",
+      "eydiCap": "سقف عیدی (چند برابر حداقل مزد)",
+      "severanceMonths": "ماه‌های سنوات در هر سال",
+      "lawYear": "سال قانونی (شمسی)",
+      "lawYearLabel": "برچسب سال قانونی",
+      "eydiProrate": "عیدی متناسب با ماه کارکرد",
+      "severanceProrate": "سنوات متناسب با ماه سابقه",
+      "minWageEngagements": "اعمال کف مزد برای",
+      "benefitEngagements": "اعمال مزایا برای",
+      "taxBracketHint": "سقف خالی یعنی پلکان آخر. نرخ به درصد است.",
+      "bracketUpTo": "تا مبلغ",
+      "bracketOpen": "بدون سقف",
+      "bracketRate": "نرخ ٪",
+      "addBracket": "افزودن پله"
     },
     "contract": {
       "type": "نوع قرارداد",
@@ -3169,7 +3219,18 @@
       "issued": "فیش صادر شد.",
       "emptyPreview": "فیش اینجا نمایش داده می‌شود.",
       "tax": "مالیات حقوق",
-      "employerInsurance": "بیمه سهم کارفرما"
+      "employerInsurance": "بیمه سهم کارفرما",
+      "lines": {
+        "bon": "بن",
+        "housing": "حق مسکن",
+        "child": "حق اولاد",
+        "seniority": "پایه سنوات",
+        "reward": "پاداش",
+        "eydi": "عیدی",
+        "bon_card": "بن‌کارت",
+        "marital": "حق تأهل",
+        "severance": "سنوات"
+      }
     },
     "insurance": {
       "covered": "تحت پوشش",
@@ -3279,6 +3340,118 @@
         "labor": "خالص حقوق",
         "heatmap": "نقشه حضور"
       }
+    },
+    "wizard": {
+      "title": "استخدام کارمند",
+      "editTitle": "ویرایش کارمند",
+      "stepIdentity": "هویت",
+      "stepOrg": "سازمان",
+      "stepContract": "قرارداد",
+      "stepCompensation": "حقوق و مزایا",
+      "stepDocuments": "مدارک",
+      "nationalIdLabel": "کد ملی (کد پرسنلی)",
+      "nationalIdHint": "کد پرسنلی همان کد ملی ۱۰ رقمی است.",
+      "nationalIdInvalid": "کد ملی باید ۱۰ رقم و معتبر باشد.",
+      "hireDateLabel": "تاریخ استخدام / Hire date",
+      "contractStartLabel": "شروع قرارداد / Contract start",
+      "contractEndLabel": "پایان قرارداد / Contract end",
+      "status": "وضعیت",
+      "gender": "جنسیت",
+      "contractType": "نوع قرارداد",
+      "contractStatus": "وضعیت قرارداد",
+      "engagementType": "نوع همکاری",
+      "payBasis": "مبنای پرداخت",
+      "insurance": "مشمول بیمه",
+      "tax": "مشمول مالیات",
+      "issueDecree": "صدور حکم استخدام",
+      "decreeHint": "نمایه حکم با سمت، نوع همکاری، مبنا و مبالغ همین فرم ذخیره می‌شود.",
+      "baseSalary": "حقوق پایه ماهانه",
+      "dailyRate": "نرخ روزانه",
+      "hourlyRate": "نرخ ساعتی",
+      "projectFee": "حق‌الزحمه پروژه",
+      "componentsHint": "مبلغ هر مزایا یا کسور را برای همین کارمند تنظیم کنید. صفر یعنی آن جزء در فیش این شخص اعمال نمی‌شود.",
+      "componentAmount": "مبلغ",
+      "componentCode": "کد جزء",
+      "includeComponent": "اعمال شود",
+      "noComponents": "جزء حقوقی فعالی در سیستم نیست. از تب اجزای حقوق اضافه کنید.",
+      "noPositions": "پست سازمانی ثبت نشده. ابتدا در تب ساختار سازمانی سمت و بخش را بسازید.",
+      "department": "بخش",
+      "position": "سمت",
+      "selectDepartment": "انتخاب بخش",
+      "selectPosition": "انتخاب سمت",
+      "noDepartment": "بدون بخش",
+      "documentOptional": "مدرک اختیاری است و پس از ثبت کارمند بارگذاری می‌شود.",
+      "documentTitle": "عنوان مدرک",
+      "documentCategory": "دسته مدرک",
+      "documentFile": "فایل",
+      "searchEmployee": "جستجوی نام یا کد ملی",
+      "required": "موارد الزامی این مرحله را کامل کنید.",
+      "dateOrder": "پایان قرارداد نمی‌تواند قبل از شروع باشد.",
+      "finish": "ثبت کارمند",
+      "periodYear": "سال شمسی",
+      "periodMonth": "ماه شمسی",
+      "periodDate": "تاریخ دوره (شمسی)",
+      "employeeStatuses": {
+        "active": "فعال",
+        "inactive": "غیرفعال",
+        "terminated": "خاتمه همکاری",
+        "resigned": "استعفا"
+      },
+      "genders": {
+        "unspecified": "نامشخص",
+        "female": "زن",
+        "male": "مرد",
+        "other": "سایر"
+      },
+      "contractTypes": {
+        "permanent": "دائم",
+        "fixed_term": "مدت‌معین",
+        "temporary": "آزمایشی",
+        "hourly": "ساعتی",
+        "project": "پروژه‌ای",
+        "internship": "کارآموزی",
+        "consulting": "مشاوره"
+      },
+      "contractStatuses": {
+        "draft": "پیش‌نویس",
+        "active": "فعال",
+        "suspended": "معلق",
+        "expired": "منقضی",
+        "terminated": "خاتمه‌یافته",
+        "renewed": "تمدید شده"
+      },
+      "docCategories": {
+        "national_card": "کارت ملی",
+        "contract": "قرارداد",
+        "decree": "حکم",
+        "certificate": "گواهی",
+        "other": "سایر"
+      },
+      "calc": {
+        "fixed": "مبلغ ثابت",
+        "percent_base": "درصد از مبنا",
+        "per_insured_dependent": "به ازای هر فرد تحت تکفل",
+        "marital": "حق تأهل",
+        "eydi": "عیدی",
+        "severance": "سنوات"
+      }
+    },
+    "months": {
+      "1": "فروردین",
+      "2": "اردیبهشت",
+      "3": "خرداد",
+      "4": "تیر",
+      "5": "مرداد",
+      "6": "شهریور",
+      "7": "مهر",
+      "8": "آبان",
+      "9": "آذر",
+      "10": "دی",
+      "11": "بهمن",
+      "12": "اسفند"
+    },
+    "attendance": {
+      "pickEmployee": "کارمند برای ورود/خروج"
     }
   },
   "mfg": {

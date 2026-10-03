@@ -110,7 +110,7 @@ class PayrollNestedController extends Controller
     {
         $data = $request->validate([
             'title' => 'required|string|max:200',
-            'year' => 'required|integer|min:2000|max:2100',
+            'year' => 'required|integer|min:1300|max:2100',
             'month' => 'required|integer|min:1|max:12',
         ]);
         $data['created_by'] = $request->user()->id;

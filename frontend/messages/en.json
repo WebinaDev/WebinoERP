@@ -214,7 +214,9 @@
         "myLearning": "My learning",
         "myTimesheets": "My timesheets",
         "myOkrs": "My goals",
-        "myShifts": "My shifts"
+        "myShifts": "My shifts",
+        "myPortalGroup": "My HR portal",
+        "managerGroup": "HR management"
       },
       "finance": {
         "group": "Finance & accounting",
@@ -3102,15 +3104,43 @@
       "preview": "Preview",
       "payslipId": "Payslip item id",
       "decreeId": "Decree id",
-      "placeholders": "Save the template, then preview with a record id."
+      "placeholders": "Save the template, then preview with a record id.",
+      "editor": "Template editor",
+      "pickDecree": "Choose decree",
+      "pickPayslip": "Choose payslip",
+      "vars": {
+        "employee_name": "Name",
+        "personnel_code": "National ID",
+        "period": "Period",
+        "base": "Base",
+        "gross": "Gross",
+        "net": "Net",
+        "tax": "Tax",
+        "employee_insurance": "Employee insurance",
+        "law_year_label": "Law year",
+        "decree_no": "Decree no.",
+        "job_title": "Job title",
+        "department": "Department",
+        "contract_type": "Contract type",
+        "engagement_type": "Engagement",
+        "pay_basis": "Pay basis",
+        "effective_from": "Start",
+        "effective_to": "End",
+        "base_salary": "Base salary",
+        "benefits_rows": "Benefits"
+      }
     },
     "documents": {
       "hint": "Personnel files (national ID, contract, etc.) per employee.",
       "title": "Title",
-      "category": "Category (national_card, contract, other)",
+      "category": "Document category",
       "upload": "Upload",
       "mine": "Personnel documents",
-      "missing": "Missing documents"
+      "missing": "Missing documents",
+      "pickEmployee": "Employee",
+      "pickFirst": "Pick an employee first, then complete their documents.",
+      "file": "File",
+      "defaultSigner": "Human resources"
     },
     "requests": {
       "new": "New request",
@@ -3136,8 +3166,28 @@
       "eydiMonth": "Eid bonus month",
       "insuranceCeiling": "Insurable wage ceiling (0 = none)",
       "insuranceFraction": "Tax-deductible fraction of SSO (2/7)",
-      "taxBrackets": "Monthly tax brackets (JSON, same unit as salary)",
-      "minWageRule": "The legal floor applies to full-time unless min_wage_engagements is changed."
+      "taxBrackets": "Monthly tax brackets",
+      "minWageRule": "The legal floor applies to full-time unless min_wage_engagements is changed.",
+      "sectionInsurance": "Insurance",
+      "sectionWage": "Wage floors and seniority",
+      "sectionTime": "Time, bonus and severance",
+      "sectionFlags": "Scope and rules",
+      "seniorityDaily": "Seniority daily rate",
+      "seniorityMonthly": "Seniority monthly amount",
+      "eydiFactor": "Year-end bonus factor (months of wage)",
+      "eydiCap": "Bonus cap (times minimum wage)",
+      "severanceMonths": "Severance months per year",
+      "lawYear": "Law year (Jalali)",
+      "lawYearLabel": "Law year label",
+      "eydiProrate": "Prorate year-end bonus by months worked",
+      "severanceProrate": "Prorate severance by months of service",
+      "minWageEngagements": "Apply the legal floor to",
+      "benefitEngagements": "Apply benefits to",
+      "taxBracketHint": "An empty ceiling is the top bracket. Rate is a percent.",
+      "bracketUpTo": "Up to amount",
+      "bracketOpen": "No ceiling",
+      "bracketRate": "Rate %",
+      "addBracket": "Add bracket"
     },
     "contract": {
       "type": "Contract type",
@@ -3169,7 +3219,18 @@
       "issued": "Payslip issued.",
       "emptyPreview": "The payslip preview appears here.",
       "tax": "Salary tax",
-      "employerInsurance": "Employer insurance"
+      "employerInsurance": "Employer insurance",
+      "lines": {
+        "bon": "Grocery allowance",
+        "housing": "Housing",
+        "child": "Child allowance",
+        "seniority": "Seniority",
+        "reward": "Reward",
+        "eydi": "Year-end bonus",
+        "bon_card": "Gift card",
+        "marital": "Marital allowance",
+        "severance": "Severance"
+      }
     },
     "insurance": {
       "covered": "Covered",
@@ -3279,6 +3340,118 @@
         "labor": "Net pay",
         "heatmap": "Attendance heatmap"
       }
+    },
+    "wizard": {
+      "title": "Hire employee",
+      "editTitle": "Edit employee",
+      "stepIdentity": "Identity",
+      "stepOrg": "Organization",
+      "stepContract": "Contract",
+      "stepCompensation": "Compensation",
+      "stepDocuments": "Documents",
+      "nationalIdLabel": "National ID (personnel code)",
+      "nationalIdHint": "The personnel code is the 10-digit national ID.",
+      "nationalIdInvalid": "Enter a valid 10-digit national ID.",
+      "hireDateLabel": "تاریخ استخدام / Hire date",
+      "contractStartLabel": "شروع قرارداد / Contract start",
+      "contractEndLabel": "پایان قرارداد / Contract end",
+      "status": "Status",
+      "gender": "Gender",
+      "contractType": "Contract type",
+      "contractStatus": "Contract status",
+      "engagementType": "Engagement type",
+      "payBasis": "Pay basis",
+      "insurance": "Subject to insurance",
+      "tax": "Subject to tax",
+      "issueDecree": "Issue employment decree",
+      "decreeHint": "The decree snapshot stores position, engagement, pay basis and these amounts.",
+      "baseSalary": "Monthly base salary",
+      "dailyRate": "Daily rate",
+      "hourlyRate": "Hourly rate",
+      "projectFee": "Project fee",
+      "componentsHint": "Set each benefit or deduction for this employee. Zero skips that component on their payslip.",
+      "componentAmount": "Amount",
+      "componentCode": "Component code",
+      "includeComponent": "Apply",
+      "noComponents": "No active pay components yet. Add them under payroll components.",
+      "noPositions": "No organization positions yet. Add a department and position on the org tab first.",
+      "department": "Department",
+      "position": "Position",
+      "selectDepartment": "Select department",
+      "selectPosition": "Select position",
+      "noDepartment": "No department",
+      "documentOptional": "A document is optional and uploads after the employee is saved.",
+      "documentTitle": "Document title",
+      "documentCategory": "Document category",
+      "documentFile": "File",
+      "searchEmployee": "Search name or national ID",
+      "required": "Complete the required fields on this step.",
+      "dateOrder": "Contract end cannot be before contract start.",
+      "finish": "Save employee",
+      "periodYear": "Year",
+      "periodMonth": "Month",
+      "periodDate": "Period date",
+      "employeeStatuses": {
+        "active": "Active",
+        "inactive": "Inactive",
+        "terminated": "Terminated",
+        "resigned": "Resigned"
+      },
+      "genders": {
+        "unspecified": "Unspecified",
+        "female": "Female",
+        "male": "Male",
+        "other": "Other"
+      },
+      "contractTypes": {
+        "permanent": "Permanent",
+        "fixed_term": "Fixed term",
+        "temporary": "Probation",
+        "hourly": "Hourly",
+        "project": "Project",
+        "internship": "Internship",
+        "consulting": "Consulting"
+      },
+      "contractStatuses": {
+        "draft": "Draft",
+        "active": "Active",
+        "suspended": "Suspended",
+        "expired": "Expired",
+        "terminated": "Terminated",
+        "renewed": "Renewed"
+      },
+      "docCategories": {
+        "national_card": "National ID card",
+        "contract": "Contract",
+        "decree": "Decree",
+        "certificate": "Certificate",
+        "other": "Other"
+      },
+      "calc": {
+        "fixed": "Fixed amount",
+        "percent_base": "Percent of base",
+        "per_insured_dependent": "Per insured dependent",
+        "marital": "Marital allowance",
+        "eydi": "Year-end bonus",
+        "severance": "Severance"
+      }
+    },
+    "months": {
+      "1": "January",
+      "2": "February",
+      "3": "March",
+      "4": "April",
+      "5": "May",
+      "6": "June",
+      "7": "July",
+      "8": "August",
+      "9": "September",
+      "10": "October",
+      "11": "November",
+      "12": "December"
+    },
+    "attendance": {
+      "pickEmployee": "Employee to check in or out"
     }
   },
   "mfg": {

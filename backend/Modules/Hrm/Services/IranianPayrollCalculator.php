@@ -7,6 +7,7 @@ use Modules\Hrm\Entities\HrmDependent;
 use Modules\Hrm\Entities\HrmEmployee;
 use Modules\Hrm\Entities\HrmLoan;
 use Modules\Hrm\Entities\HrmLoanInstallment;
+use Modules\Hrm\Entities\HrmEmployeeSalary;
 use Modules\Hrm\Entities\HrmPayrollComponent;
 use Modules\Hrm\Entities\HrmPayrollSetting;
 use Modules\Hrm\Entities\HrmRequest;
@@ -131,6 +132,8 @@ class IranianPayrollCalculator
             $insuredDependents = $q->count();
         }
 
+        $salaryOverrides = $this->salaryComponentOverrides($employee);
+
         if (Schema::hasTable('hrm_payroll_components')) {
             $components = HrmPayrollComponent::query()->where('is_active', true)->orderBy('id')->get();
             foreach ($components as $component) {
@@ -140,7 +143,14 @@ class IranianPayrollCalculator
                 if (! $applyBenefits) {
                     continue;
                 }
-                $amount = $this->componentAmount($component, $base, $year, $month, $settings, $insuredDependents, $employee);
+                $override = $salaryOverrides[(string) $component->code] ?? null;
+                if (is_array($override) && array_key_exists('enabled', $override) && $override['enabled'] === false) {
+                    continue;
+                }
+                $overrideAmount = is_array($override) && array_key_exists('amount', $override) && $override['amount'] !== null && $override['amount'] !== ''
+                    ? (float) $override['amount']
+                    : null;
+                $amount = $this->componentAmount($component, $base, $year, $month, $settings, $insuredDependents, $employee, $overrideAmount);
                 if ($amount <= 0) {
                     continue;
                 }
@@ -195,7 +205,13 @@ class IranianPayrollCalculator
         $otherDeductions = 0.0;
         if (Schema::hasTable('hrm_payroll_components')) {
             foreach (HrmPayrollComponent::query()->where('is_active', true)->where('type', 'deduction')->get() as $component) {
-                $otherDeductions += (float) $component->default_amount;
+                $override = $salaryOverrides[(string) $component->code] ?? null;
+                if (is_array($override) && array_key_exists('enabled', $override) && $override['enabled'] === false) {
+                    continue;
+                }
+                $otherDeductions += is_array($override) && array_key_exists('amount', $override) && $override['amount'] !== null && $override['amount'] !== ''
+                    ? (float) $override['amount']
+                    : (float) $component->default_amount;
             }
         }
 
@@ -250,10 +266,40 @@ class IranianPayrollCalculator
         return ! in_array($engagement, $defaultOff, true);
     }
 
-    private function componentAmount(object $component, float $base, int $year, int $month, array $settings, int $insuredDependents, ?HrmEmployee $employee = null): float
+    /**
+     * @return array<string, array<string, mixed>>
+     */
+    private function salaryComponentOverrides(HrmEmployee $employee): array
+    {
+        if (! Schema::hasTable('hrm_employee_salaries')) {
+            return [];
+        }
+        $row = HrmEmployeeSalary::query()
+            ->where('employee_id', $employee->id)
+            ->where(function ($q) {
+                $q->whereNull('effective_from')->orWhere('effective_from', '<=', now()->toDateString());
+            })
+            ->orderByDesc('effective_from')
+            ->orderByDesc('id')
+            ->first();
+        if (! $row || ! is_array($row->components)) {
+            return [];
+        }
+        $map = [];
+        foreach ($row->components as $item) {
+            if (! is_array($item) || empty($item['code'])) {
+                continue;
+            }
+            $map[(string) $item['code']] = $item;
+        }
+
+        return $map;
+    }
+
+    private function componentAmount(object $component, float $base, int $year, int $month, array $settings, int $insuredDependents, ?HrmEmployee $employee = null, ?float $overrideAmount = null): float
     {
         $calc = (string) ($component->calculation ?? 'fixed');
-        $amount = (float) $component->default_amount;
+        $amount = $overrideAmount ?? (float) $component->default_amount;
         $code = (string) ($component->code ?? '');
 
         if ($calc === 'percent_base') {

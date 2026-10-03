@@ -71,6 +71,12 @@ class EmployeeController extends Controller
 
     public function update(Request $request, HrmEmployee $employee): JsonResponse
     {
+        if ($request->boolean('onboarding')) {
+            $employee = app(\Modules\Hrm\Services\HrmEmployeeOnboarding::class)->update($request, $employee);
+
+            return response()->json(['data' => $employee, 'message' => 'Employee updated']);
+        }
+
         $data = $request->validate([
             'employee_code' => 'sometimes|string|max:50|unique:hrm_employees,employee_code,'.$employee->id,
             'first_name' => 'sometimes|string|max:100',

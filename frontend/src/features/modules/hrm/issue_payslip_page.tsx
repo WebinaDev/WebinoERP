@@ -3,21 +3,24 @@
 import { useState } from 'react';
 import { useTranslations } from 'next-intl';
 import { HrmPageLayout } from '@/features/modules/hrm/HrmPageLayout';
+import { HrmEmployeeSelect } from '@/features/modules/hrm/hrm_employee_select';
+import { PayrollPeriodFields, usePayrollPeriod } from '@/features/modules/hrm/jalali_period_fields';
 import { useCrmFeedback } from '@/features/shared/hooks/useCrmFeedback';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
 import { Card, CardContent } from '@/components/ui/card';
+import { Label } from '@/components/ui/label';
 import { issueEmployeePayslip } from '@/lib/api/hrm';
+import { useLocale } from '@/hooks/use-locale-next';
 
 export function IssuePayslipPage() {
   const t = useTranslations('hrm');
   const tNav = useTranslations();
+  const { formatNumber } = useLocale();
+  const initial = usePayrollPeriod();
   const { layoutProps, setSuccess, applyAxiosError } = useCrmFeedback();
-  const now = new Date();
   const [employeeId, setEmployeeId] = useState('');
-  const [year, setYear] = useState(String(now.getFullYear()));
-  const [month, setMonth] = useState(String(now.getMonth() + 1));
+  const [year, setYear] = useState(initial.year);
+  const [month, setMonth] = useState(initial.month);
   const [html, setHtml] = useState('');
   const [summary, setSummary] = useState<Record<string, unknown> | null>(null);
   const [busy, setBusy] = useState(false);
@@ -52,23 +55,29 @@ export function IssuePayslipPage() {
           <CardContent className="space-y-3 pt-6">
             <p className="text-sm text-muted-foreground">{t('payslip.hint')}</p>
             <div className="space-y-1">
-              <Label>{t('loans.employeeId')}</Label>
-              <Input value={employeeId} onChange={(e) => setEmployeeId(e.target.value)} />
+              <Label>{t('employee')}</Label>
+              <HrmEmployeeSelect value={employeeId} onChange={setEmployeeId} />
             </div>
-            <div className="grid grid-cols-2 gap-2">
-              <Input type="number" value={year} onChange={(e) => setYear(e.target.value)} placeholder={t('year')} />
-              <Input type="number" min={1} max={12} value={month} onChange={(e) => setMonth(e.target.value)} placeholder={t('month')} />
-            </div>
+            <PayrollPeriodFields
+              year={year}
+              month={month}
+              onYear={setYear}
+              onMonth={setMonth}
+              onPickDate={(_iso, nextYear, nextMonth) => {
+                setYear(nextYear);
+                setMonth(nextMonth);
+              }}
+            />
             <Button onClick={() => void issue()} disabled={busy || !employeeId}>{t('payslip.issue')}</Button>
             {summary ? (
               <div className="space-y-1 text-sm">
-                <div>{t('gross')}: {String(summary.gross ?? '')}</div>
-                <div>{t('net')}: {String(summary.net ?? '')}</div>
-                <div>{t('settings.employeeInsurance')}: {String(breakdown.employee_insurance ?? '')}</div>
-                <div>{t('payslip.tax')}: {String(breakdown.tax ?? '')}</div>
-                <div>{t('payslip.employerInsurance')}: {String(breakdown.employer_insurance ?? '')}</div>
+                <div>{t('gross')}: {formatNumber(Number(summary.gross ?? 0))}</div>
+                <div>{t('net')}: {formatNumber(Number(summary.net ?? 0))}</div>
+                <div>{t('settings.employeeInsurance')}: {formatNumber(Number(breakdown.employee_insurance ?? 0))}</div>
+                <div>{t('payslip.tax')}: {formatNumber(Number(breakdown.tax ?? 0))}</div>
+                <div>{t('payslip.employerInsurance')}: {formatNumber(Number(breakdown.employer_insurance ?? 0))}</div>
                 {Object.entries(lines).map(([k, v]) => (
-                  <div key={k}>{k}: {String(v)}</div>
+                  <div key={k}>{t.has(`payslip.lines.${k}`) ? t(`payslip.lines.${k}`) : k}: {formatNumber(Number(v))}</div>
                 ))}
               </div>
             ) : null}
