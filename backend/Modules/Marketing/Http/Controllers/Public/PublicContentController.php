@@ -24,8 +24,10 @@ class PublicContentController extends Controller
     public function page(string $slug): JsonResponse
     {
         $page = MarketingPage::query()->published()->where('slug', $slug)->firstOrFail();
+        $data = $page->makeHidden(['builder_draft'])->toArray();
+        $data['document'] = $page->builder_published;
 
-        return response()->json(['data' => $page]);
+        return response()->json(['data' => $data]);
     }
 
     public function blog(Request $request): JsonResponse
@@ -88,10 +90,13 @@ class PublicContentController extends Controller
 
     public function portfolio(Request $request): JsonResponse
     {
-        $query = MarketingPortfolioItem::query()->published()->with(['service', 'industry']);
+        $query = MarketingPortfolioItem::query()->published()->with(['service', 'industry', 'category']);
 
         if ($request->filled('service')) {
             $query->whereHas('service', fn ($q) => $q->where('slug', $request->get('service')));
+        }
+        if ($request->filled('category')) {
+            $query->whereHas('category', fn ($q) => $q->where('slug', $request->get('category')));
         }
         if ($request->filled('industry')) {
             $query->whereHas('industry', fn ($q) => $q->where('slug', $request->get('industry')));
@@ -108,7 +113,7 @@ class PublicContentController extends Controller
     public function portfolioShow(string $slug): JsonResponse
     {
         $item = MarketingPortfolioItem::query()->published()
-            ->where('slug', $slug)->with(['service', 'industry'])->firstOrFail();
+            ->where('slug', $slug)->with(['service', 'industry', 'category'])->firstOrFail();
 
         return response()->json(['data' => $item]);
     }

@@ -58,7 +58,9 @@ export async function middleware(request: NextRequest) {
     return NextResponse.redirect(url)
   }
 
-  const res = NextResponse.next()
+  const requestHeaders = new Headers(request.headers)
+  requestHeaders.set("x-webino-path", `${pathname}${request.nextUrl.search}`)
+  const res = NextResponse.next({ request: { headers: requestHeaders } })
 
   const cookie =
     request.cookies.get("NEXT_LOCALE")?.value ??

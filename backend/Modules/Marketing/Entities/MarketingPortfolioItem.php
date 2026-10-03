@@ -13,9 +13,21 @@ class MarketingPortfolioItem extends Model
     protected $fillable = [
         'slug', 'title', 'description', 'images', 'service_id',
         'industry_id', 'client', 'published', 'published_at',
+        'category_id', 'cover_url', 'result_metric', 'technologies', 'case_study', 'featured',
     ];
 
-    protected $casts = ['images' => 'array', 'published' => 'boolean', 'published_at' => 'datetime'];
+    protected $casts = [
+        'images' => 'array',
+        'technologies' => 'array',
+        'published' => 'boolean',
+        'featured' => 'boolean',
+        'published_at' => 'datetime',
+    ];
+
+    public function category(): BelongsTo
+    {
+        return $this->belongsTo(MarketingPortfolioCategory::class, 'category_id');
+    }
 
     public function service(): BelongsTo
     {

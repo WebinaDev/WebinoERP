@@ -32,6 +32,12 @@ class MarketingPortfolioController extends Controller
             'client' => 'nullable|string|max:255',
             'published' => 'nullable|boolean',
             'published_at' => 'nullable|date',
+            'category_id' => 'nullable|exists:marketing_portfolio_categories,id',
+            'cover_url' => 'nullable|string|max:500',
+            'result_metric' => 'nullable|string|max:255',
+            'technologies' => 'nullable|array',
+            'case_study' => 'nullable|string',
+            'featured' => 'nullable|boolean',
         ];
     }
 }

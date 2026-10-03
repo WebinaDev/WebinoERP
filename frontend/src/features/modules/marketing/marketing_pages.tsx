@@ -1,5 +1,6 @@
 'use client';
 
+import { MarketingMenusPage as MenuAdminPage } from './menu_admin';
 import { MarketingResourcePage } from './marketing_resource_page';
 
 export function MarketingPagesPage() {
@@ -11,6 +12,13 @@ export function MarketingPagesPage() {
         { key: 'slug', labelKey: 'marketing.slug' },
         { key: 'title_fa', labelKey: 'marketing.title' },
         { key: 'published', labelKey: 'marketing.published' },
+      ]}
+      fields={[
+        { key: 'slug', labelKey: 'marketing.slug' },
+        { key: 'title_fa', labelKey: 'marketing.title' },
+        { key: 'title_en', labelKey: 'marketing.titleEn' },
+        { key: 'body_fa', labelKey: 'marketing.body', kind: 'textarea' },
+        { key: 'published', labelKey: 'marketing.published', kind: 'checkbox' },
       ]}
     />
   );
@@ -67,6 +75,44 @@ export function MarketingPortfolioPage() {
         { key: 'slug', labelKey: 'marketing.slug' },
         { key: 'title', labelKey: 'marketing.title' },
         { key: 'client', labelKey: 'marketing.client' },
+        { key: 'result_metric', labelKey: 'marketing.result' },
+        { key: 'published', labelKey: 'marketing.published' },
+      ]}
+      fields={[
+        { key: 'slug', labelKey: 'marketing.slug' },
+        { key: 'title', labelKey: 'marketing.title' },
+        { key: 'client', labelKey: 'marketing.client' },
+        { key: 'description', labelKey: 'marketing.description', kind: 'textarea' },
+        { key: 'case_study', labelKey: 'marketing.caseStudy', kind: 'textarea' },
+        { key: 'result_metric', labelKey: 'marketing.result' },
+        { key: 'cover_url', labelKey: 'marketing.cover' },
+        { key: 'published', labelKey: 'marketing.published', kind: 'checkbox' },
+        { key: 'featured', labelKey: 'marketing.featured', kind: 'checkbox' },
+      ]}
+    />
+  );
+}
+
+export function MarketingMenusPage() {
+  return <MenuAdminPage />;
+}
+
+export function MarketingFormsPage() {
+  return (
+    <MarketingResourcePage
+      titleKey="nav.erp.marketing.forms"
+      endpoint="/v1/marketing/forms"
+      columns={[
+        { key: 'slug', labelKey: 'marketing.slug' },
+        { key: 'title', labelKey: 'marketing.title' },
+        { key: 'published', labelKey: 'marketing.published' },
+      ]}
+      fields={[
+        { key: 'slug', labelKey: 'marketing.slug' },
+        { key: 'title', labelKey: 'marketing.title' },
+        { key: 'description', labelKey: 'marketing.description', kind: 'textarea' },
+        { key: 'success_message', labelKey: 'marketing.success' },
+        { key: 'published', labelKey: 'marketing.published', kind: 'checkbox' },
       ]}
     />
   );

@@ -162,7 +162,13 @@ import {
   MarketingSolutionsPage,
   MarketingTeamPage,
   MarketingTestimonialsPage,
+  MarketingMenusPage,
+  MarketingFormsPage,
 } from '@/features/modules/marketing/marketing_pages';
+import { BuilderEditorPage } from '@/features/marketing-builder/builder-editor-page';
+import { BuilderListPage } from '@/features/marketing-builder/builder-page';
+import { BuilderSettingsPage } from '@/features/marketing-builder/builder-settings-page';
+import { ThemeBuilderPage } from '@/features/marketing-builder/theme-builder-page';
 import { UnknownRoutePage } from '@/features/shell/errors/UnknownRoutePage';
 
 const FINANCE_PAGES: Record<string, ReactNode> = {
@@ -327,6 +333,11 @@ const EXACT: Record<string, ReactNode> = {
   'marketing/announcements': <MarketingAnnouncementsPage />,
   'marketing/testimonials': <MarketingTestimonialsPage />,
   'marketing/downloads': <MarketingDownloadsPage />,
+  'marketing/menus': <MarketingMenusPage />,
+  'marketing/forms': <MarketingFormsPage />,
+  'theme-builder': <ThemeBuilderPage />,
+  builder: <BuilderListPage />,
+  'builder/settings': <BuilderSettingsPage />,
 };
 
 const DETAIL_ROOTS = new Set(['pm/projects', 'projects']);
@@ -428,6 +439,11 @@ export function resolveDashboardPage(path: string): ReactNode {
 
   const platformPage = resolvePlatformPage(normalized);
   if (platformPage) return platformPage;
+
+  if (normalized.startsWith('theme-builder/') || normalized.startsWith('builder/')) {
+    if (EXACT[normalized]) return EXACT[normalized];
+    return <BuilderEditorPage path={normalized} />;
+  }
 
   if (EXACT[normalized]) return EXACT[normalized];
 

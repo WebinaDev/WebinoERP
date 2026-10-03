@@ -1,5 +1,6 @@
 import { getTranslations } from 'next-intl/server';
 import { apiServer } from '@/lib/public-api-server';
+import { loadPublishedPage, StorefrontDocument } from '@/builder/public-document';
 import { LandingPage } from '@/themes/webina-corporate-v1/components/landing/LandingPage';
 
 export const revalidate = 60;
@@ -21,6 +22,11 @@ export default async function SiteHomePage() {
     home = res.data;
   } catch {
     home = null;
+  }
+
+  const publishedHome = await loadPublishedPage('home');
+  if (publishedHome) {
+    return <StorefrontDocument document={publishedHome} />;
   }
 
   return (

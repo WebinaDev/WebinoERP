@@ -1,7 +1,10 @@
 <?php
 
 use Illuminate\Support\Facades\Route;
+use Modules\Marketing\Http\Controllers\Builder\BuilderGlobalsController;
+use Modules\Marketing\Http\Controllers\Builder\PublicBuilderController;
 use Modules\Marketing\Http\Controllers\Public\PublicConsultationController;
+use Modules\Marketing\Http\Controllers\Public\PublicFormsController;
 use Modules\Marketing\Http\Controllers\Public\PublicContentController;
 use Modules\Marketing\Http\Controllers\Public\PublicSiteController;
 
@@ -22,6 +25,13 @@ Route::middleware('throttle:30,1')->group(function () {
     Route::get('/academy', [PublicContentController::class, 'academy']);
     Route::get('/academy/{slug}', [PublicContentController::class, 'academyShow']);
 
+    Route::get('/builder/pages/{slug}', [PublicBuilderController::class, 'page']);
+    Route::get('/builder/templates/{kind}', [PublicBuilderController::class, 'template']);
+    Route::get('/builder/resolve', [PublicBuilderController::class, 'resolve']);
+    Route::get('/builder/globals', [BuilderGlobalsController::class, 'publicShow']);
+    Route::get('/menus/{location}', [PublicFormsController::class, 'menu']);
+    Route::get('/forms/{slug}', [PublicFormsController::class, 'show']);
+
     Route::get('/portfolio', [PublicContentController::class, 'portfolio']);
     Route::get('/portfolio/{slug}', [PublicContentController::class, 'portfolioShow']);
 
@@ -37,4 +47,7 @@ Route::middleware('throttle:30,1')->group(function () {
 });
 
 Route::post('/consultations', [PublicConsultationController::class, 'store'])
+    ->middleware('throttle:5,1');
+
+Route::post('/forms/{slug}', [PublicFormsController::class, 'submit'])
     ->middleware('throttle:5,1');

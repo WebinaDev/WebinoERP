@@ -200,6 +200,12 @@ return [
         'service-categories' => ['view' => 'marketing.pages.view', 'manage' => 'marketing.pages.manage'],
         'solutions' => ['view' => 'marketing.pages.view', 'manage' => 'marketing.pages.manage'],
         'media' => ['view' => 'marketing.media.view', 'manage' => 'marketing.media.manage'],
+        'portfolio-categories' => ['view' => 'marketing.pages.view', 'manage' => 'marketing.pages.manage'],
+        'menus' => ['view' => 'marketing.pages.view', 'manage' => 'marketing.pages.manage'],
+        'menu-items' => ['view' => 'marketing.pages.view', 'manage' => 'marketing.pages.manage'],
+        'forms' => ['view' => 'marketing.pages.view', 'manage' => 'marketing.pages.manage'],
+        'builder' => ['view' => 'marketing.pages.view', 'manage' => 'marketing.pages.manage'],
+        'theme-builder' => ['view' => 'marketing.pages.view', 'manage' => 'marketing.pages.manage'],
         '*' => ['view' => 'marketing.site.view', 'manage' => 'marketing.site.manage'],
     ],
 ];

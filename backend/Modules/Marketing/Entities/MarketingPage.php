@@ -12,9 +12,15 @@ class MarketingPage extends Model
     protected $fillable = [
         'slug', 'title_fa', 'title_en', 'body_fa', 'body_en',
         'template', 'published', 'wp_id', 'meta',
+        'builder_draft', 'builder_published', 'status',
     ];
 
-    protected $casts = ['published' => 'boolean', 'meta' => 'array'];
+    protected $casts = [
+        'published' => 'boolean',
+        'meta' => 'array',
+        'builder_draft' => 'array',
+        'builder_published' => 'array',
+    ];
 
     public function scopePublished(Builder $q): Builder
     {

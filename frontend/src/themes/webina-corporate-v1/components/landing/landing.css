@@ -38,4 +38,31 @@
     opacity: 1;
     transform: none;
   }
+  .orbit-spin,
+  .orbit-spin-rev {
+    animation: none;
+  }
+}
+
+@keyframes webina-spin {
+  to { transform: rotate(360deg); }
+}
+
+.orbit-spin { animation: webina-spin 36s linear infinite; transform-origin: 160px 160px; }
+.orbit-spin-rev { animation: webina-spin 22s linear infinite reverse; transform-origin: 160px 160px; }
+
+.marquee-track {
+  display: flex;
+  gap: 2.5rem;
+  width: max-content;
+  animation: webina-marquee 28s linear infinite;
+}
+
+@keyframes webina-marquee {
+  from { transform: translateX(0); }
+  to { transform: translateX(-50%); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .marquee-track { animation: none; }
 }

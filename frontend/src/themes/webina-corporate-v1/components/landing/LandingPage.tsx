@@ -60,7 +60,8 @@ export function LandingPage({ data }: { data: Cms }) {
         <div className="orb orb-a -start-24 top-10 size-[28rem] bg-[#0066FF]/35" />
         <div className="orb orb-b -end-16 bottom-0 size-[22rem] bg-[#4d94ff]/20" />
         <div className="grain" />
-        <div className="relative mx-auto flex min-h-[88vh] max-w-7xl flex-col justify-center px-4 py-20 lg:px-6">
+        <div className="relative mx-auto grid min-h-[88vh] max-w-7xl items-center gap-10 px-4 py-20 lg:grid-cols-[1.2fr_0.8fr] lg:px-6">
+          <div>
           <p className="hero-kicker mb-5 inline-flex w-fit items-center gap-2 rounded-full border border-white/10 bg-white/5 px-3 py-1 text-xs tracking-wide text-[#9cc4ff]">
             <Sparkles className="size-3.5" />
             {t('site.landing.kicker')}
@@ -91,6 +92,8 @@ export function LandingPage({ data }: { data: Cms }) {
               {t('site.landing.ctaWork')}
             </Link>
           </div>
+          </div>
+          <OrbitMark />
         </div>
       </section>
 
@@ -285,6 +288,32 @@ export function LandingPage({ data }: { data: Cms }) {
         </div>
       </section>
     </article>
+  );
+}
+
+function OrbitMark() {
+  return (
+    <div className="relative mx-auto hidden h-[22rem] w-full max-w-md lg:block" aria-hidden>
+      <svg viewBox="0 0 320 320" className="h-full w-full">
+        <defs>
+          <linearGradient id="webina-orbit" x1="0" y1="0" x2="1" y2="1">
+            <stop offset="0" stopColor="#9cc4ff" />
+            <stop offset="1" stopColor="#0066FF" />
+          </linearGradient>
+        </defs>
+        <circle cx="160" cy="160" r="118" fill="none" stroke="rgba(255,255,255,0.12)" strokeWidth="1" />
+        <g className="orbit-spin">
+          <circle cx="160" cy="160" r="86" fill="none" stroke="url(#webina-orbit)" strokeWidth="1.5" strokeDasharray="8 10" />
+          <circle cx="246" cy="160" r="7" fill="#0066FF" />
+        </g>
+        <g className="orbit-spin-rev">
+          <circle cx="160" cy="160" r="54" fill="none" stroke="rgba(156,196,255,0.7)" strokeWidth="1" />
+          <circle cx="160" cy="106" r="5" fill="#f4f6fb" />
+        </g>
+        <circle cx="160" cy="160" r="28" fill="#0066FF" fillOpacity="0.18" stroke="#6ea8ff" />
+        <path d="M148 160h24M160 148v24" stroke="#f4f6fb" strokeWidth="1.5" />
+      </svg>
+    </div>
   );
 }
 

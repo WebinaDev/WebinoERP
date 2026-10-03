@@ -10,6 +10,9 @@ use Modules\Marketing\Http\Controllers\MarketingFaqController;
 use Modules\Marketing\Http\Controllers\MarketingMagazineController;
 use Modules\Marketing\Http\Controllers\MarketingMediaController;
 use Modules\Marketing\Http\Controllers\MarketingPagesController;
+use Modules\Marketing\Http\Controllers\MarketingFormsController;
+use Modules\Marketing\Http\Controllers\MarketingMenusController;
+use Modules\Marketing\Http\Controllers\MarketingPortfolioCategoriesController;
 use Modules\Marketing\Http\Controllers\MarketingPortfolioController;
 use Modules\Marketing\Http\Controllers\MarketingServiceCategoriesController;
 use Modules\Marketing\Http\Controllers\MarketingServicesController;
@@ -33,7 +36,19 @@ Route::apiResource('blog', MarketingBlogController::class);
 
 Route::apiResource('magazine', MarketingMagazineController::class);
 Route::apiResource('academy', MarketingAcademyController::class);
+Route::apiResource('portfolio-categories', MarketingPortfolioCategoriesController::class);
 Route::apiResource('portfolio', MarketingPortfolioController::class);
+
+Route::get('/menus', [MarketingMenusController::class, 'index']);
+Route::post('/menus', [MarketingMenusController::class, 'store']);
+Route::put('/menus/{id}', [MarketingMenusController::class, 'update']);
+Route::delete('/menus/{id}', [MarketingMenusController::class, 'destroy']);
+Route::post('/menus/{id}/items', [MarketingMenusController::class, 'storeItem']);
+Route::put('/menu-items/{itemId}', [MarketingMenusController::class, 'updateItem']);
+Route::delete('/menu-items/{itemId}', [MarketingMenusController::class, 'destroyItem']);
+
+Route::apiResource('forms', MarketingFormsController::class);
+Route::get('/forms/{id}/submissions', [MarketingFormsController::class, 'submissions']);
 Route::apiResource('faq', MarketingFaqController::class);
 Route::apiResource('team', MarketingTeamController::class);
 Route::apiResource('announcements', MarketingAnnouncementsController::class);

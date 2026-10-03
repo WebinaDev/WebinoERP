@@ -74,6 +74,8 @@ class MarketingSiteSeeder extends Seeder
             ['slug' => 'tourism', 'name' => 'گردشگری', 'pages' => ['رزرو آنلاین', 'بازاریابی مقصد', 'شبکه‌های اجتماعی']],
         ];
 
+        $this->call(WebinaContentSeeder::class);
+
         foreach ($industries as $i => $ind) {
             $industry = MarketingSolutionIndustry::query()->firstOrCreate(
                 ['slug' => $ind['slug']],

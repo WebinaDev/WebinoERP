@@ -1,4 +1,5 @@
 import type { ReactNode } from 'react';
+import { ThemeSlot } from '@/builder/theme/ThemeSlot';
 import { SiteFooter } from '@/themes/webina-corporate-v1/components/SiteFooter';
 import { SiteHeader } from '@/themes/webina-corporate-v1/components/SiteHeader';
 import { getPublicSite } from '@/lib/public-api-server';
@@ -22,9 +23,13 @@ export default async function SiteLayout({
 
   return (
     <div className="flex min-h-svh flex-col bg-[#07070a] text-white [--brand-primary:#0066FF]">
-      <SiteHeader siteName={siteName} logoUrl={logoUrl} />
+      <ThemeSlot kind="header">
+        <SiteHeader siteName={siteName} logoUrl={logoUrl} />
+      </ThemeSlot>
       <main className="flex-1">{children}</main>
-      <SiteFooter siteName={siteName} />
+      <ThemeSlot kind="footer">
+        <SiteFooter siteName={siteName} />
+      </ThemeSlot>
     </div>
   );
 }

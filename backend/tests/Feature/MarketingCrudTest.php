@@ -4,6 +4,7 @@ namespace Tests\Feature;
 
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Modules\Core\Database\Seeders\RolesAndPermissionsSeeder;
 use Modules\Core\Entities\SystemModule;
 use Modules\Marketing\Entities\MarketingPage;
 use Tests\TestCase;
@@ -16,11 +17,13 @@ class MarketingCrudTest extends TestCase
     {
         parent::setUp();
         SystemModule::query()->firstOrCreate(['slug' => 'marketing'], ['name' => 'Marketing', 'is_active' => true]);
+        $this->seed(RolesAndPermissionsSeeder::class);
     }
 
     public function test_authenticated_user_can_list_marketing_pages(): void
     {
         $user = User::factory()->create();
+        $user->assignRole('system_manager');
         MarketingPage::query()->create([
             'slug' => 'test-page',
             'title_fa' => 'Test',

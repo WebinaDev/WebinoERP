@@ -22,13 +22,17 @@ class PublicConsultationController extends Controller
         ]);
 
         $title = $data['subject'] ?? 'درخواست مشاوره از سایت';
+        $phone = $data['phone'] ?? null;
+        $company = $data['company'] ?? null;
+        $message = $data['message'] ?? null;
+        $source = $data['source'] ?? null;
         $notes = collect([
             "نام: {$data['name']}",
             "ایمیل: {$data['email']}",
-            $data['phone'] ? "تلفن: {$data['phone']}" : null,
-            $data['company'] ? "شرکت: {$data['company']}" : null,
-            $data['message'] ? "پیام: {$data['message']}" : null,
-            $data['source'] ? "منبع: {$data['source']}" : 'منبع: سایت عمومی',
+            $phone ? "تلفن: {$phone}" : null,
+            $company ? "شرکت: {$company}" : null,
+            $message ? "پیام: {$message}" : null,
+            $source ? "منبع: {$source}" : 'منبع: سایت عمومی',
         ])->filter()->implode("\n");
 
         $consultation = CrmConsultation::query()->create([

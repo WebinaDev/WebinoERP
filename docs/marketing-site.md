@@ -50,6 +50,16 @@ php artisan marketing:import-wordpress --dry-run
 
 نگاشت idempotent با فیلد `wp_id` روی صفحات، پست‌ها و رسانه.
 
+## صفحه‌ساز و پوسته‌ساز
+
+همان سند و APIهای WebinoDashboard. جزئیات و فاصله‌های همگام‌سازی در [builder-sync.md](builder-sync.md).
+
+- `/dashboard/builder` — برگه‌ها
+- `/dashboard/builder/settings` — رنگ، فونت، تایپوگرافی، دکمه، تصویر، فرم
+- `/dashboard/theme-builder` — هدر، فوتر، تکی، بایگانی، جستجو، ۴۰۴
+- `/dashboard/marketing/portfolio` — نمونه‌کار، دسته، مطالعه موردی
+- `/dashboard/marketing/menus` و `/dashboard/marketing/forms`
+
 ## مدیریت محتوا
 
 از داشبورد ERM:
