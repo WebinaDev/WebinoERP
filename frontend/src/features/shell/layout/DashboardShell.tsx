@@ -50,7 +50,7 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
 
   const { can } = usePermissions();
   const [navLoading, setNavLoading] = useState(true);
-  const [user, setUser] = useState({ name: 'User', email: '' });
+  const [user, setUser] = useState({ name: 'User', email: '', role: '' });
   const [activeModules, setActiveModules] = useState<string[] | undefined>();
 
   useEffect(() => {
@@ -63,6 +63,7 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
         setUser({
           name: me.name ?? me.email ?? 'User',
           email: me.email ?? '',
+          role: me.dashboard_role ?? '',
         });
         if (me.licensed_modules?.length || me.active_modules?.length) {
           setActiveModules(mapLicensedModulesToNavIds(me.licensed_modules ?? me.active_modules ?? []));

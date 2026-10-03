@@ -8,6 +8,7 @@ use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
+use Modules\Core\Services\StaffOpsService;
 use Modules\Crm\Entities\CrmLead;
 use Modules\Projects\Entities\Contract;
 use Modules\Projects\Entities\PrjSprint;
@@ -29,15 +30,19 @@ class ReportsController extends Controller
             ?? now();
         $tab = preg_replace('/[^a-z0-9_\-]/', '', strtolower((string) $request->input('tab', 'overview'))) ?: 'overview';
 
+        $ops = app(StaffOpsService::class);
         $payload = match ($tab) {
             'sales' => $this->salesTab($from, $to),
             'team' => $this->teamTab($from, $to),
             'customers' => $this->customersTab($from, $to),
-            'finance' => $this->financeTab($from, $to),
+            'finance' => $this->mergeReport($this->financeTab($from, $to), $ops->report('finance', $from, $to)),
             'tasks' => $this->tasksTab($from, $to),
             'tickets' => $this->ticketsTab($from, $to),
             'agile' => $this->agileTab($from, $to),
-            default => $this->overviewTab($from, $to),
+            'sites' => $ops->report('sites', $from, $to),
+            'marketing' => $ops->report('marketing', $from, $to),
+            'notifications' => $ops->report('notifications', $from, $to),
+            default => $this->mergeReport($this->overviewTab($from, $to), $ops->report('overview', $from, $to)),
         };
 
         return response()->json([
@@ -222,7 +227,7 @@ class ReportsController extends Controller
                 ->limit(10)
                 ->get()
                 ->map(function ($r) {
-                    $name = 'Customer #'.$r->customer_key;
+                    $name = '__customer__:'.$r->customer_key;
                     if ($r->customer_key && Schema::hasTable('users')) {
                         $u = User::query()->find($r->customer_key);
                         if ($u) {
@@ -268,7 +273,7 @@ class ReportsController extends Controller
             $tasksByMember = DB::table('prj_tasks')
                 ->leftJoin('users', 'users.id', '=', 'prj_tasks.assignee_id')
                 ->whereBetween('prj_tasks.created_at', [$from, $to])
-                ->selectRaw("COALESCE(users.name, ?) as user_name, COUNT(*) as total_tasks, SUM(CASE WHEN prj_tasks.status = 'done' THEN 1 ELSE 0 END) as completed_tasks", ['Unassigned'])
+                ->selectRaw("COALESCE(users.name, ?) as user_name, COUNT(*) as total_tasks, SUM(CASE WHEN prj_tasks.status = 'done' THEN 1 ELSE 0 END) as completed_tasks", ['__unassigned__'])
                 ->groupBy('user_name')
                 ->orderByDesc('total_tasks')
                 ->limit(20)
@@ -314,7 +319,7 @@ class ReportsController extends Controller
                 ->limit(15)
                 ->get()
                 ->map(function ($r) {
-                    $name = 'Customer #'.$r->customer_key;
+                    $name = '__customer__:'.$r->customer_key;
                     if ($r->customer_key) {
                         $u = User::query()->find($r->customer_key);
                         if ($u) {
@@ -398,7 +403,7 @@ class ReportsController extends Controller
             'stats' => [
                 'total_tickets' => $total,
                 'tickets_closed' => $closed,
-                'avg_response_time' => '—',
+                'avg_response_time' => $this->averageResponseHours($from, $to),
             ],
             'charts' => [],
             'tables' => [],
@@ -441,7 +446,7 @@ class ReportsController extends Controller
         return TimeEntry::query()
             ->leftJoin('users', 'users.id', '=', 'prj_time_entries.user_id')
             ->whereBetween('prj_time_entries.started_at', [$from, $to])
-            ->selectRaw('COALESCE(users.name, ?) as user_name, COALESCE(SUM(duration_seconds),0)/60 as total_minutes, COALESCE(SUM(CASE WHEN is_billable = 1 THEN duration_seconds ELSE 0 END),0)/60 as billable_minutes, COUNT(*) as entry_count', ['Unknown'])
+            ->selectRaw('COALESCE(users.name, ?) as user_name, COALESCE(SUM(duration_seconds),0)/60 as total_minutes, COALESCE(SUM(CASE WHEN is_billable = 1 THEN duration_seconds ELSE 0 END),0)/60 as billable_minutes, COUNT(*) as entry_count', ['__unknown__'])
             ->groupBy('user_name')
             ->orderByDesc('total_minutes')
             ->limit(20)
@@ -492,7 +497,7 @@ class ReportsController extends Controller
             return CrmLead::query()
                 ->leftJoin('crm_statuses', 'crm_statuses.id', '=', 'crm_leads.status_id')
                 ->whereBetween('crm_leads.created_at', [$from, $to])
-                ->selectRaw('COALESCE(crm_statuses.name, ?) as status, COUNT(*) as count', ['Unknown'])
+                ->selectRaw('COALESCE(crm_statuses.name, ?) as status, COUNT(*) as count', ['__unknown__'])
                 ->groupBy('status')
                 ->get()
                 ->map(fn ($r) => ['status' => (string) $r->status, 'count' => (int) $r->count])
@@ -596,6 +601,46 @@ class ReportsController extends Controller
             'tickets_closed' => $mapSeries($tickets),
             'sprints' => $mapSeries($sprints),
         ];
+    }
+
+    /**
+     * @param  array{stats?: array<string, mixed>, charts?: array<string, mixed>, tables?: array<string, mixed>}  $base
+     * @param  array{stats?: array<string, mixed>, charts?: array<string, mixed>, tables?: array<string, mixed>}  $extra
+     * @return array{stats: array<string, mixed>, charts: array<string, mixed>, tables: array<string, mixed>}
+     */
+    private function mergeReport(array $base, array $extra): array
+    {
+        return [
+            'stats' => array_merge($base['stats'] ?? [], $extra['stats'] ?? []),
+            'charts' => array_merge($base['charts'] ?? [], $extra['charts'] ?? []),
+            'tables' => array_merge($base['tables'] ?? [], $extra['tables'] ?? []),
+        ];
+    }
+
+    private function averageResponseHours(Carbon $from, Carbon $to): float
+    {
+        if (! Schema::hasColumn('prj_tickets', 'first_responded_at')) {
+            return 0;
+        }
+
+        try {
+            $rows = PrjTicket::query()
+                ->whereBetween('created_at', [$from, $to])
+                ->whereNotNull('first_responded_at')
+                ->get(['created_at', 'first_responded_at']);
+            if ($rows->isEmpty()) {
+                return 0;
+            }
+            $minutes = $rows->avg(function (PrjTicket $ticket) {
+                return $ticket->created_at && $ticket->first_responded_at
+                    ? $ticket->created_at->diffInMinutes($ticket->first_responded_at)
+                    : 0;
+            });
+
+            return round(((float) $minutes) / 60, 1);
+        } catch (\Throwable) {
+            return 0;
+        }
     }
 
     private function safeCount(callable $fn): int

@@ -25,6 +25,16 @@
     "loginDescription": "Sign in to the store dashboard ({{site}})."
   },
   "nav": {
+    "roles": {
+      "system_manager": "System Manager",
+      "finance_manager": "Finance Manager",
+      "team_member": "Team Member",
+      "sales_consultant": "Sales Consultant",
+      "crm_specialist": "CRM Specialist",
+      "project_manager": "Project Manager",
+      "client": "Client",
+      "guest": "Guest"
+    },
     "module": {
       "hrm": "Human resources (HRM)",
       "finance": "Finance & accounting",
@@ -1686,6 +1696,9 @@
       "chart_daily": "Daily activity",
       "growth": "Growth vs previous period",
       "leads_by_status": "Leads by status",
+      "problem_sites": "Problem sites",
+      "recent_notifications": "Recent notifications",
+      "chart_submissions": "Form submissions",
       "analytics_csv": "Analytics CSV export"
     },
     "hrm": {
@@ -2053,7 +2066,10 @@
       "agile": "Agile",
       "sales": "Sales",
       "team": "Team",
-      "customers": "Customers"
+      "customers": "Customers",
+      "sites": "Sites",
+      "marketing": "Marketing",
+      "notifications": "Notifications"
     },
     "financeTab": "Contracts in range",
     "tasksTab": "Tasks completed",
@@ -2079,14 +2095,20 @@
       "billable": "Billable",
       "revenue": "Revenue",
       "entry_count": "Entries",
-      "status": "Status"
+      "status": "Status",
+      "domain": "Domain",
+      "reason": "Reason",
+      "title": "Title",
+      "read": "Read",
+      "when": "When"
     },
     "statLabels": {
       "total_projects": "Projects",
       "total_tasks": "Tasks",
       "total_leads": "Leads",
       "total_revenue": "Revenue",
-      "total_tickets": "Tickets"
+      "total_tickets": "Tickets",
+      "sites_created": "Sites opened in range"
     }
   },
   "comments": {
@@ -4101,8 +4123,76 @@
     "todosOverdue": "Overdue",
     "todosToday": "Today",
     "todosMine": "Assigned to me",
+    "todosUpcoming": "Upcoming",
     "todosEmpty": "Nothing here",
-    "viewModule": "Open"
+    "sitesProblems": "Sites with problems",
+    "viewModule": "Open",
+    "trendTitle": "Last 14 days",
+    "notificationsRecent": "Recent notifications",
+    "noNotifications": "No notifications",
+    "read": "Read",
+    "unread": "Unread",
+    "ops": {
+      "crm": "CRM",
+      "pm": "Projects",
+      "finance": "Finance",
+      "tickets": "Tickets",
+      "sites": "Site health",
+      "marketing": "Marketing",
+      "notifications": "Notifications",
+      "invoices": "Invoices",
+      "invoiceTotal": "Invoice total",
+      "openInvoices": "Open invoices",
+      "receipts": "Receipts",
+      "openTickets": "Open tickets",
+      "slaBreaches": "SLA breaches",
+      "myTickets": "My tickets",
+      "sitesTotal": "All sites",
+      "sitesReady": "Ready",
+      "sitesFailed": "Failed",
+      "sitesProblems": "With problems",
+      "publishedPages": "Published pages",
+      "formSubmissions": "Form submissions",
+      "publishedPosts": "Published posts",
+      "announcements": "Live announcements",
+      "scheduledContent": "Scheduled content",
+      "unread": "Unread"
+    },
+    "kinds": {
+      "task": "Task",
+      "consultation": "Consultation",
+      "deal": "Deal follow-up",
+      "approval": "Approval",
+      "site": "Site"
+    },
+    "badges": {
+      "open": "Open",
+      "done": "Done",
+      "completed": "Completed",
+      "cancelled": "Cancelled",
+      "closed": "Closed",
+      "failed": "Failed",
+      "ready": "Ready",
+      "pending": "Pending",
+      "active": "Active",
+      "in_progress": "In progress",
+      "draft": "Draft",
+      "ssl_pending": "SSL pending",
+      "provisioning": "Provisioning",
+      "new": "New",
+      "converted": "Converted",
+      "approved": "Approved",
+      "rejected": "Rejected",
+      "resolved": "Resolved",
+      "paid": "Paid",
+      "void": "Void",
+      "follow_up": "Follow-up",
+      "error": "Error",
+      "license_expired": "License expired",
+      "unassigned": "Unassigned",
+      "unknown": "Unknown",
+      "customer": "Customer"
+    }
   },
   "profile": {
     "title": "Profile",

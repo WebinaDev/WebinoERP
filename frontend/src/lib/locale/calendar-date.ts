@@ -105,6 +105,54 @@ export function toPersianDigits(value: string): string {
   return value.replace(/\d/g, (digit) => FA_DIGITS[Number(digit)] ?? digit);
 }
 
+function jalaliMonthLength(jy: number, jm: number): number {
+  if (jm <= 6) return 31;
+  if (jm <= 11) return 30;
+  return jalaliCalendar(jy).leap === 0 ? 30 : 29;
+}
+
+/** Gregorian ISO bounds for a Jalali month. `offsetMonths` 0 is the month containing `now`. */
+export function jalaliMonthIsoRange(offsetMonths = 0, now = new Date()): { from: string; to: string } {
+  const parts = gregorianParts(now.toISOString(), TEHRAN);
+  if (!parts) {
+    const iso = now.toISOString().slice(0, 10);
+    return { from: iso, to: iso };
+  }
+  const current = toJalali(parts.y, parts.m, parts.d);
+  let jy = current.jy;
+  let jm = current.jm + offsetMonths;
+  while (jm < 1) {
+    jm += 12;
+    jy -= 1;
+  }
+  while (jm > 12) {
+    jm -= 12;
+    jy += 1;
+  }
+  const start = toGregorian(jy, jm, 1);
+  const end = toGregorian(jy, jm, jalaliMonthLength(jy, jm));
+  const iso = (part: { gy: number; gm: number; gd: number }) => `${part.gy}-${pad(part.gm)}-${pad(part.gd)}`;
+  return { from: iso(start), to: iso(end) };
+}
+
+/** Axis/tooltip label: Jalali month or day for fa, Gregorian otherwise. */
+export function formatChartAxis(value: string, locale: AppDateLocale = 'fa'): string {
+  const raw = value.trim();
+  const month = /^(\d{4})-(\d{2})$/.exec(raw);
+  if (month) {
+    if (locale !== 'fa') return raw;
+    const j = toJalali(Number(month[1]), Number(month[2]), 15);
+    return toPersianDigits(`${j.jy}/${pad(j.jm)}`);
+  }
+  const day = /^(\d{4})-(\d{2})-(\d{2})/.exec(raw);
+  if (day) {
+    if (locale !== 'fa') return `${day[2]}-${day[3]}`;
+    const j = toJalali(Number(day[1]), Number(day[2]), Number(day[3]));
+    return toPersianDigits(`${pad(j.jm)}/${pad(j.jd)}`);
+  }
+  return locale === 'fa' ? toPersianDigits(raw) : raw;
+}
+
 export function gregorianParts(iso: string, timeZone: string): Parts | null {
   const trimmed = iso.trim();
   const dateOnly = /^(\d{4})-(\d{2})-(\d{2})$/.exec(trimmed);

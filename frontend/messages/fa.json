@@ -25,6 +25,16 @@
     "loginDescription": "ورود به داشبورد فروشگاه ({{site}})."
   },
   "nav": {
+    "roles": {
+      "system_manager": "مدیر سیستم",
+      "finance_manager": "مدیر مالی",
+      "team_member": "عضو تیم",
+      "sales_consultant": "مشاور فروش",
+      "crm_specialist": "کارشناس ارتباط با مشتری",
+      "project_manager": "مدیر پروژه",
+      "client": "مشتری",
+      "guest": "مهمان"
+    },
     "module": {
       "hrm": "مدیریت منابع انسانی",
       "finance": "مدیریت مالی و حسابداری",
@@ -1687,7 +1697,10 @@
       "chart_daily": "فعالیت روزانه",
       "growth": "رشد نسبت به دوره قبل",
       "leads_by_status": "سرنخ بر اساس وضعیت",
-      "analytics_csv": "خروجی Analytics (CSV)"
+      "problem_sites": "سایت‌های مشکل‌دار",
+      "recent_notifications": "اعلان‌های اخیر",
+      "chart_submissions": "ارسال فرم",
+      "analytics_csv": "خروجی تحلیل"
     },
     "hrm": {
       "loadError": "خطا در بارگذاری اطلاعات منابع انسانی.",
@@ -2033,12 +2046,12 @@
   },
   "reports": {
     "title": "گزارشات",
-    "description": "بازه: {from} تا {to}. خروجی CSV",
+    "description": "بازه: {from} تا {to}",
     "fromDate": "از تاریخ",
     "toDate": "تا تاریخ",
     "load": "بارگذاری",
-    "downloadCsv": "دانلود CSV",
-    "printPdf": "چاپ / PDF (مرورگر)",
+    "downloadCsv": "دانلود جدول",
+    "printPdf": "چاپ",
     "metrics": {
       "contracts_total": "قراردادها",
       "tasks_completed": "وظایف انجام‌شده",
@@ -2054,13 +2067,16 @@
       "agile": "چابک",
       "sales": "فروش",
       "team": "تیم",
-      "customers": "مشتریان"
+      "customers": "مشتریان",
+      "sites": "سایت‌ها",
+      "marketing": "بازاریابی",
+      "notifications": "اعلان‌ها"
     },
     "financeTab": "قراردادها در بازه",
     "tasksTab": "وظایف تکمیل‌شده",
     "ticketsTab": "تیکت بسته‌شده",
     "agileTab": "اسپرینت‌های ایجادشده",
-    "downloadJson": "دانلود JSON",
+    "downloadJson": "دانلود داده",
     "presetThisMonth": "این ماه",
     "presetLastMonth": "ماه قبل",
     "emptyRange": "داده‌ای برای این بازه موجود نیست.",
@@ -2080,14 +2096,20 @@
       "billable": "قابل‌صورتحساب",
       "revenue": "درآمد",
       "entry_count": "ورودی‌ها",
-      "status": "وضعیت"
+      "status": "وضعیت",
+      "domain": "دامنه",
+      "reason": "علت",
+      "title": "عنوان",
+      "read": "خوانده شده",
+      "when": "زمان"
     },
     "statLabels": {
       "total_projects": "پروژه‌ها",
       "total_tasks": "وظایف",
       "total_leads": "سرنخ‌ها",
       "total_revenue": "درآمد",
-      "total_tickets": "تیکت‌ها"
+      "total_tickets": "تیکت‌ها",
+      "sites_created": "سایت جدید در بازه"
     }
   },
   "comments": {
@@ -4088,7 +4110,7 @@
       "time": "زمان‌سنجی",
       "profile": "پروفایل"
     },
-    "crmPmTitle": "خلاصه CRM و پروژه",
+    "crmPmTitle": "خلاصه ارتباط با مشتری و پروژه",
     "crmCustomers": "مشتریان",
     "crmDeals": "معاملات",
     "crmConsultations": "مشاوره‌ها",
@@ -4102,8 +4124,76 @@
     "todosOverdue": "عقب‌افتاده",
     "todosToday": "امروز",
     "todosMine": "وظایف من",
+    "todosUpcoming": "پیش رو",
     "todosEmpty": "موردی نیست",
-    "viewModule": "مشاهده"
+    "sitesProblems": "سایت‌های مشکل‌دار",
+    "viewModule": "مشاهده",
+    "trendTitle": "روند ۱۴ روز اخیر",
+    "notificationsRecent": "اعلان‌های اخیر",
+    "noNotifications": "اعلانی نیست",
+    "read": "خوانده شده",
+    "unread": "خوانده نشده",
+    "ops": {
+      "crm": "ارتباط با مشتری",
+      "pm": "پروژه‌ها",
+      "finance": "مالی",
+      "tickets": "تیکت‌ها",
+      "sites": "سلامت سایت‌ها",
+      "marketing": "بازاریابی",
+      "notifications": "اعلان‌ها",
+      "invoices": "فاکتورها",
+      "invoiceTotal": "جمع فاکتور",
+      "openInvoices": "فاکتور باز",
+      "receipts": "رسیدها",
+      "openTickets": "تیکت باز",
+      "slaBreaches": "نقض تعهد پاسخ",
+      "myTickets": "تیکت‌های من",
+      "sitesTotal": "همه سایت‌ها",
+      "sitesReady": "آماده",
+      "sitesFailed": "ناموفق",
+      "sitesProblems": "دارای مشکل",
+      "publishedPages": "برگه منتشرشده",
+      "formSubmissions": "ارسال فرم",
+      "publishedPosts": "نوشته منتشرشده",
+      "announcements": "اطلاعیه فعال",
+      "scheduledContent": "محتوای زمان‌بندی‌شده",
+      "unread": "خوانده‌نشده"
+    },
+    "kinds": {
+      "task": "وظیفه",
+      "consultation": "مشاوره",
+      "deal": "پیگیری معامله",
+      "approval": "تایید",
+      "site": "سایت"
+    },
+    "badges": {
+      "open": "باز",
+      "done": "انجام‌شده",
+      "completed": "تکمیل‌شده",
+      "cancelled": "لغوشده",
+      "closed": "بسته",
+      "failed": "ناموفق",
+      "ready": "آماده",
+      "pending": "در انتظار",
+      "active": "فعال",
+      "in_progress": "در حال انجام",
+      "draft": "پیش‌نویس",
+      "ssl_pending": "گواهی در انتظار",
+      "provisioning": "در حال راه‌اندازی",
+      "new": "جدید",
+      "converted": "تبدیل‌شده",
+      "approved": "تاییدشده",
+      "rejected": "ردشده",
+      "resolved": "حل‌شده",
+      "paid": "پرداخت‌شده",
+      "void": "باطل",
+      "follow_up": "پیگیری",
+      "error": "خطا",
+      "license_expired": "لایسنس منقضی",
+      "unassigned": "بدون مسئول",
+      "unknown": "نامشخص",
+      "customer": "مشتری"
+    }
   },
   "profile": {
     "title": "پروفایل",

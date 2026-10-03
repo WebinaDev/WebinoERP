@@ -7,11 +7,14 @@ use Illuminate\Foundation\Testing\RefreshDatabase;
 use Laravel\Sanctum\Sanctum;
 use Modules\Core\Database\Seeders\RolesAndPermissionsSeeder;
 use Modules\Crm\Entities\CrmAccount;
+use Modules\Crm\Entities\CrmActivity;
+use Modules\Crm\Entities\CrmConsultation;
 use Modules\Crm\Entities\CrmDeal;
 use Modules\Crm\Entities\CrmPipeline;
 use Modules\Crm\Entities\CrmStage;
 use Modules\Crm\Entities\ConsultationStatus;
 use Modules\Projects\Entities\Contract;
+use Modules\Projects\Entities\PrjApproval;
 use Modules\Projects\Entities\PrjAppointment;
 use Modules\Projects\Entities\PrjTicket;
 use Modules\Projects\Entities\ProInvoice;
@@ -365,6 +368,90 @@ class CrmPmPortalTest extends TestCase
         $this->getJson('/api/v1/crm/consultation-statuses')
             ->assertOk()
             ->assertJsonPath('data.0.name', 'new');
+    }
+
+    public function test_personal_todos_include_due_work_and_problem_sites(): void
+    {
+        $user = $this->actingAsRole(RolesAndPermissionsSeeder::ROLE_SYSTEM_MANAGER);
+        Sanctum::actingAs($user);
+        $account = CrmAccount::query()->create(['name' => 'Follow Co', 'type' => 'customer']);
+        $pipeline = CrmPipeline::query()->create(['name' => 'Sales', 'is_active' => true, 'created_by' => $user->id]);
+        $stage = CrmStage::query()->create([
+            'pipeline_id' => $pipeline->id,
+            'name' => 'New',
+            'sort_order' => 1,
+            'probability' => 10,
+            'color' => '#64748b',
+        ]);
+        $project = Project::query()->create([
+            'name' => 'Work',
+            'status' => 'active',
+            'created_by' => $user->id,
+        ]);
+        CrmConsultation::query()->create([
+            'title' => 'Need a call',
+            'status' => 'new',
+            'created_by' => $user->id,
+            'account_id' => $account->id,
+        ]);
+        CrmDeal::query()->create([
+            'name' => 'Renewal follow-up',
+            'account_id' => $account->id,
+            'pipeline_id' => $pipeline->id,
+            'stage_id' => $stage->id,
+            'assigned_to' => $user->id,
+            'close_date' => now()->subDay()->toDateString(),
+            'created_by' => $user->id,
+        ]);
+        CrmActivity::query()->create([
+            'type' => 'follow_up',
+            'subject' => 'Call the buyer',
+            'related_model' => CrmDeal::class,
+            'related_id' => 1,
+            'due_date' => now()->toDateString(),
+            'assigned_to' => $user->id,
+            'created_by' => $user->id,
+        ]);
+        PrjApproval::query()->create([
+            'project_id' => $project->id,
+            'title' => 'Approve homepage',
+            'status' => 'pending',
+            'created_by' => $user->id,
+        ]);
+        WebinoSiteProvision::query()->create([
+            'crm_account_id' => $account->id,
+            'slug' => 'broken-shop',
+            'domain' => 'broken.example',
+            'status' => 'failed',
+            'error_log' => 'health check failed',
+        ]);
+
+        $response = $this->getJson('/api/v1/core/dashboard/crm-pm')->assertOk();
+        $kinds = collect($response->json('data.todos.work'))->pluck('kind')->unique()->sort()->values()->all();
+        $this->assertContains('consultation', $kinds);
+        $this->assertContains('deal', $kinds);
+        $this->assertContains('approval', $kinds);
+        $response->assertJsonPath('data.todos.sites.0.domain', 'broken.example');
+        $response->assertJsonPath('data.ops.sites.sites_failed', 1);
+        $this->assertGreaterThanOrEqual(1, $response->json('data.todos.counts.problems'));
+    }
+
+    public function test_reports_include_sites_marketing_and_notifications(): void
+    {
+        $user = $this->actingAsRole(RolesAndPermissionsSeeder::ROLE_SYSTEM_MANAGER);
+        Sanctum::actingAs($user);
+
+        $this->getJson('/api/v1/core/reports?tab=sites&from=2026-01-01&to=2026-12-31')
+            ->assertOk()
+            ->assertJsonStructure(['data' => ['stats' => ['sites_total', 'sites_problems'], 'tables' => ['problem_sites']]]);
+
+        $this->getJson('/api/v1/core/reports?tab=marketing&from=2026-01-01&to=2026-12-31')
+            ->assertOk()
+            ->assertJsonStructure(['data' => ['stats' => ['published_pages', 'form_submissions']]]);
+
+        $this->getJson('/api/v1/core/reports?tab=notifications&from=2026-01-01&to=2026-12-31')
+            ->assertOk()
+            ->assertJsonStructure(['data' => ['stats' => ['unread_notifications']]]);
     }
 
     public function test_client_cannot_create_project(): void

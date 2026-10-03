@@ -2,9 +2,9 @@
 
 import { ChevronsUpDown, LogOut, Moon, Palette, Sun, User } from 'lucide-react';
 import Link from 'next/link';
-import { useParams } from 'next/navigation';
 import { useTheme } from 'next-themes';
 import { useTranslations } from 'next-intl';
+import { roleSlug } from '@/lib/role-label';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import {
   DropdownMenu,
@@ -23,7 +23,7 @@ import { setAccent } from '@/components/providers/theme-provider';
 import { logout } from '@/lib/auth';
 
 type Props = {
-  user: { name: string; email: string; avatar?: string };
+  user: { name: string; email: string; avatar?: string; role?: string };
   logoutLabel: string;
   onLogout: () => void;
 };
@@ -32,9 +32,13 @@ export function NavUser({ user, logoutLabel, onLogout }: Props) {
   const { isMobile } = useSidebar();
   const { setTheme } = useTheme();
   const t = useTranslations();
-  const params = useParams();
-  const locale = (params?.locale as string) || 'fa';
-  const initials = user.name
+  const tRoles = useTranslations('nav.roles');
+  const roleKey = roleSlug(user.role);
+  const nameKey = roleSlug(user.name);
+  const roleText = roleKey && tRoles.has(roleKey) ? tRoles(roleKey) : '';
+  const shownName = nameKey && tRoles.has(nameKey) ? tRoles(nameKey) : user.name;
+  const subtitle = roleText && roleText !== shownName ? roleText : user.email;
+  const initials = shownName
     .split(' ')
     .map((p) => p[0])
     .join('')
@@ -54,8 +58,8 @@ export function NavUser({ user, logoutLabel, onLogout }: Props) {
                 <AvatarFallback className="rounded-lg">{initials}</AvatarFallback>
               </Avatar>
               <div className="grid flex-1 text-start text-sm leading-tight">
-                <span className="truncate font-semibold">{user.name}</span>
-                <span className="truncate text-xs text-sidebar-foreground/70">{user.email}</span>
+                <span className="truncate font-semibold">{shownName}</span>
+                <span className="truncate text-xs text-sidebar-foreground/70">{subtitle}</span>
               </div>
               <ChevronsUpDown className="ms-auto size-4" />
             </SidebarMenuButton>
@@ -72,8 +76,9 @@ export function NavUser({ user, logoutLabel, onLogout }: Props) {
                   <AvatarFallback className="rounded-lg">{initials}</AvatarFallback>
                 </Avatar>
                 <div className="grid flex-1 text-start text-sm leading-tight">
-                  <span className="truncate font-semibold">{user.name}</span>
-                  <span className="truncate text-xs text-muted-foreground">{user.email}</span>
+                  <span className="truncate font-semibold">{shownName}</span>
+                  {roleText ? <span className="truncate text-xs text-muted-foreground">{roleText}</span> : null}
+                  <span className="truncate text-xs text-muted-foreground" dir="ltr">{user.email}</span>
                 </div>
               </div>
             </DropdownMenuLabel>

@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { displayDateKey, formatCalendarDate, toGregorian, toJalali } from './calendar-date';
+import { displayDateKey, formatCalendarDate, formatChartAxis, jalaliMonthIsoRange, toGregorian, toJalali } from './calendar-date';
 
 describe('calendar date formatting', () => {
   it('converts Nowruz 1405 to the Gregorian date and back', () => {
@@ -23,5 +23,15 @@ describe('calendar date formatting', () => {
   it('does not timezone-shift date-only values', () => {
     expect(displayDateKey('2026-03-21', 'fa')).toBe('2026-03-21');
     expect(formatCalendarDate('2026-03-21', 'fa', true)).toBe('۱۴۰۵/۰۱/۰۱');
+  });
+
+  it('bounds Farvardin 1405 and labels chart axes in Jalali', () => {
+    expect(jalaliMonthIsoRange(0, new Date('2026-03-21T12:00:00Z'))).toEqual({
+      from: '2026-03-21',
+      to: '2026-04-20',
+    });
+    expect(formatChartAxis('2026-03', 'fa')).toBe('۱۴۰۴/۱۲');
+    expect(formatChartAxis('2026-03-21', 'fa')).toBe('۰۱/۰۱');
+    expect(formatChartAxis('2026-03-21', 'en')).toBe('03-21');
   });
 });
