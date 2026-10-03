@@ -17,23 +17,61 @@ import { useLocale } from '@/hooks/use-locale-next';
 
 type Props = { id: string };
 
+function rowsOf(value: unknown): Record<string, unknown>[] {
+  return Array.isArray(value) ? (value as Record<string, unknown>[]) : [];
+}
+
 function ProjectDetailContent({ data }: { data: Record<string, unknown> }) {
   const t = useTranslations('pm.projects');
-  const { formatDateTime } = useLocale();
-  const tasks = (Array.isArray(data.tasks) ? data.tasks : []) as Record<string, unknown>[];
-  const contracts = (Array.isArray(data.contracts) ? data.contracts : []) as Record<string, unknown>[];
-  const tickets = (Array.isArray(data.tickets) ? data.tickets : []) as Record<string, unknown>[];
+  const tTasks = useTranslations('pm.tasks');
+  const tCommon = useTranslations('common');
+  const { formatDateTime, formatNumber, formatDigits, isRtl, locale } = useLocale();
+  const none = tCommon('none');
+  const tasks = rowsOf(data.tasks);
+  const contracts = rowsOf(data.contracts);
+  const tickets = rowsOf(data.tickets);
+  const sites = rowsOf(data.sites);
+
+  const projectStatus = (status: unknown) => {
+    const key = String(status ?? '');
+    const map: Record<string, string> = {
+      active: t('statusActive'),
+      on_hold: t('statusOnHold'),
+      completed: t('statusCompleted'),
+      draft: t('statusDraft'),
+      cancelled: t('statusCancelled'),
+      open: t('statusOpen'),
+    };
+    return map[key] ?? (key || none);
+  };
+
+  const taskStatus = (status: unknown) => {
+    const key = String(status ?? '');
+    return key && tTasks.has(key as 'todo') ? tTasks(key as 'todo') : key || none;
+  };
+
+  const priorityLabel = (priority: unknown) => {
+    const key = String(priority ?? '');
+    const map: Record<string, 'priorityLow' | 'priorityNormal' | 'priorityHigh' | 'priorityUrgent'> = {
+      low: 'priorityLow',
+      normal: 'priorityNormal',
+      high: 'priorityHigh',
+      urgent: 'priorityUrgent',
+    };
+    const message = map[key];
+    return message ? tTasks(message) : key || none;
+  };
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-4" dir={isRtl ? 'rtl' : 'ltr'}>
       <Card>
         <CardHeader>
-          <CardTitle className="text-lg">{String(data.name ?? t('title'))}</CardTitle>
+          <CardTitle className="text-start text-lg">{String(data.name ?? t('title'))}</CardTitle>
         </CardHeader>
         <CardContent className="space-y-2 text-sm">
           <p>
             <span className="text-muted-foreground">{t('status')}: </span>
-            <Badge variant="secondary">{String(data.status ?? '—')}</Badge>
+            <Badge variant="secondary">{projectStatus(data.status)}</Badge>
           </p>
           {data.description ? (
             <p>
@@ -41,14 +79,32 @@ function ProjectDetailContent({ data }: { data: Record<string, unknown> }) {
               {String(data.description)}
             </p>
           ) : null}
+          {sites.length ? (
+            <div className="flex flex-wrap gap-2 pt-1">
+              {sites.map((site) => (
+                <Button key={String(site.id)} variant="outline" size="sm" asChild>
+                  <Link href={dashboardHref(locale, String(site.builder_path ?? `admin/platform/sites/${String(site.id)}`))}>
+                    {t('openBuilder')}
+                  </Link>
+                </Button>
+              ))}
+              {sites.filter((site) => site.domain && ['ready', 'active', 'launched'].includes(String(site.status))).map((site) => (
+                <Button key={`live-${String(site.id)}`} variant="secondary" size="sm" asChild>
+                  <a href={`https://${String(site.domain)}`} target="_blank" rel="noopener noreferrer">
+                    {t('openSite')}
+                  </a>
+                </Button>
+              ))}
+            </div>
+          ) : null}
         </CardContent>
       </Card>
       <Card>
         <CardHeader>
-          <CardTitle className="text-base">{t('tasks')} ({tasks.length})</CardTitle>
+          <CardTitle className="text-start text-base">{t('tasks')} ({formatNumber(tasks.length)})</CardTitle>
         </CardHeader>
         <CardContent className="overflow-x-auto">
-          <table className="w-full text-sm">
+          <table className="w-full text-sm" dir={isRtl ? 'rtl' : 'ltr'}>
             <thead>
               <tr className="border-b text-muted-foreground">
                 <th className="py-2 text-start">{t('taskTitle')}</th>
@@ -59,9 +115,9 @@ function ProjectDetailContent({ data }: { data: Record<string, unknown> }) {
             <tbody>
               {tasks.map((row) => (
                 <tr key={String(row.id)} className="border-b border-border/60">
-                  <td className="py-2">{String(row.title ?? '—')}</td>
-                  <td className="py-2">{String(row.status ?? '—')}</td>
-                  <td className="py-2">{String(row.priority ?? '—')}</td>
+                  <td className="py-2 text-start">{String(row.title ?? none)}</td>
+                  <td className="py-2 text-start">{taskStatus(row.status)}</td>
+                  <td className="py-2 text-start">{priorityLabel(row.priority)}</td>
                 </tr>
               ))}
               {!tasks.length ? (
@@ -77,10 +133,10 @@ function ProjectDetailContent({ data }: { data: Record<string, unknown> }) {
       </Card>
       <Card>
         <CardHeader>
-          <CardTitle className="text-base">{t('contracts')} ({contracts.length})</CardTitle>
+          <CardTitle className="text-start text-base">{t('contracts')} ({formatNumber(contracts.length)})</CardTitle>
         </CardHeader>
         <CardContent className="overflow-x-auto">
-          <table className="w-full text-sm">
+          <table className="w-full text-sm" dir={isRtl ? 'rtl' : 'ltr'}>
             <thead>
               <tr className="border-b text-muted-foreground">
                 <th className="py-2 text-start">{t('taskTitle')}</th>
@@ -91,9 +147,18 @@ function ProjectDetailContent({ data }: { data: Record<string, unknown> }) {
             <tbody>
               {contracts.map((row) => (
                 <tr key={String(row.id)} className="border-b border-border/60">
-                  <td className="py-2">{String(row.title ?? '—')}</td>
-                  <td className="py-2">{String(row.amount ?? '—')}</td>
-                  <td className="py-2">{String(row.status ?? '—')}</td>
+                  <td className="py-2 text-start">
+                    <Link
+                      className="text-primary hover:underline"
+                      href={`${dashboardHref(locale, 'docs/contracts')}?contract_id=${String(row.id)}`}
+                    >
+                      {String(row.title ?? none)}
+                    </Link>
+                  </td>
+                  <td className="py-2 text-start">
+                    {row.amount != null && row.amount !== '' ? formatNumber(Number(row.amount)) : none}
+                  </td>
+                  <td className="py-2 text-start">{projectStatus(row.status)}</td>
                 </tr>
               ))}
               {!contracts.length ? (
@@ -109,10 +174,10 @@ function ProjectDetailContent({ data }: { data: Record<string, unknown> }) {
       </Card>
       <Card>
         <CardHeader>
-          <CardTitle className="text-base">{t('tickets')} ({tickets.length})</CardTitle>
+          <CardTitle className="text-start text-base">{t('tickets')} ({formatNumber(tickets.length)})</CardTitle>
         </CardHeader>
         <CardContent className="overflow-x-auto">
-          <table className="w-full text-sm">
+          <table className="w-full text-sm" dir={isRtl ? 'rtl' : 'ltr'}>
             <thead>
               <tr className="border-b text-muted-foreground">
                 <th className="py-2 text-start">{t('subject')}</th>
@@ -123,10 +188,10 @@ function ProjectDetailContent({ data }: { data: Record<string, unknown> }) {
             <tbody>
               {tickets.map((row) => (
                 <tr key={String(row.id)} className="border-b border-border/60">
-                  <td className="py-2">{String(row.subject ?? '—')}</td>
-                  <td className="py-2">{String(row.status ?? '—')}</td>
-                  <td className="py-2">
-                    {row.created_at ? formatDateTime(String(row.created_at)) || String(row.created_at) : '—'}
+                  <td className="py-2 text-start">{String(row.subject ?? none)}</td>
+                  <td className="py-2 text-start">{taskStatus(row.status)}</td>
+                  <td className="py-2 text-start">
+                    {row.created_at ? formatDateTime(String(row.created_at)) || formatDigits(String(row.created_at)) : none}
                   </td>
                 </tr>
               ))}
@@ -148,6 +213,7 @@ function ProjectDetailContent({ data }: { data: Record<string, unknown> }) {
 export function ProjectDetailPage({ id }: Props) {
   const t = useTranslations('pm.projects');
   const tNav = useTranslations();
+  const { formatDigits } = useLocale();
   const params = useParams();
   const locale = (params?.locale as string) || 'fa';
   const { layoutProps, applyAxiosError } = useCrmFeedback();
@@ -172,7 +238,7 @@ export function ProjectDetailPage({ id }: Props) {
 
   return (
     <CrmPageLayout
-      title={String(data?.name ?? `${t('title')} #${id}`)}
+      title={String(data?.name ?? `${t('title')} #${formatDigits(id)}`)}
       actions={
         <Button variant="outline" size="sm" asChild>
           <Link href={dashboardHref(locale, 'pm/projects')}>{t('backToList')}</Link>

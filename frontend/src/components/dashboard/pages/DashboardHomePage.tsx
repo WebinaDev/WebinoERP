@@ -18,6 +18,7 @@ import { useInitialDashboardStats } from '@/lib/initial-dashboard-context';
 import { dashboardHref } from '@/lib/route-resolver';
 import { useLocale } from '@/hooks/use-locale-next';
 import { CustomerPortalPanel } from '@/features/modules/portal/CustomerPortalPanel';
+import { CrmPmSnapshot } from '@/features/modules/dashboard/CrmPmSnapshot';
 
 type Stats = {
   leads_total?: number;
@@ -287,7 +288,7 @@ export function DashboardHomePage() {
         </div>
       ) : null}
 
-      {role === 'client' ? <CustomerPortalPanel /> : null}
+      {role === 'client' ? <CustomerPortalPanel /> : <CrmPmSnapshot />}
 
       {role === 'finance_manager' && financeSummary ? (
         <div className="grid gap-4 sm:grid-cols-3">

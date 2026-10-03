@@ -2,6 +2,8 @@
 
 import { useCallback, useEffect, useState } from 'react';
 import { useTranslations } from 'next-intl';
+import { useLocale } from '@/hooks/use-locale';
+import { Badge } from '@/components/ui/badge';
 import apiClient from '@/lib/api-client';
 import { getAxiosMessage, unwrapData } from '@/lib/api-helpers';
 import { readPage } from '@/lib/list-utils';
@@ -39,6 +41,7 @@ type Meta = { current_page?: number; last_page?: number; total?: number };
 export function CustomersListPage() {
   const t = useTranslations('crm.customers');
   const tCommon = useTranslations('common');
+  const { formatNumber, formatDigits, isRtl } = useLocale();
   const [rows, setRows] = useState<Row[]>([]);
   const [meta, setMeta] = useState<Meta>({});
   const [summary, setSummary] = useState<Summary | null>(null);
@@ -244,8 +247,15 @@ export function CustomersListPage() {
     }
   }
 
+  function phoneLabel(row: Row): string {
+    const raw = String(row.contact_phone ?? row.phone ?? row.mobile ?? '').trim();
+    if (!raw) return tCommon('none');
+    const digits = raw.replace(/\D/g, '');
+    return digits.length >= 4 ? formatDigits(raw) : raw;
+  }
+
   return (
-    <Card>
+    <Card dir={isRtl ? 'rtl' : 'ltr'}>
       <CardHeader className="flex flex-row flex-wrap items-center justify-between gap-2">
         <CardTitle>{t('title')}</CardTitle>
         <div className="flex flex-wrap gap-2">
@@ -273,21 +283,21 @@ export function CustomersListPage() {
         <div className="mb-4 grid gap-3 sm:grid-cols-3">
           <Card>
             <CardHeader className="py-3">
-              <CardTitle className="text-sm text-muted-foreground">{tCommon('search').replace('…', '')}</CardTitle>
+              <CardTitle className="text-sm text-muted-foreground">{t('statTotal')}</CardTitle>
             </CardHeader>
-            <CardContent className="text-2xl font-semibold">{summary?.total ?? tCommon('emptyValue')}</CardContent>
+            <CardContent className="text-2xl font-semibold tabular-nums">{summary?.total != null ? formatNumber(summary.total) : tCommon('none')}</CardContent>
           </Card>
           <Card>
             <CardHeader className="py-3">
               <CardTitle className="text-sm text-muted-foreground">{t('individual')}</CardTitle>
             </CardHeader>
-            <CardContent className="text-2xl font-semibold">{summary?.individual ?? tCommon('emptyValue')}</CardContent>
+            <CardContent className="text-2xl font-semibold tabular-nums">{summary?.individual != null ? formatNumber(summary.individual) : tCommon('none')}</CardContent>
           </Card>
           <Card>
             <CardHeader className="py-3">
               <CardTitle className="text-sm text-muted-foreground">{t('corporate')}</CardTitle>
             </CardHeader>
-            <CardContent className="text-2xl font-semibold">{summary?.company ?? '—'}</CardContent>
+            <CardContent className="text-2xl font-semibold tabular-nums">{summary?.company != null ? formatNumber(summary.company) : tCommon('none')}</CardContent>
           </Card>
         </div>
 
@@ -317,7 +327,7 @@ export function CustomersListPage() {
 
         {error ? <p className="text-destructive text-sm">{error}</p> : null}
         <div className="overflow-x-auto rounded-md border">
-          <table className="w-full min-w-[640px] text-sm">
+          <table dir={isRtl ? 'rtl' : 'ltr'} className="w-full min-w-[640px] text-sm">
             <thead>
               <tr className="border-b bg-muted/40">
                 <th className="px-2 py-2 text-start">
@@ -340,6 +350,7 @@ export function CustomersListPage() {
                 <th className="px-3 py-2 text-start"> </th>
                 <th className="px-3 py-2 text-start">{t('name')}</th>
                 <th className="px-3 py-2 text-start">{t('type')}</th>
+                <th className="px-3 py-2 text-start">{t('phone')}</th>
                 <th className="px-3 py-2 text-start">{t('owner')}</th>
                 <th className="px-3 py-2 text-start">{t('sites')}</th>
                 <th className="px-3 py-2 text-start">{t('projects')}</th>
@@ -349,15 +360,16 @@ export function CustomersListPage() {
             <tbody>
               {loading ? (
                 <tr>
-                  <td colSpan={8} className="px-3 py-6 text-center text-muted-foreground">
+                  <td colSpan={9} className="px-3 py-6 text-center text-muted-foreground">
                     {tCommon('loading')}
                   </td>
                 </tr>
               ) : (
                 rows.map((r) => {
-                  const nameStr = String(r.name ?? '—');
-                  const initials = nameStr.slice(0, 2).toUpperCase();
+                  const nameStr = String(r.name ?? tCommon('none'));
+                  const initials = nameStr.slice(0, 2);
                   const id = Number(r.id);
+                  const owner = r.owner as { name?: string } | undefined;
                   return (
                     <tr key={String(r.id)} className="border-b border-border/60">
                       <td className="px-2 py-2">
@@ -365,7 +377,7 @@ export function CustomersListPage() {
                           type="checkbox"
                           checked={!!selected[id]}
                           onChange={() => toggleSelect(id)}
-                          aria-label={`select ${id}`}
+                          aria-label={t('selectAll')}
                         />
                       </td>
                       <td className="px-3 py-2">
@@ -374,10 +386,11 @@ export function CustomersListPage() {
                         </Avatar>
                       </td>
                       <td className="px-3 py-2">{nameStr}</td>
-                      <td className="px-3 py-2">{typeLabel(r.type)}</td>
-                      <td className="px-3 py-2">{String(r.owner_id ?? '—')}</td>
-                      <td className="px-3 py-2">{String(r.site_provisions_count ?? 0)}</td>
-                      <td className="px-3 py-2">{String(r.projects_count ?? 0)}</td>
+                      <td className="px-3 py-2"><Badge variant="secondary">{typeLabel(r.type)}</Badge></td>
+                      <td className="px-3 py-2 tabular-nums" dir="ltr">{phoneLabel(r)}</td>
+                      <td className="px-3 py-2 tabular-nums">{owner?.name || (r.owner_id ? formatDigits(r.owner_id as string | number) : t('noOwner'))}</td>
+                      <td className="px-3 py-2 tabular-nums">{formatNumber(Number(r.site_provisions_count ?? 0))}</td>
+                      <td className="px-3 py-2 tabular-nums">{formatNumber(Number(r.projects_count ?? 0))}</td>
                       <td className="px-3 py-2">
                         <div className="flex flex-wrap gap-1">
                           <Button type="button" variant="ghost" size="sm" onClick={() => setCustomer360Id(id)}>
@@ -401,6 +414,13 @@ export function CustomersListPage() {
                   );
                 })
               )}
+              {!loading && rows.length === 0 ? (
+                <tr>
+                  <td colSpan={9} className="px-3 py-6 text-center text-muted-foreground">
+                    {t('empty')}
+                  </td>
+                </tr>
+              ) : null}
             </tbody>
           </table>
         </div>

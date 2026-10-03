@@ -37,7 +37,7 @@
       "platform": "Platform",
       "marketingSite": "Public site",
       "docs": "Documents & contracts",
-      "distribution": "Distribution, marketplace & licenses",
+      "distribution": "Distribution",
       "admin": "System & settings",
       "home": "Overview",
       "magazine": "Magazine",
@@ -140,7 +140,10 @@
         "tags": "Tags",
         "notifications": "Notifications",
         "terminal": "Terminal",
-        "settings": "Settings"
+        "settings": "Settings",
+        "distribution": "Distribution",
+        "marketplace": "Marketplace",
+        "licenses": "Licenses"
       },
       "marketing": {
         "group": "Public site",
@@ -236,7 +239,7 @@
         "campaigns": "Campaigns",
         "rahnPercent": "Nerkhnameh",
         "bale": "Bale business bot",
-        "modirpayamak": "ModirPayamak SMS"
+        "modirpayamak": "SMS"
       },
       "docs": {
         "group": "Documents & contracts",
@@ -286,7 +289,7 @@
       },
       "submodule": {
         "modirpayamak": {
-          "title": "ModirPayamak SMS",
+          "title": "SMS",
           "description": "IPPanel SMS panel — sold as a separate add-on."
         },
         "bale_business": {
@@ -332,7 +335,7 @@
     "docs": "Documents & contracts",
     "admin": "System & settings",
     "platform": "Platform",
-    "distribution": "Distribution, marketplace & licenses",
+    "distribution": "Distribution",
     "hrm_menu": "Human resources",
     "finance_menu": "Finance & accounting",
     "crm_menu": "Customer relationship (CRM)",
@@ -345,8 +348,8 @@
     "platform_menu": "Platform",
     "site_builder_menu": "Site Builder",
     "marketing_menu": "Public site",
-    "distribution_menu": "Distribution, marketplace & licenses",
-    "modirpayamak": "ModirPayamak SMS",
+    "distribution_menu": "Distribution",
+    "modirpayamak": "SMS",
     "bale_business": "Business bot",
     "core": "Core",
     "marketing": "Public site",
@@ -721,7 +724,7 @@
     "smsApiKey": "API key",
     "smsSenderLine": "Sender line",
     "smsCustomEndpoint": "Custom endpoint",
-    "smsModirpayamak": "ModirPayamak SMS",
+    "smsModirpayamak": "SMS",
     "smsModirpayamakHint": "SMS is sent via your platform wallet. Top up and manage campaigns in the SMS panel.",
     "smsModirpayamakBalance": "Wallet balance",
     "smsModirpayamakPanel": "Open SMS panel",
@@ -748,6 +751,7 @@
     "prevPage": "Previous page",
     "nextPage": "Next page",
     "emptyValue": "—",
+    "none": "None",
     "cancel": "Cancel",
     "confirm": "Confirm",
     "back": "Back",
@@ -768,7 +772,7 @@
     "confirmDeleteNamedIrreversible": "Delete \"{name}\"? This cannot be undone.",
     "confirmDeleteReceipt": "Delete receipt \"{number}\"?",
     "pageOf": "Page {page} of {pageCount}",
-    "pageOfItems": "Page {page} of {pageCount} — {total} items",
+    "pageOfItems": "Page {page} of {pageCount}, {total} items",
     "pageSlash": "Page {page} / {pageCount}",
     "rowsPage": "{rows} rows — page {page} / {pageCount}",
     "wizardContract": "Contract wizard — step {step} of 4",
@@ -2632,13 +2636,48 @@
       "pipeline": "Pipeline",
       "newDeal": "New deal",
       "moveSuccess": "Deal stage updated",
-      "noPipeline": "Select a pipeline first"
+      "noPipeline": "Select a pipeline first",
+      "account": "Customer account",
+      "amount": "Amount",
+      "name": "Deal name",
+      "emptyColumn": "No deals in this stage",
+      "lossReason": "Loss reason",
+      "lossReasonRequired": "A loss reason is required for a lost stage",
+      "created": "Deal created"
     },
     "pipelines": {
       "title": "Pipelines",
       "description": "Manage pipelines and stages",
       "newPipeline": "New pipeline",
-      "newStage": "New stage"
+      "newStage": "New stage",
+      "colName": "Name",
+      "colStages": "Stages",
+      "empty": "No pipelines yet",
+      "stagesHint": "Enter a stage name and add it"
+    },
+    "consultations": {
+      "title": "Consultations",
+      "description": "Consultation requests and conversion into projects",
+      "listTitle": "Consultation list",
+      "empty": "No consultations yet",
+      "new": "New consultation",
+      "edit": "Edit consultation",
+      "id": "ID",
+      "colTitle": "Title",
+      "account": "Account",
+      "accountOptional": "Account (optional)",
+      "noAccount": "No account",
+      "status": "Status",
+      "notes": "Notes",
+      "actions": "Actions",
+      "convert": "Convert to project",
+      "convertConfirm": "Convert this consultation into a project?",
+      "statusNew": "New",
+      "statusOpen": "Open",
+      "statusPending": "Pending",
+      "statusDone": "Done",
+      "statusConverted": "Converted",
+      "statusCancelled": "Cancelled"
     },
     "leads": {
       "title": "Leads",
@@ -2768,7 +2807,10 @@
       "sites": "Sites",
       "projects": "Projects",
       "typeIndividual": "Individual",
-      "typeCompany": "Company"
+      "typeCompany": "Company",
+      "statTotal": "All customers",
+      "empty": "No customers found",
+      "noOwner": "No owner"
     }
   },
   "finance": {
@@ -4019,7 +4061,23 @@
       "appointments": "Appointments",
       "time": "Time tracking",
       "profile": "Profile"
-    }
+    },
+    "crmPmTitle": "CRM and project summary",
+    "crmCustomers": "Customers",
+    "crmDeals": "Deals",
+    "crmConsultations": "Consultations",
+    "crmPipelines": "Pipelines",
+    "crmLeads": "Leads",
+    "pmProjects": "Projects",
+    "pmOpenTasks": "Open tasks",
+    "pmTickets": "Open tickets",
+    "pmContracts": "Contracts",
+    "todosTitle": "My work",
+    "todosOverdue": "Overdue",
+    "todosToday": "Today",
+    "todosMine": "Assigned to me",
+    "todosEmpty": "Nothing here",
+    "viewModule": "Open"
   },
   "profile": {
     "title": "Profile",
@@ -4066,6 +4124,12 @@
       "statusActive": "Active",
       "statusOnHold": "On hold",
       "statusCompleted": "Completed",
+      "statusDraft": "Draft",
+      "statusCancelled": "Cancelled",
+      "statusOpen": "Open",
+      "openContract": "Contract",
+      "openBuilder": "Site builder",
+      "openSite": "Open site",
       "deleteTitle": "Delete project",
       "wizard": {
         "title": "Create project",
@@ -4157,8 +4221,8 @@
       "priorityHigh": "High",
       "priorityUrgent": "Urgent",
       "filterLabel": "Label",
-      "tasksPerColumn": "{{count}} tasks",
-      "bulkSelected": "{{count}} selected",
+      "tasksPerColumn": "{count} tasks",
+      "bulkSelected": "{count} selected",
       "bulkStatus": "Status",
       "bulkApply": "Apply",
       "quickTitle": "Quick title",
@@ -4177,7 +4241,22 @@
       "review": "Review",
       "done": "Done",
       "open": "Open",
-      "completed": "Completed"
+      "completed": "Completed",
+      "cancelled": "Cancelled",
+      "checklist": "Checklist",
+      "newChecklistItem": "New item",
+      "attachments": "Attachments",
+      "uploadFile": "Upload file",
+      "comments": "Comments",
+      "noComments": "No comments",
+      "newComment": "New comment",
+      "logTime": "Log time ({hours} h)",
+      "minutesPlaceholder": "Minutes",
+      "minutesShort": "min",
+      "timeNote": "Time note",
+      "loadError": "Could not load the task",
+      "description": "Description",
+      "columnCount": "{name}: {count}"
     },
     "timeTracking": {
       "active": "Active timer",

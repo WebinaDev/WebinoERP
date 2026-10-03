@@ -1,6 +1,7 @@
 'use client';
 
 import { useTranslations } from 'next-intl';
+import { useLocale } from '@/hooks/use-locale';
 
 import { ReactNode } from 'react';
 
@@ -32,6 +33,7 @@ export function ResourceListCard({
   footer,
 }: Props) {
   const t = useTranslations();
+  const { isRtl } = useLocale();
   const empty = emptyText ?? t('auto.ResourceListCard.s_52cd3d92');
   return (
     <div className="rounded-lg border bg-card text-card-foreground shadow-sm">
@@ -48,11 +50,11 @@ export function ResourceListCard({
           <p className="text-sm text-muted-foreground">{empty}</p>
         ) : (
           <div className="overflow-x-auto">
-            <table className="w-full text-sm">
+            <table dir={isRtl ? 'rtl' : 'ltr'} className="w-full text-sm">
               <thead>
-                <tr className="border-b text-end">
+                <tr className="border-b">
                   {columns.map((c) => (
-                    <th key={c.header} className={`pb-2 pe-2 font-medium text-muted-foreground ${c.className ?? ''}`}>
+                    <th key={c.header} className={`pb-2 pe-2 text-start font-medium text-muted-foreground ${c.className ?? ''}`}>
                       {c.header}
                     </th>
                   ))}
@@ -62,7 +64,7 @@ export function ResourceListCard({
                 {rows.map((row, i) => (
                   <tr key={i} className="border-b border-border/60 last:border-0">
                     {columns.map((c) => (
-                      <td key={c.header} className={`py-2 pe-2 align-top ${c.className ?? ''}`}>
+                      <td key={c.header} className={`py-2 pe-2 text-start align-top ${c.className ?? ''}`}>
                         {c.cell(row)}
                       </td>
                     ))}

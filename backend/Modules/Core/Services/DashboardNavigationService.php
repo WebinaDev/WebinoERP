@@ -120,11 +120,16 @@ class DashboardNavigationService
             $items[] = ['id' => 'accounting-settings', 'title' => 'تنظیمات حسابداری', 'href' => $base.'/accounting/settings', 'icon' => 'Settings'];
         }
 
+        $items[] = ['type' => 'category', 'title' => 'پلتفرم'];
+        $items[] = ['id' => 'distribution', 'title' => 'توزیع', 'href' => $base.'/admin/marketplace/gitea', 'icon' => 'Share2'];
+        $items[] = ['id' => 'marketplace', 'title' => 'بازارچه', 'href' => $base.'/admin/marketplace/products', 'icon' => 'Store'];
+        $items[] = ['id' => 'licenses', 'title' => 'لایسنس', 'href' => $base.'/admin/licenses', 'icon' => 'Key'];
+        $items[] = ['id' => 'marketing-site', 'title' => 'سایت عمومی', 'href' => $base.'/marketing/pages', 'icon' => 'Globe'];
+
         $items[] = ['type' => 'category', 'title' => 'حساب کاربری'];
         $items[] = ['id' => 'profile', 'title' => 'پروفایل من', 'href' => $base.'/profile', 'icon' => 'UserCircle'];
 
         $items[] = ['type' => 'category', 'title' => 'سیستم و تنظیمات'];
-        $items[] = ['id' => 'licenses', 'title' => 'لایسنس‌ها', 'href' => $base.'/licenses', 'icon' => 'Key'];
         $items[] = ['id' => 'hosting-infra', 'title' => 'میزبانی و زیرساخت', 'href' => $base.'/hosting-infra', 'icon' => 'Server'];
         $items[] = ['id' => 'logs', 'title' => 'لاگ‌ها', 'href' => $base.'/logs', 'icon' => 'ScrollText'];
         $items[] = ['id' => 'visitor-statistics', 'title' => 'آمار بازدید', 'href' => $base.'/visitor-statistics', 'icon' => 'Activity'];

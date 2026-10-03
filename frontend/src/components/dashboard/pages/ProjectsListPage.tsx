@@ -7,11 +7,13 @@ import apiClient from '@/lib/api-client';
 import { unwrapData } from '@/lib/api-helpers';
 import { normalizeListPayload } from '@/lib/list-utils';
 import { useLocale } from '@/hooks/use-locale';
+import { dashboardHref } from '@/lib/route-resolver';
 import { usePermissions } from '@/features/shared/hooks/usePermissions';
 import { CrmPageLayout } from '@/features/shared/layout/CrmPageLayout';
 import { useCrmFeedback } from '@/features/shared/hooks/useCrmFeedback';
 import { WizardStepper } from '@/features/shared/pm';
 import { AccountSelect } from '@/features/shared/crm/AccountSelect';
+import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import {
@@ -55,7 +57,7 @@ export function ProjectsListPage() {
   const t = useTranslations('pm.projects');
   const tCommon = useTranslations('common');
   const tNav = useTranslations();
-  const { isRtl, formatDate } = useLocale();
+  const { isRtl, locale, formatDate, formatNumber, formatDigits } = useLocale();
   const { can } = usePermissions();
   const canManage = can('projects.projects.manage');
   const { layoutProps, setError, setSuccess, applyAxiosError } = useCrmFeedback();
@@ -242,6 +244,24 @@ export function ProjectsListPage() {
   const lastPage = meta.last_page ?? 1;
 
   const canNextBasic = Boolean(form.name.trim());
+  const none = tCommon('none');
+
+  function statusLabel(status: unknown): string {
+    const key = String(status ?? '');
+    const map: Record<string, string> = {
+      active: t('statusActive'),
+      on_hold: t('statusOnHold'),
+      completed: t('statusCompleted'),
+      draft: t('statusDraft'),
+      cancelled: t('statusCancelled'),
+      open: t('statusOpen'),
+    };
+    return map[key] ?? (key || none);
+  }
+
+  function relatedRows(value: unknown): Record<string, unknown>[] {
+    return Array.isArray(value) ? (value as Record<string, unknown>[]) : [];
+  }
 
   return (
     <CrmPageLayout
@@ -270,38 +290,64 @@ export function ProjectsListPage() {
         </>
       }
     >
+      <div dir={isRtl ? 'rtl' : 'ltr'}>
       {loading ? (
         <p className="text-sm text-muted-foreground">{tCommon('loading')}</p>
       ) : rows.length === 0 ? (
         <p className="text-sm text-muted-foreground">{tCommon('noData')}</p>
       ) : (
         <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
-          {rows.map((p) => (
+          {rows.map((p) => {
+            const contracts = relatedRows(p.contracts);
+            const sites = relatedRows(p.sites);
+            const progress = Number(p.progress_percent ?? 0);
+            return (
             <Card key={String(p.id)} className="flex flex-col">
               <CardHeader>
-                <CardTitle className="text-base">{String(p.name ?? '—')}</CardTitle>
-                <CardDescription className="line-clamp-2">{String(p.description ?? '')}</CardDescription>
+                <CardTitle className="text-base text-start">{String(p.name ?? none)}</CardTitle>
+                <CardDescription className="line-clamp-2 text-start">{String(p.description ?? '')}</CardDescription>
               </CardHeader>
               <CardContent className="mt-auto space-y-3">
                 <div className="space-y-1">
                   <div className="flex items-center justify-between text-xs text-muted-foreground">
                     <span>{t('progress')}</span>
-                    <span>{Number(p.progress_percent ?? 0)}%</span>
+                    <span>{formatNumber(progress)}{isRtl ? '٪' : '%'}</span>
                   </div>
                   <div className="h-1.5 overflow-hidden rounded bg-muted">
-                    <div className="h-full bg-primary" style={{ width: `${Math.min(100, Number(p.progress_percent ?? 0))}%` }} />
+                    <div className="h-full bg-primary" style={{ width: `${Math.min(100, progress)}%` }} />
                   </div>
                   {p.created_at ? (
                     <p className="text-xs text-muted-foreground">{formatDate(String(p.created_at))}</p>
                   ) : null}
                 </div>
                 <div className="flex flex-wrap gap-2">
-                <span className="rounded-full bg-muted px-2 py-0.5 text-xs">{String(p.status ?? '—')}</span>
-                <Link href={`/dashboard/projects/${String(p.id)}`}>
+                <Badge variant="secondary">{statusLabel(p.status)}</Badge>
+                <Link href={dashboardHref(locale, `projects/${String(p.id)}`)}>
                   <Button variant="outline" size="sm">
                     {tCommon('view')}
                   </Button>
                 </Link>
+                {contracts.slice(0, 2).map((contract) => (
+                  <Button key={`contract-${String(contract.id)}`} variant="outline" size="sm" asChild>
+                    <Link href={`${dashboardHref(locale, 'docs/contracts')}?contract_id=${String(contract.id)}`}>
+                      {t('openContract')}
+                    </Link>
+                  </Button>
+                ))}
+                {sites.slice(0, 2).map((site) => (
+                  <Button key={`site-${String(site.id)}`} variant="outline" size="sm" asChild>
+                    <Link href={dashboardHref(locale, String(site.builder_path ?? `admin/platform/sites/${String(site.id)}`))}>
+                      {t('openBuilder')}
+                    </Link>
+                  </Button>
+                ))}
+                {sites.filter((site) => site.domain && ['ready', 'active', 'launched'].includes(String(site.status))).slice(0, 1).map((site) => (
+                  <Button key={`live-${String(site.id)}`} variant="secondary" size="sm" asChild>
+                    <a href={`https://${String(site.domain)}`} target="_blank" rel="noopener noreferrer">
+                      {t('openSite')}
+                    </a>
+                  </Button>
+                ))}
                 {canManage ? (
                   <Button type="button" variant="secondary" size="sm" onClick={() => openEdit(p)}>
                     {tCommon('edit')}
@@ -315,9 +361,11 @@ export function ProjectsListPage() {
                 </div>
               </CardContent>
             </Card>
-          ))}
+            );
+          })}
         </div>
       )}
+      </div>
 
       <Pagination
         page={meta.current_page ?? page}
@@ -437,11 +485,11 @@ export function ProjectsListPage() {
             <div className="space-y-2 rounded-md border bg-muted/30 p-4 text-sm">
               <p>
                 <span className="text-muted-foreground">{t('name')}: </span>
-                {form.name || '—'}
+                {form.name || none}
               </p>
               <p>
                 <span className="text-muted-foreground">{t('status')}: </span>
-                {form.status}
+                {statusLabel(form.status)}
               </p>
               <p>
                 <span className="text-muted-foreground">{t('wizard.template')}: </span>
@@ -449,7 +497,7 @@ export function ProjectsListPage() {
               </p>
               <p>
                 <span className="text-muted-foreground">{t('customer')}: </span>
-                {form.customer_account_id || tCommon('emptyValue')}
+                {form.customer_account_id ? formatDigits(form.customer_account_id) : none}
               </p>
               <p>
                 <span className="text-muted-foreground">{t('manager')}: </span>

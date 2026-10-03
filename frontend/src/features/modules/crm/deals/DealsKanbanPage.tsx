@@ -12,6 +12,7 @@ import {
   useSensors,
 } from '@dnd-kit/core';
 import { useTranslations } from 'next-intl';
+import { useLocale } from '@/hooks/use-locale';
 import { CrmPageLayout } from '@/features/shared/layout/CrmPageLayout';
 import { useCrmFeedback } from '@/features/shared/hooks/useCrmFeedback';
 import { Button } from '@/components/ui/button';
@@ -23,18 +24,18 @@ import apiClient from '@/lib/api-client';
 import { normalizeListPayload } from '@/lib/list-utils';
 import { getPipelineKanban, listPipelines, moveDeal, saveDeal } from '@/lib/api/crm-deals';
 
-type Stage = { id: number; name: string; color?: string | null };
-type Deal = { id: number; name: string; title?: string; stage_id?: number; amount?: number };
+type Stage = { id: number; name: string; color?: string | null; is_closed?: boolean; is_won?: boolean };
+type Deal = { id: number; name: string; title?: string; stage_id?: number; amount?: number | string };
 type AccountOpt = { id: number; name?: string; company_name?: string };
 
-function DealCard({ deal }: { deal: Deal }) {
+function DealCard({ deal, amountLabel }: { deal: Deal; amountLabel?: string }) {
   const { attributes, listeners, setNodeRef, transform, isDragging } = useDraggable({ id: `deal-${deal.id}` });
   const style = transform ? { transform: `translate3d(${transform.x}px, ${transform.y}px, 0)` } : undefined;
   const label = deal.name ?? deal.title ?? `#${deal.id}`;
   return (
-    <div ref={setNodeRef} style={style} className={cn('rounded-md border bg-background p-2 text-sm shadow-sm', isDragging && 'opacity-60')} {...listeners} {...attributes}>
+    <div ref={setNodeRef} style={style} className={cn('rounded-md border bg-background p-2 text-start text-sm shadow-sm', isDragging && 'opacity-60')} {...listeners} {...attributes}>
       <p className="font-medium">{label}</p>
-      {deal.amount != null ? <p className="text-xs text-muted-foreground">{deal.amount}</p> : null}
+      {amountLabel ? <p className="text-xs tabular-nums text-muted-foreground">{amountLabel}</p> : null}
     </div>
   );
 }
@@ -52,6 +53,7 @@ function StageColumn({ stage, children }: { stage: Stage; children: React.ReactN
 export function DealsKanbanPage() {
   const t = useTranslations('crm.deals');
   const tNav = useTranslations();
+  const { formatNumber, formatDigits, isRtl } = useLocale();
   const { layoutProps, setSuccess, applyAxiosError } = useCrmFeedback();
   const [pipelines, setPipelines] = useState<Record<string, unknown>[]>([]);
   const [pipelineId, setPipelineId] = useState<string>('');
@@ -61,6 +63,9 @@ export function DealsKanbanPage() {
   const [open, setOpen] = useState(false);
   const [name, setName] = useState('');
   const [accountId, setAccountId] = useState<string>('');
+  const [lossOpen, setLossOpen] = useState(false);
+  const [lossReason, setLossReason] = useState('');
+  const [pendingMove, setPendingMove] = useState<{ dealId: string; stageId: string } | null>(null);
   const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 6 } }));
 
   const loadAccounts = useCallback(async () => {
@@ -122,17 +127,31 @@ export function DealsKanbanPage() {
     void loadKanban();
   }, [loadKanban]);
 
-  const onDragEnd = async (event: DragEndEvent) => {
-    const dealId = String(event.active.id).replace('deal-', '');
-    const over = event.over?.id ? String(event.over.id).replace('stage-', '') : '';
-    if (!dealId || !over) return;
+  const commitMove = async (dealId: string, stageId: string, reason?: string) => {
     try {
-      await moveDeal(dealId, Number(over));
+      await moveDeal(dealId, Number(stageId), reason);
       setSuccess(t('moveSuccess'));
+      setLossOpen(false);
+      setLossReason('');
+      setPendingMove(null);
       void loadKanban();
     } catch (err) {
       applyAxiosError(err);
     }
+  };
+
+  const onDragEnd = async (event: DragEndEvent) => {
+    const dealId = String(event.active.id).replace('deal-', '');
+    const over = event.over?.id ? String(event.over.id).replace('stage-', '') : '';
+    if (!dealId || !over) return;
+    const stage = stages.find((item) => String(item.id) === over);
+    if (stage && Boolean(stage.is_closed) && !stage.is_won) {
+      setPendingMove({ dealId, stageId: over });
+      setLossReason('');
+      setLossOpen(true);
+      return;
+    }
+    await commitMove(dealId, over);
   };
 
   const createDeal = async () => {
@@ -147,6 +166,7 @@ export function DealsKanbanPage() {
       setOpen(false);
       setName('');
       setAccountId('');
+      setSuccess(t('created'));
       void loadKanban();
     } catch (err) {
       applyAxiosError(err);
@@ -157,6 +177,7 @@ export function DealsKanbanPage() {
 
   return (
     <CrmPageLayout title={t('title')} description={t('description')} actions={<Button onClick={() => setOpen(true)}>{t('newDeal')}</Button>} {...layoutProps}>
+      <div dir={isRtl ? 'rtl' : 'ltr'} className="space-y-4">
       <div className="flex flex-wrap items-center gap-3">
         <Select value={pipelineId} onValueChange={setPipelineId}>
           <SelectTrigger className="w-[220px]"><SelectValue placeholder={t('pipeline')} /></SelectTrigger>
@@ -172,8 +193,15 @@ export function DealsKanbanPage() {
           <div className="flex gap-3 overflow-x-auto pb-2">
             {columns.map((stage) => (
               <StageColumn key={stage.id} stage={stage}>
+                {(dealsByStage[stage.id] ?? []).length === 0 ? (
+                  <p className="px-1 text-xs text-muted-foreground">{t('emptyColumn')}</p>
+                ) : null}
                 {(dealsByStage[stage.id] ?? []).map((deal) => (
-                  <DealCard key={deal.id} deal={deal} />
+                  <DealCard
+                    key={deal.id}
+                    deal={{ ...deal, name: deal.name ?? deal.title ?? `#${formatDigits(deal.id)}` }}
+                    amountLabel={deal.amount != null && deal.amount !== '' ? formatNumber(Number(deal.amount)) : undefined}
+                  />
                 ))}
               </StageColumn>
             ))}
@@ -184,9 +212,9 @@ export function DealsKanbanPage() {
         <DialogContent>
           <DialogHeader><DialogTitle>{t('newDeal')}</DialogTitle></DialogHeader>
           <div className="space-y-3">
-            <Input value={name} onChange={(e) => setName(e.target.value)} placeholder={t('newDeal')} />
+            <Input value={name} onChange={(e) => setName(e.target.value)} placeholder={t('name')} />
             <Select value={accountId} onValueChange={setAccountId}>
-              <SelectTrigger><SelectValue placeholder="Account" /></SelectTrigger>
+              <SelectTrigger><SelectValue placeholder={t('account')} /></SelectTrigger>
               <SelectContent>
                 {accounts.map((a) => (
                   <SelectItem key={a.id} value={String(a.id)}>
@@ -199,6 +227,21 @@ export function DealsKanbanPage() {
           <DialogFooter><Button onClick={() => void createDeal()} disabled={!name.trim() || !accountId}>{tNav('common.save')}</Button></DialogFooter>
         </DialogContent>
       </Dialog>
+      <Dialog open={lossOpen} onOpenChange={setLossOpen}>
+        <DialogContent>
+          <DialogHeader><DialogTitle>{t('lossReason')}</DialogTitle></DialogHeader>
+          <Input value={lossReason} onChange={(e) => setLossReason(e.target.value)} placeholder={t('lossReason')} />
+          <DialogFooter>
+            <Button
+              onClick={() => pendingMove && void commitMove(pendingMove.dealId, pendingMove.stageId, lossReason.trim())}
+              disabled={!lossReason.trim()}
+            >
+              {tNav('common.save')}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+      </div>
     </CrmPageLayout>
   );
 }

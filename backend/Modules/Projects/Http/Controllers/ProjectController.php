@@ -9,13 +9,14 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Modules\Projects\Entities\CatalogProduct;
 use Modules\Projects\Entities\Project;
+use Modules\Projects\Services\ProjectPortalLinks;
 use Modules\Projects\Services\ProjectProgress;
 use Modules\Projects\Support\StatusMachine;
 use Symfony\Component\HttpFoundation\StreamedResponse;
 
 class ProjectController extends Controller
 {
-    public function index(Request $request, CustomerAccess $access, ProjectProgress $progress): JsonResponse
+    public function index(Request $request, CustomerAccess $access, ProjectProgress $progress, ProjectPortalLinks $links): JsonResponse
     {
         $query = Project::query()->orderByDesc('created_at');
         $access->scopeProjects($query, $request->user());
@@ -34,6 +35,7 @@ class ProjectController extends Controller
         $perPage = min(max((int) $request->input('per_page', 15), 1), 100);
         $paginator = $query->paginate($perPage);
         $progress->decorate($paginator->getCollection());
+        $links->attach($paginator->getCollection());
 
         return response()->json([
             'data' => $paginator->items(),
@@ -146,11 +148,12 @@ class ProjectController extends Controller
         return response()->json(['data' => $users]);
     }
 
-    public function details(Request $request, int $id, CustomerAccess $access, ProjectProgress $progress): JsonResponse
+    public function details(Request $request, int $id, CustomerAccess $access, ProjectProgress $progress, ProjectPortalLinks $links): JsonResponse
     {
         $p = $this->findVisible($request, $id, $access);
         $p->load(['tasks', 'contracts', 'tickets', 'milestones', 'account:id,name,website']);
         $progress->decorate([$p]);
+        $links->attach([$p]);
 
         return response()->json(['data' => $p]);
     }

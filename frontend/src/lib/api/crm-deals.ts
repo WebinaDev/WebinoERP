@@ -17,8 +17,11 @@ export async function saveDeal(data: Record<string, unknown>, id?: number) {
   return unwrapData(res);
 }
 
-export async function moveDeal(id: number | string, stageId: number) {
-  const res = await apiClient.patch(`${BASE}/deals/${id}/move`, { stage_id: stageId });
+export async function moveDeal(id: number | string, stageId: number, lossReason?: string) {
+  const res = await apiClient.patch(`${BASE}/deals/${id}/move`, {
+    stage_id: stageId,
+    ...(lossReason ? { loss_reason: lossReason } : {}),
+  });
   return unwrapData(res);
 }
 
