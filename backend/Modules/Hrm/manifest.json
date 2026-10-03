@@ -9,7 +9,11 @@
     "payroll",
     "recruitment",
     "performance",
-    "training"
+    "training",
+    "loans",
+    "documents",
+    "templates",
+    "requests"
   ],
   "admin_nav": {
     "section": "hrm",

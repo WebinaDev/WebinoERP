@@ -17,11 +17,20 @@ class HrmEmployee extends Model
         'user_id', 'employee_code', 'first_name', 'last_name', 'email', 'mobile',
         'department', 'position', 'hire_date', 'status', 'base_salary', 'notes',
         'shift_template_id', 'created_by',
+        'engagement_type', 'pay_basis', 'project_fee', 'daily_rate', 'hourly_rate',
+        'insurance_applicable', 'tax_applicable',
+        'contract_type', 'contract_end_date', 'contract_status',
     ];
 
     protected $casts = [
         'hire_date' => 'date',
+        'contract_end_date' => 'date',
         'base_salary' => 'decimal:2',
+        'project_fee' => 'decimal:2',
+        'daily_rate' => 'decimal:2',
+        'hourly_rate' => 'decimal:2',
+        'insurance_applicable' => 'boolean',
+        'tax_applicable' => 'boolean',
     ];
 
     public function user(): BelongsTo

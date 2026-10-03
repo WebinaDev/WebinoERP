@@ -21,6 +21,7 @@ class DashboardNavigationService
         return match ($role) {
             RolesAndPermissionsSeeder::ROLE_SYSTEM_MANAGER => $this->managerMenu(),
             RolesAndPermissionsSeeder::ROLE_FINANCE_MANAGER => $this->financeMenu(),
+            RolesAndPermissionsSeeder::ROLE_HR_MANAGER => $this->hrMenu(),
             RolesAndPermissionsSeeder::ROLE_PROJECT_MANAGER => $this->projectManagerMenu(),
             RolesAndPermissionsSeeder::ROLE_CRM_SPECIALIST => $this->crmSpecialistMenu(),
             RolesAndPermissionsSeeder::ROLE_TEAM_MEMBER => $this->teamMemberMenu(),
@@ -35,6 +36,7 @@ class DashboardNavigationService
         $order = [
             RolesAndPermissionsSeeder::ROLE_SYSTEM_MANAGER,
             RolesAndPermissionsSeeder::ROLE_FINANCE_MANAGER,
+            RolesAndPermissionsSeeder::ROLE_HR_MANAGER,
             RolesAndPermissionsSeeder::ROLE_PROJECT_MANAGER,
             RolesAndPermissionsSeeder::ROLE_CRM_SPECIALIST,
             RolesAndPermissionsSeeder::ROLE_TEAM_MEMBER,
@@ -185,6 +187,39 @@ class DashboardNavigationService
     /**
      * @return list<array<string, mixed>>
      */
+    private function hrMenu(): array
+    {
+        $base = '/dashboard';
+        $items = [
+            ['type' => 'category', 'title' => 'داشبورد پیشفرض'],
+            ['id' => 'dashboard', 'title' => 'داشبورد', 'href' => $base, 'icon' => 'Home'],
+        ];
+        if ($this->moduleEnabled('hrm')) {
+            $items[] = ['type' => 'category', 'title' => 'منابع انسانی'];
+            foreach ([
+                ['hrm-staff', 'کارکنان', '/hrm/staff', 'Users'],
+                ['hrm-attendance', 'حضور و غیاب', '/hrm/attendance', 'CalendarCheck'],
+                ['hrm-leave', 'مرخصی', '/hrm/leave', 'Calendar'],
+                ['hrm-payroll', 'حقوق و دستمزد', '/hrm/payroll', 'Wallet'],
+                ['hrm-loans', 'وام و مساعده', '/hrm/payroll/loans', 'Landmark'],
+                ['hrm-decrees', 'احکام کارگزینی', '/hrm/payroll/decrees', 'FileText'],
+                ['hrm-templates', 'قالب فیش و حکم', '/hrm/payroll/templates', 'FileCode'],
+                ['hrm-documents', 'مدارک پرسنلی', '/hrm/documents', 'FolderOpen'],
+                ['hrm-cartable', 'کارتابل HR', '/hrm/cartable', 'Inbox'],
+                ['hrm-recruitment', 'استخدام', '/hrm/recruitment', 'UserPlus'],
+                ['hrm-performance', 'ارزیابی عملکرد', '/hrm/performance', 'BarChart3'],
+                ['hrm-training', 'آموزش', '/hrm/training', 'GraduationCap'],
+            ] as [$id, $title, $href, $icon]) {
+                $items[] = ['id' => $id, 'title' => $title, 'href' => $base.$href, 'icon' => $icon];
+            }
+        }
+        $items[] = ['type' => 'category', 'title' => 'حساب کاربری'];
+        $items[] = ['id' => 'profile', 'title' => 'پروفایل من', 'href' => $base.'/profile', 'icon' => 'UserCircle'];
+        $items[] = ['id' => 'hrm-me', 'title' => 'پورتال من', 'href' => $base.'/hrm/me', 'icon' => 'LayoutDashboard'];
+
+        return $items;
+    }
+
     private function teamMemberMenu(): array
     {
         $base = '/dashboard';
@@ -205,6 +240,16 @@ class DashboardNavigationService
             if ($this->moduleEnabled('crm')) {
                 $items[] = ['id' => 'tickets', 'title' => 'تیکت‌ها', 'href' => $base.'/tickets', 'icon' => 'Headphones'];
             }
+        }
+
+        if ($this->moduleEnabled('hrm')) {
+            $items[] = ['type' => 'category', 'title' => 'پورتال پرسنلی'];
+            $items[] = ['id' => 'hrm-me', 'title' => 'پورتال من', 'href' => $base.'/hrm/me', 'icon' => 'LayoutDashboard'];
+            $items[] = ['id' => 'hrm-my-payroll', 'title' => 'فیش حقوقی', 'href' => $base.'/hrm/my-payroll', 'icon' => 'Wallet'];
+            $items[] = ['id' => 'hrm-my-docs', 'title' => 'حکم و مدارک', 'href' => $base.'/hrm/my-docs', 'icon' => 'FileText'];
+            $items[] = ['id' => 'hrm-my-time', 'title' => 'حضور', 'href' => $base.'/hrm/my-time', 'icon' => 'Clock'];
+            $items[] = ['id' => 'hrm-leave', 'title' => 'مرخصی', 'href' => $base.'/hrm/leave', 'icon' => 'Calendar'];
+            $items[] = ['id' => 'hrm-my-requests', 'title' => 'درخواست‌ها', 'href' => $base.'/hrm/my-requests', 'icon' => 'Inbox'];
         }
 
         $items[] = ['type' => 'category', 'title' => 'حساب کاربری'];

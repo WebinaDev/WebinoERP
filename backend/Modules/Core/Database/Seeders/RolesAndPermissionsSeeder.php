@@ -26,6 +26,8 @@ class RolesAndPermissionsSeeder extends Seeder
 
     public const ROLE_CLIENT = 'client';
 
+    public const ROLE_HR_MANAGER = 'hr_manager';
+
     public const LABELS = [
         self::ROLE_SYSTEM_MANAGER => 'مدیر سیستم',
         self::ROLE_FINANCE_MANAGER => 'مدیر مالی',
@@ -34,6 +36,7 @@ class RolesAndPermissionsSeeder extends Seeder
         self::ROLE_CRM_SPECIALIST => 'کارشناس ارتباط با مشتری',
         self::ROLE_PROJECT_MANAGER => 'مدیر پروژه',
         self::ROLE_CLIENT => 'مشتری',
+        self::ROLE_HR_MANAGER => 'مدیر منابع انسانی',
     ];
 
     public function run(): void
@@ -68,6 +71,9 @@ class RolesAndPermissionsSeeder extends Seeder
 
         Role::firstOrCreate(['name' => self::ROLE_CLIENT, 'guard_name' => $guard])
             ->syncPermissions(Permission::whereIn('name', $this->clientPermissions())->get());
+
+        Role::firstOrCreate(['name' => self::ROLE_HR_MANAGER, 'guard_name' => $guard])
+            ->syncPermissions(Permission::whereIn('name', $this->hrManagerPermissions())->get());
     }
 
     /**
@@ -169,6 +175,7 @@ class RolesAndPermissionsSeeder extends Seeder
                 'hrm.performance.manage',
                 'hrm.training.view',
                 'hrm.training.manage',
+                'hrm.ess.view',
             ],
             [
                 'scm.warehouse.view',
@@ -298,6 +305,36 @@ class RolesAndPermissionsSeeder extends Seeder
             'hrm.attendance.manage',
             'hrm.leave.view',
             'hrm.leave.manage',
+            'hrm.ess.view',
+        ];
+    }
+
+    /**
+     * مدیر منابع انسانی — full HR admin plus self-service.
+     *
+     * @return list<string>
+     */
+    private function hrManagerPermissions(): array
+    {
+        return [
+            'core.navigation.view',
+            'core.dashboard.view',
+            'core.notifications.view',
+            'hrm.staff.view',
+            'hrm.staff.manage',
+            'hrm.attendance.view',
+            'hrm.attendance.manage',
+            'hrm.leave.view',
+            'hrm.leave.manage',
+            'hrm.payroll.view',
+            'hrm.payroll.manage',
+            'hrm.recruitment.view',
+            'hrm.recruitment.manage',
+            'hrm.performance.view',
+            'hrm.performance.manage',
+            'hrm.training.view',
+            'hrm.training.manage',
+            'hrm.ess.view',
         ];
     }
 

@@ -55,8 +55,19 @@ function roleQuickLinks(role: string): QuickLink[] {
       { href: 'reports', labelKey: 'quickLinks.reports' },
     ];
   }
+  if (role === 'hr_manager') {
+    return [
+      { href: 'hrm/staff', labelKey: 'quickLinks.hrmStaff' },
+      { href: 'hrm/payroll', labelKey: 'quickLinks.hrmPayroll' },
+      { href: 'hrm/cartable', labelKey: 'quickLinks.hrmCartable' },
+      { href: 'hrm/me', labelKey: 'quickLinks.hrmPortal' },
+    ];
+  }
   if (role === 'team_member') {
     return [
+      { href: 'hrm/me', labelKey: 'quickLinks.hrmPortal' },
+      { href: 'hrm/my-payroll', labelKey: 'quickLinks.hrmPayslip' },
+      { href: 'hrm/leave', labelKey: 'quickLinks.hrmLeave' },
       { href: 'pm/tasks', labelKey: 'quickLinks.tasks' },
       { href: 'pm/projects', labelKey: 'quickLinks.projects' },
       { href: 'crm/tickets', labelKey: 'quickLinks.tickets' },

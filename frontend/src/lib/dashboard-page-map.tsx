@@ -67,6 +67,10 @@ import { PayrollRunDetailPage } from '@/features/modules/hrm/payroll_run_detail_
 import { RecruitmentPage } from '@/features/modules/hrm/recruitment_page';
 import { PerformancePage } from '@/features/modules/hrm/performance_page';
 import { TrainingPage } from '@/features/modules/hrm/training_page';
+import { LoansPage } from '@/features/modules/hrm/loans_page';
+import { IssuePayslipPage } from '@/features/modules/hrm/issue_payslip_page';
+import { TemplatesPage } from '@/features/modules/hrm/templates_page';
+import { DocumentsPage } from '@/features/modules/hrm/documents_page';
 import {
   HrmCartablePage,
   MyDocsPage,
@@ -77,6 +81,7 @@ import {
   MyProfilePage,
   MyTimePage,
   PayrollDecreesPage,
+  MyRequestsPage,
 } from '@/features/modules/hrm/portal';
 import { AccountingDashboardPage } from '@/features/modules/finance/dashboard/AccountingDashboardPage';
 import { PersonsPage } from '@/features/modules/finance/persons/PersonsPage';
@@ -282,6 +287,11 @@ const EXACT: Record<string, ReactNode> = {
   'hrm/recruitment': <RecruitmentPage />,
   'hrm/performance': <PerformancePage />,
   'hrm/training': <TrainingPage />,
+  'hrm/payroll/loans': <LoansPage />,
+  'hrm/payroll/issue': <IssuePayslipPage />,
+  'hrm/payroll/templates': <TemplatesPage />,
+  'hrm/documents': <DocumentsPage />,
+  'hrm/my-requests': <MyRequestsPage />,
   'scm/warehouses': <WarehousesPage />,
   'scm/stock': <StockPage />,
   'scm/inbound': <InboundPage />,

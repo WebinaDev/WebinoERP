@@ -5,9 +5,12 @@ namespace Modules\Hrm\Http\Controllers;
 use App\Http\Controllers\Api\PaginatesApi;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Modules\Hrm\Entities\HrmDependent;
+use Modules\Hrm\Services\HrmCompensationRules;
 use Modules\Hrm\Entities\HrmEmployee;
 use Modules\Hrm\Entities\HrmEmployeeProfile;
 use Modules\Hrm\Entities\HrmOrgPosition;
+use Modules\Hrm\Entities\HrmPersonnelDocument;
 
 class StaffNestedController extends Controller
 {
@@ -35,10 +38,23 @@ class StaffNestedController extends Controller
             'department' => 'nullable|string|max:100',
             'position' => 'nullable|string|max:100',
             'hire_date' => 'nullable|date',
+            'contract_type' => 'nullable|string|max:40',
+            'contract_end_date' => 'nullable|date',
+            'contract_status' => 'nullable|string|max:30',
+
+            'engagement_type' => 'nullable|in:full_time,part_time,contractor,freelance,project,remote',
+            'pay_basis' => 'nullable|in:monthly,daily,hourly,project_fee',
+            'project_fee' => 'nullable|numeric|min:0',
+            'daily_rate' => 'nullable|numeric|min:0',
+            'hourly_rate' => 'nullable|numeric|min:0',
+            'insurance_applicable' => 'nullable|boolean',
+            'tax_applicable' => 'nullable|boolean',
             'status' => 'nullable|string|max:20',
             'base_salary' => 'nullable|numeric|min:0',
         ]);
         $data['created_by'] = $request->user()->id;
+        $data = app(HrmCompensationRules::class)->applyDefaults($data);
+        app(HrmCompensationRules::class)->assertEmployee(new HrmEmployee($data));
         $employee = HrmEmployee::create($data);
 
         return response()->json(['data' => $employee, 'message' => 'Staff created'], 201);
@@ -100,5 +116,68 @@ class StaffNestedController extends Controller
         $orgPosition->delete();
 
         return response()->noContent();
+    }
+
+    public function dependentsIndex(HrmEmployee $staff): \Illuminate\Http\JsonResponse
+    {
+        $rows = HrmDependent::query()->where('employee_id', $staff->id)->orderBy('id')->get();
+
+        return response()->json(['data' => ['dependents' => $rows]]);
+    }
+
+    public function dependentsStore(\Illuminate\Http\Request $request, HrmEmployee $staff): \Illuminate\Http\JsonResponse
+    {
+        $data = $request->validate([
+            'full_name' => 'required|string|max:150',
+            'relation' => 'nullable|string|max:50',
+            'national_id' => 'nullable|string|max:20',
+            'birth_date' => 'nullable|date',
+            'is_insured' => 'nullable|boolean',
+            'coverage_start' => 'nullable|date',
+        ]);
+        $data['employee_id'] = $staff->id;
+        $row = HrmDependent::query()->create($data);
+
+        return response()->json(['data' => $row, 'message' => 'Dependent saved'], 201);
+    }
+
+    public function documentsIndex(HrmEmployee $staff): \Illuminate\Http\JsonResponse
+    {
+        $rows = HrmPersonnelDocument::query()->where('employee_id', $staff->id)->orderByDesc('id')->get();
+
+        return response()->json(['data' => ['documents' => $rows]]);
+    }
+
+    public function documentsStore(\Illuminate\Http\Request $request, HrmEmployee $staff): \Illuminate\Http\JsonResponse
+    {
+        $data = $request->validate([
+            'title' => 'required|string|max:200',
+            'category' => 'nullable|string|max:40',
+            'file' => 'required|file|max:10240|mimes:pdf,jpg,jpeg,png,webp',
+            'expires_at' => 'nullable|date',
+        ]);
+        $file = $request->file('file');
+        $path = $file->store('hrm/documents/'.$staff->id, 'local');
+        $doc = HrmPersonnelDocument::query()->create([
+            'employee_id' => $staff->id,
+            'title' => $data['title'],
+            'category' => $data['category'] ?? 'other',
+            'file_path' => $path,
+            'original_name' => $file->getClientOriginalName(),
+            'mime' => $file->getClientMimeType(),
+            'size' => $file->getSize() ?: 0,
+            'uploaded_by' => $request->user()?->id,
+            'expires_at' => $data['expires_at'] ?? null,
+        ]);
+
+        return response()->json(['data' => $doc, 'message' => 'Document stored'], 201);
+    }
+
+    public function documentsDownload(HrmEmployee $staff, HrmPersonnelDocument $document)
+    {
+        abort_unless($document->employee_id === $staff->id, 404);
+        abort_unless(\Illuminate\Support\Facades\Storage::disk('local')->exists($document->file_path), 404);
+
+        return \Illuminate\Support\Facades\Storage::disk('local')->download($document->file_path, $document->original_name);
     }
 }

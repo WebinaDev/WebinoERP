@@ -8,7 +8,7 @@ class HrmNotice extends Model
 {
     protected $table = 'hrm_notices';
 
-    protected $fillable = ['title', 'body', 'date_from', 'date_to', 'is_active'];
+    protected $fillable = ['employee_id', 'title', 'body', 'kind', 'date_from', 'date_to', 'is_active'];
 
     protected $casts = [
         'date_from' => 'date',

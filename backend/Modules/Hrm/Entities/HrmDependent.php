@@ -9,9 +9,9 @@ class HrmDependent extends Model
 {
     protected $table = 'hrm_dependents';
 
-    protected $fillable = ['employee_id', 'full_name', 'relation', 'national_id', 'birth_date'];
+    protected $fillable = ['employee_id', 'full_name', 'relation', 'national_id', 'birth_date', 'is_insured', 'coverage_start'];
 
-    protected $casts = ['birth_date' => 'date'];
+    protected $casts = ['birth_date' => 'date', 'coverage_start' => 'date', 'is_insured' => 'boolean'];
 
     public function employee(): BelongsTo
     {

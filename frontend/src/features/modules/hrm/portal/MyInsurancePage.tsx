@@ -16,7 +16,7 @@ export function MyInsurancePage() {
   const { layoutProps, setSuccess, applyAxiosError } = useCrmFeedback();
   const [me, setMe] = useState<HrmMeResponse | null>(null);
   const [dependents, setDependents] = useState<
-    Array<{ id: number; full_name: string; relation?: string; national_id?: string }>
+    Array<{ id: number; full_name: string; relation?: string; national_id?: string; is_insured?: boolean }>
   >([]);
   const [fullName, setFullName] = useState('');
   const [relation, setRelation] = useState('');
@@ -42,7 +42,7 @@ export function MyInsurancePage() {
   const addDependent = async () => {
     if (!fullName.trim()) return;
     try {
-      await saveMyDependent({ full_name: fullName.trim(), relation: relation.trim() || null });
+      await saveMyDependent({ full_name: fullName.trim(), relation: relation.trim() || null, is_insured: true });
       setFullName('');
       setRelation('');
       setSuccess(tNav('common.saved'));
@@ -83,7 +83,7 @@ export function MyInsurancePage() {
               ) : (
                 dependents.map((d) => (
                   <div key={d.id} className="rounded border px-3 py-2">
-                    {d.full_name} · {d.relation || '—'} · {d.national_id || '—'}
+                    {d.full_name} · {d.relation || '—'} · {d.national_id || '—'} · {d.is_insured === false ? t('insurance.notCovered') : t('insurance.covered')}
                   </div>
                 ))
               )}

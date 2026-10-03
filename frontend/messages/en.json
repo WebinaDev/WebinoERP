@@ -33,7 +33,8 @@
       "crm_specialist": "CRM Specialist",
       "project_manager": "Project Manager",
       "client": "Client",
-      "guest": "Guest"
+      "guest": "Guest",
+      "hr_manager": "HR Manager"
     },
     "module": {
       "hrm": "Human resources (HRM)",
@@ -195,7 +196,12 @@
         "cartable": "HR inbox",
         "recruitment": "Recruitment",
         "performance": "Performance",
-        "training": "Training"
+        "training": "Training",
+        "loans": "Loans & advances",
+        "templates": "Payslip & decree templates",
+        "documents": "Personnel documents",
+        "myRequests": "My requests",
+        "issuePayslip": "Issue payslip"
       },
       "finance": {
         "group": "Finance & accounting",
@@ -3055,7 +3061,106 @@
       "userId": "User ID",
       "dailyWage": "Daily wage",
       "jobCode": "Job code",
-      "issueDecree": "Issue decree"
+      "issueDecree": "Issue decree",
+      "compensation": "Loans, advances and contract",
+      "shortcuts": "Shortcuts"
+    },
+    "iranianDefaultsHint": "Defaults follow SSO practice and the 1405 salary-tax ladder in Rials. They are editable. A minimum of 0 means it is not configured yet.",
+    "loans": {
+      "new": "New loan / advance",
+      "type": "Type",
+      "loan": "Loan",
+      "advance": "Advance",
+      "principal": "Principal",
+      "installment": "Installment",
+      "balance": "Balance",
+      "settle": "Settle",
+      "settled": "Settled.",
+      "employeeId": "Employee id",
+      "title": "Title"
+    },
+    "templates": {
+      "hint": "HTML for payslips and employment decrees. Placeholders use {{name}}.",
+      "slug": "Document",
+      "payslip": "Payslip",
+      "decree": "Decree",
+      "name": "Template name",
+      "htmlPlaceholder": "Template HTML",
+      "preview": "Preview",
+      "payslipId": "Payslip item id",
+      "decreeId": "Decree id",
+      "placeholders": "Save the template, then preview with a record id."
+    },
+    "documents": {
+      "hint": "Personnel files (national ID, contract, etc.) per employee.",
+      "title": "Title",
+      "category": "Category (national_card, contract, other)",
+      "upload": "Upload",
+      "mine": "Personnel documents",
+      "missing": "Missing documents"
+    },
+    "requests": {
+      "new": "New request",
+      "submitted": "Request submitted.",
+      "overtime": "Overtime",
+      "mission": "Mission",
+      "remote": "Remote work",
+      "hours": "Hours",
+      "days": "Days",
+      "amount": "Amount"
+    },
+    "settings": {
+      "employeeInsurance": "Employee SSO %",
+      "employerInsurance": "Employer SSO %",
+      "unemployment": "Unemployment insurance %",
+      "overtimeMultiplier": "Overtime multiplier",
+      "monthlyHours": "Monthly hours",
+      "missionDaily": "Mission daily allowance",
+      "minimumWage": "Monthly minimum wage",
+      "minimumDaily": "Daily minimum wage",
+      "minimumHourly": "Hourly minimum wage",
+      "workingDays": "Days used for the daily floor",
+      "eydiMonth": "Eid bonus month",
+      "insuranceCeiling": "Insurable wage ceiling (0 = none)",
+      "insuranceFraction": "Tax-deductible fraction of SSO (2/7)",
+      "taxBrackets": "Monthly tax brackets (JSON, same unit as salary)",
+      "minWageRule": "The legal floor applies to full-time unless min_wage_engagements is changed."
+    },
+    "contract": {
+      "type": "Contract type",
+      "status": "Contract status",
+      "end": "Contract end"
+    },
+    "engagement": {
+      "type": "Engagement (full_time, part_time, contractor, freelance, project, remote)",
+      "basis": "Pay basis (monthly, daily, hourly, project_fee)",
+      "projectFee": "Project / freelance fee",
+      "types": {
+        "full_time": "Full-time",
+        "part_time": "Part-time",
+        "contractor": "Contractor",
+        "freelance": "Freelance",
+        "project": "Project",
+        "remote": "Remote"
+      },
+      "bases": {
+        "monthly": "Monthly",
+        "daily": "Daily",
+        "hourly": "Hourly",
+        "project_fee": "Project fee"
+      }
+    },
+    "payslip": {
+      "hint": "Issue one employee's payslip from configurable rates, benefits, SSO, tax, loans and advances. Full-time pay under the legal floor is rejected.",
+      "issue": "Issue payslip",
+      "issued": "Payslip issued.",
+      "emptyPreview": "The payslip preview appears here.",
+      "tax": "Salary tax",
+      "employerInsurance": "Employer insurance"
+    },
+    "insurance": {
+      "covered": "Covered",
+      "notCovered": "Not covered"
     }
   },
   "mfg": {
@@ -4074,7 +4179,8 @@
       "client": "Client",
       "crm_specialist": "CRM specialist",
       "project_manager": "Project manager",
-      "guest": "Guest"
+      "guest": "Guest",
+      "hr_manager": "HR Manager"
     },
     "stats": {
       "users": "Users",
@@ -4149,7 +4255,13 @@
       "tickets": "Tickets",
       "appointments": "Appointments",
       "time": "Time tracking",
-      "profile": "Profile"
+      "profile": "Profile",
+      "hrmStaff": "Staff",
+      "hrmPayroll": "Payroll",
+      "hrmCartable": "HR inbox",
+      "hrmPortal": "My portal",
+      "hrmPayslip": "My payslip",
+      "hrmLeave": "Leave"
     },
     "crmPmTitle": "CRM and project summary",
     "crmCustomers": "Customers",
@@ -4380,7 +4492,7 @@
     },
     "tasks": {
       "title": "Tasks",
-      "description": "Manage tasks in kanban, list, calendar, and gantt views.",
+      "description": "Description",
       "viewKanban": "Kanban",
       "viewList": "List",
       "viewCalendar": "Calendar",
@@ -4432,7 +4544,6 @@
       "minutesShort": "min",
       "timeNote": "Time note",
       "loadError": "Could not load the task",
-      "description": "Description",
       "recurrence": "Recurrence",
       "recurrenceNone": "Does not repeat",
       "recurrenceDaily": "Daily",
@@ -5768,7 +5879,7 @@
       "s_02b1718b": "درباره ما"
     }
   },
-    "site": {
+  "site": {
     "nav": {
       "home": "Home",
       "services": "Services",
@@ -6660,7 +6771,7 @@
     "outreachTitle": "Messages and nurture",
     "outreachHint": "Email and SMS templates, one-off sends, and sequences.",
     "templates": "Templates",
-    "templateName": "Template name",
+    "templateName": "Project name",
     "channel": "Channel",
     "email": "Email",
     "sms": "SMS",
@@ -6772,7 +6883,6 @@
     "rejected": "Rejected",
     "decide": "Save decision",
     "template": "Create from template",
-    "templateName": "Project name",
     "createFromTemplate": "Create project",
     "widgets": "Widgets",
     "show": "Show",
@@ -6792,8 +6902,17 @@
     "customValue": "Value"
   },
   "expansion": {
-    "common": { "save": "Save", "saved": "Saved", "working": "Working" },
-    "priority": { "low": "Low", "normal": "Normal", "high": "High", "urgent": "Urgent" },
+    "common": {
+      "save": "Save",
+      "saved": "Saved",
+      "working": "Working"
+    },
+    "priority": {
+      "low": "Low",
+      "normal": "Normal",
+      "high": "High",
+      "urgent": "Urgent"
+    },
     "ai": {
       "run": "AI suggestion",
       "placeholder": "Add a note or extra context",
@@ -6806,11 +6925,21 @@
       "content_brief": "Content brief",
       "task_plan": "Task plan"
     },
-    "bell": { "label": "Notifications", "title": "Unified notifications", "empty": "No notifications", "item": "Notification" },
+    "bell": {
+      "label": "Notifications",
+      "title": "Unified notifications",
+      "empty": "No notifications",
+      "item": "Notification"
+    },
     "connect": {
       "title": "Live connect",
       "description": "Google and Outlook calendars, messengers, mailbox, and SMS for the highest-priority events.",
-      "tabs": { "calendar": "Calendar", "chat": "Messengers", "mail": "Email", "sms": "SMS" },
+      "tabs": {
+        "calendar": "Calendar",
+        "chat": "Messengers",
+        "mail": "Email",
+        "sms": "SMS"
+      },
       "google": "Connect Google",
       "outlook": "Connect Outlook",
       "calendarHint": "Events map to appointments and tasks. Webhooks and the scheduled poll both stay active.",
@@ -6990,7 +7119,12 @@
     "studio": {
       "title": "Platform studio",
       "description": "Visual workflows, reports, feature flags, and enterprise sign-in.",
-      "tabs": { "flow": "Workflow", "bi": "Reports", "flags": "Flags", "sso": "SSO" },
+      "tabs": {
+        "flow": "Workflow",
+        "bi": "Reports",
+        "flags": "Flags",
+        "sso": "SSO"
+      },
       "flowName": "Workflow name",
       "addNode": "Add node",
       "next": "Step after start",

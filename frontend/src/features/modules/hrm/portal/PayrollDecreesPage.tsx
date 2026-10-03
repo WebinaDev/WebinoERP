@@ -5,7 +5,8 @@ import { useTranslations } from 'next-intl';
 import { CrmPageLayout } from '@/features/shared/layout/CrmPageLayout';
 import { useCrmFeedback } from '@/features/shared/hooks/useCrmFeedback';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input'
+import { Input } from '@/components/ui/input';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { LocaleDatePicker } from '@/components/ui/locale-date-picker';
 import { Card, CardContent } from '@/components/ui/card';
 import { PageLoadingState } from '@/features/shared/ui/PageStates';
@@ -16,8 +17,12 @@ export function PayrollDecreesPage() {
   const tNav = useTranslations();
   const { layoutProps, setSuccess, applyAxiosError } = useCrmFeedback();
   const [rows, setRows] = useState<Record<string, unknown>[]>([]);
-  const [userId, setUserId] = useState('');
+  const [employeeId, setEmployeeId] = useState('');
   const [daily, setDaily] = useState('0');
+  const [baseSalary, setBaseSalary] = useState('');
+  const [projectFee, setProjectFee] = useState('');
+  const [engagement, setEngagement] = useState('full_time');
+  const [basis, setBasis] = useState('monthly');
   const [jobCode, setJobCode] = useState('');
   const [effectiveFrom, setEffectiveFrom] = useState(() => new Date().toISOString().slice(0, 10));
   const [loading, setLoading] = useState(true);
@@ -41,15 +46,19 @@ export function PayrollDecreesPage() {
   const create = async () => {
     try {
       await savePayrollDecree({
-        user_id: Number(userId),
+        employee_id: Number(employeeId),
         decree_type: 'hire',
         status: 'issued',
         effective_from: effectiveFrom,
         daily_wage: Number(daily) || 0,
+        base_salary: baseSalary !== '' ? Number(baseSalary) : null,
+        project_fee: projectFee !== '' ? Number(projectFee) : null,
+        engagement_type: engagement,
+        pay_basis: basis,
         job_code: jobCode,
       });
       setSuccess(tNav('common.saved'));
-      setUserId('');
+      setEmployeeId('');
       void load();
     } catch (err) {
       applyAxiosError(err);
@@ -62,10 +71,28 @@ export function PayrollDecreesPage() {
         <CardContent className="pt-6 flex flex-wrap gap-2">
           <Input
             className="max-w-[8rem]"
-            value={userId}
-            onChange={(e) => setUserId(e.target.value)}
-            placeholder={t('portal.userId')}
+            value={employeeId}
+            onChange={(e) => setEmployeeId(e.target.value)}
+            placeholder={t('loans.employeeId')}
           />
+          <Select value={engagement} onValueChange={setEngagement}>
+            <SelectTrigger className="max-w-[10rem]"><SelectValue /></SelectTrigger>
+            <SelectContent>
+              {(['full_time','part_time','contractor','freelance','project','remote'] as const).map((k) => (
+                <SelectItem key={k} value={k}>{t(`engagement.types.${k}`)}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+          <Select value={basis} onValueChange={setBasis}>
+            <SelectTrigger className="max-w-[10rem]"><SelectValue /></SelectTrigger>
+            <SelectContent>
+              {(['monthly','daily','hourly','project_fee'] as const).map((k) => (
+                <SelectItem key={k} value={k}>{t(`engagement.bases.${k}`)}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+          <Input className="max-w-[8rem]" value={baseSalary} onChange={(e) => setBaseSalary(e.target.value)} placeholder={t('portal.baseSalary')} />
+          <Input className="max-w-[8rem]" value={projectFee} onChange={(e) => setProjectFee(e.target.value)} placeholder={t('engagement.projectFee')} />
           <Input
             className="max-w-[8rem]"
             value={daily}
@@ -83,7 +110,7 @@ export function PayrollDecreesPage() {
             value={effectiveFrom}
             onChange={setEffectiveFrom}
           />
-          <Button onClick={() => void create()} disabled={!userId}>
+          <Button onClick={() => void create()} disabled={!employeeId}>
             {t('portal.issueDecree')}
           </Button>
         </CardContent>
@@ -101,7 +128,7 @@ export function PayrollDecreesPage() {
                 className="flex items-center justify-between rounded-md border px-3 py-2 text-sm"
               >
                 <span>
-                  {String(d.decree_no ?? d.id)} — user {String(d.user_id ?? '—')} — {String(d.status)}
+                  {String(d.decree_no ?? d.id)} — {String(d.engagement_type ?? '')} / {String(d.pay_basis ?? '')} — {String(d.status)}
                 </span>
               </div>
             ))

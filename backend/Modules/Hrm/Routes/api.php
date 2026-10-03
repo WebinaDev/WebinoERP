@@ -30,9 +30,16 @@ Route::prefix('me')->group(function () {
     Route::get('org-chart', [MePortalController::class, 'orgChart']);
     Route::get('profile', [MePortalController::class, 'profileShow']);
     Route::patch('profile', [MePortalController::class, 'profileUpdate']);
+    Route::get('requests', [MePortalController::class, 'myRequests']);
+    Route::post('requests', [MePortalController::class, 'myRequestsStore']);
+    Route::get('documents', [MePortalController::class, 'myDocuments']);
+    Route::post('documents', [MePortalController::class, 'myDocumentsStore']);
+    Route::get('documents/{document}/download', [MePortalController::class, 'myDocumentDownload']);
 });
 
 Route::get('requests/inbox', [MePortalController::class, 'requestsInbox']);
+Route::post('requests/{hrmRequest}/approve', [MePortalController::class, 'requestApprove']);
+Route::post('requests/{hrmRequest}/reject', [MePortalController::class, 'requestReject']);
 
 // Nested parity routes (must be registered before flat apiResource captures segments)
 Route::prefix('staff')->group(function () {
@@ -41,6 +48,11 @@ Route::prefix('staff')->group(function () {
     Route::delete('/{staff}', [StaffNestedController::class, 'destroy']);
     Route::get('/{staff}/profile', [StaffNestedController::class, 'getProfile']);
     Route::post('/{staff}/profile', [StaffNestedController::class, 'saveProfile']);
+    Route::get('/{staff}/dependents', [StaffNestedController::class, 'dependentsIndex']);
+    Route::post('/{staff}/dependents', [StaffNestedController::class, 'dependentsStore']);
+    Route::get('/{staff}/documents', [StaffNestedController::class, 'documentsIndex']);
+    Route::post('/{staff}/documents', [StaffNestedController::class, 'documentsStore']);
+    Route::get('/{staff}/documents/{document}/download', [StaffNestedController::class, 'documentsDownload']);
 });
 Route::get('org-positions', [StaffNestedController::class, 'orgPositionsIndex']);
 Route::post('org-positions', [StaffNestedController::class, 'orgPositionStore']);
@@ -74,7 +86,19 @@ Route::prefix('payroll')->group(function () {
     Route::get('runs/{run}', [PayrollNestedController::class, 'runGet']);
     Route::post('runs/{run}/calculate', [PayrollNestedController::class, 'runCalculate']);
     Route::post('runs/{run}/approve', [PayrollNestedController::class, 'runApprove']);
+    Route::post('runs/{run}/mark-paid', [PayrollNestedController::class, 'runMarkPaid']);
+    Route::get('runs/{run}/insurance-list', [PayrollNestedController::class, 'insuranceList']);
     Route::get('runs/{run}/payslips', [PayrollNestedController::class, 'payslipsList']);
+    Route::get('payslip-items/{item}/pdf', [PayrollNestedController::class, 'payslipPdf']);
+    Route::get('decrees/{decree}/pdf', [PayrollNestedController::class, 'decreePdf']);
+    Route::post('severance-preview', [PayrollNestedController::class, 'severancePreview']);
+    Route::post('payslips', [PayrollNestedController::class, 'payslipIssue']);
+    Route::get('loans', [PayrollNestedController::class, 'loansIndex']);
+    Route::post('loans', [PayrollNestedController::class, 'loansStore']);
+    Route::post('loans/{hrmLoan}/settle', [PayrollNestedController::class, 'loansSettle']);
+    Route::get('templates', [PayrollNestedController::class, 'templatesIndex']);
+    Route::post('templates', [PayrollNestedController::class, 'templatesSave']);
+    Route::get('templates/{slug}/render', [PayrollNestedController::class, 'templatesRender']);
 });
 
 Route::prefix('recruitment')->group(function () {

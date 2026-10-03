@@ -9,11 +9,15 @@ class HrmLeaveRequest extends Model
 {
     protected $table = 'hrm_leave_requests';
 
-    protected $fillable = ['employee_id', 'type', 'start_date', 'end_date', 'status', 'reason', 'approved_by'];
+    protected $fillable = [
+        'employee_id', 'type', 'start_date', 'end_date', 'status', 'reason', 'approved_by',
+        'approval_step', 'current_role', 'approval_log',
+    ];
 
     protected $casts = [
         'start_date' => 'date',
         'end_date' => 'date',
+        'approval_log' => 'array',
     ];
 
     public function employee(): BelongsTo

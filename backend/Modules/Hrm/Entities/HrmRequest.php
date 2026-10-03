@@ -11,9 +11,13 @@ class HrmRequest extends Model
 
     protected $fillable = [
         'employee_id', 'user_id', 'type', 'status', 'payload', 'notes', 'reviewed_by',
+        'approval_step', 'current_role', 'approval_log',
     ];
 
-    protected $casts = ['payload' => 'array'];
+    protected $casts = [
+        'payload' => 'array',
+        'approval_log' => 'array',
+    ];
 
     public function employee(): BelongsTo
     {

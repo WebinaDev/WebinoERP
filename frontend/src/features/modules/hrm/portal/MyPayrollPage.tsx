@@ -22,6 +22,17 @@ export function MyPayrollPage() {
       gross: number;
       net: number;
       deductions?: number;
+      breakdown?: {
+        employee_insurance?: number;
+        employer_insurance?: number;
+        unemployment_insurance?: number;
+        tax?: number;
+        loan_deduction?: number;
+        advance_deduction?: number;
+        overtime?: number;
+        mission?: number;
+        lines?: Record<string, number>;
+      };
     }>
   >([]);
   const [decree, setDecree] = useState<Record<string, unknown> | null>(null);
@@ -89,6 +100,20 @@ export function MyPayrollPage() {
                           {t('portal.deductions')}: {formatNumber(ps.deductions)}
                         </span>
                       ) : null}
+                      {ps.breakdown?.employee_insurance != null ? (
+                        <span>{t('settings.employeeInsurance')}: {formatNumber(ps.breakdown.employee_insurance)}</span>
+                      ) : null}
+                      {ps.breakdown?.tax != null ? (
+                        <span>{t('payslip.tax')}: {formatNumber(ps.breakdown.tax)}</span>
+                      ) : null}
+                      {ps.breakdown?.loan_deduction != null ? (
+                        <span>{t('loans.loan')}: {formatNumber(ps.breakdown.loan_deduction)}</span>
+                      ) : null}
+                      {ps.breakdown?.lines
+                        ? Object.entries(ps.breakdown.lines).map(([k, v]) => (
+                            <span key={k}>{k}: {formatNumber(Number(v))}</span>
+                          ))
+                        : null}
                     </div>
                   </div>
                 ))

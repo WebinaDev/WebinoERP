@@ -9,6 +9,7 @@ import { useCrmFeedback } from '@/features/shared/hooks/useCrmFeedback';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { Textarea } from '@/components/ui/textarea';
 import { Card, CardContent } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -49,10 +50,21 @@ export function PayrollPage() {
   const [tab, setTab] = useState('runs');
   const [rows, setRows] = useState<Record<string, unknown>[]>([]);
   const [components, setComponents] = useState<Record<string, unknown>[]>([]);
+  const [brackets, setBrackets] = useState('');
   const [settings, setSettings] = useState<Record<string, string>>({
-    tax_rate: '',
-    insurance_rate: '',
-    overtime_rate: '',
+    employee_insurance_percent: '7',
+    employer_insurance_percent: '20',
+    unemployment_insurance_percent: '3',
+    overtime_multiplier: '1.4',
+    monthly_hours: '220',
+    mission_daily_allowance: '0',
+    minimum_monthly_wage: '0',
+    minimum_daily_wage: '0',
+    minimum_hourly_wage: '0',
+    working_days_per_month: '30',
+    eydi_month: '12',
+    insurance_ceiling: '0',
+    insurance_deductible_fraction: '0.285714',
   });
   const [loading, setLoading] = useState(true);
   const [runDialog, setRunDialog] = useState(false);
@@ -81,12 +93,16 @@ export function PayrollPage() {
       ]);
       setRows(normalizeListPayload(runsRes as { data?: unknown }));
       setComponents(normalizeListPayload(compRes as { data?: unknown }));
-      const s = (settingsRes as Record<string, unknown>) ?? {};
-      setSettings({
-        tax_rate: String(s.tax_rate ?? ''),
-        insurance_rate: String(s.insurance_rate ?? ''),
-        overtime_rate: String(s.overtime_rate ?? ''),
+      const raw = (settingsRes as { data?: Record<string, unknown> })?.data ?? (settingsRes as Record<string, unknown>) ?? {};
+      const s = raw as Record<string, unknown>;
+      setSettings((prev) => {
+        const next = { ...prev };
+        for (const key of Object.keys(next)) {
+          if (s[key] != null && typeof s[key] !== 'object') next[key] = String(s[key]);
+        }
+        return next;
       });
+      if (s.tax_brackets) setBrackets(JSON.stringify(s.tax_brackets, null, 2));
     } catch (err) {
       applyAxiosError(err);
     } finally {
@@ -125,6 +141,7 @@ export function PayrollPage() {
       for (const [k, v] of Object.entries(settings)) {
         if (v !== '') payload[k] = Number(v);
       }
+      if (brackets.trim()) payload.tax_brackets = JSON.parse(brackets);
       await savePayrollSettings(payload);
       setSuccess(tNav('common.saved'));
     } catch (err) {
@@ -224,18 +241,33 @@ export function PayrollPage() {
 
         <TabsContent value="settings">
           <Card>
-            <CardContent className="grid max-w-lg gap-4 pt-6">
+            <CardContent className="grid max-w-xl gap-4 pt-6">
+              <p className="text-sm text-muted-foreground">{t('iranianDefaultsHint')}</p>
+              {(
+                [
+                  ['employee_insurance_percent', 'settings.employeeInsurance'],
+                  ['employer_insurance_percent', 'settings.employerInsurance'],
+                  ['unemployment_insurance_percent', 'settings.unemployment'],
+                  ['overtime_multiplier', 'settings.overtimeMultiplier'],
+                  ['monthly_hours', 'settings.monthlyHours'],
+                  ['mission_daily_allowance', 'settings.missionDaily'],
+                  ['minimum_monthly_wage', 'settings.minimumWage'],
+                  ['minimum_daily_wage', 'settings.minimumDaily'],
+                  ['minimum_hourly_wage', 'settings.minimumHourly'],
+                  ['working_days_per_month', 'settings.workingDays'],
+                  ['eydi_month', 'settings.eydiMonth'],
+                  ['insurance_ceiling', 'settings.insuranceCeiling'],
+                  ['insurance_deductible_fraction', 'settings.insuranceFraction'],
+                ] as const
+              ).map(([key, label]) => (
+                <div key={key} className="space-y-1">
+                  <Label>{t(label)}</Label>
+                  <Input type="number" value={settings[key] ?? ''} onChange={(e) => setSettings((s) => ({ ...s, [key]: e.target.value }))} />
+                </div>
+              ))}
               <div className="space-y-1">
-                <Label>{t('taxRate')}</Label>
-                <Input type="number" value={settings.tax_rate} onChange={(e) => setSettings((s) => ({ ...s, tax_rate: e.target.value }))} />
-              </div>
-              <div className="space-y-1">
-                <Label>{t('insuranceRate')}</Label>
-                <Input type="number" value={settings.insurance_rate} onChange={(e) => setSettings((s) => ({ ...s, insurance_rate: e.target.value }))} />
-              </div>
-              <div className="space-y-1">
-                <Label>{t('overtimeRate')}</Label>
-                <Input type="number" value={settings.overtime_rate} onChange={(e) => setSettings((s) => ({ ...s, overtime_rate: e.target.value }))} />
+                <Label>{t('settings.taxBrackets')}</Label>
+                <Textarea className="min-h-40 font-mono text-xs" value={brackets} onChange={(e) => setBrackets(e.target.value)} />
               </div>
               <Button className="w-fit" onClick={() => void handleSaveSettings()} disabled={submitting}>
                 {tNav('common.save')}

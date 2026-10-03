@@ -73,6 +73,8 @@ return [
         'performance' => ['view' => 'hrm.performance.view', 'manage' => 'hrm.performance.manage'],
         'training' => ['view' => 'hrm.training.view', 'manage' => 'hrm.training.manage'],
         'org-positions' => ['view' => 'hrm.staff.view', 'manage' => 'hrm.staff.manage'],
+        'me' => ['view' => 'hrm.ess.view', 'manage' => 'hrm.ess.view'],
+        'requests' => ['view' => 'hrm.leave.manage', 'manage' => 'hrm.leave.manage'],
         '*' => ['view' => 'hrm.staff.view', 'manage' => 'hrm.staff.manage'],
     ],
     'accounting' => [

@@ -179,6 +179,8 @@ export type HrmMeIdentity = {
   workshop?: { id?: number; code?: string; name?: string } | null;
   hire_date?: string | null;
   contract_type?: string | null;
+  contract_end_date?: string | null;
+  contract_status?: string | null;
 };
 
 export type HrmMeResponse = {
@@ -202,6 +204,8 @@ export type HrmMeResponse = {
     deposit_date?: string | null;
   } | null;
   open_requests?: number;
+  compensation?: { loan_balance?: number; advance_balance?: number };
+  missing_documents?: string[];
 };
 
 export async function getHrmMe() {
@@ -416,4 +420,93 @@ export async function getTrainingEnrollments(params?: Record<string, unknown>) {
 export async function saveTrainingEnrollment(data: Record<string, unknown>) {
   const res = await apiClient.post(`${BASE}/training/enrollments`, data);
   return unwrapData(res);
+}
+
+export async function getLoans(params?: Record<string, unknown>) {
+  const res = await apiClient.get(`${BASE}/payroll/loans`, { params });
+  return unwrapData(res);
+}
+
+export async function saveLoan(data: Record<string, unknown>) {
+  const res = await apiClient.post(`${BASE}/payroll/loans`, data);
+  return unwrapData(res);
+}
+
+export async function settleLoan(id: number | string) {
+  const res = await apiClient.post(`${BASE}/payroll/loans/${id}/settle`);
+  return unwrapData(res);
+}
+
+export async function getDocumentTemplates() {
+  const res = await apiClient.get(`${BASE}/payroll/templates`);
+  return unwrapData<{ data?: Array<{ id: number; slug: string; name: string; html?: string }> } | Array<{ id: number; slug: string; name: string; html?: string }>>(res);
+}
+
+export async function saveDocumentTemplate(data: Record<string, unknown>) {
+  const res = await apiClient.post(`${BASE}/payroll/templates`, data);
+  return unwrapData(res);
+}
+
+export async function renderDocumentTemplate(slug: string, params: Record<string, unknown>) {
+  const res = await apiClient.get(`${BASE}/payroll/templates/${slug}/render`, { params });
+  return unwrapData<{ html: string }>(res);
+}
+
+export async function getMyRequests() {
+  const res = await apiClient.get(`${BASE}/me/requests`);
+  return unwrapData<{ requests: Array<{ id: number; type: string; status: string; notes?: string; payload?: Record<string, unknown> }> }>(res);
+}
+
+export async function saveMyRequest(data: Record<string, unknown>) {
+  const res = await apiClient.post(`${BASE}/me/requests`, data);
+  return unwrapData(res);
+}
+
+export async function approveHrmRequest(id: number | string) {
+  const res = await apiClient.post(`${BASE}/requests/${id}/approve`);
+  return unwrapData(res);
+}
+
+export async function rejectHrmRequest(id: number | string) {
+  const res = await apiClient.post(`${BASE}/requests/${id}/reject`);
+  return unwrapData(res);
+}
+
+export async function getMyDocuments() {
+  const res = await apiClient.get(`${BASE}/me/documents`);
+  return unwrapData<{ documents: Array<{ id: number; title: string; category?: string; original_name?: string }> }>(res);
+}
+
+export async function saveMyDocument(body: FormData) {
+  const res = await apiClient.post(`${BASE}/me/documents`, body, {
+    headers: { 'Content-Type': 'multipart/form-data' },
+  });
+  return unwrapData(res);
+}
+
+export async function getStaffDocuments(employeeId: number | string) {
+  const res = await apiClient.get(`${BASE}/staff/${employeeId}/documents`);
+  return unwrapData<{ documents: Array<{ id: number; title: string; category?: string; original_name?: string }> }>(res);
+}
+
+export async function saveStaffDocument(employeeId: number | string, body: FormData) {
+  const res = await apiClient.post(`${BASE}/staff/${employeeId}/documents`, body, {
+    headers: { 'Content-Type': 'multipart/form-data' },
+  });
+  return unwrapData(res);
+}
+
+export async function getStaffDependents(employeeId: number | string) {
+  const res = await apiClient.get(`${BASE}/staff/${employeeId}/dependents`);
+  return unwrapData(res);
+}
+
+export async function saveStaffDependent(employeeId: number | string, data: Record<string, unknown>) {
+  const res = await apiClient.post(`${BASE}/staff/${employeeId}/dependents`, data);
+  return unwrapData(res);
+}
+
+export async function issueEmployeePayslip(data: { employee_id: number; year: number; month: number; title?: string }) {
+  const res = await apiClient.post(`${BASE}/payroll/payslips`, data);
+  return unwrapData<{ data?: { html?: string; item?: Record<string, unknown>; run?: Record<string, unknown> }; html?: string; item?: Record<string, unknown> }>(res);
 }

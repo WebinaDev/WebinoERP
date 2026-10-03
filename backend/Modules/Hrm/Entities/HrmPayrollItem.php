@@ -9,12 +9,15 @@ class HrmPayrollItem extends Model
 {
     protected $table = 'hrm_payroll_items';
 
-    protected $fillable = ['payroll_run_id', 'employee_id', 'gross', 'deductions', 'net'];
+    protected $fillable = [
+        'payroll_run_id', 'employee_id', 'gross', 'deductions', 'net', 'breakdown', 'serial_no',
+    ];
 
     protected $casts = [
         'gross' => 'decimal:2',
         'deductions' => 'decimal:2',
         'net' => 'decimal:2',
+        'breakdown' => 'array',
     ];
 
     public function employee(): BelongsTo

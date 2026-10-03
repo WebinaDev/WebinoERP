@@ -5,9 +5,12 @@ namespace Modules\Hrm\Http\Controllers;
 use App\Http\Controllers\Api\PaginatesApi;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Schema;
 use Modules\Hrm\Entities\HrmLeaveBalance;
 use Modules\Hrm\Entities\HrmLeaveRequest;
 use Modules\Hrm\Entities\HrmLeaveType;
+use Modules\Hrm\Services\HrmApprovalWorkflow;
+use Modules\Hrm\Support\HrmNotifier;
 
 class LeaveNestedController extends Controller
 {
@@ -50,21 +53,64 @@ class LeaveNestedController extends Controller
             'end_date' => 'required|date|after_or_equal:start_date',
             'reason' => 'nullable|string',
         ]);
-        $leave = HrmLeaveRequest::create([...$data, 'status' => 'pending']);
+        $wf = app(HrmApprovalWorkflow::class);
+        $boot = $wf->bootstrapFields();
+        // Keep legacy 'pending' if approval columns missing
+        if (! Schema::hasColumn('hrm_leave_requests', 'approval_step')) {
+            $boot = ['status' => 'pending'];
+        }
+        $leave = HrmLeaveRequest::create([...$data, ...$boot]);
 
         return response()->json(['data' => $leave->load('employee'), 'message' => 'Request created'], 201);
     }
 
     public function requestApprove(Request $request, HrmLeaveRequest $leaveRequest): JsonResponse
     {
-        $leaveRequest->update(['status' => 'approved', 'approved_by' => $request->user()->id]);
+        $wf = app(HrmApprovalWorkflow::class);
+        if (Schema::hasColumn('hrm_leave_requests', 'approval_step')) {
+            // Migrate legacy pending → step 1
+            if ($leaveRequest->status === 'pending') {
+                $leaveRequest->update([
+                    'status' => $wf->initialStatus(),
+                    'approval_step' => 1,
+                    'current_role' => $wf->currentRoleForStep(1),
+                ]);
+            }
+            $status = $wf->approveModel($leaveRequest, $request->user());
+        } else {
+            $leaveRequest->update(['status' => 'approved', 'approved_by' => $request->user()->id]);
+            $status = 'approved';
+        }
 
-        return response()->json(['data' => $leaveRequest->fresh('employee'), 'message' => 'Approved']);
+        if ($status === HrmApprovalWorkflow::STATUS_APPROVED) {
+            $leaveRequest->update(['approved_by' => $request->user()->id]);
+            HrmNotifier::notify(
+                $leaveRequest->employee_id,
+                'leave_approved',
+                'مرخصی تأیید شد',
+                'درخواست مرخصی leave:'.$leaveRequest->id.' از '.$leaveRequest->start_date.' تأیید شد.'
+            );
+        }
+
+        return response()->json(['data' => $leaveRequest->fresh('employee'), 'message' => $status === 'approved' ? 'Approved' : 'Advanced']);
     }
 
     public function requestReject(Request $request, HrmLeaveRequest $leaveRequest): JsonResponse
     {
-        $leaveRequest->update(['status' => 'rejected', 'approved_by' => $request->user()->id]);
+        $data = $request->validate(['reason' => 'nullable|string|max:2000']);
+        $wf = app(HrmApprovalWorkflow::class);
+        if (Schema::hasColumn('hrm_leave_requests', 'approval_step')) {
+            if ($leaveRequest->status === 'pending') {
+                $leaveRequest->update([
+                    'status' => $wf->initialStatus(),
+                    'approval_step' => 1,
+                    'current_role' => $wf->currentRoleForStep(1),
+                ]);
+            }
+            $wf->rejectModel($leaveRequest, $request->user(), $data['reason'] ?? null);
+        } else {
+            $leaveRequest->update(['status' => 'rejected', 'approved_by' => $request->user()->id]);
+        }
 
         return response()->json(['data' => $leaveRequest->fresh('employee'), 'message' => 'Rejected']);
     }

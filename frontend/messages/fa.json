@@ -33,7 +33,8 @@
       "crm_specialist": "کارشناس ارتباط با مشتری",
       "project_manager": "مدیر پروژه",
       "client": "مشتری",
-      "guest": "مهمان"
+      "guest": "مهمان",
+      "hr_manager": "مدیر منابع انسانی"
     },
     "module": {
       "hrm": "مدیریت منابع انسانی",
@@ -195,7 +196,12 @@
         "cartable": "کارتابل HR",
         "recruitment": "استخدام",
         "performance": "ارزیابی عملکرد",
-        "training": "آموزش"
+        "training": "آموزش",
+        "loans": "وام و مساعده",
+        "templates": "قالب فیش و حکم",
+        "documents": "مدارک پرسنلی",
+        "myRequests": "درخواست‌های من",
+        "issuePayslip": "صدور فیش فردی"
       },
       "finance": {
         "group": "مدیریت مالی و حسابداری",
@@ -834,8 +840,7 @@
     "tasksPerColumn": "جمع وظایف: {count} — per column:",
     "invalidJsonDot": "JSON نامعتبر است.",
     "invalidModuleReposDot": "module_repos JSON نامعتبر است.",
-    "invalidGitDot": "git JSON نامعتبر است.",
-    "close": "بستن"
+    "invalidGitDot": "git JSON نامعتبر است."
   },
   "a11y": {
     "toggleSubmenu": "باز و بسته کردن زیرمنو",
@@ -3056,7 +3061,106 @@
       "userId": "شناسه کاربر",
       "dailyWage": "مزد روزانه",
       "jobCode": "کد شغل",
-      "issueDecree": "صدور حکم"
+      "issueDecree": "صدور حکم",
+      "compensation": "وام، مساعده و قرارداد",
+      "shortcuts": "دسترسی سریع"
+    },
+    "iranianDefaultsHint": "نرخ‌های پیش‌فرض طبق رویه تأمین اجتماعی و پلکان مالیات حقوق ۱۴۰۵ (ریال) هستند و قابل تغییرند. کف مزد ۰ یعنی هنوز تنظیم نشده.",
+    "loans": {
+      "new": "وام / مساعده جدید",
+      "type": "نوع",
+      "loan": "وام",
+      "advance": "مساعده",
+      "principal": "اصل مبلغ",
+      "installment": "قسط",
+      "balance": "مانده",
+      "settle": "تسویه",
+      "settled": "تسویه شد.",
+      "employeeId": "شناسه کارمند",
+      "title": "عنوان"
+    },
+    "templates": {
+      "hint": "قالب HTML فیش حقوقی و حکم کارگزینی. متغیرها با {{name}} جایگزین می‌شوند.",
+      "slug": "نوع سند",
+      "payslip": "فیش حقوقی",
+      "decree": "حکم کارگزینی",
+      "name": "نام قالب",
+      "htmlPlaceholder": "HTML قالب",
+      "preview": "پیش‌نمایش",
+      "payslipId": "شناسه ردیف فیش",
+      "decreeId": "شناسه حکم",
+      "placeholders": "پس از ذخیره، با شناسه رکورد پیش‌نمایش بگیرید."
+    },
+    "documents": {
+      "hint": "مدارک پرسنلی (کارت ملی، قرارداد و غیره) برای هر کارمند.",
+      "title": "عنوان مدرک",
+      "category": "دسته (national_card, contract, other)",
+      "upload": "بارگذاری",
+      "mine": "مدارک پرسنلی",
+      "missing": "مدارک ناقص"
+    },
+    "requests": {
+      "new": "درخواست جدید",
+      "submitted": "درخواست ثبت شد.",
+      "overtime": "اضافه‌کار",
+      "mission": "مأموریت",
+      "remote": "دورکاری",
+      "hours": "ساعت",
+      "days": "روز",
+      "amount": "مبلغ"
+    },
+    "settings": {
+      "employeeInsurance": "سهم بیمه کارگر (٪)",
+      "employerInsurance": "سهم بیمه کارفرما (٪)",
+      "unemployment": "بیمه بیکاری (٪)",
+      "overtimeMultiplier": "ضریب اضافه‌کار",
+      "monthlyHours": "ساعت موظفی ماه",
+      "missionDaily": "فوق‌العاده روزانه مأموریت",
+      "minimumWage": "حداقل مزد ماهانه",
+      "minimumDaily": "حداقل مزد روزانه",
+      "minimumHourly": "حداقل مزد ساعتی",
+      "workingDays": "روزهای ماه برای کف روزانه",
+      "eydiMonth": "ماه پرداخت عیدی",
+      "insuranceCeiling": "سقف دستمزد مشمول بیمه (۰ = بدون سقف)",
+      "insuranceFraction": "کسر مالیاتی حق بیمه (۲/۷)",
+      "taxBrackets": "پلکان مالیات ماهانه (JSON، هم‌واحد با حقوق)",
+      "minWageRule": "کف مزد فقط برای تمام‌وقت اعمال می‌شود مگر min_wage_engagements را تغییر دهید."
+    },
+    "contract": {
+      "type": "نوع قرارداد",
+      "status": "وضعیت قرارداد",
+      "end": "پایان قرارداد"
+    },
+    "engagement": {
+      "type": "نوع همکاری (full_time, part_time, contractor, freelance, project, remote)",
+      "basis": "مبنای پرداخت (monthly, daily, hourly, project_fee)",
+      "projectFee": "حق‌الزحمه / مبلغ پروژه",
+      "types": {
+        "full_time": "تمام‌وقت",
+        "part_time": "پاره‌وقت",
+        "contractor": "پیمانکاری",
+        "freelance": "فریلنس",
+        "project": "پروژه‌ای",
+        "remote": "دورکاری"
+      },
+      "bases": {
+        "monthly": "ماهانه",
+        "daily": "روزانه",
+        "hourly": "ساعتی",
+        "project_fee": "حق‌الزحمه پروژه"
+      }
+    },
+    "payslip": {
+      "hint": "صدور فیش برای یک کارمند. محاسبه از نرخ‌های تنظیمات، مزایا، بیمه، مالیات، وام و مساعده است. تمام‌وقت زیر کف قانونی رد می‌شود.",
+      "issue": "صدور فیش",
+      "issued": "فیش صادر شد.",
+      "emptyPreview": "فیش اینجا نمایش داده می‌شود.",
+      "tax": "مالیات حقوق",
+      "employerInsurance": "بیمه سهم کارفرما"
+    },
+    "insurance": {
+      "covered": "تحت پوشش",
+      "notCovered": "بدون پوشش بیمه"
     }
   },
   "mfg": {
@@ -4075,7 +4179,8 @@
       "client": "مشتری",
       "crm_specialist": "کارشناس ارتباط با مشتری",
       "project_manager": "مدیر پروژه",
-      "guest": "مهمان"
+      "guest": "مهمان",
+      "hr_manager": "مدیر منابع انسانی"
     },
     "stats": {
       "users": "کاربران",
@@ -4150,7 +4255,13 @@
       "tickets": "تیکت‌ها",
       "appointments": "قرارها",
       "time": "زمان‌سنجی",
-      "profile": "پروفایل"
+      "profile": "پروفایل",
+      "hrmStaff": "کارکنان",
+      "hrmPayroll": "حقوق",
+      "hrmCartable": "کارتابل HR",
+      "hrmPortal": "پورتال من",
+      "hrmPayslip": "فیش حقوقی",
+      "hrmLeave": "مرخصی"
     },
     "crmPmTitle": "خلاصه ارتباط با مشتری و پروژه",
     "crmCustomers": "مشتریان",
@@ -4381,7 +4492,7 @@
     },
     "tasks": {
       "title": "وظایف",
-      "description": "مدیریت وظایف در نمای کانبان، لیست، تقویم و گانت.",
+      "description": "توضیحات",
       "viewKanban": "کانبان",
       "viewList": "لیست",
       "viewCalendar": "تقویم",
@@ -4433,7 +4544,6 @@
       "minutesShort": "دقیقه",
       "timeNote": "یادداشت زمان",
       "loadError": "بارگذاری وظیفه ناموفق بود",
-      "description": "توضیحات",
       "recurrence": "تکرار",
       "recurrenceNone": "بدون تکرار",
       "recurrenceDaily": "روزانه",
@@ -5769,7 +5879,7 @@
       "s_02b1718b": "درباره ما"
     }
   },
-    "site": {
+  "site": {
     "nav": {
       "home": "خانه",
       "services": "خدمات",
@@ -6661,7 +6771,7 @@
     "outreachTitle": "پیام و پرورش",
     "outreachHint": "قالب ایمیل و پیامک، ارسال فوری، و دنباله پرورش.",
     "templates": "قالب‌ها",
-    "templateName": "نام قالب",
+    "templateName": "نام پروژه",
     "channel": "کانال",
     "email": "ایمیل",
     "sms": "پیامک",
@@ -6773,7 +6883,6 @@
     "rejected": "رد شد",
     "decide": "ثبت نظر",
     "template": "ساخت از قالب",
-    "templateName": "نام پروژه",
     "createFromTemplate": "ساخت پروژه",
     "widgets": "ویجت‌ها",
     "show": "نمایش",
@@ -6793,8 +6902,17 @@
     "customValue": "مقدار"
   },
   "expansion": {
-    "common": { "save": "ذخیره", "saved": "ذخیره شد", "working": "در حال انجام" },
-    "priority": { "low": "کم", "normal": "عادی", "high": "بالا", "urgent": "فوری" },
+    "common": {
+      "save": "ذخیره",
+      "saved": "ذخیره شد",
+      "working": "در حال انجام"
+    },
+    "priority": {
+      "low": "کم",
+      "normal": "عادی",
+      "high": "بالا",
+      "urgent": "فوری"
+    },
     "ai": {
       "run": "پیشنهاد هوش مصنوعی",
       "placeholder": "متن، یادداشت یا زمینه را بنویسید",
@@ -6807,11 +6925,21 @@
       "content_brief": "بریف محتوا",
       "task_plan": "برنامه کار"
     },
-    "bell": { "label": "اعلان‌ها", "title": "اعلان‌های یکپارچه", "empty": "اعلانی نیست", "item": "اعلان" },
+    "bell": {
+      "label": "اعلان‌ها",
+      "title": "اعلان‌های یکپارچه",
+      "empty": "اعلانی نیست",
+      "item": "اعلان"
+    },
     "connect": {
       "title": "اتصال زنده",
       "description": "تقویم گوگل و اوت‌لوک، پیام‌رسان‌ها، صندوق ایمیل و پیامک فقط برای رویدادهای مهم.",
-      "tabs": { "calendar": "تقویم", "chat": "پیام‌رسان", "mail": "ایمیل", "sms": "پیامک" },
+      "tabs": {
+        "calendar": "تقویم",
+        "chat": "پیام‌رسان",
+        "mail": "ایمیل",
+        "sms": "پیامک"
+      },
       "google": "اتصال گوگل",
       "outlook": "اتصال اوت‌لوک",
       "calendarHint": "رویدادها با قرار ملاقات و وظیفه همگام می‌شوند. وب‌هوک و فرمان زمان‌بندی هر دو فعال‌اند.",
@@ -6991,7 +7119,12 @@
     "studio": {
       "title": "استودیو پلتفرم",
       "description": "گردش‌کار دیداری، گزارش، پرچم ویژگی و ورود یکپارچه.",
-      "tabs": { "flow": "گردش‌کار", "bi": "گزارش", "flags": "پرچم‌ها", "sso": "ورود سازمانی" },
+      "tabs": {
+        "flow": "گردش‌کار",
+        "bi": "گزارش",
+        "flags": "پرچم‌ها",
+        "sso": "ورود سازمانی"
+      },
       "flowName": "نام گردش‌کار",
       "addNode": "گره جدید",
       "next": "گام بعد از شروع",

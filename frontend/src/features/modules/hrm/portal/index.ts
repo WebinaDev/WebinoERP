@@ -7,3 +7,4 @@ export { MyProfilePage } from './MyProfilePage';
 export { MyPayrollPage } from './MyPayrollPage';
 export { HrmCartablePage } from './HrmCartablePage';
 export { PayrollDecreesPage } from './PayrollDecreesPage';
+export { MyRequestsPage } from './MyRequestsPage';

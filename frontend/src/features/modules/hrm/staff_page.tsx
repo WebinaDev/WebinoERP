@@ -33,6 +33,12 @@ type StaffForm = {
   department: string;
   position: string;
   hire_date: string;
+  contract_type: string;
+  contract_end_date: string;
+  contract_status: string;
+  engagement_type: string;
+  pay_basis: string;
+  project_fee: string;
   status: string;
   base_salary: string;
 };
@@ -46,6 +52,12 @@ const emptyForm = (): StaffForm => ({
   department: '',
   position: '',
   hire_date: '',
+  contract_type: '',
+  contract_end_date: '',
+  contract_status: 'active',
+  engagement_type: 'full_time',
+  pay_basis: 'monthly',
+  project_fee: '',
   status: 'active',
   base_salary: '',
 });
@@ -100,6 +112,12 @@ export function StaffPage() {
       department: String(r.department ?? ''),
       position: String(r.position ?? ''),
       hire_date: String(r.hire_date ?? '').slice(0, 10),
+      contract_type: String(r.contract_type ?? ''),
+      contract_end_date: String(r.contract_end_date ?? '').slice(0, 10),
+      contract_status: String(r.contract_status ?? 'active'),
+      engagement_type: String(r.engagement_type ?? 'full_time'),
+      pay_basis: String(r.pay_basis ?? 'monthly'),
+      project_fee: r.project_fee != null ? String(r.project_fee) : '',
       status: String(r.status ?? 'active'),
       base_salary: r.base_salary != null ? String(r.base_salary) : '',
     });
@@ -119,6 +137,12 @@ export function StaffPage() {
         department: form.department.trim() || null,
         position: form.position.trim() || null,
         hire_date: form.hire_date || null,
+        contract_type: form.contract_type || null,
+        contract_end_date: form.contract_end_date || null,
+        contract_status: form.contract_status || null,
+        engagement_type: form.engagement_type || null,
+        pay_basis: form.pay_basis || null,
+        project_fee: form.project_fee !== '' ? Number(form.project_fee) : null,
         status: form.status || 'active',
       };
       if (form.base_salary !== '') payload.base_salary = Number(form.base_salary);
@@ -271,6 +295,12 @@ export function StaffPage() {
             <Input placeholder={t('department')} value={form.department} onChange={(e) => setForm((f) => ({ ...f, department: e.target.value }))} />
             <Input placeholder={t('position')} value={form.position} onChange={(e) => setForm((f) => ({ ...f, position: e.target.value }))} />
             <LocaleDatePicker value={form.hire_date} onChange={(v) => setForm((f) => ({ ...f, hire_date: v }))} />
+            <Input placeholder={t('contract.type')} value={form.contract_type} onChange={(e) => setForm((f) => ({ ...f, contract_type: e.target.value }))} />
+            <LocaleDatePicker value={form.contract_end_date} onChange={(v) => setForm((f) => ({ ...f, contract_end_date: v }))} />
+            <Input placeholder={t('contract.status')} value={form.contract_status} onChange={(e) => setForm((f) => ({ ...f, contract_status: e.target.value }))} />
+            <Input placeholder={t('engagement.type')} value={form.engagement_type} onChange={(e) => setForm((f) => ({ ...f, engagement_type: e.target.value }))} />
+            <Input placeholder={t('engagement.basis')} value={form.pay_basis} onChange={(e) => setForm((f) => ({ ...f, pay_basis: e.target.value }))} />
+            <Input type="number" placeholder={t('engagement.projectFee')} value={form.project_fee} onChange={(e) => setForm((f) => ({ ...f, project_fee: e.target.value }))} />
             <Input type="number" placeholder={t('baseSalary')} value={form.base_salary} onChange={(e) => setForm((f) => ({ ...f, base_salary: e.target.value }))} />
           </div>
           <DialogFooter>

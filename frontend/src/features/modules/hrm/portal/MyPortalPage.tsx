@@ -118,8 +118,35 @@ export function MyPortalPage() {
             <CardContent className="space-y-2 text-sm">
               <div className="text-2xl font-semibold">{formatNumber(data.open_requests ?? 0)}</div>
               <Button size="sm" variant="outline" asChild>
-                <Link href={dashboardHref(locale, 'hrm/my-org')}>{t('portal.viewRequests')}</Link>
+                <Link href={dashboardHref(locale, 'hrm/my-requests')}>{t('portal.viewRequests')}</Link>
               </Button>
+            </CardContent>
+          </Card>
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-base">{t('portal.compensation')}</CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-2 text-sm">
+              <div>{t('loans.loan')}: {formatNumber(data.compensation?.loan_balance ?? 0)}</div>
+              <div>{t('loans.advance')}: {formatNumber(data.compensation?.advance_balance ?? 0)}</div>
+              {(data.missing_documents ?? []).length > 0 ? (
+                <div className="text-amber-700">{t('documents.missing')}: {(data.missing_documents ?? []).join(', ')}</div>
+              ) : null}
+              <div className="text-muted-foreground">
+                {t('contract.status')}: {id.contract_status || '—'} · {t('contract.end')}: {id.contract_end_date || '—'}
+              </div>
+            </CardContent>
+          </Card>
+          <Card className="md:col-span-2">
+            <CardHeader>
+              <CardTitle className="text-base">{t('portal.shortcuts')}</CardTitle>
+            </CardHeader>
+            <CardContent className="flex flex-wrap gap-2">
+              <Button size="sm" variant="outline" asChild><Link href={dashboardHref(locale, 'hrm/my-payroll')}>{tNav('nav.erp.hrm.myPayroll')}</Link></Button>
+              <Button size="sm" variant="outline" asChild><Link href={dashboardHref(locale, 'hrm/my-docs')}>{tNav('nav.erp.hrm.decrees')}</Link></Button>
+              <Button size="sm" variant="outline" asChild><Link href={dashboardHref(locale, 'hrm/leave')}>{tNav('nav.erp.hrm.leave')}</Link></Button>
+              <Button size="sm" variant="outline" asChild><Link href={dashboardHref(locale, 'hrm/my-time')}>{tNav('nav.erp.hrm.myTime')}</Link></Button>
+              <Button size="sm" variant="outline" asChild><Link href={dashboardHref(locale, 'hrm/my-requests')}>{tNav('nav.erp.hrm.myRequests')}</Link></Button>
             </CardContent>
           </Card>
         </div>

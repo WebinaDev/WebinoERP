@@ -4,16 +4,17 @@ import { useCallback, useEffect, useState } from 'react';
 import { useTranslations } from 'next-intl';
 import { CrmPageLayout } from '@/features/shared/layout/CrmPageLayout';
 import { useCrmFeedback } from '@/features/shared/hooks/useCrmFeedback';
+import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { PageLoadingState } from '@/features/shared/ui/PageStates';
 import { useLocale } from '@/hooks/use-locale-next';
-import { getCartableInbox } from '@/lib/api/hrm';
+import { approveHrmRequest, getCartableInbox, rejectHrmRequest } from '@/lib/api/hrm';
 
 export function HrmCartablePage() {
   const t = useTranslations('hrm');
   const tNav = useTranslations();
   const { formatDate } = useLocale();
-  const { layoutProps, applyAxiosError } = useCrmFeedback();
+  const { layoutProps, setSuccess, applyAxiosError } = useCrmFeedback();
   const [items, setItems] = useState<
     Array<{ id: number; type: string; status: string; user_name?: string; created_at?: string }>
   >([]);
@@ -34,6 +35,17 @@ export function HrmCartablePage() {
   useEffect(() => {
     void load();
   }, [load]);
+
+  const decide = async (id: number, approve: boolean) => {
+    try {
+      if (approve) await approveHrmRequest(id);
+      else await rejectHrmRequest(id);
+      setSuccess(tNav('common.saved'));
+      void load();
+    } catch (err) {
+      applyAxiosError(err);
+    }
+  };
 
   return (
     <CrmPageLayout title={tNav('nav.erp.hrm.cartable')} {...layoutProps}>
@@ -58,6 +70,10 @@ export function HrmCartablePage() {
                   </div>
                 ) : null}
                 <div className="text-xs text-muted-foreground">{t('portal.cartableHint')}</div>
+                <div className="flex gap-2">
+                  <Button size="sm" onClick={() => void decide(r.id, true)}>{t('approve')}</Button>
+                  <Button size="sm" variant="outline" onClick={() => void decide(r.id, false)}>{t('reject')}</Button>
+                </div>
               </CardContent>
             </Card>
           ))}
