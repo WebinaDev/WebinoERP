@@ -94,7 +94,7 @@ export async function HomeBlocks({ locale, data }: { locale: string; data: HomeD
                   &ldquo;{item.quote}&rdquo;
                   <footer className="mt-3 font-medium">
                     {item.author}
-                    {item.company ? ` — ${item.company}` : ''}
+                    {item.company ? `، ${item.company}` : ''}
                   </footer>
                 </blockquote>
               ))}

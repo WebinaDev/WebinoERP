@@ -52,7 +52,7 @@ export function ConsultationForm({ source, title, submitLabel }: FormProps) {
   }
 
   return (
-    <form onSubmit={onSubmit} className="mx-auto max-w-lg space-y-4 rounded-xl border p-6">
+    <form onSubmit={onSubmit} className="webina-form mx-auto max-w-lg space-y-4">
       <h2 className="text-xl font-semibold">{resolvedTitle}</h2>
       <div className="space-y-2">
         <Label htmlFor="name">{t('auto.themes_webina_corporate_v1_ConsultationForm.s_45dd06ba')}</Label>
@@ -74,7 +74,7 @@ export function ConsultationForm({ source, title, submitLabel }: FormProps) {
         <Label htmlFor="message">{t('auto.themes_webina_corporate_v1_ConsultationForm.s_8cd47c67')}</Label>
         <Textarea id="message" name="message" rows={4} />
       </div>
-      <Button type="submit" disabled={pending} className="w-full bg-[#0066FF] hover:bg-[#0052cc]">
+      <Button type="submit" disabled={pending} className="w-full bg-[#16130f] text-[#e4c27a] hover:bg-black">
         {pending ? t('auto.themes_webina_corporate_v1_ConsultationForm.s_775273e4') : resolvedSubmit}
       </Button>
     </form>

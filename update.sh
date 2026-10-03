@@ -236,6 +236,10 @@ source "${ERP_DIR}/scripts/apply-erp-migrations.sh"
 log "Applying migrations only (no seed, no fresh)"
 apply_erp_migrations
 compose_cli exec -T backend php artisan db:seed --class='Modules\\SiteBuilder\\Database\\Seeders\\SiteBuilderSeeder' --force || true
+# Public corporate site content. Idempotent: new slugs only, does not overwrite edited CMS bodies.
+if ! compose_cli exec -T backend php artisan db:seed --class='Modules\\Marketing\\Database\\Seeders\\MarketingSiteSeeder' --force; then
+  echo "ERROR: MarketingSiteSeeder failed. The new public UI still ships in the frontend image, but default pages were not written." >&2
+fi
 compose_cli exec -T backend php artisan site-builder:ensure-hosting-defaults || true
 # Stacks first (compose + attach backend to webino_sites), then Caddy snippets
 # so /api can reach ws-*-backend:8080 (same pattern as ERP Caddyfile).
@@ -245,5 +249,8 @@ compose_cli exec -T backend php artisan config:clear || true
 compose_cli exec -T backend php artisan cache:clear || true
 compose_cli exec -T backend php artisan config:cache || true
 
+log "Public site is the frontend container (Next.js, erp-frontend:3000) behind Caddy service web."
+log "If the homepage still looks old, the frontend image was not rebuilt. Re-run this update, then hard-refresh."
+log "Marketing seed is included. Cache clear runs next. Public HTML revalidates in about 60 seconds."
 log "Done. Data volumes (db/redis/caddy certs) and tenant Caddy snippets were not removed."
 compose_cli ps

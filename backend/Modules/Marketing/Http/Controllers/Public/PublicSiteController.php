@@ -6,6 +6,7 @@ use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Modules\Marketing\Entities\MarketingAnnouncement;
 use Modules\Marketing\Entities\MarketingBlogPost;
+use Modules\Marketing\Entities\MarketingFaqItem;
 use Modules\Marketing\Entities\MarketingPortfolioItem;
 use Modules\Marketing\Entities\MarketingServiceCategory;
 use Modules\Marketing\Entities\MarketingSiteSetting;
@@ -39,10 +40,15 @@ class PublicSiteController extends Controller
         if (! is_array($blocks) || $blocks === []) {
             $blocks = [
                 ['type' => 'hero', 'enabled' => true],
+                ['type' => 'stats', 'enabled' => true],
                 ['type' => 'services', 'enabled' => true],
+                ['type' => 'products', 'enabled' => true],
+                ['type' => 'solutions', 'enabled' => true],
+                ['type' => 'process', 'enabled' => true],
                 ['type' => 'portfolio_teaser', 'enabled' => true],
                 ['type' => 'testimonials', 'enabled' => true],
                 ['type' => 'announcements', 'enabled' => true],
+                ['type' => 'blog', 'enabled' => true],
                 ['type' => 'consultation_cta', 'enabled' => true],
             ];
         }
@@ -66,9 +72,10 @@ class PublicSiteController extends Controller
                     ->orderByDesc('published_at')->limit(3)
                     ->get(['id', 'slug', 'title', 'excerpt', 'cover_url', 'published_at']),
                 'services' => MarketingServiceCategory::query()
-                    ->whereNull('parent_id')->orderBy('sort_order')->with('children')->limit(8)->get(),
+                    ->whereNull('parent_id')->orderBy('sort_order')->with('children')->limit(12)->get(),
                 'solutions' => MarketingSolutionIndustry::query()
-                    ->orderBy('sort_order')->limit(8)->get(['id', 'slug', 'name']),
+                    ->orderBy('sort_order')->limit(12)->get(['id', 'slug', 'name']),
+                'faq' => MarketingFaqItem::query()->published()->orderBy('sort_order')->limit(6)->get(),
             ],
         ]);
     }

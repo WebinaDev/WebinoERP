@@ -1,67 +1,59 @@
-# سایت عمومی WebinoERM
+# سایت عمومی وبینا
 
-سایت شرکتی وبینا مستقیماً در WebinoERM میزبانی می‌شود (جایگزین WordPress در webina.dev).
+سایت شرکتی روی همین WebinoERP سرو می‌شود. زبان از سوییچر هدر (کوکی `NEXT_LOCALE`) می‌آید، نه از پیشوند آدرس.
 
-## مسیرها (بدون پیشوند زبان در URL)
+## کدام کانتینر سایت عمومی را نشان می‌دهد
 
-زبان از سوییچر بالای صفحه (کوکی `NEXT_LOCALE`) تنظیم می‌شود — نه در آدرس.
+| Compose service | نقش |
+| --- | --- |
+| `frontend` | Next.js. آلیاس شبکه: `erp-frontend:3000`. **همین کانتینر صفحه اصلی، منو، فوتر و بقیه مسیرهای عمومی را می‌سازد.** |
+| `web` | Caddy. تنها سرویسی که پورت میزبان را باز می‌کند. مسیرهای غیر از `/api` را به `erp-frontend` می‌فرستد. |
+| `backend` | Laravel. API عمومی `/api/v1/public/*` و CRUD بازاریابی. |
 
-| لایه | مسیر | توضیح |
-|------|------|-------|
-| سایت عمومی SSR | `/`, `/blog`, `/services`, ... | بدون احراز هویت |
-| داشبورد ERP | `/dashboard/*` | نیاز به login |
-| لاگین | `/login` | عمومی |
-| API عمومی | `/api/v1/public/*` | خواندن محتوا |
-| API مدیریت | `/api/v1/marketing/*` | CRUD با `auth:sanctum` |
+دامنه پیش‌فرض در `docker/caddy/Caddyfile` برابر `webinaagency.ir` است. اگر بعد از آپدیت هنوز ظاهر قبلی را می‌بینید، ایمیج `frontend` بازسازی نشده است. HTML از Next می‌آید و با کش مرورگرِ فایل‌های قدیمی `_next/static` قاطی نمی‌شود، به شرطی که ایمیج جدید ساخته شده باشد.
 
-## نصب و پروویژن (از WebinoERP Platform)
+## بعد از deploy این‌ها را بزنید
 
-پروویژن سایت از **Site Builder** در WebinoERP انجام می‌شود (`/dashboard/platform/sites`). ماژول **Platform** (SSH + Docker + Caddy) استک WebinoDashboard را deploy می‌کند. کنترل پنل هر سایت در `/dashboard/platform/sites/{id}` است.
+`update.sh` مهاجرت می‌زند، سیدر بازاریابی را اجرا می‌کند و کانتینرها را با `--build` بالا می‌آورد. سیدر فقط ردیف‌های تازه را می‌سازد و متنی که قبلاً در داشبورد عوض شده را بازنویسی نمی‌کند.
 
-```bash
-# از UI: admin/platform/sites/new
-# یا API: POST /api/v1/site-builder/provisions
-```
-
-Bootstrap خودکار شامل: `migrate`, `db:seed` (شامل `MarketingSiteSeeder`), `storage:link`.
-
-ورود پیش‌فرض: `admin@webina.local` / `password`
-
-### مهاجرت اختیاری WordPress هنگام پروویژن
-
-از Site Builder یا env در پروویژن استفاده کنید:
-
-```json
-{"MARKETING_IMPORT_WORDPRESS_URL":"https://webina.dev"}
-```
-
-## ماژول Laravel
-
-- مسیر: `backend/Modules/Marketing/`
-- migration: `marketing_*` tables
-- seeder: `php artisan db:seed --class=Modules\\Marketing\\Database\\Seeders\\MarketingSiteSeeder`
-
-## مهاجرت WordPress (دستی)
+دستی، از پوشه ریپو:
 
 ```bash
-php artisan marketing:import-wordpress --url=https://webina.dev
-php artisan marketing:import-wordpress --dry-run
+docker compose -f docker-compose.yml -f docker-compose.prod.yml up -d --build frontend web backend
+docker compose -f docker-compose.yml -f docker-compose.prod.yml exec -T backend php artisan db:seed --class='Modules\Marketing\Database\Seeders\MarketingSiteSeeder' --force
+docker compose -f docker-compose.yml -f docker-compose.prod.yml exec -T backend php artisan cache:clear
+docker compose -f docker-compose.yml -f docker-compose.prod.yml exec -T backend php artisan config:clear
 ```
 
-نگاشت idempotent با فیلد `wp_id` روی صفحات، پست‌ها و رسانه.
+سپس یک بار صفحه را با بارگذاری تازه باز کنید. داده عمومی Next حدود ۶۰ ثانیه `revalidate` دارد.
 
-## مدیریت محتوا
+نصب اول (`install.sh` یا `php artisan db:seed`) همین `MarketingSiteSeeder` را از `DatabaseSeeder` صدا می‌زند.
 
-از داشبورد ERM:
+## چه چیزی در سیدر خالی پر می‌شود
 
-- `/dashboard/marketing/pages` — برگه‌های CMS
-- `/dashboard/marketing/blog` — بلاگ
-- `/dashboard/marketing/magazine` — مجله
-- `/dashboard/marketing/media` — کتابخانه رسانه
-- سایر بخش‌ها: academy, portfolio, faq, services, solutions, team, ...
+- پنج ستون خدمات و زیرخدمت‌ها، با همان اسلاگ منوی سایت (`/services/custom-web` و بقیه)
+- پنج صنعت راهکار و صفحه‌های زیرمجموعه (`/solutions/retail/fashion` و بقیه)
+- برگه درباره ما، محصول‌ها، و برگه‌های حقوقی (متن حقوقی پیش‌فرض، قابل ویرایش)
+- چهار محصول خود شرکت در نمونه‌کار: Dashboard، ERP، مستندات، سکوی میزبانی
+- پرسش‌های متداول، سه یادداشت بلاگ، یک دوره آکادمی، یک اطلاعیه
+- نشان‌های اعتماد نمونه در `branding.trust_badges` (نماد اعتماد رسمی این‌جا جعل نشده)
 
-فرم مشاوره عمومی (`/consultation`) مستقیماً `CrmConsultation` ایجاد می‌کند.
+آمار مشتری، درصد رضایت و نقل‌قول ساختگی در محتوای پیش‌فرض نیست.
 
-## تم
+## ویرایش از داشبورد
 
-`frontend/src/themes/webina-corporate-v1/` — رنگ اصلی `#0066FF`، لوگو در `frontend/public/brand/`.
+- `/dashboard/marketing/pages`
+- `/dashboard/marketing/services` و دسته‌ها
+- راهکارها، بلاگ، نمونه‌کار، سوالات، تیم، تنظیمات سایت
+
+نشان اعتماد: در تنظیمات سایت، آرایه `trust_badges` با `label`، `hint`، `href` و `image`. اگر `image` خالی باشد، کاروسل فوتر نشان نمونه را می‌چرخاند.
+
+لوگو: فایل `frontend/public/brand/logo.png` در هدر نشان داده می‌شود، کنار نام سایت. اگر آدرس لوگو خالی یا خراب باشد، نشان هندسی داخل خود هدر جای آن را می‌گیرد تا لوگو گم نشود.
+
+## مسیرهای عمومی
+
+`/`, `/services`, `/services/{slug}`, `/solutions`, `/solutions/{industry}`, `/solutions/{industry}/{slug}`, `/products`, `/portfolio`, `/blog`, `/academy`, `/magazine`, `/faq`, `/about`, `/contact`, `/consultation`, `/proposal`, `/pricing`
+
+تم: `frontend/src/themes/webina-corporate-v1/`. پالت مرکب و زعفرانی (`#16130F`, `#F6F1E8`, `#E4C27A`)، جدا از آبی قبلی.
+
+مخزن WebinoDocs هنگام این نسخه در دسترس نبود. توضیح محصول‌ها از همین ریپو است: Site Builder، ماژول Platform، و docs-site.

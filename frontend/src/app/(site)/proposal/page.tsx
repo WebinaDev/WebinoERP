@@ -1,9 +1,12 @@
+import { getTranslations } from 'next-intl/server';
 import { ProposalForm } from '@/themes/webina-corporate-v1/components/ConsultationForm';
+import { SitePage } from '@/themes/webina-corporate-v1/components/SitePage';
 
-export default function ProposalPage() {
+export default async function ProposalPage() {
+  const t = await getTranslations();
   return (
-    <div className="container mx-auto px-4 py-12">
+    <SitePage kicker={t('site.nav.company')} title={t('site.nav.proposal')} lead={t('site.page.proposalLead')}>
       <ProposalForm />
-    </div>
+    </SitePage>
   );
 }

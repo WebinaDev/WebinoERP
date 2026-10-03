@@ -22,7 +22,7 @@ webina-enterprise/
 
 ### نصب روی سرور (یک دستور)
 
-پیش‌نیاز: **Linux** با `sudo`. اسکریپت خودش نصب می‌کند: `git`, `curl`, **Docker Engine**, **Compose plugin** — سپس ERP را کلون و بالا می‌آورد.
+پیش‌نیاز: **Linux** با `sudo`. اسکریپت خودش نصب می‌کند: `git`, `curl`, **Docker Engine**, **Compose plugin**. سپس ERP را کلون و بالا می‌آورد.
 
 ```bash
 curl -fsSL https://raw.githubusercontent.com/WebinaDev/WebinoERP/main/install.sh | bash
@@ -50,6 +50,8 @@ curl -fsSL https://raw.githubusercontent.com/WebinaDev/WebinoERP/main/update.sh 
   | INSTALL_DIR=/opt/webina bash
 ```
 
+سایت عمومی (صفحه شرکت) را کانتینر `frontend` می‌سازد و Caddy (`web`) آن را نشان می‌دهد. `update.sh` ایمیج را rebuild می‌کند، `MarketingSiteSeeder` را می‌زند و `cache:clear` می‌کند. جزئیات: [docs/marketing-site.md](docs/marketing-site.md).
+
 اگر `update.sh` هنوز روی `main` نیست، بعد از `git pull` داخل ریپو:
 
 ```bash
@@ -64,7 +66,7 @@ git clone --depth 1 https://github.com/WebinaDev/WebinoERP.git /tmp/WebinoERP-sr
 bash /tmp/WebinoERP-src/install.sh
 ```
 
-بعد از نصب: **Admin** `http://SERVER:3080/admin` — ورود `admin@webina.local` / `password`
+بعد از نصب: **Admin** `http://SERVER:3080/admin`. ورود `admin@webina.local` / `password`
 
 ### با Docker (دستی)
 

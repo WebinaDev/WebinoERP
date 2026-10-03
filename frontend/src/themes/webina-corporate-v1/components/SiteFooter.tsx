@@ -2,80 +2,116 @@ import Link from 'next/link';
 import { getTranslations } from 'next-intl/server';
 import { siteHref } from '@/lib/public-api-server';
 import { SERVICE_MEGA, SOLUTION_MEGA } from '../site-nav';
+import { LogoLockup } from './LogoLockup';
+import { TrustBadgeRail, type TrustBadge } from './TrustBadgeRail';
 
 const LEGAL = [
   { slug: 'terms', labelKey: 'site.footer.terms' },
   { slug: 'privacy', labelKey: 'site.footer.privacy' },
-  { slug: 'conflict', labelKey: 'site.footer.conflict' },
+  { slug: 'conflict-of-interest', labelKey: 'site.footer.conflict' },
 ];
 
-export async function SiteFooter({ siteName }: { siteName: string }) {
+type BadgeInput = {
+  id?: string;
+  label?: string;
+  hint?: string;
+  href?: string | null;
+  image?: string | null;
+};
+
+export async function SiteFooter({
+  siteName,
+  logoUrl,
+  badges,
+}: {
+  siteName: string;
+  logoUrl?: string | null;
+  badges?: BadgeInput[] | null;
+}) {
   const t = await getTranslations();
+  const fallback: TrustBadge[] = [
+    { id: 'enamad', label: t('site.footer.badgeEnamad'), hint: t('site.footer.badgeEnamadHint') },
+    { id: 'samandehi', label: t('site.footer.badgeSamandehi'), hint: t('site.footer.badgeSamandehiHint') },
+    { id: 'ssl', label: t('site.footer.badgeSsl'), hint: t('site.footer.badgeSslHint') },
+    { id: 'hosting', label: t('site.footer.badgeHosting'), hint: t('site.footer.badgeHostingHint') },
+  ];
+  const rail: TrustBadge[] = badges?.length
+    ? badges.map((b, i) => ({
+        id: b.id || `badge-${i}`,
+        label: b.label || fallback[i]?.label || t('site.footer.trustTitle'),
+        hint: b.hint || fallback[i]?.hint || t('site.footer.trustLead'),
+        href: b.href,
+        image: b.image,
+      }))
+    : fallback;
+
   return (
-    <footer className="border-t border-white/10 bg-[#050508] text-white/75">
-      <div className="mx-auto grid max-w-7xl gap-10 px-4 py-16 sm:grid-cols-2 lg:grid-cols-6 lg:px-6">
-        <div className="lg:col-span-2">
-          <p className="text-xl font-semibold text-white">{siteName}</p>
+    <footer className="site-footer">
+      <div className="webina-shell footer-grid">
+        <div>
+          <LogoLockup siteName={siteName} logoUrl={logoUrl} compact />
           <p className="mt-3 max-w-sm text-sm leading-7">{t('site.footer.tagline')}</p>
-          <Link
-            href={siteHref(undefined, 'consultation')}
-            className="mt-5 inline-flex rounded-full bg-[#0066FF] px-4 py-2 text-sm font-medium text-white hover:bg-[#0052cc]"
-          >
+          <p className="mt-3 text-xs leading-6" style={{ color: 'rgba(246,241,232,.55)' }}>{t('site.footer.legalName')}</p>
+          <Link href={siteHref(undefined, 'consultation')} className="btn-saffron mt-5" style={{ background: 'var(--saffron)', color: 'var(--ink)' }}>
             {t('site.nav.freeConsultation')}
           </Link>
         </div>
         <div>
-          <p className="font-medium text-white">{t('site.nav.services')}</p>
-          <ul className="mt-3 space-y-2 text-sm">
+          <h2>{t('site.nav.services')}</h2>
+          <ul>
             {SERVICE_MEGA.columns.map((c) => (
               <li key={c.titleKey}>
-                <Link href={siteHref(undefined, c.href || 'services')} className="hover:text-[#6ea8ff]">
-                  {t(c.titleKey)}
-                </Link>
+                <Link href={siteHref(undefined, c.href || 'services')}>{t(c.titleKey)}</Link>
               </li>
             ))}
           </ul>
         </div>
         <div>
-          <p className="font-medium text-white">{t('site.nav.solutions')}</p>
-          <ul className="mt-3 space-y-2 text-sm">
+          <h2>{t('site.nav.solutions')}</h2>
+          <ul>
             {SOLUTION_MEGA.columns.map((c) => (
               <li key={c.titleKey}>
-                <Link href={siteHref(undefined, c.href || 'solutions')} className="hover:text-[#6ea8ff]">
-                  {t(c.titleKey)}
-                </Link>
+                <Link href={siteHref(undefined, c.href || 'solutions')}>{t(c.titleKey)}</Link>
               </li>
             ))}
           </ul>
         </div>
         <div>
-          <p className="font-medium text-white">{t('site.nav.resources')}</p>
-          <ul className="mt-3 space-y-2 text-sm">
-            <li><Link href={siteHref(undefined, 'blog')} className="hover:text-[#6ea8ff]">{t('site.nav.blog')}</Link></li>
-            <li><Link href={siteHref(undefined, 'academy')} className="hover:text-[#6ea8ff]">{t('site.nav.academy')}</Link></li>
-            <li><Link href={siteHref(undefined, 'downloads')} className="hover:text-[#6ea8ff]">{t('site.nav.downloads')}</Link></li>
-            <li><Link href={siteHref(undefined, 'faq')} className="hover:text-[#6ea8ff]">{t('site.nav.faq')}</Link></li>
-            <li><Link href={siteHref(undefined, 'portfolio')} className="hover:text-[#6ea8ff]">{t('site.nav.portfolio')}</Link></li>
+          <h2>{t('site.nav.products')}</h2>
+          <ul>
+            <li><Link href={siteHref(undefined, 'products#dashboard')}>Webino Dashboard</Link></li>
+            <li><Link href={siteHref(undefined, 'products#erp')}>WebinoERP</Link></li>
+            <li><Link href={siteHref(undefined, 'products#docs')}>{t('site.product.docsTitle')}</Link></li>
+            <li><Link href={siteHref(undefined, 'products#hosting')}>{t('site.product.hostingTitle')}</Link></li>
+            <li><Link href={siteHref(undefined, 'portfolio')}>{t('site.nav.portfolio')}</Link></li>
           </ul>
         </div>
         <div>
-          <p className="font-medium text-white">{t('site.footer.legal')}</p>
-          <ul className="mt-3 space-y-2 text-sm">
-            <li><Link href={siteHref(undefined, 'about')} className="hover:text-[#6ea8ff]">{t('site.nav.about')}</Link></li>
-            <li><Link href={siteHref(undefined, 'contact')} className="hover:text-[#6ea8ff]">{t('site.nav.contact')}</Link></li>
-            <li><Link href={siteHref(undefined, 'cooperation')} className="hover:text-[#6ea8ff]">{t('site.nav.cooperation')}</Link></li>
+          <h2>{t('site.nav.company')}</h2>
+          <ul>
+            <li><Link href={siteHref(undefined, 'about')}>{t('site.nav.about')}</Link></li>
+            <li><Link href={siteHref(undefined, 'blog')}>{t('site.nav.blog')}</Link></li>
+            <li><Link href={siteHref(undefined, 'academy')}>{t('site.nav.academy')}</Link></li>
+            <li><Link href={siteHref(undefined, 'faq')}>{t('site.nav.faq')}</Link></li>
+            <li><Link href={siteHref(undefined, 'contact')}>{t('site.nav.contact')}</Link></li>
             {LEGAL.map((l) => (
               <li key={l.slug}>
-                <Link href={siteHref(undefined, `pages/${l.slug}`)} className="hover:text-[#6ea8ff]">
-                  {t(l.labelKey)}
-                </Link>
+                <Link href={siteHref(undefined, `pages/${l.slug}`)}>{t(l.labelKey)}</Link>
               </li>
             ))}
           </ul>
         </div>
       </div>
-      <div className="border-t border-white/10 py-4 text-center text-xs text-white/40">
-        © {new Date().getFullYear()} {siteName}. {t('site.footer.rights')}
+      <TrustBadgeRail
+        badges={rail}
+        title={t('site.footer.trustTitle')}
+        lead={t('site.footer.trustLead')}
+        prevLabel={t('site.footer.trustPrev')}
+        nextLabel={t('site.footer.trustNext')}
+      />
+      <div className="webina-shell footer-base">
+        <span>© {new Date().getFullYear()} {siteName}. {t('site.footer.rights')}</span>
+        <span>{t('site.footer.legalName')}</span>
       </div>
     </footer>
   );

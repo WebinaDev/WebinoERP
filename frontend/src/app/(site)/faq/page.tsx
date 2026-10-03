@@ -1,5 +1,6 @@
 import { getTranslations } from 'next-intl/server';
 import { apiServer } from '@/lib/public-api-server';
+import { EmptyNote, SitePage } from '@/themes/webina-corporate-v1/components/SitePage';
 
 export const revalidate = 60;
 
@@ -7,26 +8,32 @@ type FaqItem = { id: number; question: string; answer: string; group?: string | 
 
 export default async function FaqPage() {
   const t = await getTranslations();
-
   let items: FaqItem[] = [];
   try {
     const res = await apiServer<{ data: FaqItem[] }>('/v1/public/faq');
     items = res.data ?? [];
   } catch {
-    /* empty */
+    items = [];
   }
+  const fallback = [1, 2, 3, 4, 5].map((n) => ({
+    id: n,
+    question: t(`site.landing.faq.q${n}`),
+    answer: t(`site.landing.faq.a${n}`),
+    group: null,
+  }));
+  const rows = items.length ? items : fallback;
 
   return (
-    <div className="container mx-auto max-w-3xl px-4 py-12">
-      <h1 className="text-3xl font-bold">{t('auto._site__faq_page.s_3175c5a2')}</h1>
-      <dl className="mt-8 space-y-6">
-        {items.map((item) => (
-          <div key={item.id} className="rounded-xl border p-5">
-            <dt className="font-semibold">{item.question}</dt>
-            <dd className="text-muted-foreground mt-2 text-sm">{item.answer}</dd>
-          </div>
+    <SitePage kicker={t('site.nav.resources')} title={t('site.nav.faq')} lead={t('site.page.faqLead')}>
+      {items.length ? null : <EmptyNote>{t('site.page.faqCmsNote')}</EmptyNote>}
+      <div className="faq mt-4">
+        {rows.map((item) => (
+          <details key={item.id} open>
+            <summary>{item.question}</summary>
+            <dd>{item.answer}</dd>
+          </details>
         ))}
-      </dl>
-    </div>
+      </div>
+    </SitePage>
   );
 }
