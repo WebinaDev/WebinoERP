@@ -12,6 +12,7 @@ class EmailMessage extends Model
     protected $fillable = [
         'account_id', 'external_id', 'thread_key', 'direction', 'from_email', 'to_email',
         'subject', 'body', 'attachments', 'crm_account_id', 'activity_id', 'sent_at',
+        'is_spam', 'spam_score', 'folder',
     ];
 
     protected function casts(): array
@@ -19,6 +20,7 @@ class EmailMessage extends Model
         return [
             'attachments' => 'array',
             'sent_at' => 'datetime',
+            'is_spam' => 'boolean',
         ];
     }
 

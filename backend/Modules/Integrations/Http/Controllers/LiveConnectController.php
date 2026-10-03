@@ -11,8 +11,10 @@ use Modules\Integrations\Entities\ChatBridge;
 use Modules\Integrations\Entities\ChatMessage;
 use Modules\Integrations\Entities\EmailAccount;
 use Modules\Integrations\Entities\EmailMessage;
+use Modules\Integrations\Entities\InboundEvent;
 use Modules\Integrations\Entities\IntegrationSetting;
 use Modules\Integrations\Entities\SmsRule;
+use Modules\Integrations\Jobs\ProcessInboundChatJob;
 use Modules\Integrations\Services\CalendarSyncService;
 use Modules\Integrations\Services\ChatBridgeService;
 use Modules\Integrations\Services\MailboxService;
@@ -118,16 +120,24 @@ class LiveConnectController extends Controller
         if (! $bridge) {
             return response()->json(['ok' => false], 404);
         }
-        $secret = (string) $request->header('X-Webhook-Secret', $request->header('X-Telegram-Bot-Api-Secret-Token', ''));
-        if ($bridge->webhook_secret && ! hash_equals((string) $bridge->webhook_secret, $secret)) {
+        if (! $this->webhookAuthorized($request, $bridge)) {
             return response()->json(['ok' => false], 401);
         }
-        $result = $this->chat->ingest($bridge, $request->all());
-        if (isset($result['challenge'])) {
-            return response()->json(['challenge' => $result['challenge']]);
+        $payload = $request->all();
+        if ($bridge->provider === 'slack' && ($payload['type'] ?? '') === 'url_verification') {
+            return response()->json(['challenge' => (string) ($payload['challenge'] ?? '')]);
         }
+        $event = InboundEvent::query()->create([
+            'provider' => $provider,
+            'bridge_id' => $bridge->id,
+            'external_id' => $this->webhookExternalId($provider, $payload),
+            'payload' => $payload,
+            'status' => 'queued',
+            'available_at' => now(),
+        ]);
+        ProcessInboundChatJob::dispatch($event->id);
 
-        return response()->json($result);
+        return response()->json(['ok' => true, 'queued' => true, 'id' => $event->id]);
     }
 
     public function bridgeMessages(int $id): JsonResponse
@@ -167,6 +177,19 @@ class LiveConnectController extends Controller
         return response()->json(['data' => ['id' => $account->id, 'email' => $account->email, 'provider' => $account->provider]], 201);
     }
 
+    public function searchMail(Request $request): JsonResponse
+    {
+        $data = $request->validate([
+            'q' => 'nullable|string|max:200',
+            'account_id' => 'nullable|integer',
+            'include_spam' => 'nullable|boolean',
+        ]);
+        $ids = $request->filled('account_id') ? [(int) $data['account_id']] : null;
+        $rows = $this->mail->search((int) $request->user()->id, (string) ($data['q'] ?? ''), $ids, $request->boolean('include_spam'));
+
+        return response()->json(['data' => $rows]);
+    }
+
     public function syncMailbox(int $id): JsonResponse
     {
         $account = EmailAccount::query()->where('user_id', request()->user()->id)->findOrFail($id);
@@ -195,7 +218,9 @@ class LiveConnectController extends Controller
     public function threads(int $id): JsonResponse
     {
         $account = EmailAccount::query()->where('user_id', request()->user()->id)->findOrFail($id);
-        $messages = EmailMessage::query()->where('account_id', $account->id)->orderByDesc('id')->limit(200)->get();
+        $messages = EmailMessage::query()->where('account_id', $account->id)
+            ->when(! request()->boolean('include_spam'), fn ($q) => $q->where('is_spam', false))
+            ->orderByDesc('id')->limit(200)->get();
         $threads = $messages->groupBy(fn (EmailMessage $m) => $m->thread_key ?: 'solo-'.$m->id)->map(function ($group, $key) {
             return [
                 'thread_key' => $key,
@@ -299,6 +324,8 @@ class LiveConnectController extends Controller
             'email' => $account->email,
             'calendar_id' => $account->calendar_id,
             'status' => $account->status,
+            'refresh_attempts' => $account->refresh_attempts,
+            'last_refresh_error' => $account->last_refresh_error,
             'last_synced_at' => optional($account->last_synced_at)?->toIso8601String(),
             'webhook_channel_id' => $account->webhook_channel_id,
         ];
@@ -314,6 +341,44 @@ class LiveConnectController extends Controller
             'inbound_commands' => $bridge->inbound_commands,
             'enabled' => $bridge->enabled,
             'has_token' => filled($bridge->bot_token),
+            'webhook_url' => url('/api/v1/integrations/bridges/webhook/'.$bridge->provider),
         ];
+    }
+
+    private function webhookAuthorized(Request $request, ChatBridge $bridge): bool
+    {
+        $secret = (string) $bridge->webhook_secret;
+        if ($secret === '') {
+            return true;
+        }
+        $header = (string) $request->header('X-Webhook-Secret', $request->header('X-Telegram-Bot-Api-Secret-Token', ''));
+        if ($header !== '' && hash_equals($secret, $header)) {
+            return true;
+        }
+        $slackSig = (string) $request->header('X-Slack-Signature', '');
+        $timestamp = (string) $request->header('X-Slack-Request-Timestamp', '');
+        if ($slackSig !== '' && $timestamp !== '' && abs(time() - (int) $timestamp) <= 300) {
+            $base = 'v0:'.$timestamp.':'.$request->getContent();
+            $expect = 'v0='.hash_hmac('sha256', $base, $secret);
+
+            return hash_equals($expect, $slackSig);
+        }
+
+        return false;
+    }
+
+    /**
+     * @param  array<string, mixed>  $payload
+     */
+    private function webhookExternalId(string $provider, array $payload): ?string
+    {
+        if ($provider === 'slack') {
+            $event = is_array($payload['event'] ?? null) ? $payload['event'] : [];
+
+            return isset($event['ts']) ? (string) $event['ts'] : null;
+        }
+        $message = is_array($payload['message'] ?? null) ? $payload['message'] : [];
+
+        return isset($message['message_id']) ? (string) $message['message_id'] : null;
     }
 }

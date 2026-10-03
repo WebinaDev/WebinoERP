@@ -23,6 +23,7 @@ Route::middleware(['auth:sanctum', 'module:integrations', 'module.permission:int
     Route::get('/bridges', [LiveConnectController::class, 'bridgesIndex']);
     Route::post('/bridges', [LiveConnectController::class, 'storeBridge']);
     Route::get('/bridges/{id}/messages', [LiveConnectController::class, 'bridgeMessages'])->whereNumber('id');
+    Route::get('/mailbox/search', [LiveConnectController::class, 'searchMail']);
     Route::get('/mailbox', [LiveConnectController::class, 'mailboxIndex']);
     Route::post('/mailbox', [LiveConnectController::class, 'storeMailbox']);
     Route::post('/mailbox/{id}/sync', [LiveConnectController::class, 'syncMailbox'])->whereNumber('id');

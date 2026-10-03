@@ -22,13 +22,18 @@ class MutationAudit
             return;
         }
 
-        OpsAuditLog::query()->create([
+        $payload = [
             'module' => $module,
             'action' => $action,
             'subject_type' => $subjectType,
             'subject_id' => $subjectId,
             'user_id' => $userId,
             'changes' => $changes,
-        ]);
+        ];
+        if (Schema::hasColumn('ops_audit_logs', 'sandbox')) {
+            $payload['sandbox'] = (bool) config('integrations.sandbox')
+                || (app()->bound('request') && request()->header('X-Webino-Sandbox') === '1');
+        }
+        OpsAuditLog::query()->create($payload);
     }
 }

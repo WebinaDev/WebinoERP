@@ -18,12 +18,16 @@ export function PriceBookPage() {
   const [product, setProduct] = useState({ name: '', sku: '', tax_percent: '10' });
   const [book, setBook] = useState({ name: '', currency_code: 'IRR', product_id: '', min_qty: '1', unit_price: '', discount_percent: '0' });
   const [quote, setQuote] = useState({ deal_id: '', price_book_id: '', product_id: '', qty: '1', total: '' });
+  const [rule, setRule] = useState({ product_id: '', related_product_id: '', kind: 'requires' });
+  const [discount, setDiscount] = useState({ scope: 'product', scope_key: '', name: '', percent: '5', parent_id: '' });
+  const [approvals, setApprovals] = useState<Row[]>([]);
 
   const load = useCallback(async () => {
     try {
-      const [p, b] = await Promise.all([expansionApi.products(), expansionApi.priceBooks()]);
+      const [p, b, pending] = await Promise.all([expansionApi.products(), expansionApi.priceBooks(), expansionApi.approvals()]);
       setProducts(p);
       setBooks(b);
+      setApprovals(pending);
     } catch (err) {
       applyAxiosError(err);
     }
@@ -92,6 +96,44 @@ export function PriceBookPage() {
               {t('price.quote')}
             </Button>
             {quote.total ? <p className="text-sm sm:col-span-4">{quote.total}</p> : null}
+          </CardContent>
+        </Card>
+        <Card>
+          <CardHeader><CardTitle className="text-base">{t('price.rule')}</CardTitle></CardHeader>
+          <CardContent className="space-y-2">
+            <Input placeholder={t('price.productId')} value={rule.product_id} onChange={(e) => setRule({ ...rule, product_id: e.target.value })} />
+            <Input placeholder={t('price.productId')} value={rule.related_product_id} onChange={(e) => setRule({ ...rule, related_product_id: e.target.value })} />
+            <select className="h-9 w-full rounded-md border border-input bg-background px-3 text-sm" value={rule.kind} onChange={(e) => setRule({ ...rule, kind: e.target.value })}>
+              <option value="requires">{t('price.requires')}</option>
+              <option value="excludes">{t('price.excludes')}</option>
+            </select>
+            <Button type="button" variant="outline" onClick={() => void expansionApi.saveProductRule({ ...rule, product_id: Number(rule.product_id), related_product_id: Number(rule.related_product_id) }).then(() => setSuccess(t('common.saved'))).catch(applyAxiosError)}>{t('common.save')}</Button>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardHeader><CardTitle className="text-base">{t('price.discountNode')}</CardTitle></CardHeader>
+          <CardContent className="space-y-2">
+            <Input placeholder={t('price.name')} value={discount.name} onChange={(e) => setDiscount({ ...discount, name: e.target.value })} />
+            <Input placeholder={t('price.productId')} value={discount.scope_key} onChange={(e) => setDiscount({ ...discount, scope_key: e.target.value })} />
+            <Input placeholder={t('price.discount')} value={discount.percent} onChange={(e) => setDiscount({ ...discount, percent: e.target.value })} />
+            <Input placeholder={t('price.discountNode')} value={discount.parent_id} onChange={(e) => setDiscount({ ...discount, parent_id: e.target.value })} />
+            <Button type="button" variant="outline" onClick={() => void expansionApi.saveDiscount({ ...discount, percent: Number(discount.percent), parent_id: discount.parent_id ? Number(discount.parent_id) : null }).then(() => setSuccess(t('common.saved'))).catch(applyAxiosError)}>{t('common.save')}</Button>
+          </CardContent>
+        </Card>
+        <Card className="lg:col-span-2">
+          <CardHeader><CardTitle className="text-base">{t('price.approval')}</CardTitle></CardHeader>
+          <CardContent className="space-y-2 text-sm">
+            {approvals.map((row) => (
+              <div key={String(row.id)} className="flex flex-wrap items-center justify-between gap-2 rounded-md border border-border/60 px-3 py-2">
+                <span>#{String(row.id)} {String(row.status)} · {String(row.discount_percent)}%</span>
+                {row.status === 'pending' ? (
+                  <span className="flex gap-2">
+                    <Button type="button" size="sm" onClick={() => void expansionApi.decideApproval(Number(row.id), 'approved').then(() => load()).catch(applyAxiosError)}>{t('price.approve')}</Button>
+                    <Button type="button" size="sm" variant="outline" onClick={() => void expansionApi.decideApproval(Number(row.id), 'rejected').then(() => load()).catch(applyAxiosError)}>{t('price.reject')}</Button>
+                  </span>
+                ) : null}
+              </div>
+            ))}
           </CardContent>
         </Card>
       </div>

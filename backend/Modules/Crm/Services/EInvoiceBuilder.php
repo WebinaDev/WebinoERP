@@ -2,7 +2,6 @@
 
 namespace Modules\Crm\Services;
 
-use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Str;
 use Modules\Crm\Entities\CrmCompany;
 use Modules\Crm\Entities\CrmEInvoice;
@@ -68,6 +67,7 @@ class EInvoiceBuilder
             ],
         ];
         $header['taxid'] = substr(hash('sha256', json_encode($header)), 0, 22);
+        $header['moadian'] = app(MoadianClient::class)->packet($header);
 
         return $header;
     }
@@ -99,23 +99,7 @@ class EInvoiceBuilder
 
     public function submit(CrmEInvoice $invoice): CrmEInvoice
     {
-        $hook = (string) config('integrations.moadian.hook_url');
-        $payload = $invoice->document;
-        if ($hook === '') {
-            $invoice->update(['status' => 'queued', 'provider_response' => ['mode' => 'queued_local']]);
-
-            return $invoice->fresh();
-        }
-        $response = Http::timeout(20)->acceptJson()->post($hook, $payload);
-        $invoice->update([
-            'status' => $response->successful() ? 'accepted' : 'rejected',
-            'provider_response' => [
-                'code' => $response->status(),
-                'body' => $response->json() ?? $response->body(),
-            ],
-        ]);
-
-        return $invoice->fresh();
+        return app(MoadianClient::class)->submit($invoice);
     }
 
     public function sellerFromCompany(?CrmCompany $company): array

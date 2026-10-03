@@ -29,7 +29,8 @@ export function StudioPage() {
   const [nodes, setNodes] = useState<NodeDraft[]>([{ id: 't', type: 'trigger', title: 'start' }]);
   const [edgeTo, setEdgeTo] = useState('');
   const [reports, setReports] = useState<Row[]>([]);
-  const [report, setReport] = useState({ name: '', source: 'deals', columns: ['id', 'name'] as string[] });
+  const [report, setReport] = useState({ name: '', source: 'deals', columns: ['id', 'name'] as string[], join: false, email: '' });
+  const [auditCount, setAuditCount] = useState<number | null>(null);
   const [preview, setPreview] = useState<Row | null>(null);
   const [dragCol, setDragCol] = useState('');
   const [flags, setFlags] = useState<Row[]>([]);
@@ -160,7 +161,25 @@ export function StudioPage() {
             ))}
           </div>
           <p className="text-xs text-muted-foreground">{t('studio.dragHint')}</p>
-          <Button type="button" onClick={() => void expansionApi.saveReport({ name: report.name, source: report.source, columns: report.columns, layout: { chart: 'bar' } }).then(() => { setSuccess(t('common.saved')); return load(); }).catch(applyAxiosError)}>{t('common.save')}</Button>
+          {report.source === 'deals' ? (
+            <label className="flex items-center gap-2 text-sm">
+              <input type="checkbox" checked={report.join} onChange={(event) => setReport({ ...report, join: event.target.checked })} />
+              {t('studio.joinCompanies')}
+            </label>
+          ) : null}
+          <Input className="max-w-xs" type="email" placeholder={t('studio.scheduleEmail')} value={report.email} onChange={(event) => setReport({ ...report, email: event.target.value })} dir="ltr" />
+          <div className="flex flex-wrap gap-2">
+            <Button type="button" onClick={() => void expansionApi.saveReport({
+              name: report.name,
+              source: report.source,
+              columns: report.columns,
+              layout: { chart: 'bar' },
+              joins: report.join ? [{ source: 'companies', columns: ['name'] }] : [],
+              schedule: report.email ? { frequency: 'daily', email: report.email } : undefined,
+            }).then(() => { setSuccess(t('common.saved')); return load(); }).catch(applyAxiosError)}>{t('common.save')}</Button>
+            <Button type="button" variant="outline" onClick={() => void expansionApi.compliance(true).then((rows) => setAuditCount(rows.length)).catch(applyAxiosError)}>{t('studio.compliance')}</Button>
+          </div>
+          {auditCount !== null ? <p className="text-xs text-muted-foreground">{auditCount}</p> : null}
           <ul className="space-y-2 text-sm">
             {reports.map((row) => (
               <li key={String(row.id)} className="flex flex-wrap items-center gap-2">

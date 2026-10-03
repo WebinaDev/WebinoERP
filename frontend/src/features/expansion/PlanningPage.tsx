@@ -11,6 +11,16 @@ import { expansionApi, type Row } from '@/features/expansion/api';
 import { AiAssistPanel } from '@/features/expansion/AiAssistPanel';
 import { enqueueOfflineOp, readOfflineOps, replaceOfflineOps, type OfflineOp } from '@/features/expansion/offline-queue';
 
+type TimelineTask = {
+  id: number;
+  title: string;
+  start_on: string;
+  day_index: number;
+  duration_days: number;
+  critical: boolean;
+  variance_days: number | null;
+};
+
 const selectClass = 'h-9 w-full rounded-md border border-input bg-background px-3 text-sm';
 
 export function PlanningPage() {
@@ -26,16 +36,21 @@ export function PlanningPage() {
   const [board, setBoard] = useState({ id: '', swimlane_field: 'assignee' });
   const [queued, setQueued] = useState<OfflineOp[]>([]);
   const [offlineTask, setOfflineTask] = useState('');
+  const [days, setDays] = useState<string[]>([]);
+  const [bars, setBars] = useState<TimelineTask[]>([]);
 
   const load = useCallback(async () => {
     setQueued(readOfflineOps());
     try {
-      const [base, cap] = await Promise.all([
+      const [base, cap, board] = await Promise.all([
         expansionApi.baselines(projectId ? Number(projectId) : undefined),
         expansionApi.capacity(),
+        expansionApi.timeline(projectId ? Number(projectId) : undefined),
       ]);
       setBaselines(base);
       setCapacity(cap);
+      setDays(Array.isArray(board.days) ? (board.days as string[]) : []);
+      setBars(Array.isArray(board.tasks) ? (board.tasks as TimelineTask[]) : []);
     } catch (err) {
       applyAxiosError(err);
     }
@@ -44,6 +59,22 @@ export function PlanningPage() {
   useEffect(() => {
     void load();
   }, [load]);
+
+  async function moveTask(taskId: number, day: string) {
+    if (!navigator.onLine) {
+      enqueueOfflineOp({ action: 'shift_task', payload: { task_id: taskId, start_on: day } });
+      setQueued(readOfflineOps());
+      setSuccess(t('planning.queued'));
+      return;
+    }
+    try {
+      await expansionApi.shiftTask(taskId, day);
+      setSuccess(t('common.saved'));
+      await load();
+    } catch (err) {
+      applyAxiosError(err);
+    }
+  }
 
   async function flush() {
     const ops = readOfflineOps();
@@ -60,6 +91,41 @@ export function PlanningPage() {
 
   return (
     <CrmPageLayout title={t('planning.title')} description={t('planning.description')} {...layoutProps}>
+      <Card>
+        <CardHeader><CardTitle className="text-base">{t('planning.timeline')}</CardTitle></CardHeader>
+        <CardContent className="space-y-3">
+          <div className="overflow-x-auto" dir="ltr">
+            <div className="grid min-w-[42rem] gap-2" style={{ gridTemplateColumns: `repeat(${Math.max(days.length, 1)}, minmax(0, 1fr))` }}>
+              {days.map((day) => (
+                <div
+                  key={day}
+                  className="min-h-24 rounded-md border border-dashed border-border/70 bg-muted/30 p-1"
+                  onDragOver={(event) => event.preventDefault()}
+                  onDrop={(event) => {
+                    const taskId = Number(event.dataTransfer.getData('text/task'));
+                    if (taskId) void moveTask(taskId, day);
+                  }}
+                >
+                  <p className="mb-1 text-[10px] text-muted-foreground">{day.slice(5)}</p>
+                  {bars.filter((bar) => bar.start_on === day).map((bar) => (
+                    <button
+                      key={bar.id}
+                      type="button"
+                      draggable
+                      onDragStart={(event) => event.dataTransfer.setData('text/task', String(bar.id))}
+                      className={`mb-1 w-full rounded px-1 py-1 text-start text-[11px] ${bar.critical ? 'bg-primary text-primary-foreground' : 'bg-background'}`}
+                    >
+                      {bar.title}
+                      {bar.critical ? ` · ${t('planning.criticalMark')}` : ''}
+                      {bar.variance_days ? ` · ${t('planning.variance')} ${bar.variance_days}` : ''}
+                    </button>
+                  ))}
+                </div>
+              ))}
+            </div>
+          </div>
+        </CardContent>
+      </Card>
       <div className="grid gap-4 lg:grid-cols-2">
         <Card>
           <CardHeader><CardTitle className="text-base">{t('planning.critical')}</CardTitle></CardHeader>
@@ -92,6 +158,7 @@ export function PlanningPage() {
               {capacity.map((row) => (
                 <li key={String(row.user_id)}>
                   #{String(row.user_id)} {t('planning.available')}: {String(row.available_hours)} / {t('planning.allocated')}: {String(row.allocated_hours)}
+                  {Number(row.conflict_count || 0) > 0 ? ` · ${t('planning.conflict')} ${String(row.conflict_count)}` : ''}
                 </li>
               ))}
             </ul>

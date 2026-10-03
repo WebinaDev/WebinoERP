@@ -458,35 +458,8 @@ class CalendarSyncService
 
     private function refreshIfNeeded(CalendarAccount $account): void
     {
-        if ($account->expires_at && $account->expires_at->isFuture()) {
-            return;
-        }
-        if (! $account->refresh_token) {
-            return;
-        }
-        if ($account->provider === 'google') {
-            $response = Http::asForm()->timeout(20)->post('https://oauth2.googleapis.com/token', [
-                'client_id' => (string) config('integrations.google.client_id'),
-                'client_secret' => (string) config('integrations.google.client_secret'),
-                'refresh_token' => $account->refresh_token,
-                'grant_type' => 'refresh_token',
-            ]);
-        } else {
-            $tenant = (string) config('integrations.microsoft.tenant', 'common');
-            $response = Http::asForm()->timeout(20)->post('https://login.microsoftonline.com/'.$tenant.'/oauth2/v2.0/token', [
-                'client_id' => (string) config('integrations.microsoft.client_id'),
-                'client_secret' => (string) config('integrations.microsoft.client_secret'),
-                'refresh_token' => $account->refresh_token,
-                'grant_type' => 'refresh_token',
-            ]);
-        }
-        if ($response->successful() && $response->json('access_token')) {
-            $account->update([
-                'access_token' => (string) $response->json('access_token'),
-                'expires_at' => now()->addSeconds((int) $response->json('expires_in', 3600)),
-            ]);
-            $account->refresh();
-        }
+        app(OAuthTokenRefresher::class)->ensureFresh($account);
+        $account->refresh();
     }
 
     /**

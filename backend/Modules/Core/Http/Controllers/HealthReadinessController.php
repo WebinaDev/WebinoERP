@@ -35,8 +35,16 @@ class HealthReadinessController extends Controller
                 'env' => config('app.env'),
                 'php' => PHP_VERSION,
                 'memory_mb' => round(memory_get_usage(true) / 1024 / 1024, 2),
+                'modules' => app(\Modules\Core\Services\ModuleHealth::class)->report(),
             ],
         ]);
+    }
+
+    public function modules(): JsonResponse
+    {
+        $report = app(\Modules\Core\Services\ModuleHealth::class)->report();
+
+        return response()->json(['data' => $report], $report['status'] === 'ok' ? 200 : 503);
     }
 
     private function checkDatabase(): array

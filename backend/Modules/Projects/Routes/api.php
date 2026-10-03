@@ -187,6 +187,8 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('/planning/capacity', [PmPlanningController::class, 'saveCapacity']);
     Route::post('/planning/leave', [PmPlanningController::class, 'storeLeave']);
     Route::get('/planning/capacity', [PmPlanningController::class, 'capacity']);
+    Route::get('/planning/timeline', [PmPlanningController::class, 'timeline']);
+    Route::post('/planning/tasks/{id}/shift', [PmPlanningController::class, 'shiftTask'])->whereNumber('id');
     Route::patch('/kanban/boards/{id}', [PmPlanningController::class, 'updateBoard'])->whereNumber('id');
     Route::post('/offline/ops', [PmPlanningController::class, 'offline']);
     Route::post('/ai/assist', [PmPlanningController::class, 'assist']);

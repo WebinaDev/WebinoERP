@@ -2,7 +2,7 @@
 
 import { useEffect } from 'react';
 import { expansionApi } from '@/features/expansion/api';
-import { readOfflineOps, replaceOfflineOps } from '@/features/expansion/offline-queue';
+import { readOfflineOps, replaceOfflineOps, restoreOfflineOps } from '@/features/expansion/offline-queue';
 
 export function PwaRegistrar() {
   useEffect(() => {
@@ -21,7 +21,12 @@ export function PwaRegistrar() {
     }
 
     window.addEventListener('online', () => void flush());
-    if (navigator.onLine) void flush();
+    navigator.serviceWorker.addEventListener('message', (event) => {
+      if (event.data?.type === 'webino-flush') void flush();
+    });
+    void restoreOfflineOps().then(() => {
+      if (navigator.onLine) void flush();
+    });
   }, []);
 
   return null;

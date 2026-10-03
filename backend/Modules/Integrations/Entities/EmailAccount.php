@@ -11,6 +11,7 @@ class EmailAccount extends Model
     protected $fillable = [
         'user_id', 'provider', 'email', 'access_token', 'refresh_token', 'expires_at',
         'imap_host', 'imap_port', 'smtp_host', 'smtp_port', 'username', 'password', 'encryption',
+        'status', 'refresh_attempts', 'last_refresh_error', 'meta',
     ];
 
     protected function casts(): array

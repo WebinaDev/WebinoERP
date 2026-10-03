@@ -52,6 +52,9 @@ class ChatBridgeService
         if ($text === null) {
             return ['ok' => true, 'ignored' => true];
         }
+        if ($externalId && ChatMessage::query()->where('bridge_id', $bridge->id)->where('direction', 'in')->where('external_id', $externalId)->exists()) {
+            return ['ok' => true, 'duplicate' => true];
+        }
 
         ChatMessage::query()->create([
             'bridge_id' => $bridge->id,

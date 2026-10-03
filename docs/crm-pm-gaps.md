@@ -33,8 +33,8 @@ Calendar and team-chat connectors (Google, Outlook, Slack, Bale) have a settings
 
 ## Deferred
 
-- Google and Outlook OAuth and a live two-way calendar sync.
-- A live Slack or Bale bridge beyond the webhook test.
+Live Google and Outlook OAuth, Slack/Bale/Telegram inbound, mailbox search, CPQ approvals, Moadian submit, attribution, SAML as an identity provider, and social publish are in [EXPANSION.md](EXPANSION.md). The items below remain open.
+
 - A full email client. Outbound mail is a plain message from a template.
 - Sequence editing in the screen is a single step. More steps can be stored by the API.
 - Quota entry asks for a numeric user id.

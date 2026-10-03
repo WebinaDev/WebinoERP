@@ -24,6 +24,11 @@ class CoreServiceProvider extends ServiceProvider
      */
     public function boot()
     {
+        if ($this->app->runningInConsole()) {
+            $this->commands([
+                \Modules\Core\Console\SendScheduledReportsCommand::class,
+            ]);
+        }
         $this->registerTranslations();
         $this->registerConfig();
         $this->registerViews();

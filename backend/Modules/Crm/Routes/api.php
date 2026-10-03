@@ -15,6 +15,7 @@ use Modules\Crm\Http\Controllers\LeadController;
 use Modules\Crm\Http\Controllers\OutreachController;
 use Modules\Crm\Http\Controllers\PipelineController;
 use Modules\Crm\Http\Controllers\CrmExpansionController;
+use Modules\Crm\Http\Controllers\CrmProductionController;
 use Modules\Crm\Http\Controllers\SourceController;
 use Modules\Crm\Http\Controllers\TimelineController;
 
@@ -162,6 +163,18 @@ Route::post('content-calendars', [CrmExpansionController::class, 'storeCalendar'
 Route::post('content-calendars/{id}/items', [CrmExpansionController::class, 'storeItem'])->whereNumber('id');
 Route::patch('content-items/{id}', [CrmExpansionController::class, 'updateItem'])->whereNumber('id');
 Route::post('content-items/remind-due', [CrmExpansionController::class, 'remindDue']);
+Route::post('content-items/{id}/publish', [CrmProductionController::class, 'publishItem'])->whereNumber('id');
+Route::get('product-rules', [CrmProductionController::class, 'rules']);
+Route::post('product-rules', [CrmProductionController::class, 'storeRule']);
+Route::get('discount-nodes', [CrmProductionController::class, 'discounts']);
+Route::post('discount-nodes', [CrmProductionController::class, 'storeDiscount']);
+Route::get('quote-approvals', [CrmProductionController::class, 'approvals']);
+Route::post('quote-approvals/{id}/decide', [CrmProductionController::class, 'decideApproval'])->whereNumber('id');
+Route::post('touchpoints', [CrmProductionController::class, 'touchpoints']);
+Route::post('campaign-spends', [CrmProductionController::class, 'storeSpend']);
+Route::get('attribution/roi', [CrmProductionController::class, 'roi']);
+Route::get('social-connectors', [CrmProductionController::class, 'connectors']);
+Route::post('social-connectors', [CrmProductionController::class, 'storeConnector']);
 
 Route::post('pipelines/{pipeline}/stages', [PipelineController::class, 'storeStage']);
 Route::patch('pipelines/{pipeline}/stages/{stage}', [PipelineController::class, 'updateStage']);

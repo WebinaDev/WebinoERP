@@ -6,13 +6,14 @@ use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Modules\Crm\Entities\CrmAttribution;
 use Modules\Crm\Entities\CrmLead;
+use Modules\Crm\Services\AttributionService;
 use Modules\Crm\Entities\CrmLeadForm;
 use Modules\Crm\Entities\CrmStatus;
 use Modules\Integrations\Services\NotificationFanout;
 
 class PublicLeadFormController extends Controller
 {
-    public function store(Request $request, string $slug, NotificationFanout $fanout): JsonResponse
+    public function store(Request $request, string $slug, NotificationFanout $fanout, AttributionService $attribution): JsonResponse
     {
         $form = CrmLeadForm::query()->where('slug', $slug)->where('active', true)->firstOrFail();
         $data = $request->validate([
@@ -50,7 +51,7 @@ class PublicLeadFormController extends Controller
             'description' => 'Public form '.$form->slug,
             'status_id' => $statusId,
         ]);
-        $attribution = CrmAttribution::query()->create([
+        $row = CrmAttribution::query()->create([
             'lead_id' => $lead->id,
             'form_id' => $form->id,
             'utm_source' => $data['utm_source'] ?? null,
@@ -60,6 +61,15 @@ class PublicLeadFormController extends Controller
             'utm_term' => $data['utm_term'] ?? null,
             'referrer' => $data['referrer'] ?? null,
             'landing_path' => $data['landing_path'] ?? $form->landing_url,
+        ]);
+        $attribution->record([
+            'lead_id' => $lead->id,
+            'utm_source' => $data['utm_source'] ?? null,
+            'utm_medium' => $data['utm_medium'] ?? null,
+            'utm_campaign' => $data['utm_campaign'] ?? null,
+            'utm_content' => $data['utm_content'] ?? null,
+            'utm_term' => $data['utm_term'] ?? null,
+            'channel' => 'form',
         ]);
 
         if ($form->notify_user_id) {
@@ -73,6 +83,6 @@ class PublicLeadFormController extends Controller
             ]);
         }
 
-        return response()->json(['data' => ['lead_id' => $lead->id, 'attribution_id' => $attribution->id]], 201);
+        return response()->json(['data' => ['lead_id' => $lead->id, 'attribution_id' => $row->id]], 201);
     }
 }

@@ -632,3 +632,13 @@ cd docs-site && npm run build && npm run build -- --locale fa
 | PWA shell | existing manifest route plus `frontend/public/sw.js` and `offline.html` | `PwaRegistrar` | manual shell only |
 
 Narrative: [docs/EXPANSION.md](docs/EXPANSION.md).
+
+## Production-grade pass (2026-10-03)
+
+| Area | API | UI | Tests |
+| --- | --- | --- | --- |
+| Durable OAuth refresh, inbound webhook queue, spam and mailbox search | `OAuthTokenRefresher`, `LiveConnectController`, `SpamFilter` | `ConnectPage.tsx` | `tests/Feature/ProductionGradeApiTest.php` |
+| CPQ rules, hierarchical discounts, approvals, Moadian packet, attribution ROI | `CpqService`, `MoadianClient`, `AttributionService`, `CrmProductionController` | `PriceBookPage.tsx`, `LeadFormsPage.tsx`, `EsignPage` submit label | same feature test plus `tests/Unit/ProductionGradeServiceTest.php` |
+| Day board, offline shift, capacity conflicts | `PmPlanningController` | `PlanningPage.tsx`, `public/sw.js` | feature test |
+| SAML IdP, report joins and scheduled mail, compliance export, module health | `SamlIdpService`, `StudioController`, `ComplianceController`, `ModuleHealth` | `StudioPage.tsx` | feature test |
+| Instagram and LinkedIn publish | `SocialPublishService` | `ContentCalendarPage.tsx` | feature test |

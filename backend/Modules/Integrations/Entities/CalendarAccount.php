@@ -11,7 +11,7 @@ class CalendarAccount extends Model
     protected $fillable = [
         'user_id', 'provider', 'email', 'access_token', 'refresh_token', 'expires_at',
         'calendar_id', 'sync_token', 'webhook_channel_id', 'webhook_secret', 'webhook_expires_at',
-        'status', 'last_synced_at', 'meta',
+        'status', 'last_synced_at', 'meta', 'refresh_attempts', 'last_refresh_error',
     ];
 
     protected function casts(): array
