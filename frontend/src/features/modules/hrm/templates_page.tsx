@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useState } from 'react';
 import { useTranslations } from 'next-intl';
-import { CrmPageLayout } from '@/features/shared/layout/CrmPageLayout';
+import { HrmPageLayout } from '@/features/modules/hrm/HrmPageLayout';
 import { useCrmFeedback } from '@/features/shared/hooks/useCrmFeedback';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -76,7 +76,7 @@ export function TemplatesPage() {
   };
 
   return (
-    <CrmPageLayout title={tNav('nav.erp.hrm.templates')} {...layoutProps}>
+    <HrmPageLayout title={tNav('nav.erp.hrm.templates')} {...layoutProps}>
       {loading ? (
         <PageLoadingState />
       ) : (
@@ -122,6 +122,6 @@ export function TemplatesPage() {
           </Card>
         </div>
       )}
-    </CrmPageLayout>
+    </HrmPageLayout>
   );
 }

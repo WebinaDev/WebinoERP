@@ -31,5 +31,14 @@ export function resolveRoutePermission(path: string): string | undefined {
     return 'integrations.modirpayamak.view';
   }
 
+
+  if (normalized === 'hrm/shifts' || normalized === 'hrm/org-chart' || normalized === 'hrm/timesheets' || normalized === 'hrm/analytics') {
+    return 'hrm.staff.view';
+  }
+  if (normalized === 'hrm/onboarding') return 'hrm.recruitment.view';
+  if (normalized === 'hrm/okrs' || normalized === 'hrm/reviews-360') return 'hrm.performance.view';
+  if (normalized === 'hrm/learning') return 'hrm.training.view';
+  if (normalized.startsWith('hrm/my-')) return 'hrm.ess.view';
+
   return undefined;
 }

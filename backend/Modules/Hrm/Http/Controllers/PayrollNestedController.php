@@ -22,6 +22,7 @@ use Modules\Hrm\Support\HrmNotifier;
 use Modules\Hrm\Services\HrmSerialService;
 use Modules\Hrm\Services\HrmPayrollAccountingBridge;
 use Modules\Hrm\Services\HrmInsuranceListService;
+use Modules\Hrm\Services\HrmBankExportService;
 use Modules\Hrm\Services\HrmDocumentPdfService;
 use Illuminate\Support\Facades\Response;
 
@@ -244,6 +245,15 @@ class PayrollNestedController extends Controller
             return Response::make($csv, 200, [
                 'Content-Type' => 'text/csv; charset=UTF-8',
                 'Content-Disposition' => 'attachment; filename="sso-list-run-'.$run->id.'.csv"',
+            ]);
+        }
+
+        if (in_array($format, ['txt', 'diskette'], true)) {
+            $txt = app(HrmInsuranceListService::class)->toDiskette($run, $rows);
+
+            return Response::make($txt, 200, [
+                'Content-Type' => 'text/plain; charset=UTF-8',
+                'Content-Disposition' => 'attachment; filename="DSKWOR-run-'.$run->id.'.txt"',
             ]);
         }
         if ($format === 'html') {
@@ -552,6 +562,22 @@ class PayrollNestedController extends Controller
         $payload = $this->templatesRender($fake, 'payslip')->getData(true);
 
         return (string) ($payload['data']['html'] ?? '');
+    }
+
+
+    public function bankExport(Request $request, HrmPayrollRun $run)
+    {
+        $channel = $request->string('channel', 'paya')->toString();
+        $rows = app(HrmBankExportService::class)->rows($run, $channel);
+        if ($request->string('format', 'csv')->toString() === 'json') {
+            return response()->json(['data' => ['rows' => $rows, 'count' => count($rows), 'channel' => $channel]]);
+        }
+        $csv = app(HrmBankExportService::class)->toCsv($rows);
+
+        return Response::make($csv, 200, [
+            'Content-Type' => 'text/csv; charset=UTF-8',
+            'Content-Disposition' => 'attachment; filename="salary-'.$channel.'-run-'.$run->id.'.csv"',
+        ]);
     }
 
 }

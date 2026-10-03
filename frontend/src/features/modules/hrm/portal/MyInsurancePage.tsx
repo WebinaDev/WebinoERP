@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useState } from 'react';
 import { useTranslations } from 'next-intl';
-import { CrmPageLayout } from '@/features/shared/layout/CrmPageLayout';
+import { HrmPageLayout } from '@/features/modules/hrm/HrmPageLayout';
 import { useCrmFeedback } from '@/features/shared/hooks/useCrmFeedback';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -55,7 +55,7 @@ export function MyInsurancePage() {
   const id = me?.identity;
 
   return (
-    <CrmPageLayout title={tNav('nav.erp.hrm.myInsurance')} {...layoutProps}>
+    <HrmPageLayout title={tNav('nav.erp.hrm.myInsurance')} {...layoutProps}>
       {loading ? (
         <PageLoadingState />
       ) : (
@@ -108,6 +108,6 @@ export function MyInsurancePage() {
           </Card>
         </div>
       )}
-    </CrmPageLayout>
+    </HrmPageLayout>
   );
 }

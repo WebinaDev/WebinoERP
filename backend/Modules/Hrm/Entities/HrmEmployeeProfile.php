@@ -12,6 +12,7 @@ class HrmEmployeeProfile extends Model
     protected $fillable = [
         'employee_id', 'national_id', 'birth_date', 'gender', 'address',
         'emergency_contact', 'emergency_phone', 'custom_fields',
+        'sheba', 'bank_name', 'account_holder',
     ];
 
     protected $casts = [

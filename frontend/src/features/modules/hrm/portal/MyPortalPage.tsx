@@ -4,7 +4,7 @@ import { useCallback, useEffect, useState } from 'react';
 import Link from 'next/link';
 import { useParams } from 'next/navigation';
 import { useTranslations } from 'next-intl';
-import { CrmPageLayout } from '@/features/shared/layout/CrmPageLayout';
+import { HrmPageLayout } from '@/features/modules/hrm/HrmPageLayout';
 import { useCrmFeedback } from '@/features/shared/hooks/useCrmFeedback';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -41,7 +41,7 @@ export function MyPortalPage() {
   const id = data?.identity;
 
   return (
-    <CrmPageLayout title={tNav('nav.erp.hrm.portal')} {...layoutProps}>
+    <HrmPageLayout title={tNav('nav.erp.hrm.portal')} {...layoutProps}>
       {loading ? (
         <PageLoadingState />
       ) : !id ? (
@@ -151,6 +151,6 @@ export function MyPortalPage() {
           </Card>
         </div>
       )}
-    </CrmPageLayout>
+    </HrmPageLayout>
   );
 }

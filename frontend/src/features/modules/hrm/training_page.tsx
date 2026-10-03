@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useState } from 'react';
 import { useTranslations } from 'next-intl';
 import { useLocale } from '@/hooks/use-locale-next';
-import { CrmPageLayout } from '@/features/shared/layout/CrmPageLayout';
+import { HrmPageLayout, HrmStatus } from '@/features/modules/hrm/HrmPageLayout';
 import { useCrmFeedback } from '@/features/shared/hooks/useCrmFeedback';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input'
@@ -176,7 +176,7 @@ export function TrainingPage() {
     );
 
   return (
-    <CrmPageLayout title={tNav('nav.erp.hrm.training')} actions={actions} {...layoutProps}>
+    <HrmPageLayout title={tNav('nav.erp.hrm.training')} actions={actions} {...layoutProps}>
       <Tabs value={tab} onValueChange={setTab}>
         <TabsList>
           <TabsTrigger value="courses">{t('trainingCourses')}</TabsTrigger>
@@ -207,7 +207,7 @@ export function TrainingPage() {
                         <TableCell>{String(r.title ?? r.name ?? '')}</TableCell>
                         <TableCell>{formatDate(String(r.start_date ?? '')) || '—'}</TableCell>
                         <TableCell>{formatDate(String(r.end_date ?? '')) || '—'}</TableCell>
-                        <TableCell>{String(r.status ?? '')}</TableCell>
+                        <TableCell><HrmStatus value={r.status} /></TableCell>
                       </TableRow>
                     ))
                   )}
@@ -273,7 +273,7 @@ export function TrainingPage() {
                               ? `${String(emp.first_name ?? '')} ${String(emp.last_name ?? '')}`.trim()
                               : String(r.employee_id ?? '')}
                           </TableCell>
-                          <TableCell>{String(r.status ?? '')}</TableCell>
+                          <TableCell><HrmStatus value={r.status} /></TableCell>
                         </TableRow>
                       );
                     })
@@ -354,6 +354,6 @@ export function TrainingPage() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
-    </CrmPageLayout>
+    </HrmPageLayout>
   );
 }

@@ -81,3 +81,17 @@
     --removed-body-scroll-bar-size: 0 !important;
   }
 }
+
+/* HR module: Persian tables stay right-aligned even inside scroll containers. */
+.hrm-region[dir='rtl'] table {
+  direction: rtl;
+}
+.hrm-region[dir='rtl'] th,
+.hrm-region[dir='rtl'] td {
+  text-align: right;
+}
+.hrm-region[dir='rtl'] input[dir='ltr'],
+.hrm-region[dir='rtl'] textarea[dir='ltr'] {
+  direction: ltr;
+  text-align: left;
+}

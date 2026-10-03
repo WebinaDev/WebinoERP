@@ -2,10 +2,11 @@
 
 import { useCallback, useEffect, useState } from 'react';
 import { useTranslations } from 'next-intl';
-import { CrmPageLayout } from '@/features/shared/layout/CrmPageLayout';
+import { HrmPageLayout, HrmStatus } from '@/features/modules/hrm/HrmPageLayout';
 import { useCrmFeedback } from '@/features/shared/hooks/useCrmFeedback';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { LocaleDatePicker } from '@/components/ui/locale-date-picker';
 import { Card, CardContent } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
@@ -77,7 +78,7 @@ export function LoansPage() {
   };
 
   return (
-    <CrmPageLayout title={tNav('nav.erp.hrm.loans')} actions={<Button onClick={() => setOpen(true)}>{t('loans.new')}</Button>} {...layoutProps}>
+    <HrmPageLayout title={tNav('nav.erp.hrm.loans')} actions={<Button onClick={() => setOpen(true)}>{t('loans.new')}</Button>} {...layoutProps}>
       <Card>
         <CardContent className="pt-6">
           <Table>
@@ -106,7 +107,7 @@ export function LoansPage() {
                     <TableCell>{formatNumber(Number(r.principal ?? 0))}</TableCell>
                     <TableCell>{formatNumber(Number(r.installment_amount ?? 0))}</TableCell>
                     <TableCell>{formatNumber(Number(r.remaining_balance ?? 0))}</TableCell>
-                    <TableCell>{String(r.status ?? '')}{r.start_date ? ` · ${formatDate(String(r.start_date)) || ''}` : ''}</TableCell>
+                    <TableCell><HrmStatus value={r.status} />{r.start_date ? ` · ${formatDate(String(r.start_date)) || ''}` : ''}</TableCell>
                     <TableCell>
                       {String(r.status) === 'active' ? (
                         <Button size="sm" variant="outline" onClick={() => void settle(Number(r.id))}>{t('loans.settle')}</Button>
@@ -134,7 +135,7 @@ export function LoansPage() {
             <Input placeholder={t('loans.title')} value={form.title} onChange={(e) => setForm((f) => ({ ...f, title: e.target.value }))} />
             <Input type="number" placeholder={t('loans.principal')} value={form.principal} onChange={(e) => setForm((f) => ({ ...f, principal: e.target.value }))} />
             <Input type="number" placeholder={t('loans.installment')} value={form.installment_amount} onChange={(e) => setForm((f) => ({ ...f, installment_amount: e.target.value }))} />
-            <Input type="date" value={form.start_date} onChange={(e) => setForm((f) => ({ ...f, start_date: e.target.value }))} />
+            <LocaleDatePicker value={form.start_date} onChange={(v) => setForm((f) => ({ ...f, start_date: v }))} />
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setOpen(false)}>{tNav('common.cancel')}</Button>
@@ -142,6 +143,6 @@ export function LoansPage() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
-    </CrmPageLayout>
+    </HrmPageLayout>
   );
 }

@@ -75,6 +75,13 @@ return [
         'org-positions' => ['view' => 'hrm.staff.view', 'manage' => 'hrm.staff.manage'],
         'me' => ['view' => 'hrm.ess.view', 'manage' => 'hrm.ess.view'],
         'requests' => ['view' => 'hrm.leave.manage', 'manage' => 'hrm.leave.manage'],
+        'shifts' => ['view' => 'hrm.staff.view', 'manage' => 'hrm.staff.manage'],
+        'onboarding' => ['view' => 'hrm.recruitment.view', 'manage' => 'hrm.recruitment.manage'],
+        'objectives' => ['view' => 'hrm.performance.view', 'manage' => 'hrm.performance.manage'],
+        'reviews-360' => ['view' => 'hrm.performance.view', 'manage' => 'hrm.performance.manage'],
+        'succession' => ['view' => 'hrm.staff.view', 'manage' => 'hrm.staff.manage'],
+        'timesheets' => ['view' => 'hrm.staff.view', 'manage' => 'hrm.staff.manage'],
+        'analytics' => ['view' => 'hrm.staff.view', 'manage' => 'hrm.staff.view'],
         '*' => ['view' => 'hrm.staff.view', 'manage' => 'hrm.staff.manage'],
     ],
     'accounting' => [

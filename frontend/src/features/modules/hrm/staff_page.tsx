@@ -4,7 +4,7 @@ import { useCallback, useEffect, useState } from 'react';
 import Link from 'next/link';
 import { useParams } from 'next/navigation';
 import { useTranslations } from 'next-intl';
-import { CrmPageLayout } from '@/features/shared/layout/CrmPageLayout';
+import { HrmDigits, HrmPageLayout, HrmStatus } from '@/features/modules/hrm/HrmPageLayout';
 import { useCrmFeedback } from '@/features/shared/hooks/useCrmFeedback';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input'
@@ -185,7 +185,7 @@ export function StaffPage() {
   };
 
   return (
-    <CrmPageLayout
+    <HrmPageLayout
       title={tNav('nav.erp.hrm.staff')}
       actions={<Button onClick={openCreate}>{t('addEmployee')}</Button>}
       {...layoutProps}
@@ -222,11 +222,11 @@ export function StaffPage() {
                   ) : (
                     rows.map((r) => (
                       <TableRow key={String(r.id)}>
-                        <TableCell>{String(r.employee_code ?? r.id)}</TableCell>
+                        <TableCell><HrmDigits value={r.employee_code ?? r.id} /></TableCell>
                         <TableCell>{String(r.first_name ?? '')}</TableCell>
                         <TableCell>{String(r.last_name ?? '')}</TableCell>
                         <TableCell>{String(r.department ?? '')}</TableCell>
-                        <TableCell>{String(r.status ?? '')}</TableCell>
+                        <TableCell><HrmStatus value={r.status} /></TableCell>
                         <TableCell className="flex flex-wrap gap-2">
                           <Button variant="link" size="sm" asChild>
                             <Link href={dashboardHref(locale, `hrm/staff/${r.id}`)}>{tNav('common.view')}</Link>
@@ -309,6 +309,6 @@ export function StaffPage() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
-    </CrmPageLayout>
+    </HrmPageLayout>
   );
 }

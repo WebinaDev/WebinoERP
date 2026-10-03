@@ -16,6 +16,15 @@ use Modules\Hrm\Http\Controllers\RecruitmentNestedController;
 use Modules\Hrm\Http\Controllers\StaffNestedController;
 use Modules\Hrm\Http\Controllers\TrainingController;
 use Modules\Hrm\Http\Controllers\TrainingNestedController;
+use Modules\Hrm\Http\Controllers\ShiftPlanningController;
+use Modules\Hrm\Http\Controllers\OnboardingController;
+use Modules\Hrm\Http\Controllers\ObjectiveController;
+use Modules\Hrm\Http\Controllers\Review360Controller;
+use Modules\Hrm\Http\Controllers\LmsController;
+use Modules\Hrm\Http\Controllers\SuccessionController;
+use Modules\Hrm\Http\Controllers\TimesheetController;
+use Modules\Hrm\Http\Controllers\HrAnalyticsController;
+use Modules\Hrm\Http\Controllers\MeSuiteController;
 
 // Employee self-service portal
 Route::prefix('me')->group(function () {
@@ -35,6 +44,19 @@ Route::prefix('me')->group(function () {
     Route::get('documents', [MePortalController::class, 'myDocuments']);
     Route::post('documents', [MePortalController::class, 'myDocumentsStore']);
     Route::get('documents/{document}/download', [MePortalController::class, 'myDocumentDownload']);
+    Route::post('documents/{document}/sign', [MeSuiteController::class, 'signDocument']);
+    Route::get('shift-calendar', [MeSuiteController::class, 'shiftCalendar']);
+    Route::get('onboarding', [MeSuiteController::class, 'onboarding']);
+    Route::post('onboarding/tasks/{onboardingTask}/complete', [MeSuiteController::class, 'completeOnboardingTask']);
+    Route::get('objectives', [MeSuiteController::class, 'objectives']);
+    Route::patch('objectives/key-results/{keyResult}', [ObjectiveController::class, 'updateKeyResult']);
+    Route::get('reviews-360', [MeSuiteController::class, 'reviews']);
+    Route::post('reviews-360/ratings/{rating}/submit', [Review360Controller::class, 'submit']);
+    Route::get('learning', [LmsController::class, 'myLearning']);
+    Route::post('learning/lessons/{lesson}/complete', [LmsController::class, 'complete']);
+    Route::get('timesheets', [TimesheetController::class, 'index']);
+    Route::post('timesheets', [TimesheetController::class, 'store']);
+    Route::post('timesheets/{timesheet}/submit', [TimesheetController::class, 'submit']);
 });
 
 Route::get('requests/inbox', [MePortalController::class, 'requestsInbox']);
@@ -53,6 +75,7 @@ Route::prefix('staff')->group(function () {
     Route::get('/{staff}/documents', [StaffNestedController::class, 'documentsIndex']);
     Route::post('/{staff}/documents', [StaffNestedController::class, 'documentsStore']);
     Route::get('/{staff}/documents/{document}/download', [StaffNestedController::class, 'documentsDownload']);
+    Route::post('/{staff}/documents/{document}/sign', [StaffNestedController::class, 'documentsSign']);
 });
 Route::get('org-positions', [StaffNestedController::class, 'orgPositionsIndex']);
 Route::post('org-positions', [StaffNestedController::class, 'orgPositionStore']);
@@ -88,6 +111,7 @@ Route::prefix('payroll')->group(function () {
     Route::post('runs/{run}/approve', [PayrollNestedController::class, 'runApprove']);
     Route::post('runs/{run}/mark-paid', [PayrollNestedController::class, 'runMarkPaid']);
     Route::get('runs/{run}/insurance-list', [PayrollNestedController::class, 'insuranceList']);
+    Route::get('runs/{run}/bank-export', [PayrollNestedController::class, 'bankExport']);
     Route::get('runs/{run}/payslips', [PayrollNestedController::class, 'payslipsList']);
     Route::get('payslip-items/{item}/pdf', [PayrollNestedController::class, 'payslipPdf']);
     Route::get('decrees/{decree}/pdf', [PayrollNestedController::class, 'decreePdf']);
@@ -121,6 +145,54 @@ Route::prefix('performance')->group(function () {
     Route::post('reviews', [PerformanceNestedController::class, 'reviewsStore']);
 });
 
+
+Route::prefix('shifts')->group(function () {
+    Route::get('templates', [ShiftPlanningController::class, 'templatesIndex']);
+    Route::post('templates', [ShiftPlanningController::class, 'templatesStore']);
+    Route::delete('templates/{shiftTemplate}', [ShiftPlanningController::class, 'templatesDestroy']);
+    Route::get('rotations', [ShiftPlanningController::class, 'rotationsIndex']);
+    Route::post('rotations', [ShiftPlanningController::class, 'rotationsStore']);
+    Route::post('rotations/{rotation}/apply', [ShiftPlanningController::class, 'applyRotation']);
+    Route::post('assignments', [ShiftPlanningController::class, 'assignmentsStore']);
+    Route::get('calendar', [ShiftPlanningController::class, 'calendar']);
+    Route::get('conflicts', [ShiftPlanningController::class, 'conflicts']);
+});
+
+Route::prefix('onboarding')->group(function () {
+    Route::get('templates', [OnboardingController::class, 'templatesIndex']);
+    Route::post('templates', [OnboardingController::class, 'templatesStore']);
+    Route::get('/', [OnboardingController::class, 'index']);
+    Route::post('start', [OnboardingController::class, 'start']);
+    Route::post('tasks/{onboardingTask}/complete', [OnboardingController::class, 'completeTask']);
+});
+
+Route::prefix('objectives')->group(function () {
+    Route::get('/', [ObjectiveController::class, 'index']);
+    Route::post('/', [ObjectiveController::class, 'store']);
+    Route::patch('key-results/{keyResult}', [ObjectiveController::class, 'updateKeyResult']);
+});
+
+Route::prefix('reviews-360')->group(function () {
+    Route::get('/', [Review360Controller::class, 'index']);
+    Route::post('/', [Review360Controller::class, 'store']);
+    Route::post('ratings/{rating}/submit', [Review360Controller::class, 'submit']);
+});
+
+Route::prefix('succession')->group(function () {
+    Route::get('chart', [SuccessionController::class, 'chart']);
+    Route::post('plans', [SuccessionController::class, 'store']);
+    Route::delete('plans/{successionPlan}', [SuccessionController::class, 'destroy']);
+});
+
+Route::prefix('timesheets')->group(function () {
+    Route::get('/', [TimesheetController::class, 'index']);
+    Route::post('/', [TimesheetController::class, 'store']);
+    Route::post('{timesheet}/submit', [TimesheetController::class, 'submit']);
+    Route::post('{timesheet}/decide', [TimesheetController::class, 'decide']);
+});
+
+Route::get('analytics/summary', [HrAnalyticsController::class, 'summary']);
+
 Route::prefix('training')->group(function () {
     Route::get('courses', [TrainingNestedController::class, 'coursesIndex']);
     Route::post('courses', [TrainingNestedController::class, 'coursesStore']);
@@ -128,6 +200,11 @@ Route::prefix('training')->group(function () {
     Route::post('sessions', [TrainingNestedController::class, 'sessionsStore']);
     Route::get('enrollments', [TrainingNestedController::class, 'enrollmentsIndex']);
     Route::post('enrollments', [TrainingNestedController::class, 'enrollmentsStore']);
+    Route::get('lessons', [LmsController::class, 'lessonsIndex']);
+    Route::post('lessons', [LmsController::class, 'lessonsStore']);
+    Route::post('lessons/{lesson}/complete', [LmsController::class, 'complete']);
+    Route::post('enrollments/{enrollment}/certificate', [LmsController::class, 'issueCertificate']);
+    Route::get('certificates/{certificate}', [LmsController::class, 'certificateShow']);
 });
 
 // Legacy flat routes (frontend EntityCrudPage compatibility)

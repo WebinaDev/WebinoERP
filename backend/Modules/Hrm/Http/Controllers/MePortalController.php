@@ -509,6 +509,7 @@ class MePortalController extends Controller
         if (array_key_exists('iban', $data)) {
             $custom['iban'] = $data['iban'];
             $profile->custom_fields = $custom;
+            $profile->sheba = $data['iban'];
         }
         $profile->save();
 
@@ -885,6 +886,11 @@ class MePortalController extends Controller
                 'size' => $d->size,
                 'expires_at' => optional($d->expires_at)?->toDateString(),
                 'created_at' => optional($d->created_at)?->toIso8601String(),
+                'document_status' => $d->document_status,
+                'signer_name' => $d->signer_name,
+                'signed_at' => optional($d->signed_at)?->toIso8601String(),
+                'signature_placeholder' => $d->signature_placeholder,
+                'has_signature' => $d->signature_path !== null,
             ])
             ->values()
             ->all();
@@ -910,7 +916,12 @@ class MePortalController extends Controller
             'size' => $file->getSize() ?: 0,
             'uploaded_by' => $request->user()?->id,
             'expires_at' => $data['expires_at'] ?? null,
+            'document_status' => 'pending_signature',
+            'signature_placeholder' => 'محل امضا',
         ]);
+        if (Schema::hasTable('hrm_onboarding_tasks')) {
+            app(\Modules\Hrm\Services\HrmOnboardingService::class)->attachDocument($employee->id, $doc->category, $doc->id);
+        }
 
         return response()->json(['data' => $doc, 'message' => 'Document stored'], 201);
     }

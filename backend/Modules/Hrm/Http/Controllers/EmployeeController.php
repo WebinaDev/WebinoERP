@@ -111,7 +111,7 @@ class EmployeeController extends Controller
         return response()->json(['data' => $employee->fresh(), 'message' => 'Employee updated']);
     }
 
-    public function destroy(HrmEmployee $employee): JsonResponse
+    public function destroy(HrmEmployee $employee): \Illuminate\Http\Response
     {
         $employee->delete();
 

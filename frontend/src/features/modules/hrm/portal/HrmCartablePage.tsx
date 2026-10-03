@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useState } from 'react';
 import { useTranslations } from 'next-intl';
-import { CrmPageLayout } from '@/features/shared/layout/CrmPageLayout';
+import { HrmPageLayout } from '@/features/modules/hrm/HrmPageLayout';
 import { useCrmFeedback } from '@/features/shared/hooks/useCrmFeedback';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
@@ -48,7 +48,7 @@ export function HrmCartablePage() {
   };
 
   return (
-    <CrmPageLayout title={tNav('nav.erp.hrm.cartable')} {...layoutProps}>
+    <HrmPageLayout title={tNav('nav.erp.hrm.cartable')} {...layoutProps}>
       {loading ? (
         <PageLoadingState />
       ) : items.length === 0 ? (
@@ -79,6 +79,6 @@ export function HrmCartablePage() {
           ))}
         </div>
       )}
-    </CrmPageLayout>
+    </HrmPageLayout>
   );
 }

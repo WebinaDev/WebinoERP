@@ -2,10 +2,11 @@
 
 import { useCallback, useEffect, useState } from 'react';
 import { useTranslations } from 'next-intl';
-import { CrmPageLayout } from '@/features/shared/layout/CrmPageLayout';
 import { useCrmFeedback } from '@/features/shared/hooks/useCrmFeedback';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { LocaleDatePicker } from '@/components/ui/locale-date-picker';
+import { HrmPageLayout, HrmStatus } from '@/features/modules/hrm/HrmPageLayout';
 import { Textarea } from '@/components/ui/textarea';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -68,7 +69,7 @@ export function MyRequestsPage() {
   };
 
   return (
-    <CrmPageLayout title={tNav('nav.erp.hrm.myRequests')} {...layoutProps}>
+    <HrmPageLayout title={tNav('nav.erp.hrm.myRequests')} {...layoutProps}>
       {loading ? <PageLoadingState /> : (
         <div className="grid gap-4 text-start md:grid-cols-2">
           <Card>
@@ -85,7 +86,7 @@ export function MyRequestsPage() {
               <Input type="number" placeholder={t('requests.hours')} value={hours} onChange={(e) => setHours(e.target.value)} />
               <Input type="number" placeholder={t('requests.days')} value={days} onChange={(e) => setDays(e.target.value)} />
               <Input type="number" placeholder={t('requests.amount')} value={amount} onChange={(e) => setAmount(e.target.value)} />
-              <Input type="date" value={date} onChange={(e) => setDate(e.target.value)} />
+              <LocaleDatePicker value={date} onChange={(v) => setDate(v)} />
               <Textarea placeholder={t('reason')} value={notes} onChange={(e) => setNotes(e.target.value)} />
               <Button onClick={() => void submit()}>{tNav('common.save')}</Button>
             </CardContent>
@@ -95,7 +96,7 @@ export function MyRequestsPage() {
             <CardContent className="space-y-2 text-sm">
               {rows.length === 0 ? <div className="text-muted-foreground">{tNav('common.empty')}</div> : rows.map((r) => (
                 <div key={r.id} className="rounded border px-3 py-2">
-                  <div className="flex justify-between"><span>{t(`requests.${r.type === 'remote_work' ? 'remote' : r.type}` as 'requests.overtime')}</span><span>{r.status}</span></div>
+                  <div className="flex justify-between"><span>{t(`requests.${r.type === 'remote_work' ? 'remote' : r.type}` as 'requests.overtime')}</span><span><HrmStatus value={r.status} /></span></div>
                   {r.notes ? <div className="text-muted-foreground">{r.notes}</div> : null}
                 </div>
               ))}
@@ -103,6 +104,6 @@ export function MyRequestsPage() {
           </Card>
         </div>
       )}
-    </CrmPageLayout>
+    </HrmPageLayout>
   );
 }

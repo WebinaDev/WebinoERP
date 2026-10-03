@@ -9,6 +9,8 @@ use Modules\Hrm\Entities\HrmEmployee;
 use Modules\Hrm\Entities\HrmInterview;
 use Modules\Hrm\Entities\HrmJobApplicant;
 use Modules\Hrm\Entities\HrmJobPosting;
+use Modules\Hrm\Services\HrmOnboardingService;
+use Illuminate\Support\Facades\Schema;
 
 class RecruitmentNestedController extends Controller
 {
@@ -71,6 +73,8 @@ class RecruitmentNestedController extends Controller
             'employee_code' => 'required|string|max:50|unique:hrm_employees,employee_code',
             'department' => 'nullable|string|max:100',
             'position' => 'nullable|string|max:100',
+            'onboarding_template_id' => 'nullable|integer|exists:hrm_onboarding_templates,id',
+            'hire_date' => 'nullable|date',
         ]);
         $employee = HrmEmployee::create([
             'employee_code' => $data['employee_code'],
@@ -81,11 +85,19 @@ class RecruitmentNestedController extends Controller
             'department' => $data['department'] ?? $applicant->jobPosting?->department,
             'position' => $data['position'] ?? $applicant->jobPosting?->title,
             'status' => 'active',
+            'hire_date' => $data['hire_date'] ?? now()->toDateString(),
             'created_by' => $request->user()->id,
         ]);
         $applicant->update(['status' => 'hired']);
+        $onboarding = null;
+        if (! empty($data['onboarding_template_id']) && Schema::hasTable('hrm_onboardings')) {
+            $onboarding = app(HrmOnboardingService::class)->start($employee, (int) $data['onboarding_template_id'], $applicant->id);
+        }
 
-        return response()->json(['data' => $employee, 'message' => 'Applicant hired'], 201);
+        return response()->json([
+            'data' => array_merge($employee->toArray(), ['onboarding' => $onboarding]),
+            'message' => 'Applicant hired',
+        ], 201);
     }
 
     public function interviewsIndex(Request $request): JsonResponse

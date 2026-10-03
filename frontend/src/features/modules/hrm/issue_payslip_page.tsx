@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import { useTranslations } from 'next-intl';
-import { CrmPageLayout } from '@/features/shared/layout/CrmPageLayout';
+import { HrmPageLayout } from '@/features/modules/hrm/HrmPageLayout';
 import { useCrmFeedback } from '@/features/shared/hooks/useCrmFeedback';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -46,7 +46,7 @@ export function IssuePayslipPage() {
   const lines = (breakdown.lines ?? {}) as Record<string, number>;
 
   return (
-    <CrmPageLayout title={tNav('nav.erp.hrm.issuePayslip')} {...layoutProps}>
+    <HrmPageLayout title={tNav('nav.erp.hrm.issuePayslip')} {...layoutProps}>
       <div className="grid gap-4 text-start lg:grid-cols-2">
         <Card>
           <CardContent className="space-y-3 pt-6">
@@ -84,6 +84,6 @@ export function IssuePayslipPage() {
           </CardContent>
         </Card>
       </div>
-    </CrmPageLayout>
+    </HrmPageLayout>
   );
 }

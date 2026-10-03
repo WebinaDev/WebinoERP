@@ -114,6 +114,11 @@ class EnforceModulePermission
         }
 
         $segment = explode('/', $relative)[0] ?: '*';
+        // Employee portal lives under /hrm/me/*; do not re-map the next segment
+        // (objectives, timesheets, …) onto admin permissions.
+        if ($module === 'hrm' && (preg_match('#/hrm/me(/|$)#', $path) === 1)) {
+            $segment = 'me';
+        }
         $rules = $map[$segment] ?? $map['*'] ?? null;
 
         if (! is_array($rules)) {

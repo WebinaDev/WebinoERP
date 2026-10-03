@@ -4,7 +4,7 @@ import { useCallback, useEffect, useState } from 'react';
 import Link from 'next/link';
 import { useParams } from 'next/navigation';
 import { useTranslations } from 'next-intl';
-import { CrmPageLayout } from '@/features/shared/layout/CrmPageLayout';
+import { HrmPageLayout, HrmStatus } from '@/features/modules/hrm/HrmPageLayout';
 import { useCrmFeedback } from '@/features/shared/hooks/useCrmFeedback';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -28,6 +28,7 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { useLocale } from '@/hooks/use-locale-next';
+import { toJalali } from '@/lib/locale/calendar-date';
 import { PageEmptyState, PageLoadingState } from '@/features/shared/ui/PageStates';
 import {
   createPayrollRun,
@@ -45,7 +46,7 @@ export function PayrollPage() {
   const tNav = useTranslations();
   const params = useParams();
   const locale = (params?.locale as string) || 'fa';
-  const { formatNumber } = useLocale();
+  const { formatNumber, formatDigits, locale: uiLocale } = useLocale();
   const { layoutProps, setSuccess, applyAxiosError } = useCrmFeedback();
   const [tab, setTab] = useState('runs');
   const [rows, setRows] = useState<Record<string, unknown>[]>([]);
@@ -71,10 +72,11 @@ export function PayrollPage() {
   const [compDialog, setCompDialog] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const now = new Date();
+  const jalaliNow = toJalali(now.getFullYear(), now.getMonth() + 1, now.getDate());
   const [runForm, setRunForm] = useState({
     title: '',
-    year: String(now.getFullYear()),
-    month: String(now.getMonth() + 1),
+    year: String(uiLocale === 'fa' ? jalaliNow.jy : now.getFullYear()),
+    month: String(uiLocale === 'fa' ? jalaliNow.jm : now.getMonth() + 1),
   });
   const [compForm, setCompForm] = useState({
     name: '',
@@ -124,7 +126,7 @@ export function PayrollPage() {
         month: Number(runForm.month),
       });
       setRunDialog(false);
-      setRunForm({ title: '', year: String(now.getFullYear()), month: String(now.getMonth() + 1) });
+      setRunForm({ title: '', year: String(uiLocale === 'fa' ? jalaliNow.jy : now.getFullYear()), month: String(uiLocale === 'fa' ? jalaliNow.jm : now.getMonth() + 1) });
       setSuccess(tNav('common.saved'));
       void load();
     } catch (err) {
@@ -174,7 +176,7 @@ export function PayrollPage() {
   };
 
   return (
-    <CrmPageLayout
+    <HrmPageLayout
       title={tNav('nav.erp.hrm.payroll')}
       actions={
         tab === 'runs' ? (
@@ -216,10 +218,10 @@ export function PayrollPage() {
                         <TableCell>{String(r.title ?? r.period ?? r.name ?? r.id)}</TableCell>
                         <TableCell>
                           {r.year != null && r.month != null
-                            ? `${r.year}/${String(r.month).padStart(2, '0')}`
-                            : String(r.period ?? '—')}
+                            ? formatDigits(`${r.year}/${String(r.month).padStart(2, '0')}`)
+                            : formatDigits(String(r.period ?? '—'))}
                         </TableCell>
-                        <TableCell>{String(r.status ?? '')}</TableCell>
+                        <TableCell><HrmStatus value={r.status} /></TableCell>
                         <TableCell>
                           {r.total_amount != null || r.total_net != null || r.total != null
                             ? formatNumber(Number(r.total_amount ?? r.total_net ?? r.total ?? 0))
@@ -349,6 +351,6 @@ export function PayrollPage() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
-    </CrmPageLayout>
+    </HrmPageLayout>
   );
 }

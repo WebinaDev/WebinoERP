@@ -84,6 +84,9 @@ class StaffNestedController extends Controller
             'emergency_contact' => 'nullable|string|max:100',
             'emergency_phone' => 'nullable|string|max:20',
             'custom_fields' => 'nullable|array',
+            'sheba' => 'nullable|string|max:34',
+            'bank_name' => 'nullable|string|max:80',
+            'account_holder' => 'nullable|string|max:150',
         ]);
         $profile = HrmEmployeeProfile::query()->updateOrCreate(['employee_id' => $staff->id], $data);
 
@@ -105,6 +108,7 @@ class StaffNestedController extends Controller
             'parent_id' => 'nullable|exists:hrm_org_positions,id',
             'sort_order' => 'nullable|integer|min:0',
             'is_active' => 'nullable|boolean',
+            'incumbent_employee_id' => 'nullable|exists:hrm_employees,id',
         ]);
         $position = HrmOrgPosition::create($data);
 
@@ -168,7 +172,12 @@ class StaffNestedController extends Controller
             'size' => $file->getSize() ?: 0,
             'uploaded_by' => $request->user()?->id,
             'expires_at' => $data['expires_at'] ?? null,
+            'document_status' => 'pending_signature',
+            'signature_placeholder' => 'محل امضا',
         ]);
+        if (\Illuminate\Support\Facades\Schema::hasTable('hrm_onboarding_tasks')) {
+            app(\Modules\Hrm\Services\HrmOnboardingService::class)->attachDocument($staff->id, $doc->category, $doc->id);
+        }
 
         return response()->json(['data' => $doc, 'message' => 'Document stored'], 201);
     }
@@ -179,5 +188,13 @@ class StaffNestedController extends Controller
         abort_unless(\Illuminate\Support\Facades\Storage::disk('local')->exists($document->file_path), 404);
 
         return \Illuminate\Support\Facades\Storage::disk('local')->download($document->file_path, $document->original_name);
+    }
+
+    public function documentsSign(\Illuminate\Http\Request $request, HrmEmployee $staff, HrmPersonnelDocument $document): \Illuminate\Http\JsonResponse
+    {
+        abort_unless($document->employee_id === $staff->id, 404);
+        $signed = app(\Modules\Hrm\Services\HrmDocumentSignatureService::class)->sign($document, $request, true);
+
+        return response()->json(['data' => $signed, 'message' => 'Signed']);
     }
 }

@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useState } from 'react';
 import { useLocale, useTranslations } from 'next-intl';
-import { CrmPageLayout } from '@/features/shared/layout/CrmPageLayout';
+import { HrmPageLayout } from '@/features/modules/hrm/HrmPageLayout';
 import { useCrmFeedback } from '@/features/shared/hooks/useCrmFeedback';
 import { Card, CardContent } from '@/components/ui/card';
 import { PageLoadingState } from '@/features/shared/ui/PageStates';
@@ -59,7 +59,7 @@ export function MyPayrollPage() {
   }, [load]);
 
   return (
-    <CrmPageLayout title={tNav('nav.erp.hrm.myPayroll')} {...layoutProps}>
+    <HrmPageLayout title={tNav('nav.erp.hrm.myPayroll')} {...layoutProps}>
       {loading ? (
         <PageLoadingState />
       ) : (
@@ -122,6 +122,6 @@ export function MyPayrollPage() {
           </Card>
         </div>
       )}
-    </CrmPageLayout>
+    </HrmPageLayout>
   );
 }

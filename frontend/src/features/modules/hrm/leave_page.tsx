@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useState } from 'react';
 import { useTranslations } from 'next-intl';
-import { CrmPageLayout } from '@/features/shared/layout/CrmPageLayout';
+import { HrmPageLayout, HrmStatus } from '@/features/modules/hrm/HrmPageLayout';
 import { useCrmFeedback } from '@/features/shared/hooks/useCrmFeedback';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -155,7 +155,7 @@ export function LeavePage() {
               <TableCell>{String(r.type ?? r.leave_type_id ?? '')}</TableCell>
               <TableCell>{formatDate(String(r.start_date ?? '')) || '—'}</TableCell>
               <TableCell>{formatDate(String(r.end_date ?? '')) || '—'}</TableCell>
-              <TableCell>{String(r.status ?? '')}</TableCell>
+              <TableCell><HrmStatus value={r.status} /></TableCell>
               {showActions && String(r.status) === 'pending' ? (
                 <TableCell className="flex gap-2">
                   <Button
@@ -193,7 +193,7 @@ export function LeavePage() {
   );
 
   return (
-    <CrmPageLayout
+    <HrmPageLayout
       title={tNav('nav.erp.hrm.leave')}
       actions={<Button onClick={() => setDialogOpen(true)}>{t('newLeaveRequest')}</Button>}
       {...layoutProps}
@@ -280,6 +280,6 @@ export function LeavePage() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
-    </CrmPageLayout>
+    </HrmPageLayout>
   );
 }

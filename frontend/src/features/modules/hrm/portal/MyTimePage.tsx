@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useState } from 'react';
 import { useTranslations } from 'next-intl';
-import { CrmPageLayout } from '@/features/shared/layout/CrmPageLayout';
+import { HrmPageLayout } from '@/features/modules/hrm/HrmPageLayout';
 import { useCrmFeedback } from '@/features/shared/hooks/useCrmFeedback';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -49,7 +49,7 @@ export function MyTimePage() {
   };
 
   return (
-    <CrmPageLayout title={tNav('nav.erp.hrm.myTime')} {...layoutProps}>
+    <HrmPageLayout title={tNav('nav.erp.hrm.myTime')} {...layoutProps}>
       {loading ? (
         <PageLoadingState />
       ) : (
@@ -96,6 +96,6 @@ export function MyTimePage() {
           </Card>
         </div>
       )}
-    </CrmPageLayout>
+    </HrmPageLayout>
   );
 }

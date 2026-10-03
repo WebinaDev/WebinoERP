@@ -201,7 +201,20 @@
         "templates": "Payslip & decree templates",
         "documents": "Personnel documents",
         "myRequests": "My requests",
-        "issuePayslip": "Issue payslip"
+        "issuePayslip": "Issue payslip",
+        "shifts": "Shifts",
+        "onboarding": "Onboarding",
+        "okrs": "Goals & OKRs",
+        "review360": "360 review",
+        "learning": "Lessons & certificates",
+        "orgChart": "Org chart & succession",
+        "timesheets": "Project timesheets",
+        "analytics": "HR analytics",
+        "myOnboarding": "My onboarding",
+        "myLearning": "My learning",
+        "myTimesheets": "My timesheets",
+        "myOkrs": "My goals",
+        "myShifts": "My shifts"
       },
       "finance": {
         "group": "Finance & accounting",
@@ -3161,6 +3174,111 @@
     "insurance": {
       "covered": "Covered",
       "notCovered": "Not covered"
+    },
+    "suite": {
+      "status": {
+        "draft": "Draft",
+        "active": "Active",
+        "inactive": "Inactive",
+        "pending": "Pending",
+        "approved": "Approved",
+        "rejected": "Rejected",
+        "submitted": "Submitted",
+        "calculated": "Calculated",
+        "paid": "Paid",
+        "open": "Open",
+        "closed": "Closed",
+        "in_progress": "In progress",
+        "completed": "Completed",
+        "enrolled": "Enrolled",
+        "hired": "Hired",
+        "present": "Present",
+        "absent": "Absent",
+        "leave": "Leave",
+        "signed": "Signed",
+        "pending_signature": "Awaiting signature",
+        "done": "Done",
+        "terminated": "Terminated",
+        "resigned": "Resigned"
+      },
+      "bank": {
+        "paya": "PAYA export",
+        "satna": "SATNA export",
+        "ssoCsv": "Social Security list",
+        "ssoTxt": "Social Security diskette"
+      },
+      "sign": {
+        "name": "Signer name",
+        "action": "Sign",
+        "done": "Document signed"
+      },
+      "shifts": {
+        "hint": "Shift templates, daily assignment, rotation, and leave/attendance conflicts.",
+        "newTemplate": "Shift template",
+        "assign": "Assign",
+        "employeeId": "Employee id",
+        "templateId": "Template id",
+        "off": "Off",
+        "rotate": "Apply 14-day rotation",
+        "rotated": "Rotation applied",
+        "conflictHint": "Approved leave blocks the assignment unless forced."
+      },
+      "onboarding": {
+        "hint": "Hire checklist, document collection, and portal progress. Can start from recruitment.",
+        "template": "Template name",
+        "task": "Task title",
+        "start": "Start onboarding",
+        "templateId": "Onboarding template id",
+        "tasks": "Tasks",
+        "progress": "Progress",
+        "uploadHint": "Upload this category under My documents"
+      },
+      "okr": {
+        "hint": "Objectives, key results, and progress beyond KPI templates.",
+        "objective": "Objective",
+        "kr": "Key result",
+        "target": "Target"
+      },
+      "review": {
+        "hint": "Multi-rater review. Employees see their own feedback only.",
+        "subject": "Subject employee id",
+        "rater": "Peer rater id",
+        "open": "Open 360",
+        "pending": "Ratings waiting on me",
+        "submit": "Submit score"
+      },
+      "lms": {
+        "hint": "Lessons, material links, completion, and HTML/PDF certificates.",
+        "courseId": "Course id",
+        "lesson": "Lesson title",
+        "material": "Material URL",
+        "complete": "Complete",
+        "certificate": "Certificate",
+        "certificateReady": "A certificate is issued when required lessons are done",
+        "pdf": "PDF"
+      },
+      "org": {
+        "hint": "Interactive chart, incumbent, and successor readiness.",
+        "positionId": "Position id",
+        "readiness": "Readiness (ready_now / 1_year / 2_year / emergency)",
+        "save": "Save successor"
+      },
+      "time": {
+        "hint": "Hours per project/task, submit and approve. Project id is checked when the Projects module tables exist.",
+        "project": "Project",
+        "task": "Task",
+        "hours": "Hours",
+        "projectId": "Project id",
+        "submit": "Submit"
+      },
+      "analytics": {
+        "hint": "Turnover, labor cost, and attendance heatmap.",
+        "turnover": "Turnover rate",
+        "leavers": "Leavers",
+        "headcount": "Active headcount",
+        "labor": "Net pay",
+        "heatmap": "Attendance heatmap"
+      }
     }
   },
   "mfg": {

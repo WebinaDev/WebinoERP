@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useState } from 'react';
 import { useTranslations } from 'next-intl';
-import { CrmPageLayout } from '@/features/shared/layout/CrmPageLayout';
+import { HrmPageLayout, HrmStatus } from '@/features/modules/hrm/HrmPageLayout';
 import { useCrmFeedback } from '@/features/shared/hooks/useCrmFeedback';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -62,7 +62,7 @@ export function RecruitmentPage() {
     mobile: '',
     resume_notes: '',
   });
-  const [hireForm, setHireForm] = useState({ employee_code: '', department: '', position: '' });
+  const [hireForm, setHireForm] = useState({ employee_code: '', department: '', position: '', onboarding_template_id: '' });
   const [interviewForm, setInterviewForm] = useState({
     applicant_id: '',
     scheduled_at: '',
@@ -141,6 +141,7 @@ export function RecruitmentPage() {
       employee_code: '',
       department: String((a.job_posting as Record<string, unknown> | undefined)?.department ?? ''),
       position: String((a.job_posting as Record<string, unknown> | undefined)?.title ?? ''),
+      onboarding_template_id: '',
     });
     setHireOpen(true);
   };
@@ -153,6 +154,7 @@ export function RecruitmentPage() {
         employee_code: hireForm.employee_code.trim(),
         department: hireForm.department.trim() || null,
         position: hireForm.position.trim() || null,
+        onboarding_template_id: hireForm.onboarding_template_id ? Number(hireForm.onboarding_template_id) : null,
       });
       setHireOpen(false);
       setHireTarget(null);
@@ -196,7 +198,7 @@ export function RecruitmentPage() {
     );
 
   return (
-    <CrmPageLayout title={tNav('nav.erp.hrm.recruitment')} actions={actions} {...layoutProps}>
+    <HrmPageLayout title={tNav('nav.erp.hrm.recruitment')} actions={actions} {...layoutProps}>
       <Tabs value={tab} onValueChange={setTab}>
         <TabsList>
           <TabsTrigger value="postings">{t('recruitmentPostings')}</TabsTrigger>
@@ -226,7 +228,7 @@ export function RecruitmentPage() {
                       <TableRow key={String(r.id)}>
                         <TableCell>{String(r.title ?? '')}</TableCell>
                         <TableCell>{String(r.department ?? '')}</TableCell>
-                        <TableCell>{String(r.status ?? '')}</TableCell>
+                        <TableCell><HrmStatus value={r.status} /></TableCell>
                       </TableRow>
                     ))
                   )}
@@ -258,7 +260,7 @@ export function RecruitmentPage() {
                         <TableCell>{String(r.first_name ?? r.name ?? '')}</TableCell>
                         <TableCell>{String(r.last_name ?? '')}</TableCell>
                         <TableCell>{postingTitle(r.job_posting_id)}</TableCell>
-                        <TableCell>{String(r.status ?? '')}</TableCell>
+                        <TableCell><HrmStatus value={r.status} /></TableCell>
                         <TableCell>
                           {String(r.status) !== 'hired' ? (
                             <Button size="sm" variant="outline" onClick={() => openHire(r)}>{t('hire')}</Button>
@@ -398,6 +400,7 @@ export function RecruitmentPage() {
             <Input placeholder={t('staffCode')} value={hireForm.employee_code} onChange={(e) => setHireForm((f) => ({ ...f, employee_code: e.target.value }))} />
             <Input placeholder={t('department')} value={hireForm.department} onChange={(e) => setHireForm((f) => ({ ...f, department: e.target.value }))} />
             <Input placeholder={t('position')} value={hireForm.position} onChange={(e) => setHireForm((f) => ({ ...f, position: e.target.value }))} />
+            <Input placeholder={t('suite.onboarding.templateId')} value={hireForm.onboarding_template_id} onChange={(e) => setHireForm((f) => ({ ...f, onboarding_template_id: e.target.value }))} />
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setHireOpen(false)}>{tNav('common.cancel')}</Button>
@@ -430,6 +433,6 @@ export function RecruitmentPage() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
-    </CrmPageLayout>
+    </HrmPageLayout>
   );
 }

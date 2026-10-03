@@ -11,10 +11,15 @@ class HrmPersonnelDocument extends Model
 
     protected $fillable = [
         'employee_id', 'title', 'category', 'file_path', 'original_name', 'mime', 'size',
-        'uploaded_by', 'expires_at',
+        'uploaded_by', 'expires_at', 'document_status', 'signer_name', 'signer_user_id',
+        'signed_at', 'signature_path', 'signature_placeholder', 'audit_log',
     ];
 
-    protected $casts = ['expires_at' => 'date'];
+    protected $casts = [
+        'expires_at' => 'date',
+        'signed_at' => 'datetime',
+        'audit_log' => 'array',
+    ];
 
     public function employee(): BelongsTo
     {

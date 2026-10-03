@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useState } from 'react';
 import { useTranslations } from 'next-intl';
-import { CrmPageLayout } from '@/features/shared/layout/CrmPageLayout';
+import { HrmPageLayout } from '@/features/modules/hrm/HrmPageLayout';
 import { useCrmFeedback } from '@/features/shared/hooks/useCrmFeedback';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
@@ -54,7 +54,7 @@ export function AttendancePage() {
   };
 
   return (
-    <CrmPageLayout
+    <HrmPageLayout
       title={tNav('nav.erp.hrm.attendance')}
       actions={<><Button onClick={() => void checkIn()}>{t('checkIn')}</Button><Button variant="outline" onClick={() => void checkOut()}>{t('checkOut')}</Button></>}
       {...layoutProps}
@@ -94,6 +94,6 @@ export function AttendancePage() {
           </Table>
         </CardContent>
       </Card>
-    </CrmPageLayout>
+    </HrmPageLayout>
   );
 }

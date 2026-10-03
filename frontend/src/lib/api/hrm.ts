@@ -510,3 +510,178 @@ export async function issueEmployeePayslip(data: { employee_id: number; year: nu
   const res = await apiClient.post(`${BASE}/payroll/payslips`, data);
   return unwrapData<{ data?: { html?: string; item?: Record<string, unknown>; run?: Record<string, unknown> }; html?: string; item?: Record<string, unknown> }>(res);
 }
+
+
+// ── Suite: shifts, onboarding, OKR, 360, LMS, succession, timesheets, analytics ──
+
+export async function getShiftTemplates() {
+  const res = await apiClient.get(`${BASE}/shifts/templates`);
+  return unwrapData(res);
+}
+export async function saveShiftTemplate(data: Record<string, unknown>) {
+  const res = await apiClient.post(`${BASE}/shifts/templates`, data);
+  return unwrapData(res);
+}
+export async function getShiftRotations() {
+  const res = await apiClient.get(`${BASE}/shifts/rotations`);
+  return unwrapData(res);
+}
+export async function saveShiftRotation(data: Record<string, unknown>) {
+  const res = await apiClient.post(`${BASE}/shifts/rotations`, data);
+  return unwrapData(res);
+}
+export async function applyShiftRotation(id: number | string, data: Record<string, unknown>) {
+  const res = await apiClient.post(`${BASE}/shifts/rotations/${id}/apply`, data);
+  return unwrapData(res);
+}
+export async function saveShiftAssignment(data: Record<string, unknown>) {
+  const res = await apiClient.post(`${BASE}/shifts/assignments`, data);
+  return unwrapData(res);
+}
+export async function getShiftCalendar(params: Record<string, unknown>) {
+  const res = await apiClient.get(`${BASE}/shifts/calendar`, { params });
+  return unwrapData<Record<string, unknown>[]>(res);
+}
+export async function getMyShiftCalendar(params: Record<string, unknown>) {
+  const res = await apiClient.get(`${BASE}/me/shift-calendar`, { params });
+  return unwrapData<Record<string, unknown>[]>(res);
+}
+
+export async function getOnboardingTemplates() {
+  const res = await apiClient.get(`${BASE}/onboarding/templates`);
+  return unwrapData(res);
+}
+export async function saveOnboardingTemplate(data: Record<string, unknown>) {
+  const res = await apiClient.post(`${BASE}/onboarding/templates`, data);
+  return unwrapData(res);
+}
+export async function getOnboardings() {
+  const res = await apiClient.get(`${BASE}/onboarding`);
+  return unwrapData(res);
+}
+export async function startOnboarding(data: Record<string, unknown>) {
+  const res = await apiClient.post(`${BASE}/onboarding/start`, data);
+  return unwrapData(res);
+}
+export async function getMyOnboarding() {
+  const res = await apiClient.get(`${BASE}/me/onboarding`);
+  return unwrapData<{ data?: Record<string, unknown> | null; progress?: { done: number; total: number } } | Record<string, unknown>>(res);
+}
+export async function completeMyOnboardingTask(id: number | string) {
+  const res = await apiClient.post(`${BASE}/me/onboarding/tasks/${id}/complete`);
+  return unwrapData(res);
+}
+
+export async function getObjectives(params?: Record<string, unknown>) {
+  const res = await apiClient.get(`${BASE}/objectives`, { params });
+  return unwrapData(res);
+}
+export async function saveObjective(data: Record<string, unknown>) {
+  const res = await apiClient.post(`${BASE}/objectives`, data);
+  return unwrapData(res);
+}
+export async function updateMyKeyResult(id: number | string, current_value: number) {
+  const res = await apiClient.patch(`${BASE}/me/objectives/key-results/${id}`, { current_value });
+  return unwrapData(res);
+}
+export async function getMyObjectives() {
+  const res = await apiClient.get(`${BASE}/me/objectives`);
+  return unwrapData(res);
+}
+
+export async function getReviews360() {
+  const res = await apiClient.get(`${BASE}/reviews-360`);
+  return unwrapData(res);
+}
+export async function saveReview360(data: Record<string, unknown>) {
+  const res = await apiClient.post(`${BASE}/reviews-360`, data);
+  return unwrapData(res);
+}
+export async function submitReview360(id: number | string, data: Record<string, unknown>) {
+  const res = await apiClient.post(`${BASE}/me/reviews-360/ratings/${id}/submit`, data);
+  return unwrapData(res);
+}
+export async function getMyReviews360() {
+  const res = await apiClient.get(`${BASE}/me/reviews-360`);
+  return unwrapData(res);
+}
+
+export async function getLessons(params?: Record<string, unknown>) {
+  const res = await apiClient.get(`${BASE}/training/lessons`, { params });
+  return unwrapData(res);
+}
+export async function saveLesson(data: Record<string, unknown>) {
+  const res = await apiClient.post(`${BASE}/training/lessons`, data);
+  return unwrapData(res);
+}
+export async function completeLesson(id: number | string, data?: Record<string, unknown>) {
+  const res = await apiClient.post(`${BASE}/training/lessons/${id}/complete`, data ?? { progress_percent: 100 });
+  return unwrapData(res);
+}
+export async function completeMyLesson(id: number | string) {
+  const res = await apiClient.post(`${BASE}/me/learning/lessons/${id}/complete`, { progress_percent: 100 });
+  return unwrapData(res);
+}
+export async function getMyLearning() {
+  const res = await apiClient.get(`${BASE}/me/learning`);
+  return unwrapData(res);
+}
+export async function issueCertificate(enrollmentId: number | string) {
+  const res = await apiClient.post(`${BASE}/training/enrollments/${enrollmentId}/certificate`, {});
+  return unwrapData(res);
+}
+
+export async function getSuccessionChart() {
+  const res = await apiClient.get(`${BASE}/succession/chart`);
+  return unwrapData(res);
+}
+export async function saveSuccessor(data: Record<string, unknown>) {
+  const res = await apiClient.post(`${BASE}/succession/plans`, data);
+  return unwrapData(res);
+}
+
+export async function getTimesheets(params?: Record<string, unknown>) {
+  const res = await apiClient.get(`${BASE}/timesheets`, { params });
+  return unwrapData(res);
+}
+export async function getMyTimesheets() {
+  const res = await apiClient.get(`${BASE}/me/timesheets`);
+  return unwrapData(res);
+}
+export async function saveMyTimesheet(data: Record<string, unknown>) {
+  const res = await apiClient.post(`${BASE}/me/timesheets`, data);
+  return unwrapData(res);
+}
+export async function submitMyTimesheet(id: number | string) {
+  const res = await apiClient.post(`${BASE}/me/timesheets/${id}/submit`);
+  return unwrapData(res);
+}
+export async function decideTimesheet(id: number | string, status: 'approved' | 'rejected') {
+  const res = await apiClient.post(`${BASE}/timesheets/${id}/decide`, { status });
+  return unwrapData(res);
+}
+
+export async function getHrAnalytics(params?: Record<string, unknown>) {
+  const res = await apiClient.get(`${BASE}/analytics/summary`, { params });
+  return unwrapData(res);
+}
+
+export async function signMyDocument(id: number | string, signer_name: string) {
+  const res = await apiClient.post(`${BASE}/me/documents/${id}/sign`, { signer_name });
+  return unwrapData(res);
+}
+export async function signStaffDocument(employeeId: number | string, id: number | string, signer_name: string) {
+  const res = await apiClient.post(`${BASE}/staff/${employeeId}/documents/${id}/sign`, { signer_name });
+  return unwrapData(res);
+}
+
+export async function downloadHrmFile(path: string, filename: string) {
+  const res = await apiClient.get(`${BASE}/${path}`, { responseType: 'blob' });
+  const blob = new Blob([res.data as BlobPart]);
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = filename;
+  a.click();
+  URL.revokeObjectURL(url);
+}

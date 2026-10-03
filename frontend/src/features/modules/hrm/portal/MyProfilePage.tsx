@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useState } from 'react';
 import { useTranslations } from 'next-intl';
-import { CrmPageLayout } from '@/features/shared/layout/CrmPageLayout';
+import { HrmPageLayout } from '@/features/modules/hrm/HrmPageLayout';
 import { useCrmFeedback } from '@/features/shared/hooks/useCrmFeedback';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
@@ -57,7 +57,7 @@ export function MyProfilePage() {
   };
 
   return (
-    <CrmPageLayout title={tNav('nav.erp.hrm.myProfile')} {...layoutProps}>
+    <HrmPageLayout title={tNav('nav.erp.hrm.myProfile')} {...layoutProps}>
       {loading ? (
         <PageLoadingState />
       ) : (
@@ -82,6 +82,6 @@ export function MyProfilePage() {
           </Card>
         </div>
       )}
-    </CrmPageLayout>
+    </HrmPageLayout>
   );
 }

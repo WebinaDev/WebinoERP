@@ -4,7 +4,7 @@ import { useCallback, useEffect, useState } from 'react';
 import Link from 'next/link';
 import { useParams } from 'next/navigation';
 import { useTranslations } from 'next-intl';
-import { CrmPageLayout } from '@/features/shared/layout/CrmPageLayout';
+import { HrmPageLayout } from '@/features/modules/hrm/HrmPageLayout';
 import { useCrmFeedback } from '@/features/shared/hooks/useCrmFeedback';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -43,7 +43,7 @@ export function MyOrgPage() {
   }, [load]);
 
   return (
-    <CrmPageLayout title={tNav('nav.erp.hrm.myOrg')} {...layoutProps}>
+    <HrmPageLayout title={tNav('nav.erp.hrm.myOrg')} {...layoutProps}>
       {loading ? (
         <PageLoadingState />
       ) : (
@@ -100,6 +100,6 @@ export function MyOrgPage() {
           </div>
         </div>
       )}
-    </CrmPageLayout>
+    </HrmPageLayout>
   );
 }

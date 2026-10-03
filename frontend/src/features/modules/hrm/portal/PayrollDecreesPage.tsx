@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useState } from 'react';
 import { useTranslations } from 'next-intl';
-import { CrmPageLayout } from '@/features/shared/layout/CrmPageLayout';
+import { HrmPageLayout } from '@/features/modules/hrm/HrmPageLayout';
 import { useCrmFeedback } from '@/features/shared/hooks/useCrmFeedback';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -66,7 +66,7 @@ export function PayrollDecreesPage() {
   };
 
   return (
-    <CrmPageLayout title={tNav('nav.erp.hrm.decrees')} {...layoutProps}>
+    <HrmPageLayout title={tNav('nav.erp.hrm.decrees')} {...layoutProps}>
       <Card className="mb-4 text-start">
         <CardContent className="pt-6 flex flex-wrap gap-2">
           <Input
@@ -135,6 +135,6 @@ export function PayrollDecreesPage() {
           )}
         </div>
       )}
-    </CrmPageLayout>
+    </HrmPageLayout>
   );
 }
