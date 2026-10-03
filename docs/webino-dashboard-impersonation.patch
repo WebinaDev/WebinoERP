@@ -1,0 +1,1305 @@
+From ff8197247ba4ad8f41890d0e6a552defc1c9f4ef Mon Sep 17 00:00:00 2001
+From: Cursor Agent <cursoragent@cursor.com>
+Date: Sat, 3 Oct 2026 12:45:56 +0000
+Subject: [PATCH] feat(auth): show a staff impersonation bar with site and
+ builder switching
+
+Consume the ERP panel-login passport, keep it off the browser, and render a persistent Persian status bar above the dashboard and page builder. Staff can hop to another site's dashboard, page builder, or theme builder and exit back to the ERP.
+---
+ .../Controllers/Api/V1/AuthController.php     |  57 +++-
+ .../Api/V1/ImpersonationController.php        | 107 +++++++
+ .../Api/V1/ProvisionController.php            |  12 +-
+ .../Http/Middleware/RequirePasswordChange.php |   7 +-
+ .../app/Http/Middleware/RequireTwoFactor.php  |   5 +-
+ backend/app/Support/ImpersonationNextPath.php |  40 +++
+ backend/app/Support/ImpersonationPayload.php  | 127 +++++++++
+ backend/app/Support/ImpersonationSession.php  | 140 ++++++++++
+ backend/routes/api.php                        |   3 +
+ .../Feature/ImpersonationPanelLoginTest.php   | 156 +++++++++++
+ frontend/messages/en.json                     |  22 ++
+ frontend/messages/fa.json                     |  22 ++
+ frontend/src/builder/editor/BuilderEditor.tsx |   4 +-
+ frontend/src/components/ImpersonationBar.tsx  | 264 ++++++++++++++++++
+ .../src/components/login-04/login-form.tsx    |   5 +
+ frontend/src/views/DashboardLayoutPage.tsx    |  15 +-
+ 16 files changed, 968 insertions(+), 18 deletions(-)
+ create mode 100644 backend/app/Http/Controllers/Api/V1/ImpersonationController.php
+ create mode 100644 backend/app/Support/ImpersonationNextPath.php
+ create mode 100644 backend/app/Support/ImpersonationPayload.php
+ create mode 100644 backend/app/Support/ImpersonationSession.php
+ create mode 100644 backend/tests/Feature/ImpersonationPanelLoginTest.php
+ create mode 100644 frontend/src/components/ImpersonationBar.tsx
+
+diff --git a/backend/app/Http/Controllers/Api/V1/AuthController.php b/backend/app/Http/Controllers/Api/V1/AuthController.php
+index b69fe18..7c17317 100644
+--- a/backend/app/Http/Controllers/Api/V1/AuthController.php
++++ b/backend/app/Http/Controllers/Api/V1/AuthController.php
+@@ -7,6 +7,8 @@
+ use App\Services\Security\LoginAttemptService;
+ use App\Services\Tenant\TenantResolver;
+ use App\Support\AuthCookie;
++use App\Support\ImpersonationPayload;
++use App\Support\ImpersonationSession;
+ use Illuminate\Http\Request;
+ use Illuminate\Support\Facades\Cache;
+ use Illuminate\Support\Facades\Hash;
+@@ -116,15 +118,20 @@ public function panelLogin(Request $request): \Illuminate\Http\JsonResponse
+             return response()->json(['message' => __('api.unauthorized')], 401);
+         }
+ 
+-        $token = $user->createToken('spa-panel')->plainTextToken;
++        $context = is_array($payload['impersonation'] ?? null) ? $payload['impersonation'] : null;
++        $issued = $user->createToken($context ? 'spa-impersonation' : 'spa-panel', ['*']);
++        if ($context) {
++            ImpersonationSession::store((int) $issued->accessToken->id, $context);
++        }
+ 
+         $response = response()->json([
+             'user' => $user,
+-            'password_must_change' => (bool) $user->password_must_change,
+-            'setup_completed' => (bool) ($user->tenant?->setup_completed ?? true),
++            'password_must_change' => $context ? false : (bool) $user->password_must_change,
++            'setup_completed' => $context ? true : (bool) ($user->tenant?->setup_completed ?? true),
++            'impersonation' => $context ? ImpersonationPayload::publish($context) : null,
+         ]);
+ 
+-        return AuthCookie::attach($response, $token, $request);
++        return AuthCookie::attach($response, $issued->plainTextToken, $request);
+     }
+ 
+     public function refresh(Request $request): \Illuminate\Http\JsonResponse
+@@ -134,16 +141,20 @@ public function refresh(Request $request): \Illuminate\Http\JsonResponse
+             return response()->json(['message' => __('api.unauthorized')], 401);
+         }
+ 
++        $carried = ImpersonationSession::pull($request);
+         $request->user()?->currentAccessToken()?->delete();
+ 
+-        $token = $user->createToken('spa')->plainTextToken;
++        $token = $user->createToken($carried ? 'spa-impersonation' : 'spa', ['*']);
++        if ($carried) {
++            ImpersonationSession::store((int) $token->accessToken->id, $carried);
++        }
+ 
+         $response = response()->json([
+             'user' => $user->load('tenant'),
+             'refreshed' => true,
+         ]);
+ 
+-        return AuthCookie::attach($response, $token, $request);
++        return AuthCookie::attach($response, $token->plainTextToken, $request);
+     }
+ 
+     public function gate(Request $request): \Illuminate\Http\JsonResponse
+@@ -214,16 +225,40 @@ public function logout(Request $request): \Illuminate\Http\JsonResponse
+     {
+         $cookieName = config('auth.cookie_name', 'webino_auth_token');
+         $cookieToken = $request->cookie($cookieName);
++        $tokens = [];
+         if (is_string($cookieToken) && $cookieToken !== '') {
+-            PersonalAccessToken::findToken($cookieToken)?->delete();
++            $found = PersonalAccessToken::findToken($cookieToken);
++            if ($found) {
++                $tokens[] = $found;
++            }
+         }
+ 
+         $bearer = $request->bearerToken();
+         if (is_string($bearer) && $bearer !== '') {
+-            PersonalAccessToken::findToken($bearer)?->delete();
++            $found = PersonalAccessToken::findToken($bearer);
++            if ($found) {
++                $tokens[] = $found;
++            }
+         }
+ 
+-        $request->user()?->currentAccessToken()?->delete();
++        $current = $request->user()?->currentAccessToken();
++        if ($current instanceof PersonalAccessToken) {
++            $tokens[] = $current;
++        }
++
++        $seen = [];
++        foreach ($tokens as $token) {
++            if (isset($seen[$token->id])) {
++                continue;
++            }
++            $seen[$token->id] = true;
++            $stored = ImpersonationSession::forTokenId((int) $token->id);
++            if (is_array($stored)) {
++                ImpersonationSession::revokeRemote($stored);
++                ImpersonationSession::forgetTokenId((int) $token->id);
++            }
++            $token->delete();
++        }
+ 
+         return AuthCookie::clear(response()->json(['message' => __('api.logged_out')]), $request);
+     }
+@@ -233,6 +268,10 @@ public function user(Request $request): \Illuminate\Http\JsonResponse
+         $user = $request->user()->load('tenant');
+         $payload = $user->toArray();
+         $payload['capabilities'] = app(\App\Support\CapabilityChecker::class)->capabilitiesForUser($user);
++        $impersonation = ImpersonationSession::publishFor($request);
++        if ($impersonation) {
++            $payload['impersonation'] = $impersonation;
++        }
+ 
+         return response()->json($payload);
+     }
+diff --git a/backend/app/Http/Controllers/Api/V1/ImpersonationController.php b/backend/app/Http/Controllers/Api/V1/ImpersonationController.php
+new file mode 100644
+index 0000000..8d69bfa
+--- /dev/null
++++ b/backend/app/Http/Controllers/Api/V1/ImpersonationController.php
+@@ -0,0 +1,107 @@
++<?php
++
++namespace App\Http\Controllers\Api\V1;
++
++use App\Http\Controllers\Controller;
++use App\Support\AuthCookie;
++use App\Support\ImpersonationNextPath;
++use App\Support\ImpersonationSession;
++use Illuminate\Http\Request;
++use Illuminate\Support\Facades\Http;
++use Throwable;
++
++class ImpersonationController extends Controller
++{
++    public function switch(Request $request): \Illuminate\Http\JsonResponse
++    {
++        $data = $request->validate([
++            'provision_id' => ['required', 'integer', 'min:1'],
++            'next' => ['nullable', 'string', 'max:200'],
++        ]);
++
++        $stored = ImpersonationSession::current($request);
++        $passport = is_array($stored) && is_string($stored['passport'] ?? null) ? $stored['passport'] : '';
++        if ($passport === '') {
++            return response()->json(['message' => 'نشست جانشینی نامعتبر یا منقضی شده است. از ERP دوباره وارد شوید.'], 422);
++        }
++
++        $base = rtrim((string) config('services.webino.base_url'), '/');
++        if ($base === '' || $this->erpHostBlocked($base)) {
++            return response()->json(['message' => 'آدرس ERP برای جابه‌جایی سایت تنظیم نشده است.'], 503);
++        }
++
++        try {
++            $response = Http::acceptJson()
++                ->timeout(20)
++                ->post($base.'/api/v1/site-builder/impersonate/exchange', [
++                    'passport' => $passport,
++                    'provision_id' => (int) $data['provision_id'],
++                    'next' => ImpersonationNextPath::normalize($data['next'] ?? null),
++                ]);
++        } catch (Throwable) {
++            return response()->json(['message' => 'ارتباط با ERP برای جابه‌جایی سایت برقرار نشد.'], 503);
++        }
++
++        if (! $response->successful()) {
++            $message = $response->json('message');
++
++            return response()->json([
++                'message' => is_string($message) && $message !== ''
++                    ? $message
++                    : 'جابه‌جایی به سایت دیگر ناموفق بود.',
++            ], 422);
++        }
++
++        $url = $response->json('data.url');
++        if (! is_string($url) || ! $this->safeLoginUrl($url)) {
++            return response()->json(['message' => 'لینک ورود سایت مقصد معتبر نیست.'], 422);
++        }
++
++        return response()->json(['data' => ['url' => $url]]);
++    }
++
++    public function exit(Request $request): \Illuminate\Http\JsonResponse
++    {
++        $stored = ImpersonationSession::current($request);
++        if (! is_array($stored)) {
++            return response()->json(['message' => 'نشست جانشینی فعال نیست.'], 422);
++        }
++
++        $returnUrl = is_string($stored['return_url'] ?? null) ? $stored['return_url'] : null;
++        ImpersonationSession::revokeRemote($stored);
++        ImpersonationSession::forget($request);
++        $request->user()?->currentAccessToken()?->delete();
++
++        return AuthCookie::clear(response()->json([
++            'data' => [
++                'return_url' => $returnUrl,
++            ],
++        ]), $request);
++    }
++
++    private function erpHostBlocked(string $base): bool
++    {
++        $host = strtolower((string) parse_url($base, PHP_URL_HOST));
++
++        return $host === '' || in_array($host, ['localhost', '127.0.0.1', '::1'], true);
++    }
++
++    private function safeLoginUrl(string $url): bool
++    {
++        $parts = parse_url($url);
++        if (! is_array($parts)) {
++            return false;
++        }
++        $scheme = strtolower((string) ($parts['scheme'] ?? ''));
++        $host = (string) ($parts['host'] ?? '');
++        $path = (string) ($parts['path'] ?? '');
++        if ($host === '' || ($path !== '/login' && ! str_ends_with($path, '/login'))) {
++            return false;
++        }
++        if ($scheme === 'https') {
++            return true;
++        }
++
++        return $scheme === 'http' && ! app()->environment('production');
++    }
++}
+diff --git a/backend/app/Http/Controllers/Api/V1/ProvisionController.php b/backend/app/Http/Controllers/Api/V1/ProvisionController.php
+index 110fa01..7fdaa06 100644
+--- a/backend/app/Http/Controllers/Api/V1/ProvisionController.php
++++ b/backend/app/Http/Controllers/Api/V1/ProvisionController.php
+@@ -8,6 +8,8 @@
+ use App\Models\Tenant;
+ use App\Models\TenantModule;
+ use App\Models\User;
++use App\Support\ImpersonationNextPath;
++use App\Support\ImpersonationPayload;
+ use App\Services\Modules\ModuleGitInstaller;
+ use App\Services\Provision\ProvisionContentSeeder;
+ use App\Services\Webino\WebinoLicenseClient;
+@@ -240,6 +242,8 @@ public function panelLogin(Request $request): \Illuminate\Http\JsonResponse
+ 
+         $data = $request->validate([
+             'user_id' => ['nullable', 'integer', 'min:1'],
++            'next' => ['nullable', 'string', 'max:200'],
++            'impersonation' => ['nullable', 'array'],
+         ]);
+ 
+         $tenant = Tenant::query()->firstOrFail();
+@@ -261,17 +265,23 @@ public function panelLogin(Request $request): \Illuminate\Http\JsonResponse
+             return response()->json(['message' => __('api.unauthorized')], 422);
+         }
+ 
++        $impersonation = is_array($data['impersonation'] ?? null)
++            ? ImpersonationPayload::sanitize($data['impersonation'])
++            : null;
++        $next = ImpersonationNextPath::normalize($data['next'] ?? null);
++
+         $token = Str::random(64);
+         Cache::put('panel_login:'.$token, [
+             'user_id' => $user->id,
+             'tenant_id' => $tenant->id,
++            'impersonation' => $impersonation,
+         ], now()->addMinutes(5));
+ 
+         $domain = is_string($tenant->domain) ? trim($tenant->domain) : '';
+         $base = $domain !== ''
+             ? 'https://'.preg_replace('#^https?://#i', '', $domain)
+             : rtrim((string) config('app.url'), '/');
+-        $loginUrl = $base.'/login?panel_token='.urlencode($token);
++        $loginUrl = $base.'/login?panel_token='.urlencode($token).'&next='.urlencode($next);
+ 
+         return response()->json([
+             'data' => [
+diff --git a/backend/app/Http/Middleware/RequirePasswordChange.php b/backend/app/Http/Middleware/RequirePasswordChange.php
+index b2ded5c..0c74780 100644
+--- a/backend/app/Http/Middleware/RequirePasswordChange.php
++++ b/backend/app/Http/Middleware/RequirePasswordChange.php
+@@ -2,6 +2,7 @@
+ 
+ namespace App\Http\Middleware;
+ 
++use App\Support\ImpersonationSession;
+ use Closure;
+ use Illuminate\Http\Request;
+ use Symfony\Component\HttpFoundation\Response;
+@@ -11,7 +12,7 @@ class RequirePasswordChange
+     public function handle(Request $request, Closure $next): Response
+     {
+         $user = $request->user();
+-        if (! $user || ! $user->password_must_change) {
++        if (! $user || ! $user->password_must_change || ImpersonationSession::active($request)) {
+             return $next($request);
+         }
+ 
+@@ -22,6 +23,8 @@ public function handle(Request $request, Closure $next): Response
+             'api/v1/auth/user',
+             'api/v1/auth/gate',
+             'api/v1/auth/refresh',
++            'api/v1/auth/impersonation/exit',
++            'api/v1/auth/impersonation/switch',
+             'api/v1/setup/status',
+             'api/v1/setup/apply-site-type',
+             'api/v1/setup/store',
+@@ -34,6 +37,8 @@ public function handle(Request $request, Closure $next): Response
+             'v1/auth/user',
+             'v1/auth/gate',
+             'v1/auth/refresh',
++            'v1/auth/impersonation/exit',
++            'v1/auth/impersonation/switch',
+             'v1/setup/status',
+             'v1/setup/apply-site-type',
+             'v1/setup/store',
+diff --git a/backend/app/Http/Middleware/RequireTwoFactor.php b/backend/app/Http/Middleware/RequireTwoFactor.php
+index 4c4ff0e..4ce2fde 100644
+--- a/backend/app/Http/Middleware/RequireTwoFactor.php
++++ b/backend/app/Http/Middleware/RequireTwoFactor.php
+@@ -3,6 +3,7 @@
+ namespace App\Http\Middleware;
+ 
+ use App\Services\Security\SecuritySettings;
++use App\Support\ImpersonationSession;
+ use Closure;
+ use Illuminate\Http\Request;
+ use Symfony\Component\HttpFoundation\Response;
+@@ -16,7 +17,7 @@ public function handle(Request $request, Closure $next): Response
+         }
+ 
+         $user = $request->user();
+-        if (! $user) {
++        if (! $user || ImpersonationSession::active($request)) {
+             return $next($request);
+         }
+ 
+@@ -39,6 +40,8 @@ public function handle(Request $request, Closure $next): Response
+                 'api/v1/auth/check',
+                 'api/v1/auth/user',
+                 'api/v1/auth/refresh',
++                'api/v1/auth/impersonation/exit',
++                'v1/auth/impersonation/exit',
+             ];
+             if (! in_array($request->path(), $allowed, true)) {
+                 return response()->json([
+diff --git a/backend/app/Support/ImpersonationNextPath.php b/backend/app/Support/ImpersonationNextPath.php
+new file mode 100644
+index 0000000..b1faf87
+--- /dev/null
++++ b/backend/app/Support/ImpersonationNextPath.php
+@@ -0,0 +1,40 @@
++<?php
++
++namespace App\Support;
++
++/**
++ * Relative dashboard paths only.
++ * Keep the pattern in sync with WebinoERP Modules\SiteBuilder\Support\ImpersonationNextPath.
++ */
++final class ImpersonationNextPath
++{
++    public static function normalize(?string $next): string
++    {
++        $next = trim((string) $next);
++        if ($next === '') {
++            return '/dashboard';
++        }
++
++        $decoded = rawurldecode($next);
++        if (! is_string($decoded) || $decoded === '') {
++            return '/dashboard';
++        }
++
++        if (
++            ! str_starts_with($decoded, '/dashboard')
++            || str_contains($decoded, '\\')
++            || str_contains($decoded, '..')
++            || str_contains($decoded, '//')
++            || str_contains($decoded, '?')
++            || str_contains($decoded, '#')
++        ) {
++            return '/dashboard';
++        }
++
++        if (! preg_match('#^/dashboard(?:/[A-Za-z0-9][A-Za-z0-9_-]{0,64}){0,6}$#', $decoded)) {
++            return '/dashboard';
++        }
++
++        return $decoded;
++    }
++}
+diff --git a/backend/app/Support/ImpersonationPayload.php b/backend/app/Support/ImpersonationPayload.php
+new file mode 100644
+index 0000000..0b7b354
+--- /dev/null
++++ b/backend/app/Support/ImpersonationPayload.php
+@@ -0,0 +1,127 @@
++<?php
++
++namespace App\Support;
++
++/**
++ * Staff context handed from ERP with a provision HMAC call.
++ * The passport stays server-side; publish() is what the browser may see.
++ */
++final class ImpersonationPayload
++{
++    /**
++     * @param  array<string, mixed>  $raw
++     * @return array<string, mixed>|null
++     */
++    public static function sanitize(array $raw): ?array
++    {
++        $passport = isset($raw['passport']) && is_string($raw['passport']) ? trim($raw['passport']) : '';
++        if ($passport === '' || strlen($passport) > 1500) {
++            return null;
++        }
++
++        $returnUrl = self::returnUrl(isset($raw['return_url']) ? (string) $raw['return_url'] : '');
++        $domain = self::host(isset($raw['domain']) ? (string) $raw['domain'] : '');
++        $provisionId = (int) ($raw['provision_id'] ?? 0);
++        if ($returnUrl === null || $domain === '' || $provisionId < 1) {
++            return null;
++        }
++
++        $expires = isset($raw['expires_at']) && is_string($raw['expires_at']) ? $raw['expires_at'] : '';
++        $expiresTs = strtotime($expires);
++
++        return [
++            'staff_id' => max(0, (int) ($raw['staff_id'] ?? 0)),
++            'staff_name' => self::text($raw['staff_name'] ?? '', 120),
++            'customer_name' => self::text($raw['customer_name'] ?? '', 160),
++            'site_name' => self::text($raw['site_name'] ?? '', 160),
++            'domain' => $domain,
++            'provision_id' => $provisionId,
++            'return_url' => $returnUrl,
++            'expires_at' => $expiresTs ? gmdate('c', $expiresTs) : null,
++            'passport' => $passport,
++            'sites' => self::sites($raw['sites'] ?? null, $provisionId),
++        ];
++    }
++
++    /**
++     * @param  array<string, mixed>  $stored
++     * @return array<string, mixed>
++     */
++    public static function publish(array $stored): array
++    {
++        $public = $stored;
++        unset($public['passport']);
++
++        return $public;
++    }
++
++    /**
++     * @return list<array{provision_id: int, domain: string, name: string, customer_name: string, current: bool}>
++     */
++    private static function sites(mixed $rows, int $currentId): array
++    {
++        if (! is_array($rows)) {
++            return [];
++        }
++
++        $sites = [];
++        foreach ($rows as $row) {
++            if (! is_array($row) || count($sites) >= 100) {
++                break;
++            }
++            $id = (int) ($row['provision_id'] ?? 0);
++            $domain = self::host(isset($row['domain']) ? (string) $row['domain'] : '');
++            if ($id < 1 || $domain === '') {
++                continue;
++            }
++            $sites[] = [
++                'provision_id' => $id,
++                'domain' => $domain,
++                'name' => self::text($row['name'] ?? $domain, 160),
++                'customer_name' => self::text($row['customer_name'] ?? '', 160),
++                'current' => $id === $currentId || ! empty($row['current']),
++            ];
++        }
++
++        return $sites;
++    }
++
++    private static function text(mixed $value, int $max): string
++    {
++        $text = trim(is_string($value) ? $value : '');
++        if ($text === '') {
++            return '';
++        }
++
++        return mb_substr($text, 0, $max);
++    }
++
++    private static function host(string $domain): string
++    {
++        $domain = trim($domain);
++        $domain = preg_replace('#^https?://#i', '', $domain) ?? $domain;
++        $host = strtolower(trim(explode('/', $domain)[0] ?? ''));
++        if ($host === '' || str_contains($host, ' ') || str_contains($host, '@')) {
++            return '';
++        }
++
++        return rtrim($host, '.');
++    }
++
++    private static function returnUrl(string $url): ?string
++    {
++        $url = trim($url);
++        if (filter_var($url, FILTER_VALIDATE_URL) === false) {
++            return null;
++        }
++        $scheme = strtolower((string) parse_url($url, PHP_URL_SCHEME));
++        if ($scheme === 'https') {
++            return $url;
++        }
++        if ($scheme === 'http' && ! app()->environment('production')) {
++            return $url;
++        }
++
++        return null;
++    }
++}
+diff --git a/backend/app/Support/ImpersonationSession.php b/backend/app/Support/ImpersonationSession.php
+new file mode 100644
+index 0000000..77580b8
+--- /dev/null
++++ b/backend/app/Support/ImpersonationSession.php
+@@ -0,0 +1,140 @@
++<?php
++
++namespace App\Support;
++
++use Illuminate\Http\Request;
++use Illuminate\Support\Facades\Cache;
++use Illuminate\Support\Facades\Http;
++use Laravel\Sanctum\PersonalAccessToken;
++use Throwable;
++
++final class ImpersonationSession
++{
++    /**
++     * @param  array<string, mixed>  $context
++     */
++    public static function store(int $tokenId, array $context): void
++    {
++        Cache::put(self::key($tokenId), $context, self::ttl($context));
++    }
++
++    /**
++     * @return array<string, mixed>|null
++     */
++    public static function forTokenId(int $tokenId): ?array
++    {
++        $stored = Cache::get(self::key($tokenId));
++
++        return is_array($stored) ? $stored : null;
++    }
++
++    /**
++     * @return array<string, mixed>|null
++     */
++    public static function current(Request $request): ?array
++    {
++        $id = self::tokenId($request);
++
++        return $id ? self::forTokenId($id) : null;
++    }
++
++    public static function active(Request $request): bool
++    {
++        return self::current($request) !== null;
++    }
++
++    /**
++     * @return array<string, mixed>|null
++     */
++    public static function publishFor(Request $request): ?array
++    {
++        $stored = self::current($request);
++
++        return is_array($stored) ? ImpersonationPayload::publish($stored) : null;
++    }
++
++    public static function forget(Request $request): void
++    {
++        $id = self::tokenId($request);
++        if ($id) {
++            Cache::forget(self::key($id));
++        }
++    }
++
++    public static function forgetTokenId(int $tokenId): void
++    {
++        Cache::forget(self::key($tokenId));
++    }
++
++    /**
++     * Tell ERP this passport is finished. Failure leaves only the short TTL.
++     *
++     * @param  array<string, mixed>  $stored
++     */
++    public static function revokeRemote(array $stored): void
++    {
++        $passport = is_string($stored['passport'] ?? null) ? $stored['passport'] : '';
++        if ($passport === '') {
++            return;
++        }
++        $base = rtrim((string) config('services.webino.base_url'), '/');
++        $host = strtolower((string) parse_url($base, PHP_URL_HOST));
++        if ($base === '' || $host === '' || in_array($host, ['localhost', '127.0.0.1', '::1'], true)) {
++            return;
++        }
++        $provisionId = (int) ($stored['provision_id'] ?? 0);
++
++        try {
++            Http::acceptJson()->timeout(15)->post($base.'/api/v1/site-builder/impersonate/exit', [
++                'passport' => $passport,
++                'provision_id' => $provisionId > 0 ? $provisionId : null,
++            ]);
++        } catch (Throwable) {
++            // The passport still expires on its own.
++        }
++    }
++
++    /**
++     * Keep the staff banner across a Sanctum refresh.
++     *
++     * @return array<string, mixed>|null
++     */
++    public static function pull(Request $request): ?array
++    {
++        $id = self::tokenId($request);
++        if (! $id) {
++            return null;
++        }
++        $stored = Cache::pull(self::key($id));
++
++        return is_array($stored) ? $stored : null;
++    }
++
++    /**
++     * @param  array<string, mixed>  $context
++     */
++    private static function ttl(array $context): int
++    {
++        $exp = strtotime((string) ($context['expires_at'] ?? ''));
++        if (! $exp) {
++            return 1200;
++        }
++
++        return max(60, $exp - time());
++    }
++
++    private static function key(int $tokenId): string
++    {
++        return 'impersonation:pat:'.$tokenId;
++    }
++
++    private static function tokenId(Request $request): ?int
++    {
++        $token = $request->user()?->currentAccessToken();
++        if ($token instanceof PersonalAccessToken && isset($token->id)) {
++            return (int) $token->id;
++        }
++
++        return null;
++    }
++}
+diff --git a/backend/routes/api.php b/backend/routes/api.php
+index 24ee30c..7bf88a9 100644
+--- a/backend/routes/api.php
++++ b/backend/routes/api.php
+@@ -9,6 +9,7 @@
+ use App\Http\Controllers\Api\V1\AnalyticsController;
+ use App\Http\Controllers\Api\V1\AnnouncementController;
+ use App\Http\Controllers\Api\V1\AuthController;
++use App\Http\Controllers\Api\V1\ImpersonationController;
+ use App\Http\Controllers\Api\V1\OtpAuthController;
+ use App\Http\Controllers\Api\V1\BlogCategoryController;
+ use App\Http\Controllers\Api\V1\BlogPostController;
+@@ -256,6 +257,8 @@
+         Route::post('/auth/refresh', [AuthController::class, 'refresh']);
+         Route::get('/auth/user', [AuthController::class, 'user']);
+         Route::post('/auth/change-password', [AuthController::class, 'changePassword'])->middleware('throttle:10,1');
++        Route::post('/auth/impersonation/switch', [ImpersonationController::class, 'switch'])->middleware('throttle:30,1');
++        Route::post('/auth/impersonation/exit', [ImpersonationController::class, 'exit'])->middleware('throttle:30,1');
+ 
+         Route::prefix('auth/2fa')->group(function () {
+             Route::get('/status', [TwoFactorController::class, 'status']);
+diff --git a/backend/tests/Feature/ImpersonationPanelLoginTest.php b/backend/tests/Feature/ImpersonationPanelLoginTest.php
+new file mode 100644
+index 0000000..0856fe8
+--- /dev/null
++++ b/backend/tests/Feature/ImpersonationPanelLoginTest.php
+@@ -0,0 +1,156 @@
++<?php
++
++namespace Tests\Feature;
++
++use App\Models\User;
++use Illuminate\Cookie\Middleware\EncryptCookies;
++use Illuminate\Foundation\Testing\RefreshDatabase;
++use Illuminate\Support\Facades\Cache;
++use Illuminate\Support\Facades\Hash;
++use Illuminate\Support\Facades\Http;
++use Tests\TestCase;
++
++class ImpersonationPanelLoginTest extends TestCase
++{
++    use RefreshDatabase;
++
++    public function test_panel_login_keeps_staff_context_off_the_browser_and_can_switch(): void
++    {
++        $tenant = $this->createTenant(['domain' => 'cafe.test', 'name' => 'Cafe']);
++        $admin = User::query()->create([
++            'name' => 'Owner',
++            'email' => 'owner@cafe.test',
++            'password' => Hash::make('secret-not-used'),
++            'tenant_id' => $tenant->id,
++            'role' => 'admin',
++            'password_must_change' => true,
++        ]);
++
++        $this->withoutMiddleware(EncryptCookies::class);
++
++        $passport = 'staff-passport-not-for-the-browser';
++        $body = json_encode([
++            'next' => '/dashboard/builder',
++            'impersonation' => [
++                'staff_id' => 4,
++                'staff_name' => 'Sara Staff',
++                'customer_name' => 'Cafe Customer',
++                'site_name' => 'Cafe',
++                'domain' => 'cafe.test',
++                'provision_id' => 9,
++                'return_url' => 'https://erp.test/dashboard/admin/platform/sites/9',
++                'expires_at' => gmdate('c', time() + 1200),
++                'passport' => $passport,
++                'sites' => [
++                    [
++                        'provision_id' => 9,
++                        'domain' => 'cafe.test',
++                        'name' => 'Cafe',
++                        'customer_name' => 'Cafe Customer',
++                        'current' => true,
++                    ],
++                    [
++                        'provision_id' => 10,
++                        'domain' => 'shop.test',
++                        'name' => 'Shop',
++                        'customer_name' => 'Shop Customer',
++                        'current' => false,
++                    ],
++                ],
++            ],
++        ], JSON_THROW_ON_ERROR);
++
++        $issued = $this->provision('panel-login', $body);
++        $issued->assertOk();
++        $url = (string) $issued->json('data.login_url');
++        $this->assertStringContainsString('next=%2Fdashboard%2Fbuilder', $url);
++        $this->assertStringNotContainsString($passport, $issued->getContent());
++        parse_str((string) parse_url($url, PHP_URL_QUERY), $query);
++        $this->assertNotEmpty($query['panel_token'] ?? null);
++
++        $login = $this->postJson('/api/v1/auth/panel-login', [
++            'panel_token' => $query['panel_token'],
++        ]);
++        $login->assertOk()
++            ->assertJsonPath('data.password_must_change', false)
++            ->assertJsonPath('data.impersonation.staff_name', 'Sara Staff')
++            ->assertJsonPath('data.impersonation.customer_name', 'Cafe Customer');
++        $this->assertStringNotContainsString($passport, $login->getContent());
++
++        $cookie = $login->getCookie('webino_auth_token', false);
++        $this->assertNotNull($cookie);
++        $this->withHeader('Authorization', 'Bearer '.$cookie->getValue());
++
++        $this->getJson('/api/v1/tenant')->assertOk();
++        $user = $this->getJson('/api/v1/auth/user');
++        $user->assertOk()->assertJsonPath('data.impersonation.domain', 'cafe.test');
++        $this->assertStringNotContainsString($passport, $user->getContent());
++
++        config(['services.webino.base_url' => 'https://erp.test']);
++        Http::fake([
++            'https://erp.test/api/v1/site-builder/impersonate/exchange' => Http::response([
++                'data' => ['url' => 'https://shop.test/login?panel_token=next-site'],
++            ], 200),
++            'https://erp.test/api/v1/site-builder/impersonate/exit' => Http::response([
++                'data' => ['return_url' => 'https://erp.test/dashboard/admin/platform/sites/9'],
++            ], 200),
++        ]);
++
++        $this->postJson('/api/v1/auth/impersonation/switch', [
++            'provision_id' => 10,
++            'next' => 'https://evil.test',
++        ])->assertOk()->assertJsonPath('data.url', 'https://shop.test/login?panel_token=next-site');
++
++        Http::assertSent(function ($request) use ($passport) {
++            return $request->url() === 'https://erp.test/api/v1/site-builder/impersonate/exchange'
++                && $request['passport'] === $passport
++                && $request['next'] === '/dashboard'
++                && (int) $request['provision_id'] === 10;
++        });
++
++        $this->postJson('/api/v1/auth/impersonation/exit')
++            ->assertOk()
++            ->assertJsonPath('data.return_url', 'https://erp.test/dashboard/admin/platform/sites/9');
++
++        $this->assertNotNull($admin->id);
++        $this->assertNull(Cache::get('panel_login:'.$query['panel_token']));
++    }
++
++    public function test_legacy_panel_login_still_issues_a_url_without_impersonation(): void
++    {
++        $tenant = $this->createTenant(['domain' => 'cafe.test']);
++        User::query()->create([
++            'name' => 'Owner',
++            'email' => 'owner@cafe.test',
++            'password' => Hash::make('secret'),
++            'tenant_id' => $tenant->id,
++            'role' => 'admin',
++        ]);
++
++        $body = '{}';
++        $issued = $this->provision('panel-login', $body);
++        $issued->assertOk();
++        $this->assertStringContainsString('/login?panel_token=', (string) $issued->json('data.login_url'));
++        $this->assertStringContainsString('next=%2Fdashboard', (string) $issued->json('data.login_url'));
++    }
++
++    private function provision(string $path, string $body): \Illuminate\Testing\TestResponse
++    {
++        $signature = hash_hmac('sha256', $body, 'test-provision-secret');
++
++        return $this->call(
++            'POST',
++            '/api/v1/provision/'.$path,
++            [],
++            [],
++            [],
++            [
++                'HTTP_X-Provision-Token' => 'test-token-123',
++                'HTTP_X-Provision-Signature' => $signature,
++                'CONTENT_TYPE' => 'application/json',
++                'HTTP_ACCEPT' => 'application/json',
++            ],
++            $body,
++        );
++    }
++}
+diff --git a/frontend/messages/en.json b/frontend/messages/en.json
+index cd29fca..66b050f 100644
+--- a/frontend/messages/en.json
++++ b/frontend/messages/en.json
+@@ -1,4 +1,26 @@
+ {
++  "impersonation": {
++    "label": "Staff impersonation bar",
++    "banner": "You are {staff} logged into site {site} as {customer}",
++    "expires": "About {minutes} minutes left in this session",
++    "sites": "Sites",
++    "current": "Current",
++    "dashboard": "Dashboard",
++    "builder": "Page builder",
++    "theme_builder": "Theme builder",
++    "pages": "Pages",
++    "pages_here": "Pages on this site",
++    "pages_other_sites": "Page builder on other sites",
++    "templates": "Templates",
++    "templates_here": "Templates on this site",
++    "templates_other_sites": "Theme builder on other sites",
++    "exit": "Exit impersonation",
++    "exit_confirm": "Leave this site and return to the ERP?",
++    "no_sites": "No other sites are available.",
++    "no_pages": "No pages.",
++    "loading": "Loading…",
++    "switch_failed": "Could not switch sites."
++  },
+   "common": {
+     "appName": "Webino Dashboard",
+     "loading": "Loading…",
+diff --git a/frontend/messages/fa.json b/frontend/messages/fa.json
+index 5ddb894..f475812 100644
+--- a/frontend/messages/fa.json
++++ b/frontend/messages/fa.json
+@@ -1,4 +1,26 @@
+ {
++  "impersonation": {
++    "label": "نوار جانشینی کارکنان",
++    "banner": "شما {staff} هستید و در سایت {site} به‌عنوان {customer} وارد شده‌اید",
++    "expires": "حدود {minutes} دقیقه تا پایان این نشست",
++    "sites": "سایت‌ها",
++    "current": "فعلی",
++    "dashboard": "داشبورد",
++    "builder": "صفحه‌ساز",
++    "theme_builder": "قالب‌ساز",
++    "pages": "صفحات",
++    "pages_here": "صفحات همین سایت",
++    "pages_other_sites": "صفحه‌ساز سایت‌های دیگر",
++    "templates": "قالب‌ها",
++    "templates_here": "قالب‌های همین سایت",
++    "templates_other_sites": "قالب‌ساز سایت‌های دیگر",
++    "exit": "خروج از جانشینی",
++    "exit_confirm": "از این سایت خارج شوید و به ERP برگردید؟",
++    "no_sites": "سایت دیگری در دسترس نیست.",
++    "no_pages": "صفحه‌ای نیست.",
++    "loading": "در حال بارگذاری…",
++    "switch_failed": "جابه‌جایی انجام نشد."
++  },
+   "common": {
+     "appName": "پنل وبینو",
+     "loading": "در حال بارگذاری…",
+diff --git a/frontend/src/builder/editor/BuilderEditor.tsx b/frontend/src/builder/editor/BuilderEditor.tsx
+index e14a912..cb68070 100644
+--- a/frontend/src/builder/editor/BuilderEditor.tsx
++++ b/frontend/src/builder/editor/BuilderEditor.tsx
+@@ -328,11 +328,11 @@ export function BuilderEditor({ mode }: { mode: Mode }) {
+   const needle = widgetQuery.trim()
+ 
+   if (loading) {
+-    return <div className="grid h-svh place-items-center text-sm text-[#0C2D63]">{t("loading")}</div>
++    return <div className="grid h-svh max-h-full min-h-0 place-items-center text-sm text-[#0C2D63]">{t("loading")}</div>
+   }
+ 
+   return (
+-    <div className="flex h-svh flex-col bg-[#101820] text-[#0C2D63]">
++    <div className="flex h-svh max-h-full min-h-0 flex-col bg-[#101820] text-[#0C2D63]">
+       <header className="flex h-14 items-center gap-2 border-b border-white/10 px-3 text-white">
+         <Link href={backHref} className="rounded-md px-2 py-1 text-xs text-white/70 hover:bg-white/10">{t("back")}</Link>
+         <input value={title} onChange={(event) => setTitle(event.target.value)} className="h-8 w-44 rounded-md bg-white/10 px-2 text-sm outline-none" aria-label={t("title")} />
+diff --git a/frontend/src/components/ImpersonationBar.tsx b/frontend/src/components/ImpersonationBar.tsx
+new file mode 100644
+index 0000000..274b1ee
+--- /dev/null
++++ b/frontend/src/components/ImpersonationBar.tsx
+@@ -0,0 +1,264 @@
++"use client"
++
++import { useQuery } from "@tanstack/react-query"
++import { LayoutTemplate, LogOut, Palette } from "lucide-react"
++import { useTranslations } from "next-intl"
++import { usePathname } from "next/navigation"
++import { useState } from "react"
++
++import {
++  DropdownMenu,
++  DropdownMenuContent,
++  DropdownMenuTrigger,
++} from "@/components/ui/dropdown-menu"
++import { api } from "@/lib/api"
++import { getApiErrorMessage } from "@/lib/api-helpers"
++
++type SiteLink = {
++  provision_id: number
++  domain: string
++  name: string
++  customer_name: string
++  current?: boolean
++}
++
++type Impersonation = {
++  staff_name?: string
++  customer_name?: string
++  site_name?: string
++  domain?: string
++  provision_id?: number
++  return_url?: string
++  expires_at?: string | null
++  sites?: SiteLink[]
++}
++
++type PageRow = { id: number; title: string; slug?: string }
++type TemplateRow = { id: number; title: string; kind: string }
++
++function safeDashboardPath(path: string): string {
++  if (!path.startsWith("/dashboard") || path.startsWith("//") || path.includes("..")) {
++    return "/dashboard"
++  }
++  return path
++}
++
++function hopTarget(pathname: string, explicit?: string): string {
++  if (explicit) return safeDashboardPath(explicit)
++  if (pathname.includes("/theme-builder")) return "/dashboard/theme-builder"
++  if (pathname.includes("/builder")) return "/dashboard/builder"
++  if (pathname.startsWith("/dashboard")) return safeDashboardPath(pathname.split("?")[0] || "/dashboard")
++  return "/dashboard"
++}
++
++export function ImpersonationBar() {
++  const t = useTranslations("impersonation")
++  const pathname = usePathname() ?? ""
++  const [error, setError] = useState<string | null>(null)
++  const [busy, setBusy] = useState(false)
++  const [pagesOpen, setPagesOpen] = useState(false)
++  const [templatesOpen, setTemplatesOpen] = useState(false)
++
++  const { data: user } = useQuery({
++    queryKey: ["auth-user"],
++    queryFn: () => api<{ impersonation?: Impersonation | null }>("/api/v1/auth/user"),
++  })
++
++  const session = user?.impersonation
++  const pages = useQuery({
++    queryKey: ["impersonation-pages"],
++    enabled: Boolean(session) && pagesOpen,
++    queryFn: () => api<{ pages?: PageRow[] }>("/api/v1/builder"),
++  })
++  const templates = useQuery({
++    queryKey: ["impersonation-templates"],
++    enabled: Boolean(session) && templatesOpen,
++    queryFn: () => api<{ kinds?: { kind: string; label?: string; templates?: TemplateRow[] }[] }>("/api/v1/theme-builder"),
++  })
++
++  if (!session) return null
++
++  const staff = session.staff_name || "…"
++  const customer = session.customer_name || session.site_name || session.domain || "…"
++  const siteLabel = session.site_name && session.domain && session.site_name !== session.domain
++    ? `${session.site_name} (${session.domain})`
++    : session.domain || session.site_name || "…"
++  const sites = session.sites ?? []
++  const minutesLeft = session.expires_at
++    ? Math.max(0, Math.round((Date.parse(session.expires_at) - Date.now()) / 60000))
++    : null
++
++  async function hop(provisionId: number, next: string, current: boolean) {
++    const target = safeDashboardPath(next)
++    if (current) {
++      window.location.assign(target)
++      return
++    }
++    setBusy(true)
++    setError(null)
++    try {
++      const result = await api<{ url?: string }>("/api/v1/auth/impersonation/switch", {
++        method: "POST",
++        json: { provision_id: provisionId, next: target },
++      })
++      if (!result?.url) {
++        setError(t("switch_failed"))
++        setBusy(false)
++        return
++      }
++      window.location.assign(result.url)
++    } catch (err) {
++      setError(getApiErrorMessage(err) || t("switch_failed"))
++      setBusy(false)
++    }
++  }
++
++  async function exitImpersonation() {
++    if (!window.confirm(t("exit_confirm"))) return
++    setBusy(true)
++    setError(null)
++    try {
++      const result = await api<{ return_url?: string | null }>("/api/v1/auth/impersonation/exit", {
++        method: "POST",
++      })
++      window.location.assign(result?.return_url || "/login")
++    } catch (err) {
++      setError(getApiErrorMessage(err) || t("switch_failed"))
++      setBusy(false)
++    }
++  }
++
++  const templateRows = (templates.data?.kinds ?? []).flatMap((group) =>
++    (group.templates ?? []).map((row) => ({
++      ...row,
++      kind: row.kind || group.kind,
++      label: group.label,
++    })),
++  )
++
++  return (
++    <div
++      className="sticky top-0 z-[80] flex shrink-0 flex-wrap items-center gap-2 bg-zinc-950 px-3 py-2 text-sm text-zinc-50"
++      data-testid="impersonation-bar"
++      role="region"
++      aria-label={t("label")}
++    >
++      <p className="min-w-0 flex-1 leading-6">
++        {t("banner", { staff, site: siteLabel, customer })}
++        {minutesLeft !== null && minutesLeft <= 5 ? (
++          <span className="ms-2 text-amber-200">{t("expires", { minutes: Math.max(1, minutesLeft) })}</span>
++        ) : null}
++      </p>
++      <DropdownMenu>
++        <DropdownMenuTrigger
++          className="rounded-md bg-white/10 px-2 py-1 text-xs hover:bg-white/20"
++          disabled={busy}
++          data-testid="impersonation-sites"
++        >
++          {t("sites")}
++        </DropdownMenuTrigger>
++        <DropdownMenuContent align="end" className="max-h-80 w-80 overflow-y-auto p-2">
++          {sites.length === 0 ? <p className="px-2 py-1 text-xs text-muted-foreground">{t("no_sites")}</p> : null}
++          {sites.map((site) => (
++            <div key={site.provision_id} className="border-b px-1 py-2 last:border-b-0">
++              <p className="truncate text-sm font-medium">
++                {site.name || site.domain}
++                {site.current ? <span className="ms-1 text-xs text-muted-foreground">{t("current")}</span> : null}
++              </p>
++              <p className="truncate text-xs text-muted-foreground">{site.domain}</p>
++              <div className="mt-1 flex flex-wrap gap-1">
++                <button type="button" className="rounded bg-muted px-2 py-0.5 text-xs" disabled={busy} onClick={() => void hop(site.provision_id, "/dashboard", Boolean(site.current))}>
++                  {t("dashboard")}
++                </button>
++                <button type="button" className="rounded bg-muted px-2 py-0.5 text-xs" disabled={busy} onClick={() => void hop(site.provision_id, "/dashboard/builder", Boolean(site.current))}>
++                  {t("builder")}
++                </button>
++                <button type="button" className="rounded bg-muted px-2 py-0.5 text-xs" disabled={busy} onClick={() => void hop(site.provision_id, "/dashboard/theme-builder", Boolean(site.current))}>
++                  {t("theme_builder")}
++                </button>
++              </div>
++            </div>
++          ))}
++        </DropdownMenuContent>
++      </DropdownMenu>
++      <DropdownMenu open={pagesOpen} onOpenChange={setPagesOpen}>
++        <DropdownMenuTrigger className="inline-flex items-center gap-1 rounded-md bg-white/10 px-2 py-1 text-xs hover:bg-white/20" disabled={busy}>
++          <LayoutTemplate className="size-3.5" aria-hidden />
++          {t("pages")}
++        </DropdownMenuTrigger>
++        <DropdownMenuContent align="end" className="max-h-80 w-72 overflow-y-auto p-2">
++          <p className="px-1 pb-1 text-xs text-muted-foreground">{t("pages_here")}</p>
++          {(pages.data?.pages ?? []).map((page) => (
++            <button
++              key={page.id}
++              type="button"
++              className="block w-full truncate rounded px-2 py-1 text-start text-sm hover:bg-muted"
++              onClick={() => window.location.assign(`/dashboard/builder/${page.id}`)}
++            >
++              {page.title}
++            </button>
++          ))}
++          {pages.isLoading ? <p className="px-2 text-xs">{t("loading")}</p> : null}
++          {!pages.isLoading && (pages.data?.pages ?? []).length === 0 ? (
++            <p className="px-2 text-xs text-muted-foreground">{t("no_pages")}</p>
++          ) : null}
++          <p className="mt-2 border-t px-1 pt-2 text-xs text-muted-foreground">{t("pages_other_sites")}</p>
++          {sites.filter((site) => !site.current).map((site) => (
++            <button
++              key={site.provision_id}
++              type="button"
++              className="block w-full truncate rounded px-2 py-1 text-start text-sm hover:bg-muted"
++              disabled={busy}
++              onClick={() => void hop(site.provision_id, hopTarget(pathname, "/dashboard/builder"), false)}
++            >
++              {site.name || site.domain}
++            </button>
++          ))}
++        </DropdownMenuContent>
++      </DropdownMenu>
++      <DropdownMenu open={templatesOpen} onOpenChange={setTemplatesOpen}>
++        <DropdownMenuTrigger className="inline-flex items-center gap-1 rounded-md bg-white/10 px-2 py-1 text-xs hover:bg-white/20" disabled={busy}>
++          <Palette className="size-3.5" aria-hidden />
++          {t("templates")}
++        </DropdownMenuTrigger>
++        <DropdownMenuContent align="end" className="max-h-80 w-72 overflow-y-auto p-2">
++          <p className="px-1 pb-1 text-xs text-muted-foreground">{t("templates_here")}</p>
++          {templateRows.map((row) => (
++            <button
++              key={`${row.kind}-${row.id}`}
++              type="button"
++              className="block w-full truncate rounded px-2 py-1 text-start text-sm hover:bg-muted"
++              onClick={() => window.location.assign(`/dashboard/theme-builder/${row.kind}/${row.id}`)}
++            >
++              {row.title}
++            </button>
++          ))}
++          {templates.isLoading ? <p className="px-2 text-xs">{t("loading")}</p> : null}
++          <p className="mt-2 border-t px-1 pt-2 text-xs text-muted-foreground">{t("templates_other_sites")}</p>
++          {sites.filter((site) => !site.current).map((site) => (
++            <button
++              key={site.provision_id}
++              type="button"
++              className="block w-full truncate rounded px-2 py-1 text-start text-sm hover:bg-muted"
++              disabled={busy}
++              onClick={() => void hop(site.provision_id, "/dashboard/theme-builder", false)}
++            >
++              {site.name || site.domain}
++            </button>
++          ))}
++        </DropdownMenuContent>
++      </DropdownMenu>
++      <button
++        type="button"
++        className="inline-flex items-center gap-1 rounded-md bg-amber-400 px-2 py-1 text-xs font-medium text-zinc-950 hover:bg-amber-300 disabled:opacity-60"
++        disabled={busy}
++        data-testid="impersonation-exit"
++        onClick={() => void exitImpersonation()}
++      >
++        <LogOut className="size-3.5" aria-hidden />
++        {t("exit")}
++      </button>
++      {error ? <p className="w-full text-xs text-amber-200">{error}</p> : null}
++    </div>
++  )
++}
+diff --git a/frontend/src/components/login-04/login-form.tsx b/frontend/src/components/login-04/login-form.tsx
+index e06b682..9bc1966 100644
+--- a/frontend/src/components/login-04/login-form.tsx
++++ b/frontend/src/components/login-04/login-form.tsx
+@@ -18,6 +18,7 @@ import { Label } from "@/components/ui/label"
+ type LoginResult = {
+   password_must_change?: boolean
+   setup_completed?: boolean
++  impersonation?: { staff_name?: string } | null
+   user?: { tenant?: { setup_completed?: boolean; name?: string; branding?: { logo_url?: string } } }
+   data?: LoginResult
+ }
+@@ -40,6 +41,10 @@ function unwrapLogin(result: LoginResult): LoginResult {
+ 
+ function redirectAfterLogin(result: LoginResult, next: string | null) {
+   const body = unwrapLogin(result)
++  if (body.impersonation) {
++    window.location.assign(next ?? "/dashboard")
++    return
++  }
+   if (body.password_must_change) {
+     window.location.assign("/account/change-password")
+     return
+diff --git a/frontend/src/views/DashboardLayoutPage.tsx b/frontend/src/views/DashboardLayoutPage.tsx
+index 007445a..ff047a4 100644
+--- a/frontend/src/views/DashboardLayoutPage.tsx
++++ b/frontend/src/views/DashboardLayoutPage.tsx
+@@ -7,6 +7,7 @@ import { usePathname } from "next/navigation"
+ import { useEffect, useMemo, useState, type ReactNode } from "react"
+ 
+ import { CloseMobileSidebarOnNavigate } from "@/components/CloseMobileSidebarOnNavigate"
++import { ImpersonationBar } from "@/components/ImpersonationBar"
+ import { DashboardPrefetch } from "@/components/DashboardPrefetch"
+ import { LicenseGate } from "@/components/LicenseGate"
+ import { NotificationBell } from "@/components/NotificationBell"
+@@ -188,14 +189,19 @@ export default function DashboardLayoutPage({
+   const builderEditor = /\/builder\/.+/.test(pathname)
+   if (builderEditor) {
+     return (
+-      <div className="h-svh overflow-hidden bg-[#e8eef5]">
+-        <LicenseGate>{children}</LicenseGate>
++      <div className="flex h-svh flex-col overflow-hidden bg-[#e8eef5]">
++        <ImpersonationBar />
++        <div className="min-h-0 flex-1 overflow-hidden">
++          <LicenseGate>{children}</LicenseGate>
++        </div>
+       </div>
+     )
+   }
+ 
+   return (
+-    <SidebarProvider>
++    <div className="flex min-h-svh flex-col">
++      <ImpersonationBar />
++      <SidebarProvider className="min-h-0 w-full flex-1">
+       {pwaBootstrap.enabled ? (
+         <>
+           <DashboardPwaHead pwa={pwaBootstrap} />
+@@ -341,6 +347,7 @@ export default function DashboardLayoutPage({
+           <p className="text-center md:text-start">{tenantLabel}</p>
+         </footer>
+       </SidebarInset>
+-    </SidebarProvider>
++      </SidebarProvider>
++    </div>
+   )
+ }
+-- 
+2.43.0
+
