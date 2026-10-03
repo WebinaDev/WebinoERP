@@ -10,16 +10,18 @@ use Modules\Crm\Entities\CrmDeal;
 use Modules\Crm\Entities\CrmLead;
 use Modules\Crm\Entities\CrmPipeline;
 use Modules\Crm\Entities\CrmStage;
+use Modules\Crm\Entities\CrmStatus;
 
 class LeadConversionService
 {
     public function convert(CrmLead $lead, array $options = []): array
     {
-        if ($lead->converted_at) {
-            throw new \InvalidArgumentException('Lead already converted');
-        }
-
         return DB::transaction(function () use ($lead, $options) {
+            $lead = CrmLead::query()->whereKey($lead->id)->lockForUpdate()->firstOrFail();
+            if ($lead->converted_at) {
+                throw new \InvalidArgumentException('Lead already converted');
+            }
+
             $existingId = $options['existing_account_id'] ?? null;
             if ($existingId) {
                 $account = CrmAccount::query()->findOrFail($existingId);
@@ -62,9 +64,11 @@ class LeadConversionService
                 }
             }
 
+            $convertedStatus = CrmStatus::query()->where('name', 'Converted')->value('id');
             $lead->update([
                 'converted_at' => now(),
                 'converted_to_account_id' => $account->id,
+                'status_id' => $convertedStatus ?: $lead->status_id,
             ]);
 
             $userId = auth()->id() ?? $lead->assigned_to;

@@ -2,6 +2,7 @@
 
 namespace Modules\Projects\Http\Controllers;
 
+use App\Support\CustomerAccess;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -11,14 +12,16 @@ use Modules\Projects\Entities\ProjectTask;
 use Modules\Projects\Entities\TaskComment;
 use Modules\Projects\Entities\TaskLink;
 use Modules\Projects\Http\Controllers\Concerns\UsesProjectHelpers;
+use Modules\Projects\Support\StatusMachine;
 
 class TaskController extends Controller
 {
     use UsesProjectHelpers;
 
-    public function index(Request $request): JsonResponse
+    public function index(Request $request, CustomerAccess $access): JsonResponse
     {
         $query = ProjectTask::query()->orderByDesc('created_at');
+        $access->scopeTasks($query, $request->user());
         if ($request->filled('project_id')) {
             $query->where('project_id', (int) $request->input('project_id'));
         }
@@ -51,6 +54,7 @@ class TaskController extends Controller
         ]);
         $data['created_by'] = $request->user()->id;
         $data['status'] = $data['status'] ?? 'open';
+        StatusMachine::assert(null, $data['status'], 'task');
         $data['workflow_status_id'] = $data['workflow_status_id'] ?? $this->defaultWorkflowStatusId();
         $task = ProjectTask::query()->create($data);
 
@@ -62,21 +66,25 @@ class TaskController extends Controller
         return $this->store($request);
     }
 
-    public function updateStatus(Request $request, int $id): JsonResponse
+    public function updateStatus(Request $request, int $id, CustomerAccess $access): JsonResponse
     {
-        $task = ProjectTask::query()->findOrFail($id);
+        abort_if($access->isPortalCustomer($request->user()), 403);
+        $task = $this->visibleTask($request, $id, $access);
         $data = $request->validate([
             'status' => 'nullable|string|max:50',
             'workflow_status_id' => 'nullable|exists:prj_workflow_statuses,id',
         ]);
+        if (! empty($data['status'])) {
+            StatusMachine::assert($task->status, $data['status'], 'task');
+        }
         $task->update($data);
 
         return response()->json(['data' => $task->fresh()]);
     }
 
-    public function show(int $id): JsonResponse
+    public function show(Request $request, int $id, CustomerAccess $access): JsonResponse
     {
-        $task = ProjectTask::query()->findOrFail($id);
+        $task = $this->visibleTask($request, $id, $access);
         $comments = TaskComment::query()
             ->where('task_id', $id)
             ->with('user:id,name')
@@ -167,9 +175,10 @@ class TaskController extends Controller
         return response()->json(['data' => ['task_id' => $id]], 201);
     }
 
-    public function update(Request $request, int $id): JsonResponse
+    public function update(Request $request, int $id, CustomerAccess $access): JsonResponse
     {
-        $task = ProjectTask::query()->findOrFail($id);
+        abort_if($access->isPortalCustomer($request->user()), 403);
+        $task = $this->visibleTask($request, $id, $access);
         $data = $request->validate([
             'title' => 'sometimes|string|max:255',
             'status' => 'nullable|string|max:50',
@@ -180,6 +189,9 @@ class TaskController extends Controller
             'due_at' => 'nullable|date',
             'workflow_status_id' => 'nullable|exists:prj_workflow_statuses,id',
         ]);
+        if (! empty($data['status'])) {
+            StatusMachine::assert($task->status, $data['status'], 'task');
+        }
         $task->update($data);
 
         return response()->json(['data' => $task->fresh()]);
@@ -207,9 +219,10 @@ class TaskController extends Controller
         return response()->json([], 204);
     }
 
-    public function search(Request $request): JsonResponse
+    public function search(Request $request, CustomerAccess $access): JsonResponse
     {
         $q = ProjectTask::query()->orderByDesc('id')->limit(30);
+        $access->scopeTasks($q, $request->user());
         if ($request->filled('q')) {
             $s = '%'.$request->string('q').'%';
             $q->where('title', 'like', $s);
@@ -218,18 +231,28 @@ class TaskController extends Controller
         return response()->json(['data' => $q->get()]);
     }
 
-    public function bulkEdit(Request $request): JsonResponse
+    public function bulkEdit(Request $request, CustomerAccess $access): JsonResponse
     {
+        abort_if($access->isPortalCustomer($request->user()), 403);
         $data = $request->validate([
             'ids' => 'required|array',
             'ids.*' => 'exists:prj_tasks,id',
             'assignee_id' => 'nullable|exists:users,id',
             'status' => 'nullable|string|max:50',
         ]);
-        $count = ProjectTask::query()->whereIn('id', $data['ids'])->update(array_filter([
-            'assignee_id' => $data['assignee_id'] ?? null,
-            'status' => $data['status'] ?? null,
-        ], fn ($v) => $v !== null));
+        $count = 0;
+        $tasks = ProjectTask::query()->whereIn('id', $data['ids'])->get();
+        foreach ($tasks as $task) {
+            if (! empty($data['status'])) {
+                StatusMachine::assert($task->status, $data['status'], 'task');
+                $task->status = $data['status'];
+            }
+            if (! empty($data['assignee_id'])) {
+                $task->assignee_id = $data['assignee_id'];
+            }
+            $task->save();
+            $count++;
+        }
 
         return response()->json(['data' => ['updated' => $count]]);
     }
@@ -310,5 +333,13 @@ class TaskController extends Controller
         $rows = DB::table('prj_task_attachments')->where('task_id', $id)->get();
 
         return response()->json(['data' => $rows]);
+    }
+
+    private function visibleTask(Request $request, int $id, CustomerAccess $access): ProjectTask
+    {
+        $query = ProjectTask::query()->whereKey($id);
+        $access->scopeTasks($query, $request->user());
+
+        return $query->firstOrFail();
     }
 }

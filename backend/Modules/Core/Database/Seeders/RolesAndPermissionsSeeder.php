@@ -20,6 +20,10 @@ class RolesAndPermissionsSeeder extends Seeder
 
     public const ROLE_SALES_CONSULTANT = 'sales_consultant';
 
+    public const ROLE_CRM_SPECIALIST = 'crm_specialist';
+
+    public const ROLE_PROJECT_MANAGER = 'project_manager';
+
     public const ROLE_CLIENT = 'client';
 
     public const LABELS = [
@@ -27,6 +31,8 @@ class RolesAndPermissionsSeeder extends Seeder
         self::ROLE_FINANCE_MANAGER => 'مدیر مالی',
         self::ROLE_TEAM_MEMBER => 'عضو تیم',
         self::ROLE_SALES_CONSULTANT => 'کارشناس فروش',
+        self::ROLE_CRM_SPECIALIST => 'کارشناس ارتباط با مشتری',
+        self::ROLE_PROJECT_MANAGER => 'مدیر پروژه',
         self::ROLE_CLIENT => 'مشتری',
     ];
 
@@ -53,6 +59,12 @@ class RolesAndPermissionsSeeder extends Seeder
 
         Role::firstOrCreate(['name' => self::ROLE_SALES_CONSULTANT, 'guard_name' => $guard])
             ->syncPermissions(Permission::whereIn('name', $this->salesConsultantPermissions())->get());
+
+        Role::firstOrCreate(['name' => self::ROLE_CRM_SPECIALIST, 'guard_name' => $guard])
+            ->syncPermissions(Permission::whereIn('name', $this->crmSpecialistPermissions())->get());
+
+        Role::firstOrCreate(['name' => self::ROLE_PROJECT_MANAGER, 'guard_name' => $guard])
+            ->syncPermissions(Permission::whereIn('name', $this->projectManagerPermissions())->get());
 
         Role::firstOrCreate(['name' => self::ROLE_CLIENT, 'guard_name' => $guard])
             ->syncPermissions(Permission::whereIn('name', $this->clientPermissions())->get());
@@ -117,6 +129,7 @@ class RolesAndPermissionsSeeder extends Seeder
                 'projects.invoices.view',
                 'projects.invoices.manage',
                 'projects.import_export',
+                'portal.access',
             ],
             [
                 'accounting.view',
@@ -313,6 +326,69 @@ class RolesAndPermissionsSeeder extends Seeder
             'projects.invoices.view',
             'projects.tickets.view',
             'projects.tickets.manage',
+            'projects.appointments.view',
+            'portal.access',
+        ];
+    }
+
+    /**
+     * @return list<string>
+     */
+    private function crmSpecialistPermissions(): array
+    {
+        return [
+            'core.navigation.view',
+            'core.dashboard.view',
+            'core.notifications.view',
+            'crm.leads.view',
+            'crm.leads.manage',
+            'crm.accounts.view',
+            'crm.accounts.manage',
+            'crm.contacts.view',
+            'crm.contacts.manage',
+            'crm.deals.view',
+            'crm.deals.manage',
+            'crm.consultations.view',
+            'crm.consultations.manage',
+            'crm.campaigns.view',
+            'crm.campaigns.manage',
+            'crm.services.view',
+            'crm.services.manage',
+            'crm.staff.view',
+            'crm.tickets.view',
+            'crm.tickets.manage',
+            'projects.projects.view',
+            'projects.tickets.view',
+            'projects.tickets.manage',
+            'projects.appointments.view',
+            'projects.appointments.manage',
+        ];
+    }
+
+    /**
+     * @return list<string>
+     */
+    private function projectManagerPermissions(): array
+    {
+        return [
+            'core.navigation.view',
+            'core.dashboard.view',
+            'core.notifications.view',
+            'crm.accounts.view',
+            'crm.contacts.view',
+            'projects.projects.view',
+            'projects.projects.manage',
+            'projects.contracts.view',
+            'projects.contracts.manage',
+            'projects.tasks.view',
+            'projects.tasks.manage',
+            'projects.tickets.view',
+            'projects.tickets.manage',
+            'projects.appointments.view',
+            'projects.appointments.manage',
+            'projects.invoices.view',
+            'projects.invoices.manage',
+            'projects.import_export',
         ];
     }
 }

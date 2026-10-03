@@ -52,7 +52,7 @@ class RbacMatrixTest extends TestCase
         $this->getJson('/api/v1/accounting/journals')->assertOk();
         $this->getJson('/api/v1/accounting/chart')->assertOk();
         $this->getJson('/api/v1/hrm/employees')->assertForbidden();
-        $this->getJson('/api/v1/scm/inbound')->assertForbidden();
+        $this->getJson('/api/v1/scm/inbound')->assertOk();
     }
 
     public function test_team_member_can_access_projects_and_hrm_attendance(): void

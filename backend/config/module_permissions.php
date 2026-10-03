@@ -79,6 +79,7 @@ return [
         'task-templates' => ['view' => 'projects.tasks.view', 'manage' => 'projects.tasks.manage'],
         'project-templates' => ['view' => 'projects.projects.view', 'manage' => 'projects.projects.manage'],
         'assignable-users' => ['view' => 'projects.projects.view', 'manage' => 'projects.projects.view'],
+        'portal' => ['view' => 'portal.access', 'manage' => 'portal.access'],
         '*' => ['view' => 'projects.projects.view', 'manage' => 'projects.projects.manage'],
     ],
     'scm' => [

@@ -4,7 +4,7 @@ import { useCallback, useEffect, useState } from 'react';
 import { useTranslations } from 'next-intl';
 import apiClient from '@/lib/api-client';
 import { getAxiosMessage, unwrapData } from '@/lib/api-helpers';
-import { normalizeListPayload } from '@/lib/list-utils';
+import { readPage } from '@/lib/list-utils';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
@@ -96,12 +96,12 @@ export function CustomersListPage() {
         }),
         apiClient.get('/v1/crm/accounts/summary'),
       ]);
-      const pageData = unwrapData<Record<string, unknown>>(listRes);
-      setRows(normalizeListPayload(pageData));
+      const pageData = readPage(listRes.data);
+      setRows(pageData.rows);
       setMeta({
-        current_page: typeof pageData.current_page === 'number' ? pageData.current_page : undefined,
-        last_page: typeof pageData.last_page === 'number' ? pageData.last_page : undefined,
-        total: typeof pageData.total === 'number' ? pageData.total : undefined,
+        current_page: typeof pageData.meta.current_page === 'number' ? pageData.meta.current_page : undefined,
+        last_page: typeof pageData.meta.last_page === 'number' ? pageData.meta.last_page : undefined,
+        total: typeof pageData.meta.total === 'number' ? pageData.meta.total : undefined,
       });
       setSummary(unwrapData<Summary>(sumRes));
     } catch (e) {
@@ -341,13 +341,15 @@ export function CustomersListPage() {
                 <th className="px-3 py-2 text-start">{t('name')}</th>
                 <th className="px-3 py-2 text-start">{t('type')}</th>
                 <th className="px-3 py-2 text-start">{t('owner')}</th>
+                <th className="px-3 py-2 text-start">{t('sites')}</th>
+                <th className="px-3 py-2 text-start">{t('projects')}</th>
                 <th className="px-3 py-2 text-start"> </th>
               </tr>
             </thead>
             <tbody>
               {loading ? (
                 <tr>
-                  <td colSpan={6} className="px-3 py-6 text-center text-muted-foreground">
+                  <td colSpan={8} className="px-3 py-6 text-center text-muted-foreground">
                     {tCommon('loading')}
                   </td>
                 </tr>
@@ -374,6 +376,8 @@ export function CustomersListPage() {
                       <td className="px-3 py-2">{nameStr}</td>
                       <td className="px-3 py-2">{typeLabel(r.type)}</td>
                       <td className="px-3 py-2">{String(r.owner_id ?? '—')}</td>
+                      <td className="px-3 py-2">{String(r.site_provisions_count ?? 0)}</td>
+                      <td className="px-3 py-2">{String(r.projects_count ?? 0)}</td>
                       <td className="px-3 py-2">
                         <div className="flex flex-wrap gap-1">
                           <Button type="button" variant="ghost" size="sm" onClick={() => setCustomer360Id(id)}>

@@ -2,10 +2,16 @@
 
 namespace Modules\Crm\Http\Controllers;
 
+use App\Models\User;
 use App\Support\AppliesIndexQuery;
 use App\Support\BulkActionRequest;
+use App\Support\CustomerAccess;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Schema;
+use Illuminate\Support\Str;
+use Illuminate\Validation\ValidationException;
+use Modules\Core\Database\Seeders\RolesAndPermissionsSeeder;
 use Modules\Crm\Entities\CrmAccount;
 use Modules\Crm\Entities\CrmConsultation;
 use Modules\Crm\Http\Requests\StoreAccountRequest;
@@ -18,7 +24,11 @@ class AccountController extends Controller
 
     public function index(Request $request): JsonResponse
     {
-        $query = CrmAccount::query()->orderByDesc('created_at');
+        $query = CrmAccount::query()->withCount(['projects', 'tickets']);
+        if (Schema::hasTable('webino_site_provisions')) {
+            $query->withCount('siteProvisions');
+        }
+        $query->orderByDesc('created_at');
         $paginator = $this->applyIndexQuery(
             $query,
             $request,
@@ -42,7 +52,7 @@ class AccountController extends Controller
 
     public function show(int $id): JsonResponse
     {
-        $account = CrmAccount::query()->with(['contacts'])->findOrFail($id);
+        $account = CrmAccount::query()->with(['contacts', 'portalUsers:id,name,email'])->withCount(['projects', 'tickets'])->findOrFail($id);
 
         return response()->json(['data' => $account]);
     }
@@ -67,6 +77,60 @@ class AccountController extends Controller
         CrmAccount::query()->whereIn('id', $request->validated('ids'))->delete();
 
         return response()->json(['data' => ['deleted' => count($request->validated('ids'))]]);
+    }
+
+    public function portalAccess(Request $request, int $id): JsonResponse
+    {
+        $account = CrmAccount::query()->findOrFail($id);
+        $data = $request->validate([
+            'email' => 'required|email|max:150',
+            'name' => 'required|string|max:150',
+            'password' => 'nullable|string|min:8|max:100',
+        ]);
+
+        $user = User::query()->where('email', $data['email'])->first();
+        $temporary = null;
+        $created = false;
+        if (! $user) {
+            $temporary = $data['password'] ?: Str::password(12);
+            $user = User::query()->create([
+                'name' => $data['name'],
+                'email' => $data['email'],
+                'password' => $temporary,
+            ]);
+            $user->forceFill([
+                'is_active' => true,
+                'email_verified_at' => now(),
+            ])->save();
+            $created = true;
+        } else {
+            foreach (CustomerAccess::STAFF_ROLES as $role) {
+                if ($user->hasRole($role)) {
+                    throw ValidationException::withMessages([
+                        'email' => 'Staff accounts cannot be used as customer portal logins.',
+                    ]);
+                }
+            }
+        }
+
+        if (! $user->hasRole(RolesAndPermissionsSeeder::ROLE_CLIENT)) {
+            $user->assignRole(RolesAndPermissionsSeeder::ROLE_CLIENT);
+        }
+
+        $isPrimary = ! $account->portalUsers()->exists();
+        $account->portalUsers()->syncWithoutDetaching([
+            $user->id => ['is_primary' => $isPrimary],
+        ]);
+
+        return response()->json([
+            'data' => [
+                'user_id' => $user->id,
+                'email' => $user->email,
+                'name' => $user->name,
+                'account_id' => $account->id,
+                'temporary_password' => $temporary,
+            ],
+        ], $created ? 201 : 200);
     }
 
     public function duplicates(int $id, DuplicateDetectionService $duplicates): JsonResponse

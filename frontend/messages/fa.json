@@ -364,6 +364,7 @@
     "remember": "مرا به خاطر بسپار",
     "backHome": "بازگشت",
     "heroHint": "مدیریت یکپارچه کسب‌وکار",
+    "customerHint": "مشتریان با همین صفحه وارد می‌شوند و فقط پروژه‌ها، تیکت‌ها و قرارهای سایت خود را می‌بینند.",
     "error": "ورود ناموفق بود",
     "pending": "در حال ورود…",
     "passwordTab": "رمز عبور",
@@ -2612,7 +2613,13 @@
       "deals": "معاملات",
       "tickets": "تیکت‌ها",
       "contacts": "مخاطبین",
-      "activities": "فعالیت‌ها"
+      "activities": "فعالیت‌ها",
+      "projects": "پروژه‌ها",
+      "portalTitle": "ورود پورتال مشتری",
+      "portalName": "نام",
+      "portalEmail": "ایمیل",
+      "portalGrant": "ایجاد دسترسی مشتری",
+      "portalPassword": "رمز یک‌بار نمایش"
     },
     "import": {
       "title": "ورود CSV",
@@ -2758,6 +2765,8 @@
       "description": "توضیحات",
       "selectAll": "انتخاب همه در این صفحه",
       "typeCustomer": "مشتری",
+      "sites": "سایت‌ها",
+      "projects": "پروژه‌ها",
       "typeIndividual": "حقیقی",
       "typeCompany": "حقوقی"
     }
@@ -3932,6 +3941,8 @@
       "team_member": "عضو تیم",
       "sales_consultant": "مشاور فروش",
       "client": "مشتری",
+      "crm_specialist": "کارشناس ارتباط با مشتری",
+      "project_manager": "مدیر پروژه",
       "guest": "مهمان"
     },
     "stats": {
@@ -3946,7 +3957,22 @@
       "ticketsAssigned": "تیکت‌های محول‌شده"
     },
     "client": {
-      "projects": "پروژه‌های من"
+      "projects": "پروژه‌های من",
+      "tickets": "تیکت‌ها",
+      "appointments": "قرارها",
+      "sites": "سایت‌ها",
+      "openTickets": "تیکت‌های باز",
+      "book": "درخواست قرار",
+      "requestSent": "درخواست قرار ثبت شد",
+      "ticketSent": "تیکت ثبت شد",
+      "progress": "پیشرفت",
+      "noProjects": "پروژه‌ای ثبت نشده",
+      "noTickets": "تیکتی ثبت نشده",
+      "noSites": "سایتی متصل نشده",
+      "portalTitle": "پورتال مشتری",
+      "subject": "موضوع",
+      "message": "شرح درخواست",
+      "appointmentTitle": "عنوان قرار"
     },
     "finance": {
       "summary": "خلاصه مالی",
@@ -3990,6 +4016,7 @@
       "customers": "مشتریان",
       "tasks": "وظایف",
       "tickets": "تیکت‌ها",
+      "appointments": "قرارها",
       "time": "زمان‌سنجی",
       "profile": "پروفایل"
     }
@@ -4023,6 +4050,7 @@
       "amount": "مبلغ",
       "subject": "موضوع",
       "createdAt": "تاریخ ایجاد",
+      "progress": "پیشرفت",
       "noTasks": "وظیفی ثبت نشده",
       "noContracts": "قراردادی ثبت نشده",
       "noTickets": "تیکتی ثبت نشده",

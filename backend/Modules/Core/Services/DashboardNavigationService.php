@@ -21,6 +21,8 @@ class DashboardNavigationService
         return match ($role) {
             RolesAndPermissionsSeeder::ROLE_SYSTEM_MANAGER => $this->managerMenu(),
             RolesAndPermissionsSeeder::ROLE_FINANCE_MANAGER => $this->financeMenu(),
+            RolesAndPermissionsSeeder::ROLE_PROJECT_MANAGER => $this->projectManagerMenu(),
+            RolesAndPermissionsSeeder::ROLE_CRM_SPECIALIST => $this->crmSpecialistMenu(),
             RolesAndPermissionsSeeder::ROLE_TEAM_MEMBER => $this->teamMemberMenu(),
             RolesAndPermissionsSeeder::ROLE_SALES_CONSULTANT => $this->salesMenu(),
             RolesAndPermissionsSeeder::ROLE_CLIENT => $this->customerMenu(),
@@ -33,6 +35,8 @@ class DashboardNavigationService
         $order = [
             RolesAndPermissionsSeeder::ROLE_SYSTEM_MANAGER,
             RolesAndPermissionsSeeder::ROLE_FINANCE_MANAGER,
+            RolesAndPermissionsSeeder::ROLE_PROJECT_MANAGER,
+            RolesAndPermissionsSeeder::ROLE_CRM_SPECIALIST,
             RolesAndPermissionsSeeder::ROLE_TEAM_MEMBER,
             RolesAndPermissionsSeeder::ROLE_SALES_CONSULTANT,
             RolesAndPermissionsSeeder::ROLE_CLIENT,
@@ -234,6 +238,51 @@ class DashboardNavigationService
     /**
      * @return list<array<string, mixed>>
      */
+    private function projectManagerMenu(): array
+    {
+        $base = '/dashboard';
+
+        return [
+            ['type' => 'category', 'title' => 'مدیریت پروژه'],
+            ['id' => 'dashboard', 'title' => 'داشبورد', 'href' => $base, 'icon' => 'Home'],
+            ['id' => 'projects', 'title' => 'پروژه‌ها', 'href' => $base.'/projects', 'icon' => 'FolderOpen'],
+            ['id' => 'tasks', 'title' => 'وظایف', 'href' => $base.'/tasks', 'icon' => 'CheckSquare'],
+            ['id' => 'contracts', 'title' => 'قراردادها', 'href' => $base.'/contracts', 'icon' => 'FileText'],
+            ['id' => 'tickets', 'title' => 'تیکت‌ها', 'href' => $base.'/tickets', 'icon' => 'Headphones'],
+            ['id' => 'appointments', 'title' => 'قرار ملاقات‌ها', 'href' => $base.'/appointments', 'icon' => 'CalendarCheck'],
+            ['id' => 'invoices', 'title' => 'پیش‌فاکتورها', 'href' => $base.'/invoices', 'icon' => 'FileSpreadsheet'],
+            ['type' => 'category', 'title' => 'ارتباط با مشتری'],
+            ['id' => 'customers', 'title' => 'مشتریان', 'href' => $base.'/customers', 'icon' => 'Users'],
+            ['type' => 'category', 'title' => 'حساب کاربری'],
+            ['id' => 'profile', 'title' => 'پروفایل من', 'href' => $base.'/profile', 'icon' => 'UserCircle'],
+        ];
+    }
+
+    /**
+     * @return list<array<string, mixed>>
+     */
+    private function crmSpecialistMenu(): array
+    {
+        $base = '/dashboard';
+
+        return [
+            ['type' => 'category', 'title' => 'ارتباط با مشتری'],
+            ['id' => 'dashboard', 'title' => 'داشبورد', 'href' => $base, 'icon' => 'Home'],
+            ['id' => 'leads', 'title' => 'سرنخ‌ها', 'href' => $base.'/leads', 'icon' => 'UserPlus'],
+            ['id' => 'customers', 'title' => 'مشتریان', 'href' => $base.'/customers', 'icon' => 'Users'],
+            ['id' => 'tickets', 'title' => 'تیکت‌ها', 'href' => $base.'/tickets', 'icon' => 'Headphones'],
+            ['id' => 'consultations', 'title' => 'مشاوره‌ها', 'href' => $base.'/consultations', 'icon' => 'MessageCircle'],
+            ['id' => 'appointments', 'title' => 'قرار ملاقات‌ها', 'href' => $base.'/appointments', 'icon' => 'CalendarCheck'],
+            ['type' => 'category', 'title' => 'مدیریت پروژه'],
+            ['id' => 'projects', 'title' => 'پروژه‌ها', 'href' => $base.'/projects', 'icon' => 'FolderOpen'],
+            ['type' => 'category', 'title' => 'حساب کاربری'],
+            ['id' => 'profile', 'title' => 'پروفایل من', 'href' => $base.'/profile', 'icon' => 'UserCircle'],
+        ];
+    }
+
+    /**
+     * @return list<array<string, mixed>>
+     */
     private function customerMenu(): array
     {
         $base = '/dashboard';
@@ -247,6 +296,7 @@ class DashboardNavigationService
             $items[] = ['id' => 'projects', 'title' => 'پروژه‌های من', 'href' => $base.'/projects', 'icon' => 'FolderOpen'];
             $items[] = ['id' => 'contracts', 'title' => 'قراردادهای من', 'href' => $base.'/contracts', 'icon' => 'FileText'];
             $items[] = ['id' => 'invoices', 'title' => 'پیش‌فاکتورهای من', 'href' => $base.'/invoices', 'icon' => 'FileSpreadsheet'];
+            $items[] = ['id' => 'appointments', 'title' => 'قرارهای مشاوره', 'href' => $base.'/appointments', 'icon' => 'CalendarCheck'];
         }
         if ($this->moduleEnabled('crm')) {
             $items[] = ['id' => 'tickets', 'title' => 'تیکت‌های پشتیبانی', 'href' => $base.'/tickets', 'icon' => 'Headphones'];

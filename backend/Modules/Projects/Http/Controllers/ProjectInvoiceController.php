@@ -3,21 +3,26 @@
 namespace Modules\Projects\Http\Controllers;
 
 use App\Services\PdfGeneratorService;
+use App\Support\CustomerAccess;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
+use Modules\Crm\Entities\CrmAccount;
+use Modules\Crm\Entities\CrmActivity;
 use Modules\Projects\Entities\ProInvoice;
+use Modules\Projects\Entities\Project;
 use Modules\Projects\Http\Controllers\Concerns\UsesProjectHelpers;
 
 class ProjectInvoiceController extends Controller
 {
     use UsesProjectHelpers;
 
-    public function index(Request $request): JsonResponse
+    public function index(Request $request, CustomerAccess $access): JsonResponse
     {
         $q = ProInvoice::query()->orderByDesc('id');
+        $access->scopeInvoices($q, $request->user());
         if ($request->filled('status')) {
             $q->where('status', $request->string('status'));
         }
@@ -27,22 +32,35 @@ class ProjectInvoiceController extends Controller
         if ($request->filled('project_id')) {
             $q->where('project_id', (int) $request->input('project_id'));
         }
-        $perPage = min((int) $request->input('per_page', 15), 100);
+        $perPage = min(max((int) $request->input('per_page', 15), 1), 100);
+        $paginator = $q->paginate($perPage);
 
-        return response()->json(['data' => $q->paginate($perPage)]);
+        return response()->json([
+            'data' => $paginator->items(),
+            'meta' => [
+                'current_page' => $paginator->currentPage(),
+                'per_page' => $paginator->perPage(),
+                'total' => $paginator->total(),
+                'last_page' => $paginator->lastPage(),
+            ],
+        ]);
     }
 
-    public function store(Request $request): JsonResponse
+    public function store(Request $request, CustomerAccess $access): JsonResponse
     {
-        return $this->manage($request);
+        abort_if($access->isPortalCustomer($request->user()), 403);
+
+        return $this->manage($request, $access);
     }
 
-    public function update(Request $request): JsonResponse
+    public function update(Request $request, CustomerAccess $access): JsonResponse
     {
-        return $this->manage($request);
+        abort_if($access->isPortalCustomer($request->user()), 403);
+
+        return $this->manage($request, $access);
     }
 
-    public function manage(Request $request): JsonResponse
+    public function manage(Request $request, CustomerAccess $access): JsonResponse
     {
         $payload = $request->validate([
             'id' => 'nullable|exists:prj_pro_invoices,id',
@@ -56,32 +74,35 @@ class ProjectInvoiceController extends Controller
             'notes' => 'nullable|string',
             'customer_user_id' => 'nullable|exists:users,id',
         ]);
-        if (! empty($payload['id'])) {
-            $inv = ProInvoice::query()->findOrFail($payload['id']);
+        $creating = empty($payload['id']);
+        if (! $creating) {
+            $inv = $this->visibleInvoice($request, (int) $payload['id'], $access);
             $inv->update(collect($payload)->except('id')->all());
         } else {
             $payload['created_by'] = $request->user()->id;
-            $inv = ProInvoice::query()->create($payload);
+            $inv = ProInvoice::query()->create(collect($payload)->except('id')->all());
         }
+        $this->syncPaidInvoice($inv->fresh(), $request);
 
-        return response()->json(['data' => $inv], empty($payload['id']) ? 201 : 200);
+        return response()->json(['data' => $inv->fresh()], $creating ? 201 : 200);
     }
 
-    public function show(int $id): JsonResponse
+    public function show(Request $request, int $id, CustomerAccess $access): JsonResponse
     {
-        return response()->json(['data' => ProInvoice::query()->findOrFail($id)]);
+        return response()->json(['data' => $this->visibleInvoice($request, $id, $access)]);
     }
 
-    public function destroy(int $id): JsonResponse
+    public function destroy(Request $request, int $id, CustomerAccess $access): JsonResponse
     {
-        ProInvoice::query()->whereKey($id)->delete();
+        abort_if($access->isPortalCustomer($request->user()), 403);
+        $this->visibleInvoice($request, $id, $access)->delete();
 
         return response()->json([], 204);
     }
 
-    public function pdf(Request $request, int $id): JsonResponse
+    public function pdf(Request $request, int $id, CustomerAccess $access): JsonResponse
     {
-        $invoice = ProInvoice::query()->findOrFail($id);
+        $invoice = $this->visibleInvoice($request, $id, $access);
         $html = view('pdf.pro-invoice', ['invoice' => $invoice])->render();
         $binary = app(PdfGeneratorService::class)->htmlToPdf($html);
         if ($binary === null) {
@@ -107,9 +128,10 @@ class ProjectInvoiceController extends Controller
         ]);
     }
 
-    public function sendEmail(Request $request, int $id): JsonResponse
+    public function sendEmail(Request $request, int $id, CustomerAccess $access): JsonResponse
     {
-        $invoice = ProInvoice::query()->findOrFail($id);
+        abort_if($access->isPortalCustomer($request->user()), 403);
+        $invoice = $this->visibleInvoice($request, $id, $access);
         $data = $request->validate(['to' => 'required|email']);
         $htmlPdf = view('pdf.pro-invoice', ['invoice' => $invoice])->render();
         $binary = app(PdfGeneratorService::class)->htmlToPdf($htmlPdf);
@@ -131,5 +153,43 @@ class ProjectInvoiceController extends Controller
 
             return response()->json(['message' => 'Mail failed: '.$e->getMessage()], 422);
         }
+    }
+
+    private function visibleInvoice(Request $request, int $id, CustomerAccess $access): ProInvoice
+    {
+        $query = ProInvoice::query()->whereKey($id);
+        $access->scopeInvoices($query, $request->user());
+
+        return $query->firstOrFail();
+    }
+
+    private function syncPaidInvoice(ProInvoice $invoice, Request $request): void
+    {
+        if ((string) $invoice->status !== 'paid' || ! $invoice->project_id || ! $request->user()) {
+            return;
+        }
+        $project = Project::query()->find($invoice->project_id);
+        if (! $project?->customer_account_id) {
+            return;
+        }
+        $subject = 'Invoice #'.$invoice->id.' paid';
+        $exists = CrmActivity::query()
+            ->where('related_model', CrmAccount::class)
+            ->where('related_id', $project->customer_account_id)
+            ->where('subject', $subject)
+            ->exists();
+        if ($exists) {
+            return;
+        }
+        CrmActivity::query()->create([
+            'type' => 'invoice_paid',
+            'subject' => $subject,
+            'description' => 'Project invoice marked paid.',
+            'related_model' => CrmAccount::class,
+            'related_id' => $project->customer_account_id,
+            'outcome' => 'Success',
+            'completed_at' => now(),
+            'created_by' => $request->user()->id,
+        ]);
     }
 }
