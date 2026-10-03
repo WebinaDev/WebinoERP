@@ -19,6 +19,8 @@ export const metadata: Metadata = {
     icon: [{ url: "/brand/favicon.png", type: "image/png" }],
     apple: "/brand/apple-touch-icon.png",
   },
+  manifest: "/manifest.webmanifest",
+  appleWebApp: { capable: true, title: "Webino ERP" },
 }
 
 export const viewport: Viewport = {

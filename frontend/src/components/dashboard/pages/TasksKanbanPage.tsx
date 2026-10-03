@@ -39,13 +39,15 @@ import type { TaskCalendarEvent, TaskGanttItem, TaskRow } from '@/features/modul
 type ViewMode = 'kanban' | 'list' | 'calendar' | 'gantt';
 
 type KanbanData = {
-  columns?: { id: number; name: string; color?: string | null }[];
+  swimlane_field?: string;
+  columns?: { id: number; name: string; color?: string | null; wip_limit?: number | null }[];
   cards?: {
     id: number;
     column_id?: number | null;
     title?: string;
     status?: string;
     priority?: string | null;
+    swimlane_key?: string | null;
   }[];
 };
 
@@ -109,11 +111,13 @@ function ColumnDrop({
   children,
   name,
   color,
+  wip,
 }: {
   colId: number;
   children: React.ReactNode;
   name: string;
   color?: string | null;
+  wip?: string | null;
 }) {
   const { setNodeRef, isOver } = useDroppable({ id: `col-${colId}` });
   return (
@@ -125,7 +129,10 @@ function ColumnDrop({
       )}
       style={color ? { borderTopColor: color, borderTopWidth: 3 } : undefined}
     >
-      <p className="text-xs font-semibold text-muted-foreground">{name}</p>
+      <p className="text-xs font-semibold text-muted-foreground">
+        {name}
+        {wip ? <span className="ms-1 font-normal">{wip}</span> : null}
+      </p>
       {children}
     </div>
   );
@@ -602,19 +609,36 @@ export function TasksKanbanPage() {
             {loading ? <p className="text-sm text-muted-foreground">{tc('loading')}</p> : null}
             <DndContext sensors={sensors} collisionDetection={closestCorners} onDragEnd={onDragEnd}>
               <div className="flex gap-3 overflow-x-auto pb-2">
-                {columns.map((col) => (
-                  <ColumnDrop key={col.id} colId={col.id} name={col.name} color={col.color}>
-                    {(cardsByCol.get(col.id) ?? []).map((c) => (
-                      <DraggableTask
-                        key={c.id}
-                        id={c.id}
-                        title={`${c.title ?? `#${formatDigits(c.id)}`}${c.priority ? ` · ${priorityLabel(c.priority)}` : ''}`}
-                        onOpen={setDetailTaskId}
-                        onDelete={deleteTask}
-                      />
-                    ))}
-                  </ColumnDrop>
-                ))}
+                {columns.map((col) => {
+                  const colCards = cardsByCol.get(col.id) ?? [];
+                  const lanes = new Map<string, typeof colCards>();
+                  for (const card of colCards) {
+                    const lane = card.swimlane_key?.trim() || '';
+                    const bucket = lanes.get(lane) ?? [];
+                    bucket.push(card);
+                    lanes.set(lane, bucket);
+                  }
+                  const wip =
+                    col.wip_limit != null ? `${formatDigits(colCards.length)}/${formatDigits(col.wip_limit)}` : null;
+                  return (
+                    <ColumnDrop key={col.id} colId={col.id} name={col.name} color={col.color} wip={wip}>
+                      {[...lanes.entries()].map(([lane, laneCards]) => (
+                        <div key={lane || 'all'} className="space-y-2">
+                          {lane ? <p className="text-[11px] text-muted-foreground">{lane}</p> : null}
+                          {laneCards.map((c) => (
+                            <DraggableTask
+                              key={c.id}
+                              id={c.id}
+                              title={`${c.title ?? `#${formatDigits(c.id)}`}${c.priority ? ` · ${priorityLabel(c.priority)}` : ''}`}
+                              onOpen={setDetailTaskId}
+                              onDelete={deleteTask}
+                            />
+                          ))}
+                        </div>
+                      ))}
+                    </ColumnDrop>
+                  );
+                })}
               </div>
             </DndContext>
           </CardContent>

@@ -177,6 +177,14 @@ import { BuilderListPage } from '@/features/marketing-builder/builder-page';
 import { BuilderSettingsPage } from '@/features/marketing-builder/builder-settings-page';
 import { ThemeBuilderPage } from '@/features/marketing-builder/theme-builder-page';
 import { UnknownRoutePage } from '@/features/shell/errors/UnknownRoutePage';
+import { ConnectPage } from '@/features/expansion/ConnectPage';
+import { CompaniesPage } from '@/features/expansion/CompaniesPage';
+import { PriceBookPage } from '@/features/expansion/PriceBookPage';
+import { LeadFormsPage } from '@/features/expansion/LeadFormsPage';
+import { EsignPage } from '@/features/expansion/EsignPage';
+import { ContentCalendarPage } from '@/features/expansion/ContentCalendarPage';
+import { PlanningPage } from '@/features/expansion/PlanningPage';
+import { StudioPage } from '@/features/expansion/StudioPage';
 
 const FINANCE_PAGES: Record<string, ReactNode> = {
   finance: <AccountingDashboardPage />,
@@ -212,6 +220,14 @@ const EXACT: Record<string, ReactNode> = {
   'pm/workload': <PmWorkloadPage />,
   'pm/connectors': <PmConnectorsPage />,
   'pm/audit': <AuditLogPage module="projects" />,
+  'crm/companies': <CompaniesPage />,
+  'crm/price-book': <PriceBookPage />,
+  'crm/forms': <LeadFormsPage />,
+  'crm/esign': <EsignPage />,
+  'crm/content': <ContentCalendarPage />,
+  'pm/planning': <PlanningPage />,
+  'admin/connect': <ConnectPage />,
+  'admin/studio': <StudioPage />,
   'crm/tickets': <TicketsListPage />,
   tickets: <TicketsListPage />,
   'crm/consultations': <ConsultationsListPage />,

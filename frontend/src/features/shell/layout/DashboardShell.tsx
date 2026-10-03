@@ -28,6 +28,8 @@ import { getCurrentUser, logout } from '@/lib/auth';
 import { htmlDir, sidebarSide } from '@/lib/locale';
 import { usePermissions } from '@/features/shared/hooks/usePermissions';
 import { usePathname, useRouter } from '@/lib/i18n-navigation';
+import { NotificationBell } from '@/features/expansion/NotificationBell';
+import { PwaRegistrar } from '@/features/expansion/PwaRegistrar';
 
 function toDashboardUrl(path: string): string {
   const raw = path.replace(/^\//, '');
@@ -185,6 +187,8 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
               </BreadcrumbList>
             </Breadcrumb>
             <div className="ms-auto flex items-center gap-2">
+              <PwaRegistrar />
+              <NotificationBell />
               <Button
                 type="button"
                 variant="outline"

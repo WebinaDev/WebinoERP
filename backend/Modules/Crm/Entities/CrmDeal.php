@@ -16,6 +16,7 @@ class CrmDeal extends Model
         'name', 'account_id', 'contact_id', 'pipeline_id', 'stage_id', 'amount',
         'probability', 'close_date', 'type', 'loss_reason', 'campaign_source',
         'assigned_to', 'description', 'won_at', 'lost_at', 'created_by',
+        'company_id', 'currency_code',
     ];
 
     protected $casts = [

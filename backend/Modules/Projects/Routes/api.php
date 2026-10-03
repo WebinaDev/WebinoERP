@@ -9,6 +9,7 @@ use Modules\Projects\Http\Controllers\MilestoneController;
 use Modules\Projects\Http\Controllers\FormController;
 use Modules\Projects\Http\Controllers\KanbanParityController;
 use Modules\Projects\Http\Controllers\PmDeliveryController;
+use Modules\Projects\Http\Controllers\PmPlanningController;
 use Modules\Projects\Http\Controllers\ProjectController;
 use Modules\Projects\Http\Controllers\ProjectInvoiceController;
 use Modules\Projects\Http\Controllers\ProjectProductController;
@@ -179,6 +180,16 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('/appointments/{id}', [AppointmentController::class, 'show'])->whereNumber('id');
     Route::delete('/appointments/{id}', [AppointmentController::class, 'destroy'])->whereNumber('id');
     Route::patch('/appointments/{id}/date', [AppointmentController::class, 'updateDate'])->whereNumber('id');
+
+    Route::post('/planning/critical-path', [PmPlanningController::class, 'criticalPath']);
+    Route::get('/planning/baselines', [PmPlanningController::class, 'baselines']);
+    Route::post('/planning/baselines', [PmPlanningController::class, 'storeBaseline']);
+    Route::post('/planning/capacity', [PmPlanningController::class, 'saveCapacity']);
+    Route::post('/planning/leave', [PmPlanningController::class, 'storeLeave']);
+    Route::get('/planning/capacity', [PmPlanningController::class, 'capacity']);
+    Route::patch('/kanban/boards/{id}', [PmPlanningController::class, 'updateBoard'])->whereNumber('id');
+    Route::post('/offline/ops', [PmPlanningController::class, 'offline']);
+    Route::post('/ai/assist', [PmPlanningController::class, 'assist']);
 
     Route::get('/kanban/data', [KanbanParityController::class, 'data']);
     Route::post('/kanban/cards', [KanbanParityController::class, 'createCard']);

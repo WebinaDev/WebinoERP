@@ -132,6 +132,7 @@ npm run dev
 
 - [معماری سیستم](ARCHITECTURE.MD)
 - [مستندات ماژول CRM](CRM.MD)
+- [اتصال زنده، CRM پیشرفته، برنامه‌ریزی و استودیو](docs/EXPANSION.md)
 - [مستندات API (مرجع)](REVIEW_API_SPECIFICATION.md)
 - [نگاشت AJAX وردپرس به REST](backend/docs/AJAX_TO_API_INVENTORY.md)
 - [وضعیت مسیرهای API در برابر inventory](backend/docs/API_ROUTE_VERIFICATION.md)

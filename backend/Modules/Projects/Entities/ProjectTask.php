@@ -29,6 +29,8 @@ class ProjectTask extends Model
         'due_at',
         'starts_at',
         'estimate_hours',
+        'start_at',
+        'duration_days',
         'created_by',
     ];
 
@@ -38,6 +40,8 @@ class ProjectTask extends Model
             'due_at' => 'datetime',
             'starts_at' => 'datetime',
             'estimate_hours' => 'decimal:2',
+            'start_at' => 'datetime',
+            'duration_days' => 'integer',
             'checklist' => 'array',
             'time_logs' => 'array',
             'recurrence' => 'array',

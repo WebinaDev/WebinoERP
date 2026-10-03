@@ -7,7 +7,34 @@ use Modules\Integrations\Http\Controllers\ModirPayamakCustomerController;
 use Modules\Integrations\Http\Controllers\ModirPayamakSettingsController;
 use Modules\Integrations\Http\Controllers\PaymentIntegrationController;
 use Modules\Integrations\Http\Controllers\SmsIntegrationController;
+use Modules\Integrations\Http\Controllers\LiveConnectController;
 use Modules\Integrations\Http\Controllers\TelegramIntegrationController;
+
+Route::post('/calendars/webhook/google', [LiveConnectController::class, 'googleWebhook'])->middleware('throttle:120,1');
+Route::match(['get', 'post'], '/calendars/webhook/outlook', [LiveConnectController::class, 'outlookWebhook'])->middleware('throttle:120,1');
+Route::get('/calendars/callback/{provider}', [LiveConnectController::class, 'callback'])->whereIn('provider', ['google', 'outlook']);
+Route::post('/bridges/webhook/{provider}', [LiveConnectController::class, 'bridgeWebhook'])->whereIn('provider', ['slack', 'bale', 'telegram'])->middleware('throttle:120,1');
+
+Route::middleware(['auth:sanctum', 'module:integrations', 'module.permission:integrations'])->group(function () {
+    Route::get('/calendars/connect/{provider}', [LiveConnectController::class, 'connectUrl'])->whereIn('provider', ['google', 'outlook']);
+    Route::get('/calendars', [LiveConnectController::class, 'calendarsIndex']);
+    Route::post('/calendars', [LiveConnectController::class, 'storeCalendar']);
+    Route::post('/calendars/{id}/sync', [LiveConnectController::class, 'syncCalendar'])->whereNumber('id');
+    Route::get('/bridges', [LiveConnectController::class, 'bridgesIndex']);
+    Route::post('/bridges', [LiveConnectController::class, 'storeBridge']);
+    Route::get('/bridges/{id}/messages', [LiveConnectController::class, 'bridgeMessages'])->whereNumber('id');
+    Route::get('/mailbox', [LiveConnectController::class, 'mailboxIndex']);
+    Route::post('/mailbox', [LiveConnectController::class, 'storeMailbox']);
+    Route::post('/mailbox/{id}/sync', [LiveConnectController::class, 'syncMailbox'])->whereNumber('id');
+    Route::post('/mailbox/{id}/import', [LiveConnectController::class, 'importMail'])->whereNumber('id');
+    Route::get('/mailbox/{id}/threads', [LiveConnectController::class, 'threads'])->whereNumber('id');
+    Route::post('/mailbox/{id}/send', [LiveConnectController::class, 'sendMail'])->whereNumber('id');
+    Route::post('/mailbox/messages/{id}/link', [LiveConnectController::class, 'linkMail'])->whereNumber('id');
+    Route::get('/notifications/feed', [LiveConnectController::class, 'feed']);
+    Route::post('/notifications/dispatch', [LiveConnectController::class, 'dispatchNote']);
+    Route::get('/sms-rules', [LiveConnectController::class, 'smsPolicy']);
+    Route::put('/sms-rules', [LiveConnectController::class, 'saveSmsPolicy']);
+});
 
 Route::get('/sms/settings', [SmsIntegrationController::class, 'getSettings'])->middleware(['auth:sanctum', 'module:integrations', 'module.permission:integrations']);
 Route::post('/sms/send', [SmsIntegrationController::class, 'send'])->middleware(['auth:sanctum', 'module:integrations', 'module.permission:integrations']);
