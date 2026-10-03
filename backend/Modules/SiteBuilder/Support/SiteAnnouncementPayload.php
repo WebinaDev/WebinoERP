@@ -3,49 +3,45 @@
 namespace Modules\SiteBuilder\Support;
 
 use Modules\SiteBuilder\Entities\WebinoSiteAnnouncement;
+use Modules\SiteBuilder\Entities\WebinoSiteProvision;
 
 /**
- * JSON body pushed to each tenant at POST /api/v1/provision/announcements.
- * HMAC covers this object with JSON_UNESCAPED_UNICODE, same as other provision calls.
+ * Body for POST /api/v1/integrations/erp/announcements.
+ * Shape matches WebinoDashboard docs/erp-tenant-announcements.md.
+ * `read` is per user on the tenant and is not sent.
  */
 final class SiteAnnouncementPayload
 {
-    public const VERSION = 1;
-
-    public const PATH = 'provision/announcements';
+    public const PATH = 'integrations/erp/announcements';
 
     /**
-     * @return array<string, mixed>
+     * @return array{id: int, title: string, body: string, created_at: string, audience: string, tenant_domain: string}
      */
-    public static function upsert(WebinoSiteAnnouncement $announcement): array
+    public static function item(WebinoSiteAnnouncement $announcement, WebinoSiteProvision $site): array
     {
-        return [
-            'version' => self::VERSION,
-            'announcement' => [
-                'external_key' => $announcement->externalKey(),
-                'action' => 'upsert',
-                'level' => $announcement->level,
-                'title_fa' => $announcement->title_fa,
-                'title_en' => $announcement->title_en,
-                'body_fa' => $announcement->body_fa,
-                'body_en' => $announcement->body_en,
-                'published_at' => optional($announcement->published_at)?->toIso8601String(),
-                'expires_at' => optional($announcement->expires_at)?->toIso8601String(),
-            ],
-        ];
-    }
+        $title = trim((string) $announcement->title_fa);
+        if ($title === '') {
+            $title = trim((string) $announcement->title_en);
+        }
+        $body = trim((string) $announcement->body_fa);
+        if ($body === '') {
+            $body = trim((string) $announcement->body_en);
+        }
 
-    /**
-     * @return array<string, mixed>
-     */
-    public static function revoke(WebinoSiteAnnouncement $announcement): array
-    {
+        $audience = (string) ($announcement->inbox_audience ?: 'admins');
+        if (! in_array($audience, WebinoSiteAnnouncement::INBOX_AUDIENCES, true)) {
+            $audience = 'admins';
+        }
+
+        $created = $announcement->published_at ?? $announcement->created_at ?? now();
+
         return [
-            'version' => self::VERSION,
-            'announcement' => [
-                'external_key' => $announcement->externalKey(),
-                'action' => 'revoke',
-            ],
+            'id' => (int) $announcement->id,
+            'title' => $title,
+            'body' => $body,
+            'created_at' => $created->toIso8601String(),
+            'audience' => $audience,
+            'tenant_domain' => strtolower(trim((string) $site->domain)),
         ];
     }
 }

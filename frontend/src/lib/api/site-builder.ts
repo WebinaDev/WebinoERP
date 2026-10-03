@@ -436,6 +436,8 @@ export async function saveFeature(body: Partial<DashboardFeature> & { id?: numbe
 
 export type SiteAnnouncementAudienceMode = 'all' | 'sites' | 'category' | 'type' | 'tag';
 
+export type SiteAnnouncementInboxAudience = 'all' | 'staff' | 'admins';
+
 export type SiteAnnouncementDeliverySummary = {
   total: number;
   delivered: number;
@@ -453,6 +455,7 @@ export type SiteAnnouncement = {
   body_fa: string;
   body_en?: string | null;
   level: 'info' | 'warning' | 'critical' | string;
+  inbox_audience?: SiteAnnouncementInboxAudience | string;
   status: 'draft' | 'published' | 'archived' | string;
   audience: {
     mode: SiteAnnouncementAudienceMode;
@@ -498,6 +501,7 @@ export type SiteAnnouncementInput = {
   body_fa: string;
   body_en?: string | null;
   level?: string;
+  inbox_audience?: SiteAnnouncementInboxAudience;
   expires_at?: string | null;
   publish?: boolean;
   audience_mode: SiteAnnouncementAudienceMode;

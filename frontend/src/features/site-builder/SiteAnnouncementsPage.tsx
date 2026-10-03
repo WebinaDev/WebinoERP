@@ -29,12 +29,14 @@ import {
   saveSiteAnnouncement,
   type SiteAnnouncement,
   type SiteAnnouncementAudienceMode,
+  type SiteAnnouncementInboxAudience,
   type SiteAnnouncementInput,
   type SiteAnnouncementOptions,
 } from '@/lib/api/site-builder';
 import { PlatformPageLayout, RefreshButton } from '@/features/platform/PlatformPageLayout';
 
 const MODES: SiteAnnouncementAudienceMode[] = ['all', 'sites', 'category', 'type', 'tag'];
+const INBOX: SiteAnnouncementInboxAudience[] = ['admins', 'staff', 'all'];
 const LEVELS = ['info', 'warning', 'critical'] as const;
 
 type FormState = {
@@ -45,6 +47,7 @@ type FormState = {
   body_fa: string;
   body_en: string;
   level: string;
+  inbox_audience: SiteAnnouncementInboxAudience;
   audience_mode: SiteAnnouncementAudienceMode;
   site_ids: number[];
   category_ids: number[];
@@ -59,6 +62,7 @@ const emptyForm = (): FormState => ({
   body_fa: '',
   body_en: '',
   level: 'info',
+  inbox_audience: 'admins',
   audience_mode: 'all',
   site_ids: [],
   category_ids: [],
@@ -112,6 +116,7 @@ export function SiteAnnouncementsPage() {
       body_fa: form.body_fa.trim(),
       body_en: form.body_en.trim() || null,
       level: form.level,
+      inbox_audience: form.inbox_audience,
       audience_mode: form.audience_mode,
       expires_at: form.expires_at ? new Date(form.expires_at).toISOString() : null,
     };
@@ -175,6 +180,7 @@ export function SiteAnnouncementsPage() {
       body_fa: row.body_fa,
       body_en: row.body_en ?? '',
       level: row.level || 'info',
+      inbox_audience: row.inbox_audience === 'staff' || row.inbox_audience === 'all' ? row.inbox_audience : 'admins',
       audience_mode: row.audience?.mode ?? 'all',
       site_ids: row.audience?.site_ids ?? [],
       category_ids: row.audience?.category_ids ?? [],
@@ -190,6 +196,12 @@ export function SiteAnnouncementsPage() {
     if (mode === 'type') return t('audienceType');
     if (mode === 'tag') return t('audienceTag');
     return t('audienceAll');
+  };
+
+  const inboxLabel = (audience: string) => {
+    if (audience === 'staff') return t('inboxStaff');
+    if (audience === 'all') return t('inboxEveryone');
+    return t('inboxAdmins');
   };
 
   const statusLabel = (status: string) => {
@@ -257,7 +269,7 @@ export function SiteAnnouncementsPage() {
             </div>
           </div>
 
-          <div className="grid gap-4 md:grid-cols-3">
+          <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
             <div className="grid gap-2">
               <Label>{t('fieldLevel')}</Label>
               <Select value={form.level} onValueChange={(level) => setForm({ ...form, level })}>
@@ -268,6 +280,26 @@ export function SiteAnnouncementsPage() {
                   {LEVELS.map((level) => (
                     <SelectItem key={level} value={level}>
                       {t(level === 'info' ? 'levelInfo' : level === 'warning' ? 'levelWarning' : 'levelCritical')}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="grid gap-2">
+              <Label>{t('fieldInboxAudience')}</Label>
+              <Select
+                value={form.inbox_audience}
+                onValueChange={(inbox_audience) =>
+                  setForm({ ...form, inbox_audience: inbox_audience as SiteAnnouncementInboxAudience })
+                }
+              >
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {INBOX.map((audience) => (
+                    <SelectItem key={audience} value={audience}>
+                      {inboxLabel(audience)}
                     </SelectItem>
                   ))}
                 </SelectContent>
@@ -422,6 +454,7 @@ export function SiteAnnouncementsPage() {
                     <span className="font-medium">{fa ? row.title_fa : row.title_en || row.title_fa}</span>
                     <Badge variant="outline">{statusLabel(row.status)}</Badge>
                     <Badge variant="secondary">{modeLabel(row.audience?.mode)}</Badge>
+                    <Badge variant="outline">{inboxLabel(row.inbox_audience || 'admins')}</Badge>
                   </div>
                   <p className="text-muted-foreground line-clamp-2 text-sm">{fa ? row.body_fa : row.body_en || row.body_fa}</p>
                   <p className="text-muted-foreground text-xs">
@@ -429,8 +462,6 @@ export function SiteAnnouncementsPage() {
                       delivered: row.delivery.delivered,
                       pending: row.delivery.pending,
                       failed: row.delivery.failed,
-                      read: row.delivery.read,
-                      dismissed: row.delivery.dismissed,
                     })}
                   </p>
                 </div>

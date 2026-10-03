@@ -19,6 +19,7 @@ use Illuminate\Database\Eloquent\Model;
  * @property string|null $platform_base_domain
  * @property string|null $default_product_channel
  * @property string|null $provision_webhook_secret
+ * @property string|null $erp_api_token
  */
 class CoreHostingSetting extends Model
 {
@@ -37,6 +38,7 @@ class CoreHostingSetting extends Model
         'platform_base_domain',
         'default_product_channel',
         'provision_webhook_secret',
+        'erp_api_token',
     ];
 
     protected function casts(): array
@@ -46,6 +48,7 @@ class CoreHostingSetting extends Model
             'portainer_api_token' => 'encrypted',
             'git_webhook_secret' => 'encrypted',
             'provision_webhook_secret' => 'encrypted',
+            'erp_api_token' => 'encrypted',
             'portainer_endpoint_id' => 'integer',
         ];
     }

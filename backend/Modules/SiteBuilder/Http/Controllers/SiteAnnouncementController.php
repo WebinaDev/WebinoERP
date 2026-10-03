@@ -120,6 +120,7 @@ class SiteAnnouncementController extends Controller
             'body_fa' => $data['body_fa'],
             'body_en' => $data['body_en'] ?? null,
             'level' => $data['level'] ?? 'info',
+            'inbox_audience' => $data['inbox_audience'] ?? 'admins',
             'status' => WebinoSiteAnnouncement::STATUS_DRAFT,
             'audience' => $audience,
             'expires_at' => $data['expires_at'] ?? null,
@@ -142,6 +143,7 @@ class SiteAnnouncementController extends Controller
             'body_fa' => $data['body_fa'],
             'body_en' => $data['body_en'] ?? null,
             'level' => $data['level'] ?? $siteAnnouncement->level,
+            'inbox_audience' => $data['inbox_audience'] ?? $siteAnnouncement->inbox_audience,
             'audience' => $this->audience->normalize($data),
             'expires_at' => $data['expires_at'] ?? null,
         ]);
@@ -214,6 +216,7 @@ class SiteAnnouncementController extends Controller
             'body_fa' => 'required|string|max:20000',
             'body_en' => 'nullable|string|max:20000',
             'level' => ['nullable', Rule::in(WebinoSiteAnnouncement::LEVELS)],
+            'inbox_audience' => ['nullable', Rule::in(WebinoSiteAnnouncement::INBOX_AUDIENCES)],
             'expires_at' => 'nullable|date',
             'publish' => 'nullable|boolean',
         ], $this->audienceRules()));
@@ -273,6 +276,7 @@ class SiteAnnouncementController extends Controller
             'body_fa' => $row->body_fa,
             'body_en' => $row->body_en,
             'level' => $row->level,
+            'inbox_audience' => $row->inbox_audience ?: 'admins',
             'status' => $row->status,
             'audience' => $row->audience,
             'published_at' => optional($row->published_at)?->toIso8601String(),

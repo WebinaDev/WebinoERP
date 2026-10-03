@@ -4,6 +4,7 @@ namespace Modules\Platform\Support;
 
 use Modules\Core\Entities\CoreHostingSetting;
 use Modules\SiteBuilder\Entities\WebinoSiteProvision;
+use Modules\SiteBuilder\Support\ErpApiToken;
 use RuntimeException;
 
 /**
@@ -77,6 +78,7 @@ final class TenantEnvBuilder
             self::line('TENANT_PROVISION_TOKEN', $token),
             self::line('TENANT_SEED_JSON', (string) $seed),
             self::line('WEBINO_PROVISION_HMAC_SECRET', $provisionSecret),
+            self::line('WEBINO_ERP_API_TOKEN', ErpApiToken::current()),
         ])."\n";
     }
 

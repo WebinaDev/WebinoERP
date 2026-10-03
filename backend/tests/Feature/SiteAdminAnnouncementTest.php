@@ -37,6 +37,7 @@ class SiteAdminAnnouncementTest extends TestCase
         CoreHostingSetting::query()->create([
             'platform_base_domain' => 'example.test',
             'provision_webhook_secret' => $this->secret,
+            'erp_api_token' => 'erp-secret',
         ]);
     }
 
@@ -67,6 +68,7 @@ class SiteAdminAnnouncementTest extends TestCase
 
         $created->assertOk()
             ->assertJsonPath('data.status', 'published')
+            ->assertJsonPath('data.inbox_audience', 'admins')
             ->assertJsonPath('data.delivery.delivered', 1)
             ->assertJsonPath('data.delivery.pending', 1);
 
@@ -80,14 +82,17 @@ class SiteAdminAnnouncementTest extends TestCase
         ]);
 
         Http::assertSent(function ($request) use ($ready) {
-            $body = (string) $request->body();
-            $signature = $request->header('X-Provision-Signature')[0] ?? '';
+            $json = json_decode((string) $request->body(), true);
 
-            return $request->url() === 'https://cafe.example.test/api/v1/provision/announcements'
-                && ($request->header('X-Provision-Token')[0] ?? '') === $ready->provision_token
-                && hash_equals(hash_hmac('sha256', $body, $this->secret), $signature)
-                && str_contains($body, 'قطع برق')
-                && str_contains($body, '"action":"upsert"');
+            return $request->url() === 'https://cafe.example.test/api/v1/integrations/erp/announcements'
+                && ($request->header('Authorization')[0] ?? '') === 'Bearer erp-secret'
+                && is_array($json)
+                && $json['title'] === 'قطع برق'
+                && $json['body'] === 'امشب سرورها یک ساعت در دسترس نیستند.'
+                && $json['audience'] === 'admins'
+                && $json['tenant_domain'] === $ready->domain
+                && isset($json['id'], $json['created_at'])
+                && ! array_key_exists('read', $json);
         });
         Http::assertNotSent(fn ($request) => str_contains($request->url(), 'shop.example.test'));
     }
@@ -162,7 +167,8 @@ class SiteAdminAnnouncementTest extends TestCase
             'audience_mode' => 'all',
             'publish' => true,
         ])->assertOk();
-        $key = 'erp-site-announcement:'.$created->json('data.id');
+        $id = (int) $created->json('data.id');
+        $key = 'erp-site-announcement:'.$id;
 
         $late = $this->site('late', 'late.example.test', WebinoSiteProvision::STATUS_READY, [
             'site_type_slug' => 'corporate',
@@ -170,9 +176,16 @@ class SiteAdminAnnouncementTest extends TestCase
 
         $pull = $this->signed('POST', '/api/v1/site-builder/sync/announcements/pull', [], (string) $late->provision_token);
         $pull->assertOk();
-        $this->assertSame($key, $pull->json('data.announcements.0.announcement.external_key'));
-        $this->assertSame('upsert', $pull->json('data.announcements.0.announcement.action'));
-        $this->assertSame('به‌روزرسانی', $pull->json('data.announcements.0.announcement.title_fa'));
+        $item = $pull->json('data.announcements.0');
+        $this->assertIsArray($item);
+        $this->assertSame($id, $item['id']);
+        $this->assertSame('به‌روزرسانی', $item['title']);
+        $this->assertSame('نسخه جدید آماده است.', $item['body']);
+        $this->assertSame('admins', $item['audience']);
+        $this->assertSame('late.example.test', $item['tenant_domain']);
+        $this->assertArrayHasKey('created_at', $item);
+        $this->assertArrayNotHasKey('read', $item);
+        $this->assertArrayNotHasKey('action', $item);
 
         $read = $this->signed('POST', '/api/v1/site-builder/sync/announcements/receipt', [
             'external_key' => $key,
@@ -218,7 +231,20 @@ class SiteAdminAnnouncementTest extends TestCase
             ->assertJsonPath('data.status', 'archived')
             ->assertJsonPath('data.delivery.revoked', 1);
 
-        Http::assertSent(fn ($request) => str_contains((string) $request->body(), '"action":"revoke"'));
+        Http::assertSentCount(1);
+        Http::assertSent(function ($request) {
+            $json = json_decode((string) $request->body(), true);
+
+            return $request->url() === 'https://cafe.example.test/api/v1/integrations/erp/announcements'
+                && is_array($json)
+                && ($json['audience'] ?? null) === 'admins'
+                && ($json['title'] ?? null) === 'موقت'
+                && ! array_key_exists('action', $json);
+        });
+        $this->assertDatabaseHas('webino_site_announcement_deliveries', [
+            'announcement_id' => $id,
+            'status' => WebinoSiteAnnouncementDelivery::STATUS_REVOKED,
+        ]);
     }
 
     public function test_clients_cannot_compose_notices(): void

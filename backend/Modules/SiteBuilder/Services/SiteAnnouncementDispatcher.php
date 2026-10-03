@@ -83,10 +83,9 @@ class SiteAnnouncementDispatcher
                 continue;
             }
             if ($this->shouldRevoke($announcement, $site)) {
-                $payloads[] = SiteAnnouncementPayload::revoke($announcement);
-            } else {
-                $payloads[] = SiteAnnouncementPayload::upsert($announcement);
+                continue;
             }
+            $payloads[] = SiteAnnouncementPayload::item($announcement, $site);
         }
 
         return $payloads;
@@ -186,8 +185,7 @@ class SiteAnnouncementDispatcher
             return;
         }
 
-        $revoke = $this->shouldRevoke($announcement, $site);
-        if ($revoke && $delivery->delivered_at === null && $delivery->status !== WebinoSiteAnnouncementDelivery::STATUS_DELIVERED) {
+        if ($this->shouldRevoke($announcement, $site)) {
             $delivery->status = WebinoSiteAnnouncementDelivery::STATUS_REVOKED;
             $delivery->last_error = null;
             $delivery->save();
@@ -196,28 +194,19 @@ class SiteAnnouncementDispatcher
         }
 
         if (! $this->canPush($site)) {
-            if (! $revoke) {
-                $delivery->status = WebinoSiteAnnouncementDelivery::STATUS_PENDING;
-                $delivery->last_error = 'سایت هنوز آماده دریافت اطلاعیه نیست.';
-                $delivery->save();
-            }
+            $delivery->status = WebinoSiteAnnouncementDelivery::STATUS_PENDING;
+            $delivery->last_error = 'سایت هنوز آماده دریافت اطلاعیه نیست.';
+            $delivery->save();
 
             return;
         }
 
         try {
-            $payload = $revoke
-                ? SiteAnnouncementPayload::revoke($announcement)
-                : SiteAnnouncementPayload::upsert($announcement);
-            $this->tenants->push($site, $payload);
+            $this->tenants->push($site, SiteAnnouncementPayload::item($announcement, $site));
             $delivery->attempts = (int) $delivery->attempts + 1;
             $delivery->last_error = null;
-            if ($revoke) {
-                $delivery->status = WebinoSiteAnnouncementDelivery::STATUS_REVOKED;
-            } else {
-                $delivery->status = WebinoSiteAnnouncementDelivery::STATUS_DELIVERED;
-                $delivery->delivered_at = now();
-            }
+            $delivery->status = WebinoSiteAnnouncementDelivery::STATUS_DELIVERED;
+            $delivery->delivered_at = now();
             $delivery->save();
         } catch (Throwable $e) {
             $delivery->attempts = (int) $delivery->attempts + 1;
@@ -229,7 +218,7 @@ class SiteAnnouncementDispatcher
 
     private function canPush(WebinoSiteProvision $site): bool
     {
-        if (trim((string) $site->domain) === '' || trim((string) $site->provision_token) === '') {
+        if (trim((string) $site->domain) === '') {
             return false;
         }
 

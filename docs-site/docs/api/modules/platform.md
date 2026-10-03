@@ -36,7 +36,7 @@ Spatie abilities under `platform.*` (see `RolesAndPermissionsSeeder` and `config
 
 ## Site admin announcements
 
-Staff notices for tenant dashboards live under `/api/v1/site-builder/announcements` (not `/api/v1/platform`). Audience is all sites, selected sites, or category, type, or tag. Delivery uses the provision HMAC into `POST /api/v1/provision/announcements` on each site. Contract: `docs/site-admin-announcements.md`.
+Staff notices for tenant dashboards live under `/api/v1/site-builder/announcements` (not `/api/v1/platform`). Site targeting is all sites, selected sites, or a site category or type. Delivery is `POST /api/v1/integrations/erp/announcements` on each site with `Authorization: Bearer` `WEBINO_ERP_API_TOKEN`. Contract: `docs/site-admin-announcements.md`.
 
 ## Site types
 

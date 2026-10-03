@@ -3,16 +3,16 @@
 namespace Modules\SiteBuilder\Services;
 
 use Illuminate\Support\Facades\Http;
-use Modules\Core\Entities\CoreHostingSetting;
 use Modules\SiteBuilder\Entities\WebinoSiteProvision;
+use Modules\SiteBuilder\Support\ErpApiToken;
 use Modules\SiteBuilder\Support\SiteAnnouncementPayload;
 use RuntimeException;
 use Throwable;
 
 /**
- * HMAC POST into a tenant dashboard. Header and body rules match
- * LocalSameVpsProvisioner::callTenantApi so Site Control and this sender
- * verify the same way on WebinoDashboard.
+ * Pushes one notice to a tenant dashboard.
+ * Authorization: Bearer WEBINO_ERP_API_TOKEN
+ * POST /api/v1/integrations/erp/announcements
  */
 class TenantAnnouncementClient
 {
@@ -22,30 +22,27 @@ class TenantAnnouncementClient
      */
     public function push(WebinoSiteProvision $provision, array $payload): array
     {
-        $secret = (string) (CoreHostingSetting::current()->provision_webhook_secret ?? '');
-        $token = (string) ($provision->provision_token ?? '');
-        if ($secret === '') {
-            throw new RuntimeException('کلید امضای پروویژن در تنظیمات هاستینگ ERP خالی است.');
-        }
+        $token = ErpApiToken::current();
         if ($token === '') {
-            throw new RuntimeException('توکن پروویژن این سایت خالی است.');
+            throw new RuntimeException('توکن WEBINO_ERP_API_TOKEN تنظیم نشده است.');
         }
 
-        $body = json_encode($payload === [] ? new \stdClass : $payload, JSON_UNESCAPED_UNICODE);
+        $body = json_encode($payload, JSON_UNESCAPED_UNICODE);
         if ($body === false) {
             throw new RuntimeException('بدنه اطلاعیه قابل رمزگذاری نیست.');
         }
 
         $domain = strtolower(trim((string) $provision->domain));
+        $url = 'https://'.$domain.'/api/v1/'.SiteAnnouncementPayload::PATH;
+
         try {
             $response = Http::withHeaders([
-                'X-Provision-Token' => $token,
-                'X-Provision-Signature' => hash_hmac('sha256', $body, $secret),
+                'Authorization' => 'Bearer '.$token,
                 'Accept' => 'application/json',
                 'Content-Type' => 'application/json',
             ])->withBody($body, 'application/json')
                 ->timeout(20)
-                ->post('https://'.$domain.'/api/v1/'.SiteAnnouncementPayload::PATH);
+                ->post($url);
         } catch (Throwable $e) {
             throw new RuntimeException(
                 'ارتباط با سایت برقرار نشد (https://'.$domain.'): '.$e->getMessage(),

@@ -17,6 +17,8 @@ class WebinoSiteAnnouncement extends Model
 
     public const LEVELS = ['info', 'warning', 'critical'];
 
+    public const INBOX_AUDIENCES = ['all', 'staff', 'admins'];
+
     public const AUDIENCE_ALL = 'all';
 
     public const AUDIENCE_SITES = 'sites';
@@ -35,6 +37,7 @@ class WebinoSiteAnnouncement extends Model
         'body_fa',
         'body_en',
         'level',
+        'inbox_audience',
         'status',
         'audience',
         'published_at',

@@ -15,6 +15,7 @@ return new class extends Migration
             $table->text('body_fa');
             $table->text('body_en')->nullable();
             $table->string('level', 16)->default('info');
+            $table->string('inbox_audience', 16)->default('admins');
             $table->string('status', 16)->default('draft');
             $table->json('audience');
             $table->timestamp('published_at')->nullable();
