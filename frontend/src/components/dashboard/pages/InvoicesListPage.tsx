@@ -5,7 +5,7 @@ import { useTranslations } from 'next-intl';
 import { useCallback, useEffect, useState } from 'react';
 import apiClient from '@/lib/api-client';
 import { getAxiosMessage, unwrapData } from '@/lib/api-helpers';
-import { normalizeListPayload } from '@/lib/list-utils';
+import { normalizeListPayload, readPage } from '@/lib/list-utils';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -64,12 +64,12 @@ export function InvoicesListPage() {
           project_id: projectId || undefined,
         },
       });
-      const pageData = unwrapData<Record<string, unknown>>(res);
-      setRows(normalizeListPayload(pageData));
+      const pageData = readPage(res.data);
+      setRows(pageData.rows);
       setMeta({
-        current_page: typeof pageData.current_page === 'number' ? pageData.current_page : undefined,
-        last_page: typeof pageData.last_page === 'number' ? pageData.last_page : undefined,
-        total: typeof pageData.total === 'number' ? pageData.total : undefined,
+        current_page: typeof pageData.meta.current_page === 'number' ? pageData.meta.current_page : undefined,
+        last_page: typeof pageData.meta.last_page === 'number' ? pageData.meta.last_page : undefined,
+        total: typeof pageData.meta.total === 'number' ? pageData.meta.total : undefined,
       });
     } catch (e) {
       setError(getAxiosMessage(e));

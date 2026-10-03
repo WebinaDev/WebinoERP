@@ -302,6 +302,7 @@ export function LoginForm({ className, ...props }: ComponentProps<'div'>) {
           <div className="relative hidden flex-col justify-between gap-4 bg-muted p-8 md:flex">
             <div>
               <p className="text-sm leading-relaxed text-muted-foreground">{t('login.heroHint')}</p>
+              <p className="text-sm leading-relaxed text-muted-foreground">{t('login.customerHint')}</p>
               <p className="mt-4 font-semibold">{t('app.title')}</p>
             </div>
             <Image

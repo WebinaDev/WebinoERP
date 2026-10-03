@@ -3,6 +3,8 @@
 use Illuminate\Support\Facades\Route;
 use Modules\Projects\Http\Controllers\AppointmentController;
 use Modules\Projects\Http\Controllers\ContractController;
+use Modules\Projects\Http\Controllers\CustomerPortalController;
+use Modules\Projects\Http\Controllers\MilestoneController;
 use Modules\Projects\Http\Controllers\FormController;
 use Modules\Projects\Http\Controllers\KanbanParityController;
 use Modules\Projects\Http\Controllers\ProjectController;
@@ -42,6 +44,14 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::delete('/projects/{id}', [ProjectController::class, 'destroy'])->whereNumber('id');
     Route::get('/projects/{id}/assignees', [ProjectController::class, 'assignees'])->whereNumber('id');
     Route::get('/projects/{id}/details', [ProjectController::class, 'details'])->whereNumber('id');
+    Route::get('/projects/{id}/milestones', [MilestoneController::class, 'index'])->whereNumber('id');
+    Route::post('/projects/{id}/milestones', [MilestoneController::class, 'store'])->whereNumber('id');
+    Route::patch('/milestones/{id}', [MilestoneController::class, 'update'])->whereNumber('id');
+
+    Route::get('/portal/summary', [CustomerPortalController::class, 'summary']);
+    Route::post('/portal/tickets', [CustomerPortalController::class, 'storeTicket']);
+    Route::post('/portal/tickets/{id}/replies', [CustomerPortalController::class, 'reply'])->whereNumber('id');
+    Route::post('/portal/appointments', [CustomerPortalController::class, 'requestAppointment']);
 
     Route::get('/contracts', [ContractController::class, 'index'])->middleware('fieldsec:contract');
     Route::post('/contracts', [ContractController::class, 'store']);

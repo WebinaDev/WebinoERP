@@ -7,6 +7,7 @@ import apiClient from '@/lib/api-client';
 import { unwrapData } from '@/lib/api-helpers';
 import { normalizeListPayload } from '@/lib/list-utils';
 import { useLocale } from '@/hooks/use-locale';
+import { usePermissions } from '@/features/shared/hooks/usePermissions';
 import { CrmPageLayout } from '@/features/shared/layout/CrmPageLayout';
 import { useCrmFeedback } from '@/features/shared/hooks/useCrmFeedback';
 import { WizardStepper } from '@/features/shared/pm';
@@ -54,7 +55,9 @@ export function ProjectsListPage() {
   const t = useTranslations('pm.projects');
   const tCommon = useTranslations('common');
   const tNav = useTranslations();
-  const { isRtl } = useLocale();
+  const { isRtl, formatDate } = useLocale();
+  const { can } = usePermissions();
+  const canManage = can('projects.projects.manage');
   const { layoutProps, setError, setSuccess, applyAxiosError } = useCrmFeedback();
   const [rows, setRows] = useState<ProjectRow[]>([]);
   const [meta, setMeta] = useState<Meta>({});
@@ -173,6 +176,7 @@ export function ProjectsListPage() {
         description: form.description || undefined,
         status: form.status,
         customer_account_id: form.customer_account_id ? Number(form.customer_account_id) : undefined,
+        manager_user_id: form.manager_user_id ? Number(form.manager_user_id) : undefined,
       });
       setWizardOpen(false);
       setStep(1);
@@ -258,9 +262,11 @@ export function ProjectsListPage() {
           <Button type="button" variant="secondary" size="sm" onClick={() => void load()}>
             {tCommon('refresh')}
           </Button>
-          <Button type="button" size="sm" onClick={openWizard}>
-            {t('create')}
-          </Button>
+          {canManage ? (
+            <Button type="button" size="sm" onClick={openWizard}>
+              {t('create')}
+            </Button>
+          ) : null}
         </>
       }
     >
@@ -276,19 +282,37 @@ export function ProjectsListPage() {
                 <CardTitle className="text-base">{String(p.name ?? '—')}</CardTitle>
                 <CardDescription className="line-clamp-2">{String(p.description ?? '')}</CardDescription>
               </CardHeader>
-              <CardContent className="mt-auto flex flex-wrap gap-2">
+              <CardContent className="mt-auto space-y-3">
+                <div className="space-y-1">
+                  <div className="flex items-center justify-between text-xs text-muted-foreground">
+                    <span>{t('progress')}</span>
+                    <span>{Number(p.progress_percent ?? 0)}%</span>
+                  </div>
+                  <div className="h-1.5 overflow-hidden rounded bg-muted">
+                    <div className="h-full bg-primary" style={{ width: `${Math.min(100, Number(p.progress_percent ?? 0))}%` }} />
+                  </div>
+                  {p.created_at ? (
+                    <p className="text-xs text-muted-foreground">{formatDate(String(p.created_at))}</p>
+                  ) : null}
+                </div>
+                <div className="flex flex-wrap gap-2">
                 <span className="rounded-full bg-muted px-2 py-0.5 text-xs">{String(p.status ?? '—')}</span>
                 <Link href={`/dashboard/projects/${String(p.id)}`}>
                   <Button variant="outline" size="sm">
                     {tCommon('view')}
                   </Button>
                 </Link>
-                <Button type="button" variant="secondary" size="sm" onClick={() => openEdit(p)}>
-                  {tCommon('edit')}
-                </Button>
-                <Button type="button" variant="destructive" size="sm" onClick={() => setDeleteId(Number(p.id))}>
-                  {tCommon('delete')}
-                </Button>
+                {canManage ? (
+                  <Button type="button" variant="secondary" size="sm" onClick={() => openEdit(p)}>
+                    {tCommon('edit')}
+                  </Button>
+                ) : null}
+                {canManage ? (
+                  <Button type="button" variant="destructive" size="sm" onClick={() => setDeleteId(Number(p.id))}>
+                    {tCommon('delete')}
+                  </Button>
+                ) : null}
+                </div>
               </CardContent>
             </Card>
           ))}

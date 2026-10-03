@@ -4,9 +4,11 @@ namespace App\Models;
 
 use Database\Factories\UserFactory;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 use Laravel\Sanctum\HasApiTokens;
+use Modules\Crm\Entities\CrmAccount;
 use Spatie\Permission\Traits\HasRoles;
 
 class User extends Authenticatable
@@ -57,6 +59,13 @@ class User extends Authenticatable
             'is_active' => 'boolean',
             'last_login_at' => 'datetime',
         ];
+    }
+
+    public function crmAccounts(): BelongsToMany
+    {
+        return $this->belongsToMany(CrmAccount::class, 'crm_account_users', 'user_id', 'account_id')
+            ->withPivot('is_primary')
+            ->withTimestamps();
     }
 }
 

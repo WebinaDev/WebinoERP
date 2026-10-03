@@ -13,7 +13,7 @@ class PrjTicket extends Model
 
     protected $fillable = [
         'subject', 'body', 'status', 'priority', 'department', 'rating',
-        'customer_user_id', 'assignee_id',
+        'customer_user_id', 'customer_account_id', 'project_id', 'assignee_id', 'converted_task_id',
     ];
 
     public function customer(): BelongsTo

@@ -118,7 +118,7 @@ export function Customer360Sheet({ accountId, open, onOpenChange }: Props) {
                 ) : (
                   contacts.map((c) => (
                     <div key={String(c.id)} className="rounded-md border p-3 text-sm">
-                      <p className="font-medium">{String(c.name ?? c.id)}</p>
+                      <p className="font-medium">{[c.first_name, c.last_name].filter(Boolean).join(' ') || String(c.name ?? c.email ?? c.id)}</p>
                       <p className="text-muted-foreground">{String(c.email ?? c.phone ?? '—')}</p>
                     </div>
                   ))

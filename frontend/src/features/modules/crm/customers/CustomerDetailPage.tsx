@@ -13,6 +13,8 @@ import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Separator } from '@/components/ui/separator';
 import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
 import { useLocale } from '@/hooks/use-locale-next';
 import { dashboardHref } from '@/lib/route-resolver';
 import {
@@ -40,25 +42,33 @@ export function CustomerDetailPage({ id }: Props) {
   const [contacts, setContacts] = useState<Record<string, unknown>[]>([]);
   const [platformSites, setPlatformSites] = useState<PlatformResource[]>([]);
   const [platformProvisions, setPlatformProvisions] = useState<Record<string, unknown>[]>([]);
+  const [projects, setProjects] = useState<Record<string, unknown>[]>([]);
+  const [portalEmail, setPortalEmail] = useState('');
+  const [portalName, setPortalName] = useState('');
+  const [portalPassword, setPortalPassword] = useState<string | null>(null);
+  const [portalBusy, setPortalBusy] = useState(false);
   const [loading, setLoading] = useState(true);
 
   const load = useCallback(async () => {
     setLoading(true);
     try {
-      const [accRes, dealsRes, ticketsRes, contactsRes, sitesRes] = await Promise.all([
+      const [accRes, dealsRes, ticketsRes, contactsRes, projectsRes, sitesRes] = await Promise.all([
         apiClient.get(`/v1/crm/accounts/${id}`),
         apiClient.get('/v1/crm/deals', { params: { account_id: id, per_page: 20 } }),
         apiClient.get('/v1/projects/tickets', { params: { account_id: id, per_page: 20 } }),
         apiClient.get('/v1/crm/contacts', { params: { account_id: id, per_page: 20 } }),
+        apiClient.get('/v1/projects/projects', { params: { customer_account_id: id, per_page: 20 } }),
         fetchCrmSites(id).catch(() => ({ resources: [], provisions: [] })),
       ]);
       setAccount(unwrapData(accRes) as Record<string, unknown>);
       const dealsBody = dealsRes.data as { data?: unknown[] };
       const ticketsBody = ticketsRes.data as { data?: unknown[] };
       const contactsBody = contactsRes.data as { data?: unknown[] };
+      const projectsBody = projectsRes.data as { data?: unknown[] };
       setDeals(Array.isArray(dealsBody.data) ? (dealsBody.data as Record<string, unknown>[]) : []);
       setTickets(Array.isArray(ticketsBody.data) ? (ticketsBody.data as Record<string, unknown>[]) : []);
       setContacts(Array.isArray(contactsBody.data) ? (contactsBody.data as Record<string, unknown>[]) : []);
+      setProjects(Array.isArray(projectsBody.data) ? (projectsBody.data as Record<string, unknown>[]) : []);
       setPlatformSites(sitesRes.resources ?? []);
       setPlatformProvisions(sitesRes.provisions ?? []);
     } catch (err) {
@@ -71,6 +81,32 @@ export function CustomerDetailPage({ id }: Props) {
   useEffect(() => {
     void load();
   }, [load]);
+
+  async function grantPortal() {
+    if (!portalEmail.trim() || !portalName.trim()) return;
+    setPortalBusy(true);
+    setPortalPassword(null);
+    try {
+      const res = await apiClient.post(`/v1/crm/accounts/${id}/portal-access`, {
+        email: portalEmail.trim(),
+        name: portalName.trim(),
+      });
+      const body = unwrapData<{ temporary_password?: string | null }>(res);
+      setPortalPassword(body?.temporary_password ?? null);
+      setPortalEmail('');
+      setPortalName('');
+      await load();
+    } catch (err) {
+      applyAxiosError(err);
+    } finally {
+      setPortalBusy(false);
+    }
+  }
+
+  function contactLabel(c: Record<string, unknown>): string {
+    const joined = [c.first_name, c.last_name].filter(Boolean).join(' ');
+    return joined || String(c.name ?? c.email ?? c.id);
+  }
 
   async function handlePlatformAction(resourceId: number, action: 'start' | 'stop' | 'deploy') {
     try {
@@ -109,12 +145,36 @@ export function CustomerDetailPage({ id }: Props) {
               {account.description ? <p className="text-muted-foreground">{String(account.description)}</p> : null}
             </CardContent>
           </Card>
+          <Card>
+            <CardHeader><CardTitle className="text-lg">{t('portalTitle')}</CardTitle></CardHeader>
+            <CardContent className="space-y-3 text-sm">
+              <div className="grid gap-2 sm:grid-cols-2">
+                <div className="space-y-1">
+                  <Label htmlFor="portal-name">{t('portalName')}</Label>
+                  <Input id="portal-name" value={portalName} onChange={(e) => setPortalName(e.target.value)} />
+                </div>
+                <div className="space-y-1">
+                  <Label htmlFor="portal-email">{t('portalEmail')}</Label>
+                  <Input id="portal-email" type="email" value={portalEmail} onChange={(e) => setPortalEmail(e.target.value)} dir="ltr" />
+                </div>
+              </div>
+              <Button type="button" size="sm" disabled={portalBusy} onClick={() => void grantPortal()}>
+                {t('portalGrant')}
+              </Button>
+              {portalPassword ? (
+                <p className="rounded-md border bg-muted/40 p-2 text-xs" dir="ltr">
+                  {t('portalPassword')}: {portalPassword}
+                </p>
+              ) : null}
+            </CardContent>
+          </Card>
           <Separator />
           <Tabs defaultValue="deals">
-            <TabsList className="grid w-full grid-cols-4">
+            <TabsList className="grid w-full grid-cols-2 sm:grid-cols-5">
               <TabsTrigger value="deals">{t('deals')}</TabsTrigger>
               <TabsTrigger value="tickets">{t('tickets')}</TabsTrigger>
               <TabsTrigger value="contacts">{t('contacts')}</TabsTrigger>
+              <TabsTrigger value="projects">{t('projects')}</TabsTrigger>
               <TabsTrigger value="platform">{tPlatform('title')}</TabsTrigger>
             </TabsList>
             <TabsContent value="deals" className="space-y-2">
@@ -147,8 +207,22 @@ export function CustomerDetailPage({ id }: Props) {
               ) : (
                 contacts.map((c) => (
                   <div key={String(c.id)} className="rounded-md border p-3 text-sm">
-                    <p className="font-medium">{String(c.name ?? c.id)}</p>
+                    <p className="font-medium">{contactLabel(c)}</p>
                     <p className="text-muted-foreground">{String(c.email ?? c.phone ?? '—')}</p>
+                  </div>
+                ))
+              )}
+            </TabsContent>
+            <TabsContent value="projects" className="space-y-2">
+              {projects.length === 0 ? (
+                <p className="text-sm text-muted-foreground">{tNav('common.noData')}</p>
+              ) : (
+                projects.map((p) => (
+                  <div key={String(p.id)} className="rounded-md border p-3 text-sm">
+                    <p className="font-medium">{String(p.name ?? p.id)}</p>
+                    <p className="text-muted-foreground">
+                      {String(p.status ?? '—')} · {Number(p.progress_percent ?? 0)}%
+                    </p>
                   </div>
                 ))
               )}

@@ -1,0 +1,205 @@
+<?php
+
+namespace Tests\Feature;
+
+use App\Models\User;
+use Illuminate\Foundation\Testing\RefreshDatabase;
+use Laravel\Sanctum\Sanctum;
+use Modules\Core\Database\Seeders\RolesAndPermissionsSeeder;
+use Modules\Crm\Entities\CrmAccount;
+use Modules\Crm\Entities\CrmDeal;
+use Modules\Crm\Entities\CrmPipeline;
+use Modules\Crm\Entities\CrmStage;
+use Modules\Projects\Entities\PrjTicket;
+use Modules\Projects\Entities\Project;
+use Modules\Projects\Entities\ProjectTask;
+use Modules\SiteBuilder\Entities\WebinoSiteProvision;
+use Tests\Concerns\SeedsRbac;
+use Tests\TestCase;
+
+class CrmPmPortalTest extends TestCase
+{
+    use RefreshDatabase;
+    use SeedsRbac;
+
+    protected function setUp(): void
+    {
+        parent::setUp();
+        $this->seedRbac();
+        $this->seedLicensedModules();
+    }
+
+    public function test_portal_customer_sees_only_linked_projects_and_site(): void
+    {
+        $manager = $this->actingAsRole(RolesAndPermissionsSeeder::ROLE_SYSTEM_MANAGER);
+        $own = CrmAccount::query()->create(['name' => 'Own Co', 'type' => 'customer']);
+        $other = CrmAccount::query()->create(['name' => 'Other Co', 'type' => 'customer']);
+
+        Sanctum::actingAs($manager);
+        $grant = $this->postJson('/api/v1/crm/accounts/'.$own->id.'/portal-access', [
+            'email' => 'customer@example.com',
+            'name' => 'Customer One',
+            'password' => 'portal-pass-1',
+        ]);
+        $grant->assertCreated();
+        $client = User::query()->findOrFail($grant->json('data.user_id'));
+
+        $visible = Project::query()->create([
+            'name' => 'Own site build',
+            'status' => 'active',
+            'customer_account_id' => $own->id,
+            'created_by' => $manager->id,
+        ]);
+        ProjectTask::query()->create([
+            'project_id' => $visible->id,
+            'title' => 'Done work',
+            'status' => 'done',
+            'created_by' => $manager->id,
+        ]);
+        $hidden = Project::query()->create([
+            'name' => 'Someone else',
+            'status' => 'active',
+            'customer_account_id' => $other->id,
+            'created_by' => $manager->id,
+        ]);
+        WebinoSiteProvision::query()->create([
+            'crm_account_id' => $own->id,
+            'slug' => 'own-co',
+            'domain' => 'own.example.com',
+            'status' => 'ready',
+        ]);
+
+        Sanctum::actingAs($client);
+        $list = $this->getJson('/api/v1/projects/projects');
+        $list->assertOk();
+        $names = collect($list->json('data'))->pluck('name')->all();
+        $this->assertSame(['Own site build'], $names);
+        $this->assertSame(100, $list->json('data.0.progress_percent'));
+
+        $this->getJson('/api/v1/projects/projects/'.$hidden->id)->assertNotFound();
+        $this->getJson('/api/v1/projects/projects/'.$visible->id)
+            ->assertOk()
+            ->assertJsonPath('data.progress_percent', 100);
+
+        $summary = $this->getJson('/api/v1/projects/portal/summary');
+        $summary->assertOk()
+            ->assertJsonPath('data.account.id', $own->id)
+            ->assertJsonPath('data.sites.0.domain', 'own.example.com')
+            ->assertJsonPath('data.projects.0.id', $visible->id);
+
+        Sanctum::actingAs($manager);
+        $this->getJson('/api/v1/projects/portal/summary')->assertForbidden();
+    }
+
+    public function test_staff_roles_are_separated(): void
+    {
+        $crm = $this->actingAsRole(RolesAndPermissionsSeeder::ROLE_CRM_SPECIALIST);
+        Sanctum::actingAs($crm);
+        $this->getJson('/api/v1/crm/leads')->assertOk();
+        $this->getJson('/api/v1/accounting/journals')->assertForbidden();
+
+        $pm = $this->actingAsRole(RolesAndPermissionsSeeder::ROLE_PROJECT_MANAGER);
+        Sanctum::actingAs($pm);
+        $this->postJson('/api/v1/projects/projects', [
+            'name' => 'Managed build',
+            'status' => 'active',
+        ])->assertCreated();
+        $this->getJson('/api/v1/crm/leads')->assertForbidden();
+    }
+
+    public function test_appointment_end_must_follow_start(): void
+    {
+        Sanctum::actingAs($this->actingAsRole(RolesAndPermissionsSeeder::ROLE_PROJECT_MANAGER));
+
+        $this->postJson('/api/v1/projects/appointments', [
+            'title' => 'Consult',
+            'starts_at' => '2026-04-02 10:00:00',
+            'ends_at' => '2026-04-02 09:00:00',
+        ])->assertStatus(422);
+    }
+
+    public function test_ticket_status_machine(): void
+    {
+        $user = $this->actingAsRole(RolesAndPermissionsSeeder::ROLE_PROJECT_MANAGER);
+        Sanctum::actingAs($user);
+        $ticket = PrjTicket::query()->create([
+            'subject' => 'Need access',
+            'status' => 'open',
+            'priority' => 'normal',
+        ]);
+
+        $this->patchJson('/api/v1/projects/tickets/'.$ticket->id, [
+            'status' => 'not-a-status',
+        ])->assertStatus(422);
+
+        $this->patchJson('/api/v1/projects/tickets/'.$ticket->id, [
+            'status' => 'resolved',
+        ])->assertOk()->assertJsonPath('data.status', 'resolved');
+    }
+
+    public function test_lost_deal_requires_loss_reason(): void
+    {
+        $user = $this->actingAsRole(RolesAndPermissionsSeeder::ROLE_CRM_SPECIALIST);
+        Sanctum::actingAs($user);
+        $pipeline = CrmPipeline::query()->create(['name' => 'Sales', 'is_active' => true, 'created_by' => $user->id]);
+        $open = CrmStage::query()->create([
+            'pipeline_id' => $pipeline->id,
+            'name' => 'New',
+            'sort_order' => 1,
+            'probability' => 10,
+            'color' => '#64748b',
+        ]);
+        $lost = CrmStage::query()->create([
+            'pipeline_id' => $pipeline->id,
+            'name' => 'Lost',
+            'sort_order' => 2,
+            'probability' => 0,
+            'color' => '#b91c1c',
+            'is_closed' => true,
+            'is_won' => false,
+        ]);
+        $account = CrmAccount::query()->create(['name' => 'ACME', 'type' => 'customer']);
+        $deal = CrmDeal::query()->create([
+            'name' => 'Renewal',
+            'account_id' => $account->id,
+            'pipeline_id' => $pipeline->id,
+            'stage_id' => $open->id,
+            'created_by' => $user->id,
+        ]);
+
+        $this->patchJson('/api/v1/crm/deals/'.$deal->id.'/move', [
+            'stage_id' => $lost->id,
+        ])->assertStatus(422);
+
+        $this->patchJson('/api/v1/crm/deals/'.$deal->id.'/move', [
+            'stage_id' => $lost->id,
+            'loss_reason' => 'Budget cut',
+        ])->assertOk()->assertJsonPath('data.loss_reason', 'Budget cut');
+    }
+
+    public function test_project_export_appends_jalali_display_column(): void
+    {
+        $user = $this->actingAsRole(RolesAndPermissionsSeeder::ROLE_SYSTEM_MANAGER);
+        Sanctum::actingAs($user);
+        $project = Project::query()->create([
+            'name' => 'Dated',
+            'status' => 'active',
+            'created_by' => $user->id,
+        ]);
+        $project->forceFill(['created_at' => '2026-03-21 00:00:00'])->save();
+
+        $response = $this->get('/api/v1/projects/projects/export?locale=fa');
+        $response->assertOk();
+        $this->assertStringContainsString('۱۴۰۵', $response->streamedContent());
+    }
+
+    public function test_client_cannot_create_project(): void
+    {
+        Sanctum::actingAs($this->actingAsRole(RolesAndPermissionsSeeder::ROLE_CLIENT));
+
+        $this->postJson('/api/v1/projects/projects', [
+            'name' => 'Denied',
+            'status' => 'active',
+        ])->assertForbidden();
+    }
+}

@@ -2,8 +2,11 @@
 
 namespace Modules\Projects\Entities;
 
+use App\Models\User;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Modules\Crm\Entities\CrmAccount;
 
 class Project extends Model
 {
@@ -25,6 +28,9 @@ class Project extends Model
         'status',
         'customer_account_id',
         'created_by',
+        'manager_user_id',
+        'start_date',
+        'due_date',
         'is_template',
     ];
 
@@ -32,7 +38,24 @@ class Project extends Model
     {
         return [
             'is_template' => 'boolean',
+            'start_date' => 'date',
+            'due_date' => 'date',
         ];
+    }
+
+    public function account(): BelongsTo
+    {
+        return $this->belongsTo(CrmAccount::class, 'customer_account_id');
+    }
+
+    public function manager(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'manager_user_id');
+    }
+
+    public function milestones(): HasMany
+    {
+        return $this->hasMany(PrjMilestone::class, 'project_id');
     }
 
     public function tasks(): HasMany

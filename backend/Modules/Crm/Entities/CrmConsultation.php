@@ -11,7 +11,7 @@ class CrmConsultation extends Model
     protected $table = 'crm_consultations';
 
     protected $fillable = [
-        'title', 'account_id', 'status', 'notes', 'created_by',
+        'title', 'account_id', 'status', 'notes', 'created_by', 'converted_project_id',
     ];
 
     public function account(): BelongsTo

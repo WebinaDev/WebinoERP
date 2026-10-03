@@ -11,6 +11,7 @@ import { PmViewToggle } from '@/features/shared/pm';
 import { AccountSelect } from '@/features/shared/crm/AccountSelect';
 import { LocaleDatePicker } from '@/components/ui/locale-date-picker';
 import { useLocale } from '@/hooks/use-locale-next';
+import { usePermissions } from '@/features/shared/hooks/usePermissions';
 import { shiftMonth } from '@/lib/locale/month-grid';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -74,7 +75,9 @@ export function AppointmentsListPage() {
   const t = useTranslations('pm.appointments');
   const tNav = useTranslations();
   const tCommon = useTranslations('common');
-  const { locale } = useLocale();
+  const { locale, formatDateTime } = useLocale();
+  const { can } = usePermissions();
+  const canManage = can('projects.appointments.manage');
   const { layoutProps, setError, setSuccess, applyAxiosError } = useCrmFeedback();
 
   const [view, setView] = useState<'list' | 'calendar'>('calendar');
@@ -301,9 +304,11 @@ export function AppointmentsListPage() {
               { id: 'list', label: t('viewList') },
             ]}
           />
-          <Button type="button" size="sm" onClick={() => openCreate()}>
-            {t('newAppointment')}
-          </Button>
+          {canManage ? (
+            <Button type="button" size="sm" onClick={() => openCreate()}>
+              {t('newAppointment')}
+            </Button>
+          ) : null}
         </>
       }
     >
@@ -316,7 +321,9 @@ export function AppointmentsListPage() {
             viewMonth={viewMonth}
             onPrevMonth={() => setViewMonth((d) => shiftMonth(d, -1, locale))}
             onNextMonth={() => setViewMonth((d) => shiftMonth(d, 1, locale))}
-            onDayClick={(iso) => openCreate(iso)}
+            onDayClick={(iso) => {
+              if (canManage) openCreate(iso);
+            }}
             onEventClick={openEditById}
             onEventDragStart={setDraggingEventId}
             onDayDrop={(iso) => {
@@ -354,27 +361,29 @@ export function AppointmentsListPage() {
                 rows.map((r) => (
                   <tr key={String(r.id)} className="border-b">
                     <td className="px-2 py-2">{String(r.title ?? '')}</td>
-                    <td className="px-2 py-2" dir="ltr">
-                      {String(r.starts_at ?? '')}
+                    <td className="px-2 py-2">
+                      {r.starts_at ? formatDateTime(String(r.starts_at)) : '—'}
                     </td>
                     <td className="px-2 py-2">
                       <Badge variant="outline">{String(r.status ?? '—')}</Badge>
                     </td>
                     <td className="px-2 py-2">
-                      <div className="flex flex-wrap gap-1">
-                        <Button type="button" variant="ghost" size="sm" onClick={() => openEdit(r)}>
-                          {tCommon('edit')}
-                        </Button>
-                        <Button
-                          type="button"
-                          variant="ghost"
-                          size="sm"
-                          className="text-destructive"
-                          onClick={() => setDeleteId(Number(r.id))}
-                        >
-                          {tCommon('delete')}
-                        </Button>
-                      </div>
+                      {canManage ? (
+                        <div className="flex flex-wrap gap-1">
+                          <Button type="button" variant="ghost" size="sm" onClick={() => openEdit(r)}>
+                            {tCommon('edit')}
+                          </Button>
+                          <Button
+                            type="button"
+                            variant="ghost"
+                            size="sm"
+                            className="text-destructive"
+                            onClick={() => setDeleteId(Number(r.id))}
+                          >
+                            {tCommon('delete')}
+                          </Button>
+                        </div>
+                      ) : null}
                     </td>
                   </tr>
                 ))

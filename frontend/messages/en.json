@@ -364,6 +364,7 @@
     "remember": "Remember me",
     "backHome": "Back",
     "heroHint": "Unified business management",
+    "customerHint": "Customers use this same login and only see projects, tickets, and appointments for their own site.",
     "error": "Could not sign in",
     "pending": "Signing in…",
     "passwordTab": "Password",
@@ -2612,7 +2613,13 @@
       "deals": "Deals",
       "tickets": "Tickets",
       "contacts": "Contacts",
-      "activities": "Activities"
+      "activities": "Activities",
+      "projects": "Projects",
+      "portalTitle": "Customer portal login",
+      "portalName": "Name",
+      "portalEmail": "Email",
+      "portalGrant": "Grant customer access",
+      "portalPassword": "Password (shown once)"
     },
     "import": {
       "title": "Import CSV",
@@ -2758,6 +2765,8 @@
       "description": "Description",
       "selectAll": "Select all on this page",
       "typeCustomer": "Customer",
+      "sites": "Sites",
+      "projects": "Projects",
       "typeIndividual": "Individual",
       "typeCompany": "Company"
     }
@@ -3932,6 +3941,8 @@
       "team_member": "Team member",
       "sales_consultant": "Sales consultant",
       "client": "Client",
+      "crm_specialist": "CRM specialist",
+      "project_manager": "Project manager",
       "guest": "Guest"
     },
     "stats": {
@@ -3946,7 +3957,22 @@
       "ticketsAssigned": "Assigned tickets"
     },
     "client": {
-      "projects": "My projects"
+      "projects": "My projects",
+      "tickets": "Tickets",
+      "appointments": "Appointments",
+      "sites": "Sites",
+      "openTickets": "Open tickets",
+      "book": "Request appointment",
+      "requestSent": "Appointment request saved",
+      "ticketSent": "Ticket submitted",
+      "progress": "Progress",
+      "noProjects": "No projects yet",
+      "noTickets": "No tickets yet",
+      "noSites": "No sites linked",
+      "portalTitle": "Customer portal",
+      "subject": "Subject",
+      "message": "Request details",
+      "appointmentTitle": "Appointment title"
     },
     "finance": {
       "summary": "Finance summary",
@@ -3990,6 +4016,7 @@
       "customers": "Customers",
       "tasks": "Tasks",
       "tickets": "Tickets",
+      "appointments": "Appointments",
       "time": "Time tracking",
       "profile": "Profile"
     }
@@ -4023,6 +4050,7 @@
       "amount": "Amount",
       "subject": "Subject",
       "createdAt": "Created at",
+      "progress": "Progress",
       "noTasks": "No tasks recorded",
       "noContracts": "No contracts recorded",
       "noTickets": "No tickets recorded",

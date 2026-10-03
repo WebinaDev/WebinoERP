@@ -91,6 +91,10 @@ class DealController extends Controller
             $updates['won_at'] = now();
             $updates['lost_at'] = null;
         } elseif ($stage->is_closed && ! $stage->is_won) {
+            $reason = $request->validate([
+                'loss_reason' => 'required|string|max:2000',
+            ])['loss_reason'];
+            $updates['loss_reason'] = $reason;
             $updates['lost_at'] = now();
             $updates['won_at'] = null;
         }

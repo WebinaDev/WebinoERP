@@ -9,6 +9,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
+use App\Support\CustomerAccess;
 use Modules\Projects\Entities\CatalogProduct;
 use Modules\Projects\Entities\Contract;
 use Modules\Projects\Entities\ProjectTask;
@@ -18,9 +19,10 @@ class ContractController extends Controller
 {
     use UsesProjectHelpers;
 
-    public function index(Request $request): JsonResponse
+    public function index(Request $request, CustomerAccess $access): JsonResponse
     {
         $query = Contract::query()->orderByDesc('created_at');
+        $access->scopeContracts($query, $request->user());
         if ($request->filled('status')) {
             $query->where('status', $request->string('status'));
         }
@@ -48,14 +50,15 @@ class ContractController extends Controller
         return response()->json(['data' => $c], 201);
     }
 
-    public function show(int $id): JsonResponse
+    public function show(Request $request, int $id, CustomerAccess $access): JsonResponse
     {
-        return $this->details($id);
+        return $this->details($request, $id, $access);
     }
 
-    public function update(Request $request, int $id): JsonResponse
+    public function update(Request $request, int $id, CustomerAccess $access): JsonResponse
     {
-        $c = Contract::query()->findOrFail($id);
+        abort_if($access->isPortalCustomer($request->user()), 403);
+        $c = $this->visibleContract($request, $id, $access);
         $data = $request->validate([
             'title' => 'sometimes|string|max:255',
             'status' => 'nullable|string|max:50',
@@ -68,25 +71,28 @@ class ContractController extends Controller
         return response()->json(['data' => $c->fresh()]);
     }
 
-    public function destroy(int $id): JsonResponse
+    public function destroy(Request $request, int $id, CustomerAccess $access): JsonResponse
     {
-        Contract::query()->whereKey($id)->delete();
+        abort_if($access->isPortalCustomer($request->user()), 403);
+        $this->visibleContract($request, $id, $access)->delete();
 
         return response()->json([], 204);
     }
 
-    public function cancel(int $id): JsonResponse
+    public function cancel(Request $request, int $id, CustomerAccess $access): JsonResponse
     {
-        $c = Contract::query()->findOrFail($id);
+        abort_if($access->isPortalCustomer($request->user()), 403);
+        $c = $this->visibleContract($request, $id, $access);
         $c->update(['status' => 'cancelled']);
 
         return response()->json(['data' => ['id' => $id, 'cancelled' => true]]);
     }
 
-    public function addProject(Request $request, int $id): JsonResponse
+    public function addProject(Request $request, int $id, CustomerAccess $access): JsonResponse
     {
+        abort_if($access->isPortalCustomer($request->user()), 403);
         $data = $request->validate(['project_id' => 'required|exists:prj_projects,id']);
-        $c = Contract::query()->findOrFail($id);
+        $c = $this->visibleContract($request, $id, $access);
         $c->update(['project_id' => $data['project_id']]);
 
         return response()->json(['data' => ['contract_id' => $id, 'project_id' => $data['project_id']]], 201);
@@ -145,16 +151,18 @@ class ContractController extends Controller
         return response()->json(['data' => ['tasks' => $created]], 201);
     }
 
-    public function details(int $id): JsonResponse
+    public function details(Request $request, int $id, CustomerAccess $access): JsonResponse
     {
-        $c = Contract::query()->with(['installments', 'lead'])->findOrFail($id);
+        $c = $this->visibleContract($request, $id, $access);
+        $c->load(['installments', 'lead']);
 
         return response()->json(['data' => $c]);
     }
 
-    public function pdf(Request $request, int $id): JsonResponse
+    public function pdf(Request $request, int $id, CustomerAccess $access): JsonResponse
     {
-        $contract = Contract::query()->with(['installments', 'lead', 'project'])->findOrFail($id);
+        $contract = $this->visibleContract($request, $id, $access);
+        $contract->load(['installments', 'lead', 'project']);
         $html = view('pdf.contract', ['contract' => $contract])->render();
         $binary = app(PdfGeneratorService::class)->htmlToPdf($html);
         if ($binary === null) {
@@ -180,9 +188,11 @@ class ContractController extends Controller
         ]);
     }
 
-    public function email(Request $request, int $id): JsonResponse
+    public function email(Request $request, int $id, CustomerAccess $access): JsonResponse
     {
-        $contract = Contract::query()->with(['installments', 'lead', 'project'])->findOrFail($id);
+        abort_if($access->isPortalCustomer($request->user()), 403);
+        $contract = $this->visibleContract($request, $id, $access);
+        $contract->load(['installments', 'lead', 'project']);
         $data = $request->validate(['to' => 'required|email']);
         $html = view('pdf.contract', ['contract' => $contract])->render();
         $binary = app(PdfGeneratorService::class)->htmlToPdf($html);
@@ -199,5 +209,13 @@ class ContractController extends Controller
 
             return response()->json(['message' => 'Mail failed: '.$e->getMessage()], 422);
         }
+    }
+
+    private function visibleContract(Request $request, int $id, CustomerAccess $access): Contract
+    {
+        $query = Contract::query()->whereKey($id);
+        $access->scopeContracts($query, $request->user());
+
+        return $query->firstOrFail();
     }
 }

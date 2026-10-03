@@ -100,11 +100,11 @@ class AppServiceProvider extends ServiceProvider
         Gate::policy(ProjectTask::class, ProjectTaskPolicy::class);
         Gate::policy(CoreChatChannel::class, ChatChannelPolicy::class);
 
-        Gate::define('accounting.view', fn ($user) => $user->can('accounting.view'));
-        Gate::define('accounting.manage', fn ($user) => $user->can('accounting.manage'));
-        Gate::define('modirpayamak.view', fn ($user) => $user->can('integrations.modirpayamak.view'));
-        Gate::define('modirpayamak.manage', fn ($user) => $user->can('integrations.modirpayamak.manage'));
-        Gate::define('modirpayamak.admin', fn ($user) => $user->hasRole('system_manager') || $user->can('integrations.modirpayamak.manage'));
+        Gate::define('accounting.view', fn ($user) => $user->checkPermissionTo('accounting.view'));
+        Gate::define('accounting.manage', fn ($user) => $user->checkPermissionTo('accounting.manage'));
+        Gate::define('modirpayamak.view', fn ($user) => $user->checkPermissionTo('integrations.modirpayamak.view'));
+        Gate::define('modirpayamak.manage', fn ($user) => $user->checkPermissionTo('integrations.modirpayamak.manage'));
+        Gate::define('modirpayamak.admin', fn ($user) => $user->hasRole('system_manager') || $user->checkPermissionTo('integrations.modirpayamak.manage'));
 
         $observer = app(ActivityObserver::class);
         CrmLead::observe($observer);

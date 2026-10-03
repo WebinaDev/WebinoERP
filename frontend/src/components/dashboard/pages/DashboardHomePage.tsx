@@ -17,6 +17,7 @@ import { AccentBarChart, AccentDonutChart } from '@/components/charts/AccentChar
 import { useInitialDashboardStats } from '@/lib/initial-dashboard-context';
 import { dashboardHref } from '@/lib/route-resolver';
 import { useLocale } from '@/hooks/use-locale-next';
+import { CustomerPortalPanel } from '@/features/modules/portal/CustomerPortalPanel';
 
 type Stats = {
   leads_total?: number;
@@ -63,6 +64,7 @@ function roleQuickLinks(role: string): QuickLink[] {
     return [
       { href: 'pm/projects', labelKey: 'quickLinks.projects' },
       { href: 'crm/tickets', labelKey: 'quickLinks.tickets' },
+      { href: 'pm/appointments', labelKey: 'quickLinks.appointments' },
       { href: 'profile', labelKey: 'quickLinks.profile' },
     ];
   }
@@ -83,7 +85,6 @@ export function DashboardHomePage() {
   const [stats, setStats] = useState<Stats | null>(initialStats);
   const [full, setFull] = useState<FullDash | null>(null);
   const [teamMember, setTeamMember] = useState<{ tasks_assigned?: number; tickets_assigned?: number } | null>(null);
-  const [clientDash, setClientDash] = useState<{ projects?: number } | null>(null);
   const [projects, setProjects] = useState<Record<string, unknown>[]>([]);
   const [team, setTeam] = useState<Record<string, unknown>[]>([]);
   const [financeSummary, setFinanceSummary] = useState<Record<string, unknown> | null>(null);
@@ -133,12 +134,6 @@ export function DashboardHomePage() {
         setTeamMember(unwrapData<{ tasks_assigned?: number; tickets_assigned?: number }>(tm));
       } else {
         setTeamMember(null);
-      }
-      if (role === 'client') {
-        const cl = await apiClient.get('/v1/core/dashboard/stats/client');
-        setClientDash(unwrapData<{ projects?: number }>(cl));
-      } else {
-        setClientDash(null);
       }
       if (role === 'finance_manager') {
         try {
@@ -292,14 +287,7 @@ export function DashboardHomePage() {
         </div>
       ) : null}
 
-      {role === 'client' && clientDash ? (
-        <Card>
-          <CardHeader className="pb-2">
-            <CardDescription>{t('client.projects')}</CardDescription>
-            <CardTitle className="text-3xl font-bold tabular-nums">{formatNumber(clientDash.projects ?? 0)}</CardTitle>
-          </CardHeader>
-        </Card>
-      ) : null}
+      {role === 'client' ? <CustomerPortalPanel /> : null}
 
       {role === 'finance_manager' && financeSummary ? (
         <div className="grid gap-4 sm:grid-cols-3">

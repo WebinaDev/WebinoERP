@@ -7,6 +7,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { cn } from '@/lib/utils';
 import { useLocale } from '@/hooks/use-locale';
+import { displayDateKey } from '@/lib/locale/calendar-date';
 import { buildMonthGrid } from '@/lib/locale/month-grid';
 import { toLocaleDigits } from '@/lib/locale';
 
@@ -82,7 +83,7 @@ export function AppointmentsCalendarPanel({
   const eventsByDate = useMemo(() => {
     const map: Record<string, CalendarAppointment[]> = {};
     for (const ev of events) {
-      const d = String(ev.starts_at ?? '').slice(0, 10);
+      const d = displayDateKey(String(ev.starts_at ?? ''), locale);
       if (!d) continue;
       if (!map[d]) map[d] = [];
       map[d].push(ev);

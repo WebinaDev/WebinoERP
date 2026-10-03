@@ -7,7 +7,12 @@ use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Symfony\Component\HttpFoundation\StreamedResponse;
 use Modules\Core\Database\Seeders\RolesAndPermissionsSeeder;
+use App\Support\CalendarDate;
 use Modules\Crm\Entities\CrmAccount;
+use Modules\Crm\Entities\CrmContact;
+use Modules\Crm\Entities\CrmDeal;
+use Modules\Projects\Entities\PrjTicket;
+use Modules\SiteBuilder\Entities\WebinoSiteProvision;
 use Modules\Crm\Entities\CrmActivity;
 use Modules\Crm\Entities\CrmConsultation;
 use Modules\Crm\Entities\CrmLead;
@@ -67,6 +72,8 @@ class CrmParityController extends Controller
     {
         $users = User::role([
             RolesAndPermissionsSeeder::ROLE_SALES_CONSULTANT,
+            RolesAndPermissionsSeeder::ROLE_CRM_SPECIALIST,
+            RolesAndPermissionsSeeder::ROLE_PROJECT_MANAGER,
             RolesAndPermissionsSeeder::ROLE_SYSTEM_MANAGER,
         ])->get(['id', 'name', 'email']);
 
@@ -106,9 +113,10 @@ class CrmParityController extends Controller
 
         return response()->streamDownload(function () {
             $out = fopen('php://output', 'w');
-            fputcsv($out, ['id', 'topic', 'first_name', 'last_name', 'mobile', 'email', 'status_id', 'created_at']);
+            $locale = CalendarDate::localeFromRequest();
+            fputcsv($out, ['id', 'topic', 'first_name', 'last_name', 'mobile', 'email', 'status_id', 'created_at', 'created_at_display']);
 
-            CrmLead::query()->orderBy('id')->chunk(500, function ($chunk) use ($out) {
+            CrmLead::query()->orderBy('id')->chunk(500, function ($chunk) use ($out, $locale) {
                 foreach ($chunk as $lead) {
                     fputcsv($out, [
                         $lead->id,
@@ -118,7 +126,8 @@ class CrmParityController extends Controller
                         $lead->mobile,
                         $lead->email,
                         $lead->status_id,
-                        optional($lead->created_at)->toIso8601String(),
+                        optional($lead->created_at)->utc()->toIso8601String(),
+                        CalendarDate::format($lead->created_at, $locale, true),
                     ]);
                 }
             });
@@ -231,18 +240,23 @@ class CrmParityController extends Controller
 
     public function account360(int $id): JsonResponse
     {
-        $account = CrmAccount::query()->findOrFail($id);
-        $contacts = CrmLead::query()
+        $account = CrmAccount::query()->with('portalUsers:id,name,email')->findOrFail($id);
+        $contacts = CrmContact::query()->where('account_id', $id)->orderByDesc('id')->limit(100)->get();
+        $leads = CrmLead::query()
             ->where('converted_to_account_id', $id)
             ->orderByDesc('id')
             ->limit(100)
             ->get();
-        $deals = Contract::query()
+        $deals = CrmDeal::query()->where('account_id', $id)->orderByDesc('id')->limit(100)->get();
+        $contracts = Contract::query()
             ->where('customer_account_id', $id)
             ->orderByDesc('id')
             ->limit(100)
             ->get();
-        $activities = \Modules\Crm\Entities\CrmActivity::query()
+        $projects = Project::query()->where('customer_account_id', $id)->orderByDesc('id')->limit(100)->get();
+        $tickets = PrjTicket::query()->where('customer_account_id', $id)->orderByDesc('id')->limit(100)->get();
+        $sites = WebinoSiteProvision::query()->where('crm_account_id', $id)->orderByDesc('id')->limit(50)->get();
+        $activities = CrmActivity::query()
             ->where('related_model', CrmAccount::class)
             ->where('related_id', $id)
             ->orderByDesc('created_at')
@@ -253,7 +267,12 @@ class CrmParityController extends Controller
             'data' => [
                 'account' => $account,
                 'contacts' => $contacts,
+                'leads' => $leads,
                 'deals' => $deals,
+                'contracts' => $contracts,
+                'projects' => $projects,
+                'tickets' => $tickets,
+                'sites' => $sites,
                 'activities' => $activities,
             ],
         ]);
@@ -265,9 +284,10 @@ class CrmParityController extends Controller
 
         return response()->streamDownload(function () {
             $out = fopen('php://output', 'w');
-            fputcsv($out, ['id', 'name', 'type', 'account_code', 'website', 'owner_id', 'created_at']);
+            $locale = CalendarDate::localeFromRequest();
+            fputcsv($out, ['id', 'name', 'type', 'account_code', 'website', 'owner_id', 'created_at', 'created_at_display']);
 
-            CrmAccount::query()->orderBy('id')->chunk(500, function ($chunk) use ($out) {
+            CrmAccount::query()->orderBy('id')->chunk(500, function ($chunk) use ($out, $locale) {
                 foreach ($chunk as $acc) {
                     fputcsv($out, [
                         $acc->id,
@@ -276,7 +296,8 @@ class CrmParityController extends Controller
                         $acc->account_code,
                         $acc->website,
                         $acc->owner_id,
-                        optional($acc->created_at)->toIso8601String(),
+                        optional($acc->created_at)->utc()->toIso8601String(),
+                        CalendarDate::format($acc->created_at, $locale, true),
                     ]);
                 }
             });
@@ -348,12 +369,19 @@ class CrmParityController extends Controller
     public function convertConsultation(int $id): JsonResponse
     {
         $c = CrmConsultation::query()->findOrFail($id);
+        if ($c->converted_project_id) {
+            return response()->json(['message' => 'Consultation already converted'], 422);
+        }
         $project = Project::query()->create([
             'name' => 'From consultation: '.$c->title,
             'description' => $c->notes,
             'status' => 'active',
             'customer_account_id' => $c->account_id,
             'created_by' => auth()->id(),
+        ]);
+        $c->update([
+            'status' => 'converted',
+            'converted_project_id' => $project->id,
         ]);
 
         return response()->json(['data' => ['project_id' => $project->id, 'project' => $project]]);

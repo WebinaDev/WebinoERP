@@ -83,11 +83,22 @@ class DashboardParityController extends Controller
 
     public function clientStats(): JsonResponse
     {
-        $uid = auth()->id();
+        $user = auth()->user();
+        $access = app(\App\Support\CustomerAccess::class);
+        $projects = Project::query();
+        $tickets = PrjTicket::query()->whereIn('status', ['open', 'pending', 'in_progress']);
+        $appointments = \Modules\Projects\Entities\PrjAppointment::query()->where('starts_at', '>=', now());
+        if ($user) {
+            $access->scopeProjects($projects, $user);
+            $access->scopeTickets($tickets, $user);
+            $access->scopeAppointments($appointments, $user);
+        }
 
         return response()->json([
             'data' => [
-                'projects' => Project::query()->where('created_by', $uid)->count(),
+                'projects' => $projects->count(),
+                'open_tickets' => $tickets->count(),
+                'upcoming_appointments' => $appointments->count(),
             ],
         ]);
     }
