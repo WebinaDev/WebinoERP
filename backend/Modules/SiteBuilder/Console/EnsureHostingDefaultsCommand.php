@@ -3,7 +3,6 @@
 namespace Modules\SiteBuilder\Console;
 
 use Illuminate\Console\Command;
-use Illuminate\Support\Str;
 use Modules\Core\Entities\CoreHostingSetting;
 use Modules\Platform\Entities\PlatformServer;
 
@@ -24,6 +23,10 @@ class EnsureHostingDefaultsCommand extends Command
         }
         if (! filled($settings->provision_webhook_secret)) {
             $settings->provision_webhook_secret = bin2hex(random_bytes(32));
+            $dirty = true;
+        }
+        if (! filled($settings->erp_api_token) && trim((string) env('WEBINO_ERP_API_TOKEN', '')) === '') {
+            $settings->erp_api_token = bin2hex(random_bytes(32));
             $dirty = true;
         }
         if ($dirty) {

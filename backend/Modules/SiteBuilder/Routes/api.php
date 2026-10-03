@@ -5,6 +5,7 @@ use Modules\SiteBuilder\Http\Controllers\BusinessCategoryController;
 use Modules\SiteBuilder\Http\Controllers\BusinessTypeController;
 use Modules\SiteBuilder\Http\Controllers\DashboardFeatureController;
 use Modules\SiteBuilder\Http\Controllers\PackageController;
+use Modules\SiteBuilder\Http\Controllers\SiteAnnouncementController;
 use Modules\SiteBuilder\Http\Controllers\SiteProvisionController;
 
 Route::get('/catalog', [BusinessCategoryController::class, 'index']);
@@ -36,6 +37,18 @@ Route::get('/packages/{sitePackage}', [PackageController::class, 'show']);
 Route::patch('/packages/{sitePackage}', [PackageController::class, 'update']);
 Route::put('/packages/{sitePackage}', [PackageController::class, 'update']);
 Route::delete('/packages/{sitePackage}', [PackageController::class, 'destroy']);
+
+Route::get('/announcements/options', [SiteAnnouncementController::class, 'options']);
+Route::post('/announcements/preview', [SiteAnnouncementController::class, 'preview']);
+Route::get('/announcements', [SiteAnnouncementController::class, 'index']);
+Route::post('/announcements', [SiteAnnouncementController::class, 'store']);
+Route::get('/announcements/{siteAnnouncement}', [SiteAnnouncementController::class, 'show']);
+Route::patch('/announcements/{siteAnnouncement}', [SiteAnnouncementController::class, 'update']);
+Route::put('/announcements/{siteAnnouncement}', [SiteAnnouncementController::class, 'update']);
+Route::delete('/announcements/{siteAnnouncement}', [SiteAnnouncementController::class, 'destroy']);
+Route::post('/announcements/{siteAnnouncement}/publish', [SiteAnnouncementController::class, 'publish']);
+Route::post('/announcements/{siteAnnouncement}/retry', [SiteAnnouncementController::class, 'retry']);
+Route::post('/announcements/{siteAnnouncement}/archive', [SiteAnnouncementController::class, 'archive']);
 
 Route::get('/provisions', [SiteProvisionController::class, 'index']);
 Route::post('/provisions', [SiteProvisionController::class, 'store']);

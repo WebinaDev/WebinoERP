@@ -350,6 +350,7 @@ export const ERP_MODULES: ErpModuleDef[] = [
           { id: 'platform-catalog', path: 'admin/platform/catalog', titleKey: 'nav.erp.siteBuilder.catalog', icon: 'ri-grid-line', requiredPermission: 'site_builder.catalog.view' },
           { id: 'platform-sites', path: 'admin/platform/sites', titleKey: 'nav.erp.siteBuilder.provisions', icon: 'ri-global-line', requiredPermission: 'site_builder.provision.view' },
           { id: 'platform-sites-new', path: 'admin/platform/sites/new', titleKey: 'nav.erp.siteBuilder.newSite', icon: 'ri-add-circle-line', requiredPermission: 'site_builder.provision.create' },
+          { id: 'platform-announcements', path: 'admin/platform/announcements', titleKey: 'nav.erp.siteBuilder.notices', icon: 'ri-megaphone-line', requiredPermission: 'site_builder.provision.view' },
           { id: 'platform-servers', path: 'admin/platform/servers', titleKey: 'nav.erp.platform.servers', icon: 'ri-server-line', requiredPermission: 'platform.servers.view' },
           { id: 'platform-projects', path: 'admin/platform/projects', titleKey: 'nav.erp.platform.projects', icon: 'ri-folder-3-line', requiredPermission: 'platform.projects.view' },
           { id: 'platform-resources', path: 'admin/platform/resources', titleKey: 'nav.erp.platform.resources', icon: 'ri-stack-line', requiredPermission: 'platform.resources.view' },

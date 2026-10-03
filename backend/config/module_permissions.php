@@ -175,6 +175,11 @@ return [
             'create' => 'site_builder.provision.create',
             'manage' => 'site_builder.provision.manage',
         ],
+        'announcements' => [
+            'view' => 'site_builder.provision.view',
+            'create' => 'site_builder.provision.manage',
+            'manage' => 'site_builder.provision.manage',
+        ],
         '*' => ['view' => 'site_builder.catalog.view', 'manage' => 'site_builder.catalog.manage'],
     ],
     'platform' => [
@@ -205,6 +210,11 @@ return [
         'provisions' => [
             'view' => 'site_builder.provision.view',
             'create' => 'site_builder.provision.create',
+            'manage' => 'site_builder.provision.manage',
+        ],
+        'announcements' => [
+            'view' => 'site_builder.provision.view',
+            'create' => 'site_builder.provision.manage',
             'manage' => 'site_builder.provision.manage',
         ],
         '*' => ['view' => 'platform.view', 'manage' => 'platform.manage'],
