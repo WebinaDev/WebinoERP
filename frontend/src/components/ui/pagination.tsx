@@ -1,6 +1,7 @@
 'use client';
 
 import { useTranslations } from 'next-intl';
+import { useLocale } from '@/hooks/use-locale';
 
 import { ChevronLeft, ChevronRight } from 'lucide-react';
 import { cn } from '@/lib/utils';
@@ -16,6 +17,10 @@ export type PaginationProps = {
 
 export function Pagination({ page, pageCount, total, onPageChange, className }: PaginationProps) {
   const t = useTranslations();
+  const { formatNumber } = useLocale();
+  const pageLabel = formatNumber(page);
+  const pageCountLabel = formatNumber(pageCount);
+  const totalLabel = total != null ? formatNumber(total) : '';
 
   const canPrev = page > 1;
   const canNext = page < pageCount;
@@ -25,11 +30,11 @@ export function Pagination({ page, pageCount, total, onPageChange, className }: 
       <p className="text-muted-foreground">
         {total != null ? (
           <>
-            {t('common.pageOfItems', { page, pageCount, total })}
+            {t('common.pageOfItems', { page: pageLabel, pageCount: pageCountLabel, total: totalLabel })}
           </>
         ) : (
           <>
-            {t('common.pageSlash', { page, pageCount })}
+            {t('common.pageSlash', { page: pageLabel, pageCount: pageCountLabel })}
           </>
         )}
       </p>

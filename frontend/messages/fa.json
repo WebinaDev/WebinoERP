@@ -37,7 +37,7 @@
       "platform": "پلتفرم",
       "marketingSite": "سایت عمومی",
       "docs": "اسناد و قراردادها",
-      "distribution": "توزیع، بازارچه و لایسنس",
+      "distribution": "توزیع",
       "admin": "سیستم و تنظیمات",
       "home": "داشبورد",
       "magazine": "مجله",
@@ -140,7 +140,10 @@
         "tags": "برچسب‌ها",
         "notifications": "اعلان‌ها",
         "terminal": "ترمینال",
-        "settings": "تنظیمات"
+        "settings": "تنظیمات",
+        "distribution": "توزیع",
+        "marketplace": "بازارچه",
+        "licenses": "لایسنس"
       },
       "marketing": {
         "group": "سایت عمومی",
@@ -236,7 +239,7 @@
         "campaigns": "کمپین‌ها",
         "rahnPercent": "نرخ‌نامه",
         "bale": "ربات کسب‌وکار",
-        "modirpayamak": "مدیرپیامک"
+        "modirpayamak": "پیامک"
       },
       "docs": {
         "group": "اسناد و قراردادها",
@@ -286,7 +289,7 @@
       },
       "submodule": {
         "modirpayamak": {
-          "title": "مدیرپیامک",
+          "title": "پیامک",
           "description": "پنل پیامک IPPanel — قابل فروش جداگانه."
         },
         "bale_business": {
@@ -332,7 +335,7 @@
     "docs": "اسناد و قراردادها",
     "admin": "سیستم و تنظیمات",
     "platform": "پلتفرم",
-    "distribution": "توزیع، بازارچه و لایسنس",
+    "distribution": "توزیع",
     "hrm_menu": "مدیریت منابع انسانی",
     "finance_menu": "مدیریت مالی و حسابداری",
     "crm_menu": "ارتباط با مشتری (CRM)",
@@ -345,8 +348,8 @@
     "platform_menu": "پلتفرم",
     "site_builder_menu": "سازنده سایت",
     "marketing_menu": "سایت عمومی",
-    "distribution_menu": "توزیع، بازارچه و لایسنس",
-    "modirpayamak": "مدیرپیامک",
+    "distribution_menu": "توزیع",
+    "modirpayamak": "پیامک",
     "bale_business": "ربات کسب‌وکار",
     "core": "هسته سیستم",
     "marketing": "سایت عمومی",
@@ -721,7 +724,7 @@
     "smsApiKey": "کلید API",
     "smsSenderLine": "خط ارسال",
     "smsCustomEndpoint": "آدرس API سفارشی",
-    "smsModirpayamak": "مدیرپیامک",
+    "smsModirpayamak": "پیامک",
     "smsModirpayamakHint": "ارسال از کیف پول سامانه انجام می‌شود. شارژ و مدیریت در پنل پیامکی.",
     "smsModirpayamakBalance": "موجودی کیف پول",
     "smsModirpayamakPanel": "باز کردن پنل پیامکی",
@@ -748,6 +751,7 @@
     "prevPage": "صفحهٔ قبل",
     "nextPage": "صفحهٔ بعد",
     "emptyValue": "—",
+    "none": "ندارد",
     "cancel": "انصراف",
     "confirm": "تأیید",
     "back": "بازگشت",
@@ -768,7 +772,7 @@
     "confirmDeleteNamedIrreversible": "آیا از حذف «{name}» اطمینان دارید؟ این عمل قابل بازگشت نیست.",
     "confirmDeleteReceipt": "آیا از حذف رسید شماره «{number}» اطمینان دارید؟",
     "pageOf": "صفحه {page} از {pageCount}",
-    "pageOfItems": "نمایش صفحه {page} از {pageCount} — {total} مورد",
+    "pageOfItems": "نمایش صفحه {page} از {pageCount}، {total} مورد",
     "pageSlash": "صفحه {page} / {pageCount}",
     "rowsPage": "{rows} ردیف — صفحه {page} / {pageCount}",
     "wizardContract": "ویزارد قرارداد — مرحله {step} از ۴",
@@ -2013,7 +2017,7 @@
   },
   "reports": {
     "title": "گزارشات",
-    "description": "بازه: {from} → {to} — خروجی CSV",
+    "description": "بازه: {from} تا {to}. خروجی CSV",
     "fromDate": "از تاریخ",
     "toDate": "تا تاریخ",
     "load": "بارگذاری",
@@ -2633,13 +2637,48 @@
       "pipeline": "قیف فروش",
       "newDeal": "معامله جدید",
       "moveSuccess": "مرحله معامله به‌روز شد",
-      "noPipeline": "ابتدا یک قیف فروش انتخاب کنید"
+      "noPipeline": "ابتدا یک قیف فروش انتخاب کنید",
+      "account": "حساب مشتری",
+      "amount": "مبلغ",
+      "name": "نام معامله",
+      "emptyColumn": "معامله‌ای در این مرحله نیست",
+      "lossReason": "دلیل باخت",
+      "lossReasonRequired": "برای مرحله باخت، دلیل را بنویسید",
+      "created": "معامله ایجاد شد"
     },
     "pipelines": {
       "title": "قیف‌های فروش",
       "description": "مدیریت قیف و مراحل",
       "newPipeline": "قیف جدید",
-      "newStage": "مرحله جدید"
+      "newStage": "مرحله جدید",
+      "colName": "نام",
+      "colStages": "مراحل",
+      "empty": "قیف فروشی ثبت نشده",
+      "stagesHint": "نام مرحله را بنویسید و اضافه کنید"
+    },
+    "consultations": {
+      "title": "مشاوره‌ها",
+      "description": "درخواست‌های مشاوره و تبدیل آن‌ها به پروژه",
+      "listTitle": "فهرست مشاوره‌ها",
+      "empty": "مشاوره‌ای ثبت نشده",
+      "new": "مشاوره جدید",
+      "edit": "ویرایش مشاوره",
+      "id": "شناسه",
+      "colTitle": "عنوان",
+      "account": "حساب",
+      "accountOptional": "حساب (اختیاری)",
+      "noAccount": "بدون حساب",
+      "status": "وضعیت",
+      "notes": "یادداشت",
+      "actions": "عملیات",
+      "convert": "تبدیل به پروژه",
+      "convertConfirm": "این مشاوره به پروژه تبدیل شود؟",
+      "statusNew": "جدید",
+      "statusOpen": "باز",
+      "statusPending": "در انتظار",
+      "statusDone": "انجام‌شده",
+      "statusConverted": "تبدیل‌شده",
+      "statusCancelled": "لغوشده"
     },
     "leads": {
       "title": "سرنخ‌ها",
@@ -2769,7 +2808,10 @@
       "sites": "سایت‌ها",
       "projects": "پروژه‌ها",
       "typeIndividual": "حقیقی",
-      "typeCompany": "حقوقی"
+      "typeCompany": "حقوقی",
+      "statTotal": "همه مشتریان",
+      "empty": "مشتری‌ای یافت نشد",
+      "noOwner": "بدون مالک"
     }
   },
   "finance": {
@@ -4020,7 +4062,23 @@
       "appointments": "قرارها",
       "time": "زمان‌سنجی",
       "profile": "پروفایل"
-    }
+    },
+    "crmPmTitle": "خلاصه CRM و پروژه",
+    "crmCustomers": "مشتریان",
+    "crmDeals": "معاملات",
+    "crmConsultations": "مشاوره‌ها",
+    "crmPipelines": "قیف‌های فروش",
+    "crmLeads": "سرنخ‌ها",
+    "pmProjects": "پروژه‌ها",
+    "pmOpenTasks": "وظایف باز",
+    "pmTickets": "تیکت‌های باز",
+    "pmContracts": "قراردادها",
+    "todosTitle": "کارهای من",
+    "todosOverdue": "عقب‌افتاده",
+    "todosToday": "امروز",
+    "todosMine": "وظایف من",
+    "todosEmpty": "موردی نیست",
+    "viewModule": "مشاهده"
   },
   "profile": {
     "title": "پروفایل",
@@ -4067,6 +4125,12 @@
       "statusActive": "فعال",
       "statusOnHold": "معلق",
       "statusCompleted": "تکمیل‌شده",
+      "statusDraft": "پیش‌نویس",
+      "statusCancelled": "لغوشده",
+      "statusOpen": "باز",
+      "openContract": "قرارداد",
+      "openBuilder": "سازنده سایت",
+      "openSite": "مشاهده سایت",
       "deleteTitle": "حذف پروژه",
       "wizard": {
         "title": "ایجاد پروژه",
@@ -4158,8 +4222,8 @@
       "priorityHigh": "بالا",
       "priorityUrgent": "فوری",
       "filterLabel": "برچسب",
-      "tasksPerColumn": "{{count}} وظیفه",
-      "bulkSelected": "{{count}} مورد انتخاب‌شده",
+      "tasksPerColumn": "{count} وظیفه",
+      "bulkSelected": "{count} مورد انتخاب‌شده",
       "bulkStatus": "وضعیت",
       "bulkApply": "اعمال",
       "quickTitle": "عنوان سریع",
@@ -4178,7 +4242,22 @@
       "review": "بازبینی",
       "done": "انجام‌شده",
       "open": "باز",
-      "completed": "تکمیل‌شده"
+      "completed": "تکمیل‌شده",
+      "cancelled": "لغوشده",
+      "checklist": "چک‌لیست",
+      "newChecklistItem": "مورد جدید",
+      "attachments": "پیوست‌ها",
+      "uploadFile": "بارگذاری فایل",
+      "comments": "دیدگاه‌ها",
+      "noComments": "دیدگاهی نیست",
+      "newComment": "دیدگاه جدید",
+      "logTime": "ثبت زمان ({hours} ساعت)",
+      "minutesPlaceholder": "دقیقه",
+      "minutesShort": "دقیقه",
+      "timeNote": "یادداشت زمان",
+      "loadError": "بارگذاری وظیفه ناموفق بود",
+      "description": "توضیحات",
+      "columnCount": "{name}: {count}"
     },
     "timeTracking": {
       "active": "تایمر فعال",

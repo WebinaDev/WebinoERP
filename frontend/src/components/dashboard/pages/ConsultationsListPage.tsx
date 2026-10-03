@@ -1,6 +1,8 @@
 'use client';
 
 import { useTranslations } from 'next-intl';
+import { useLocale } from '@/hooks/use-locale';
+import { Badge } from '@/components/ui/badge';
 
 import { useCallback, useEffect, useState } from 'react';
 import apiClient from '@/lib/api-client';
@@ -24,7 +26,26 @@ type Row = Record<string, unknown>;
 type AccountOption = { id: number; name: string };
 
 export function ConsultationsListPage() {
-  const t = useTranslations();
+  const t = useTranslations('crm.consultations');
+  const tCommon = useTranslations('common');
+  const { formatDigits, isRtl } = useLocale();
+
+  function statusLabel(value: unknown): string {
+    const raw = String(value ?? '').trim();
+    const key = raw.toLowerCase();
+    const map: Record<string, string> = {
+      new: t('statusNew'),
+      open: t('statusOpen'),
+      pending: t('statusPending'),
+      done: t('statusDone'),
+      completed: t('statusDone'),
+      converted: t('statusConverted'),
+      cancelled: t('statusCancelled'),
+      canceled: t('statusCancelled'),
+    };
+    if (!raw) return tCommon('none');
+    return map[key] ?? raw;
+  }
 
   const [rows, setRows] = useState<Row[]>([]);
   const [accounts, setAccounts] = useState<AccountOption[]>([]);
@@ -120,12 +141,12 @@ export function ConsultationsListPage() {
   }
 
   async function convertToProject(id: number) {
-    if (!confirm(t('auto.ConsultationsListPage.s_b0722d14'))) return;
+    if (!confirm(t('convertConfirm'))) return;
     setBusy(true);
     try {
       const res = await apiClient.post(`/v1/crm/consultations/${id}/convert-project`);
       const data = unwrapData<{ project_id?: number }>(res);
-      alert(t('common.projectCreated', { id: String(data?.project_id ?? '') }));
+      alert(tCommon('projectCreated', { id: formatDigits(data?.project_id ?? '') }));
       void load();
     } catch (e) {
       alert(getAxiosMessage(e));
@@ -135,37 +156,43 @@ export function ConsultationsListPage() {
   }
 
   return (
-    <Card>
+    <Card dir={isRtl ? 'rtl' : 'ltr'}>
       <CardHeader className="flex flex-row flex-wrap items-center justify-between gap-2">
-        <CardTitle>{t('auto.ConsultationsListPage.s_47aa49fb')}</CardTitle>
+        <CardTitle>{t('title')}</CardTitle>
         <Button type="button" size="sm" onClick={openCreate} disabled={busy}>
-          {t('auto.ConsultationsListPage.s_bb4a3d56')}
+          {t('new')}
         </Button>
       </CardHeader>
       <CardContent className="space-y-4">
         <ResourceListCard
-          title={t('auto.ConsultationsListPage.s_11fe927c')}
-          description="GET /api/v1/crm/consultations"
+          title={t('listTitle')}
+          description={t('description')}
+          emptyText={t('empty')}
           loading={loading}
           error={error}
           rows={rows}
           columns={[
-            { header: t('auto.ConsultationsListPage.s_acc84041'), cell: (r) => String(r.id ?? '—') },
-            { header: t('auto.ConsultationsListPage.s_1a9bdb20'), cell: (r) => String(r.title ?? '—') },
+            { header: t('id'), cell: (r) => <span className="tabular-nums">{formatDigits(r.id as string | number)}</span> },
+            { header: t('colTitle'), cell: (r) => String(r.title ?? tCommon('none')) },
             {
-              header: t('auto.ConsultationsListPage.s_fdadd003'),
+              header: t('account'),
               cell: (r) => {
                 const acc = r.account as Record<string, unknown> | undefined;
-                return String(acc?.name ?? r.account_id ?? '—');
+                if (acc?.name) return String(acc.name);
+                if (r.account_id) return formatDigits(r.account_id as string | number);
+                return t('noAccount');
               },
             },
-            { header: t('auto.ConsultationsListPage.s_55518965'), cell: (r) => String(r.status ?? '—') },
             {
-              header: t('auto.ConsultationsListPage.s_8d1cc546'),
+              header: t('status'),
+              cell: (r) => <Badge variant="secondary">{statusLabel(r.status)}</Badge>,
+            },
+            {
+              header: t('actions'),
               cell: (r) => (
                 <div className="flex flex-wrap gap-1">
                   <Button type="button" variant="outline" size="sm" onClick={() => openEdit(r)}>
-                    {t('auto.ConsultationsListPage.s_ac60ae7a')}
+                    {tCommon('edit')}
                   </Button>
                   <Button
                     type="button"
@@ -174,7 +201,7 @@ export function ConsultationsListPage() {
                     disabled={busy}
                     onClick={() => void convertToProject(Number(r.id))}
                   >
-                    {t('auto.ConsultationsListPage.s_1e2039cf')}
+                    {t('convert')}
                   </Button>
                 </div>
               ),
@@ -187,20 +214,20 @@ export function ConsultationsListPage() {
         <DialogContent className="max-w-md">
           <DialogHeader>
             <DialogTitle>
-              {editId ? t('auto.ConsultationsListPage.s_b3112c0c') : t('auto.ConsultationsListPage.s_bb4a3d56')}
+              {editId ? t('edit') : t('new')}
             </DialogTitle>
           </DialogHeader>
           <div className="grid gap-3 py-2">
             {formErr ? <p className="text-sm text-destructive">{formErr}</p> : null}
-            <label className="text-sm font-medium">{t('auto.ConsultationsListPage.s_1a9bdb20')}</label>
-            <Input value={title} onChange={(e) => setTitle(e.target.value)} placeholder={t('auto.ConsultationsListPage.s_1a9bdb20')} />
-            <label className="text-sm font-medium">{t('auto.ConsultationsListPage.s_abe20085')}</label>
+            <label className="text-sm font-medium">{t('colTitle')}</label>
+            <Input value={title} onChange={(e) => setTitle(e.target.value)} placeholder={t('colTitle')} />
+            <label className="text-sm font-medium">{t('accountOptional')}</label>
             <Select value={accountId || '__none'} onValueChange={(v) => setAccountId(v === '__none' ? '' : v)}>
               <SelectTrigger>
-                <SelectValue placeholder={t('auto.ConsultationsListPage.s_abe20085')} />
+                <SelectValue placeholder={t('accountOptional')} />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="__none">—</SelectItem>
+                <SelectItem value="__none">{t('noAccount')}</SelectItem>
                 {accounts.map((a) => (
                   <SelectItem key={a.id} value={String(a.id)}>
                     {a.name}
@@ -208,17 +235,17 @@ export function ConsultationsListPage() {
                 ))}
               </SelectContent>
             </Select>
-            <label className="text-sm font-medium">{t('auto.ConsultationsListPage.s_55518965')}</label>
-            <Input value={status} onChange={(e) => setStatus(e.target.value)} />
-            <label className="text-sm font-medium">{t('auto.ConsultationsListPage.s_2c09d41c')}</label>
+            <label className="text-sm font-medium">{t('status')}</label>
+            <Input value={status} onChange={(e) => setStatus(e.target.value)} placeholder={t('status')} />
+            <label className="text-sm font-medium">{t('notes')}</label>
             <Textarea value={notes} onChange={(e) => setNotes(e.target.value)} rows={4} />
           </div>
           <DialogFooter>
             <Button type="button" variant="outline" onClick={() => setDialogOpen(false)}>
-              {t('auto.ConsultationsListPage.s_106dfb4e')}
+              {tCommon('cancel')}
             </Button>
             <Button type="button" onClick={() => void saveConsultation()} disabled={busy || !title.trim()}>
-              {t('auto.ConsultationsListPage.s_08545fb6')}
+              {tCommon('save')}
             </Button>
           </DialogFooter>
         </DialogContent>

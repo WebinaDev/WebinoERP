@@ -60,7 +60,7 @@ function normalizeTimeLogs(raw: unknown): TaskTimeLog[] {
 export function TaskDetailSheet({ taskId, open, onOpenChange, onUpdated }: Props) {
   const t = useTranslations('pm.tasks');
   const tc = useTranslations('common');
-  const { formatDate, formatDateTime } = useLocale();
+  const { formatDate, formatDateTime, formatDigits, isRtl } = useLocale();
   const [task, setTask] = useState<TaskRow | null>(null);
   const [comments, setComments] = useState<TaskCommentRow[]>([]);
   const [attachments, setAttachments] = useState<TaskAttachmentRow[]>([]);
@@ -224,16 +224,34 @@ export function TaskDetailSheet({ taskId, open, onOpenChange, onUpdated }: Props
     }
   };
 
+  const none = tc('none');
   const checklist = normalizeChecklist(task?.checklist);
   const timeLogs = normalizeTimeLogs(task?.time_logs);
   const totalMinutes = timeLogs.reduce((sum, log) => sum + (log.minutes || 0), 0);
 
+  const statusLabel = (status?: string | null) => {
+    if (!status) return none;
+    return t.has(status as 'todo') ? t(status as 'todo') : status;
+  };
+
+  const priorityLabel = (priority?: string | null) => {
+    if (!priority) return none;
+    const map: Record<string, 'priorityLow' | 'priorityNormal' | 'priorityHigh' | 'priorityUrgent'> = {
+      low: 'priorityLow',
+      normal: 'priorityNormal',
+      high: 'priorityHigh',
+      urgent: 'priorityUrgent',
+    };
+    const key = map[priority];
+    return key ? t(key) : priority;
+  };
+
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
-      <SheetContent className="w-full overflow-y-auto sm:max-w-lg">
+      <SheetContent className="w-full overflow-y-auto sm:max-w-lg" dir={isRtl ? 'rtl' : 'ltr'}>
         <SheetHeader>
           <SheetTitle className="pe-8 text-start">
-            {task?.title ?? (loading ? '…' : `#${taskId}`)}
+            {task?.title ?? (loading ? '…' : `#${formatDigits(taskId ?? '')}`)}
           </SheetTitle>
         </SheetHeader>
 
@@ -245,21 +263,21 @@ export function TaskDetailSheet({ taskId, open, onOpenChange, onUpdated }: Props
             <div className="grid gap-3 text-sm sm:grid-cols-2">
               <div>
                 <Label>{t('colStatus')}</Label>
-                <p className="mt-1 text-muted-foreground">{task.status || '—'}</p>
+                <p className="mt-1 text-muted-foreground">{statusLabel(task.status)}</p>
               </div>
               <div>
                 <Label>{t('colPriority')}</Label>
-                <p className="mt-1 text-muted-foreground">{task.priority || '—'}</p>
+                <p className="mt-1 text-muted-foreground">{priorityLabel(task.priority)}</p>
               </div>
               <div>
                 <Label>{t('colDue')}</Label>
                 <p className="mt-1 text-muted-foreground">
-                  {task.due_at ? formatDate(String(task.due_at)) || String(task.due_at).slice(0, 10) : '—'}
+                  {task.due_at ? formatDate(String(task.due_at)) || formatDigits(String(task.due_at).slice(0, 10)) : none}
                 </p>
               </div>
               <div>
                 <Label>{t('colLabel')}</Label>
-                <p className="mt-1 text-muted-foreground">{task.label || '—'}</p>
+                <p className="mt-1 text-muted-foreground">{task.label || none}</p>
               </div>
             </div>
 
@@ -405,13 +423,13 @@ export function TaskDetailSheet({ taskId, open, onOpenChange, onUpdated }: Props
 
             <div>
               <Label className="mb-2 block">
-                {t('logTime', { hours: (totalMinutes / 60).toFixed(2) })}
+                {t('logTime', { hours: formatDigits((totalMinutes / 60).toFixed(2)) })}
               </Label>
               {timeLogs.length > 0 ? (
                 <ul className="mb-2 space-y-1 text-xs text-muted-foreground">
                   {timeLogs.slice(-5).map((log, i) => (
                     <li key={i}>
-                      {log.minutes}m — {log.note || log.at || '—'}
+                      {formatDigits(log.minutes)} {t('minutesShort')}{log.note || log.at ? `: ${log.note || formatDigits(log.at)}` : ''}
                     </li>
                   ))}
                 </ul>

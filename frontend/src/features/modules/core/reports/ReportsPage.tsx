@@ -8,6 +8,8 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { LocaleDatePicker } from '@/components/ui/locale-date-picker';
+import { CrmPmSnapshot } from '@/features/modules/dashboard/CrmPmSnapshot';
+import { useLocale } from '@/hooks/use-locale';
 import { ReportsTabPanel } from './ReportsTabPanel';
 import {
   REPORT_TAB_IDS,
@@ -29,6 +31,7 @@ export function ReportsPage() {
   const t = useTranslations('reports');
   const tPages = useTranslations('pages.reports');
   const tCommon = useTranslations('common');
+  const { formatDigits } = useLocale();
   const [tab, setTab] = useState<string>('overview');
   const [from, setFrom] = useState<string | null>(monthStartIso());
   const [to, setTo] = useState<string | null>(todayIso());
@@ -108,12 +111,17 @@ export function ReportsPage() {
   }
 
   return (
+    <div className="space-y-6">
+      <CrmPmSnapshot />
     <Card>
       <CardHeader className="flex flex-row flex-wrap items-start justify-between gap-3">
         <div>
           <CardTitle>{t('title')}</CardTitle>
           <CardDescription>
-            {t('description', { from: range?.from ?? '—', to: range?.to ?? '—' })}
+            {t('description', {
+              from: formatDigits(range?.from ?? tCommon('none')),
+              to: formatDigits(range?.to ?? tCommon('none')),
+            })}
           </CardDescription>
         </div>
         <div className="flex flex-wrap gap-2">
@@ -175,5 +183,6 @@ export function ReportsPage() {
         </Tabs>
       </CardContent>
     </Card>
+    </div>
   );
 }

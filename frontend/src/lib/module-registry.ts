@@ -461,17 +461,30 @@ export const ERP_MODULES: ErpModuleDef[] = [
     menuItems: [
       {
         id: 'distribution-menu',
+        path: 'admin/marketplace/gitea',
+        titleKey: 'nav.erp.platform.distribution',
+        icon: 'ri-share-forward-line',
+        children: [
+          { id: 'marketplace-gitea', path: 'admin/marketplace/gitea', titleKey: 'nav.erp.distribution.marketplaceGitea', icon: 'ri-git-branch-line' },
+        ],
+      },
+      {
+        id: 'marketplace-menu',
         path: 'admin/marketplace/products',
-        titleKey: 'nav.erp.distribution.group',
+        titleKey: 'nav.erp.platform.marketplace',
         icon: 'ri-store-2-line',
         children: [
           { id: 'marketplace-products', path: 'admin/marketplace/products', titleKey: 'nav.erp.distribution.marketplaceProducts', icon: 'ri-store-2-line' },
-          { id: 'marketplace-gitea', path: 'admin/marketplace/gitea', titleKey: 'nav.erp.distribution.marketplaceGitea', icon: 'ri-git-branch-line' },
           { id: 'marketplace-basalam', path: 'admin/marketplace/basalam', titleKey: 'nav.erp.distribution.marketplaceBasalam', icon: 'ri-store-3-line' },
           { id: 'marketplace-categories', path: 'admin/marketplace/categories', titleKey: 'nav.erp.distribution.marketplaceCategories', icon: 'ri-folder-line' },
           { id: 'marketplace-orders', path: 'admin/marketplace/orders', titleKey: 'nav.erp.distribution.marketplaceOrders', icon: 'ri-shopping-bag-line' },
-          { id: 'licenses', path: 'admin/licenses', titleKey: 'nav.erp.distribution.licenses', icon: 'ri-key-2-line' },
         ],
+      },
+      {
+        id: 'licenses',
+        path: 'admin/licenses',
+        titleKey: 'nav.erp.platform.licenses',
+        icon: 'ri-key-2-line',
       },
     ],
     legacyRedirects: [

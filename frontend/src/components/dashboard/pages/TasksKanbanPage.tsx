@@ -164,14 +164,29 @@ function toGanttItems(rows: TaskRow[]): TaskGanttItem[] {
 }
 
 export function TasksKanbanPage() {
-  const { formatDate } = useLocale();
+  const { formatDate, formatDigits, isRtl } = useLocale();
   const t = useTranslations('pm.tasks');
   const tc = useTranslations('common');
+  const none = tc('none');
 
   const statusLabel = useCallback(
     (status: string) => {
       if (t.has(status as 'todo')) return t(status as 'todo');
       return status;
+    },
+    [t]
+  );
+
+  const priorityLabel = useCallback(
+    (priority: string) => {
+      const map: Record<string, 'priorityLow' | 'priorityNormal' | 'priorityHigh' | 'priorityUrgent'> = {
+        low: 'priorityLow',
+        normal: 'priorityNormal',
+        high: 'priorityHigh',
+        urgent: 'priorityUrgent',
+      };
+      const key = map[priority];
+      return key ? t(key) : priority;
     },
     [t]
   );
@@ -439,7 +454,7 @@ export function TasksKanbanPage() {
   }, [listRows, cards]);
 
   return (
-    <div className="space-y-3">
+    <div className="space-y-3" dir={isRtl ? 'rtl' : 'ltr'}>
       <PmPageHeader
         title={t('title')}
         description={t('description')}
@@ -519,10 +534,10 @@ export function TasksKanbanPage() {
             />
           </PmFilterBar>
           <p className="mt-2 text-xs text-muted-foreground">
-            {t('tasksPerColumn', { count: stats.total })}{' '}
+            {t('tasksPerColumn', { count: formatDigits(stats.total) })}{' '}
             {columns.map((c) => (
               <span key={c.id} className="ms-2">
-                {c.name}: {stats.byCol.get(c.id) ?? 0}
+                {t('columnCount', { name: c.name, count: formatDigits(stats.byCol.get(c.id) ?? 0) })}
               </span>
             ))}
           </p>
@@ -532,7 +547,7 @@ export function TasksKanbanPage() {
       {selectedIds.length > 0 && view === 'list' ? (
         <Card>
           <CardContent className="flex flex-wrap items-center gap-3 pt-6">
-            <span className="text-sm">{t('bulkSelected', { count: selectedIds.length })}</span>
+            <span className="text-sm">{t('bulkSelected', { count: formatDigits(selectedIds.length) })}</span>
             <Select value={bulkStatus} onValueChange={setBulkStatus}>
               <SelectTrigger className="w-[160px]">
                 <SelectValue placeholder={t('bulkStatus')} />
@@ -592,7 +607,7 @@ export function TasksKanbanPage() {
                       <DraggableTask
                         key={c.id}
                         id={c.id}
-                        title={`${c.title ?? `#${c.id}`}${c.priority ? ` · ${c.priority}` : ''}`}
+                        title={`${c.title ?? `#${formatDigits(c.id)}`}${c.priority ? ` · ${priorityLabel(c.priority)}` : ''}`}
                         onOpen={setDetailTaskId}
                         onDelete={deleteTask}
                       />
@@ -611,7 +626,7 @@ export function TasksKanbanPage() {
             {listRows.length === 0 ? (
               <p className="py-8 text-center text-muted-foreground">{t('noTasks')}</p>
             ) : (
-              <Table>
+              <Table dir={isRtl ? 'rtl' : 'ltr'}>
                 <TableHeader>
                   <TableRow>
                     <TableHead className="w-10" />
@@ -642,17 +657,17 @@ export function TasksKanbanPage() {
                             className="font-medium text-start hover:underline"
                             onClick={() => setDetailTaskId(id)}
                           >
-                            {String(row.title ?? `#${id}`)}
+                            {String(row.title ?? `#${formatDigits(id)}`)}
                           </button>
                         </TableCell>
                         <TableCell>
-                          {row.status ? statusLabel(String(row.status)) : '—'}
+                          {row.status ? statusLabel(String(row.status)) : none}
                         </TableCell>
-                        <TableCell>{String(row.priority ?? '—')}</TableCell>
-                        <TableCell>{String(row.label ?? '—')}</TableCell>
-                        <TableCell>{u?.name ?? (row.assignee_id ? String(row.assignee_id) : '—')}</TableCell>
+                        <TableCell>{row.priority ? priorityLabel(String(row.priority)) : none}</TableCell>
+                        <TableCell>{String(row.label ?? none)}</TableCell>
+                        <TableCell>{u?.name ?? (row.assignee_id ? formatDigits(row.assignee_id) : none)}</TableCell>
                         <TableCell>
-                          {row.due_at ? formatDate(String(row.due_at)) || '—' : '—'}
+                          {row.due_at ? formatDate(String(row.due_at)) || none : none}
                         </TableCell>
                       </TableRow>
                     );

@@ -10,6 +10,7 @@ use Modules\Crm\Entities\CrmAccount;
 use Modules\Crm\Entities\CrmDeal;
 use Modules\Crm\Entities\CrmPipeline;
 use Modules\Crm\Entities\CrmStage;
+use Modules\Projects\Entities\Contract;
 use Modules\Projects\Entities\PrjTicket;
 use Modules\Projects\Entities\Project;
 use Modules\Projects\Entities\ProjectTask;
@@ -191,6 +192,76 @@ class CrmPmPortalTest extends TestCase
         $response = $this->get('/api/v1/projects/projects/export?locale=fa');
         $response->assertOk();
         $this->assertStringContainsString('۱۴۰۵', $response->streamedContent());
+    }
+
+    public function test_project_list_includes_contract_and_site_builder(): void
+    {
+        $user = $this->actingAsRole(RolesAndPermissionsSeeder::ROLE_SYSTEM_MANAGER);
+        Sanctum::actingAs($user);
+        $account = CrmAccount::query()->create(['name' => 'Site Co', 'type' => 'customer']);
+        $project = Project::query()->create([
+            'name' => 'Linked',
+            'status' => 'active',
+            'customer_account_id' => $account->id,
+            'created_by' => $user->id,
+        ]);
+        $contract = Contract::query()->create([
+            'title' => 'MSA',
+            'project_id' => $project->id,
+            'status' => 'active',
+            'amount' => 1000,
+            'created_by' => $user->id,
+        ]);
+        $site = WebinoSiteProvision::query()->create([
+            'crm_account_id' => $account->id,
+            'slug' => 'site-co',
+            'domain' => 'site-co.example',
+            'status' => 'ready',
+        ]);
+
+        $this->getJson('/api/v1/projects/projects')
+            ->assertOk()
+            ->assertJsonPath('data.0.contracts.0.id', $contract->id)
+            ->assertJsonPath('data.0.sites.0.builder_path', 'admin/platform/sites/'.$site->id);
+
+        $this->getJson('/api/v1/projects/projects/'.$project->id.'/details')
+            ->assertOk()
+            ->assertJsonPath('data.contracts.0.id', $contract->id)
+            ->assertJsonPath('data.sites.0.builder_path', 'admin/platform/sites/'.$site->id);
+    }
+
+    public function test_dashboard_crm_pm_groups_todos(): void
+    {
+        $user = $this->actingAsRole(RolesAndPermissionsSeeder::ROLE_SYSTEM_MANAGER);
+        Sanctum::actingAs($user);
+        $project = Project::query()->create([
+            'name' => 'Todos',
+            'status' => 'active',
+            'created_by' => $user->id,
+        ]);
+        ProjectTask::query()->create([
+            'project_id' => $project->id,
+            'title' => 'Late',
+            'status' => 'open',
+            'assignee_id' => $user->id,
+            'due_at' => now()->subDay(),
+            'created_by' => $user->id,
+        ]);
+        ProjectTask::query()->create([
+            'project_id' => $project->id,
+            'title' => 'Today',
+            'status' => 'open',
+            'assignee_id' => $user->id,
+            'due_at' => now(),
+            'created_by' => $user->id,
+        ]);
+
+        $this->getJson('/api/v1/core/dashboard/crm-pm')
+            ->assertOk()
+            ->assertJsonPath('data.todos.counts.overdue', 1)
+            ->assertJsonPath('data.todos.counts.today', 1)
+            ->assertJsonPath('data.todos.counts.mine', 2)
+            ->assertJsonPath('data.pm.open_tasks', 2);
     }
 
     public function test_client_cannot_create_project(): void

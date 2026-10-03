@@ -2,11 +2,16 @@
 
 namespace Modules\Core\Http\Controllers;
 
+use App\Support\CustomerAccess;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Symfony\Component\HttpFoundation\StreamedResponse;
+use Modules\Crm\Entities\CrmAccount;
+use Modules\Crm\Entities\CrmConsultation;
+use Modules\Crm\Entities\CrmDeal;
 use Modules\Crm\Entities\CrmLead;
+use Modules\Crm\Entities\CrmPipeline;
 use Modules\Projects\Entities\Contract;
 use Modules\Projects\Entities\PrjSprint;
 use Modules\Projects\Entities\PrjTicket;
@@ -67,6 +72,60 @@ class DashboardParityController extends Controller
         } catch (\Throwable) {
             return [];
         }
+    }
+
+    public function crmPm(Request $request, CustomerAccess $access): JsonResponse
+    {
+        $user = $request->user();
+        $closed = ['done', 'completed', 'cancelled', 'closed'];
+        $start = now()->startOfDay();
+        $end = now()->endOfDay();
+
+        $open = ProjectTask::query()->whereNotIn('status', $closed);
+        if ($user) {
+            $access->scopeTasks($open, $user);
+        }
+
+        $mapTask = static fn (ProjectTask $task) => [
+            'id' => $task->id,
+            'title' => $task->title,
+            'status' => $task->status,
+            'priority' => $task->priority,
+            'due_at' => optional($task->due_at)?->utc()->toIso8601String(),
+            'project_id' => $task->project_id,
+        ];
+
+        $overdue = (clone $open)->whereNotNull('due_at')->where('due_at', '<', $start)->orderBy('due_at');
+        $today = (clone $open)->whereBetween('due_at', [$start, $end])->orderBy('due_at');
+        $mine = (clone $open)->when($user, fn ($q) => $q->where('assignee_id', $user->id))->orderByDesc('id');
+
+        return response()->json([
+            'data' => [
+                'crm' => [
+                    'customers' => $this->safeCount(fn () => CrmAccount::query()->count()),
+                    'deals' => $this->safeCount(fn () => CrmDeal::query()->count()),
+                    'consultations' => $this->safeCount(fn () => CrmConsultation::query()->count()),
+                    'pipelines' => $this->safeCount(fn () => CrmPipeline::query()->count()),
+                    'leads' => $this->safeCount(fn () => CrmLead::query()->count()),
+                ],
+                'pm' => [
+                    'projects' => $this->safeCount(fn () => Project::query()->count()),
+                    'open_tasks' => $this->safeCount(fn () => (clone $open)->count()),
+                    'tickets' => $this->safeCount(fn () => PrjTicket::query()->whereIn('status', ['open', 'pending', 'in_progress'])->count()),
+                    'contracts' => $this->safeCount(fn () => Contract::query()->count()),
+                ],
+                'todos' => [
+                    'counts' => [
+                        'overdue' => (clone $overdue)->count(),
+                        'today' => (clone $today)->count(),
+                        'mine' => (clone $mine)->count(),
+                    ],
+                    'overdue' => $overdue->limit(8)->get()->map($mapTask)->values(),
+                    'today' => $today->limit(8)->get()->map($mapTask)->values(),
+                    'mine' => $mine->limit(8)->get()->map($mapTask)->values(),
+                ],
+            ],
+        ]);
     }
 
     public function teamMemberStats(): JsonResponse

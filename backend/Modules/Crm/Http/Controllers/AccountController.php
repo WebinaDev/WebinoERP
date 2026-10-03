@@ -14,6 +14,7 @@ use Illuminate\Validation\ValidationException;
 use Modules\Core\Database\Seeders\RolesAndPermissionsSeeder;
 use Modules\Crm\Entities\CrmAccount;
 use Modules\Crm\Entities\CrmConsultation;
+use Modules\Crm\Entities\CrmContact;
 use Modules\Crm\Http\Requests\StoreAccountRequest;
 use Modules\Crm\Http\Requests\UpdateAccountRequest;
 use Modules\Crm\Services\DuplicateDetectionService;
@@ -24,16 +25,40 @@ class AccountController extends Controller
 
     public function index(Request $request): JsonResponse
     {
-        $query = CrmAccount::query()->withCount(['projects', 'tickets']);
+        $query = CrmAccount::query()
+            ->with('owner:id,name')
+            ->withCount(['projects', 'tickets'])
+            ->addSelect([
+                'contact_phone' => CrmContact::query()
+                    ->selectRaw("COALESCE(NULLIF(phone, ''), NULLIF(mobile, ''))")
+                    ->whereColumn('crm_contacts.account_id', 'crm_accounts.id')
+                    ->orderByDesc('is_primary')
+                    ->limit(1),
+            ]);
         if (Schema::hasTable('webino_site_provisions')) {
             $query->withCount('siteProvisions');
+        }
+        if ($request->filled('search')) {
+            $term = '%'.$request->string('search').'%';
+            $query->where(function ($q) use ($term) {
+                $q->where('crm_accounts.name', 'like', $term)
+                    ->orWhere('crm_accounts.website', 'like', $term)
+                    ->orWhereHas('contacts', function ($contacts) use ($term) {
+                        $contacts->where('phone', 'like', $term)
+                            ->orWhere('mobile', 'like', $term)
+                            ->orWhere('email', 'like', $term)
+                            ->orWhere('first_name', 'like', $term)
+                            ->orWhere('last_name', 'like', $term);
+                    });
+            });
+            $request->merge(['search' => null]);
         }
         $query->orderByDesc('created_at');
         $paginator = $this->applyIndexQuery(
             $query,
             $request,
             ['type' => 'type', 'owner_id' => 'owner_id'],
-            ['name', 'email', 'phone'],
+            [],
             ['name', 'created_at'],
         );
 
