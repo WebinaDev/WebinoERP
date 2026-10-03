@@ -19,6 +19,7 @@ import { dashboardHref } from '@/lib/route-resolver';
 import { useLocale } from '@/hooks/use-locale-next';
 import { CustomerPortalPanel } from '@/features/modules/portal/CustomerPortalPanel';
 import { CrmPmSnapshot } from '@/features/modules/dashboard/CrmPmSnapshot';
+import { GlobalSearchBox } from '@/features/modules/dashboard/GlobalSearchBox';
 
 type Stats = {
   leads_total?: number;
@@ -258,6 +259,7 @@ export function DashboardHomePage() {
           <h1 className="text-xl font-bold tracking-tight sm:text-2xl">{t('heroTitle')}</h1>
           <p className="text-muted-foreground mt-1 max-w-2xl text-sm">{t('heroSubtitle')}</p>
         </div>
+        <GlobalSearchBox />
         <div className="flex flex-wrap gap-2">
           {quickLinks.map((link) => (
             <Button key={link.href} asChild size="sm" variant="secondary">

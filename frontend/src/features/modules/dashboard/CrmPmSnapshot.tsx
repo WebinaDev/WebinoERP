@@ -22,6 +22,7 @@ type TodoRow = {
 type Snapshot = {
   crm?: Record<string, number>;
   pm?: Record<string, number>;
+  suite?: Record<string, number>;
   todos?: {
     counts?: { overdue?: number; today?: number; mine?: number };
     overdue?: TodoRow[];
@@ -51,6 +52,8 @@ export function CrmPmSnapshot() {
   const params = useParams();
   const locale = (params?.locale as string) || 'fa';
   const [data, setData] = useState<Snapshot | null>(null);
+  const [hidden, setHidden] = useState<Set<string>>(new Set());
+  const suiteT = useTranslations('suite');
 
   useEffect(() => {
     let cancelled = false;
@@ -58,6 +61,14 @@ export function CrmPmSnapshot() {
       .get('/v1/core/dashboard/crm-pm')
       .then((res) => {
         if (!cancelled) setData(unwrapData<Snapshot>(res));
+      })
+    apiClient
+      .get('/v1/core/dashboard/widgets')
+      .then((res) => {
+        const prefs = unwrapData<{ widgets?: { key: string; visible: boolean }[] }>(res);
+        if (!cancelled) {
+          setHidden(new Set((prefs?.widgets ?? []).filter((item) => !item.visible).map((item) => item.key)));
+        }
       })
       .catch(() => {
         if (!cancelled) setData(null);
@@ -68,6 +79,28 @@ export function CrmPmSnapshot() {
   }, []);
 
   if (!data) return null;
+
+  const suite = data.suite ?? {};
+  const widgetCards = [
+    { key: 'forecast', label: suiteT('weighted'), value: suite.weighted_forecast ?? 0, href: 'crm/forecast' },
+    { key: 'reminders', label: suiteT('reminder'), value: suite.open_reminders ?? 0, href: 'crm/customers' },
+    { key: 'delays', label: suiteT('delays'), value: suite.delayed_tasks ?? 0, href: 'pm/workload' },
+    { key: 'sla', label: suiteT('sla'), value: suite.sla_breaches ?? 0, href: 'crm/tickets' },
+  ].filter((card) => !hidden.has(card.key));
+
+  async function toggle(key: string, visible: boolean) {
+    const next = new Set(hidden);
+    if (visible) next.delete(key);
+    else next.add(key);
+    setHidden(next);
+    await apiClient.put('/v1/core/dashboard/widgets', {
+      widgets: ['forecast', 'reminders', 'delays', 'sla'].map((item, index) => ({
+        key: item,
+        visible: item === key ? visible : !next.has(item),
+        sort_order: index,
+      })),
+    }).catch(() => undefined);
+  }
 
   const crm = data.crm ?? {};
   const pm = data.pm ?? {};
@@ -81,6 +114,28 @@ export function CrmPmSnapshot() {
   return (
     <div className="space-y-4" dir={isRtl ? 'rtl' : 'ltr'}>
       <h2 className="text-base font-semibold">{t('crmPmTitle')}</h2>
+      {widgetCards.length > 0 ? (
+        <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+          {widgetCards.map((card) => (
+            <Card key={card.key}>
+              <CardHeader className="pb-2">
+                <CardTitle className="text-sm font-medium text-muted-foreground">{card.label}</CardTitle>
+              </CardHeader>
+              <CardContent className="flex items-end justify-between gap-2">
+                <p className="text-2xl font-semibold tabular-nums">{formatNumber(Number(card.value))}</p>
+                <div className="flex flex-col items-end">
+                  <Button variant="link" size="sm" className="h-auto px-0" asChild>
+                    <Link href={dashboardHref(locale, card.href)}>{t('viewModule')}</Link>
+                  </Button>
+                  <Button type="button" variant="ghost" size="sm" className="h-auto px-0 text-xs" onClick={() => void toggle(card.key, false)}>
+                    {suiteT('hide')}
+                  </Button>
+                </div>
+              </CardContent>
+            </Card>
+          ))}
+        </div>
+      ) : null}
       <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-5">
         {CRM_CARDS.map((card) => (
           <Card key={card.key}>

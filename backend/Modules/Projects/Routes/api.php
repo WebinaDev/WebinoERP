@@ -8,6 +8,7 @@ use Modules\Projects\Http\Controllers\CustomerPortalController;
 use Modules\Projects\Http\Controllers\MilestoneController;
 use Modules\Projects\Http\Controllers\FormController;
 use Modules\Projects\Http\Controllers\KanbanParityController;
+use Modules\Projects\Http\Controllers\PmDeliveryController;
 use Modules\Projects\Http\Controllers\ProjectController;
 use Modules\Projects\Http\Controllers\ProjectInvoiceController;
 use Modules\Projects\Http\Controllers\ProjectProductController;
@@ -34,6 +35,25 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::delete('/forms/{id}', [FormController::class, 'destroy'])->whereNumber('id');
 
     Route::get('/project-templates', [ProjectController::class, 'templates']);
+    Route::post('/project-templates/{id}/instantiate', [PmDeliveryController::class, 'instantiate'])->whereNumber('id');
+    Route::get('/workload', [PmDeliveryController::class, 'workload']);
+    Route::get('/delay-alerts', [PmDeliveryController::class, 'delays']);
+    Route::post('/delay-alerts/notify', [PmDeliveryController::class, 'notifyDelays']);
+    Route::get('/projects/{id}/budget', [PmDeliveryController::class, 'budget'])->whereNumber('id');
+    Route::put('/projects/{id}/budget', [PmDeliveryController::class, 'updateBudget'])->whereNumber('id');
+    Route::get('/projects/{id}/files', [PmDeliveryController::class, 'files'])->whereNumber('id');
+    Route::post('/projects/{id}/files', [PmDeliveryController::class, 'storeFile'])->whereNumber('id');
+    Route::post('/files', [PmDeliveryController::class, 'storeFile']);
+    Route::post('/files/{id}/versions', [PmDeliveryController::class, 'storeVersion'])->whereNumber('id');
+    Route::delete('/files/{id}', [PmDeliveryController::class, 'destroyFile'])->whereNumber('id');
+    Route::get('/approvals', [PmDeliveryController::class, 'approvals']);
+    Route::post('/approvals', [PmDeliveryController::class, 'storeApproval']);
+    Route::post('/approvals/{id}/decide', [PmDeliveryController::class, 'decideApproval'])->whereNumber('id');
+    Route::get('/connectors', [PmDeliveryController::class, 'connectors']);
+    Route::put('/connectors/{kind}', [PmDeliveryController::class, 'saveConnector']);
+    Route::post('/connectors/{kind}/test', [PmDeliveryController::class, 'testConnector']);
+    Route::get('/tickets/sla', [PmDeliveryController::class, 'sla']);
+    Route::get('/audit', [PmDeliveryController::class, 'audit']);
     Route::get('/assignable-users', [ProjectController::class, 'assignableUsers']);
 
     Route::get('/projects', [ProjectController::class, 'index'])->middleware('fieldsec:project');
@@ -59,6 +79,8 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('/portal/tickets', [CustomerPortalController::class, 'storeTicket']);
     Route::post('/portal/tickets/{id}/replies', [CustomerPortalController::class, 'reply'])->whereNumber('id');
     Route::post('/portal/appointments', [CustomerPortalController::class, 'requestAppointment']);
+    Route::post('/portal/approvals/{id}/decide', [PmDeliveryController::class, 'decideApproval'])->whereNumber('id');
+    Route::get('/portal/files/{id}', [CustomerPortalController::class, 'downloadFile'])->whereNumber('id');
 
     Route::get('/contracts', [ContractController::class, 'index'])->middleware('fieldsec:contract');
     Route::post('/contracts', [ContractController::class, 'store']);

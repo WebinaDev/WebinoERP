@@ -4,7 +4,9 @@ namespace Modules\Crm\Providers;
 
 use Illuminate\Support\Facades\Route;
 use Illuminate\Support\ServiceProvider;
+use Modules\Crm\Console\DispatchRemindersCommand;
 use Modules\Crm\Console\RecomputeLeadScoresCommand;
+use Modules\Crm\Console\RunSequencesCommand;
 use Modules\Crm\Http\Controllers\ConsultationIngestController;
 use Modules\Crm\Http\Controllers\ElementorLeadController;
 
@@ -15,7 +17,11 @@ class CrmServiceProvider extends ServiceProvider
     public function boot(): void
     {
         if ($this->app->runningInConsole()) {
-            $this->commands([RecomputeLeadScoresCommand::class]);
+            $this->commands([
+                RecomputeLeadScoresCommand::class,
+                DispatchRemindersCommand::class,
+                RunSequencesCommand::class,
+            ]);
         }
 
         $this->loadMigrationsFrom(module_path($this->moduleName, 'Database/Migrations'));

@@ -10,6 +10,7 @@ use Modules\Projects\Entities\PrjTicketReply;
 use Modules\Projects\Entities\Project;
 use Modules\Projects\Entities\ProjectTask;
 use Modules\Projects\Http\Controllers\Concerns\UsesProjectHelpers;
+use Modules\Projects\Services\TicketSla;
 use Modules\Projects\Support\StatusMachine;
 
 class TicketController extends Controller
@@ -52,7 +53,7 @@ class TicketController extends Controller
         ]);
     }
 
-    public function store(Request $request, CustomerAccess $access): JsonResponse
+    public function store(Request $request, CustomerAccess $access, TicketSla $sla): JsonResponse
     {
         $data = $request->validate([
             'subject' => 'required|string|max:255',
@@ -75,8 +76,9 @@ class TicketController extends Controller
             }
         }
         $t = PrjTicket::query()->create($data);
+        $sla->apply($t);
 
-        return response()->json(['data' => $t], 201);
+        return response()->json(['data' => $t->fresh()], 201);
     }
 
     public function show(Request $request, int $id, CustomerAccess $access): JsonResponse
@@ -107,7 +109,7 @@ class TicketController extends Controller
         return response()->json(['data' => $t->fresh(['replies.user', 'customer', 'assignee'])]);
     }
 
-    public function reply(Request $request, int $id, CustomerAccess $access): JsonResponse
+    public function reply(Request $request, int $id, CustomerAccess $access, TicketSla $sla): JsonResponse
     {
         $ticket = $this->findVisible($request, $id, $access);
         abort_if($ticket->status === 'closed' && $access->isPortalCustomer($request->user()), 422);
@@ -119,6 +121,8 @@ class TicketController extends Controller
         ]);
         if ($access->isPortalCustomer($request->user()) && $ticket->status === 'resolved') {
             $ticket->update(['status' => 'open']);
+        } elseif (! $access->isPortalCustomer($request->user())) {
+            $sla->markResponse($ticket);
         }
 
         return response()->json(['data' => $reply], 201);

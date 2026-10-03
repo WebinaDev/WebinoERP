@@ -70,6 +70,8 @@ Route::middleware(['auth:sanctum', 'module.permission:core'])->group(function ()
     Route::get('/dashboard/stats', DashboardStatsController::class);
     Route::get('/dashboard', [DashboardParityController::class, 'full']);
     Route::get('/dashboard/crm-pm', [DashboardParityController::class, 'crmPm']);
+    Route::get('/dashboard/widgets', [DashboardParityController::class, 'widgets']);
+    Route::put('/dashboard/widgets', [DashboardParityController::class, 'saveWidgets']);
     Route::get('/dashboard/stats/team-member', [DashboardParityController::class, 'teamMemberStats']);
     Route::get('/dashboard/stats/client', [DashboardParityController::class, 'clientStats']);
 

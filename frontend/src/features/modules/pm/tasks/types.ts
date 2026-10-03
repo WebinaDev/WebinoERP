@@ -36,7 +36,9 @@ export type TaskRow = {
   project_id?: number | null;
   assignee_id?: number | null;
   due_at?: string | null;
+  starts_at?: string | null;
   created_at?: string | null;
+  depends_on?: number[];
   content?: string | null;
   recurrence?: { repeat?: string | null; interval?: number | null } | null;
   checklist?: TaskChecklistItem[] | null;
@@ -57,4 +59,5 @@ export type TaskGanttItem = {
   end_date: string;
   duration: number;
   progress: number;
+  dependsOn?: number[];
 };

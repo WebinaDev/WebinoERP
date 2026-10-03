@@ -20,6 +20,8 @@ return Application::configure(basePath: dirname(__DIR__))
         $schedule->command('webino:tasks:recurring')->everyFifteenMinutes();
         $schedule->command('webino:db-optimize')->weeklyOn(0, '03:15');
         $schedule->command('crm:recompute-lead-scores')->dailyAt('04:00');
+        $schedule->command('crm:dispatch-reminders')->everyFiveMinutes();
+        $schedule->command('crm:run-sequences')->everyFifteenMinutes();
         if (class_exists(\Spatie\Backup\Commands\BackupCommand::class)) {
             $schedule->command('backup:run --only-db')->dailyAt('02:40');
         }

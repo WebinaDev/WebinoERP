@@ -143,7 +143,7 @@ function monthRange(month: Date): { start: string; end: string } {
 
 function toGanttItems(rows: TaskRow[]): TaskGanttItem[] {
   return rows.map((row) => {
-    const startRaw = row.created_at || row.due_at || new Date().toISOString();
+    const startRaw = row.starts_at || row.created_at || row.due_at || new Date().toISOString();
     const endRaw = row.due_at || row.created_at || startRaw;
     const start = new Date(startRaw);
     const end = new Date(endRaw);
@@ -159,6 +159,7 @@ function toGanttItems(rows: TaskRow[]): TaskGanttItem[] {
       end_date: new Date(endMs).toISOString().slice(0, 10),
       duration,
       progress,
+      dependsOn: Array.isArray(row.depends_on) ? row.depends_on.map((id) => Number(id)) : [],
     };
   });
 }

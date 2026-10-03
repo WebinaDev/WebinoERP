@@ -114,6 +114,14 @@ class RolesAndPermissionsSeeder extends Seeder
                 'crm.tickets.manage',
                 'crm.bale_business.view',
                 'crm.bale_business.manage',
+                'crm.activities.view',
+                'crm.activities.manage',
+                'crm.messages.view',
+                'crm.messages.manage',
+                'crm.forecast.view',
+                'crm.audiences.view',
+                'crm.audiences.manage',
+                'crm.audit.view',
             ],
             [
                 'projects.projects.view',
@@ -129,6 +137,10 @@ class RolesAndPermissionsSeeder extends Seeder
                 'projects.invoices.view',
                 'projects.invoices.manage',
                 'projects.import_export',
+                'projects.workload.view',
+                'projects.files.view',
+                'projects.files.manage',
+                'projects.audit.view',
                 'portal.access',
             ],
             [
@@ -279,6 +291,9 @@ class RolesAndPermissionsSeeder extends Seeder
             'projects.tasks.manage',
             'projects.tickets.view',
             'projects.tickets.manage',
+            'projects.workload.view',
+            'projects.files.view',
+            'projects.files.manage',
             'hrm.attendance.view',
             'hrm.attendance.manage',
             'hrm.leave.view',
@@ -309,6 +324,14 @@ class RolesAndPermissionsSeeder extends Seeder
             'sales.campaigns.view',
             'sales.invoices.view',
             'sales.invoices.manage',
+            'crm.activities.view',
+            'crm.activities.manage',
+            'crm.messages.view',
+            'crm.messages.manage',
+            'crm.forecast.view',
+            'crm.audiences.view',
+            'crm.audiences.manage',
+            'crm.audit.view',
         ];
     }
 
@@ -362,6 +385,14 @@ class RolesAndPermissionsSeeder extends Seeder
             'projects.tickets.manage',
             'projects.appointments.view',
             'projects.appointments.manage',
+            'crm.activities.view',
+            'crm.activities.manage',
+            'crm.messages.view',
+            'crm.messages.manage',
+            'crm.forecast.view',
+            'crm.audiences.view',
+            'crm.audiences.manage',
+            'crm.audit.view',
         ];
     }
 
@@ -389,6 +420,10 @@ class RolesAndPermissionsSeeder extends Seeder
             'projects.invoices.view',
             'projects.invoices.manage',
             'projects.import_export',
+            'projects.workload.view',
+            'projects.files.view',
+            'projects.files.manage',
+            'projects.audit.view',
         ];
     }
 }

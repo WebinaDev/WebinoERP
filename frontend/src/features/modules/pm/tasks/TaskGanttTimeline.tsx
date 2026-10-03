@@ -11,6 +11,7 @@ type Props = {
 
 export function TaskGanttTimeline({ tasks, onTaskClick }: Props) {
   const t = useTranslations('pm.tasks');
+  const suite = useTranslations('suite');
   if (tasks.length === 0) return null;
 
   const parseDate = (s: string) => {
@@ -42,7 +43,14 @@ export function TaskGanttTimeline({ tasks, onTaskClick }: Props) {
             className="grid min-w-[640px] grid-cols-[200px_1fr_80px_80px] items-center gap-2 rounded-md border p-2 text-start transition-colors hover:bg-muted/50"
             onClick={() => onTaskClick(task.id)}
           >
-            <span className="truncate text-sm font-medium">{task.text}</span>
+            <span className="truncate text-sm font-medium">
+              {task.text}
+              {task.dependsOn && task.dependsOn.length > 0 ? (
+                <span className="mt-0.5 block text-xs font-normal text-muted-foreground">
+                  {suite('dependsOn')} {task.dependsOn.map((id) => `#${id}`).join(' · ')}
+                </span>
+              ) : null}
+            </span>
             <div className="relative h-6 overflow-hidden rounded bg-muted">
               <div
                 className={cn('absolute top-0 h-full rounded bg-primary/40')}

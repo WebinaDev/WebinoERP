@@ -35,6 +35,7 @@ type Meta = { current_page?: number; last_page?: number; total?: number };
 
 export function TicketsListPage() {
   const t = useTranslations('crm.tickets');
+  const suite = useTranslations('suite');
   const tc = useTranslations('common');
   const { formatDateTime } = useLocale();
   const router = useRouter();
@@ -262,6 +263,7 @@ export function TicketsListPage() {
           <Card>
             <CardHeader>
               <CardTitle className="text-base">{String(detail.subject ?? '')}</CardTitle>
+              <SlaBadge row={detail} formatDateTime={formatDateTime} />
             </CardHeader>
             <CardContent className="space-y-3 text-sm">
               <div
@@ -422,19 +424,20 @@ export function TicketsListPage() {
                   <th className="px-3 py-2 text-start">{t('subject')}</th>
                   <th className="px-3 py-2 text-start">{t('status')}</th>
                   <th className="px-3 py-2 text-start">{t('priority')}</th>
+                  <th className="px-3 py-2 text-start">{suite('sla')}</th>
                   <th className="px-3 py-2 text-start">{t('actions')}</th>
                 </tr>
               </thead>
               <tbody>
                 {loading ? (
                   <tr>
-                    <td colSpan={5} className="px-3 py-8 text-center text-muted-foreground">
+                    <td colSpan={6} className="px-3 py-8 text-center text-muted-foreground">
                       {tc('loading')}
                     </td>
                   </tr>
                 ) : rows.length === 0 ? (
                   <tr>
-                    <td colSpan={5} className="px-3 py-8 text-center text-muted-foreground">
+                    <td colSpan={6} className="px-3 py-8 text-center text-muted-foreground">
                       {tc('noData')}
                     </td>
                   </tr>
@@ -456,6 +459,9 @@ export function TicketsListPage() {
                       </td>
                       <td className="px-3 py-2">{String(r.priority ?? tc('none'))}</td>
                       <td className="px-3 py-2">
+                        <SlaBadge row={r} formatDateTime={formatDateTime} />
+                      </td>
+                      <td className="px-3 py-2">
                         <Button type="button" variant="outline" size="sm" onClick={() => openTicket(r)}>
                           {tc('view')}
                         </Button>
@@ -470,5 +476,30 @@ export function TicketsListPage() {
         </CardContent>
       </Card>
     </PageShell>
+  );
+}
+
+function slaTone(row: Row): 'ok' | 'soon' | 'breach' | null {
+  if (row.sla_breached_at) return 'breach';
+  const dueRaw = row.first_responded_at ? row.sla_resolve_due_at : row.sla_first_due_at;
+  if (!dueRaw) return null;
+  const due = Date.parse(String(dueRaw));
+  if (Number.isNaN(due)) return null;
+  if (due < Date.now()) return 'breach';
+  if (due - Date.now() < 4 * 60 * 60 * 1000) return 'soon';
+  return 'ok';
+}
+
+function SlaBadge({ row, formatDateTime }: { row: Row; formatDateTime: (value: string) => string }) {
+  const suite = useTranslations('suite');
+  const tone = slaTone(row);
+  if (!tone) return null;
+  const dueRaw = row.first_responded_at ? row.sla_resolve_due_at : row.sla_first_due_at;
+  const title = dueRaw ? formatDateTime(String(dueRaw)) : undefined;
+  const text = tone === 'breach' ? suite('slaBreach') : tone === 'soon' ? suite('slaSoon') : suite('slaOk');
+  return (
+    <Badge variant={tone === 'breach' ? 'destructive' : 'secondary'} title={title}>
+      {text}
+    </Badge>
   );
 }

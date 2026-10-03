@@ -91,6 +91,13 @@ import { AccountingReportsPage } from '@/features/modules/finance/reports/Accoun
 import { FiscalYearPage } from '@/features/modules/finance/fiscal-year/FiscalYearPage';
 import { AccountingSettingsPage } from '@/features/modules/finance/settings/AccountingSettingsPage';
 import { DealsKanbanPage } from '@/features/modules/crm/deals/DealsKanbanPage';
+import { CrmForecastPage } from '@/features/modules/crm/suite/CrmForecastPage';
+import { CrmOutreachPage } from '@/features/modules/crm/suite/CrmOutreachPage';
+import { CrmAudiencePage } from '@/features/modules/crm/suite/CrmAudiencePage';
+import { CrmAutomationPage } from '@/features/modules/crm/suite/CrmAutomationPage';
+import { AuditLogPage } from '@/features/modules/crm/suite/AuditLogPage';
+import { PmWorkloadPage } from '@/features/modules/pm/PmWorkloadPage';
+import { PmConnectorsPage } from '@/features/modules/pm/PmConnectorsPage';
 import { PipelinesPage } from '@/features/modules/crm/pipelines/PipelinesPage';
 import { CustomerDetailPage } from '@/features/modules/crm/customers/CustomerDetailPage';
 import { WarehousesPage } from '@/features/modules/scm/warehouses_page';
@@ -197,6 +204,14 @@ const EXACT: Record<string, ReactNode> = {
   customers: <CustomersListPage />,
   'crm/deals': <DealsKanbanPage />,
   'crm/pipelines': <PipelinesPage />,
+  'crm/forecast': <CrmForecastPage />,
+  'crm/outreach': <CrmOutreachPage />,
+  'crm/audiences': <CrmAudiencePage />,
+  'crm/automation': <CrmAutomationPage />,
+  'crm/audit': <AuditLogPage module="crm" />,
+  'pm/workload': <PmWorkloadPage />,
+  'pm/connectors': <PmConnectorsPage />,
+  'pm/audit': <AuditLogPage module="projects" />,
   'crm/tickets': <TicketsListPage />,
   tickets: <TicketsListPage />,
   'crm/consultations': <ConsultationsListPage />,

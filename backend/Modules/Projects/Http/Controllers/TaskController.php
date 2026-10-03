@@ -2,7 +2,9 @@
 
 namespace Modules\Projects\Http\Controllers;
 
+use App\Models\User;
 use App\Support\CustomerAccess;
+use App\Support\StaffNotifier;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -155,6 +157,7 @@ class TaskController extends Controller
             'user_id' => $request->user()->id,
             'body' => $data['body'],
         ]);
+        $this->notifyMentions($request->user()->id, $id, $data['body']);
 
         return response()->json(['data' => $c], 201);
     }
@@ -202,6 +205,8 @@ class TaskController extends Controller
             'project_id' => 'nullable|exists:prj_projects,id',
             'assignee_id' => 'nullable|exists:users,id',
             'due_at' => 'nullable|date',
+            'starts_at' => 'nullable|date',
+            'estimate_hours' => 'nullable|numeric|min:0|max:1000',
             'workflow_status_id' => 'nullable|exists:prj_workflow_statuses,id',
             'epic_id' => 'nullable|exists:prj_epics,id',
             'sprint_id' => 'nullable|exists:prj_sprints,id',
@@ -334,8 +339,20 @@ class TaskController extends Controller
         if ($request->filled('project_id')) {
             $q->where('project_id', (int) $request->input('project_id'));
         }
+        $tasks = $q->get();
+        $links = TaskLink::query()
+            ->whereIn('source_task_id', $tasks->pluck('id'))
+            ->where('link_type', 'depends')
+            ->get()
+            ->groupBy('source_task_id');
+        $data = $tasks->map(function (ProjectTask $task) use ($links) {
+            $row = $task->toArray();
+            $row['depends_on'] = ($links[$task->id] ?? collect())->pluck('target_task_id')->map(fn ($id) => (int) $id)->values();
 
-        return response()->json(['data' => $q->get()]);
+            return $row;
+        });
+
+        return response()->json(['data' => $data]);
     }
 
     public function uploadAttachment(Request $request, int $id): JsonResponse
@@ -401,6 +418,27 @@ class TaskController extends Controller
                 ],
                 []
             );
+        }
+    }
+
+    private function notifyMentions(int $authorId, int $taskId, string $body): void
+    {
+        if (! preg_match_all('/@([\p{L}\p{N}._-]{2,})/u', $body, $matches)) {
+            return;
+        }
+        $tokens = array_unique($matches[1]);
+        $users = User::query()
+            ->where('id', '!=', $authorId)
+            ->where(function ($q) use ($tokens) {
+                foreach ($tokens as $token) {
+                    $q->orWhere('name', $token)->orWhere('email', 'like', $token.'@%');
+                }
+            })
+            ->get();
+        foreach ($users as $user) {
+            StaffNotifier::notify((int) $user->id, 'pm.mention', 'اشاره در وظیفه', $body, [
+                'task_id' => $taskId,
+            ]);
         }
     }
 

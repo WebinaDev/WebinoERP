@@ -32,6 +32,9 @@ class Project extends Model
         'start_date',
         'due_date',
         'is_template',
+        'budget_amount',
+        'budget_hours',
+        'hourly_rate',
     ];
 
     protected function casts(): array
@@ -40,6 +43,9 @@ class Project extends Model
             'is_template' => 'boolean',
             'start_date' => 'date',
             'due_date' => 'date',
+            'budget_amount' => 'decimal:2',
+            'budget_hours' => 'decimal:2',
+            'hourly_rate' => 'decimal:2',
         ];
     }
 

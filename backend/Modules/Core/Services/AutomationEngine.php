@@ -2,11 +2,14 @@
 
 namespace Modules\Core\Services;
 
+use App\Support\StaffNotifier;
 use Illuminate\Support\Arr;
 use Illuminate\Support\Facades\Http;
 use Modules\Core\Entities\CoreAutomationRule;
 use Modules\Core\Entities\CoreAutomationRun;
 use Modules\Core\Entities\CoreNotification;
+use Modules\Crm\Services\CrmOutboundMessenger;
+use Modules\Projects\Entities\ProjectTask;
 
 class AutomationEngine
 {
@@ -109,6 +112,9 @@ class AutomationEngine
         return match ($type) {
             'notify' => $this->executeNotify($payload, $event),
             'send-telegram' => $this->executeTelegram($payload, $event),
+            'create-task' => $this->executeCreateTask($payload, $event),
+            'webhook' => $this->executeWebhook($payload, $event),
+            'send-sms' => $this->executeSms($payload, $event),
             default => ['type' => $type, 'status' => 'ignored'],
         };
     }
@@ -162,5 +168,72 @@ class AutomationEngine
         ]);
 
         return ['type' => 'notify', 'status' => 'ok', 'user_id' => $userId];
+    }
+
+    /**
+     * @param  array<string,mixed>  $payload
+     * @param  array<string,mixed>  $event
+     * @return array<string,mixed>
+     */
+    private function executeCreateTask(array $payload, array $event): array
+    {
+        $title = trim((string) ($payload['title'] ?? ''));
+        if ($title === '') {
+            $title = 'پیگیری';
+        }
+        $assignee = (int) ($payload['assignee_id'] ?? Arr::get($event, 'user_id', 0));
+        $task = ProjectTask::query()->create([
+            'project_id' => $payload['project_id'] ?? null,
+            'title' => $title,
+            'status' => 'open',
+            'assignee_id' => $assignee > 0 ? $assignee : null,
+            'due_at' => isset($payload['due_in_days']) ? now()->addDays((int) $payload['due_in_days']) : null,
+            'created_by' => Arr::get($event, 'user_id'),
+        ]);
+
+        return ['type' => 'create-task', 'status' => 'ok', 'task_id' => $task->id];
+    }
+
+    /**
+     * @param  array<string,mixed>  $payload
+     * @param  array<string,mixed>  $event
+     * @return array<string,mixed>
+     */
+    private function executeWebhook(array $payload, array $event): array
+    {
+        $url = (string) ($payload['url'] ?? '');
+        if ($url === '' || ! str_starts_with($url, 'https://') && ! str_starts_with($url, 'http://')) {
+            return ['type' => 'webhook', 'status' => 'skipped', 'reason' => 'missing_url'];
+        }
+        $res = Http::timeout(5)->asJson()->post($url, [
+            'event' => $event,
+            'payload' => $payload['body'] ?? null,
+        ]);
+        if (! $res->successful()) {
+            return ['type' => 'webhook', 'status' => 'failed', 'code' => $res->status()];
+        }
+
+        return ['type' => 'webhook', 'status' => 'ok'];
+    }
+
+    /**
+     * @param  array<string,mixed>  $payload
+     * @param  array<string,mixed>  $event
+     * @return array<string,mixed>
+     */
+    private function executeSms(array $payload, array $event): array
+    {
+        $to = (string) ($payload['to'] ?? Arr::get($event, 'mobile', ''));
+        $body = (string) ($payload['body'] ?? '');
+        if ($to === '' || $body === '') {
+            return ['type' => 'send-sms', 'status' => 'skipped', 'reason' => 'missing_to_or_body'];
+        }
+        $result = app(CrmOutboundMessenger::class)->deliverSms($to, $body);
+        $userId = (int) Arr::get($event, 'user_id', 0);
+        if ($userId > 0) {
+            StaffNotifier::notify($userId, 'crm.sms', 'پیامک', $body, ['to' => $to, 'status' => $result['status']]);
+        }
+
+        return ['type' => 'send-sms', 'status' => $result['status'], 'provider' => $result['provider']];
     }
 }

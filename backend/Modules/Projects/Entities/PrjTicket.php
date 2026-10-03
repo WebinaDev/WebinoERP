@@ -14,7 +14,18 @@ class PrjTicket extends Model
     protected $fillable = [
         'subject', 'body', 'status', 'priority', 'department', 'rating',
         'customer_user_id', 'customer_account_id', 'project_id', 'assignee_id', 'converted_task_id',
+        'sla_first_due_at', 'sla_resolve_due_at', 'first_responded_at', 'sla_breached_at',
     ];
+
+    protected function casts(): array
+    {
+        return [
+            'sla_first_due_at' => 'datetime',
+            'sla_resolve_due_at' => 'datetime',
+            'first_responded_at' => 'datetime',
+            'sla_breached_at' => 'datetime',
+        ];
+    }
 
     public function customer(): BelongsTo
     {

@@ -27,6 +27,8 @@ class ProjectTask extends Model
         'recurrence',
         'assignee_id',
         'due_at',
+        'starts_at',
+        'estimate_hours',
         'created_by',
     ];
 
@@ -34,6 +36,8 @@ class ProjectTask extends Model
     {
         return [
             'due_at' => 'datetime',
+            'starts_at' => 'datetime',
+            'estimate_hours' => 'decimal:2',
             'checklist' => 'array',
             'time_logs' => 'array',
             'recurrence' => 'array',

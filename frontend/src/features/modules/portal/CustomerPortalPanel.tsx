@@ -25,6 +25,8 @@ type ProjectRow = {
 type TicketRow = { id: number; subject: string; status: string; created_at?: string };
 type AppointmentRow = { id: number; title: string; status: string; starts_at: string };
 type SiteRow = { id: number; domain?: string; slug?: string; status?: string };
+type FileRow = { id: number; name: string; version?: number };
+type ApprovalRow = { id: number; title: string; status: string };
 type Summary = {
   account?: { id: number; name: string; website?: string | null } | null;
   projects: ProjectRow[];
@@ -32,10 +34,20 @@ type Summary = {
   tickets: TicketRow[];
   appointments: AppointmentRow[];
   sites: SiteRow[];
+  files?: FileRow[];
+  approvals?: ApprovalRow[];
 };
+
+function approvalLabel(status: string, suite: (key: 'approved' | 'changes' | 'rejected' | 'pending') => string) {
+  if (status === 'approved') return suite('approved');
+  if (status === 'changes') return suite('changes');
+  if (status === 'rejected') return suite('rejected');
+  return suite('pending');
+}
 
 export function CustomerPortalPanel() {
   const t = useTranslations('dashboard.client');
+  const suite = useTranslations('suite');
   const { formatDate, formatDateTime, formatNumber } = useLocale();
   const params = useParams();
   const locale = (params?.locale as string) || 'fa';
@@ -62,6 +74,22 @@ export function CustomerPortalPanel() {
     setSubject('');
     setBody('');
     setNotice(t('ticketSent'));
+    await load();
+  }
+
+  async function openFile(file: FileRow) {
+    const res = await apiClient.get(`/v1/projects/portal/files/${file.id}`, { responseType: 'blob' });
+    const url = URL.createObjectURL(res.data as Blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = file.name;
+    link.click();
+    URL.revokeObjectURL(url);
+  }
+
+  async function decide(id: number, status: 'approved' | 'changes' | 'rejected') {
+    await apiClient.post(`/v1/projects/portal/approvals/${id}/decide`, { status });
+    setNotice(suite('decide'));
     await load();
   }
 
@@ -172,6 +200,51 @@ export function CustomerPortalPanel() {
             <LocaleDatePicker value={day} onChange={setDay} />
             <Input type="time" value={time} onChange={(e) => setTime(e.target.value)} dir="ltr" />
             <Button type="button" size="sm" onClick={() => void book()}>{t('book')}</Button>
+          </CardContent>
+        </Card>
+      </div>
+
+      <div className="grid gap-4 lg:grid-cols-2">
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-base">{suite('portalFiles')}</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-2">
+            {(summary.files ?? []).length === 0 ? <p className="text-sm text-muted-foreground">{suite('noFiles')}</p> : null}
+            {(summary.files ?? []).map((file) => (
+              <div key={file.id} className="flex items-center justify-between gap-2 rounded-md border p-3 text-sm">
+                <div>
+                  <p className="font-medium">{file.name}</p>
+                  <p className="text-xs text-muted-foreground">{suite('version')} {formatNumber(file.version ?? 1)}</p>
+                </div>
+                <Button type="button" size="sm" variant="outline" onClick={() => void openFile(file)}>
+                  {suite('download')}
+                </Button>
+              </div>
+            ))}
+          </CardContent>
+        </Card>
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-base">{suite('portalApprovals')}</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-2">
+            {(summary.approvals ?? []).length === 0 ? <p className="text-sm text-muted-foreground">{suite('noApprovals')}</p> : null}
+            {(summary.approvals ?? []).map((approval) => (
+              <div key={approval.id} className="space-y-2 rounded-md border p-3 text-sm">
+                <div className="flex items-center justify-between gap-2">
+                  <p className="font-medium">{approval.title}</p>
+                  <Badge variant="secondary">{approvalLabel(approval.status, suite)}</Badge>
+                </div>
+                {approval.status === 'pending' ? (
+                  <div className="flex flex-wrap gap-2">
+                    <Button type="button" size="sm" onClick={() => void decide(approval.id, 'approved')}>{suite('approved')}</Button>
+                    <Button type="button" size="sm" variant="outline" onClick={() => void decide(approval.id, 'changes')}>{suite('changes')}</Button>
+                    <Button type="button" size="sm" variant="outline" onClick={() => void decide(approval.id, 'rejected')}>{suite('rejected')}</Button>
+                  </div>
+                ) : null}
+              </div>
+            ))}
           </CardContent>
         </Card>
       </div>

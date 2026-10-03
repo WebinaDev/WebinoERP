@@ -20,6 +20,7 @@ class CrmAutomationTest extends TestCase
     {
         parent::setUp();
         $this->seedRbac();
+        $this->seedLicensedModules();
     }
 
     public function test_lead_status_change_dispatches_automation_trigger(): void

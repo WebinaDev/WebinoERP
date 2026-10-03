@@ -16,6 +16,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { useLocale } from '@/hooks/use-locale-next';
+import { ActivityTimeline } from '@/features/modules/crm/ActivityTimeline';
 import { dashboardHref } from '@/lib/route-resolver';
 import {
   deployResource,
@@ -48,6 +49,9 @@ export function CustomerDetailPage({ id }: Props) {
   const [portalPassword, setPortalPassword] = useState<string | null>(null);
   const [portalBusy, setPortalBusy] = useState(false);
   const [loading, setLoading] = useState(true);
+  const [focusDeal, setFocusDeal] = useState<string | null>(null);
+  const [duplicateId, setDuplicateId] = useState('');
+  const [fieldValues, setFieldValues] = useState<{ key: string; label: string; value: string }[]>([]);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -71,6 +75,9 @@ export function CustomerDetailPage({ id }: Props) {
       setProjects(Array.isArray(projectsBody.data) ? (projectsBody.data as Record<string, unknown>[]) : []);
       setPlatformSites(sitesRes.resources ?? []);
       setPlatformProvisions(sitesRes.provisions ?? []);
+      const fieldsRes = await apiClient.get('/v1/crm/custom-field-values', { params: { entity_type: 'account', entity_id: id } }).catch(() => null);
+      const fieldRows = fieldsRes ? unwrapData<{ field: { key: string; label: string }; value: string | null }[]>(fieldsRes) : [];
+      setFieldValues((fieldRows ?? []).map((row) => ({ key: row.field.key, label: row.field.label, value: row.value ?? '' })));
     } catch (err) {
       applyAxiosError(err);
     } finally {
@@ -169,25 +176,55 @@ export function CustomerDetailPage({ id }: Props) {
             </CardContent>
           </Card>
           <Separator />
-          <Tabs defaultValue="deals">
-            <TabsList className="grid w-full grid-cols-2 sm:grid-cols-5">
+          <Card>
+            <CardHeader><CardTitle className="text-lg">{tNav('suite.merge')}</CardTitle></CardHeader>
+            <CardContent className="flex flex-col gap-2 sm:flex-row">
+              <Input inputMode="numeric" value={duplicateId} onChange={(e) => setDuplicateId(e.target.value)} placeholder={tNav('suite.duplicateId')} aria-label={tNav('suite.duplicateId')} />
+              <Button type="button" size="sm" variant="outline" disabled={!duplicateId} onClick={() => void apiClient.post('/v1/crm/accounts/merge', { primary_id: Number(id), duplicate_id: Number(duplicateId) }).then(() => { setDuplicateId(''); return load(); }).catch(applyAxiosError)}>
+                {tNav('suite.mergeAction')}
+              </Button>
+            </CardContent>
+          </Card>
+          {fieldValues.length > 0 ? (
+            <Card>
+              <CardHeader><CardTitle className="text-lg">{tNav('suite.fields')}</CardTitle></CardHeader>
+              <CardContent className="grid gap-2 sm:grid-cols-2">
+                {fieldValues.map((field) => (
+                  <div key={field.key} className="space-y-1">
+                    <Label htmlFor={`cf-${field.key}`}>{field.label}</Label>
+                    <Input id={`cf-${field.key}`} value={field.value} onChange={(e) => setFieldValues((rows) => rows.map((row) => row.key === field.key ? { ...row, value: e.target.value } : row))} onBlur={() => void apiClient.put('/v1/crm/custom-field-values', { entity_type: 'account', entity_id: Number(id), values: { [field.key]: field.value } }).catch(applyAxiosError)} />
+                  </div>
+                ))}
+              </CardContent>
+            </Card>
+          ) : null}
+          <Tabs defaultValue="timeline">
+            <TabsList className="flex h-auto w-full flex-wrap justify-start">
+              <TabsTrigger value="timeline">{tNav('suite.timeline')}</TabsTrigger>
               <TabsTrigger value="deals">{t('deals')}</TabsTrigger>
               <TabsTrigger value="tickets">{t('tickets')}</TabsTrigger>
               <TabsTrigger value="contacts">{t('contacts')}</TabsTrigger>
               <TabsTrigger value="projects">{t('projects')}</TabsTrigger>
               <TabsTrigger value="platform">{tPlatform('title')}</TabsTrigger>
             </TabsList>
+            <TabsContent value="timeline">
+              <ActivityTimeline accountId={id} />
+            </TabsContent>
             <TabsContent value="deals" className="space-y-2">
               {deals.length === 0 ? (
                 <p className="text-sm text-muted-foreground">{tNav('common.noData')}</p>
               ) : (
                 deals.map((d) => (
                   <div key={String(d.id)} className="rounded-md border p-3 text-sm">
-                    <p className="font-medium">{String(d.title ?? d.name ?? d.id)}</p>
-                    <p className="text-muted-foreground">{String(d.status ?? tNav('common.none'))}</p>
+                    <div className="flex items-center justify-between gap-2">
+                      <p className="font-medium">{String(d.title ?? d.name ?? d.id)}</p>
+                      <Button type="button" size="sm" variant="ghost" onClick={() => setFocusDeal(String(d.id))}>{tNav('suite.timeline')}</Button>
+                    </div>
+                    <p className="text-muted-foreground">{String((d.stage as { name?: string } | undefined)?.name ?? d.status ?? tNav('common.none'))}</p>
                   </div>
                 ))
               )}
+              {focusDeal ? <ActivityTimeline dealId={focusDeal} /> : null}
             </TabsContent>
             <TabsContent value="tickets" className="space-y-2">
               {tickets.length === 0 ? (

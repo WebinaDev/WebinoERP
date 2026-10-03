@@ -1,6 +1,8 @@
 'use client';
 
 import { useCallback, useEffect, useRef, useState } from 'react';
+import Link from 'next/link';
+import { useParams } from 'next/navigation';
 import { useTranslations } from 'next-intl';
 import { CrmPageLayout } from '@/features/shared/layout/CrmPageLayout';
 import { useCrmFeedback } from '@/features/shared/hooks/useCrmFeedback';
@@ -36,9 +38,13 @@ import {
   type ChatMessage,
 } from '@/lib/api/chat';
 import { useLocale } from '@/hooks/use-locale-next';
+import { dashboardHref } from '@/lib/route-resolver';
 
 export function ChatPage() {
   const t = useTranslations('pm.chat');
+  const suite = useTranslations('suite');
+  const params = useParams();
+  const locale = (params?.locale as string) || 'fa';
   const { formatDateTime } = useLocale();
   const tNav = useTranslations();
   const tCommon = useTranslations('common');
@@ -173,6 +179,11 @@ export function ChatPage() {
         </Button>
       }
     >
+      <p className="text-sm">
+        <Link className="text-primary hover:underline" href={dashboardHref(locale, 'pm/connectors')}>
+          {suite('chatConnectors')}
+        </Link>
+      </p>
       <div className="grid gap-4 lg:grid-cols-3">
         <Card>
           <CardHeader className="pb-2">

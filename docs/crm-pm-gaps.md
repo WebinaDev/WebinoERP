@@ -1,30 +1,45 @@
 # CRM and PM gaps
 
-What this pass covers, and what is still open. Routes were not renamed.
+Routes were not renamed. Existing Persian CRM/PM polish, planning panels, impersonation, and the marketing site stay in place.
 
-## Done in this pass
+## Shipped
 
-- Project detail lists and edits milestones, sprints, and epics (create, update, delete; sprint start and finish).
-- Deal cards edit amount, probability, and expected close date in place.
-- Pipeline stages can be reordered, recolored, and deleted. Adding a stage still works and now sends order and color.
-- Consultation list and filters use `crm_consultation_statuses` instead of a free-text status.
-- Project cards and project detail link invoices, tickets, and appointments. Ticket subjects open `crm/tickets?ticket_id=`.
-- Task editor saves recurrence and dependencies.
-- `common.emptyValue` is «ندارد» in Persian and "None" in English, matching `common.none`. Empty CRM and PM values use that label.
-- ModirPayamak settings and module titles say پیامک.
+### CRM
 
-- Persian copy on deals, pipelines, consultations, customers, projects, and tasks (titles, columns, filters, empty states, status and priority chips, toasts).
-- Shared `formatDigits` / `formatNumber` for Persian digits on those pages, plus pagination.
-- RTL direction and start alignment on the customers table, project cards and detail tables, and the tasks board and list.
-- Consultations no longer show a raw `GET /api/v1/crm/consultations` label.
-- Project list and project detail attach related contracts and site-builder entries. Contract links open `docs/contracts?contract_id=`. Builder links open `admin/platform/sites/{id}`. A live site link appears when the provision domain is ready, active, or launched.
-- Customer list shows the primary contact phone.
-- Dragging a deal onto a lost stage asks for a loss reason before the move.
-- Dashboard home (staff) and reports show CRM/PM count cards and a real todos widget: overdue, due today, and assigned to the current user.
-- ERP sidebar: توزیع, بازارچه, لایسنس, and سایت عمومی sit under پلتفرم. The ModirPayamak nav label is پیامک. Paths are unchanged.
+- Unified activity timeline on an account or deal: call, email, note, meeting, and SMS, with a reminder date. Due reminders are dispatched by `crm:dispatch-reminders`.
+- Lead score rules (field and activity) on top of the previous built-in scoring. Completing a timeline item rescores the lead.
+- Automation on CRM events: stage or status change can create a task, send an in-app notification, send SMS, or call a webhook.
+- Message templates, one-off email and SMS, and nurture sequences. SMS uses ModirPayamak when that edge is configured, then the existing SMS provider, and otherwise logs the message. Due steps run with `crm:run-sequences`.
+- Sales forecast: open funnel, weighted amount, win and loss, loss reasons, owner split, and quota attainment.
+- Duplicate detection and merge for accounts and contacts. Contact CSV export and import. Custom fields and values.
+- Tags, segments, and marketing lists that can point at a sales campaign.
 
-## Still open
+### PM
 
-1. Customer search matches account name and website, plus contact name, email, phone, and mobile. `crm_accounts` has no email or phone columns.
-2. Staff user list still shows `GET /api/v1/core/users`. That page is outside CRM and was left as-is.
-3. The legacy navigation API (`DashboardNavigationService` role menus other than the manager menu) was not regrouped. The live sidebar is `buildErpNavigation`.
+- Kanban stays. Gantt rows include real `depends_on` links and task start times. Workload groups open tasks, overdue counts, estimates, and logged hours.
+- Project budget against logged time (hours and cost). Delay alerts can notify assignees. Timesheets remain the existing time entries.
+- Project files with versions and a client-share flag. Task comments notify @mentions in the app and by email when mail is configured.
+- Project templates copy tasks (including checklists and estimates) and milestones. Ticket SLA due times are set from priority, first response is stamped, and a SLA report is available.
+- Client portal summary includes shared files and approvals. Customers can download a shared file and approve, request changes, or reject.
+
+### Shared
+
+- Finer permissions for activities, messages, forecast, audiences, CRM audit, workload, files, and project audit.
+- Audit log of CRM and PM mutations, with a page for each module.
+- Global search covers accounts, contacts, deals, leads, projects, and tasks.
+- Dashboard cards for weighted forecast, open reminders, delayed tasks, and SLA breaches. Each user can hide those cards.
+
+Calendar and team-chat connectors (Google, Outlook, Slack, Bale) have a settings screen. Without a webhook they stay in a test state. A webhook is posted when one is saved. The chat page links to that screen.
+
+## Deferred
+
+- Google and Outlook OAuth and a live two-way calendar sync.
+- A live Slack or Bale bridge beyond the webhook test.
+- A full email client. Outbound mail is a plain message from a template.
+- Sequence editing in the screen is a single step. More steps can be stored by the API.
+- Quota entry asks for a numeric user id.
+- Segment creation starts with empty filters. Preview still applies saved filters.
+- `crm_accounts` still has no email or phone columns. Search uses name, website, code, and related contacts.
+- Staff user list still shows the users API label. That page is outside CRM.
+- Legacy `DashboardNavigationService` role menus were not regrouped. The live sidebar is `buildErpNavigation`.
+- Win and loss is on the forecast page. The dashboard catalog includes that key, and the home cards show forecast, reminders, delays, and SLA.

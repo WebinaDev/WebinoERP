@@ -15,6 +15,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { dashboardHref } from '@/lib/route-resolver';
 import { useLocale } from '@/hooks/use-locale-next';
 import { ProjectPlanningPanel } from '@/features/modules/pm/ProjectPlanningPanel';
+import { ProjectDeliveryPanel } from '@/features/modules/pm/ProjectDeliveryPanel';
 
 type Props = { id: string };
 
@@ -300,6 +301,7 @@ function ProjectDetailContent({ data, projectId }: { data: Record<string, unknow
           </table>
         </CardContent>
       </Card>
+      <ProjectDeliveryPanel projectId={projectId} />
     </div>
   );
 }

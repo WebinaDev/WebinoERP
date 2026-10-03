@@ -6,11 +6,16 @@ use App\Support\CustomerAccess;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Schema;
+use Illuminate\Support\Facades\Storage;
+use Symfony\Component\HttpFoundation\StreamedResponse;
 use Modules\Projects\Entities\PrjAppointment;
+use Modules\Projects\Entities\PrjApproval;
+use Modules\Projects\Entities\PrjFile;
 use Modules\Projects\Entities\PrjTicket;
 use Modules\Projects\Entities\PrjTicketReply;
 use Modules\Projects\Entities\Project;
 use Modules\Projects\Services\ProjectProgress;
+use Modules\Projects\Services\TicketSla;
 use Modules\Projects\Support\StatusMachine;
 use Modules\SiteBuilder\Entities\WebinoSiteProvision;
 
@@ -57,11 +62,22 @@ class CustomerPortalController extends Controller
                     'id', 'title', 'status', 'starts_at', 'ends_at', 'customer_account_id',
                 ]),
                 'sites' => $this->sitesFor($access->accountIds($user)),
+                'approvals' => PrjApproval::query()
+                    ->whereIn('customer_account_id', $access->accountIds($user))
+                    ->orderByDesc('id')
+                    ->limit(20)
+                    ->get(),
+                'files' => PrjFile::query()
+                    ->where('shared_with_client', true)
+                    ->whereIn('project_id', $projectRows->pluck('id'))
+                    ->orderByDesc('id')
+                    ->limit(20)
+                    ->get(['id', 'project_id', 'name', 'version', 'size_bytes', 'created_at']),
             ],
         ]);
     }
 
-    public function storeTicket(Request $request, CustomerAccess $access): JsonResponse
+    public function storeTicket(Request $request, CustomerAccess $access, TicketSla $sla): JsonResponse
     {
         $user = $this->customer($request, $access);
         $data = $request->validate([
@@ -86,8 +102,9 @@ class CustomerPortalController extends Controller
             'customer_account_id' => $accountIds[0] ?? null,
             'project_id' => $projectId,
         ]);
+        $sla->apply($ticket);
 
-        return response()->json(['data' => $ticket], 201);
+        return response()->json(['data' => $ticket->fresh()], 201);
     }
 
     public function reply(Request $request, int $id, CustomerAccess $access): JsonResponse
@@ -135,6 +152,21 @@ class CustomerPortalController extends Controller
         ]);
 
         return response()->json(['data' => $appointment], 201);
+    }
+
+    public function downloadFile(Request $request, int $id, CustomerAccess $access): StreamedResponse
+    {
+        $user = $this->customer($request, $access);
+        $file = PrjFile::query()->whereKey($id)->where('shared_with_client', true)->firstOrFail();
+        $owns = Project::query()
+            ->whereKey($file->project_id)
+            ->whereIn('customer_account_id', $access->accountIds($user))
+            ->exists();
+        abort_unless($owns, 403);
+        $disk = $file->disk ?: 'public';
+        abort_unless(Storage::disk($disk)->exists($file->path), 404);
+
+        return Storage::disk($disk)->download($file->path, $file->name);
     }
 
     private function customer(Request $request, CustomerAccess $access): \App\Models\User

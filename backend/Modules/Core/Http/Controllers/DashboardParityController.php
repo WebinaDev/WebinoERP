@@ -12,6 +12,9 @@ use Modules\Crm\Entities\CrmConsultation;
 use Modules\Crm\Entities\CrmDeal;
 use Modules\Crm\Entities\CrmLead;
 use Modules\Crm\Entities\CrmPipeline;
+use Modules\Core\Entities\DashboardWidgetPref;
+use Modules\Crm\Entities\CrmActivity;
+use Modules\Crm\Services\CrmForecastService;
 use Modules\Projects\Entities\Contract;
 use Modules\Projects\Entities\PrjSprint;
 use Modules\Projects\Entities\PrjTicket;
@@ -124,8 +127,76 @@ class DashboardParityController extends Controller
                     'today' => $today->limit(8)->get()->map($mapTask)->values(),
                     'mine' => $mine->limit(8)->get()->map($mapTask)->values(),
                 ],
+                'suite' => $this->suiteWidgets(),
             ],
         ]);
+    }
+
+    /**
+     * @return array<string, int|float>
+     */
+    private function suiteWidgets(): array
+    {
+        return [
+            'weighted_forecast' => $this->safeCount(function () {
+                $report = app(CrmForecastService::class)->report();
+
+                return (int) round((float) ($report['weighted_amount'] ?? 0));
+            }),
+            'open_reminders' => $this->safeCount(fn () => CrmActivity::query()->whereNotNull('remind_at')->whereNull('reminded_at')->whereNull('completed_at')->count()),
+            'delayed_tasks' => $this->safeCount(fn () => ProjectTask::query()->whereNotIn('status', ['done', 'completed', 'cancelled', 'closed'])->whereNotNull('due_at')->where('due_at', '<', now())->count()),
+            'sla_breaches' => $this->safeCount(fn () => Schema::hasColumn('prj_tickets', 'sla_breached_at')
+                ? PrjTicket::query()->whereNotNull('sla_breached_at')->whereNotIn('status', ['closed', 'resolved'])->count()
+                : 0),
+        ];
+    }
+
+    public function widgets(Request $request): JsonResponse
+    {
+        $catalog = [
+            ['key' => 'forecast', 'module' => 'crm'],
+            ['key' => 'reminders', 'module' => 'crm'],
+            ['key' => 'win_loss', 'module' => 'crm'],
+            ['key' => 'delays', 'module' => 'pm'],
+            ['key' => 'sla', 'module' => 'pm'],
+            ['key' => 'workload', 'module' => 'pm'],
+        ];
+        $prefs = DashboardWidgetPref::query()->where('user_id', $request->user()->id)->get()->keyBy('widget_key');
+        $items = collect($catalog)->map(function (array $item) use ($prefs) {
+            $pref = $prefs[$item['key']] ?? null;
+
+            return [
+                'key' => $item['key'],
+                'module' => $item['module'],
+                'visible' => $pref ? (bool) $pref->is_visible : true,
+                'sort_order' => $pref ? (int) $pref->sort_order : 0,
+            ];
+        })->sortBy('sort_order')->values();
+
+        return response()->json([
+            'data' => [
+                'widgets' => $items,
+                'metrics' => $this->suiteWidgets(),
+            ],
+        ]);
+    }
+
+    public function saveWidgets(Request $request): JsonResponse
+    {
+        $data = $request->validate([
+            'widgets' => 'required|array',
+            'widgets.*.key' => 'required|string|max:64',
+            'widgets.*.visible' => 'required|boolean',
+            'widgets.*.sort_order' => 'nullable|integer|min:0',
+        ]);
+        foreach ($data['widgets'] as $widget) {
+            DashboardWidgetPref::query()->updateOrCreate(
+                ['user_id' => $request->user()->id, 'widget_key' => $widget['key']],
+                ['is_visible' => $widget['visible'], 'sort_order' => $widget['sort_order'] ?? 0],
+            );
+        }
+
+        return $this->widgets($request);
     }
 
     public function teamMemberStats(): JsonResponse
