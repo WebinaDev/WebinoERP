@@ -275,8 +275,8 @@ export async function updateProvisionAdmin(
   };
 }
 
-export async function fetchProvisionPanelLogin(id: number) {
-  const res = await apiClient.post(`${BASE}/provisions/${id}/panel-login`);
+export async function fetchProvisionPanelLogin(id: number, next = '/dashboard') {
+  const res = await apiClient.post(`${BASE}/provisions/${id}/panel-login`, { next });
   return unwrapData<{ url: string; expires_in?: number; fallback?: boolean; message?: string }>(res);
 }
 

@@ -13,6 +13,7 @@ use Modules\SiteBuilder\Entities\WebinoBusinessType;
 use Modules\SiteBuilder\Entities\WebinoDashboardFeature;
 use Modules\SiteBuilder\Entities\WebinoPackage;
 use Modules\SiteBuilder\Entities\WebinoSiteProvision;
+use Modules\SiteBuilder\Http\Controllers\SiteImpersonationController;
 
 class SiteBuilderServiceProvider extends ServiceProvider
 {
@@ -28,6 +29,16 @@ class SiteBuilderServiceProvider extends ServiceProvider
         Route::bind('siteType', fn (string $value) => WebinoBusinessType::query()->findOrFail($value));
         Route::bind('siteFeature', fn (string $value) => WebinoDashboardFeature::query()->findOrFail($value));
         Route::bind('sitePackage', fn (string $value) => WebinoPackage::query()->findOrFail($value));
+
+        // Signed staff passport. No Sanctum session: the caller is a tenant
+        // backend on another domain. Throttled and rejected unless the HMAC
+        // passport is still in cache.
+        Route::prefix('api/v1/site-builder/impersonate')
+            ->middleware(['api', 'throttle:30,1'])
+            ->group(function () {
+                Route::post('/exchange', [SiteImpersonationController::class, 'exchange']);
+                Route::post('/exit', [SiteImpersonationController::class, 'exit']);
+            });
 
         // 600/min per user. Status polling every few seconds and launch retries
         // share this bucket. Auth routes keep their own tighter limiters.
