@@ -8,6 +8,7 @@ import { getAxiosMessage } from '@/lib/api-helpers';
 import { normalizeListPayload } from '@/lib/list-utils';
 import { accountingWpAction } from '@/lib/accounting-wp';
 import { Button } from '@/components/ui/button';
+import { PaymentStartDialog } from '@/features/modules/admin/integrations/payments/payment-dialog';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { Textarea } from '@/components/ui/textarea';
@@ -103,6 +104,7 @@ export default function AccInvoices() {
   const [saving, setSaving] = useState(false);
 
   const [deleteId, setDeleteId] = useState<number | null>(null);
+  const [payId, setPayId] = useState<Invoice | null>(null);
   const [deleting, setDeleting] = useState(false);
 
   useEffect(() => {
@@ -331,6 +333,9 @@ export default function AccInvoices() {
                 <td className="px-3 py-1.5 tabular-nums">{formatNumber(Number(inv.total))}</td>
                 <td className="px-3 py-1.5">
                   <div className="flex gap-1">
+                    {inv.status !== 'paid' ? (
+                      <Button variant="ghost" size="sm" onClick={() => setPayId(inv)}>{t('payments.pay')}</Button>
+                    ) : null}
                     <Button variant="ghost" size="sm" onClick={() => void openEdit(inv)}>{t('auto.accounting_AccInvoices.s_ac60ae7a')}</Button>
                     {inv.status === 'draft' && (
                       <Button variant="ghost" size="sm" onClick={() => void handleConfirm(inv.id)}>
@@ -491,6 +496,16 @@ export default function AccInvoices() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+      {payId ? (
+        <PaymentStartDialog
+          open
+          onOpenChange={(open) => { if (!open) setPayId(null); }}
+          payableType="accounting_invoice"
+          payableId={String(payId.id)}
+          amount={Number(payId.total ?? 0)}
+          title={payId.number}
+        />
+      ) : null}
     </div>
   );
 }

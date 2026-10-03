@@ -153,6 +153,8 @@ import { ModirpayamakTicketsPage } from '@/features/modules/admin/integrations/m
 import { ModirpayamakDraftsPage } from '@/features/modules/admin/integrations/modirpayamak/drafts_page';
 import { ModirpayamakSettingsPage } from '@/features/modules/admin/integrations/modirpayamak/settings_page';
 import { ModirpayamakDashboardPage } from '@/features/modules/admin/integrations/modirpayamak/dashboard_page';
+import { PaymentGatewaysPage } from '@/features/modules/admin/integrations/payments/gateways_page';
+import { PaymentCheckoutPage } from '@/features/modules/admin/integrations/payments/checkout_page';
 import { ChatPage } from '@/features/modules/pm/chat_page';
 import { ProjectDetailPage } from '@/features/modules/pm/project_detail_page';
 import { TimeTrackingPage } from '@/features/modules/pm/time_tracking_page';
@@ -354,6 +356,8 @@ const EXACT: Record<string, ReactNode> = {
   'admin/integrations/modirpayamak/tickets': <ModirpayamakTicketsPage />,
   'admin/integrations/modirpayamak/drafts': <ModirpayamakDraftsPage />,
   'admin/integrations/modirpayamak/settings': <ModirpayamakSettingsPage />,
+  'admin/integrations/payments': <PaymentGatewaysPage />,
+  'admin/integrations/payments/checkout': <PaymentCheckoutPage />,
   'marketing/pages': <MarketingPagesPage />,
   'marketing/magazine': <MarketingMagazinePage />,
   'marketing/media': <MarketingMediaPage />,

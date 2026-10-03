@@ -7,14 +7,18 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Cache;
 use Modules\Integrations\Entities\ModirPayamakOrder;
 use Modules\Integrations\Entities\ModirPayamakPackage;
+use Modules\Integrations\Entities\PaymentIntent;
 use Modules\Integrations\Services\ModirPayamakEdgeClient;
 use Modules\Integrations\Services\ModirPayamakManager;
+use Modules\Integrations\Services\Payments\PaymentException;
+use Modules\Integrations\Services\Payments\PaymentOrchestrator;
 
 class ModirPayamakCustomerController extends Controller
 {
     public function __construct(
         private ModirPayamakEdgeClient $edge,
-        private ModirPayamakManager $manager
+        private ModirPayamakManager $manager,
+        private PaymentOrchestrator $payments,
     ) {}
 
     private function domain(Request $request): string
@@ -51,18 +55,67 @@ class ModirPayamakCustomerController extends Controller
             'domain' => 'required|string|max:255',
             'package_id' => 'required|exists:modirpayamak_packages,id',
             'callback_url' => 'nullable|url',
+            'return_url' => 'nullable|url',
+            'mode' => 'nullable|string|in:cash,installment',
+            'gateway' => 'nullable|string|max:32',
+            'mobile' => 'nullable|string|max:20',
         ]);
         $domain = $this->domain($request);
         $package = ModirPayamakPackage::query()->findOrFail($data['package_id']);
+        try {
+            $intent = $this->payments->start([
+                'payable_type' => 'sms_credit',
+                'payable_id' => (string) $package->id,
+                'domain' => $domain,
+                'mode' => $data['mode'] ?? 'cash',
+                'gateway' => $data['gateway'] ?? null,
+                'return_url' => $data['return_url'] ?? $data['callback_url'] ?? null,
+                'mobile' => $data['mobile'] ?? null,
+            ], $request->user()?->id);
+            $order = ModirPayamakOrder::query()->find($intent->payable_id);
+            if ($order) {
+                $order->update(['authority' => $intent->authority, 'user_id' => $request->user()?->id]);
+            }
+
+            return response()->json([
+                'data' => array_merge($intent->toApiArray(), [
+                    'order_id' => $order?->id,
+                    'authority' => $intent->authority,
+                    'redirect_url' => $intent->redirect_url,
+                    'amount' => $package->amount,
+                ]),
+            ]);
+        } catch (PaymentException $e) {
+            $fallback = ($data['gateway'] ?? null) === null
+                && ($data['mode'] ?? 'cash') === 'cash'
+                && in_array($e->errorCode, ['no_gateway', 'gateway_disabled', 'mode_not_allowed'], true);
+            if (! $fallback) {
+                return response()->json(['message' => $e->getMessage(), 'error' => $e->errorCode], $e->status);
+            }
+        }
+
         $authority = 'A'.strtoupper(bin2hex(random_bytes(16)));
-        $order = ModirPayamakOrder::create([
-            'domain' => $domain,
-            'package_id' => $package->id,
-            'amount' => $package->amount,
-            'authority' => $authority,
-            'status' => 'pending',
-            'user_id' => $request->user()?->id,
-        ]);
+        $order = ModirPayamakOrder::query()
+            ->where('domain', $domain)
+            ->where('package_id', $package->id)
+            ->where('status', 'pending')
+            ->latest()
+            ->first();
+        if ($order) {
+            $order->update([
+                'authority' => $authority,
+                'user_id' => $request->user()?->id,
+            ]);
+        } else {
+            $order = ModirPayamakOrder::create([
+                'domain' => $domain,
+                'package_id' => $package->id,
+                'amount' => $package->amount,
+                'authority' => $authority,
+                'status' => 'pending',
+                'user_id' => $request->user()?->id,
+            ]);
+        }
         Cache::put('modirpayamak:topup:'.$authority, ['order_id' => $order->id], now()->addHours(2));
 
         return response()->json([
@@ -83,6 +136,17 @@ class ModirPayamakCustomerController extends Controller
             'status' => 'nullable|string',
         ]);
         $domain = $this->domain($request);
+        $intent = PaymentIntent::query()->where('authority', $data['authority'])->first();
+        if ($intent && $intent->payable_type === 'sms_order') {
+            $response = $this->payments->finish($intent, $request->all(), true);
+            $order = ModirPayamakOrder::query()->find($intent->payable_id);
+            if ($response->status() >= 400) {
+                return response()->json($response->getData(true), $response->status());
+            }
+            $account = $this->manager->getOrCreateAccount($domain);
+
+            return response()->json(['data' => ['order' => $order?->fresh(), 'account' => $account, 'payment' => $intent->fresh()->toApiArray()], 'message' => 'Topup verified']);
+        }
         $cached = Cache::get('modirpayamak:topup:'.$data['authority']);
         $order = ModirPayamakOrder::query()->where('authority', $data['authority'])->where('domain', $domain)->firstOrFail();
         if (($data['status'] ?? 'OK') !== 'OK') {

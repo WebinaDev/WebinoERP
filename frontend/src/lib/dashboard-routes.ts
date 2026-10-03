@@ -152,6 +152,8 @@ const EXACT: Record<string, DashboardRouteMeta> = {
   'admin/integrations/modirpayamak/tickets': { titleFa: 'تیکت‌ها', titleEn: 'Tickets', group: 'integrations', apiHint: '/v1/integrations/modirpayamak/admin/proxy' },
   'admin/integrations/modirpayamak/drafts': { titleFa: 'پیش‌نویس‌ها', titleEn: 'Drafts', group: 'integrations', apiHint: '/v1/integrations/modirpayamak/admin/proxy' },
   'admin/integrations/modirpayamak/settings': { titleFa: 'تنظیمات پیامک', titleEn: 'ModirPayamak settings', group: 'integrations', apiHint: '/v1/integrations/modirpayamak/settings' },
+  'admin/integrations/payments': { titleFa: 'درگاه‌های پرداخت', titleEn: 'Payment gateways', group: 'integrations', apiHint: '/v1/integrations/payments/gateways' },
+  'admin/integrations/payments/checkout': { titleFa: 'پرداخت‌ها', titleEn: 'Payments', group: 'integrations', apiHint: '/v1/integrations/payments/bills' },
   mfg: { titleFa: 'تولید', titleEn: 'Manufacturing', group: 'core', apiHint: '/v1/mfg/overview' },
   'mfg/boms': { titleFa: 'فهرست مواد', titleEn: 'BOMs', group: 'core', apiHint: '/v1/mfg/boms' },
   'mfg/work-orders': { titleFa: 'دستور کار', titleEn: 'Work orders', group: 'core', apiHint: '/v1/mfg/work-orders' },

@@ -531,6 +531,8 @@ export const ERP_MODULES: ErpModuleDef[] = [
           { id: 'logs', path: 'admin/logs', titleKey: 'nav.erp.admin.logs', icon: 'ri-file-list-2-line', requiredPermission: 'core.logs.view' },
           { id: 'visitor-statistics', path: 'admin/analytics/visitors', titleKey: 'nav.erp.admin.visitors', icon: 'ri-line-chart-line', requiredPermission: 'core.visitor_stats.view' },
           { id: 'settings', path: 'admin/settings', titleKey: 'nav.erp.admin.settings', icon: 'ri-settings-3-line', requiredPermission: 'core.settings.manage' },
+          { id: 'payment-gateways', path: 'admin/integrations/payments', titleKey: 'nav.erp.admin.paymentGateways', icon: 'ri-bank-card-line', requiredPermission: 'core.settings.manage' },
+          { id: 'payment-checkout', path: 'admin/integrations/payments/checkout', titleKey: 'nav.erp.admin.paymentCheckout', icon: 'ri-secure-payment-line', requiredPermission: 'core.settings.manage' },
           { id: 'hosting-infra', path: 'admin/hosting-infra', titleKey: 'nav.erp.admin.hostingInfra', icon: 'ri-server-line', requiredPermission: 'core.settings.manage' },
           { id: 'live-connect', path: 'admin/connect', titleKey: 'nav.erp.admin.connect', icon: 'ri-links-line' },
           { id: 'studio', path: 'admin/studio', titleKey: 'nav.erp.admin.studio', icon: 'ri-flow-chart' },

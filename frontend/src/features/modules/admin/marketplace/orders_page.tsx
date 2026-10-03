@@ -17,14 +17,18 @@ import {
 import { getMarketplaceOrders, type MarketplaceOrder } from '@/lib/api/marketplace';
 import { useLocale } from '@/hooks/use-locale-next';
 import { PmEmptyState } from './components/PmEmptyState';
+import { PaymentStartDialog } from '@/features/modules/admin/integrations/payments/payment-dialog';
+import { Button } from '@/components/ui/button';
 
 export function OrdersPage() {
   const t = useTranslations('marketplace');
+  const tPay = useTranslations('payments');
   const { formatDateTime, formatNumber } = useLocale();
   const { layoutProps, setError, applyAxiosError } = useCrmFeedback();
   const [orders, setOrders] = useState<MarketplaceOrder[]>([]);
   const [entitlements, setEntitlements] = useState<Record<string, unknown>[]>([]);
   const [loading, setLoading] = useState(true);
+  const [payOrder, setPayOrder] = useState<MarketplaceOrder | null>(null);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -72,6 +76,7 @@ export function OrdersPage() {
                       <TableHead>{t('releaseStatus')}</TableHead>
                       <TableHead>{t('colAmount')}</TableHead>
                       <TableHead>{t('colDate')}</TableHead>
+                      <TableHead />
                     </TableRow>
                   </TableHeader>
                   <TableBody>
@@ -88,6 +93,11 @@ export function OrdersPage() {
                         <TableCell>{formatNumber(Number(o.amount ?? o.total ?? 0))}</TableCell>
                         <TableCell className="text-muted-foreground text-sm">
                           {o.created_at ? formatDateTime(o.created_at) : '—'}
+                        </TableCell>
+                        <TableCell>
+                          {o.status !== 'paid' && o.status !== 'fulfilled' ? (
+                            <Button type="button" size="sm" onClick={() => setPayOrder(o)}>{tPay('pay')}</Button>
+                          ) : null}
                         </TableCell>
                       </TableRow>
                     ))}
@@ -130,6 +140,17 @@ export function OrdersPage() {
           </Card>
         </>
       )}
+      {payOrder ? (
+        <PaymentStartDialog
+          open
+          onOpenChange={(open) => { if (!open) setPayOrder(null); }}
+          payableType="marketplace_order"
+          payableId={String(payOrder.id)}
+          amount={Number(payOrder.amount ?? payOrder.total ?? 0)}
+          title={String(payOrder.order_number ?? payOrder.id)}
+          domain={payOrder.domain}
+        />
+      ) : null}
     </CrmPageLayout>
   );
 }

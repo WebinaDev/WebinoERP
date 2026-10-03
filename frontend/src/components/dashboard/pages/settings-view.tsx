@@ -505,6 +505,11 @@ export function SettingsPageView({ hub, initialTab }: { hub?: SettingsHubId; ini
             </Button>
           </TabsContent>
           <TabsContent value="payment" className="space-y-3 pt-4">
+            <p className="text-sm">
+              <Link className="text-primary underline" href={dashboardHref(locale, 'admin/integrations/payments')}>
+                {tAuto('payments.openGateways')}
+              </Link>
+            </p>
             <div className="grid gap-3 sm:grid-cols-2">
               <div>
                 <p className="mb-1 text-xs text-muted-foreground">gateway</p>

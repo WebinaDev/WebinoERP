@@ -13,6 +13,7 @@ import { useCrmFeedback } from '@/features/shared/hooks/useCrmFeedback';
 import { PmEmptyState, PmPagination } from '@/features/shared/pm';
 import { usePmPagination } from '@/features/shared/hooks/usePmPagination';
 import { Button } from '@/components/ui/button';
+import { PaymentStartDialog } from '@/features/modules/admin/integrations/payments/payment-dialog';
 import { Card, CardContent } from '@/components/ui/card';
 import {
   Dialog,
@@ -70,6 +71,7 @@ const emptyItem = (): ItemRow => ({ title: '', desc: '', price: '', discount: '0
 
 export function InvoicesPage() {
   const t = useTranslations('sales.invoices');
+  const tPay = useTranslations('payments');
   const tNav = useTranslations();
   const { formatNumber, formatDate } = useLocale();
   const router = useRouter();
@@ -92,6 +94,7 @@ export function InvoicesPage() {
   const [submitting, setSubmitting] = useState(false);
   const [pdfBusyId, setPdfBusyId] = useState<number | null>(null);
   const [emailTarget, setEmailTarget] = useState<InvoiceRow | null>(null);
+  const [payTarget, setPayTarget] = useState<InvoiceRow | null>(null);
   const [emailValue, setEmailValue] = useState('');
   const [emailBusy, setEmailBusy] = useState(false);
   const [form, setForm] = useState({
@@ -441,6 +444,11 @@ export function InvoicesPage() {
                             <Button size="sm" variant="outline" onClick={() => openEdit(inv)} title={tNav('common.edit')}>
                               <Pencil className="size-4" />
                             </Button>
+                            {inv.status !== 'paid' ? (
+                              <Button size="sm" onClick={() => setPayTarget(inv)}>
+                                {tPay('pay')}
+                              </Button>
+                            ) : null}
                             <Button
                               size="sm"
                               variant="outline"
@@ -676,6 +684,16 @@ export function InvoicesPage() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+      {payTarget ? (
+        <PaymentStartDialog
+          open={payTarget !== null}
+          onOpenChange={(open) => { if (!open) setPayTarget(null); }}
+          payableType="sales_invoice"
+          payableId={String(payTarget.id)}
+          amount={Number(payTarget.final_total ?? payTarget.total ?? 0)}
+          title={String(payTarget.invoice_number ?? payTarget.number ?? payTarget.id)}
+        />
+      ) : null}
     </CrmPageLayout>
   );
 }

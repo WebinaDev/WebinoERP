@@ -24,6 +24,9 @@ export function resolveRoutePermission(path: string): string | undefined {
     || normalized.startsWith('admin/integrations/modirpayamak/packages')) {
     return 'integrations.modirpayamak.manage';
   }
+  if (normalized.startsWith('admin/integrations/payments')) {
+    return 'core.settings.manage';
+  }
   if (normalized.startsWith('admin/integrations/modirpayamak')) {
     return 'integrations.modirpayamak.view';
   }

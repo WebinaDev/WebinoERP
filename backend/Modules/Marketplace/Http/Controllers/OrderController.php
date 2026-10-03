@@ -10,6 +10,9 @@ use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Str;
 use Modules\Integrations\Entities\IntegrationSetting;
+use Modules\Integrations\Entities\PaymentIntent;
+use Modules\Integrations\Services\Payments\PaymentException;
+use Modules\Integrations\Services\Payments\PaymentOrchestrator;
 use Modules\Marketplace\Entities\MarketplaceEntitlement;
 use Modules\Marketplace\Entities\MarketplaceModule;
 use Modules\Marketplace\Entities\MarketplaceOrder;
@@ -144,7 +147,7 @@ class OrderController extends Controller
     /**
      * Create a module purchase order for a site and optionally start Zarinpal payment.
      */
-    public function purchase(Request $request, MarketplaceLicenseService $licenses): JsonResponse
+    public function purchase(Request $request, MarketplaceLicenseService $licenses, PaymentOrchestrator $payments): JsonResponse
     {
         $data = $request->validate([
             'site_provision_id' => 'required|integer',
@@ -153,6 +156,10 @@ class OrderController extends Controller
             'release_id' => 'nullable|integer',
             'pay' => 'nullable|boolean',
             'callback_url' => 'nullable|url',
+            'return_url' => 'nullable|url',
+            'mode' => 'nullable|string|in:cash,installment',
+            'gateway' => 'nullable|string|max:32',
+            'mobile' => 'nullable|string|max:20',
             'mark_paid' => 'nullable|boolean',
         ]);
 
@@ -209,15 +216,38 @@ class OrderController extends Controller
             return response()->json(['data' => ['order' => $order->fresh('items')], 'message' => 'Order created'], 201);
         }
 
-        $payment = $this->initiateZarinpal(
-            (float) $module->price,
-            $data['callback_url'] ?? url('/api/v1/marketplace/orders/'.$order->id.'/payment/callback'),
-            'Marketplace module: '.$module->slug,
-            $request->user()?->id,
-            $order->id,
-        );
-
-        $order->update(['payment_ref' => $payment['authority'] ?? null]);
+        try {
+            $intent = $payments->start([
+                'payable_type' => 'marketplace_order',
+                'payable_id' => (string) $order->id,
+                'mode' => $data['mode'] ?? 'cash',
+                'gateway' => $data['gateway'] ?? null,
+                'return_url' => $data['return_url'] ?? $data['callback_url'] ?? null,
+                'domain' => $site->domain,
+                'mobile' => $data['mobile'] ?? null,
+                'description' => 'Marketplace module: '.$module->slug,
+            ], $request->user()?->id);
+            $order->update([
+                'payment_gateway' => $intent->gateway,
+                'payment_ref' => $intent->authority,
+            ]);
+            $payment = array_merge($intent->toApiArray(), ['merchant_id' => $intent->gateway]);
+        } catch (PaymentException $e) {
+            $fallback = ($data['gateway'] ?? null) === null
+                && ($data['mode'] ?? 'cash') === 'cash'
+                && in_array($e->errorCode, ['no_gateway', 'gateway_disabled', 'mode_not_allowed'], true);
+            if (! $fallback) {
+                return response()->json(['message' => $e->getMessage(), 'error' => $e->errorCode, 'data' => ['order' => $order->fresh('items')]], $e->status);
+            }
+            $payment = $this->initiateZarinpal(
+                (float) $module->price,
+                $data['callback_url'] ?? url('/api/v1/marketplace/orders/'.$order->id.'/payment/callback'),
+                'Marketplace module: '.$module->slug,
+                $request->user()?->id,
+                $order->id,
+            );
+            $order->update(['payment_ref' => $payment['authority'] ?? null]);
+        }
 
         return response()->json([
             'data' => [
@@ -228,8 +258,29 @@ class OrderController extends Controller
         ], 201);
     }
 
-    public function paymentCallback(Request $request, MarketplaceOrder $order, MarketplaceLicenseService $licenses): JsonResponse
+    public function paymentCallback(Request $request, MarketplaceOrder $order, MarketplaceLicenseService $licenses, PaymentOrchestrator $payments): JsonResponse
     {
+        $intent = PaymentIntent::query()
+            ->where('payable_type', 'marketplace_order')
+            ->where('payable_id', (string) $order->id)
+            ->latest()
+            ->first();
+        if ($intent) {
+            $response = $payments->finish($intent, $request->all(), true);
+            $payload = $response->getData(true);
+            if ($response->status() >= 400) {
+                return response()->json($payload, $response->status());
+            }
+
+            return response()->json([
+                'data' => [
+                    'order' => $order->fresh('items'),
+                    'payment' => $payload['data'] ?? null,
+                ],
+                'message' => $payload['message'] ?? 'Payment verified and license granted',
+            ], $response->status());
+        }
+
         $authority = $request->input('authority') ?? $request->input('Authority');
         $payload = is_string($authority) ? Cache::pull('payment:'.$authority) : null;
         $status = (string) ($request->input('status') ?? $request->input('Status') ?? '');

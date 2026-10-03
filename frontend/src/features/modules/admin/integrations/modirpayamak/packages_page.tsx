@@ -44,15 +44,20 @@ import { getAxiosMessage } from '@/lib/api-helpers';
 import { ModirPayamakStatusBadge } from './components/status-badge';
 import { ModirPayamakBreadcrumb, ModirPayamakNotConfigured } from './components/shared';
 import { useModirPayamakConfigured } from './hooks/useModirPayamakConfigured';
+import { useModirPayamakTenantDomain } from './hooks/useModirPayamakTenantDomain';
+import { PaymentStartDialog } from '@/features/modules/admin/integrations/payments/payment-dialog';
 import { useLocale } from '@/hooks/use-locale-next';
 
 export function ModirpayamakPackagesPage() {
   const t = useTranslations('modirpayamak');
+  const tPay = useTranslations('payments');
   const tNav = useTranslations();
   const tCommon = useTranslations('common');
   const { formatNumber } = useLocale();
   const { layoutProps, setError, setSuccess } = useCrmFeedback();
   const { configured, loading: configLoading } = useModirPayamakConfigured();
+  const { domain } = useModirPayamakTenantDomain();
+  const [payPackage, setPayPackage] = useState<ModirPayamakPackage | null>(null);
   const [packages, setPackages] = useState<ModirPayamakPackage[]>([]);
   const [tariffs, setTariffs] = useState<ModirPayamakTariff[]>([]);
   const [taxPercent, setTaxPercent] = useState(10);
@@ -206,6 +211,9 @@ export function ModirpayamakPackagesPage() {
                         <Button type="button" variant="ghost" size="icon" onClick={() => openEdit(p)}>
                           <Pencil className="h-4 w-4" />
                         </Button>
+                        <Button type="button" size="sm" variant="outline" onClick={() => setPayPackage(p)}>
+                          {tPay('pay')}
+                        </Button>
                         <Button
                           type="button"
                           variant="ghost"
@@ -314,6 +322,17 @@ export function ModirpayamakPackagesPage() {
         onCancel={() => setDeleteId(null)}
         pending={deleting}
       />
+      {payPackage ? (
+        <PaymentStartDialog
+          open
+          onOpenChange={(open) => { if (!open) setPayPackage(null); }}
+          payableType="sms_credit"
+          payableId={String(payPackage.id)}
+          amount={Number(payPackage.amount)}
+          title={payPackage.name}
+          domain={domain || undefined}
+        />
+      ) : null}
     </CrmPageLayout>
   );
 }

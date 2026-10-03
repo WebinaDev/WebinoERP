@@ -5,6 +5,9 @@ use Modules\Integrations\Http\Controllers\BaleIntegrationController;
 use Modules\Integrations\Http\Controllers\ModirPayamakAdminController;
 use Modules\Integrations\Http\Controllers\ModirPayamakCustomerController;
 use Modules\Integrations\Http\Controllers\ModirPayamakSettingsController;
+use Modules\Integrations\Http\Controllers\PaymentCallbackController;
+use Modules\Integrations\Http\Controllers\PaymentCheckoutController;
+use Modules\Integrations\Http\Controllers\PaymentGatewaySettingsController;
 use Modules\Integrations\Http\Controllers\PaymentIntegrationController;
 use Modules\Integrations\Http\Controllers\SmsIntegrationController;
 use Modules\Integrations\Http\Controllers\LiveConnectController;
@@ -43,6 +46,23 @@ Route::put('/sms/settings', [SmsIntegrationController::class, 'updateSettings'])
 
 Route::post('/payments/initiate', [PaymentIntegrationController::class, 'initiate'])->middleware(['auth:sanctum', 'module:integrations', 'module.permission:integrations']);
 Route::post('/payments/verify', [PaymentIntegrationController::class, 'verify']);
+Route::match(['get', 'post'], '/payments/callback/{gateway}', [PaymentCallbackController::class, 'handle'])
+    ->whereIn('gateway', ['zarinpal', 'snappay', 'digipay', 'torobpay'])
+    ->middleware('throttle:60,1');
+
+Route::middleware(['auth:sanctum', 'module:integrations', 'module.permission:integrations'])->group(function () {
+    Route::get('/payments/gateways', [PaymentGatewaySettingsController::class, 'index']);
+    Route::put('/payments/gateways', [PaymentGatewaySettingsController::class, 'update']);
+    Route::post('/payments/gateways/{code}/test', [PaymentGatewaySettingsController::class, 'test'])
+        ->whereIn('code', ['zarinpal', 'snappay', 'digipay', 'torobpay']);
+    Route::get('/payments/options', [PaymentCheckoutController::class, 'options']);
+    Route::post('/payments/quote', [PaymentCheckoutController::class, 'quote']);
+    Route::get('/payments/bills', [PaymentCheckoutController::class, 'bills']);
+    Route::get('/payments/intents', [PaymentCheckoutController::class, 'index']);
+    Route::post('/payments/intents', [PaymentCheckoutController::class, 'store']);
+    Route::get('/payments/intents/{publicId}', [PaymentCheckoutController::class, 'show']);
+    Route::post('/payments/intents/{publicId}/cancel', [PaymentCheckoutController::class, 'cancel']);
+});
 
 Route::post('/bale/messages', [BaleIntegrationController::class, 'sendMessage'])->middleware(['auth:sanctum', 'module:integrations', 'module.permission:integrations']);
 Route::post('/bale/messages/bulk', [BaleIntegrationController::class, 'sendBulkMessage'])->middleware(['auth:sanctum', 'module:integrations', 'module.permission:integrations']);

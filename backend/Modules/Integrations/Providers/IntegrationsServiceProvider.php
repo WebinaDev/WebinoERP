@@ -4,6 +4,7 @@ namespace Modules\Integrations\Providers;
 
 use Illuminate\Support\Facades\Route;
 use Illuminate\Support\ServiceProvider;
+use Modules\Integrations\Http\Controllers\TenantPaymentController;
 use Modules\Integrations\Http\Controllers\WebinocrmBaleRestController;
 use Modules\Integrations\Http\Controllers\WebinocrmGitWebhookController;
 use Modules\Integrations\Http\Controllers\WoobaleCompatController;
@@ -17,6 +18,9 @@ use Modules\Integrations\Console\RetryInboundWebhooksCommand;
 use Modules\Integrations\Console\SyncCalendarsCommand;
 use Modules\Integrations\Services\ModirPayamakEdgeClient;
 use Modules\Integrations\Services\ModirPayamakManager;
+use Modules\Integrations\Services\Payments\GatewayConfigStore;
+use Modules\Integrations\Services\Payments\PaymentGatewayRegistry;
+use Modules\Integrations\Services\Payments\PaymentOrchestrator;
 
 class IntegrationsServiceProvider extends ServiceProvider
 {
@@ -31,6 +35,9 @@ class IntegrationsServiceProvider extends ServiceProvider
         $this->app->singleton(BaleWebhookHandler::class);
         $this->app->singleton(ModirPayamakEdgeClient::class);
         $this->app->singleton(ModirPayamakManager::class);
+        $this->app->singleton(GatewayConfigStore::class);
+        $this->app->singleton(PaymentGatewayRegistry::class);
+        $this->app->singleton(PaymentOrchestrator::class);
     }
 
     public function boot(): void
@@ -63,6 +70,16 @@ class IntegrationsServiceProvider extends ServiceProvider
         Route::prefix('api/webinocrm/v1')
             ->middleware('api')
             ->group(module_path($this->moduleName, 'Routes/webinocrm-modirpayamak.php'));
+
+        Route::prefix('api/webinocrm/v1/payments')
+            ->middleware(['api', 'throttle:60,1'])
+            ->group(function () {
+                Route::post('/bills', [TenantPaymentController::class, 'bills']);
+                Route::post('/gateways', [TenantPaymentController::class, 'gateways']);
+                Route::post('/quote', [TenantPaymentController::class, 'quote']);
+                Route::post('/sessions', [TenantPaymentController::class, 'sessions']);
+                Route::post('/sessions/{publicId}', [TenantPaymentController::class, 'show']);
+            });
 
         Route::prefix('api/webinocrm/v1')
             ->middleware('api')
