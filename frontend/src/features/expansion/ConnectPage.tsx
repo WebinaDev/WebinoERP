@@ -26,6 +26,8 @@ export function ConnectPage() {
   const [bridge, setBridge] = useState({ provider: 'telegram', name: '', bot_token: '', channel_id: '' });
   const [mail, setMail] = useState({ provider: 'imap', email: '', imap_host: '', smtp_host: '', username: '' });
   const [compose, setCompose] = useState({ to: '', subject: '', body: '' });
+  const [query, setQuery] = useState('');
+  const [hits, setHits] = useState<Row[]>([]);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -91,7 +93,8 @@ export function ConnectPage() {
                 <CardContent className="flex flex-wrap items-center justify-between gap-3 py-4">
                   <div>
                     <p className="font-medium">{String(row.email || row.provider)}</p>
-                    <p className="text-xs text-muted-foreground">{String(row.provider)} · {String(row.calendar_id || 'primary')}</p>
+                    <p className="text-xs text-muted-foreground">{String(row.provider)} · {String(row.calendar_id || 'primary')} · {String(row.status || '')}</p>
+                    {row.status === 'needs_reauth' ? <p className="text-xs text-destructive">{t('connect.needsReauth')}</p> : null}
                   </div>
                   <Button type="button" size="sm" variant="outline" onClick={() => void expansionApi.syncCalendar(Number(row.id)).then(() => setSuccess(t('connect.synced'))).catch(applyAxiosError)}>
                     {t('connect.sync')}
@@ -128,6 +131,7 @@ export function ConnectPage() {
                 <CardContent className="py-4">
                   <p className="font-medium">{String(row.name)}</p>
                   <p className="text-xs text-muted-foreground">{String(row.provider)}</p>
+                  {row.webhook_url ? <p className="break-all text-xs text-muted-foreground" dir="ltr">{t('connect.webhookUrl')}: {String(row.webhook_url)}</p> : null}
                 </CardContent>
               </Card>
             ))}
@@ -177,6 +181,17 @@ export function ConnectPage() {
                 </CardContent>
               </Card>
             ) : null}
+            <Card>
+              <CardHeader><CardTitle className="text-base">{t('connect.search')}</CardTitle></CardHeader>
+              <CardContent className="space-y-2">
+                <p className="text-xs text-muted-foreground">{t('connect.searchHint')}</p>
+                <Input value={query} onChange={(event) => setQuery(event.target.value)} />
+                <Button type="button" variant="outline" onClick={() => void expansionApi.searchMail(query).then(setHits).catch(applyAxiosError)}>{t('connect.search')}</Button>
+                <ul className="space-y-1 text-sm">
+                  {hits.map((row) => <li key={String(row.id)}>{String(row.subject || t('connect.noSubject'))} · {String(row.from_email || '')}</li>)}
+                </ul>
+              </CardContent>
+            </Card>
             {threads.map((thread) => (
               <Card key={String(thread.thread_key)}>
                 <CardContent className="space-y-2 py-4">

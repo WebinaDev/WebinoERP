@@ -6702,6 +6702,11 @@
       "sent": "Sent",
       "noSubject": "No subject",
       "linkCrm": "Log as CRM activity",
+      "search": "Search inboxes",
+      "searchHint": "Server search across your inboxes. Spam stays separate.",
+      "spam": "Spam",
+      "webhookUrl": "Public webhook URL",
+      "needsReauth": "Needs reconnect",
       "linked": "Linked to a CRM activity",
       "smsHint": "The default mode sends SMS through ModirPayamak only for the highest priority.",
       "smsMode": "Send mode",
@@ -6741,7 +6746,14 @@
       "quote": "Build quote",
       "dealId": "Deal id",
       "bookId": "Book id",
-      "qty": "Quantity"
+      "qty": "Quantity",
+      "rule": "Dependency rule",
+      "requires": "Requires",
+      "excludes": "Excludes",
+      "discountNode": "Hierarchical discount",
+      "approval": "Quote approval",
+      "approve": "Approve",
+      "reject": "Reject"
     },
     "forms": {
       "title": "Public lead forms",
@@ -6749,7 +6761,11 @@
       "name": "Form name",
       "slug": "Slug",
       "landing": "Landing URL",
-      "public": "Public URL"
+      "public": "Public URL",
+      "roi": "Campaign ROI",
+      "model": "Attribution model",
+      "campaign": "Campaign key",
+      "spent": "Spend"
     },
     "esign": {
       "title": "E-sign and e-invoice",
@@ -6769,7 +6785,7 @@
       "buyerNational": "Buyer national ID",
       "buyerEconomic": "Buyer economic code",
       "build": "Build document",
-      "submit": "Submit to hook",
+      "submit": "Submit to Moadian",
       "submitted": "Submission status updated"
     },
     "content": {
@@ -6797,11 +6813,19 @@
         "review": "Review",
         "scheduled": "Scheduled",
         "published": "Published"
-      }
+      },
+      "publish": "Publish now",
+      "connector": "Network connector",
+      "image": "Image URL",
+      "publishStatus": "Publish status"
     },
     "planning": {
       "title": "Project planning",
-      "description": "Critical path, baseline, capacity and leave, swimlanes, and an offline queue.",
+      "description": "Critical path, daily baseline drag, capacity against leave and calendar, and an offline queue.",
+      "timeline": "Day board",
+      "variance": "Baseline variance",
+      "conflict": "Conflict",
+      "criticalMark": "Critical",
       "critical": "Critical path",
       "projectId": "Project id",
       "compute": "Calculate",
@@ -6850,7 +6874,11 @@
       "evaluate": "Evaluate",
       "provider": "Provider name",
       "scim": "Issue SCIM token",
-      "ssoHint": "OIDC uses a real authorization-code flow. SAML covers metadata and assertion intake. Full XML signature validation is separate.",
+      "ssoHint": "OIDC uses an authorization-code flow. SAML acts as an identity provider that signs responses, and as a service provider.",
+      "joinCompanies": "Join companies",
+      "scheduleEmail": "Scheduled report email",
+      "scheduleDaily": "Daily",
+      "compliance": "Audit export",
       "nodes": {
         "trigger": "Start",
         "condition": "Condition",

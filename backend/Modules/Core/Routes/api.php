@@ -38,6 +38,7 @@ use Modules\Core\Http\Controllers\VisitorStatsController;
 
 Route::get('/health/readiness', [HealthReadinessController::class, 'readiness']);
 Route::get('/health/metrics', [HealthReadinessController::class, 'metrics']);
+Route::get('/health/modules', [HealthReadinessController::class, 'modules']);
 
 Route::get('/config', [SystemConfigController::class, 'getConfig']);
 Route::get('/branding.css', [BrandingController::class, 'css']);
@@ -193,6 +194,8 @@ Route::middleware(['auth:sanctum', 'module.permission:core'])->group(function ()
     Route::post('/bi-reports', [StudioController::class, 'storeReport']);
     Route::get('/bi-reports/{id}/run', [StudioController::class, 'runReport'])->whereNumber('id');
     Route::get('/bi-reports/{id}/export.csv', [StudioController::class, 'exportReport'])->whereNumber('id');
+    Route::get('/compliance/audit', [\Modules\Core\Http\Controllers\ComplianceController::class, 'audit']);
+    Route::get('/compliance/audit.csv', [\Modules\Core\Http\Controllers\ComplianceController::class, 'auditCsv']);
     Route::get('/flags', [StudioController::class, 'flags']);
     Route::post('/flags', [StudioController::class, 'storeFlag']);
     Route::get('/flags/evaluate', [StudioController::class, 'evaluate']);
@@ -205,6 +208,7 @@ Route::middleware(['auth:sanctum', 'module.permission:core'])->group(function ()
 Route::get('/sso/oidc/callback', [StudioController::class, 'oidcCallback']);
 Route::get('/sso/saml/{id}/metadata', [StudioController::class, 'samlMetadata'])->whereNumber('id');
 Route::post('/sso/saml/{id}/acs', [StudioController::class, 'samlAcs'])->whereNumber('id');
+Route::post('/sso/saml/idp/sso', [StudioController::class, 'idpSso']);
 Route::get('/scim/v2/Users', [StudioController::class, 'scimUsers']);
 Route::post('/scim/v2/Users', [StudioController::class, 'scimCreate']);
 Route::patch('/scim/v2/Users/{id}', [StudioController::class, 'scimPatch'])->whereNumber('id');

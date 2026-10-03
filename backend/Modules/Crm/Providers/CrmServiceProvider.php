@@ -8,6 +8,8 @@ use Modules\Crm\Console\DispatchRemindersCommand;
 use Modules\Crm\Console\RecomputeLeadScoresCommand;
 use Modules\Crm\Console\RunSequencesCommand;
 use Modules\Crm\Console\DispatchContentRemindersCommand;
+use Modules\Crm\Console\PublishDueContentCommand;
+use Modules\Crm\Console\RetryMoadianCommand;
 use Modules\Crm\Http\Controllers\ConsultationIngestController;
 use Modules\Crm\Http\Controllers\ElementorLeadController;
 use Modules\Crm\Http\Controllers\PublicLeadFormController;
@@ -24,6 +26,8 @@ class CrmServiceProvider extends ServiceProvider
                 DispatchRemindersCommand::class,
                 RunSequencesCommand::class,
                 DispatchContentRemindersCommand::class,
+                PublishDueContentCommand::class,
+                RetryMoadianCommand::class,
             ]);
         }
 

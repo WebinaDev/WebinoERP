@@ -23,6 +23,15 @@ class StudioController extends Controller
         'leads' => ['table' => 'crm_leads', 'columns' => ['id', 'topic', 'first_name', 'last_name', 'email', 'company', 'lead_score']],
         'tasks' => ['table' => 'prj_tasks', 'columns' => ['id', 'title', 'status', 'priority', 'project_id', 'assignee_id', 'duration_days']],
         'content' => ['table' => 'crm_content_items', 'columns' => ['id', 'title', 'status', 'calendar_id', 'assignee_id']],
+        'companies' => ['table' => 'crm_companies', 'columns' => ['id', 'name', 'legal_name', 'economic_code']],
+        'projects' => ['table' => 'prj_projects', 'columns' => ['id', 'name', 'status']],
+        'calendars' => ['table' => 'crm_content_calendars', 'columns' => ['id', 'name', 'network', 'kind']],
+    ];
+
+    public const JOINS = [
+        'deals' => ['companies' => ['table' => 'crm_companies', 'local' => 'company_id', 'foreign' => 'id']],
+        'tasks' => ['projects' => ['table' => 'prj_projects', 'local' => 'project_id', 'foreign' => 'id']],
+        'content' => ['calendars' => ['table' => 'crm_content_calendars', 'local' => 'calendar_id', 'foreign' => 'id']],
     ];
 
     public function workflows(): JsonResponse
@@ -74,6 +83,14 @@ class StudioController extends Controller
             'columns.*' => 'string',
             'filters' => 'nullable|array',
             'layout' => 'nullable|array',
+            'joins' => 'nullable|array',
+            'joins.*.source' => 'required|in:companies,projects,calendars',
+            'joins.*.columns' => 'nullable|array',
+            'joins.*.columns.*' => 'string',
+            'schedule' => 'nullable|array',
+            'schedule.frequency' => 'required_with:schedule|in:daily,weekly',
+            'schedule.email' => 'required_with:schedule|email',
+            'schedule.weekday' => 'nullable|integer|min:0|max:6',
         ]);
         $allowed = self::SOURCES[$data['source']]['columns'];
         $data['columns'] = array_values(array_intersect($data['columns'], $allowed));
@@ -88,15 +105,17 @@ class StudioController extends Controller
     public function runReport(int $id): JsonResponse
     {
         $report = BiReport::query()->findOrFail($id);
+        $table = $this->rows($report);
 
-        return response()->json(['data' => ['columns' => $report->columns, 'rows' => $this->rows($report)]]);
+        return response()->json(['data' => $table]);
     }
 
     public function exportReport(int $id): StreamedResponse
     {
         $report = BiReport::query()->findOrFail($id);
-        $columns = $report->columns;
-        $rows = $this->rows($report);
+        $table = $this->rows($report);
+        $columns = $table['columns'];
+        $rows = $table['rows'];
 
         return response()->streamDownload(function () use ($columns, $rows) {
             $out = fopen('php://output', 'w');
@@ -223,12 +242,35 @@ class StudioController extends Controller
 
     public function samlMetadata(int $id)
     {
-        $provider = SsoProvider::query()->where('protocol', 'saml')->findOrFail($id);
-        $entity = url('/api/v1/core/sso/saml/'.$provider->id);
-        $acs = url('/api/v1/core/sso/saml/'.$provider->id.'/acs');
-        $xml = '<?xml version="1.0"?><EntityDescriptor entityID="'.e($entity).'"><SPSSODescriptor><AssertionConsumerService Binding="urn:oasis:names:tc:SAML:2.0:bindings:HTTP-POST" Location="'.e($acs).'" index="0"/></SPSSODescriptor></EntityDescriptor>';
+        SsoProvider::query()->where('protocol', 'saml')->findOrFail($id);
+        $xml = app(\Modules\Core\Services\SamlIdpService::class)->metadataXml($id);
 
         return response($xml, 200)->header('Content-Type', 'application/samlmetadata+xml');
+    }
+
+    public function idpSso(Request $request): JsonResponse
+    {
+        $data = $request->validate([
+            'SAMLRequest' => 'required|string',
+            'email' => 'nullable|email',
+            'password' => 'nullable|string',
+        ]);
+        $user = \Illuminate\Support\Facades\Auth::guard('sanctum')->user() ?: $request->user();
+        if (! $user && ! empty($data['email']) && ! empty($data['password'])) {
+            $candidate = User::query()->where('email', $data['email'])->first();
+            if ($candidate && Hash::check($data['password'], (string) $candidate->password)) {
+                $user = $candidate;
+            }
+        }
+        if (! $user) {
+            return response()->json(['message' => 'saml_login_required'], 401);
+        }
+        $issued = app(\Modules\Core\Services\SamlIdpService::class)->issue($user, $data['SAMLRequest']);
+
+        return response()->json(['data' => [
+            'SAMLResponse' => $issued['SAMLResponse'],
+            'acs' => $issued['acs'],
+        ]]);
     }
 
     public function samlAcs(Request $request, int $id): JsonResponse
@@ -250,8 +292,18 @@ class StudioController extends Controller
         }
         $doc->registerXPathNamespace('saml', 'urn:oasis:names:tc:SAML:2.0:assertion');
         $name = (string) ($doc->xpath('//saml:NameID')[0] ?? '');
-        $secret = (string) ($doc->xpath('//saml:Attribute[@Name="secret"]/saml:AttributeValue')[0] ?? '');
-        if ($name === '' || ($provider->client_secret && ! hash_equals((string) $provider->client_secret, $secret))) {
+        $signed = str_contains($xml, 'Signature');
+        if ($signed) {
+            if (! app(\Modules\Core\Services\SamlIdpService::class)->verify($xml)) {
+                return response()->json(['message' => 'saml_bad_signature'], 422);
+            }
+        } else {
+            $secret = (string) ($doc->xpath('//saml:Attribute[@Name="secret"]/saml:AttributeValue')[0] ?? '');
+            if ($name === '' || ($provider->client_secret && ! hash_equals((string) $provider->client_secret, $secret))) {
+                return response()->json(['message' => 'saml_rejected'], 422);
+            }
+        }
+        if ($name === '') {
             return response()->json(['message' => 'saml_rejected'], 422);
         }
         $email = str_contains($name, '@') ? $name : $name.'@sso.local';
@@ -359,27 +411,71 @@ class StudioController extends Controller
     /**
      * @return list<array<string, mixed>>
      */
+    /**
+     * @return array{columns: list<string>, rows: list<array<string, mixed>>}
+     */
     private function rows(BiReport $report): array
     {
         $source = self::SOURCES[$report->source];
         $columns = array_values(array_intersect($report->columns ?? [], $source['columns']));
-        $query = DB::table($source['table'])->select($columns)->limit(500);
-        foreach ((array) ($report->filters ?? []) as $filter) {
+        $joins = array_values(array_filter((array) ($report->joins ?? []), 'is_array'));
+        $allowedJoins = self::JOINS[$report->source] ?? [];
+        if ($joins === [] || $allowedJoins === []) {
+            $query = DB::table($source['table'])->select($columns)->limit(500);
+            $this->applyFilters($query, $source['columns'], (array) ($report->filters ?? []), '');
+
+            return ['columns' => $columns, 'rows' => json_decode(json_encode($query->get()), true)];
+        }
+        $select = [];
+        foreach ($columns as $column) {
+            $select[] = 'src.'.$column.' as '.$column;
+        }
+        $query = DB::table($source['table'].' as src');
+        $alias = 0;
+        foreach ($joins as $join) {
+            $target = (string) ($join['source'] ?? '');
+            $spec = $allowedJoins[$target] ?? null;
+            if (! $spec || ! isset(self::SOURCES[$target])) {
+                continue;
+            }
+            $name = 'j'.$alias;
+            $alias++;
+            $query->leftJoin($spec['table'].' as '.$name, 'src.'.$spec['local'], '=', $name.'.'.$spec['foreign']);
+            foreach ((array) ($join['columns'] ?? []) as $column) {
+                if (! in_array($column, self::SOURCES[$target]['columns'], true)) {
+                    continue;
+                }
+                $label = $target.'_'.$column;
+                $select[] = $name.'.'.$column.' as '.$label;
+                $columns[] = $label;
+            }
+        }
+        $query->select($select)->limit(500);
+        $this->applyFilters($query, $source['columns'], (array) ($report->filters ?? []), 'src.');
+
+        return ['columns' => $columns, 'rows' => json_decode(json_encode($query->get()), true)];
+    }
+
+    /**
+     * @param  list<string>  $allowed
+     * @param  list<mixed>  $filters
+     */
+    private function applyFilters(\Illuminate\Database\Query\Builder $query, array $allowed, array $filters, string $prefix): void
+    {
+        foreach ($filters as $filter) {
             if (! is_array($filter)) {
                 continue;
             }
             $field = (string) ($filter['field'] ?? '');
-            if (! in_array($field, $source['columns'], true)) {
+            if (! in_array($field, $allowed, true)) {
                 continue;
             }
             $op = $filter['op'] ?? '=';
             if (! in_array($op, ['=', '>', '<', 'like'], true)) {
                 $op = '=';
             }
-            $query->where($field, $op, $filter['value'] ?? null);
+            $query->where($prefix.$field, $op, $filter['value'] ?? null);
         }
-
-        return json_decode(json_encode($query->get()), true);
     }
 
     private function ssoResource(SsoProvider $provider): array

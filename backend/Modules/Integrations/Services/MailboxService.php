@@ -15,6 +15,10 @@ class MailboxService
      */
     public function sync(EmailAccount $account): array
     {
+        if (in_array($account->provider, ['google', 'microsoft'], true)) {
+            app(OAuthTokenRefresher::class)->ensureFresh($account);
+            $account->refresh();
+        }
         $rows = match ($account->provider) {
             'google' => $this->pullGmail($account),
             'microsoft' => $this->pullGraph($account),
@@ -22,6 +26,7 @@ class MailboxService
         };
         $imported = 0;
         foreach ($rows as $row) {
+            $row = app(SpamFilter::class)->apply($row);
             $message = EmailMessage::query()->updateOrCreate(
                 ['account_id' => $account->id, 'external_id' => $row['external_id']],
                 $row
@@ -38,7 +43,8 @@ class MailboxService
      */
     public function import(EmailAccount $account, array $data): EmailMessage
     {
-        $message = EmailMessage::query()->create(array_merge($data, [
+        $scored = app(SpamFilter::class)->apply($data);
+        $message = EmailMessage::query()->create(array_merge($scored, [
             'account_id' => $account->id,
             'direction' => $data['direction'] ?? 'in',
             'external_id' => $data['external_id'] ?? ('local-'.uniqid()),
@@ -92,6 +98,70 @@ class MailboxService
         ]);
     }
 
+    /**
+     * Server-side search across one inbox or every inbox owned by the user.
+     *
+     * @param  list<int>|null  $accountIds
+     * @return list<EmailMessage>
+     */
+    public function search(int $userId, string $term, ?array $accountIds = null, bool $includeSpam = false): array
+    {
+        $accounts = EmailAccount::query()->where('user_id', $userId)
+            ->when($accountIds, fn ($q) => $q->whereIn('id', $accountIds))
+            ->get();
+        foreach ($accounts as $account) {
+            if ($term === '') {
+                continue;
+            }
+            try {
+                if ($account->provider === 'google' && $account->access_token) {
+                    app(OAuthTokenRefresher::class)->ensureFresh($account);
+                    $account->refresh();
+                    foreach ($this->pullGmail($account, $term) as $row) {
+                        $row = app(SpamFilter::class)->apply($row);
+                        $message = EmailMessage::query()->updateOrCreate(
+                            ['account_id' => $account->id, 'external_id' => $row['external_id']],
+                            $row
+                        );
+                        $this->linkByAddress($message);
+                    }
+                }
+                if ($account->provider === 'microsoft' && $account->access_token) {
+                    app(OAuthTokenRefresher::class)->ensureFresh($account);
+                    $account->refresh();
+                    foreach ($this->pullGraph($account, $term) as $row) {
+                        $row = app(SpamFilter::class)->apply($row);
+                        $message = EmailMessage::query()->updateOrCreate(
+                            ['account_id' => $account->id, 'external_id' => $row['external_id']],
+                            $row
+                        );
+                        $this->linkByAddress($message);
+                    }
+                }
+            } catch (\Throwable) {
+                // Local rows still answer the search when a provider is unreachable.
+            }
+        }
+
+        $ids = $accounts->pluck('id');
+        $query = EmailMessage::query()->whereIn('account_id', $ids)->orderByDesc('id');
+        if (! $includeSpam) {
+            $query->where('is_spam', false);
+        }
+        $term = trim($term);
+        if ($term !== '') {
+            $like = '%'.str_replace(['%', '_'], ['\\%', '\\_'], $term).'%';
+            $query->where(function ($inner) use ($like) {
+                $inner->where('subject', 'like', $like)
+                    ->orWhere('body', 'like', $like)
+                    ->orWhere('from_email', 'like', $like)
+                    ->orWhere('to_email', 'like', $like);
+            });
+        }
+
+        return $query->limit(100)->get()->all();
+    }
+
     public function attachActivity(EmailMessage $message, ?int $crmAccountId = null): CrmActivity
     {
         $accountId = $crmAccountId ?: $message->crm_account_id;
@@ -115,11 +185,15 @@ class MailboxService
     /**
      * @return list<array<string, mixed>>
      */
-    private function pullGmail(EmailAccount $account): array
+    private function pullGmail(EmailAccount $account, ?string $query = null): array
     {
+        $params = ['maxResults' => 15];
+        if ($query) {
+            $params['q'] = $query;
+        }
         $list = Http::withToken((string) $account->access_token)->timeout(20)->get(
             'https://gmail.googleapis.com/gmail/v1/users/me/messages',
-            ['maxResults' => 15]
+            $params
         );
         if (! $list->successful()) {
             throw new \RuntimeException('Gmail list failed.');
@@ -149,6 +223,7 @@ class MailboxService
                 'body' => (string) ($full->json('snippet') ?: ''),
                 'attachments' => $this->gmailAttachments((array) $full->json('payload', [])),
                 'sent_at' => now(),
+                'spam_flag' => strcasecmp((string) $headers->get('x-spam-flag', ''), 'yes') === 0,
             ];
         }
 
@@ -158,11 +233,15 @@ class MailboxService
     /**
      * @return list<array<string, mixed>>
      */
-    private function pullGraph(EmailAccount $account): array
+    private function pullGraph(EmailAccount $account, ?string $query = null): array
     {
+        $params = ['$top' => 15, '$select' => 'id,conversationId,subject,bodyPreview,from,toRecipients,receivedDateTime,hasAttachments'];
+        if ($query) {
+            $params['$search'] = '"'.str_replace('"', '', $query).'"';
+        }
         $list = Http::withToken((string) $account->access_token)->timeout(20)->get(
             'https://graph.microsoft.com/v1.0/me/messages',
-            ['$top' => 15, '$select' => 'id,conversationId,subject,bodyPreview,from,toRecipients,receivedDateTime,hasAttachments']
+            $params
         );
         if (! $list->successful()) {
             throw new \RuntimeException('Graph mail list failed.');
@@ -352,6 +431,9 @@ class MailboxService
 
     private function linkByAddress(EmailMessage $message): void
     {
+        if ($message->is_spam) {
+            return;
+        }
         $email = strtolower((string) ($message->direction === 'out' ? $message->to_email : $message->from_email));
         if ($email === '') {
             return;

@@ -119,6 +119,7 @@ class CrmExpansionController extends Controller
             'name' => 'required|string|max:160',
             'unit' => 'nullable|string|max:32',
             'tax_percent' => 'nullable|numeric|min:0|max:100',
+            'category' => 'nullable|string|max:80',
         ]);
         $product = CrmCatalogProduct::query()->create($data);
 
@@ -168,9 +169,17 @@ class CrmExpansionController extends Controller
             'lines' => 'required|array|min:1',
             'lines.*.product_id' => 'required|integer',
             'lines.*.qty' => 'required|numeric|min:0.01',
+            'header_percent' => 'nullable|numeric|min:0|max:100',
         ]);
         $book = CrmPriceBook::query()->findOrFail($data['price_book_id']);
-        $result = $cpq->quote($deal, $book->id, strtoupper($data['currency'] ?? $book->currency_code), $data['lines']);
+        try {
+            $result = $cpq->quote($deal, $book->id, strtoupper($data['currency'] ?? $book->currency_code), $data['lines'], [
+                'header_percent' => (float) ($data['header_percent'] ?? 0),
+                'user_id' => $request->user()->id,
+            ]);
+        } catch (\InvalidArgumentException $e) {
+            return response()->json(['message' => $e->getMessage(), 'errors' => ['lines' => [$e->getMessage()]]], 422);
+        }
 
         return response()->json(['data' => $result]);
     }
@@ -308,6 +317,9 @@ class CrmExpansionController extends Controller
         $seller = $builder->sellerFromCompany($company);
         $document = $builder->build(array_merge($seller, $data), $data['items'], strtoupper($data['currency'] ?? 'IRR'));
         $invoice = $builder->store($company?->id, $data['deal_id'] ?? null, $document);
+        \App\Support\MutationAudit::record($request->user()->id, 'crm', 'einvoice.draft', 'einvoice', $invoice->id, [
+            'sandbox' => app(\Modules\Crm\Services\MoadianClient::class)->sandbox(),
+        ]);
 
         return response()->json(['data' => $invoice], 201);
     }
@@ -353,6 +365,7 @@ class CrmExpansionController extends Controller
             'publish_start' => 'nullable|date',
             'publish_end' => 'nullable|date',
             'remind_at' => 'nullable|date',
+            'image_url' => 'nullable|string|max:500',
         ]);
         $data['calendar_id'] = $calendarId;
         $item = ContentItem::query()->create($data);

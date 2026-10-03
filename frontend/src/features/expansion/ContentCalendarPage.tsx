@@ -19,7 +19,8 @@ export function ContentCalendarPage() {
   const { layoutProps, setSuccess, applyAxiosError } = useCrmFeedback();
   const [rows, setRows] = useState<Row[]>([]);
   const [cal, setCal] = useState({ name: '', kind: 'social', network: 'instagram', account_id: '' });
-  const [item, setItem] = useState({ calendar_id: '', title: '', status: 'draft', publish_start: '', publish_end: '', remind_at: '' });
+  const [item, setItem] = useState({ calendar_id: '', title: '', status: 'draft', publish_start: '', publish_end: '', remind_at: '', image_url: '' });
+  const [connector, setConnector] = useState({ network: 'instagram', name: '', access_token: '', external_id: '' });
 
   const load = useCallback(async () => {
     try {
@@ -62,6 +63,7 @@ export function ContentCalendarPage() {
             <Input type="datetime-local" value={item.publish_start} onChange={(e) => setItem({ ...item, publish_start: e.target.value })} />
             <Input type="datetime-local" value={item.publish_end} onChange={(e) => setItem({ ...item, publish_end: e.target.value })} />
             <Input type="datetime-local" value={item.remind_at} onChange={(e) => setItem({ ...item, remind_at: e.target.value })} />
+            <Input placeholder={t('content.image')} value={item.image_url} onChange={(e) => setItem({ ...item, image_url: e.target.value })} dir="ltr" />
             <Button type="button" onClick={() => void expansionApi.saveContentItem(Number(item.calendar_id), item).then(() => { setSuccess(t('common.saved')); return load(); }).catch(applyAxiosError)}>{t('common.save')}</Button>
           </CardContent>
         </Card>
@@ -78,7 +80,13 @@ export function ContentCalendarPage() {
                 {items.map((entry) => (
                   <div key={String(entry.id)} className="flex flex-wrap items-center justify-between gap-2 rounded-md border border-border/60 px-3 py-2 text-sm">
                     <span>{String(entry.title)}</span>
-                    <span className="text-xs text-muted-foreground">{t(`content.status.${String(entry.status)}` as 'content.status.draft')}</span>
+                    <span className="flex items-center gap-2 text-xs text-muted-foreground">
+                      <span>{t(`content.status.${String(entry.status)}` as 'content.status.draft')}</span>
+                      <span>{t('content.publishStatus')}: {String(entry.publish_status || 'idle')}</span>
+                      {(String(row.network) === 'instagram' || String(row.network) === 'linkedin') ? (
+                        <Button type="button" size="sm" variant="outline" onClick={() => void expansionApi.publishContent(Number(entry.id)).then(() => { setSuccess(t('content.publish')); return load(); }).catch(applyAxiosError)}>{t('content.publish')}</Button>
+                      ) : null}
+                    </span>
                   </div>
                 ))}
               </CardContent>
@@ -86,6 +94,19 @@ export function ContentCalendarPage() {
           );
         })}
       </div>
+      <Card>
+        <CardHeader><CardTitle className="text-base">{t('content.connector')}</CardTitle></CardHeader>
+        <CardContent className="grid gap-2 sm:grid-cols-2">
+          <select className={selectClass} value={connector.network} onChange={(e) => setConnector({ ...connector, network: e.target.value })}>
+            <option value="instagram">{t('content.networks.instagram')}</option>
+            <option value="linkedin">{t('content.networks.linkedin')}</option>
+          </select>
+          <Input placeholder={t('content.name')} value={connector.name} onChange={(e) => setConnector({ ...connector, name: e.target.value })} />
+          <Input placeholder={t('content.image')} value={connector.external_id} onChange={(e) => setConnector({ ...connector, external_id: e.target.value })} dir="ltr" />
+          <Input placeholder="token" value={connector.access_token} onChange={(e) => setConnector({ ...connector, access_token: e.target.value })} dir="ltr" />
+          <Button type="button" onClick={() => void expansionApi.saveSocialConnector({ ...connector, enabled: true }).then(() => setSuccess(t('common.saved'))).catch(applyAxiosError)}>{t('common.save')}</Button>
+        </CardContent>
+      </Card>
       <AiAssistPanel purpose="content_brief" context={{ network: cal.network }} />
     </CrmPageLayout>
   );

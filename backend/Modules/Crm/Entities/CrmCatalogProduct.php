@@ -9,7 +9,7 @@ class CrmCatalogProduct extends Model
     protected $table = 'crm_catalog_products';
 
     protected $fillable = [
-        'company_id', 'sku', 'name', 'description', 'unit', 'tax_percent', 'active',
+        'company_id', 'sku', 'name', 'description', 'unit', 'tax_percent', 'active', 'category',
     ];
 
     protected function casts(): array

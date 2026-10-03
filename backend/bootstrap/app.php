@@ -24,6 +24,11 @@ return Application::configure(basePath: dirname(__DIR__))
         $schedule->command('crm:run-sequences')->everyFifteenMinutes();
         $schedule->command('webino:calendars:sync')->everyFifteenMinutes();
         $schedule->command('webino:content:remind')->everyFifteenMinutes();
+        $schedule->command('webino:oauth:refresh')->everyFiveMinutes();
+        $schedule->command('webino:webhooks:retry')->everyMinute();
+        $schedule->command('webino:moadian:retry')->everyFiveMinutes();
+        $schedule->command('webino:content:publish')->everyFiveMinutes();
+        $schedule->command('webino:reports:send')->hourly();
         if (class_exists(\Spatie\Backup\Commands\BackupCommand::class)) {
             $schedule->command('backup:run --only-db')->dailyAt('02:40');
         }
