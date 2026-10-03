@@ -1,18 +1,11 @@
 import { getTranslations } from 'next-intl/server';
 import { apiServer } from '@/lib/public-api-server';
 import { loadPublishedPage, StorefrontDocument } from '@/builder/public-document';
-import { LandingPage } from '@/themes/webina-corporate-v1/components/landing/LandingPage';
+import { LandingPage, type LandingData } from '@/themes/webina-corporate-v1/components/landing/LandingPage';
 
 export const revalidate = 60;
 
-type HomeData = {
-  data: {
-    site: { name: string; branding?: Record<string, unknown> | null };
-    testimonials: { id: number; author: string; quote: string; company?: string | null }[];
-    portfolio: { id: number; slug: string; title: string; description?: string | null }[];
-    blog: { id: number; slug: string; title: string; excerpt?: string | null }[];
-  };
-};
+type HomeData = { data: NonNullable<LandingData> };
 
 export default async function SiteHomePage() {
   const t = await getTranslations();
@@ -37,6 +30,8 @@ export default async function SiteHomePage() {
           testimonials: [],
           portfolio: [],
           blog: [],
+          announcements: [],
+          faq: [],
         }
       }
     />

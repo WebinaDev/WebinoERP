@@ -1,11 +1,13 @@
+import { getLocale, getTranslations } from 'next-intl/server';
 import Link from 'next/link';
-import { getTranslations } from 'next-intl/server';
 import { apiServer, siteHref } from '@/lib/public-api-server';
+import { SERVICE_MEGA } from '@/themes/webina-corporate-v1/site-nav';
+import { NavIcon } from '@/themes/webina-corporate-v1/components/NavIcon';
+import { SitePage } from '@/themes/webina-corporate-v1/components/SitePage';
 
 export const revalidate = 60;
 
 type ServiceCategory = {
-  id: number;
   slug: string;
   name: string;
   services?: { slug: string; title: string }[];
@@ -13,6 +15,7 @@ type ServiceCategory = {
 
 export default async function ServicesPage() {
   const t = await getTranslations();
+  const locale = await getLocale();
   let categories: ServiceCategory[] = [];
   try {
     const res = await apiServer<{ data: ServiceCategory[] }>('/v1/public/services');
@@ -21,33 +24,61 @@ export default async function ServicesPage() {
     categories = [];
   }
 
+  const known = new Set(SERVICE_MEGA.columns.map((col) => col.href?.split('/').pop()));
+  const extras = categories.filter((cat) => !known.has(cat.slug));
+
   return (
-    <div className="bg-[#07070a] text-white">
-      <header className="border-b border-white/10 px-4 py-16 lg:px-6">
-        <div className="mx-auto max-w-7xl">
-          <p className="text-xs tracking-[0.22em] text-[#9cc4ff]">{t('site.nav.services')}</p>
-          <h1 className="mt-3 text-4xl font-black sm:text-5xl">{t('site.landing.servicesTitle')}</h1>
-          <p className="mt-4 max-w-2xl text-white/60">{t('site.landing.servicesLead')}</p>
-        </div>
-      </header>
-      <div className="mx-auto grid max-w-7xl gap-8 px-4 py-12 lg:px-6">
-        {categories.map((category) => (
-          <section key={category.id} className="rounded-3xl border border-white/10 p-6">
-            <h2 className="text-2xl font-semibold">
-              <Link href={siteHref(undefined, `services/${category.slug}`)} className="hover:text-[#6ea8ff]">{category.name}</Link>
-            </h2>
-            <ul className="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-              {category.services?.map((service) => (
-                <li key={service.slug}>
-                  <Link href={siteHref(undefined, `services/${service.slug}`)} className="block rounded-2xl bg-white/[0.03] px-4 py-3 text-sm hover:bg-[#0066FF]/15">
-                    {service.title}
-                  </Link>
-                </li>
-              ))}
-            </ul>
-          </section>
-        ))}
+    <SitePage kicker={t('site.nav.services')} title={t('site.landing.servicesTitle')} lead={t('site.page.servicesLead')}>
+      <div className="card-grid cols-2">
+        {SERVICE_MEGA.columns.map((col) => {
+          const slug = col.href?.split('/').pop() ?? '';
+          const fromApi = categories.find((cat) => cat.slug === slug);
+          return (
+            <article key={col.titleKey} className="panel">
+              <div className="flex items-center gap-2">
+                <span className="mega-ico"><NavIcon name={col.icon} /></span>
+                <h2 className="text-xl font-bold">
+                  <Link href={siteHref(undefined, col.href || 'services')}>{locale === 'fa' && fromApi?.name ? fromApi.name : t(col.titleKey)}</Link>
+                </h2>
+              </div>
+              <p className="muted mt-2 text-sm">{t(col.leadKey)}</p>
+              <ul className="mt-4 grid gap-2 text-sm sm:grid-cols-2">
+                {col.items.map((item) => {
+                  const itemSlug = item.href.split('/').pop() ?? '';
+                  const apiTitle = fromApi?.services?.find((s) => s.slug === itemSlug)?.title;
+                  return (
+                    <li key={item.href}>
+                      <Link href={siteHref(undefined, item.href)} className="mega-item">
+                        <span className="mega-ico"><NavIcon name={item.icon} className="size-3.5" /></span>
+                        {locale === 'fa' && apiTitle ? apiTitle : t(item.labelKey)}
+                      </Link>
+                    </li>
+                  );
+                })}
+              </ul>
+            </article>
+          );
+        })}
       </div>
-    </div>
+      {extras.length ? (
+        <div className="mt-10">
+          <h2 className="text-xl font-bold">{t('site.page.moreFromCms')}</h2>
+          <ul className="mt-4 grid gap-3 md:grid-cols-2">
+            {extras.map((cat) => (
+              <li key={cat.slug} className="panel">
+                <h3 className="font-bold">{cat.name}</h3>
+                <ul className="mt-2 space-y-1 text-sm">
+                  {cat.services?.filter((s) => s.slug !== cat.slug).map((s) => (
+                    <li key={s.slug}>
+                      <Link href={siteHref(undefined, `services/${s.slug}`)}>{s.title}</Link>
+                    </li>
+                  ))}
+                </ul>
+              </li>
+            ))}
+          </ul>
+        </div>
+      ) : null}
+    </SitePage>
   );
 }

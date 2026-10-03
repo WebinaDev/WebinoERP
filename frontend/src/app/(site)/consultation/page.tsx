@@ -1,9 +1,12 @@
+import { getTranslations } from 'next-intl/server';
 import { ConsultationForm } from '@/themes/webina-corporate-v1/components/ConsultationForm';
+import { SitePage } from '@/themes/webina-corporate-v1/components/SitePage';
 
-export default function ConsultationPage() {
+export default async function ConsultationPage() {
+  const t = await getTranslations();
   return (
-    <div className="container mx-auto px-4 py-12">
+    <SitePage kicker={t('site.nav.freeConsultation')} title={t('site.nav.consultation')} lead={t('site.page.consultationLead')}>
       <ConsultationForm source="consultation" />
-    </div>
+    </SitePage>
   );
 }

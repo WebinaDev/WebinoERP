@@ -1,18 +1,17 @@
 import { getTranslations } from 'next-intl/server';
 import Link from 'next/link';
 import { siteHref } from '@/lib/public-api-server';
-import { Button } from '@/components/ui/button';
+import { SitePage } from '@/themes/webina-corporate-v1/components/SitePage';
 
-export default async function PricingPage({ params }: { params?: Promise<Record<string, string>> }) {
+export default async function PricingPage() {
   const t = await getTranslations();
-
   return (
-    <div className="container mx-auto px-4 py-12 text-center">
-      <h1 className="text-3xl font-bold">{t('auto._site__pricing_page.s_a3e6d8e5')}</h1>
-      <p className="text-muted-foreground mx-auto mt-4 max-w-lg">{t('auto._site__pricing_page.s_d5da6303')}</p>
-      <Button asChild className="mt-8 bg-[#0066FF] hover:bg-[#0052cc]">
-        <Link href={siteHref(undefined, 'consultation')}>{t('auto._site__pricing_page.s_9ae4aff1')}</Link>
-      </Button>
-    </div>
+    <SitePage kicker={t('site.nav.pricing')} title={t('site.nav.pricing')} lead={t('site.page.pricingLead')}>
+      <p className="rich-copy max-w-2xl">{t('site.page.pricingBody')}</p>
+      <div className="mt-8 flex flex-wrap gap-3">
+        <Link href={siteHref(undefined, 'consultation')} className="btn-saffron">{t('site.nav.freeConsultation')}</Link>
+        <Link href={siteHref(undefined, 'proposal')} className="btn-ghost">{t('site.nav.proposal')}</Link>
+      </div>
+    </SitePage>
   );
 }

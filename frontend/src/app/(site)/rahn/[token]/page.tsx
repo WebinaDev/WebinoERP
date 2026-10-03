@@ -402,7 +402,7 @@ export default function RahnPublicPage() {
       {!locked && stepType === 'note' ? (
         <section className="space-y-3 rounded-2xl border p-5">
           <h2 className="font-semibold">{currentStep?.label}</h2>
-          <p className="whitespace-pre-wrap text-sm leading-7 text-muted-foreground">{currentStep?.body || '—'}</p>
+          <p className="whitespace-pre-wrap text-sm leading-7 text-muted-foreground">{currentStep?.body || ''}</p>
         </section>
       ) : null}
 

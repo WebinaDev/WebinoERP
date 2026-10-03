@@ -3,6 +3,7 @@
 namespace Tests\Feature;
 
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Modules\Marketing\Database\Seeders\MarketingSiteSeeder;
 use Modules\Marketing\Entities\MarketingPage;
 use Modules\Marketing\Entities\MarketingSiteSetting;
 use Tests\TestCase;
@@ -29,7 +30,24 @@ class MarketingPublicApiTest extends TestCase
         $response = $this->getJson('/api/v1/public/home');
 
         $response->assertOk()
-            ->assertJsonStructure(['data' => ['site', 'blocks', 'announcements', 'testimonials', 'portfolio', 'blog']]);
+            ->assertJsonStructure(['data' => ['site', 'blocks', 'announcements', 'testimonials', 'portfolio', 'blog', 'faq']]);
+    }
+
+    public function test_marketing_seeder_matches_public_nav_slugs(): void
+    {
+        $this->seed(MarketingSiteSeeder::class);
+
+        $this->getJson('/api/v1/public/services/custom-web')
+            ->assertOk()
+            ->assertJsonPath('data.slug', 'custom-web');
+
+        $this->getJson('/api/v1/public/solutions/retail/fashion')
+            ->assertOk()
+            ->assertJsonPath('data.title', 'مد و پوشاک');
+
+        $this->getJson('/api/v1/public/home')
+            ->assertOk()
+            ->assertJsonPath('data.faq.0.question', 'همکاری از کجا شروع می‌شود؟');
     }
 
     public function test_public_page_by_slug(): void
