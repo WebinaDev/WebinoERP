@@ -24,6 +24,8 @@ type Asset = { id: string; asset_type: string; serial_number: string };
 
 const PROFILE_FIELDS = [
   { name: 'national_id', labelKey: 'nationalId' as const },
+  { name: 'father_name', labelKey: 'fatherName' as const },
+  { name: 'insurance_number', labelKey: 'insuranceNumber' as const },
   { name: 'birth_date', labelKey: 'birthDate' as const, type: 'date' },
   { name: 'gender', labelKey: 'gender' as const },
   { name: 'address', labelKey: 'address' as const },
@@ -58,6 +60,8 @@ export function StaffDetailPage({ id }: Props) {
       setEmployee(emp);
       setValues({
         national_id: String(data.national_id ?? ''),
+        father_name: String(data.father_name ?? ''),
+        insurance_number: String(data.insurance_number ?? ''),
         birth_date: String(data.birth_date ?? '').slice(0, 10),
         gender: String(data.gender ?? ''),
         address: String(data.address ?? ''),
@@ -95,6 +99,8 @@ export function StaffDetailPage({ id }: Props) {
       const shift = next?.shiftName ?? shiftName;
       await saveStaffProfile(id, {
         national_id: v.national_id || null,
+        father_name: v.father_name || null,
+        insurance_number: v.insurance_number || null,
         birth_date: v.birth_date || null,
         gender: v.gender || null,
         address: v.address || null,

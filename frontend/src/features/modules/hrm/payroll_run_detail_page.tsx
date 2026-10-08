@@ -61,6 +61,7 @@ export function PayrollRunDetailPage({ id }: Props) {
           <Button variant="outline" onClick={() => void downloadHrmFile(`payroll/runs/${id}/bank-export?channel=satna&format=csv`, `satna-${id}.csv`)}>{t('suite.bank.satna')}</Button>
           <Button variant="outline" onClick={() => void downloadHrmFile(`payroll/runs/${id}/insurance-list?format=csv`, `sso-${id}.csv`)}>{t('suite.bank.ssoCsv')}</Button>
           <Button variant="outline" onClick={() => void downloadHrmFile(`payroll/runs/${id}/insurance-list?format=txt`, `DSKWOR-${id}.txt`)}>{t('suite.bank.ssoTxt')}</Button>
+          <Button variant="outline" onClick={() => void downloadHrmFile(`payroll/runs/${id}/insurance-list?format=zip`, `sso-diskette-${id}.zip`)}>{t('suite.bank.ssoZip')}</Button>
         </>
       }
       {...layoutProps}

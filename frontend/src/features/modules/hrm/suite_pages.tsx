@@ -15,6 +15,7 @@ import { PageEmptyState, PageLoadingState } from '@/features/shared/ui/PageState
 import { buildMonthGrid, shiftMonth } from '@/lib/locale/month-grid';
 import { toJalali } from '@/lib/locale/calendar-date';
 import { normalizeListPayload } from '@/lib/list-utils';
+import { WorkforceBudgetSection } from '@/features/modules/hrm/workforce_budget_page';
 import {
   applyShiftRotation,
   completeLesson,
@@ -276,6 +277,7 @@ export function AnalyticsPage() {
               ))}
             </CardContent>
           </Card>
+          <WorkforceBudgetSection />
         </div>
       )}
     </HrmPageLayout>
@@ -546,10 +548,12 @@ export function MyShiftCalendarPage() {
   const [rows, setRows] = useState<Row[]>([]);
   const weeks = useMemo(() => buildMonthGrid(cursor, locale), [cursor, locale]);
   const days = weeks.flat().filter((d) => d.iso);
+  const firstIso = days[0]?.iso;
+  const lastIso = days[days.length - 1]?.iso;
   useEffect(() => {
-    if (!days[0]) return;
-    void getMyShiftCalendar({ from: days[0].iso, to: days[days.length - 1].iso }).then((r) => setRows(Array.isArray(r) ? r as Row[] : [])).catch(applyAxiosError);
-  }, [applyAxiosError, days[0]?.iso, days[days.length - 1]?.iso]);
+    if (!firstIso || !lastIso) return;
+    void getMyShiftCalendar({ from: firstIso, to: lastIso }).then((r) => setRows(Array.isArray(r) ? r as Row[] : [])).catch(applyAxiosError);
+  }, [applyAxiosError, firstIso, lastIso]);
   const map = new Map(rows.map((r) => [String(r.work_date).slice(0, 10), r]));
   return (
     <HrmPageLayout title={tNav('nav.erp.hrm.myShifts')} {...layoutProps} actions={<Button variant="outline" onClick={() => setCursor((c) => shiftMonth(c, 1, locale))}>{tNav('date.nextMonth')}</Button>}>

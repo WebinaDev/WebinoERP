@@ -44,6 +44,7 @@ export function HrmStatus({ value }: { value: unknown }) {
   const t = useTranslations('hrm.suite.status');
   const code = String(value ?? '');
   if (!code) return <>—</>;
-  const label = t.has(code) ? t(code) : code;
-  return <>{label}</>;
+  if (t.has(code)) return <>{t(code)}</>;
+  if (code.startsWith('pending')) return <>{t('pending')}</>;
+  return <>{code}</>;
 }

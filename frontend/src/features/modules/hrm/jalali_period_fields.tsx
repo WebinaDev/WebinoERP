@@ -32,7 +32,7 @@ export function PayrollPeriodFields({
   onPickDate?: (iso: string, year: string, month: string) => void;
 }) {
   const t = useTranslations('hrm');
-  const { locale } = useLocale();
+  const { locale, formatDigits } = useLocale();
   const now = new Date();
   const jalali = toJalali(now.getFullYear(), now.getMonth() + 1, now.getDate());
   const base = locale === 'fa' ? jalali.jy : now.getFullYear();
@@ -46,7 +46,7 @@ export function PayrollPeriodFields({
         <Select value={year} onValueChange={onYear}>
           <SelectTrigger><SelectValue /></SelectTrigger>
           <SelectContent>
-            {years.map((value) => <SelectItem key={value} value={value}>{value}</SelectItem>)}
+            {years.map((value) => <SelectItem key={value} value={value}>{formatDigits(value)}</SelectItem>)}
           </SelectContent>
         </Select>
       </div>

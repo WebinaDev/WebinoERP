@@ -71,6 +71,13 @@ import { LoansPage } from '@/features/modules/hrm/loans_page';
 import { IssuePayslipPage } from '@/features/modules/hrm/issue_payslip_page';
 import { TemplatesPage } from '@/features/modules/hrm/templates_page';
 import { DocumentsPage } from '@/features/modules/hrm/documents_page';
+import { AttendanceDevicesPage } from '@/features/modules/hrm/attendance_devices_page';
+import { SsoListPage } from '@/features/modules/hrm/sso_list_page';
+import { MyOffboardingPage, OffboardingAdminPage as OffboardingCasesPage } from '@/features/modules/hrm/offboarding_pages';
+import { ApprovalFlowsPage } from '@/features/modules/hrm/approval_flows_page';
+import { HrSettingsPage } from '@/features/modules/hrm/hr_settings_page';
+import { StaffImportPage } from '@/features/modules/hrm/staff_import_page';
+import { WorkforceBudgetPage } from '@/features/modules/hrm/workforce_budget_page';
 import {
   AnalyticsPage,
   LearningAdminPage,
@@ -88,6 +95,7 @@ import {
 } from '@/features/modules/hrm/suite_pages';
 import {
   HrmCartablePage,
+  MyCalendarSyncPage,
   MyDocsPage,
   MyInsurancePage,
   MyOrgPage,
@@ -320,6 +328,16 @@ const EXACT: Record<string, ReactNode> = {
   'hrm/my-timesheets': <MyTimesheetPage />,
   'hrm/my-okrs': <MyOkrPage />,
   'hrm/my-shifts': <MyShiftCalendarPage />,
+  'hrm/my-offboarding': <MyOffboardingPage />,
+  'hrm/my-calendar': <MyCalendarSyncPage />,
+  'hrm/my-approvals': <HrmCartablePage mode="portal" />,
+  'hrm/attendance-devices': <AttendanceDevicesPage />,
+  'hrm/sso-list': <SsoListPage />,
+  'hrm/offboarding': <OffboardingCasesPage />,
+  'hrm/approval-flows': <ApprovalFlowsPage />,
+  'hrm/hr-settings': <HrSettingsPage />,
+  'hrm/staff-import': <StaffImportPage />,
+  'hrm/workforce-budget': <WorkforceBudgetPage />,
   'scm/warehouses': <WarehousesPage />,
   'scm/stock': <StockPage />,
   'scm/inbound': <InboundPage />,

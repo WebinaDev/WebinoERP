@@ -685,3 +685,231 @@ export async function downloadHrmFile(path: string, filename: string) {
   a.click();
   URL.revokeObjectURL(url);
 }
+
+// ── Attendance devices (ZKTeco & co.) ──────────────────────────────────────
+
+export async function getAttendanceDevices() {
+  const res = await apiClient.get(`${BASE}/attendance/devices`, { params: { per_page: 100 } });
+  return unwrapData(res);
+}
+
+export async function createAttendanceDevice(data: Record<string, unknown>) {
+  const res = await apiClient.post(`${BASE}/attendance/devices`, data);
+  return unwrapData<Record<string, unknown>>(res);
+}
+
+export async function updateAttendanceDevice(id: number | string, data: Record<string, unknown>) {
+  const res = await apiClient.patch(`${BASE}/attendance/devices/${id}`, data);
+  return unwrapData(res);
+}
+
+export async function rotateAttendanceDeviceKey(id: number | string) {
+  const res = await apiClient.post(`${BASE}/attendance/devices/${id}/rotate-key`);
+  return unwrapData<Record<string, unknown>>(res);
+}
+
+export async function deleteAttendanceDevice(id: number | string) {
+  const res = await apiClient.delete(`${BASE}/attendance/devices/${id}`);
+  return unwrapData(res);
+}
+
+export async function getDeviceUserMappings(params?: Record<string, unknown>) {
+  const res = await apiClient.get(`${BASE}/attendance/device-users`, { params: { per_page: 200, ...params } });
+  return unwrapData(res);
+}
+
+export async function saveDeviceUserMapping(data: Record<string, unknown>) {
+  const res = await apiClient.post(`${BASE}/attendance/device-users`, data);
+  return unwrapData(res);
+}
+
+export async function deleteDeviceUserMapping(id: number | string) {
+  const res = await apiClient.delete(`${BASE}/attendance/device-users/${id}`);
+  return unwrapData(res);
+}
+
+export async function getAttendancePunches(params?: Record<string, unknown>) {
+  const res = await apiClient.get(`${BASE}/attendance/punches`, { params: { per_page: 100, ...params } });
+  return unwrapData(res);
+}
+
+export async function assignAttendancePunch(id: number | string, employee_id: number, remember = true) {
+  const res = await apiClient.post(`${BASE}/attendance/punches/${id}/assign`, { employee_id, remember });
+  return unwrapData(res);
+}
+
+export async function importAttendanceCsv(file: File, deviceId?: string) {
+  const form = new FormData();
+  form.append('file', file);
+  if (deviceId) form.append('device_id', deviceId);
+  const res = await apiClient.post(`${BASE}/attendance/import-csv`, form, {
+    headers: { 'Content-Type': 'multipart/form-data' },
+  });
+  return unwrapData<Record<string, unknown>>(res);
+}
+
+// ── SSO (تأمین اجتماعی) list ───────────────────────────────────────────────
+
+export async function getInsuranceListForPeriod(year: string, month: string) {
+  const res = await apiClient.get(`${BASE}/payroll/insurance-list`, { params: { year, month } });
+  return unwrapData<Record<string, unknown>>(res);
+}
+
+// ── Offboarding ────────────────────────────────────────────────────────────
+
+export async function getOffboardingTemplates() {
+  const res = await apiClient.get(`${BASE}/offboarding/templates`, { params: { per_page: 100 } });
+  return unwrapData(res);
+}
+
+export async function saveOffboardingTemplate(data: Record<string, unknown>, id?: number | string) {
+  const res = id
+    ? await apiClient.put(`${BASE}/offboarding/templates/${id}`, data)
+    : await apiClient.post(`${BASE}/offboarding/templates`, data);
+  return unwrapData(res);
+}
+
+export async function deleteOffboardingTemplate(id: number | string) {
+  const res = await apiClient.delete(`${BASE}/offboarding/templates/${id}`);
+  return unwrapData(res);
+}
+
+export async function getOffboardings(params?: Record<string, unknown>) {
+  const res = await apiClient.get(`${BASE}/offboarding`, { params: { per_page: 100, ...params } });
+  return unwrapData(res);
+}
+
+export async function startOffboarding(data: Record<string, unknown>) {
+  const res = await apiClient.post(`${BASE}/offboarding/start`, data);
+  return unwrapData(res);
+}
+
+export async function updateOffboarding(id: number | string, data: Record<string, unknown>) {
+  const res = await apiClient.patch(`${BASE}/offboarding/${id}`, data);
+  return unwrapData(res);
+}
+
+export async function setOffboardingTaskStatus(id: number | string, status: string, extra?: Record<string, unknown>) {
+  const res = await apiClient.patch(`${BASE}/offboarding/tasks/${id}`, { status, ...extra });
+  return unwrapData(res);
+}
+
+export async function getMyOffboarding() {
+  const res = await apiClient.get(`${BASE}/me/offboarding`);
+  return unwrapData(res);
+}
+
+export async function completeMyOffboardingTask(id: number | string, data?: Record<string, unknown>) {
+  const res = await apiClient.post(`${BASE}/me/offboarding/tasks/${id}/complete`, data ?? {});
+  return unwrapData(res);
+}
+
+// ── Approval flows ─────────────────────────────────────────────────────────
+
+export async function getApprovalFlows() {
+  const res = await apiClient.get(`${BASE}/approval-flows`);
+  return unwrapData<Record<string, unknown>>(res);
+}
+
+export async function saveApprovalFlow(data: Record<string, unknown>) {
+  const res = await apiClient.post(`${BASE}/approval-flows`, data);
+  return unwrapData(res);
+}
+
+export async function deleteApprovalFlow(id: number | string) {
+  const res = await apiClient.delete(`${BASE}/approval-flows/${id}`);
+  return unwrapData(res);
+}
+
+export async function searchApprovalUsers(search: string) {
+  const res = await apiClient.get(`${BASE}/approval-flows/users`, { params: { search } });
+  return unwrapData(res);
+}
+
+export async function approveLeaveFromCartable(id: number | string) {
+  const res = await apiClient.post(`${BASE}/requests/leaves/${id}/approve`);
+  return unwrapData(res);
+}
+
+export async function rejectLeaveFromCartable(id: number | string, reason?: string) {
+  const res = await apiClient.post(`${BASE}/requests/leaves/${id}/reject`, { reason });
+  return unwrapData(res);
+}
+
+export async function getApprovalInbox() {
+  const res = await apiClient.get(`${BASE}/requests/inbox`);
+  return unwrapData<{ requests?: Record<string, unknown>[]; leaves?: Record<string, unknown>[] }>(res);
+}
+
+// ── HR notification settings ───────────────────────────────────────────────
+
+export async function getHrNotificationSettings() {
+  const res = await apiClient.get(`${BASE}/settings/notifications`);
+  return unwrapData<Record<string, unknown>>(res);
+}
+
+export async function saveHrNotificationSettings(data: Record<string, unknown>) {
+  const res = await apiClient.post(`${BASE}/settings/notifications`, data);
+  return unwrapData<Record<string, unknown>>(res);
+}
+
+export async function testHrNotification(employee_id: number) {
+  const res = await apiClient.post(`${BASE}/settings/notifications/test`, { employee_id });
+  return unwrapData<{ results?: Record<string, string> }>(res);
+}
+
+export async function getMyNotificationChannels() {
+  const res = await apiClient.get(`${BASE}/me/notification-channels`);
+  return unwrapData<Record<string, unknown>>(res);
+}
+
+export async function saveMyNotificationChannels(data: Record<string, unknown>) {
+  const res = await apiClient.put(`${BASE}/me/notification-channels`, data);
+  return unwrapData<Record<string, unknown>>(res);
+}
+
+// ── Staff spreadsheet import ───────────────────────────────────────────────
+
+export async function importStaffSpreadsheet(file: File, dryRun: boolean) {
+  const form = new FormData();
+  form.append('file', file);
+  form.append('dry_run', dryRun ? '1' : '0');
+  const res = await apiClient.post(`${BASE}/staff/import`, form, {
+    headers: { 'Content-Type': 'multipart/form-data' },
+  });
+  return unwrapData<Record<string, unknown>>(res);
+}
+
+// ── Calendar feeds ─────────────────────────────────────────────────────────
+
+export async function getMyCalendarFeed() {
+  const res = await apiClient.get(`${BASE}/me/calendar/feed`);
+  return unwrapData<Record<string, string>>(res);
+}
+
+export async function regenerateMyCalendarFeed() {
+  const res = await apiClient.post(`${BASE}/me/calendar/feed/regenerate`);
+  return unwrapData<Record<string, string>>(res);
+}
+
+// ── Workforce budget ───────────────────────────────────────────────────────
+
+export async function getWorkforceBudgets(params: Record<string, unknown>) {
+  const res = await apiClient.get(`${BASE}/analytics/budgets`, { params });
+  return unwrapData<Record<string, unknown>>(res);
+}
+
+export async function saveWorkforceBudget(data: Record<string, unknown>) {
+  const res = await apiClient.post(`${BASE}/analytics/budgets`, data);
+  return unwrapData(res);
+}
+
+export async function deleteWorkforceBudget(id: number | string) {
+  const res = await apiClient.delete(`${BASE}/analytics/budgets/${id}`);
+  return unwrapData(res);
+}
+
+export async function updateMyOffboarding(id: number | string, data: Record<string, unknown>) {
+  const res = await apiClient.patch(`${BASE}/me/offboarding/${id}`, data);
+  return unwrapData(res);
+}

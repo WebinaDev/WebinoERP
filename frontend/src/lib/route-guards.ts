@@ -38,6 +38,19 @@ export function resolveRoutePermission(path: string): string | undefined {
   if (normalized === 'hrm/onboarding') return 'hrm.recruitment.view';
   if (normalized === 'hrm/okrs' || normalized === 'hrm/reviews-360') return 'hrm.performance.view';
   if (normalized === 'hrm/learning') return 'hrm.training.view';
+  // Designated approvers of any role may open their approval inbox; items are filtered per approver.
+  if (normalized === 'hrm/my-approvals') return 'core.navigation.view';
+  if (normalized === 'hrm/workforce-budget') return 'hrm.staff.view';
+  if (normalized === 'hrm/sso-list') return 'hrm.payroll.view';
+  if (
+    normalized === 'hrm/attendance-devices'
+    || normalized === 'hrm/offboarding'
+    || normalized === 'hrm/approval-flows'
+    || normalized === 'hrm/staff-import'
+    || normalized === 'hrm/hr-settings'
+  ) {
+    return 'hrm.staff.manage';
+  }
   if (normalized.startsWith('hrm/my-')) return 'hrm.ess.view';
 
   return undefined;
