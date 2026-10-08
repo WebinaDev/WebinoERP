@@ -22,15 +22,15 @@ export async function HomeBlocks({ locale, data }: { locale: string; data: HomeD
 
   return (
     <>
-      <section className="bg-gradient-to-b from-[#0066FF]/20 via-[#0a0a0a] to-background border-b">
+      <section className="border-b bg-white">
         <div className="container mx-auto px-4 py-20 text-center md:py-28">
-          <h1 className="text-4xl font-bold tracking-tight text-white md:text-5xl">{name}</h1>
-          <p className="text-white/70 mx-auto mt-4 max-w-2xl text-lg">{desc}</p>
+          <h1 className="text-4xl font-extrabold tracking-tight text-[var(--brand-ink)] md:text-6xl">{name}</h1>
+          <p className="text-[var(--muted)] mx-auto mt-4 max-w-2xl text-lg">{desc}</p>
           <div className="mt-8 flex flex-wrap justify-center gap-3">
-            <Button asChild size="lg" className="bg-[#0066FF] hover:bg-[#0052cc]">
+            <Button asChild size="lg" className="rounded-full bg-[var(--brand-primary)] text-white hover:bg-[var(--brand-primary-hover)]">
               <Link href={siteHref(undefined, 'consultation')}>{tr('site.home.start')}</Link>
             </Button>
-            <Button asChild variant="outline" size="lg" className="border-white/30 text-white hover:bg-white/10">
+            <Button asChild variant="outline" size="lg" className="rounded-full border-[var(--line-strong)] text-[var(--brand-ink)]">
               <Link href={siteHref(undefined, 'portfolio')}>{tr('site.home.viewPortfolio')}</Link>
             </Button>
           </div>
@@ -41,7 +41,7 @@ export async function HomeBlocks({ locale, data }: { locale: string; data: HomeD
         <section className="container mx-auto px-4 py-16">
           <div className="flex items-end justify-between gap-4">
             <h2 className="text-2xl font-semibold">{tr('site.home.ourServices')}</h2>
-            <Link href={siteHref(undefined, 'services')} className="text-[#0066FF] text-sm hover:underline">
+            <Link href={siteHref(undefined, 'services')} className="text-[var(--brand-primary)] text-sm hover:underline">
               {tr('site.home.allServices')}
             </Link>
           </div>
@@ -50,7 +50,7 @@ export async function HomeBlocks({ locale, data }: { locale: string; data: HomeD
               <Link
                 key={s.id}
                 href={siteHref(undefined, `services/${s.slug}`)}
-                className="rounded-xl border p-5 transition hover:border-[#0066FF]/50 hover:shadow-md"
+                className="rounded-xl border p-5 transition hover:border-[var(--brand-primary)] hover:shadow-md"
               >
                 <h3 className="font-medium">{s.name}</h3>
               </Link>
@@ -63,7 +63,7 @@ export async function HomeBlocks({ locale, data }: { locale: string; data: HomeD
         <section className="container mx-auto px-4 py-16">
           <div className="flex items-end justify-between gap-4">
             <h2 className="text-2xl font-semibold">{tr('site.home.portfolio')}</h2>
-            <Link href={siteHref(undefined, 'portfolio')} className="text-[#0066FF] text-sm hover:underline">
+            <Link href={siteHref(undefined, 'portfolio')} className="text-[var(--brand-primary)] text-sm hover:underline">
               {tr('site.home.all')}
             </Link>
           </div>
@@ -108,7 +108,7 @@ export async function HomeBlocks({ locale, data }: { locale: string; data: HomeD
           <div className="container mx-auto px-4">
             <div className="flex items-end justify-between gap-4">
               <h2 className="text-2xl font-semibold">{tr('site.home.blog')}</h2>
-              <Link href={siteHref(undefined, 'blog')} className="text-[#0066FF] text-sm hover:underline">
+              <Link href={siteHref(undefined, 'blog')} className="text-[var(--brand-primary)] text-sm hover:underline">
                 {tr('site.nav.blog')}
               </Link>
             </div>

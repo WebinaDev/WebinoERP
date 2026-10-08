@@ -15,12 +15,12 @@ function Seal({ id }: { id: string }) {
   const glyph = id === 'ssl' ? 'SSL' : id === 'hosting' ? 'SRV' : id === 'samandehi' ? 'IR' : 'نماد';
   return (
     <svg className="seal" viewBox="0 0 64 64" aria-hidden>
-      <rect x="2" y="2" width="60" height="60" rx="14" fill="#16130f" stroke="#e4c27a" strokeWidth="2" />
-      <circle cx="32" cy="26" r="10" fill="none" stroke="#e4c27a" strokeWidth="2" />
-      <text x="32" y="30" textAnchor="middle" fontSize="8" fill="#e4c27a" fontFamily="inherit">
+      <rect x="2" y="2" width="60" height="60" rx="14" fill="#f2f6ff" stroke="#0054ff" strokeWidth="1.5" />
+      <circle cx="32" cy="26" r="10" fill="none" stroke="#0054ff" strokeWidth="2" />
+      <text x="32" y="30" textAnchor="middle" fontSize="8" fill="#0054ff" fontFamily="inherit">
         {glyph}
       </text>
-      <text x="32" y="50" textAnchor="middle" fontSize="7" fill="#f6f1e8" fontFamily="inherit">
+      <text x="32" y="50" textAnchor="middle" fontSize="7" fill="#22242a" fontFamily="inherit">
         PLACEHOLDER
       </text>
     </svg>
@@ -78,7 +78,7 @@ export function TrustBadgeRail({
         <div className="trust-head">
           <div>
             <h2>{title}</h2>
-            <p className="mt-1 max-w-xl text-sm" style={{ color: 'rgba(246,241,232,.62)' }}>{lead}</p>
+            <p className="trust-lead mt-1 max-w-xl text-sm">{lead}</p>
           </div>
           <div className="trust-nav">
             <button type="button" aria-label={prevLabel} onClick={() => step(-1)}>
@@ -101,7 +101,7 @@ export function TrustBadgeRail({
                     <Seal id={badge.id} />
                   )}
                   <span>
-                    <strong className="text-white">{badge.label}</strong>
+                    <strong>{badge.label}</strong>
                     <small>{badge.hint}</small>
                   </span>
                 </>

@@ -74,7 +74,7 @@ export function ConsultationForm({ source, title, submitLabel }: FormProps) {
         <Label htmlFor="message">{t('auto.themes_webina_corporate_v1_ConsultationForm.s_8cd47c67')}</Label>
         <Textarea id="message" name="message" rows={4} />
       </div>
-      <Button type="submit" disabled={pending} className="w-full bg-[#16130f] text-[#e4c27a] hover:bg-black">
+      <Button type="submit" disabled={pending} className="w-full rounded-full bg-[#0054ff] text-white hover:bg-[#0046d6]">
         {pending ? t('auto.themes_webina_corporate_v1_ConsultationForm.s_775273e4') : resolvedSubmit}
       </Button>
     </form>

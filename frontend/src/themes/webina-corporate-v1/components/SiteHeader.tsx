@@ -3,13 +3,26 @@
 import Link from 'next/link';
 import { useEffect, useState } from 'react';
 import { useTranslations } from 'next-intl';
-import { ChevronDown, Menu, X } from 'lucide-react';
+import { ArrowUpLeft, ChevronDown, Menu, X } from 'lucide-react';
 import { LanguageMenu } from '@/components/LanguageMenu';
 import { siteHref } from '@/lib/public-api-server';
 import { cn } from '@/lib/utils';
-import { COMPANY_MEGA, MEGA_MENUS, RESOURCE_MEGA, SERVICE_MEGA, SOLUTION_MEGA, type MegaDef } from '../site-nav';
+import { COMPANY_MEGA, RESOURCE_MEGA, SERVICE_MEGA, SOLUTION_MEGA, type MegaDef } from '../site-nav';
 import { LogoLockup } from './LogoLockup';
 import { NavIcon } from './NavIcon';
+
+/** Desktop order from the approved design: services · solutions · portfolio · resources · company. */
+type NavEntry = { kind: 'mega'; mega: MegaDef } | { kind: 'link'; href: string; labelKey: string };
+
+const NAV: NavEntry[] = [
+  { kind: 'mega', mega: SERVICE_MEGA },
+  { kind: 'mega', mega: SOLUTION_MEGA },
+  { kind: 'link', href: 'portfolio', labelKey: 'site.nav.portfolio' },
+  { kind: 'mega', mega: RESOURCE_MEGA },
+  { kind: 'mega', mega: COMPANY_MEGA },
+];
+
+const MEGAS = [SERVICE_MEGA, SOLUTION_MEGA, RESOURCE_MEGA, COMPANY_MEGA];
 
 export function SiteHeader({
   siteName,
@@ -37,39 +50,53 @@ export function SiteHeader({
     };
   }, [mobile]);
 
+  useEffect(() => {
+    if (!openId) return;
+    const onKey = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') setOpenId(null);
+    };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [openId]);
+
+  const openMega = MEGAS.find((m) => m.id === openId);
+
   return (
     <header
-      className={cn('site-header', scrolled && 'is-scrolled')}
+      className={cn('site-header', (scrolled || openId) && 'is-scrolled')}
       onMouseLeave={() => setOpenId(null)}
     >
       <div className="webina-shell site-header-bar">
-        <Link href={siteHref()} aria-label={siteName}>
+        <Link href={siteHref()} aria-label={siteName} onClick={() => setMobile(false)}>
           <LogoLockup siteName={siteName} logoUrl={logoUrl} />
         </Link>
 
-        <nav className="desk-nav" aria-label={t('site.nav.home')}>
-          <Link href={siteHref()} className="nav-link">
-            {t('site.nav.home')}
-          </Link>
-          {MEGA_MENUS.map((mega) => (
-            <button
-              key={mega.id}
-              type="button"
-              className={cn('nav-trigger', openId === mega.id && 'is-open')}
-              onMouseEnter={() => setOpenId(mega.id)}
-              onFocus={() => setOpenId(mega.id)}
-              aria-expanded={openId === mega.id}
-            >
-              {t(mega.labelKey)}
-              <ChevronDown className={cn('size-3.5 opacity-70 transition', openId === mega.id && 'rotate-180')} />
-            </button>
-          ))}
-          <Link href={siteHref(undefined, 'products')} className="nav-link">
-            {t('site.nav.products')}
-          </Link>
-          <Link href={siteHref(undefined, 'portfolio')} className="nav-link">
-            {t('site.nav.portfolio')}
-          </Link>
+        <nav className="desk-nav" aria-label={t('site.nav.mainMenu')}>
+          {NAV.map((entry) =>
+            entry.kind === 'link' ? (
+              <Link
+                key={entry.href}
+                href={siteHref(undefined, entry.href)}
+                className="nav-link"
+                onMouseEnter={() => setOpenId(null)}
+              >
+                {t(entry.labelKey)}
+              </Link>
+            ) : (
+              <button
+                key={entry.mega.id}
+                type="button"
+                className={cn('nav-trigger', openId === entry.mega.id && 'is-open')}
+                onMouseEnter={() => setOpenId(entry.mega.id)}
+                onFocus={() => setOpenId(entry.mega.id)}
+                onClick={() => setOpenId((id) => (id === entry.mega.id ? null : entry.mega.id))}
+                aria-expanded={openId === entry.mega.id}
+              >
+                {t(entry.mega.labelKey)}
+                <ChevronDown className={cn('size-3.5 opacity-60 transition', openId === entry.mega.id && 'rotate-180')} />
+              </button>
+            ),
+          )}
         </nav>
 
         <div className="flex items-center gap-2">
@@ -81,8 +108,9 @@ export function SiteHeader({
           </Link>
           <button
             type="button"
-            className="grid size-10 place-items-center rounded-full border border-white/15 text-white min-[1100px]:hidden"
+            className="menu-toggle"
             aria-label={mobile ? t('site.nav.closeMenu') : t('site.nav.openMenu')}
+            aria-expanded={mobile}
             onClick={() => setMobile((v) => !v)}
           >
             {mobile ? <X className="size-5" /> : <Menu className="size-5" />}
@@ -90,14 +118,14 @@ export function SiteHeader({
         </div>
       </div>
 
-      {openId ? <MegaPanel mega={MEGA_MENUS.find((m) => m.id === openId)!} t={t} /> : null}
+      {openMega ? <MegaPanel mega={openMega} t={t} onNavigate={() => setOpenId(null)} /> : null}
 
       {mobile ? <MobileNav t={t} onClose={() => setMobile(false)} /> : null}
     </header>
   );
 }
 
-function MegaPanel({ mega, t }: { mega: MegaDef; t: (key: string) => string }) {
+function MegaPanel({ mega, t, onNavigate }: { mega: MegaDef; t: (key: string) => string; onNavigate: () => void }) {
   const cols = mega.columns.length >= 5 ? 'cols-5' : mega.columns.length === 1 ? 'cols-1' : 'cols-2';
   return (
     <div className="mega-sheet hidden min-[1100px]:block">
@@ -110,7 +138,9 @@ function MegaPanel({ mega, t }: { mega: MegaDef; t: (key: string) => string }) {
                   <NavIcon name={col.icon} className="size-4" />
                 </span>
                 {col.href ? (
-                  <Link href={siteHref(undefined, col.href)}>{t(col.titleKey)}</Link>
+                  <Link href={siteHref(undefined, col.href)} onClick={onNavigate}>
+                    {t(col.titleKey)}
+                  </Link>
                 ) : (
                   <span>{t(col.titleKey)}</span>
                 )}
@@ -119,7 +149,7 @@ function MegaPanel({ mega, t }: { mega: MegaDef; t: (key: string) => string }) {
               <ul>
                 {col.items.map((item) => (
                   <li key={item.href}>
-                    <Link href={siteHref(undefined, item.href)} className="mega-item">
+                    <Link href={siteHref(undefined, item.href)} className="mega-item" onClick={onNavigate}>
                       <span className="mega-ico">
                         <NavIcon name={item.icon} className="size-3.5" />
                       </span>
@@ -131,16 +161,21 @@ function MegaPanel({ mega, t }: { mega: MegaDef; t: (key: string) => string }) {
             </div>
           ))}
           {mega.columns.length < 5 ? (
-            <Link href={siteHref(undefined, 'consultation')} className="panel" style={{ background: '#16130f', color: '#f6f1e8' }}>
-              <p className="text-xs" style={{ color: '#e4c27a' }}>{t('site.nav.freeConsultation')}</p>
-              <strong className="mt-2 block text-lg">{t('site.landing.finalTitle')}</strong>
-              <span className="mt-2 block text-sm" style={{ color: 'rgba(246,241,232,.72)' }}>{t('site.mega.panelHint')}</span>
+            <Link href={siteHref(undefined, 'consultation')} className="mega-promo" onClick={onNavigate}>
+              <small className="text-xs">{t('site.nav.freeConsultation')}</small>
+              <strong className="mt-3 block text-xl leading-snug">{t('site.landing.finalTitle')}</strong>
+              <span className="mt-3 flex items-center gap-1 text-sm">
+                {t('site.mega.panelHint')}
+                <ArrowUpLeft className="size-4 ltr:-scale-x-100" />
+              </span>
             </Link>
           ) : null}
         </div>
         <div className="mega-foot">
           <p>{t('site.mega.panelHint')}</p>
-          <Link href={siteHref(undefined, mega.href)}>{t('site.mega.seeAll')}</Link>
+          <Link href={siteHref(undefined, mega.href)} onClick={onNavigate}>
+            {t('site.mega.seeAll')}
+          </Link>
         </div>
       </div>
     </div>
@@ -148,58 +183,87 @@ function MegaPanel({ mega, t }: { mega: MegaDef; t: (key: string) => string }) {
 }
 
 function MobileNav({ t, onClose }: { t: (key: string) => string; onClose: () => void }) {
-  const [open, setOpen] = useState<string | null>(SERVICE_MEGA.id);
-  const groups = [SERVICE_MEGA, SOLUTION_MEGA, RESOURCE_MEGA, COMPANY_MEGA];
+  const [open, setOpen] = useState<string | null>(null);
 
   return (
     <div className="mobile-sheet min-[1100px]:hidden">
-      <div className="webina-shell py-4">
-        <Link href={siteHref()} onClick={onClose} className="nav-link !text-inherit">
-          {t('site.nav.home')}
-        </Link>
-        <Link href={siteHref(undefined, 'products')} onClick={onClose} className="mt-1 block rounded-xl px-3 py-3 hover:bg-black/5">
-          {t('site.nav.products')}
-        </Link>
-        <Link href={siteHref(undefined, 'portfolio')} onClick={onClose} className="block rounded-xl px-3 py-3 hover:bg-black/5">
+      <div className="webina-shell pb-10 pt-2">
+        {MEGAS.slice(0, 2).map((mega) => (
+          <MobileGroup key={mega.id} mega={mega} open={open === mega.id} onToggle={() => setOpen((id) => (id === mega.id ? null : mega.id))} t={t} onClose={onClose} />
+        ))}
+        <Link href={siteHref(undefined, 'portfolio')} onClick={onClose} className="mobile-link">
           {t('site.nav.portfolio')}
         </Link>
-        {groups.map((mega) => (
-          <div key={mega.id} className="mobile-group">
-            <button
-              type="button"
-              className="flex w-full items-center justify-between px-3 py-3 text-start font-semibold"
-              onClick={() => setOpen((id) => (id === mega.id ? null : mega.id))}
-            >
-              {t(mega.labelKey)}
-              <ChevronDown className={cn('size-4 transition', open === mega.id && 'rotate-180')} />
-            </button>
-            {open === mega.id ? (
-              <div className="space-y-4 border-t border-black/10 px-3 py-3">
-                {mega.columns.map((col) => (
-                  <div key={col.titleKey}>
-                    <p className="text-xs font-bold text-[var(--saffron-deep)]">{t(col.titleKey)}</p>
-                    <ul className="mt-2 space-y-1">
-                      {col.items.map((item) => (
-                        <li key={item.href}>
-                          <Link href={siteHref(undefined, item.href)} onClick={onClose} className="mega-item">
-                            <span className="mega-ico">
-                              <NavIcon name={item.icon} className="size-3.5" />
-                            </span>
-                            {t(item.labelKey)}
-                          </Link>
-                        </li>
-                      ))}
-                    </ul>
-                  </div>
-                ))}
-              </div>
-            ) : null}
-          </div>
-        ))}
-        <Link href={siteHref(undefined, 'consultation')} onClick={onClose} className="btn-saffron mt-4 w-full">
-          {t('site.nav.freeConsultation')}
+        <Link href={siteHref(undefined, 'products')} onClick={onClose} className="mobile-link">
+          {t('site.nav.products')}
         </Link>
+        {MEGAS.slice(2).map((mega) => (
+          <MobileGroup key={mega.id} mega={mega} open={open === mega.id} onToggle={() => setOpen((id) => (id === mega.id ? null : mega.id))} t={t} onClose={onClose} />
+        ))}
+        <div className="mt-6 grid gap-2">
+          <Link href={siteHref(undefined, 'consultation')} onClick={onClose} className="btn-primary w-full">
+            {t('site.nav.freeConsultation')}
+          </Link>
+          <Link href={siteHref(undefined, 'proposal')} onClick={onClose} className="btn-ghost w-full">
+            {t('site.nav.proposal')}
+          </Link>
+        </div>
       </div>
+    </div>
+  );
+}
+
+function MobileGroup({
+  mega,
+  open,
+  onToggle,
+  t,
+  onClose,
+}: {
+  mega: MegaDef;
+  open: boolean;
+  onToggle: () => void;
+  t: (key: string) => string;
+  onClose: () => void;
+}) {
+  return (
+    <div className="mobile-group">
+      <button
+        type="button"
+        className="flex w-full items-center justify-between py-4 text-start"
+        aria-expanded={open}
+        onClick={onToggle}
+      >
+        {t(mega.labelKey)}
+        <ChevronDown className={cn('size-5 text-[var(--brand-primary)] transition', open && 'rotate-180')} />
+      </button>
+      {open ? (
+        <div className="space-y-5 pb-5">
+          {mega.columns.map((col) => (
+            <div key={col.titleKey}>
+              {col.href ? (
+                <Link href={siteHref(undefined, col.href)} onClick={onClose} className="mobile-group-title">
+                  {t(col.titleKey)}
+                </Link>
+              ) : (
+                <p className="mobile-group-title">{t(col.titleKey)}</p>
+              )}
+              <ul className="mt-2 grid grid-cols-1 gap-0.5 sm:grid-cols-2">
+                {col.items.map((item) => (
+                  <li key={item.href}>
+                    <Link href={siteHref(undefined, item.href)} onClick={onClose} className="mega-item">
+                      <span className="mega-ico">
+                        <NavIcon name={item.icon} className="size-3.5" />
+                      </span>
+                      {t(item.labelKey)}
+                    </Link>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          ))}
+        </div>
+      ) : null}
     </div>
   );
 }

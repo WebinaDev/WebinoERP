@@ -6688,7 +6688,8 @@
       "consultation": "Consultation",
       "openMenu": "Open menu",
       "closeMenu": "Close menu",
-      "products": "Products"
+      "products": "Products",
+      "mainMenu": "Main menu"
     },
     "footer": {
       "tagline": "Digital partner for growing businesses. Design, development, marketing, and Webina's own software.",
@@ -6710,7 +6711,8 @@
       "badgeSsl": "Secure connection",
       "badgeSslHint": "The public domain certificate is issued through Caddy.",
       "badgeHosting": "Managed hosting",
-      "badgeHostingHint": "Platform: servers, Docker, domains and backups."
+      "badgeHostingHint": "Platform: servers, Docker, domains and backups.",
+      "agencyTagline": "Business development agency"
     },
     "home": {
       "defaultName": "Webina",
@@ -6803,13 +6805,13 @@
       "convertLead": "Consultation, proposal, pricing."
     },
     "landing": {
-      "kicker": "Webina Business Development",
+      "kicker": "Webina business development agency",
       "heroTitle": "Agency services beside Webina's own software",
-      "heroLead": "{name} offers design, growth, brand and infrastructure together. Beside those services sit four products: Dashboard, ERP, docs and the hosting platform.",
+      "heroLead": "{name} is the outsourced digital marketing unit for high-margin businesses: from strategy and the website to customer acquisition and ROI reporting. You get the output of an in-house team without the cost of hiring one.",
       "ctaConsult": "Start a consultation",
       "ctaWork": "See the work",
-      "servicesTitle": "Five service pillars",
-      "servicesLead": "Each pillar lists specific services. Open one from the menu or the card.",
+      "servicesTitle": "Three pillars, one goal: sales",
+      "servicesLead": "Technology builds the sales infrastructure, growth brings buyers who are ready, and the brand earns their trust.",
       "solutionsTitle": "Solutions by industry",
       "solutionsLead": "Retail, health, corporate, education and hospitality. Each one links back to services.",
       "valueTitle": "What you get",
@@ -6820,7 +6822,7 @@
       "processLead": "A plain six-month frame. The proposal sets the real scope.",
       "channelsTitle": "How we reach you",
       "channelsLead": "Direct sales, executive networks, LinkedIn and high-value business search terms.",
-      "workLead": "Client work shows up here after it is published. Company products are listed separately.",
+      "workLead": "Every project is told with a number, not just a picture.",
       "quotesLead": "From customers published in the dashboard.",
       "finalTitle": "Pick the next step",
       "finalLead": "A consultation, a proposal, or a look at the products. Start from this page.",
@@ -6928,12 +6930,28 @@
         "a4": "The default content has no price figures. Ask through a consultation or a proposal.",
         "q5": "Who edits this text?",
         "a5": "The marketing dashboard: pages, blog, services, solutions, portfolio, FAQ and site settings."
-      }
+      },
+      "heroLine1": "Sales growth,",
+      "heroLine2": "not just a website",
+      "featuredWork": "Selected work",
+      "workTitle": "Selected work",
+      "allWork": "All work",
+      "viewPillar": "Explore this pillar",
+      "pillarsMore": "Alongside these three pillars:",
+      "statsKicker": "At a glance",
+      "statsTitle": "The Webina catalogue in numbers",
+      "processKicker": "How we work",
+      "ctaBarTitle": "Request a proposal",
+      "ctaBarLead": "Get scope, timeline and a cost estimate in one clear document.",
+      "ctaBarButton": "Send request",
+      "dockLabel": "Free call with the Webina team"
     },
     "brand": "Webina",
     "product": {
       "docsTitle": "Webina docs",
-      "hostingTitle": "Hosting platform"
+      "hostingTitle": "Hosting platform",
+      "dashboardTitle": "Webino Dashboard",
+      "erpTitle": "WebinoERP"
     },
     "page": {
       "servicesLead": "Five service pillars. Each item has its own page, linked from the header.",
@@ -6963,6 +6981,13 @@
       "related": "In this group",
       "moreFromCms": "More from the dashboard",
       "emptyCms": "Nothing is published yet. Add it from the marketing dashboard."
+    },
+    "notFound": {
+      "code": "404",
+      "title": "This path is not on the Webina map",
+      "lead": "Continue from home, services or our work.",
+      "home": "Home",
+      "services": "Services"
     }
   },
   "aiContent": {

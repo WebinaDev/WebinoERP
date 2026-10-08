@@ -16,7 +16,7 @@ export function useLandingMotion(root: RefObject<HTMLElement | null>, locale = '
     }
 
     const ctx = gsap.context(() => {
-      gsap.from('.hero-kicker, .hero-title span, .hero-lead, .hero-cta', {
+      gsap.from('.hero-kicker, .hero-title .line, .hero-lead, .hero-cta, .hero-count', {
         y: 40,
         opacity: 0,
         duration: 0.9,
@@ -24,13 +24,10 @@ export function useLandingMotion(root: RefObject<HTMLElement | null>, locale = '
         ease: 'power3.out',
       });
 
-      gsap.to('.orb-a', { x: 80, y: 40, duration: 8, repeat: -1, yoyo: true, ease: 'sine.inOut' });
-      gsap.to('.orb-b', { x: -60, y: -30, duration: 10, repeat: -1, yoyo: true, ease: 'sine.inOut' });
-
       gsap.utils.toArray<HTMLElement>('.reveal').forEach((el) => {
         gsap.fromTo(
           el,
-          { y: 36, opacity: 0 },
+          { y: 28, opacity: 0 },
           {
             y: 0,
             opacity: 1,

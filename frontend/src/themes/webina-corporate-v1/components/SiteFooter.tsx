@@ -1,5 +1,5 @@
 import Link from 'next/link';
-import { getTranslations } from 'next-intl/server';
+import { getLocale, getTranslations } from 'next-intl/server';
 import { siteHref } from '@/lib/public-api-server';
 import { SERVICE_MEGA, SOLUTION_MEGA } from '../site-nav';
 import { LogoLockup } from './LogoLockup';
@@ -29,6 +29,8 @@ export async function SiteFooter({
   badges?: BadgeInput[] | null;
 }) {
   const t = await getTranslations();
+  const locale = await getLocale();
+  const year = new Intl.DateTimeFormat(locale === 'fa' ? 'fa-IR-u-ca-persian' : 'en-US', { year: 'numeric' }).format(new Date());
   const fallback: TrustBadge[] = [
     { id: 'enamad', label: t('site.footer.badgeEnamad'), hint: t('site.footer.badgeEnamadHint') },
     { id: 'samandehi', label: t('site.footer.badgeSamandehi'), hint: t('site.footer.badgeSamandehiHint') },
@@ -49,10 +51,10 @@ export async function SiteFooter({
     <footer className="site-footer">
       <div className="webina-shell footer-grid">
         <div>
-          <LogoLockup siteName={siteName} logoUrl={logoUrl} compact />
-          <p className="mt-3 max-w-sm text-sm leading-7">{t('site.footer.tagline')}</p>
-          <p className="mt-3 text-xs leading-6" style={{ color: 'rgba(246,241,232,.55)' }}>{t('site.footer.legalName')}</p>
-          <Link href={siteHref(undefined, 'consultation')} className="btn-saffron mt-5" style={{ background: 'var(--saffron)', color: 'var(--ink)' }}>
+          <LogoLockup siteName={siteName} logoUrl={logoUrl} compact tagline={t('site.footer.agencyTagline')} />
+          <p className="mt-5 max-w-sm text-sm leading-7">{t('site.footer.tagline')}</p>
+          <p className="footer-legal mt-2 text-xs leading-6">{t('site.footer.legalName')}</p>
+          <Link href={siteHref(undefined, 'consultation')} className="btn-primary mt-6">
             {t('site.nav.freeConsultation')}
           </Link>
         </div>
@@ -79,8 +81,8 @@ export async function SiteFooter({
         <div>
           <h2>{t('site.nav.products')}</h2>
           <ul>
-            <li><Link href={siteHref(undefined, 'products#dashboard')}>Webino Dashboard</Link></li>
-            <li><Link href={siteHref(undefined, 'products#erp')}>WebinoERP</Link></li>
+            <li><Link href={siteHref(undefined, 'products#dashboard')}>{t('site.product.dashboardTitle')}</Link></li>
+            <li><Link href={siteHref(undefined, 'products#erp')}>{t('site.product.erpTitle')}</Link></li>
             <li><Link href={siteHref(undefined, 'products#docs')}>{t('site.product.docsTitle')}</Link></li>
             <li><Link href={siteHref(undefined, 'products#hosting')}>{t('site.product.hostingTitle')}</Link></li>
             <li><Link href={siteHref(undefined, 'portfolio')}>{t('site.nav.portfolio')}</Link></li>
@@ -90,9 +92,11 @@ export async function SiteFooter({
           <h2>{t('site.nav.company')}</h2>
           <ul>
             <li><Link href={siteHref(undefined, 'about')}>{t('site.nav.about')}</Link></li>
+            <li><Link href={siteHref(undefined, 'team')}>{t('site.nav.team')}</Link></li>
             <li><Link href={siteHref(undefined, 'blog')}>{t('site.nav.blog')}</Link></li>
             <li><Link href={siteHref(undefined, 'academy')}>{t('site.nav.academy')}</Link></li>
             <li><Link href={siteHref(undefined, 'faq')}>{t('site.nav.faq')}</Link></li>
+            <li><Link href={siteHref(undefined, 'proposal')}>{t('site.nav.proposal')}</Link></li>
             <li><Link href={siteHref(undefined, 'contact')}>{t('site.nav.contact')}</Link></li>
             {LEGAL.map((l) => (
               <li key={l.slug}>
@@ -110,7 +114,9 @@ export async function SiteFooter({
         nextLabel={t('site.footer.trustNext')}
       />
       <div className="webina-shell footer-base">
-        <span>© {new Date().getFullYear()} {siteName}. {t('site.footer.rights')}</span>
+        <span>
+          © {year} {siteName}. {t('site.footer.rights')}
+        </span>
         <span>{t('site.footer.legalName')}</span>
       </div>
     </footer>

@@ -28,10 +28,10 @@ class MarketingSiteSetting extends Model
             'logo_url' => '/brand/logo.png',
             'favicon_url' => '/brand/favicon.png',
             'branding' => [
-                'primary' => '#E4C27A',
-                'ink' => '#16130F',
-                'paper' => '#F6F1E8',
-                'foreground' => '#16130F',
+                'primary' => '#0054ff',
+                'ink' => '#22242a',
+                'paper' => '#ffffff',
+                'foreground' => '#22242a',
                 'description' => 'شرکت توسعه کسب و کار وبینا. خدمات دیجیتال و محصول‌های Dashboard، ERP، مستندات و سکوی میزبانی.',
             ],
             'home_blocks' => [

@@ -1,36 +1,38 @@
-'use client';
+import { BrandMark, BrandWordmark } from './BrandMark';
 
-import { useState } from 'react';
-import { BrandMark } from './BrandMark';
+/** Logo URLs that point at the bundled brand assets; the vector lockup replaces them. */
+const BUNDLED_LOGOS = new Set(['', '/brand/logo.png', '/brand/webina-logo.svg']);
 
 export function LogoLockup({
   siteName,
   logoUrl,
   compact = false,
+  tagline,
 }: {
   siteName: string;
   logoUrl?: string | null;
   compact?: boolean;
+  tagline?: string;
 }) {
-  const [failed, setFailed] = useState(false);
-  const src = logoUrl || '/brand/logo.png';
+  const custom = logoUrl && !BUNDLED_LOGOS.has(logoUrl) ? logoUrl : null;
+
+  if (custom) {
+    return (
+      <span className="logo-lockup">
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img src={custom} alt={siteName} className="h-10 w-auto max-w-[9rem] object-contain" />
+      </span>
+    );
+  }
 
   return (
     <span className="logo-lockup">
-      {failed ? (
-        <BrandMark className={compact ? 'size-10 shrink-0' : 'size-11 shrink-0'} />
-      ) : (
-        // eslint-disable-next-line @next/next/no-img-element
-        <img
-          src={src}
-          alt=""
-          width={compact ? 72 : 88}
-          height={compact ? 36 : 44}
-          className={compact ? 'h-9 w-auto max-w-[6.5rem] shrink-0 object-contain' : 'h-11 w-auto max-w-[7.5rem] shrink-0 object-contain'}
-          onError={() => setFailed(true)}
-        />
-      )}
-      <strong>{siteName}</strong>
+      <BrandMark className={compact ? 'h-9 w-auto shrink-0' : 'h-10 w-auto shrink-0'} />
+      <span className="flex flex-col items-start">
+        <BrandWordmark className={compact ? 'h-[1.35rem] w-auto' : 'h-6 w-auto'} />
+        {tagline ? <small className="logo-tagline">{tagline}</small> : null}
+      </span>
+      <span className="sr-only">{siteName}</span>
     </span>
   );
 }

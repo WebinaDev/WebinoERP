@@ -38,10 +38,13 @@ class MarketingSiteSeeder extends Seeder
         $settings = MarketingSiteSetting::current();
         $branding = is_array($settings->branding) ? $settings->branding : [];
         $primary = $branding['primary'] ?? null;
-        if ($primary === null || $primary === '#0066FF') {
-            $branding['primary'] = '#E4C27A';
-            $branding['ink'] = '#16130F';
-            $branding['paper'] = '#F6F1E8';
+        // Official Webina identity: blue #0054ff, charcoal #22242a, white. Older seeded palettes
+        // (the #0066FF default and the gold/cream draft) are migrated; custom colours are kept.
+        if ($primary === null || in_array(strtoupper((string) $primary), ['#0066FF', '#E4C27A'], true)) {
+            $branding['primary'] = '#0054ff';
+            $branding['ink'] = '#22242a';
+            $branding['paper'] = '#ffffff';
+            $branding['foreground'] = '#22242a';
         }
         if (empty($branding['trust_badges'])) {
             $branding['trust_badges'] = [

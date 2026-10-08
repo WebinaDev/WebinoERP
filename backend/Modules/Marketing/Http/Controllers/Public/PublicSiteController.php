@@ -67,7 +67,7 @@ class PublicSiteController extends Controller
                 'testimonials' => MarketingTestimonial::query()->published()
                     ->orderBy('sort_order')->limit(6)->get(),
                 'portfolio' => MarketingPortfolioItem::query()->published()
-                    ->orderByDesc('published_at')->limit(6)->get(),
+                    ->orderByDesc('featured')->orderByDesc('published_at')->orderBy('id')->limit(10)->get(),
                 'blog' => MarketingBlogPost::query()->published()
                     ->orderByDesc('published_at')->limit(3)
                     ->get(['id', 'slug', 'title', 'excerpt', 'cover_url', 'published_at']),

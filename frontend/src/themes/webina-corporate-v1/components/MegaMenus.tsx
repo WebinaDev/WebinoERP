@@ -8,7 +8,7 @@ export function MegaMenuServices({ locale, categories }: { locale: string; categ
     <div className="grid gap-4 p-4 md:grid-cols-2 lg:grid-cols-4">
       {categories.map((c) => (
         <div key={c.slug}>
-          <Link href={siteHref(undefined, `services/${c.slug}`)} className="font-medium text-[#0066FF] hover:underline">
+          <Link href={siteHref(undefined, `services/${c.slug}`)} className="font-medium text-[var(--brand-primary)] hover:underline">
             {c.name}
           </Link>
           <ul className="mt-2 space-y-1 text-sm text-muted-foreground">
