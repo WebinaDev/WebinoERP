@@ -10,7 +10,7 @@ class HrmEmployeeProfile extends Model
     protected $table = 'hrm_employee_profiles';
 
     protected $fillable = [
-        'employee_id', 'national_id', 'birth_date', 'gender', 'address',
+        'employee_id', 'national_id', 'insurance_number', 'father_name', 'bale_chat_id', 'telegram_chat_id', 'birth_date', 'gender', 'address',
         'emergency_contact', 'emergency_phone', 'custom_fields',
         'sheba', 'bank_name', 'account_holder',
     ];

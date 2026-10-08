@@ -13,9 +13,11 @@ class HrmTimesheet extends Model
         'employee_id', 'project_id', 'task_id', 'project_name', 'task_name',
         'work_date', 'hours', 'description', 'status', 'submitted_at',
         'approved_by', 'approved_at', 'decision_note',
+        'approval_step', 'current_role', 'approval_log',
     ];
 
     protected $casts = [
+        'approval_log' => 'array',
         'work_date' => 'date',
         'hours' => 'decimal:2',
         'submitted_at' => 'datetime',

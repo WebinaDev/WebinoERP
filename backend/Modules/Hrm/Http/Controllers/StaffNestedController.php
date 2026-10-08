@@ -93,6 +93,8 @@ class StaffNestedController extends Controller
             'sheba' => 'nullable|string|max:34',
             'bank_name' => 'nullable|string|max:80',
             'account_holder' => 'nullable|string|max:150',
+            'father_name' => 'nullable|string|max:100',
+            'insurance_number' => 'nullable|string|max:32',
         ]);
         $profile = HrmEmployeeProfile::query()->updateOrCreate(['employee_id' => $staff->id], $data);
 

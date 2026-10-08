@@ -5,13 +5,11 @@ namespace Modules\Hrm\Entities;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
-class HrmAttendanceRecord extends Model
+class HrmCalendarFeed extends Model
 {
-    protected $table = 'hrm_attendance_records';
+    protected $table = 'hrm_calendar_feeds';
 
-    protected $fillable = ['employee_id', 'date', 'check_in', 'check_out', 'status', 'notes', 'source', 'device_id'];
-
-    protected $casts = ['date' => 'date'];
+    protected $fillable = ['employee_id', 'token'];
 
     public function employee(): BelongsTo
     {

@@ -74,7 +74,9 @@ return [
         'training' => ['view' => 'hrm.training.view', 'manage' => 'hrm.training.manage'],
         'org-positions' => ['view' => 'hrm.staff.view', 'manage' => 'hrm.staff.manage'],
         'me' => ['view' => 'hrm.ess.view', 'manage' => 'hrm.ess.view'],
-        'requests' => ['view' => 'hrm.leave.manage', 'manage' => 'hrm.leave.manage'],
+        // Cartable: any employee may be a designated approver; each item is checked by HrmApprovalWorkflow.
+        // Cartable: any signed-in staff user may open it; each item is checked per approver step.
+        'requests' => ['view' => 'core.navigation.view', 'manage' => 'core.navigation.view'],
         'shifts' => ['view' => 'hrm.staff.view', 'manage' => 'hrm.staff.manage'],
         'onboarding' => ['view' => 'hrm.recruitment.view', 'manage' => 'hrm.recruitment.manage'],
         'objectives' => ['view' => 'hrm.performance.view', 'manage' => 'hrm.performance.manage'],
@@ -82,6 +84,10 @@ return [
         'succession' => ['view' => 'hrm.staff.view', 'manage' => 'hrm.staff.manage'],
         'timesheets' => ['view' => 'hrm.staff.view', 'manage' => 'hrm.staff.manage'],
         'analytics' => ['view' => 'hrm.staff.view', 'manage' => 'hrm.staff.view'],
+        'offboarding' => ['view' => 'hrm.recruitment.view', 'manage' => 'hrm.recruitment.manage'],
+        'approval-flows' => ['view' => 'hrm.leave.manage', 'manage' => 'hrm.leave.manage'],
+        'calendar' => ['view' => 'hrm.staff.view', 'manage' => 'hrm.staff.manage'],
+        'settings' => ['view' => 'hrm.staff.view', 'manage' => 'hrm.staff.manage'],
         '*' => ['view' => 'hrm.staff.view', 'manage' => 'hrm.staff.manage'],
     ],
     'accounting' => [

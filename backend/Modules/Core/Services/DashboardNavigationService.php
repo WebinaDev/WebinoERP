@@ -209,6 +209,13 @@ class DashboardNavigationService
                 ['hrm-recruitment', 'استخدام', '/hrm/recruitment', 'UserPlus'],
                 ['hrm-performance', 'ارزیابی عملکرد', '/hrm/performance', 'BarChart3'],
                 ['hrm-training', 'آموزش', '/hrm/training', 'GraduationCap'],
+                ['hrm-attendance-devices', 'دستگاه‌های حضور و غیاب', '/hrm/attendance-devices', 'Fingerprint'],
+                ['hrm-sso-list', 'لیست بیمه تأمین اجتماعی', '/hrm/sso-list', 'ShieldCheck'],
+                ['hrm-offboarding', 'تسویه و خروج', '/hrm/offboarding', 'LogOut'],
+                ['hrm-approval-flows', 'گردش‌های تأیید', '/hrm/approval-flows', 'GitMerge'],
+                ['hrm-staff-import', 'ورود و خروج اکسل کارکنان', '/hrm/staff-import', 'FileSpreadsheet'],
+                ['hrm-workforce-budget', 'بودجه نیروی انسانی', '/hrm/workforce-budget', 'Scale'],
+                ['hrm-hr-settings', 'تنظیمات اعلان منابع انسانی', '/hrm/hr-settings', 'Bell'],
             ] as [$id, $title, $href, $icon]) {
                 $items[] = ['id' => $id, 'title' => $title, 'href' => $base.$href, 'icon' => $icon];
             }
@@ -223,6 +230,9 @@ class DashboardNavigationService
             ['hrm-my-org', 'سازمان من', '/hrm/my-org', 'Building'],
             ['hrm-my-profile', 'پروفایل پرسنلی', '/hrm/my-profile', 'UserCircle'],
             ['hrm-my-requests', 'درخواست‌های من', '/hrm/my-requests', 'Inbox'],
+            ['hrm-my-approvals', 'کارتابل تأیید من', '/hrm/my-approvals', 'Inbox'],
+            ['hrm-my-offboarding', 'تسویه و خروج من', '/hrm/my-offboarding', 'LogOut'],
+            ['hrm-my-calendar', 'همگام‌سازی تقویم و اعلان', '/hrm/my-calendar', 'CalendarSync'],
         ] as [$id, $title, $href, $icon]) {
             $items[] = ['id' => $id, 'title' => $title, 'href' => $base.$href, 'icon' => $icon];
         }
@@ -265,6 +275,9 @@ class DashboardNavigationService
             $items[] = ['id' => 'hrm-my-insurance', 'title' => 'بیمه من', 'href' => $base.'/hrm/my-insurance', 'icon' => 'Shield'];
             $items[] = ['id' => 'hrm-my-profile', 'title' => 'پروفایل پرسنلی', 'href' => $base.'/hrm/my-profile', 'icon' => 'UserCircle'];
             $items[] = ['id' => 'hrm-my-org', 'title' => 'سازمان من', 'href' => $base.'/hrm/my-org', 'icon' => 'Building'];
+            $items[] = ['id' => 'hrm-my-approvals', 'title' => 'کارتابل تأیید من', 'href' => $base.'/hrm/my-approvals', 'icon' => 'Inbox'];
+            $items[] = ['id' => 'hrm-my-offboarding', 'title' => 'تسویه و خروج من', 'href' => $base.'/hrm/my-offboarding', 'icon' => 'LogOut'];
+            $items[] = ['id' => 'hrm-my-calendar', 'title' => 'همگام‌سازی تقویم و اعلان', 'href' => $base.'/hrm/my-calendar', 'icon' => 'CalendarSync'];
         }
 
         $items[] = ['type' => 'category', 'title' => 'حساب کاربری'];

@@ -14,6 +14,8 @@ use Modules\Hrm\Entities\HrmPersonnelDocument;
 use Modules\Hrm\Entities\HrmEmploymentDecree;
 use Modules\Hrm\Entities\HrmPayrollItem;
 use Modules\Hrm\Entities\HrmRequest;
+use Modules\Hrm\Http\Controllers\AttendanceDeviceController;
+use Modules\Hrm\Http\Controllers\CalendarFeedController;
 
 class HrmServiceProvider extends ServiceProvider
 {
@@ -33,6 +35,15 @@ class HrmServiceProvider extends ServiceProvider
         Route::bind('decree', fn (string $value) => HrmEmploymentDecree::query()->findOrFail($value));
         Route::bind('item', fn (string $value) => HrmPayrollItem::query()->findOrFail($value));
         Route::bind('document', fn (string $value) => HrmPersonnelDocument::query()->findOrFail($value));
+
+        // Unauthenticated endpoints: device key (X-Device-Id / X-Device-Key) and secret calendar token.
+        Route::prefix('api/v1/hrm')
+            ->middleware(['api', 'module:hrm', 'throttle:120,1'])
+            ->group(function () {
+                Route::post('attendance/ingest', [AttendanceDeviceController::class, 'ingest']);
+                Route::get('calendar/feeds/{token}', [CalendarFeedController::class, 'publicFeed'])
+                    ->where('token', '[A-Za-z0-9]{20,80}(\\.ics)?');
+            });
 
         Route::prefix('api/v1/hrm')
             ->middleware(['api', 'auth:sanctum', 'module:hrm', 'module.permission:hrm'])

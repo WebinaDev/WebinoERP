@@ -37,6 +37,8 @@ class PayrollNestedController extends Controller
             $stored[$row->key] = $row->value;
         }
         $settings = array_replace(app(IranianPayrollCalculator::class)->defaults(), $stored);
+        // Bot tokens are managed (write-only) from HR notification settings.
+        unset($settings['telegram_bot_token'], $settings['bale_bot_token']);
 
         return response()->json(['data' => $settings]);
     }
@@ -44,6 +46,7 @@ class PayrollNestedController extends Controller
     public function settingsSave(Request $request): JsonResponse
     {
         $data = $request->validate(['settings' => 'required|array']);
+        unset($data['settings']['telegram_bot_token'], $data['settings']['bale_bot_token']);
         foreach ($data['settings'] as $key => $value) {
             HrmPayrollSetting::query()->updateOrCreate(['key' => $key], ['value' => $value]);
         }
@@ -237,51 +240,68 @@ class PayrollNestedController extends Controller
     public function insuranceList(Request $request, HrmPayrollRun $run)
     {
         $workshopId = $request->filled('workshop_id') ? $request->integer('workshop_id') : null;
-        $format = $request->string('format', 'json')->toString();
-        $rows = app(HrmInsuranceListService::class)->rows($run, $workshopId);
-        if ($format === 'csv') {
-            $csv = app(HrmInsuranceListService::class)->toCsv($rows);
+        $service = app(HrmInsuranceListService::class);
+        $rows = $service->rows($run, $workshopId);
 
-            return Response::make($csv, 200, [
-                'Content-Type' => 'text/csv; charset=UTF-8',
-                'Content-Disposition' => 'attachment; filename="sso-list-run-'.$run->id.'.csv"',
+        return $this->insuranceResponse(
+            $request->string('format', 'json')->toString(),
+            $service->header((int) $run->year, (int) $run->month),
+            $rows,
+            'run-'.$run->id
+        );
+    }
+
+    /** SSO list for a whole period (all calculated/approved/paid runs, including single payslips). */
+    public function insurancePeriod(Request $request)
+    {
+        $data = $request->validate([
+            'year' => 'required|integer|min:1300|max:2100',
+            'month' => 'required|integer|min:1|max:12',
+            'workshop_id' => 'nullable|integer',
+            'format' => 'nullable|string|max:20',
+        ]);
+        $service = app(HrmInsuranceListService::class);
+        $rows = $service->rowsForPeriod((int) $data['year'], (int) $data['month'], isset($data['workshop_id']) ? (int) $data['workshop_id'] : null);
+        $header = $service->header((int) $data['year'], (int) $data['month']);
+
+        return $this->insuranceResponse(
+            (string) ($data['format'] ?? 'json'),
+            $header,
+            $rows,
+            sprintf('%04d-%02d', $header['jalali_year'], $header['jalali_month'])
+        );
+    }
+
+    /**
+     * @param  array<string, mixed>  $header
+     * @param  list<array<string, mixed>>  $rows
+     */
+    private function insuranceResponse(string $format, array $header, array $rows, string $suffix)
+    {
+        $service = app(HrmInsuranceListService::class);
+        $download = function (string $body, string $type, string $name) {
+            return Response::make($body, 200, [
+                'Content-Type' => $type,
+                'Content-Disposition' => 'attachment; filename="'.$name.'"',
             ]);
-        }
+        };
 
-        if (in_array($format, ['txt', 'diskette'], true)) {
-            $txt = app(HrmInsuranceListService::class)->toDiskette($run, $rows);
-
-            return Response::make($txt, 200, [
-                'Content-Type' => 'text/plain; charset=UTF-8',
-                'Content-Disposition' => 'attachment; filename="DSKWOR-run-'.$run->id.'.txt"',
-            ]);
-        }
-        if ($format === 'html') {
-            $html = '<div dir="rtl"><h2>لیست بیمه تأمین اجتماعی — '.$run->title.'</h2><table border="1" cellpadding="4"><tr>';
-            foreach (['کد', 'نام', 'نام خانوادگی', 'کدملی', 'شماره بیمه', 'کارگاه', 'مشمول', 'سهم کارگر', 'سهم کارفرما', 'بیکاری'] as $h) {
-                $html .= '<th>'.$h.'</th>';
-            }
-            $html .= '</tr>';
-            foreach ($rows as $r) {
-                $html .= '<tr>'
-                    .'<td>'.e((string) ($r['employee_code'] ?? '')).'</td>'
-                    .'<td>'.e((string) ($r['first_name'] ?? '')).'</td>'
-                    .'<td>'.e((string) ($r['last_name'] ?? '')).'</td>'
-                    .'<td>'.e((string) ($r['national_id'] ?? '')).'</td>'
-                    .'<td>'.e((string) ($r['insurance_no'] ?? '')).'</td>'
-                    .'<td>'.e((string) ($r['workshop_id'] ?? '')).'</td>'
-                    .'<td>'.e((string) ($r['insurable'] ?? '')).'</td>'
-                    .'<td>'.e((string) ($r['employee_insurance'] ?? '')).'</td>'
-                    .'<td>'.e((string) ($r['employer_insurance'] ?? '')).'</td>'
-                    .'<td>'.e((string) ($r['unemployment_insurance'] ?? '')).'</td>'
-                    .'</tr>';
-            }
-            $html .= '</table></div>';
-
-            return Response::make($html, 200, ['Content-Type' => 'text/html; charset=UTF-8']);
-        }
-
-        return response()->json(['data' => ['rows' => $rows, 'count' => count($rows)]]);
+        return match ($format) {
+            'csv' => $download($service->toCsv($rows), 'text/csv; charset=UTF-8', 'sso-list-'.$suffix.'.csv'),
+            'list' => $download($service->toList($rows), 'text/csv; charset=UTF-8', 'sso-list-fa-'.$suffix.'.csv'),
+            'txt', 'diskette', 'dskwor' => $download($service->dskworText($header, $rows), 'text/plain; charset=UTF-8', 'DSKWOR-'.$suffix.'.txt'),
+            'dskkar' => $download($service->dskkarText($header, $rows), 'text/plain; charset=UTF-8', 'DSKKAR-'.$suffix.'.txt'),
+            'dbf_wor' => $download($service->dskworDbf($header, $rows), 'application/x-dbase', 'DSKWOR00.DBF'),
+            'dbf_kar' => $download($service->dskkarDbf($header, $rows), 'application/x-dbase', 'DSKKAR00.DBF'),
+            'zip' => $download($service->zip($header, $rows), 'application/zip', 'sso-diskette-'.$suffix.'.zip'),
+            default => response()->json(['data' => [
+                'header' => $header,
+                'rows' => $rows,
+                'count' => count($rows),
+                'totals' => $service->totals($rows),
+                'warnings' => count(array_filter($rows, fn ($r) => ($r['warnings'] ?? []) !== [])),
+            ]]),
+        };
     }
 
     public function severancePreview(Request $request): JsonResponse
@@ -355,6 +375,12 @@ class PayrollNestedController extends Controller
 
         $item = HrmPayrollItem::query()->where('payroll_run_id', $run->id)->where('employee_id', $employee->id)->first();
         $html = $this->renderPayslipHtml($item);
+        HrmNotifier::notify(
+            $employee->id,
+            'payslip_issued',
+            'صدور فیش حقوقی',
+            'فیش حقوقی دوره '.$run->year.'/'.$run->month.' صادر شد. خالص پرداختی: '.number_format((float) ($item?->net ?? 0)).' ریال'
+        );
 
         return response()->json([
             'data' => [

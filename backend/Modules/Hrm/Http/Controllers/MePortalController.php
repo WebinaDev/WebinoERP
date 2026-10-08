@@ -549,6 +549,7 @@ class MePortalController extends Controller
             'current_role' => $r->current_role ?? null,
             'user_id' => $r->user_id,
             'user_name' => $r->user?->name ?? $r->user?->email ?? (string) $r->user_id,
+            'employee_id' => $r->employee_id ?? null,
             'payload' => $r->payload,
             'notes' => $r->notes,
             'created_at' => optional($r->created_at)?->toIso8601String(),
@@ -561,6 +562,8 @@ class MePortalController extends Controller
             'approval_step' => $l->approval_step ?? null,
             'current_role' => $l->current_role ?? null,
             'employee_id' => $l->employee_id,
+            'employee_name' => trim(($l->employee->first_name ?? '').' '.($l->employee->last_name ?? '')),
+            'reason' => $l->reason,
             'start_date' => optional($l->start_date)?->toDateString(),
             'end_date' => optional($l->end_date)?->toDateString(),
             'created_at' => optional($l->created_at)?->toIso8601String(),
@@ -794,7 +797,7 @@ class MePortalController extends Controller
 
         $wf = app(HrmApprovalWorkflow::class);
         $boot = Schema::hasColumn('hrm_requests', 'approval_step')
-            ? $wf->bootstrapFields()
+            ? $wf->bootstrapFields($data['type'])
             : ['status' => 'pending_manager'];
         $row = HrmRequest::query()->create(array_merge([
             'employee_id' => $employee->id,
@@ -883,6 +886,7 @@ class MePortalController extends Controller
             'user_id' => $r->user_id,
             'employee_id' => $r->employee_id,
             'user_name' => $r->user?->name ?? $r->user?->email ?? (string) $r->user_id,
+            'employee_id' => $r->employee_id ?? null,
             'payload' => $r->payload,
             'notes' => $r->notes,
             'created_at' => optional($r->created_at)?->toIso8601String(),

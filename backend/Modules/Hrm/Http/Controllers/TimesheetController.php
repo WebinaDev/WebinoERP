@@ -8,6 +8,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
 use Modules\Hrm\Entities\HrmTimesheet;
+use Modules\Hrm\Services\HrmApprovalWorkflow;
 use Modules\Hrm\Support\HrmAccess;
 
 class TimesheetController extends Controller
@@ -50,24 +51,48 @@ class TimesheetController extends Controller
     {
         $this->assertOwnOrManager($timesheet);
         abort_unless(in_array($timesheet->status, ['draft', 'rejected'], true), 422);
-        $timesheet->update(['status' => 'submitted', 'submitted_at' => now()]);
+        $wf = app(HrmApprovalWorkflow::class);
+        if ($wf->hasCustomFlow('timesheet') && Schema::hasColumn('hrm_timesheets', 'approval_step')) {
+            $timesheet->update($wf->bootstrapFields('timesheet') + ['submitted_at' => now()]);
+        } else {
+            $timesheet->update(['status' => 'submitted', 'submitted_at' => now()]);
+        }
 
         return response()->json(['data' => $timesheet]);
     }
 
     public function decide(Request $request, HrmTimesheet $timesheet): JsonResponse
     {
-        abort_unless(HrmAccess::canManageStaff(), 403);
         $data = $request->validate([
             'status' => 'required|in:approved,rejected',
             'decision_note' => 'nullable|string',
         ]);
-        $timesheet->update([
-            'status' => $data['status'],
-            'decision_note' => $data['decision_note'] ?? null,
-            'approved_by' => $request->user()?->id,
-            'approved_at' => now(),
-        ]);
+        $wf = app(HrmApprovalWorkflow::class);
+        if ($wf->hasCustomFlow('timesheet') && Schema::hasColumn('hrm_timesheets', 'approval_step') && $timesheet->approval_step) {
+            $user = $request->user();
+            abort_unless($user, 403);
+            if ($data['status'] === 'approved') {
+                $wf->approveModel($timesheet, $user);
+            } else {
+                $wf->rejectModel($timesheet, $user, $data['decision_note'] ?? null);
+            }
+            $timesheet->refresh();
+            if (in_array($timesheet->status, ['approved', 'rejected'], true)) {
+                $timesheet->update([
+                    'decision_note' => $data['decision_note'] ?? $timesheet->decision_note,
+                    'approved_by' => $user->id,
+                    'approved_at' => now(),
+                ]);
+            }
+        } else {
+            abort_unless(HrmAccess::canManageStaff(), 403);
+            $timesheet->update([
+                'status' => $data['status'],
+                'decision_note' => $data['decision_note'] ?? null,
+                'approved_by' => $request->user()?->id,
+                'approved_at' => now(),
+            ]);
+        }
 
         return response()->json(['data' => $timesheet]);
     }

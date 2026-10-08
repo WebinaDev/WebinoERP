@@ -54,7 +54,7 @@ class LeaveNestedController extends Controller
             'reason' => 'nullable|string',
         ]);
         $wf = app(HrmApprovalWorkflow::class);
-        $boot = $wf->bootstrapFields();
+        $boot = $wf->bootstrapFields('leave');
         // Keep legacy 'pending' if approval columns missing
         if (! Schema::hasColumn('hrm_leave_requests', 'approval_step')) {
             $boot = ['status' => 'pending'];
@@ -71,9 +71,9 @@ class LeaveNestedController extends Controller
             // Migrate legacy pending → step 1
             if ($leaveRequest->status === 'pending') {
                 $leaveRequest->update([
-                    'status' => $wf->initialStatus(),
+                    'status' => $wf->initialStatus('leave'),
                     'approval_step' => 1,
-                    'current_role' => $wf->currentRoleForStep(1),
+                    'current_role' => $wf->currentRoleForStep(1, 'leave'),
                 ]);
             }
             $status = $wf->approveModel($leaveRequest, $request->user());
@@ -102,15 +102,21 @@ class LeaveNestedController extends Controller
         if (Schema::hasColumn('hrm_leave_requests', 'approval_step')) {
             if ($leaveRequest->status === 'pending') {
                 $leaveRequest->update([
-                    'status' => $wf->initialStatus(),
+                    'status' => $wf->initialStatus('leave'),
                     'approval_step' => 1,
-                    'current_role' => $wf->currentRoleForStep(1),
+                    'current_role' => $wf->currentRoleForStep(1, 'leave'),
                 ]);
             }
             $wf->rejectModel($leaveRequest, $request->user(), $data['reason'] ?? null);
         } else {
             $leaveRequest->update(['status' => 'rejected', 'approved_by' => $request->user()->id]);
         }
+        HrmNotifier::notify(
+            $leaveRequest->employee_id,
+            'leave_rejected',
+            'مرخصی رد شد',
+            'درخواست مرخصی leave:'.$leaveRequest->id.' رد شد.'
+        );
 
         return response()->json(['data' => $leaveRequest->fresh('employee'), 'message' => 'Rejected']);
     }

@@ -25,6 +25,12 @@ use Modules\Hrm\Http\Controllers\SuccessionController;
 use Modules\Hrm\Http\Controllers\TimesheetController;
 use Modules\Hrm\Http\Controllers\HrAnalyticsController;
 use Modules\Hrm\Http\Controllers\MeSuiteController;
+use Modules\Hrm\Http\Controllers\AttendanceDeviceController;
+use Modules\Hrm\Http\Controllers\OffboardingController;
+use Modules\Hrm\Http\Controllers\ApprovalFlowController;
+use Modules\Hrm\Http\Controllers\CalendarFeedController;
+use Modules\Hrm\Http\Controllers\StaffSpreadsheetController;
+use Modules\Hrm\Http\Controllers\HrmSettingsController;
 
 // Employee self-service portal
 Route::prefix('me')->group(function () {
@@ -57,14 +63,29 @@ Route::prefix('me')->group(function () {
     Route::get('timesheets', [TimesheetController::class, 'index']);
     Route::post('timesheets', [TimesheetController::class, 'store']);
     Route::post('timesheets/{timesheet}/submit', [TimesheetController::class, 'submit']);
+    Route::get('offboarding', [OffboardingController::class, 'mine']);
+    Route::patch('offboarding/{offboarding}', [OffboardingController::class, 'update']);
+    Route::post('offboarding/tasks/{offboardingTask}/complete', [OffboardingController::class, 'completeTask']);
+    Route::get('calendar.ics', [CalendarFeedController::class, 'mine']);
+    Route::get('calendar/feed', [CalendarFeedController::class, 'ensure']);
+    Route::post('calendar/feed', [CalendarFeedController::class, 'ensure']);
+    Route::post('calendar/feed/regenerate', [CalendarFeedController::class, 'regenerate']);
+    Route::get('notification-channels', [HrmSettingsController::class, 'myChannels']);
+    Route::put('notification-channels', [HrmSettingsController::class, 'myChannelsSave']);
 });
 
 Route::get('requests/inbox', [MePortalController::class, 'requestsInbox']);
+Route::post('requests/leaves/{leaveRequest}/approve', [LeaveNestedController::class, 'requestApprove']);
+Route::post('requests/leaves/{leaveRequest}/reject', [LeaveNestedController::class, 'requestReject']);
 Route::post('requests/{hrmRequest}/approve', [MePortalController::class, 'requestApprove']);
 Route::post('requests/{hrmRequest}/reject', [MePortalController::class, 'requestReject']);
 
 // Nested parity routes (must be registered before flat apiResource captures segments)
 Route::prefix('staff')->group(function () {
+    Route::get('export', [StaffSpreadsheetController::class, 'export']);
+    Route::get('import-template', [StaffSpreadsheetController::class, 'template']);
+    Route::post('import', [StaffSpreadsheetController::class, 'import']);
+    Route::get('{staff}/user-link', [StaffSpreadsheetController::class, 'userLink']);
     Route::get('/', [StaffNestedController::class, 'index']);
     Route::post('/', [StaffNestedController::class, 'store']);
     Route::delete('/{staff}', [StaffNestedController::class, 'destroy']);
@@ -82,6 +103,17 @@ Route::post('org-positions', [StaffNestedController::class, 'orgPositionStore'])
 Route::delete('org-positions/{orgPosition}', [StaffNestedController::class, 'orgPositionDestroy']);
 
 Route::post('attendance/check-in', [AttendanceNestedController::class, 'checkIn']);
+Route::get('attendance/devices', [AttendanceDeviceController::class, 'index']);
+Route::post('attendance/devices', [AttendanceDeviceController::class, 'store']);
+Route::patch('attendance/devices/{device}', [AttendanceDeviceController::class, 'update']);
+Route::post('attendance/devices/{device}/rotate-key', [AttendanceDeviceController::class, 'rotateKey']);
+Route::delete('attendance/devices/{device}', [AttendanceDeviceController::class, 'destroy']);
+Route::get('attendance/device-users', [AttendanceDeviceController::class, 'mappings']);
+Route::post('attendance/device-users', [AttendanceDeviceController::class, 'mappingStore']);
+Route::delete('attendance/device-users/{mapping}', [AttendanceDeviceController::class, 'mappingDestroy']);
+Route::get('attendance/punches', [AttendanceDeviceController::class, 'punches']);
+Route::post('attendance/punches/{punch}/assign', [AttendanceDeviceController::class, 'assignPunch']);
+Route::post('attendance/import-csv', [AttendanceDeviceController::class, 'importCsv']);
 Route::post('attendance/check-out', [AttendanceNestedController::class, 'checkOut']);
 
 Route::prefix('leave')->group(function () {
@@ -111,6 +143,7 @@ Route::prefix('payroll')->group(function () {
     Route::post('runs/{run}/approve', [PayrollNestedController::class, 'runApprove']);
     Route::post('runs/{run}/mark-paid', [PayrollNestedController::class, 'runMarkPaid']);
     Route::get('runs/{run}/insurance-list', [PayrollNestedController::class, 'insuranceList']);
+    Route::get('insurance-list', [PayrollNestedController::class, 'insurancePeriod']);
     Route::get('runs/{run}/bank-export', [PayrollNestedController::class, 'bankExport']);
     Route::get('runs/{run}/payslips', [PayrollNestedController::class, 'payslipsList']);
     Route::get('payslip-items/{item}/pdf', [PayrollNestedController::class, 'payslipPdf']);
@@ -191,7 +224,38 @@ Route::prefix('timesheets')->group(function () {
     Route::post('{timesheet}/decide', [TimesheetController::class, 'decide']);
 });
 
+Route::prefix('offboarding')->group(function () {
+    Route::get('templates', [OffboardingController::class, 'templatesIndex']);
+    Route::post('templates', [OffboardingController::class, 'templatesStore']);
+    Route::put('templates/{offboardingTemplate}', [OffboardingController::class, 'templatesUpdate']);
+    Route::delete('templates/{offboardingTemplate}', [OffboardingController::class, 'templatesDestroy']);
+    Route::get('/', [OffboardingController::class, 'index']);
+    Route::post('start', [OffboardingController::class, 'start']);
+    Route::post('tasks/{offboardingTask}/complete', [OffboardingController::class, 'completeTask']);
+    Route::patch('tasks/{offboardingTask}', [OffboardingController::class, 'updateTask']);
+    Route::patch('{offboarding}', [OffboardingController::class, 'update']);
+    Route::delete('{offboarding}', [OffboardingController::class, 'destroy']);
+});
+
+Route::prefix('approval-flows')->group(function () {
+    Route::get('/', [ApprovalFlowController::class, 'index']);
+    Route::get('users', [ApprovalFlowController::class, 'users']);
+    Route::post('/', [ApprovalFlowController::class, 'store']);
+    Route::delete('{flow}', [ApprovalFlowController::class, 'destroy']);
+});
+
+Route::prefix('settings')->group(function () {
+    Route::get('notifications', [HrmSettingsController::class, 'notifications']);
+    Route::post('notifications', [HrmSettingsController::class, 'notificationsSave']);
+    Route::post('notifications/test', [HrmSettingsController::class, 'notificationsTest']);
+});
+
+Route::get('calendar/employees/{employee}/ics', [CalendarFeedController::class, 'employeeIcs']);
+
 Route::get('analytics/summary', [HrAnalyticsController::class, 'summary']);
+Route::get('analytics/budgets', [HrAnalyticsController::class, 'budgets']);
+Route::post('analytics/budgets', [HrAnalyticsController::class, 'budgetsStore']);
+Route::delete('analytics/budgets/{budget}', [HrAnalyticsController::class, 'budgetsDestroy']);
 
 Route::prefix('training')->group(function () {
     Route::get('courses', [TrainingNestedController::class, 'coursesIndex']);

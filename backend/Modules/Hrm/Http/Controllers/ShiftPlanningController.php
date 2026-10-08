@@ -11,6 +11,7 @@ use Modules\Hrm\Entities\HrmShiftRotation;
 use Modules\Hrm\Entities\HrmShiftTemplate;
 use Modules\Hrm\Services\HrmShiftPlannerService;
 use Modules\Hrm\Support\HrmAccess;
+use Modules\Hrm\Support\HrmNotifier;
 
 class ShiftPlanningController extends Controller
 {
@@ -80,6 +81,13 @@ class ShiftPlanningController extends Controller
             (bool) ($data['force'] ?? false)
         );
 
+        HrmNotifier::notify(
+            (int) $request->input('employee_id'),
+            'shift_assigned',
+            'تخصیص شیفت',
+            'چرخش شیفت از '.$request->input('start_date').' اعمال شد.'
+        );
+
         return response()->json(['data' => $result, 'message' => 'Rotation applied']);
     }
 
@@ -109,8 +117,17 @@ class ShiftPlanningController extends Controller
             (bool) ($data['force'] ?? false)
         );
 
+        $assignment = $result['assignment']->load(['employee', 'template']);
+        $label = $assignment->template?->name ?? ($assignment->is_off ? 'OFF' : '');
+        HrmNotifier::notify(
+            (int) $data['employee_id'],
+            'shift_assigned',
+            'تخصیص شیفت',
+            'شیفت '.$label.' برای '.$data['work_date'].' ثبت شد.'
+        );
+
         return response()->json([
-            'data' => $result['assignment']->load(['employee', 'template']),
+            'data' => $assignment,
             'conflicts' => $result['conflicts'],
             'message' => 'Assignment saved',
         ], 201);
