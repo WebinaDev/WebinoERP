@@ -4,7 +4,8 @@ import '@/themes/webina-corporate-v1/components/connect-hub.css';
 
 export const metadata: Metadata = {
   title: 'ارتباط با وبینا',
-  description: 'راه‌های تماس و شبکه‌های اجتماعی وبینا — تلفن، تلگرام، اینستاگرام، واتساپ و بیشتر.',
+  description:
+    'خط مستقیم با وبینا: تماس، واتساپ، تلگرام، اینستاگرام، لینکدین و پیام‌رسان‌های ایرانی. آژانس توسعه کسب‌وکار.',
   robots: { index: true, follow: true },
 };
 

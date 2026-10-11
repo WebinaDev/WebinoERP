@@ -1,18 +1,9 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import {
-  AtSign,
-  Camera,
-  ExternalLink,
-  Globe,
-  MessageCircle,
-  Phone,
-  Send,
-  Users,
-} from 'lucide-react';
 
 import { BrandMark, BrandWordmark } from './BrandMark';
+import { ConnectBrandIcon, type BrandKind } from './ConnectBrandIcon';
 
 type Channel = {
   id: string;
@@ -20,134 +11,214 @@ type Channel = {
   value: string;
   href: string;
   hint?: string;
-  icon: 'phone' | 'instagram' | 'telegram' | 'whatsapp' | 'bale' | 'eitaa' | 'rubika' | 'gap' | 'igap' | 'linkedin' | 'web' | 'at';
+  icon: BrandKind;
+  copy?: string;
+  featured?: boolean;
 };
 
-const CHANNELS: Channel[] = [
+type Section = {
+  id: string;
+  title: string;
+  items: Channel[];
+};
+
+const SECTIONS: Section[] = [
   {
-    id: 'phone-land',
-    label: 'تلفن ثابت',
-    value: '021-91017441',
-    href: 'tel:+982191017441',
-    icon: 'phone',
+    id: 'direct',
+    title: 'تماس مستقیم',
+    items: [
+      {
+        id: 'phone-land',
+        label: 'تلفن ثابت',
+        value: '021-91017441',
+        href: 'tel:+982191017441',
+        icon: 'phone',
+        copy: '02191017441',
+        featured: true,
+      },
+      {
+        id: 'phone-mobile',
+        label: 'موبایل / پشتیبانی',
+        value: '09925339475',
+        href: 'tel:+989925339475',
+        icon: 'phone',
+        copy: '09925339475',
+        featured: true,
+      },
+      {
+        id: 'whatsapp-mobile',
+        label: 'واتساپ',
+        value: '09925339475',
+        href: 'https://wa.me/989925339475',
+        icon: 'whatsapp',
+        copy: '09925339475',
+      },
+      {
+        id: 'whatsapp-land',
+        label: 'واتساپ ثابت',
+        value: '02191017441',
+        href: 'https://wa.me/982191017441',
+        icon: 'whatsapp',
+        copy: '02191017441',
+      },
+    ],
   },
   {
-    id: 'phone-mobile',
-    label: 'موبایل',
-    value: '09925339475',
-    href: 'tel:+989925339475',
-    icon: 'phone',
+    id: 'social',
+    title: 'شبکه‌ها و پشتیبانی',
+    items: [
+      {
+        id: 'instagram',
+        label: 'اینستاگرام',
+        value: '@WebinaAgency',
+        href: 'https://instagram.com/WebinaAgency',
+        icon: 'instagram',
+        copy: 'WebinaAgency',
+      },
+      {
+        id: 'telegram-support',
+        label: 'پشتیبانی تلگرام',
+        value: 't.me/webinasupport',
+        href: 'https://t.me/webinasupport',
+        icon: 'telegram',
+        copy: 'webinasupport',
+      },
+      {
+        id: 'telegram-channel',
+        label: 'کانال تلگرام',
+        value: '@WebinaAgency',
+        href: 'https://t.me/WebinaAgency',
+        icon: 'telegram',
+        copy: 'WebinaAgency',
+      },
+      {
+        id: 'linkedin',
+        label: 'لینکدین',
+        value: 'company/webinadev',
+        href: 'https://ir.linkedin.com/company/webinadev',
+        icon: 'linkedin',
+        copy: 'webinadev',
+      },
+      {
+        id: 'website',
+        label: 'وب‌سایت رسمی',
+        value: 'webina.dev',
+        href: 'https://webina.dev',
+        icon: 'web',
+        copy: 'webina.dev',
+      },
+    ],
   },
   {
-    id: 'instagram',
-    label: 'اینستاگرام',
-    value: '@WebinaAgency',
-    href: 'https://instagram.com/WebinaAgency',
-    icon: 'instagram',
-  },
-  {
-    id: 'telegram-support',
-    label: 'پشتیبانی تلگرام',
-    value: 't.me/webinasupport',
-    href: 'https://t.me/webinasupport',
-    icon: 'telegram',
-  },
-  {
-    id: 'telegram-channel',
-    label: 'کانال تلگرام',
-    value: '@WebinaAgency',
-    href: 'https://t.me/WebinaAgency',
-    icon: 'telegram',
-  },
-  {
-    id: 'whatsapp-land',
-    label: 'واتساپ',
-    value: '02191017441',
-    href: 'https://wa.me/982191017441',
-    icon: 'whatsapp',
-  },
-  {
-    id: 'whatsapp-mobile',
-    label: 'واتساپ',
-    value: '09925339475',
-    href: 'https://wa.me/989925339475',
-    icon: 'whatsapp',
-  },
-  {
-    id: 'bale',
-    label: 'بله',
-    value: '@WebinaCo',
-    href: 'https://ble.ir/WebinaCo',
-    icon: 'bale',
-  },
-  {
-    id: 'eitaa',
-    label: 'ایتا',
-    value: '09925339475',
-    href: 'https://eitaa.com/sms?phone=09925339475',
-    icon: 'eitaa',
-  },
-  {
-    id: 'rubika',
-    label: 'روبیکا',
-    value: '09925339475',
-    href: 'https://rubika.ir',
-    hint: 'جستجو با شماره',
-    icon: 'rubika',
-  },
-  {
-    id: 'gap',
-    label: 'گپ',
-    value: '09925339475',
-    href: 'tel:+989925339475',
-    icon: 'gap',
-  },
-  {
-    id: 'igap',
-    label: 'آیگپ',
-    value: '09925339475',
-    href: 'tel:+989925339475',
-    icon: 'igap',
-  },
-  {
-    id: 'linkedin',
-    label: 'لینکدین',
-    value: 'Webina',
-    href: 'https://ir.linkedin.com/company/webinadev',
-    icon: 'linkedin',
-  },
-  {
-    id: 'website',
-    label: 'وب‌سایت',
-    value: 'webina.dev',
-    href: 'https://webina.dev',
-    icon: 'web',
+    id: 'iran',
+    title: 'پیام‌رسان‌های ایرانی',
+    items: [
+      {
+        id: 'bale',
+        label: 'بله',
+        value: '@WebinaCo',
+        href: 'https://ble.ir/WebinaCo',
+        icon: 'bale',
+        copy: 'WebinaCo',
+      },
+      {
+        id: 'eitaa',
+        label: 'ایتا',
+        value: '09925339475',
+        href: 'https://eitaa.com/sms?phone=09925339475',
+        icon: 'eitaa',
+        copy: '09925339475',
+      },
+      {
+        id: 'rubika',
+        label: 'روبیکا',
+        value: '09925339475',
+        href: 'https://rubika.ir',
+        hint: 'جستجو با شماره',
+        icon: 'rubika',
+        copy: '09925339475',
+      },
+      {
+        id: 'gap',
+        label: 'گپ',
+        value: '09925339475',
+        href: 'tel:+989925339475',
+        icon: 'gap',
+        copy: '09925339475',
+      },
+      {
+        id: 'igap',
+        label: 'آیگپ',
+        value: '09925339475',
+        href: 'tel:+989925339475',
+        icon: 'igap',
+        copy: '09925339475',
+      },
+    ],
   },
 ];
 
-function ChannelIcon({ kind }: { kind: Channel['icon'] }) {
-  const cls = 'size-5 shrink-0';
-  switch (kind) {
-    case 'phone':
-      return <Phone className={cls} aria-hidden />;
-    case 'instagram':
-      return <Camera className={cls} aria-hidden />;
-    case 'telegram':
-      return <Send className={cls} aria-hidden />;
-    case 'whatsapp':
-    case 'bale':
-    case 'eitaa':
-    case 'rubika':
-    case 'gap':
-    case 'igap':
-      return <MessageCircle className={cls} aria-hidden />;
-    case 'linkedin':
-      return <Users className={cls} aria-hidden />;
-    case 'web':
-      return <Globe className={cls} aria-hidden />;
-    default:
-      return <AtSign className={cls} aria-hidden />;
+function CopyIcon({ done }: { done: boolean }) {
+  if (done) {
+    return (
+      <svg viewBox="0 0 24 24" className="ch-copy-glyph" aria-hidden>
+        <path
+          fill="currentColor"
+          d="M9.5 16.2 5.3 12l1.4-1.4 2.8 2.8 7.1-7.1L18 7.7z"
+        />
+      </svg>
+    );
   }
+  return (
+    <svg viewBox="0 0 24 24" className="ch-copy-glyph" aria-hidden>
+      <path
+        fill="currentColor"
+        d="M16 1H4a2 2 0 00-2 2v12h2V3h12V1zm3 4H8a2 2 0 00-2 2v14a2 2 0 002 2h11a2 2 0 002-2V7a2 2 0 00-2-2zm0 16H8V7h11v14z"
+      />
+    </svg>
+  );
+}
+
+function ChannelRow({
+  ch,
+  index,
+  copied,
+  onCopy,
+}: {
+  ch: Channel;
+  index: number;
+  copied: string | null;
+  onCopy: (id: string, value: string) => void;
+}) {
+  const isCopied = copied === ch.id;
+  return (
+    <li className={`ch-row${ch.featured ? ' is-featured' : ''}`} style={{ ['--i' as string]: String(index) }}>
+      <a className="ch-link" href={ch.href} target={ch.href.startsWith('tel:') ? undefined : '_blank'} rel="noreferrer">
+        <ConnectBrandIcon kind={ch.icon} />
+        <span className="ch-meta">
+          <span className="ch-label">{ch.label}</span>
+          <span className="ch-value" dir="ltr">
+            {ch.value}
+          </span>
+          {ch.hint ? <span className="ch-hint">{ch.hint}</span> : null}
+        </span>
+        <span className="ch-chev" aria-hidden>
+          <svg viewBox="0 0 24 24">
+            <path fill="currentColor" d="M15.4 12 9.7 6.3l1.4-1.4L18.2 12l-7.1 7.1-1.4-1.4z" />
+          </svg>
+        </span>
+      </a>
+      <button
+        type="button"
+        className={`ch-copy${isCopied ? ' is-done' : ''}`}
+        onClick={() => onCopy(ch.id, ch.copy ?? ch.value)}
+        aria-label={isCopied ? 'کپی شد' : `کپی ${ch.label}`}
+      >
+        <CopyIcon done={isCopied} />
+        <span className="ch-copy-text">{isCopied ? 'کپی شد' : 'کپی'}</span>
+      </button>
+    </li>
+  );
 }
 
 export function ConnectHub() {
@@ -169,54 +240,82 @@ export function ConnectHub() {
     }
   }
 
+  let stagger = 0;
+
   return (
-    <div className={`connect-hub${ready ? ' is-ready' : ''}`}>
-      <div className="connect-hub-glow" aria-hidden />
-      <div className="connect-hub-grain" aria-hidden />
+    <div className={`ch-page${ready ? ' is-ready' : ''}`}>
+      <div className="ch-atmos" aria-hidden>
+        <div className="ch-orb ch-orb-a" />
+        <div className="ch-orb ch-orb-b" />
+        <div className="ch-grid" />
+      </div>
 
-      <header className="connect-hub-hero">
-        <a href="https://webina.dev" className="connect-hub-brand" aria-label="وبینا">
-          <BrandMark className="h-11 w-auto shrink-0" />
-          <BrandWordmark className="h-7 w-auto max-w-[9rem]" />
-        </a>
-        <p className="connect-hub-kicker">ارتباط با وبینا</p>
-        <h1 className="connect-hub-title">همهٔ راه‌های تماس، یک‌جا</h1>
-        <p className="connect-hub-lead">
-          پشتیبانی، شبکه‌های اجتماعی و وب‌سایت رسمی — مستقیم و بدون سردرگمی.
-        </p>
-      </header>
-
-      <ul className="connect-hub-list">
-        {CHANNELS.map((ch, i) => (
-          <li key={ch.id} style={{ ['--i' as string]: String(i) }}>
-            <a className="connect-hub-link" href={ch.href} target="_blank" rel="noreferrer">
-              <span className="connect-hub-icon">
-                <ChannelIcon kind={ch.icon} />
-              </span>
-              <span className="connect-hub-meta">
-                <span className="connect-hub-label">{ch.label}</span>
-                <span className="connect-hub-value" dir="ltr">
-                  {ch.value}
-                </span>
-                {ch.hint ? <span className="connect-hub-hint">{ch.hint}</span> : null}
-              </span>
-              <ExternalLink className="connect-hub-ext size-4 opacity-50" aria-hidden />
+      <div className="ch-shell">
+        {/* Brand / hero — stacked on mobile, sticky side panel on desktop */}
+        <aside className="ch-aside">
+          <div className="ch-aside-inner">
+            <a href="https://webina.dev" className="ch-brand" aria-label="وبینا، آژانس توسعه کسب‌وکار">
+              <span className="ch-brand-ring" aria-hidden />
+              <BrandMark className="ch-mark" title="وبینا" />
+              <BrandWordmark className="ch-word" />
             </a>
-            <button
-              type="button"
-              className="connect-hub-copy"
-              onClick={() => void copyValue(ch.id, ch.value)}
-              aria-label={`کپی ${ch.label}`}
-            >
-              {copied === ch.id ? 'کپی شد' : 'کپی'}
-            </button>
-          </li>
-        ))}
-      </ul>
 
-      <footer className="connect-hub-foot">
-        <a href="https://webina.dev">بازگشت به webina.dev</a>
-      </footer>
+            <p className="ch-kicker">آژانس توسعه کسب‌وکار</p>
+            <h1 className="ch-title">
+              خط مستقیم
+              <span> با وبینا</span>
+            </h1>
+            <p className="ch-lead">
+              پشتیبانی، شبکه‌های اجتماعی و کانال‌های رسمی برای همکاری، مشاوره و پیگیری پروژه.
+            </p>
+
+            <div className="ch-quick">
+              <a className="ch-quick-btn is-primary" href="tel:+982191017441">
+                <ConnectBrandIcon kind="phone" />
+                <span>
+                  <strong>تماس فوری</strong>
+                  <em dir="ltr">021-91017441</em>
+                </span>
+              </a>
+              <a className="ch-quick-btn" href="https://wa.me/989925339475" target="_blank" rel="noreferrer">
+                <ConnectBrandIcon kind="whatsapp" />
+                <span>
+                  <strong>واتساپ</strong>
+                  <em dir="ltr">09925339475</em>
+                </span>
+              </a>
+            </div>
+
+            <a className="ch-site-pill" href="https://webina.dev">
+              <ConnectBrandIcon kind="web" />
+              <span>مشاهدهٔ webina.dev</span>
+            </a>
+          </div>
+        </aside>
+
+        {/* Channels — single column mobile, denser board on desktop */}
+        <main className="ch-main">
+          {SECTIONS.map((section) => (
+            <section key={section.id} className="ch-section" aria-labelledby={`ch-h-${section.id}`}>
+              <h2 id={`ch-h-${section.id}`} className="ch-section-title">
+                {section.title}
+              </h2>
+              <ul className="ch-list">
+                {section.items.map((ch) => {
+                  const i = stagger++;
+                  return (
+                    <ChannelRow key={ch.id} ch={ch} index={i} copied={copied} onCopy={copyValue} />
+                  );
+                })}
+              </ul>
+            </section>
+          ))}
+
+          <footer className="ch-foot">
+            <p>وبینا؛ طراحی، محصول و اسکیل کسب‌وکارهای دیجیتال</p>
+          </footer>
+        </main>
+      </div>
     </div>
   );
 }

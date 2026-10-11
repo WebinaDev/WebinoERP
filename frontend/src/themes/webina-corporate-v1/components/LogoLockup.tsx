@@ -36,7 +36,7 @@ export function LogoLockup({
         {/* eslint-disable-next-line @next/next/no-img-element */}
         <img
           src="/brand/webina-logo.svg"
-          alt={`${siteName} — ${tagline}`}
+          alt={`${siteName}، ${tagline}`}
           width={2666}
           height={971}
           className="h-14 w-auto max-w-full"
