@@ -37,7 +37,7 @@ curl -fsSL https://raw.githubusercontent.com/WebinaDev/WebinoERP/main/install.sh
 
 ### به‌روزرسانی روی سرور (یک دستور)
 
-دیتابیس و volumeها (از جمله گواهی‌های `caddy_data`) را پاک نمی‌کند. فقط کد را می‌کشد، کانتینرها را rebuild می‌کند و `migrate` می‌زند. فایل‌های `.env` نگه داشته می‌شوند؛ دامنه از `CADDY_DOMAINS` در `.env` خوانده می‌شود و `Caddyfile` از گیت می‌آید.
+دیتابیس و volumeها (از جمله گواهی‌های `caddy_data`) را پاک نمی‌کند. فقط کد را می‌کشد، کانتینرها را rebuild می‌کند و `migrate` می‌زند. فایل‌های `.env` نگه داشته می‌شوند؛ هاست‌های عمومی در `docker/caddy/Caddyfile` هستند (`webina.dev` اصلی، `contact.webina.dev` هاب تماس، `webinaagency.ir` → ۳۰۱). `APP_URL` / `SANCTUM_STATEFUL_DOMAINS` را در `.env` با `webina.dev` هم‌تراز نگه دارید.
 
 ```bash
 curl -fsSL https://raw.githubusercontent.com/WebinaDev/WebinoERP/main/update.sh | bash

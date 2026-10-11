@@ -10,7 +10,7 @@
 | `web` | Caddy. تنها سرویسی که پورت میزبان را باز می‌کند. مسیرهای غیر از `/api` را به `erp-frontend` می‌فرستد. |
 | `backend` | Laravel. API عمومی `/api/v1/public/*` و CRUD بازاریابی. |
 
-دامنه پیش‌فرض در `docker/caddy/Caddyfile` برابر `webina.dev` است؛ `webinaagency.ir` به آن ریدایرکت دائمی می‌شود. `contact.webina.dev` هاب تماس است. اگر بعد از آپدیت هنوز ظاهر قبلی را می‌بینید، ایمیج `frontend` بازسازی نشده است. HTML از Next می‌آید و با کش مرورگرِ فایل‌های قدیمی `_next/static` قاطی نمی‌شود، به شرطی که ایمیج جدید ساخته شده باشد.
+دامنه پیش‌فرض در `docker/caddy/Caddyfile` برابر `webina.dev` است؛ `webinaagency.ir` به آن ریدایرکت دائمی می‌شود. `contact.webina.dev` هاب تماس است (middleware در `frontend/src/middleware.ts` مسیر `/` را به `/connect` بازنویسی می‌کند؛ صفحه در `frontend/src/app/(connect)/connect`). اگر بعد از آپدیت هنوز ظاهر قبلی را می‌بینید، ایمیج `frontend` بازسازی نشده است. HTML از Next می‌آید و با کش مرورگرِ فایل‌های قدیمی `_next/static` قاطی نمی‌شود، به شرطی که ایمیج جدید ساخته شده باشد.
 
 ## بعد از deploy این‌ها را بزنید
 
