@@ -212,4 +212,40 @@ class MarketplaceCrmParityTest extends TestCase
             ->assertJsonPath('data.gitea_org', 'webina')
             ->assertJsonPath('data.has_token', true);
     }
+
+    public function test_webinocrm_basalam_oauth_start_alias_without_sanctum(): void
+    {
+        // Dashboard Edge alias — no Sanctum; returns 503 when OAuth is not configured.
+        $this->postJson('/api/webinocrm/v1/basalam/oauth/start', [
+            'site_url' => 'https://shop.example.test',
+            'return_url' => 'https://shop.example.test/dashboard/settings/shop/basalam/',
+        ])->assertStatus(503)
+            ->assertJsonStructure(['message']);
+    }
+
+    public function test_webinocrm_marketplace_core_check(): void
+    {
+        config(['app.webinocrm_license_hmac_secret' => '']);
+
+        MarketplaceModule::query()->create([
+            'name' => 'Webino Dashboard',
+            'slug' => 'webino-dashboard',
+            'is_core' => true,
+            'status' => 'published',
+            'version' => '0.9.57',
+            'price' => 0,
+            'description' => 'Core release notes',
+        ]);
+
+        $this->postJson('/api/webinocrm/v1/marketplace/core/check', [
+            'domain' => 'corecheck.example.test',
+            'product' => 'webinodashboard',
+            'current_version' => '0.9.50',
+            'ts' => time(),
+        ])->assertOk()
+            ->assertJsonPath('data.latest_version', '0.9.57')
+            ->assertJsonPath('data.update_available', true)
+            ->assertJsonPath('data.distribution', 'git')
+            ->assertJsonPath('data.module_slug', 'webino-dashboard');
+    }
 }

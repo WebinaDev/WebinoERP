@@ -244,4 +244,49 @@ class WebinocrmMarketplaceCompatController extends Controller
             'message' => 'Payment verified and license granted',
         ]);
     }
+
+    /**
+     * Thin core update probe for Dashboard (git distribution).
+     * GET|POST /api/webinocrm/v1/marketplace/core/check
+     */
+    public function coreCheck(Request $request): JsonResponse
+    {
+        if (! $this->verifyLicenseRequest($request)) {
+            return response()->json(['error' => ['code' => 'INVALID_SIGNATURE', 'message' => 'Invalid signature']], 403);
+        }
+
+        $current = (string) $request->input('current_version', '0.0.0');
+        $core = MarketplaceModule::query()
+            ->where('is_core', true)
+            ->whereIn('status', ['active', 'published'])
+            ->orderByDesc('id')
+            ->first();
+
+        if (! $core) {
+            return response()->json([
+                'data' => [
+                    'latest_version' => $current,
+                    'update_available' => false,
+                    'release_notes' => '',
+                    'package_available' => false,
+                    'distribution' => 'git',
+                    'module_slug' => 'webino-dashboard',
+                ],
+            ]);
+        }
+
+        $latest = (string) ($core->version ?: $current);
+        $available = version_compare($latest, $current, '>');
+
+        return response()->json([
+            'data' => [
+                'latest_version' => $latest,
+                'update_available' => $available,
+                'release_notes' => (string) ($core->description ?? ''),
+                'package_available' => $available && filled($core->gitSource?->clone_url ?? $core->repo?->repo_url ?? $core->gitea_repo),
+                'distribution' => 'git',
+                'module_slug' => (string) ($core->slug ?: 'webino-dashboard'),
+            ],
+        ]);
+    }
 }
