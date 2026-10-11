@@ -151,14 +151,22 @@ networks:
 YAML;
     }
 
-    public static function caddySnippet(string $domain, string $slug): string
+    /**
+     * @param  list<string>  $aliases  Extra hostnames on the same upstream (e.g. contact.example.com).
+     */
+    public static function caddySnippet(string $domain, string $slug, array $aliases = []): string
     {
         $project = self::projectName($slug);
+        $hosts = TenantAliasDomains::siteHosts($domain, $aliases);
+        if ($hosts === []) {
+            $hosts = [TenantAliasDomains::normalizeHost($domain) ?: $domain];
+        }
+        $site = implode(', ', $hosts);
 
         // Same split as ERP Caddyfile: /api → Octane backend, rest → Next.
         // Backend must be on webino_sites or Caddy returns 502 while HTML still loads.
         return <<<CADDY
-{$domain} {
+{$site} {
   encode gzip
   handle /api/* {
     reverse_proxy {$project}-backend:8080 {

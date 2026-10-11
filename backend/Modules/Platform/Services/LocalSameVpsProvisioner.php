@@ -10,6 +10,7 @@ use Modules\Platform\Entities\PlatformDomain;
 use Modules\Platform\Entities\PlatformResource;
 use Modules\Platform\Entities\PlatformServer;
 use Modules\Platform\Support\StackHealthReport;
+use Modules\Platform\Support\TenantAliasDomains;
 use Modules\Platform\Support\TenantEnvBuilder;
 use Modules\Platform\Support\TenantSiteStack;
 use Modules\SiteBuilder\Entities\WebinoSiteProvision;
@@ -83,7 +84,7 @@ class LocalSameVpsProvisioner
         $this->writeFile($dir.'/docker-compose.yml', $compose);
         $this->writeFile($dir.'/.env', $envFile);
 
-        $this->writeCaddySnippet($provision->domain, $provision->slug);
+        $this->writeCaddySnippet($provision->domain, $provision->slug, TenantAliasDomains::forProvision($provision));
         $this->reloadCaddy();
         ProvisionProgress::assertNotCancelled($provision);
 
@@ -141,6 +142,12 @@ class LocalSameVpsProvisioner
             ['resource_id' => $resource->id, 'domain' => $provision->domain],
             ['ssl_status' => 'pending'],
         );
+        foreach (TenantAliasDomains::forProvision($provision) as $aliasHost) {
+            PlatformDomain::query()->firstOrCreate(
+                ['resource_id' => $resource->id, 'domain' => $aliasHost],
+                ['ssl_status' => 'pending'],
+            );
+        }
 
         PlatformDeployment::query()->create([
             'resource_id' => $resource->id,
@@ -430,14 +437,28 @@ class LocalSameVpsProvisioner
             throw new RuntimeException('platform.invalid_domain');
         }
 
-        $this->writeCaddySnippet($newDomain, $provision->slug);
+        $provision->domain = $newDomain;
+        $aliases = TenantAliasDomains::forProvision($provision);
+        $this->writeCaddySnippet($newDomain, $provision->slug, $aliases);
         $this->reloadCaddy();
+        $this->syncAliasDomainRows($provision, $aliases);
 
         $dir = $this->siteDir($provision);
         $envPath = $dir.'/.env';
         if (is_file($envPath)) {
             $map = $this->readEnvMap($envPath);
             $map['APP_URL'] = 'https://'.$newDomain;
+            $map['FRONTEND_URL'] = 'https://'.$newDomain;
+            $stateful = [$newDomain, 'www.'.$newDomain];
+            $cors = ['https://'.$newDomain, 'https://www.'.$newDomain];
+            foreach ($aliases as $alias) {
+                $stateful[] = $alias;
+                $stateful[] = 'www.'.$alias;
+                $cors[] = 'https://'.$alias;
+                $cors[] = 'https://www.'.$alias;
+            }
+            $map['SANCTUM_STATEFUL_DOMAINS'] = implode(',', array_values(array_unique($stateful)));
+            $map['CORS_ALLOWED_ORIGINS'] = implode(',', array_values(array_unique($cors)));
             $lines = [];
             foreach ($map as $k => $v) {
                 $lines[] = $this->envLine($k, $v);
@@ -455,6 +476,57 @@ class LocalSameVpsProvisioner
             $this->attachToProxyNetwork($provision->slug);
         } catch (Throwable $e) {
             report($e);
+        }
+    }
+
+    /**
+     * Rewrite Caddy + env for a new LinkHub alias label without changing the primary domain.
+     */
+    public function syncAliasDomains(WebinoSiteProvision $provision): void
+    {
+        $domain = TenantAliasDomains::normalizeHost((string) $provision->domain);
+        if ($domain === '' || ! str_contains($domain, '.')) {
+            throw new RuntimeException('platform.invalid_domain');
+        }
+
+        $aliases = TenantAliasDomains::forProvision($provision);
+        $this->writeCaddySnippet($domain, $provision->slug, $aliases);
+        $this->reloadCaddy();
+        $this->syncAliasDomainRows($provision, $aliases);
+        $this->rewriteEnvFile($provision);
+
+        try {
+            $this->recreateServices($provision, ['backend', 'frontend']);
+            $this->attachToProxyNetwork($provision->slug);
+        } catch (Throwable $e) {
+            report($e);
+        }
+    }
+
+    /**
+     * @param  list<string>  $aliases
+     */
+    protected function syncAliasDomainRows(WebinoSiteProvision $provision, array $aliases): void
+    {
+        $resource = PlatformResource::query()->where('provision_id', $provision->id)->first();
+        if (! $resource) {
+            return;
+        }
+
+        $primary = TenantAliasDomains::normalizeHost((string) $provision->domain);
+        $keep = array_values(array_unique(array_filter(array_merge([$primary], $aliases))));
+
+        PlatformDomain::query()
+            ->where('resource_id', $resource->id)
+            ->whereNotIn('domain', $keep)
+            ->where('domain', '!=', $primary)
+            ->delete();
+
+        foreach ($aliases as $aliasHost) {
+            PlatformDomain::query()->firstOrCreate(
+                ['resource_id' => $resource->id, 'domain' => $aliasHost],
+                ['ssl_status' => 'pending'],
+            );
         }
     }
 
@@ -1158,7 +1230,11 @@ class LocalSameVpsProvisioner
         $caddyWrite = '';
         $caddyReload = ['exit_code' => 0, 'stdout' => '', 'stderr' => ''];
         if ($domain !== '' && str_contains($domain, '.')) {
-            $caddyWrite = $this->writeCaddySnippet($domain, $provision->slug);
+            $caddyWrite = $this->writeCaddySnippet(
+                $domain,
+                $provision->slug,
+                TenantAliasDomains::forProvision($provision),
+            );
             $caddyReload = $this->reloadCaddyResult();
         }
 
@@ -1984,7 +2060,11 @@ class LocalSameVpsProvisioner
             throw new RuntimeException('platform.invalid_domain');
         }
 
-        return $this->writeCaddySnippet($domain, $provision->slug);
+        return $this->writeCaddySnippet(
+            $domain,
+            $provision->slug,
+            TenantAliasDomains::forProvision($provision),
+        );
     }
 
     public function reloadCaddyPublic(): void
@@ -1995,10 +2075,12 @@ class LocalSameVpsProvisioner
     /**
      * Write tenant site block to durable host path (survives update.sh git clean)
      * and optionally mirror into the repo bind path.
+     *
+     * @param  list<string>  $aliases
      */
-    protected function writeCaddySnippet(string $domain, string $slug): string
+    protected function writeCaddySnippet(string $domain, string $slug, array $aliases = []): string
     {
-        $snippet = TenantSiteStack::caddySnippet($domain, $slug);
+        $snippet = TenantSiteStack::caddySnippet($domain, $slug, $aliases);
         $paths = [];
 
         // Primary: durable host dir mounted into Caddy as /etc/caddy/sites

@@ -27,8 +27,8 @@ class WebinoSiteProvision extends Model
 
     protected $fillable = [
         'crm_account_id', 'package_id', 'license_id', 'slug', 'domain', 'subdomain',
-        'uses_custom_domain', 'status', 'wizard_payload', 'error_log', 'progress', 'server_host_id',
-        'provision_token', 'created_by', 'launched_at', 'ready_at',
+        'alias_subdomain', 'uses_custom_domain', 'status', 'wizard_payload', 'error_log', 'progress',
+        'server_host_id', 'provision_token', 'created_by', 'launched_at', 'ready_at',
     ];
 
     protected function casts(): array

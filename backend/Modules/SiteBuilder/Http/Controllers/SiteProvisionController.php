@@ -67,12 +67,18 @@ class SiteProvisionController extends Controller
             $usesCustom = (bool) ($wizard['uses_custom_domain'] ?? false);
             $domain = $this->resolveDomain($slug, $usesCustom, $wizard['custom_domain'] ?? null);
 
+            $aliasLabel = \Modules\Platform\Support\TenantAliasDomains::normalizeLabel(
+                $wizard['alias_subdomain'] ?? 'contact'
+            );
+            $wizard['alias_subdomain'] = $aliasLabel;
+
             $row = WebinoSiteProvision::query()->create([
                 'crm_account_id' => $data['crm_account_id'] ?? null,
                 'package_id' => $data['package_id'] ?? null,
                 'slug' => $slug,
                 'domain' => $domain,
                 'subdomain' => $usesCustom ? null : $slug,
+                'alias_subdomain' => $aliasLabel,
                 'uses_custom_domain' => $usesCustom,
                 'status' => WebinoSiteProvision::STATUS_DRAFT,
                 'wizard_payload' => $wizard,
@@ -115,6 +121,7 @@ class SiteProvisionController extends Controller
                 'slug' => 'nullable|string|max:64',
                 'wizard_payload' => 'nullable|array',
                 'uses_custom_domain' => 'nullable|boolean',
+                'alias_subdomain' => 'nullable|string|max:63',
             ]);
 
             try {
@@ -128,9 +135,15 @@ class SiteProvisionController extends Controller
                     $siteProvision->id,
                 );
                 $usesCustom = (bool) ($data['uses_custom_domain'] ?? $wizard['uses_custom_domain'] ?? $siteProvision->uses_custom_domain);
+                $aliasLabel = \Modules\Platform\Support\TenantAliasDomains::normalizeLabel(
+                    $data['alias_subdomain'] ?? $wizard['alias_subdomain'] ?? $siteProvision->alias_subdomain ?? 'contact'
+                );
+                unset($data['alias_subdomain']);
+                $wizard['alias_subdomain'] = $aliasLabel;
                 $data['slug'] = $slug;
                 $data['domain'] = $this->resolveDomain($slug, $usesCustom, $wizard['custom_domain'] ?? $siteProvision->domain);
                 $data['subdomain'] = $usesCustom ? null : $slug;
+                $data['alias_subdomain'] = $aliasLabel;
                 $data['uses_custom_domain'] = $usesCustom;
                 $data['wizard_payload'] = $wizard;
                 $siteProvision->update($data);
@@ -146,6 +159,7 @@ class SiteProvisionController extends Controller
         $data = $request->validate([
             'crm_account_id' => 'nullable|integer|exists:crm_accounts,id',
             'domain' => 'nullable|string|max:255',
+            'alias_subdomain' => 'nullable|string|max:63',
             'logo_url' => 'nullable|string|max:2048',
             'site_name' => 'nullable|string|max:255',
             'channel' => 'nullable|string|in:beta,stable,latest',
@@ -189,8 +203,25 @@ class SiteProvisionController extends Controller
                 }
             }
 
+            $aliasChanged = false;
+            if (array_key_exists('alias_subdomain', $data) && $data['alias_subdomain'] !== null) {
+                $aliasLabel = \Modules\Platform\Support\TenantAliasDomains::normalizeLabel($data['alias_subdomain']);
+                $prev = \Modules\Platform\Support\TenantAliasDomains::normalizeLabel(
+                    $siteProvision->alias_subdomain ?? 'contact'
+                );
+                if ($aliasLabel !== $prev) {
+                    $siteProvision->alias_subdomain = $aliasLabel;
+                    $wizard['alias_subdomain'] = $aliasLabel;
+                    $aliasChanged = true;
+                }
+            }
+
             $siteProvision->wizard_payload = $wizard;
             $siteProvision->save();
+
+            if ($aliasChanged) {
+                $orchestrator->syncAliasDomains($siteProvision);
+            }
 
             if ($siteProvision->license && array_key_exists('logo_url', $data)) {
                 $siteProvision->license->update([
@@ -745,6 +776,41 @@ class SiteProvisionController extends Controller
             [],
             JSON_INVALID_UTF8_SUBSTITUTE
         );
+    }
+
+    public function syncAlias(Request $request, WebinoSiteProvision $siteProvision, SiteProvisionOrchestrator $orchestrator): JsonResponse
+    {
+        if (! $this->isControlEditable($siteProvision)) {
+            return response()->json([
+                'message' => 'سایت در این وضعیت قابل کنترل نیست: '.$siteProvision->status,
+            ], 422);
+        }
+
+        $data = $request->validate([
+            'alias_subdomain' => 'required|string|max:63',
+        ]);
+
+        try {
+            $orchestrator->syncAliasDomains($siteProvision, $data['alias_subdomain']);
+            $fresh = $siteProvision->fresh(['license', 'crmAccount']);
+            $aliasHost = \Modules\Platform\Support\TenantAliasDomains::hostname(
+                (string) $fresh->domain,
+                (string) $fresh->alias_subdomain,
+            );
+
+            return response()->json([
+                'data' => $fresh,
+                'meta' => [
+                    'alias_subdomain' => $fresh->alias_subdomain,
+                    'alias_hostname' => $aliasHost,
+                    'dns_hint' => $aliasHost
+                        ? 'رکورد A/AAAA برای '.$aliasHost.' را به همان سرور سایت اشاره دهید.'
+                        : null,
+                ],
+            ]);
+        } catch (Throwable $e) {
+            return response()->json(['message' => $e->getMessage() ?: 'همگام‌سازی ساب‌دامین ناموفق بود.'], 422);
+        }
     }
 
     public function renewSsl(Request $request, WebinoSiteProvision $siteProvision, SiteProvisionOrchestrator $orchestrator): JsonResponse

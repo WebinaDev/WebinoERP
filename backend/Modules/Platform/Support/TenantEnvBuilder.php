@@ -28,10 +28,17 @@ final class TenantEnvBuilder
         $crm = $sameVpsInternalCrm
             ? self::resolveInternalCrmUrl($settings)
             : self::resolvePublicCrmUrl($settings);
-        $domain = strtolower(trim((string) $provision->domain));
+        $domain = TenantAliasDomains::normalizeHost((string) $provision->domain);
+        $aliases = TenantAliasDomains::forProvision($provision);
+        $aliasLabel = TenantAliasDomains::normalizeLabel(
+            $provision->alias_subdomain
+                ?? ($provision->wizard_payload['alias_subdomain'] ?? null)
+        );
         $seed = json_encode([
             'tenant_name' => $provision->wizard_payload['site_name'] ?? $provision->slug,
             'domain' => $provision->domain,
+            'domain_aliases' => $aliases,
+            'alias_subdomain' => $aliasLabel,
             'product' => $provision->license?->product ?? 'webinodashboard',
             'site_type_slug' => $siteType,
             'business_type_slug' => $siteType,
@@ -46,6 +53,15 @@ final class TenantEnvBuilder
         $licenseHmac = (string) (config('app.webinocrm_license_hmac_secret') ?? '');
         $provisionSecret = (string) ($settings->provision_webhook_secret ?? '');
         $origin = 'https://'.$domain;
+
+        $stateful = [$domain, 'www.'.$domain];
+        $cors = [$origin, 'https://www.'.$domain];
+        foreach ($aliases as $alias) {
+            $stateful[] = $alias;
+            $stateful[] = 'www.'.$alias;
+            $cors[] = 'https://'.$alias;
+            $cors[] = 'https://www.'.$alias;
+        }
 
         return implode("\n", [
             self::line('APP_ENV', 'production'),
@@ -66,8 +82,8 @@ final class TenantEnvBuilder
             self::line('QUEUE_CONNECTION', 'redis'),
             self::line('SESSION_SECURE_COOKIE', 'true'),
             self::line('TRUSTED_PROXIES', '*'),
-            self::line('SANCTUM_STATEFUL_DOMAINS', $domain.',www.'.$domain),
-            self::line('CORS_ALLOWED_ORIGINS', $origin.',https://www.'.$domain),
+            self::line('SANCTUM_STATEFUL_DOMAINS', implode(',', array_values(array_unique($stateful)))),
+            self::line('CORS_ALLOWED_ORIGINS', implode(',', array_values(array_unique($cors)))),
             self::line('AUTH_COOKIE_NAME', 'webino_auth_token'),
             self::line('LOG_CHANNEL', 'stderr'),
             self::line('LOG_STACK', 'stderr'),

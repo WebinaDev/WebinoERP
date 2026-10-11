@@ -15,6 +15,7 @@ use Modules\SiteBuilder\Entities\WebinoDashboardFeature;
 use Modules\SiteBuilder\Entities\WebinoPackage;
 use Modules\SiteBuilder\Entities\WebinoSiteAnnouncement;
 use Modules\SiteBuilder\Entities\WebinoSiteProvision;
+use Modules\SiteBuilder\Http\Controllers\SiteAliasSyncController;
 use Modules\SiteBuilder\Http\Controllers\SiteAnnouncementSyncController;
 use Modules\SiteBuilder\Http\Controllers\SiteImpersonationController;
 use Modules\SiteBuilder\Http\Middleware\VerifySiteProvisionSignature;
@@ -41,6 +42,12 @@ class SiteBuilderServiceProvider extends ServiceProvider
             ->group(function () {
                 Route::post('/pull', [SiteAnnouncementSyncController::class, 'pull']);
                 Route::post('/receipt', [SiteAnnouncementSyncController::class, 'receipt']);
+            });
+
+        Route::prefix('api/v1/site-builder/sync')
+            ->middleware(['api', 'throttle:30,1', VerifySiteProvisionSignature::class])
+            ->group(function () {
+                Route::post('/alias', [SiteAliasSyncController::class, 'sync']);
             });
 
         // Signed staff passport. No Sanctum session: the caller is a tenant

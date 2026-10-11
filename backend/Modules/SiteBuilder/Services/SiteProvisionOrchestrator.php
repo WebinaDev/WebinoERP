@@ -239,6 +239,29 @@ class SiteProvisionOrchestrator
         }
     }
 
+    /**
+     * Sync LinkHub alias subdomain (Caddy multi-host + Sanctum/CORS + platform_domains).
+     */
+    public function syncAliasDomains(WebinoSiteProvision $provision, ?string $aliasLabel = null): void
+    {
+        if ($aliasLabel !== null) {
+            $label = \Modules\Platform\Support\TenantAliasDomains::normalizeLabel($aliasLabel);
+            $provision->alias_subdomain = $label;
+            $wizard = $provision->wizard_payload ?? [];
+            $wizard['alias_subdomain'] = $label;
+            $provision->wizard_payload = $wizard;
+            $provision->save();
+        }
+
+        if ($this->shouldUseLocal($provision)) {
+            $this->local->syncAliasDomains($provision);
+        } else {
+            $this->remote->syncAliasDomains($provision);
+        }
+
+        $this->audit->log($provision->created_by, 'provision.alias_sync', $provision->fresh());
+    }
+
     public function reloadCaddyProxy(): void
     {
         $this->local->reloadCaddyPublic();

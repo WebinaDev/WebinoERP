@@ -10,6 +10,7 @@ use Modules\Platform\Entities\PlatformDomain;
 use Modules\Platform\Entities\PlatformResource;
 use Modules\Platform\Entities\PlatformServer;
 use Modules\Platform\Support\StackHealthReport;
+use Modules\Platform\Support\TenantAliasDomains;
 use Modules\Platform\Support\TenantEnvBuilder;
 use Modules\Platform\Support\TenantSiteStack;
 use Modules\SiteBuilder\Entities\WebinoSiteProvision;
@@ -108,6 +109,12 @@ class WebinoDashboardProvisioner
             'domain' => $provision->domain,
             'ssl_status' => 'pending',
         ]);
+        foreach (TenantAliasDomains::forProvision($provision) as $aliasHost) {
+            PlatformDomain::query()->firstOrCreate(
+                ['resource_id' => $resource->id, 'domain' => $aliasHost],
+                ['ssl_status' => 'pending'],
+            );
+        }
 
         PlatformDeployment::query()->create([
             'resource_id' => $resource->id,
@@ -118,7 +125,12 @@ class WebinoDashboardProvisioner
             'finished_at' => now(),
         ]);
 
-        $this->writeCaddySnippet($server, $provision->domain, $provision->slug);
+        $this->writeCaddySnippet(
+            $server,
+            $provision->domain,
+            $provision->slug,
+            TenantAliasDomains::forProvision($provision),
+        );
         $this->reloadRemoteCaddy($server);
 
         try {
@@ -150,7 +162,12 @@ class WebinoDashboardProvisioner
         $result = $this->docker->composeUp($server, $dir, TenantSiteStack::projectName($provision->slug));
         $this->attachProxyNetwork($server, $provision->slug);
         try {
-            $this->writeCaddySnippet($server, (string) $provision->domain, $provision->slug);
+            $this->writeCaddySnippet(
+                $server,
+                (string) $provision->domain,
+                $provision->slug,
+                TenantAliasDomains::forProvision($provision),
+            );
             $this->reloadRemoteCaddy($server);
         } catch (Throwable $e) {
             $result['stderr'] = trim(($result['stderr'] ?? '')."\ncaddy: ".$e->getMessage());
@@ -195,9 +212,12 @@ class WebinoDashboardProvisioner
 
         $server = $this->serverFor($provision);
         $dir = $this->siteDir($provision);
+        $provision->domain = $newDomain;
+        $aliases = TenantAliasDomains::forProvision($provision);
 
-        $this->writeCaddySnippet($server, $newDomain, $provision->slug);
+        $this->writeCaddySnippet($server, $newDomain, $provision->slug, $aliases);
         $this->reloadRemoteCaddy($server);
+        $this->syncAliasDomainRows($provision, $aliases);
 
         $this->docker->sshRun(
             $server,
@@ -214,6 +234,59 @@ class WebinoDashboardProvisioner
         PlatformResource::query()
             ->where('provision_id', $provision->id)
             ->update(['fqdn' => $newDomain]);
+    }
+
+    public function syncAliasDomains(WebinoSiteProvision $provision): void
+    {
+        $domain = TenantAliasDomains::normalizeHost((string) $provision->domain);
+        if ($domain === '' || ! str_contains($domain, '.')) {
+            throw new RuntimeException('platform.invalid_domain');
+        }
+
+        $server = $this->serverFor($provision);
+        $aliases = TenantAliasDomains::forProvision($provision);
+        $this->writeCaddySnippet($server, $domain, $provision->slug, $aliases);
+        $this->reloadRemoteCaddy($server);
+        $this->syncAliasDomainRows($provision, $aliases);
+
+        $siteType = (string) (
+            ($provision->wizard_payload['site_type_slug'] ?? null)
+            ?: ($provision->package?->businessType?->slug)
+            ?: 'corporate'
+        );
+        $token = (string) ($provision->provision_token ?: '');
+        $dir = $this->siteDir($provision);
+        $env = TenantEnvBuilder::build($provision, $siteType, $token, [], false);
+        $this->docker->writeFile($server, $dir.'/.env', $env);
+        $this->recreateAppServices($server, $provision);
+        $this->attachProxyNetwork($server, $provision->slug);
+    }
+
+    /**
+     * @param  list<string>  $aliases
+     */
+    protected function syncAliasDomainRows(WebinoSiteProvision $provision, array $aliases): void
+    {
+        $resource = PlatformResource::query()->where('provision_id', $provision->id)->first();
+        if (! $resource) {
+            return;
+        }
+
+        $primary = TenantAliasDomains::normalizeHost((string) $provision->domain);
+        $keep = array_values(array_unique(array_filter(array_merge([$primary], $aliases))));
+
+        PlatformDomain::query()
+            ->where('resource_id', $resource->id)
+            ->whereNotIn('domain', $keep)
+            ->where('domain', '!=', $primary)
+            ->delete();
+
+        foreach ($aliases as $aliasHost) {
+            PlatformDomain::query()->firstOrCreate(
+                ['resource_id' => $resource->id, 'domain' => $aliasHost],
+                ['ssl_status' => 'pending'],
+            );
+        }
     }
 
     /**
@@ -233,7 +306,12 @@ class WebinoDashboardProvisioner
         $up = $this->docker->composeUp($server, $dir, TenantSiteStack::projectName($provision->slug));
         $log[] = 'compose up exit='.$up['exit_code'];
         $this->attachProxyNetwork($server, $provision->slug);
-        $log[] = $this->writeCaddySnippet($server, $domain, $provision->slug);
+        $log[] = $this->writeCaddySnippet(
+            $server,
+            $domain,
+            $provision->slug,
+            TenantAliasDomains::forProvision($provision),
+        );
 
         if ($force) {
             $log[] = $this->deleteDomainCertLeaf($server, $domain);
@@ -775,9 +853,12 @@ class WebinoDashboardProvisioner
         return $name !== '' ? $name : null;
     }
 
-    protected function writeCaddySnippet(PlatformServer $server, string $domain, string $slug): string
+    /**
+     * @param  list<string>  $aliases
+     */
+    protected function writeCaddySnippet(PlatformServer $server, string $domain, string $slug, array $aliases = []): string
     {
-        $snippet = TenantSiteStack::caddySnippet($domain, $slug);
+        $snippet = TenantSiteStack::caddySnippet($domain, $slug, $aliases);
         $path = self::CADDY_DURABLE_DIR.'/'.$slug.'.caddy';
         $this->docker->writeFile($server, self::CADDY_DURABLE_DIR.'/_keep.caddy', "# keep import glob non-empty\n");
         $wrote = $this->docker->writeFile($server, $path, $snippet);
