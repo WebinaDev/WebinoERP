@@ -97,7 +97,7 @@
   display: flex;
   min-width: 0;
   align-items: center;
-  gap: 0.6rem;
+  gap: 0.5rem;
   color: var(--ink);
 }
 
@@ -1391,15 +1391,6 @@ a.panel:hover,
   .work-thumb svg {
     transform: none !important;
   }
-}
-
-.logo-tagline {
-  margin-top: 0.3rem;
-  font-size: 0.66rem;
-  font-weight: 600;
-  line-height: 1;
-  white-space: nowrap;
-  color: var(--muted);
 }
 
 .page-body .work-grid {

@@ -2,7 +2,7 @@
 	servers {
 		protocols h1 h2
 	}
-	email {$CADDY_ACME_EMAIL:admin@webinaagency.ir}
+	email {$CADDY_ACME_EMAIL:admin@webina.dev}
 }
 
 (security_headers) {
@@ -46,11 +46,22 @@
 	}
 }
 
-# Domains are fixed here (env placeholders were expanding to ":80" and skipping HTTPS).
-# Change hostnames only when intentionally moving the site — keep caddy_data volume forever.
-webinaagency.ir, www.webinaagency.ir {
+# Primary apex — keep caddy_data volume forever when changing hostnames.
+webina.dev, www.webina.dev {
 	import security_headers
 	import app_routes
+}
+
+# Contact hub (same Next app; host rewrite in middleware → /connect)
+contact.webina.dev {
+	import security_headers
+	import app_routes
+}
+
+# Legacy apex → permanent redirect to webina.dev (preserve path + query)
+webinaagency.ir, www.webinaagency.ir {
+	import security_headers
+	redir https://webina.dev{uri} permanent
 }
 
 # Per-tenant site snippets written by LocalSameVpsProvisioner

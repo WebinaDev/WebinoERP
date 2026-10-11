@@ -1207,7 +1207,7 @@ class SiteProvisionController extends Controller
             /* settings table / decrypt may be unavailable */
         }
 
-        return 'webinaagency.ir';
+        return 'webina.dev';
     }
 
     protected function isControlEditable(WebinoSiteProvision $siteProvision): bool

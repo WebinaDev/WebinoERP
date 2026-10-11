@@ -12,7 +12,7 @@ class BasalamOAuthService
 {
     public const DEFAULT_CLIENT_ID = '2357';
 
-    public const DEFAULT_REDIRECT_URI = 'https://webinaagency.ir/api/basalam/oauth/callback';
+    public const DEFAULT_REDIRECT_URI = 'https://webina.dev/api/basalam/oauth/callback';
 
     public const TOKEN_URL = 'https://auth.basalam.com/oauth/token';
 

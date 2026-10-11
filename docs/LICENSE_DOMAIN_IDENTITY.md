@@ -56,9 +56,9 @@ A license registered as `bluecafe.webinaagency.ir` also matches checks for `blue
 | Deploy | Expected value | License path |
 |--------|----------------|--------------|
 | Same-VPS tenant (Platform local) | `http://erp-backend:8080` | `POST /api/webinocrm/v1/license/check` |
-| Public / remote tenant | `https://webinaagency.ir` (or configured `public_crm_url`) | same path |
+| Public / remote tenant | `https://webina.dev` (or configured `public_crm_url`) | same path |
 
-Full URL example: `POST https://webinaagency.ir/api/webinocrm/v1/license/check` with JSON `{ "domain", "product", "ts" }` (signature optional).
+Full URL example: `POST https://webina.dev/api/webinocrm/v1/license/check` with JSON `{ "domain", "product", "ts" }` (signature optional).
 
 Same-VPS uses Docker DNS so license checks do **not** hairpin through the public CDN. ERP `backend` must join `webino_sites` with alias `erp-backend` (see `docker-compose.yml`).
 

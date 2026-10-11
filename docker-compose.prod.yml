@@ -7,9 +7,9 @@ services:
     environment:
       APP_ENV: production
       APP_DEBUG: "false"
-      APP_URL: "${APP_URL:-https://webinaagency.ir}"
+      APP_URL: "${APP_URL:-https://webina.dev}"
       SESSION_SECURE_COOKIE: "${SESSION_SECURE_COOKIE:-true}"
-      SANCTUM_STATEFUL_DOMAINS: "${SANCTUM_STATEFUL_DOMAINS:-webinaagency.ir,www.webinaagency.ir}"
+      SANCTUM_STATEFUL_DOMAINS: "${SANCTUM_STATEFUL_DOMAINS:-webina.dev,www.webina.dev,contact.webina.dev,webinaagency.ir,www.webinaagency.ir}"
       QUEUE_CONNECTION: redis
       REDIS_PASSWORD: ${REDIS_PASSWORD:-CHANGE_ME}
       REVERB_APP_SECRET: ${REVERB_APP_SECRET:-}
@@ -45,4 +45,4 @@ services:
       - "${WEB_HTTP_PORT:-80}:80"
       - "${WEB_HTTPS_PORT:-443}:443"
     environment:
-      CADDY_ACME_EMAIL: "${CADDY_ACME_EMAIL:-admin@webinaagency.ir}"
+      CADDY_ACME_EMAIL: "${CADDY_ACME_EMAIL:-admin@webina.dev}"

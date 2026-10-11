@@ -454,7 +454,7 @@ class SiteProvisionOrchestrator
         $settings = CoreHostingSetting::current();
         $dirty = false;
         if (! filled($this->hostingValue($settings, 'platform_base_domain'))) {
-            $settings->platform_base_domain = 'webinaagency.ir';
+            $settings->platform_base_domain = 'webina.dev';
             $dirty = true;
         }
         if (! filled($this->hostingValue($settings, 'provision_webhook_secret'))) {

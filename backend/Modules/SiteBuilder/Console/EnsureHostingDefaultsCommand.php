@@ -18,7 +18,7 @@ class EnsureHostingDefaultsCommand extends Command
         $dirty = false;
 
         if (! filled($settings->platform_base_domain)) {
-            $settings->platform_base_domain = 'webinaagency.ir';
+            $settings->platform_base_domain = 'webina.dev';
             $dirty = true;
         }
         if (! filled($settings->provision_webhook_secret)) {

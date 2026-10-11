@@ -50,6 +50,20 @@ async function fetchGate(request: NextRequest): Promise<GateData | null> {
 
 export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl
+  const host = (request.headers.get("host") ?? "").split(":")[0].toLowerCase()
+
+  // contact.webina.dev → contact hub (same ERP frontend)
+  if (host === "contact.webina.dev") {
+    const isPublicAsset =
+      pathname.startsWith("/_next") ||
+      pathname.startsWith("/api") ||
+      pathname.includes(".")
+    if (!isPublicAsset && pathname !== "/connect") {
+      const url = request.nextUrl.clone()
+      url.pathname = "/connect"
+      return NextResponse.rewrite(url)
+    }
+  }
 
   // Legacy /admin → /dashboard (bookmarks & old links)
   if (isLegacyAdminPathname(pathname)) {
