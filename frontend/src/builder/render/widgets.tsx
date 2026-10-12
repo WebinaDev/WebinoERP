@@ -34,6 +34,8 @@ import { fillDocumentTokens } from "../theme/tokens"
 import { propBool, propNum, propStr, parseLinks } from "../props"
 import type { BuilderDocument, EditorApi, WidgetNode } from "../types"
 import { BuilderRuntimeProvider, useBuilderGlobals, useBuilderRuntime } from "./runtime"
+import { CorporateWidget } from "@/themes/webina-corporate-v1/builder/CorporateWidget"
+import { isCorporateType } from "@/themes/webina-corporate-v1/builder/blocks"
 
 const NAV = [
   { label: "خانه", href: "/" },
@@ -111,6 +113,7 @@ function AbstractArt({ tone, label }: { tone: string; label: string }) {
 export function WidgetBody({ widget, editor }: { widget: WidgetNode; editor?: EditorApi }) {
   const runtime = useBuilderRuntime()
   const editing = Boolean(editor)
+  if (isCorporateType(widget.type)) return <CorporateWidget type={widget.type} props={widget.props} />
   switch (widget.type) {
     case "heading":
       return <HeadingWidget widget={widget} editor={editor} />

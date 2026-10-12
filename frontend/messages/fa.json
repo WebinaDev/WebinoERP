@@ -7148,6 +7148,10 @@
       "ctaText": "همین حالا جلسه مشاوره تخصصی رزرو کن.",
       "ctaPrimary": "رزرو مشاوره تخصصی",
       "ctaSecondary": "درخواست پیشنهاد پروژه"
+    },
+    "aboutPageLabels": {
+      "others": "روش معمول",
+      "webina": "وبینا"
     }
   },
   "aiContent": {

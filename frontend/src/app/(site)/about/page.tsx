@@ -1,33 +1,45 @@
 import { getLocale, getTranslations } from 'next-intl/server';
-import Link from 'next/link';
-import { apiServer, siteHref } from '@/lib/public-api-server';
-import { SitePage } from '@/themes/webina-corporate-v1/components/SitePage';
+import { getPublicSite } from '@/lib/public-api-server';
+import { loadPublishedPage, StorefrontDocument } from '@/builder/public-document';
+import { prefetchCorporate } from '@/themes/webina-corporate-v1/builder/prefetch';
+
+import { resolveAbout } from '@/themes/webina-corporate-v1/about-content';
+import { ABOUT_DEFAULTS } from '@/themes/webina-corporate-v1/about-defaults';
+import { AboutPage } from '@/themes/webina-corporate-v1/components/about/AboutPage';
+import { normalizeCompany } from '@/themes/webina-corporate-v1/site-content';
 
 export const revalidate = 60;
 
-export default async function AboutPage() {
+export default async function AboutRoute() {
   const t = await getTranslations();
   const locale = await getLocale();
-  let title = t('site.nav.about');
-  let body = '';
+  const fa = locale === 'fa';
+  // Built in the page builder («وبینا» widgets); messages are the fallback before a document exists.
+  const published = fa ? await loadPublishedPage('about') : null;
+  if (published) return <StorefrontDocument document={published} themeClass="webina-builder" runtime={{ prefetch: await prefetchCorporate(published) }} />;
+  let branding: Record<string, unknown> = {};
+  let siteName = t('site.brand');
+  let logoUrl: string | null = null;
   try {
-    const res = await apiServer<{ data: { title_fa?: string; title_en?: string; body_fa?: string | null; body_en?: string | null } }>('/v1/public/pages/about');
-    title = (locale === 'en' ? res.data.title_en : res.data.title_fa) || res.data.title_fa || title;
-    const fa = res.data.body_fa || '';
-    const en = res.data.body_en || '';
-    body = locale === 'en' ? (en && en !== fa ? en : '') : fa;
+    const res = await getPublicSite();
+    branding = (res.data.branding as Record<string, unknown> | null) ?? {};
+    siteName = res.data.name ?? siteName;
+    logoUrl = res.data.logo_url ?? null;
   } catch {
-    body = '';
+    /* defaults */
   }
+  const defaults = ABOUT_DEFAULTS[fa ? 'fa' : 'en'];
+  const sections = resolveAbout(defaults, branding.about_page, fa);
 
   return (
-    <SitePage kicker={t('site.footer.legalName')} title={title} lead={t('site.page.aboutLead')}>
-      {body ? <div className="rich-copy" dangerouslySetInnerHTML={{ __html: body }} /> : <p className="rich-copy">{t('site.page.aboutFallback')}</p>}
-      <div className="mt-8 flex flex-wrap gap-3">
-        <Link href={siteHref(undefined, 'products')} className="btn-saffron">{t('site.nav.products')}</Link>
-        <Link href={siteHref(undefined, 'services')} className="btn-ghost">{t('site.nav.services')}</Link>
-        <Link href={siteHref(undefined, 'contact')} className="btn-ghost">{t('site.nav.contact')}</Link>
-      </div>
-    </SitePage>
+    <AboutPage
+      sections={sections}
+      company={fa ? normalizeCompany(branding.company) : null}
+      siteName={siteName}
+      logoUrl={logoUrl}
+      fa={fa}
+      othersLabel={t('site.aboutPageLabels.others')}
+      webinaLabel={t('site.aboutPageLabels.webina')}
+    />
   );
 }

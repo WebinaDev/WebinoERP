@@ -2,6 +2,9 @@ import Link from 'next/link';
 import { getLocale, getTranslations } from 'next-intl/server';
 import { ArrowUpLeft, Clock, MapPin, Navigation } from 'lucide-react';
 import { apiServer, getPublicSite, siteHref } from '@/lib/public-api-server';
+import { loadPublishedPage, StorefrontDocument } from '@/builder/public-document';
+import { prefetchCorporate } from '@/themes/webina-corporate-v1/builder/prefetch';
+
 import { ContactLeadForm, type LeadField } from '@/themes/webina-corporate-v1/components/contact/ContactLeadForm';
 import { CopyButton } from '@/themes/webina-corporate-v1/components/contact/CopyButton';
 import { NavIcon } from '@/themes/webina-corporate-v1/components/NavIcon';
@@ -54,6 +57,10 @@ export default async function ContactPage() {
   const t = await getTranslations();
   const locale = await getLocale();
   const fa = locale === 'fa';
+
+  // Built in the page builder («وبینا» widgets). The code below is the fallback before a document exists.
+  const published = fa ? await loadPublishedPage('contact') : null;
+  if (published) return <StorefrontDocument document={published} themeClass="webina-builder" runtime={{ prefetch: await prefetchCorporate(published) }} />;
 
   let branding: Record<string, unknown> = {};
   let socialsRaw: unknown = null;

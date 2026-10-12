@@ -7148,6 +7148,10 @@
       "ctaText": "Book an expert consultation now.",
       "ctaPrimary": "Book a consultation",
       "ctaSecondary": "Request a proposal"
+    },
+    "aboutPageLabels": {
+      "others": "The usual way",
+      "webina": "Webina"
     }
   },
   "aiContent": {

@@ -1,6 +1,8 @@
 import { getTranslations } from 'next-intl/server';
 import { apiServer } from '@/lib/public-api-server';
 import { loadPublishedPage, StorefrontDocument } from '@/builder/public-document';
+import { prefetchCorporate } from '@/themes/webina-corporate-v1/builder/prefetch';
+
 import { LandingPage, type LandingData } from '@/themes/webina-corporate-v1/components/landing/LandingPage';
 
 export const revalidate = 60;
@@ -19,7 +21,7 @@ export default async function SiteHomePage() {
 
   const publishedHome = await loadPublishedPage('home');
   if (publishedHome) {
-    return <StorefrontDocument document={publishedHome} />;
+    return <StorefrontDocument document={publishedHome} themeClass="webina-builder" runtime={{ prefetch: await prefetchCorporate(publishedHome) }} />;
   }
 
   return (

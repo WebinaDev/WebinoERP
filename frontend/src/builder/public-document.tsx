@@ -54,14 +54,16 @@ export function PublishedDocument({
   document,
   runtime,
   globals,
+  themeClass = "ishop-store",
 }: {
   document: BuilderDocument
   runtime?: RuntimeContext
   globals?: BuilderGlobals | null
+  themeClass?: string
 }) {
   return (
     <Suspense fallback={null}>
-      <DocumentView document={document} mode="view" device="desktop" runtime={runtime} globals={globals ?? undefined} themeClass="ishop-store" />
+      <DocumentView document={document} mode="view" device="desktop" runtime={runtime} globals={globals ?? undefined} themeClass={themeClass} />
     </Suspense>
   )
 }
@@ -70,10 +72,12 @@ export async function StorefrontDocument({
   document,
   runtime,
   context,
+  themeClass,
 }: {
   document: BuilderDocument
   runtime?: RuntimeContext
   context?: ThemeQuery
+  themeClass?: string
 }) {
   const globals = await loadPublishedGlobals()
   const query = context ?? (await requestThemeContext())
@@ -82,6 +86,7 @@ export async function StorefrontDocument({
     <PublishedDocument
       document={document}
       globals={globals}
+      themeClass={themeClass}
       runtime={{ ...runtime, loopDocument: loop ?? undefined }}
     />
   )

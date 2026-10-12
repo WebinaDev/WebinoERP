@@ -1,3 +1,5 @@
+import type { FieldSpec as SchemaField } from "@/themes/webina-corporate-v1/site-content"
+
 export const BUILDER_VERSION = 1 as const
 
 export type DeviceMode = "desktop" | "tablet" | "mobile"
@@ -76,6 +78,8 @@ export type RuntimeContext = {
   categorySlug?: string
   /** Published loop-item template rendered inside product grids. */
   loopDocument?: BuilderDocument
+  /** Server-fetched public API data keyed by path (used by «وبینا» widgets). */
+  prefetch?: Record<string, unknown>
 }
 
 export type EditorApi = {
@@ -96,12 +100,14 @@ export type FieldDef =
   | { kind: "select"; key: string; label: string; options: { value: string; label: string }[] }
   | { kind: "switch"; key: string; label: string }
 
-export type WidgetCategory = "layout" | "basic" | "commerce" | "chrome"
+export type WidgetCategory = "layout" | "basic" | "commerce" | "chrome" | "corporate"
 
 export type WidgetDef = {
   type: string
   label: string
   category: WidgetCategory
   fields: FieldDef[]
+  /** Rich schema (lists, nested items) edited with the shared SchemaForm instead of `fields`. */
+  schema?: SchemaField[]
   create: () => WidgetNode
 }

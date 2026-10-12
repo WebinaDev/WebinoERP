@@ -1,6 +1,7 @@
 import { uid } from "./ids"
 import { createSection } from "./tree"
 import type { WidgetDef, WidgetNode } from "./types"
+import { CORPORATE_WIDGETS } from "@/themes/webina-corporate-v1/builder/blocks"
 
 function node(type: string, props: Record<string, unknown>, children?: WidgetNode["children"]): WidgetNode {
   return { id: uid("w"), type, props, children }
@@ -296,6 +297,8 @@ export const WIDGETS: WidgetDef[] = [
   },
 ]
 
+WIDGETS.push(...CORPORATE_WIDGETS)
+
 const byType = new Map(WIDGETS.map((widget) => [widget.type, widget]))
 
 export function widgetDef(type: string): WidgetDef | undefined {
@@ -312,4 +315,5 @@ export const WIDGET_CATEGORIES: { id: WidgetDef["category"]; label: string }[] =
   { id: "basic", label: "پایه" },
   { id: "commerce", label: "فروشگاه" },
   { id: "chrome", label: "قالب" },
+  { id: "corporate", label: "وبینا" },
 ]

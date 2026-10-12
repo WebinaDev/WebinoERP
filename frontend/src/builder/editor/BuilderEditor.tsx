@@ -53,6 +53,7 @@ import {
 import type { BuilderDocument, DeviceMode, EditorApi, StyleProps } from "../types"
 import { DND_WIDGET } from "../types"
 import { DocumentView } from "../render/DocumentView"
+import { SchemaForm } from "@/features/marketing-builder/schema-form"
 import { widgetLabel } from "../render/widgets"
 
 type PagePayload = {
@@ -541,6 +542,17 @@ function FieldMark({ name }: { name: string }) {
 
 function WidgetFields({ type, props, onChange }: { type: string; props: Record<string, unknown>; onChange: (key: string, value: unknown) => void }) {
   const def = widgetDef(type)
+  if (def?.schema?.length) {
+    return (
+      <SchemaForm
+        fields={def.schema}
+        value={props}
+        onChange={(next) => {
+          for (const key of Object.keys(next)) if (next[key] !== props[key]) onChange(key, next[key])
+        }}
+      />
+    )
+  }
   if (!def?.fields.length) return null
   return (
     <div className="grid gap-2">

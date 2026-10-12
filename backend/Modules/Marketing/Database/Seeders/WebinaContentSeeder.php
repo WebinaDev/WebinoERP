@@ -34,6 +34,7 @@ class WebinaContentSeeder extends Seeder
         $this->forms();
         $this->company();
         $this->homeDraft();
+        \Modules\Marketing\Services\CorporatePageDocuments::apply();
         $this->courses();
     }
 
