@@ -56,8 +56,49 @@ final class TenantAliasDomains
             ?? ($provision->wizard_payload['alias_subdomain'] ?? null)
             ?? self::DEFAULT_LABEL;
         $host = self::hostname((string) $provision->domain, is_string($label) ? $label : null);
+        $hosts = $host ? [$host] : [];
 
-        return $host ? [$host] : [];
+        // Previous primaries kept after domain change so old URLs / SSL hosts keep routing.
+        $legacy = $provision->wizard_payload['legacy_domains'] ?? [];
+        if (is_array($legacy)) {
+            foreach ($legacy as $item) {
+                $a = self::normalizeHost(is_string($item) ? $item : '');
+                if ($a !== '' && str_contains($a, '.') && ! in_array($a, $hosts, true)) {
+                    $hosts[] = $a;
+                }
+            }
+        }
+
+        $primary = self::normalizeHost((string) $provision->domain);
+
+        return array_values(array_filter($hosts, fn (string $h) => $h !== $primary));
+    }
+
+    /**
+     * Remember a previous primary (+ its contact alias) when the public domain changes.
+     *
+     * @param  list<string>  $existing
+     * @return list<string>
+     */
+    public static function pushLegacyDomain(array $existing, string $previousPrimary, ?string $aliasLabel = null): array
+    {
+        $hosts = [];
+        foreach ($existing as $item) {
+            $a = self::normalizeHost(is_string($item) ? $item : '');
+            if ($a !== '' && str_contains($a, '.')) {
+                $hosts[] = $a;
+            }
+        }
+        $prev = self::normalizeHost($previousPrimary);
+        if ($prev !== '' && str_contains($prev, '.')) {
+            $hosts[] = $prev;
+            $contact = self::hostname($prev, $aliasLabel);
+            if ($contact) {
+                $hosts[] = $contact;
+            }
+        }
+
+        return array_values(array_unique($hosts));
     }
 
     /**

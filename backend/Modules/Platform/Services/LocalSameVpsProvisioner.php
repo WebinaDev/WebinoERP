@@ -429,51 +429,50 @@ class LocalSameVpsProvisioner
     /**
      * Change public domain — the ONLY path that rewrites the Caddy snippet.
      * Does not delete caddy_data (Let's Encrypt storage stays intact).
+     * Keeps the previous primary (+ contact alias) in Caddy/tenant aliases so
+     * the old hostname does not go dark while DNS/SSL catch up.
      */
     public function changeDomain(WebinoSiteProvision $provision, string $newDomain): void
     {
-        $newDomain = strtolower(trim($newDomain));
+        $newDomain = TenantAliasDomains::normalizeHost($newDomain);
         if ($newDomain === '' || ! str_contains($newDomain, '.')) {
             throw new RuntimeException('platform.invalid_domain');
         }
 
+        $previous = TenantAliasDomains::normalizeHost((string) $provision->domain);
+        $wizard = is_array($provision->wizard_payload) ? $provision->wizard_payload : [];
+        $legacy = is_array($wizard['legacy_domains'] ?? null) ? $wizard['legacy_domains'] : [];
+        $wizard['legacy_domains'] = TenantAliasDomains::pushLegacyDomain(
+            $legacy,
+            $previous,
+            $provision->alias_subdomain ?? ($wizard['alias_subdomain'] ?? null)
+        );
+        $wizard['custom_domain'] = $newDomain;
+        $wizard['uses_custom_domain'] = true;
+        $provision->wizard_payload = $wizard;
         $provision->domain = $newDomain;
+        $provision->uses_custom_domain = true;
+
         $aliases = TenantAliasDomains::forProvision($provision);
         $this->writeCaddySnippet($newDomain, $provision->slug, $aliases);
         $this->reloadCaddy();
         $this->syncAliasDomainRows($provision, $aliases);
 
-        $dir = $this->siteDir($provision);
-        $envPath = $dir.'/.env';
-        if (is_file($envPath)) {
-            $map = $this->readEnvMap($envPath);
-            $map['APP_URL'] = 'https://'.$newDomain;
-            $map['FRONTEND_URL'] = 'https://'.$newDomain;
-            $stateful = [$newDomain, 'www.'.$newDomain];
-            $cors = ['https://'.$newDomain, 'https://www.'.$newDomain];
-            foreach ($aliases as $alias) {
-                $stateful[] = $alias;
-                $stateful[] = 'www.'.$alias;
-                $cors[] = 'https://'.$alias;
-                $cors[] = 'https://www.'.$alias;
-            }
-            $map['SANCTUM_STATEFUL_DOMAINS'] = implode(',', array_values(array_unique($stateful)));
-            $map['CORS_ALLOWED_ORIGINS'] = implode(',', array_values(array_unique($cors)));
-            $lines = [];
-            foreach ($map as $k => $v) {
-                $lines[] = $this->envLine($k, $v);
-            }
-            $this->writeFile($envPath, implode("\n", $lines)."\n");
-        }
+        // Full env rewrite so TENANT_SEED_JSON / Sanctum / CORS match the new primary.
+        $this->rewriteEnvFile($provision);
 
         PlatformResource::query()
             ->where('provision_id', $provision->id)
             ->update(['fqdn' => $newDomain]);
 
-        // Recreate app containers so APP_URL / env mount is picked up.
+        // Recreate app containers so APP_URL / env mount is picked up, then sync
+        // the live tenants.domain row inside the Dashboard DB (bootstrap is skipped
+        // after setup_completed).
         try {
+            $this->ensureDataServicesRunning($provision);
             $this->recreateServices($provision, ['backend', 'frontend']);
             $this->attachToProxyNetwork($provision->slug);
+            $this->syncTenantDomainInsideStack($provision, $newDomain, $aliases);
         } catch (Throwable $e) {
             report($e);
         }
@@ -1828,22 +1827,145 @@ class LocalSameVpsProvisioner
             },
             $services,
         );
+        $project = $this->composeProjectForSlug($provision->slug);
         $cmd = [
             'docker', 'compose',
-            '-p', TenantSiteStack::projectName($provision->slug),
+            '-p', $project,
             '-f', $dir.'/docker-compose.yml',
             '--env-file', $dir.'/.env',
             'up', '-d', '--no-deps', '--force-recreate', '--remove-orphans',
             ...$mapped,
         ];
         $result = $this->run($cmd, 900);
+        $conflictLog = '';
+        if (($result['exit_code'] ?? 1) !== 0 && $this->isComposeNameConflict($result)) {
+            // Containers exist under a different compose project label — remove
+            // by container_name then recreate under the canonical project.
+            $conflictLog = $this->forceRemoveNamedContainers($mapped);
+            $canonical = TenantSiteStack::projectName($provision->slug);
+            $cmd[array_search('-p', $cmd, true) + 1] = $canonical;
+            $result = $this->run($cmd, 900);
+            $conflictLog .= "\nretry project={$canonical} exit=".($result['exit_code'] ?? '?');
+        }
         $attachLog = $this->attachToProxyNetwork($provision->slug);
         $this->updateResourceStatus($provision, 'running');
 
         return [
             ...$result,
-            'log' => trim($result['stdout']."\n".$result['stderr']."\n".$attachLog),
+            'log' => trim($result['stdout']."\n".$result['stderr']."\n".$conflictLog."\n".$attachLog),
         ];
+    }
+
+    /**
+     * Prefer the compose project label already stamped on running containers so
+     * `up --force-recreate` adopts them instead of creating name conflicts.
+     */
+    protected function composeProjectForSlug(string $slug): string
+    {
+        $canonical = TenantSiteStack::projectName($slug);
+        foreach ([TenantSiteStack::backendService($slug), TenantSiteStack::frontendService($slug), $canonical.'-db'] as $name) {
+            $inspect = $this->run([
+                'docker', 'inspect', '-f',
+                '{{index .Config.Labels "com.docker.compose.project"}}',
+                $name,
+            ], 10);
+            if (($inspect['exit_code'] ?? 1) === 0) {
+                $existing = trim($inspect['stdout']);
+                if ($existing !== '') {
+                    return $existing;
+                }
+            }
+        }
+
+        return $canonical;
+    }
+
+    /**
+     * @param  array{exit_code?:int,stdout?:string,stderr?:string}  $result
+     */
+    protected function isComposeNameConflict(array $result): bool
+    {
+        $blob = strtolower(($result['stdout'] ?? '')."\n".($result['stderr'] ?? ''));
+
+        return str_contains($blob, 'already in use') || str_contains($blob, 'conflict');
+    }
+
+    /**
+     * @param  list<string>  $names
+     */
+    protected function forceRemoveNamedContainers(array $names): string
+    {
+        $lines = [];
+        foreach ($names as $name) {
+            $rm = $this->run(['docker', 'rm', '-f', $name], 60);
+            $lines[] = 'rm '.$name.' exit='.($rm['exit_code'] ?? '?');
+        }
+
+        return implode("\n", $lines);
+    }
+
+    /**
+     * Ensure db/redis are started before app recreate (--no-deps otherwise leaves
+     * backend unable to resolve hostname "db").
+     */
+    protected function ensureDataServicesRunning(WebinoSiteProvision $provision): void
+    {
+        $dir = $this->siteDir($provision);
+        $project = $this->composeProjectForSlug($provision->slug);
+        $this->run([
+            'docker', 'compose',
+            '-p', $project,
+            '-f', $dir.'/docker-compose.yml',
+            '--env-file', $dir.'/.env',
+            'up', '-d', 'db', 'redis',
+        ], 180);
+
+        // If labels are split across projects, start by container name as fallback.
+        $slug = $provision->slug;
+        $canonical = TenantSiteStack::projectName($slug);
+        foreach ([$canonical.'-db', $canonical.'-redis'] as $name) {
+            $this->run(['docker', 'start', $name], 30);
+        }
+    }
+
+    /**
+     * @param  list<string>  $aliases
+     */
+    protected function syncTenantDomainInsideStack(
+        WebinoSiteProvision $provision,
+        string $domain,
+        array $aliases,
+    ): string {
+        $backend = TenantSiteStack::backendService($provision->slug);
+        $aliasCsv = implode(',', $aliases);
+        $label = TenantAliasDomains::normalizeLabel(
+            $provision->alias_subdomain
+                ?? ($provision->wizard_payload['alias_subdomain'] ?? null)
+        );
+        $cmd = [
+            'docker', 'exec', $backend,
+            'php', 'artisan', 'webino:sync-domain', $domain,
+            '--aliases='.$aliasCsv,
+            '--alias-subdomain='.$label,
+        ];
+        $result = $this->run($cmd, 60);
+        if (($result['exit_code'] ?? 1) !== 0) {
+            // Older dashboard images may lack the artisan command — fall back to SQL.
+            $aliasesJson = json_encode(array_values($aliases), JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
+            $php = 'require "vendor/autoload.php";'
+                .'$app=require "bootstrap/app.php";'
+                .'$app->make(Illuminate\\Contracts\\Console\\Kernel::class)->bootstrap();'
+                .'$t=App\\Models\\Tenant::query()->orderBy("id")->first();'
+                .'if(!$t){fwrite(STDERR,"no tenant"); exit(1);}'
+                .'$t->domain='.var_export($domain, true).';'
+                .'$t->domain_aliases=json_decode('.var_export($aliasesJson, true).', true) ?: [];'
+                .'$t->alias_subdomain='.var_export($label, true).';'
+                .'$t->license_key='.var_export($domain, true).';'
+                .'$t->save(); echo "sql-synced ".$t->domain;' ;
+            $result = $this->run(['docker', 'exec', $backend, 'php', '-r', $php], 60);
+        }
+
+        return trim(($result['stdout'] ?? '').' '.($result['stderr'] ?? ''));
     }
 
     /**
@@ -2306,13 +2428,32 @@ class LocalSameVpsProvisioner
      */
     protected function composeUp(string $slug, string $dir): array
     {
-        return $this->run([
+        $project = $this->composeProjectForSlug($slug);
+        $result = $this->run([
             'docker', 'compose',
-            '-p', TenantSiteStack::projectName($slug),
+            '-p', $project,
             '-f', $dir.'/docker-compose.yml',
             '--env-file', $dir.'/.env',
             'up', '-d', '--remove-orphans',
         ], 900);
+        if (($result['exit_code'] ?? 1) !== 0 && $this->isComposeNameConflict($result)) {
+            $names = [
+                TenantSiteStack::backendService($slug),
+                TenantSiteStack::frontendService($slug),
+                TenantSiteStack::projectName($slug).'-db',
+                TenantSiteStack::projectName($slug).'-redis',
+            ];
+            $this->forceRemoveNamedContainers($names);
+            $result = $this->run([
+                'docker', 'compose',
+                '-p', TenantSiteStack::projectName($slug),
+                '-f', $dir.'/docker-compose.yml',
+                '--env-file', $dir.'/.env',
+                'up', '-d', '--remove-orphans',
+            ], 900);
+        }
+
+        return $result;
     }
 
     /**

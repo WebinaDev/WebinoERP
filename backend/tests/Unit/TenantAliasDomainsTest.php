@@ -21,4 +21,26 @@ class TenantAliasDomainsTest extends TestCase
         $this->assertStringContainsString('ws-demo-backend:8080', $snippet);
         $this->assertStringContainsString('ws-demo-frontend:3000', $snippet);
     }
+
+    public function test_push_legacy_domain_keeps_previous_primary_and_contact(): void
+    {
+        $legacy = TenantAliasDomains::pushLegacyDomain([], 'bluecafe.webinaagency.ir', 'contact');
+        $this->assertContains('bluecafe.webinaagency.ir', $legacy);
+        $this->assertContains('contact.bluecafe.webinaagency.ir', $legacy);
+    }
+
+    public function test_for_provision_includes_legacy_domains(): void
+    {
+        $provision = new \Modules\SiteBuilder\Entities\WebinoSiteProvision([
+            'domain' => 'cafebluedez.ir',
+            'alias_subdomain' => 'contact',
+            'wizard_payload' => [
+                'legacy_domains' => ['bluecafe.webinaagency.ir', 'contact.bluecafe.webinaagency.ir'],
+            ],
+        ]);
+        $aliases = TenantAliasDomains::forProvision($provision);
+        $this->assertContains('contact.cafebluedez.ir', $aliases);
+        $this->assertContains('bluecafe.webinaagency.ir', $aliases);
+        $this->assertNotContains('cafebluedez.ir', $aliases);
+    }
 }

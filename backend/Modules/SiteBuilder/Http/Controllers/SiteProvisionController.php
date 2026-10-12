@@ -194,6 +194,9 @@ class SiteProvisionController extends Controller
             if (! empty($data['domain']) && strtolower($data['domain']) !== strtolower((string) $oldDomain)) {
                 $newDomain = strtolower(trim($data['domain']));
                 $orchestrator->changeDomain($siteProvision, $newDomain);
+                $siteProvision->refresh();
+                // changeDomain writes legacy_domains into wizard_payload — keep that.
+                $wizard = is_array($siteProvision->wizard_payload) ? $siteProvision->wizard_payload : $wizard;
                 $siteProvision->domain = $newDomain;
                 $siteProvision->uses_custom_domain = true;
                 $wizard['custom_domain'] = $newDomain;

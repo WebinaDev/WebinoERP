@@ -205,31 +205,54 @@ class WebinoDashboardProvisioner
 
     public function changeDomain(WebinoSiteProvision $provision, string $newDomain): void
     {
-        $newDomain = strtolower(trim($newDomain));
+        $newDomain = TenantAliasDomains::normalizeHost($newDomain);
         if ($newDomain === '' || ! str_contains($newDomain, '.')) {
             throw new RuntimeException('platform.invalid_domain');
         }
 
         $server = $this->serverFor($provision);
         $dir = $this->siteDir($provision);
+        $previous = TenantAliasDomains::normalizeHost((string) $provision->domain);
+        $wizard = is_array($provision->wizard_payload) ? $provision->wizard_payload : [];
+        $legacy = is_array($wizard['legacy_domains'] ?? null) ? $wizard['legacy_domains'] : [];
+        $wizard['legacy_domains'] = TenantAliasDomains::pushLegacyDomain(
+            $legacy,
+            $previous,
+            $provision->alias_subdomain ?? ($wizard['alias_subdomain'] ?? null)
+        );
+        $wizard['custom_domain'] = $newDomain;
+        $wizard['uses_custom_domain'] = true;
+        $provision->wizard_payload = $wizard;
         $provision->domain = $newDomain;
+        $provision->uses_custom_domain = true;
         $aliases = TenantAliasDomains::forProvision($provision);
 
         $this->writeCaddySnippet($server, $newDomain, $provision->slug, $aliases);
         $this->reloadRemoteCaddy($server);
         $this->syncAliasDomainRows($provision, $aliases);
 
-        $this->docker->sshRun(
-            $server,
-            'if [ -f '.escapeshellarg($dir.'/.env').' ]; then '
-            .'sed -i -E '.escapeshellarg('s|^APP_URL=.*|APP_URL=https://'.$newDomain.'|').' '.escapeshellarg($dir.'/.env').'; '
-            .'grep -q "^APP_URL=" '.escapeshellarg($dir.'/.env').' || echo '.escapeshellarg('APP_URL=https://'.$newDomain).' >> '.escapeshellarg($dir.'/.env').'; '
-            .'fi',
-            30
+        // Rewrite full .env (APP_URL + TENANT_SEED_JSON + Sanctum) via TenantEnvBuilder.
+        $siteType = (string) (
+            ($provision->wizard_payload['site_type_slug'] ?? null)
+            ?: ($provision->package?->businessType?->slug)
+            ?: 'corporate'
         );
+        $token = (string) ($provision->provision_token ?: '');
+        $previousEnv = [];
+        $read = $this->docker->sshRun($server, 'cat '.escapeshellarg($dir.'/.env').' 2>/dev/null || true', 30);
+        foreach (preg_split('/\r?\n/', (string) ($read['stdout'] ?? '')) ?: [] as $line) {
+            if (! str_contains($line, '=')) {
+                continue;
+            }
+            [$k, $v] = explode('=', $line, 2);
+            $previousEnv[trim($k)] = trim($v, " \t\"'");
+        }
+        $env = TenantEnvBuilder::build($provision, $siteType, $token, $previousEnv, false);
+        $this->docker->writeFile($server, $dir.'/.env', $env);
 
         $this->recreateAppServices($server, $provision);
         $this->attachProxyNetwork($server, $provision->slug);
+        $this->syncTenantDomainInsideStackRemote($server, $provision, $newDomain, $aliases);
 
         PlatformResource::query()
             ->where('provision_id', $provision->id)
@@ -995,14 +1018,88 @@ class WebinoDashboardProvisioner
             TenantSiteStack::backendService($provision->slug),
             TenantSiteStack::frontendService($provision->slug),
         ];
+        $svcArgs = implode(' ', array_map('escapeshellarg', $services));
 
-        return $this->docker->sshRun(
+        // Adopt existing compose project label when present to avoid container_name conflicts.
+        $detect = $this->docker->sshRun(
+            $server,
+            'docker inspect -f \'{{index .Config.Labels "com.docker.compose.project"}}\' '
+            .escapeshellarg($services[0]).' 2>/dev/null || true',
+            15
+        );
+        $existing = trim((string) ($detect['stdout'] ?? ''));
+        if ($existing !== '') {
+            $project = $existing;
+        }
+
+        $result = $this->docker->sshRun(
             $server,
             'cd '.escapeshellarg($dir)
             .' && docker compose -p '.escapeshellarg($project)
-            .' --env-file .env up -d --no-deps --force-recreate --remove-orphans '
-            .implode(' ', array_map('escapeshellarg', $services)),
+            .' --env-file .env up -d db redis 2>/dev/null || true'
+            .' && docker compose -p '.escapeshellarg($project)
+            .' --env-file .env up -d --no-deps --force-recreate --remove-orphans '.$svcArgs,
             900
+        );
+
+        $blob = strtolower(($result['stdout'] ?? '')."\n".($result['stderr'] ?? ''));
+        if (($result['exit_code'] ?? 1) !== 0 && (str_contains($blob, 'already in use') || str_contains($blob, 'conflict'))) {
+            $canonical = TenantSiteStack::projectName($provision->slug);
+            $rm = implode(' ', array_map('escapeshellarg', $services));
+            $result = $this->docker->sshRun(
+                $server,
+                'docker rm -f '.$rm.' 2>/dev/null || true; '
+                .'cd '.escapeshellarg($dir)
+                .' && docker compose -p '.escapeshellarg($canonical)
+                .' --env-file .env up -d db redis'
+                .' && docker compose -p '.escapeshellarg($canonical)
+                .' --env-file .env up -d --no-deps --force-recreate --remove-orphans '.$svcArgs,
+                900
+            );
+        }
+
+        return $result;
+    }
+
+    /**
+     * @param  list<string>  $aliases
+     */
+    protected function syncTenantDomainInsideStackRemote(
+        PlatformServer $server,
+        WebinoSiteProvision $provision,
+        string $domain,
+        array $aliases,
+    ): void {
+        $backend = TenantSiteStack::backendService($provision->slug);
+        $aliasCsv = implode(',', $aliases);
+        $label = TenantAliasDomains::normalizeLabel(
+            $provision->alias_subdomain
+                ?? ($provision->wizard_payload['alias_subdomain'] ?? null)
+        );
+        $artisan = 'docker exec '.escapeshellarg($backend)
+            .' php artisan webino:sync-domain '.escapeshellarg($domain)
+            .' --aliases='.escapeshellarg($aliasCsv)
+            .' --alias-subdomain='.escapeshellarg($label);
+        $result = $this->docker->sshRun($server, $artisan, 60);
+        if (($result['exit_code'] ?? 1) === 0) {
+            return;
+        }
+
+        $aliasesJson = json_encode(array_values($aliases), JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
+        $php = 'require "vendor/autoload.php";'
+            .'$app=require "bootstrap/app.php";'
+            .'$app->make(Illuminate\\Contracts\\Console\\Kernel::class)->bootstrap();'
+            .'$t=App\\Models\\Tenant::query()->orderBy("id")->first();'
+            .'if(!$t){fwrite(STDERR,"no tenant"); exit(1);}'
+            .'$t->domain='.var_export($domain, true).';'
+            .'$t->domain_aliases=json_decode('.var_export($aliasesJson, true).', true) ?: [];'
+            .'$t->alias_subdomain='.var_export($label, true).';'
+            .'$t->license_key='.var_export($domain, true).';'
+            .'$t->save(); echo "sql-synced";';
+        $this->docker->sshRun(
+            $server,
+            'docker exec '.escapeshellarg($backend).' php -r '.escapeshellarg($php),
+            60
         );
     }
 
