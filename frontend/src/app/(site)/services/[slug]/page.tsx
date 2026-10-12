@@ -3,6 +3,7 @@ import Link from 'next/link';
 import { apiServer, siteHref } from '@/lib/public-api-server';
 import { serviceBlurb } from '@/themes/webina-corporate-v1/catalog';
 import { SERVICE_MEGA } from '@/themes/webina-corporate-v1/site-nav';
+import { findHomeService } from '@/themes/webina-corporate-v1/home-content';
 import { SitePage } from '@/themes/webina-corporate-v1/components/SitePage';
 
 export const revalidate = 60;
@@ -22,11 +23,15 @@ export default async function ServicePage({ params }: { params: Promise<{ slug: 
     service = null;
   }
 
+  const homeService = findHomeService(slug);
   const column = SERVICE_MEGA.columns.find(
-    (col) => col.href?.endsWith(`/${slug}`) || col.items.some((item) => item.href.endsWith(`/${slug}`)),
+    (col) =>
+      col.href?.endsWith(`/${slug}`) ||
+      col.items.some((item) => item.href.endsWith(`/${slug}`)) ||
+      (homeService ? col.href === homeService.related : false),
   );
   const item = column?.items.find((entry) => entry.href.endsWith(`/${slug}`));
-  const blurb = serviceBlurb(slug, locale);
+  const blurb = homeService ? t(`site.v2.service.${homeService.key}Body`) : serviceBlurb(slug, locale);
 
   if (!service && !column && !blurb) {
     return <SitePage title={t('auto.services__slug__page.s_d45e5bd4')} />;
@@ -34,7 +39,9 @@ export default async function ServicePage({ params }: { params: Promise<{ slug: 
 
   const title = locale === 'fa' && service?.title
     ? service.title
-    : t(item?.labelKey ?? column?.titleKey ?? 'site.nav.services');
+    : homeService
+      ? t(`site.v2.service.${homeService.key}Title`)
+      : t(item?.labelKey ?? column?.titleKey ?? 'site.nav.services');
 
   return (
     <SitePage kicker={column ? t(column.titleKey) : t('site.nav.services')} title={title} lead={service?.excerpt || blurb || undefined}>

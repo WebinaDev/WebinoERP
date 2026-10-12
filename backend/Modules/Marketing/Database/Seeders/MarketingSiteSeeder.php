@@ -57,7 +57,7 @@ class MarketingSiteSeeder extends Seeder
         $branding['description'] = $branding['description'] ?? 'شرکت توسعه کسب و کار وبینا.';
         $blocks = is_array($settings->home_blocks) ? $settings->home_blocks : [];
         $types = array_map(fn ($b) => $b['type'] ?? '', $blocks);
-        foreach (['hero', 'stats', 'services', 'products', 'solutions', 'process', 'portfolio_teaser', 'testimonials', 'announcements', 'blog', 'consultation_cta'] as $type) {
+        foreach (['hero', 'about', 'stats', 'services', 'products', 'solutions', 'portfolio_teaser', 'process', 'academy', 'blog', 'why', 'testimonials', 'announcements', 'consultation_cta'] as $type) {
             if (! in_array($type, $types, true)) {
                 $blocks[] = ['type' => $type, 'enabled' => true];
             }

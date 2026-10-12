@@ -1,7 +1,7 @@
 import Link from 'next/link';
 import { getLocale, getTranslations } from 'next-intl/server';
 import { siteHref } from '@/lib/public-api-server';
-import { SERVICE_MEGA, SOLUTION_MEGA } from '../site-nav';
+import { FOOTER_QUICK_LINKS } from '../home-content';
 import { LogoLockup } from './LogoLockup';
 import { TrustBadgeRail, type TrustBadge } from './TrustBadgeRail';
 
@@ -19,14 +19,42 @@ type BadgeInput = {
   image?: string | null;
 };
 
+export type FooterSocial = { label: string; href: string };
+export type FooterContact = { phone?: string | null; email?: string | null; address?: string | null };
+
+/** Accepts the stored social_links shapes: [{label|name|platform, url|href}] or { platform: url }. */
+export function normalizeSocials(raw: unknown): FooterSocial[] {
+  if (Array.isArray(raw)) {
+    return raw
+      .map((row) => {
+        if (!row || typeof row !== 'object') return null;
+        const r = row as Record<string, unknown>;
+        const href = String(r.url ?? r.href ?? '');
+        const label = String(r.label ?? r.name ?? r.platform ?? href);
+        return href ? { label, href } : null;
+      })
+      .filter(Boolean) as FooterSocial[];
+  }
+  if (raw && typeof raw === 'object') {
+    return Object.entries(raw as Record<string, unknown>)
+      .filter(([, v]) => typeof v === 'string' && v)
+      .map(([k, v]) => ({ label: k, href: String(v) }));
+  }
+  return [];
+}
+
 export async function SiteFooter({
   siteName,
   logoUrl,
   badges,
+  socials,
+  contact,
 }: {
   siteName: string;
   logoUrl?: string | null;
   badges?: BadgeInput[] | null;
+  socials?: FooterSocial[] | null;
+  contact?: FooterContact | null;
 }) {
   const t = await getTranslations();
   const locale = await getLocale();
@@ -46,64 +74,67 @@ export async function SiteFooter({
         image: b.image,
       }))
     : fallback;
+  const hasContact = Boolean(contact?.phone || contact?.email || contact?.address);
 
   return (
     <footer className="site-footer">
-      <div className="webina-shell footer-grid">
+      <div className="webina-shell footer-grid v2">
         <div>
           <LogoLockup siteName={siteName} logoUrl={logoUrl} compact tagline={t('site.footer.agencyTagline')} />
           <p className="mt-5 max-w-sm text-sm leading-7">{t('site.footer.tagline')}</p>
-          <p className="footer-legal mt-2 text-xs leading-6">{t('site.footer.legalName')}</p>
           <Link href={siteHref(undefined, 'consultation')} className="btn-primary mt-6">
-            {t('site.nav.freeConsultation')}
+            {t('site.v2.heroCta1')}
           </Link>
         </div>
         <div>
-          <h2>{t('site.nav.services')}</h2>
+          <h2>{t('site.v2.footerQuick')}</h2>
           <ul>
-            {SERVICE_MEGA.columns.map((c) => (
-              <li key={c.titleKey}>
-                <Link href={siteHref(undefined, c.href || 'services')}>{t(c.titleKey)}</Link>
+            {FOOTER_QUICK_LINKS.map((link) => (
+              <li key={link.href}>
+                <Link href={siteHref(undefined, link.href)}>{t(`site.v2.quick.${link.key}`)}</Link>
               </li>
             ))}
           </ul>
         </div>
         <div>
-          <h2>{t('site.nav.solutions')}</h2>
+          <h2>{t('site.v2.footerContact')}</h2>
           <ul>
-            {SOLUTION_MEGA.columns.map((c) => (
-              <li key={c.titleKey}>
-                <Link href={siteHref(undefined, c.href || 'solutions')}>{t(c.titleKey)}</Link>
+            {contact?.phone ? (
+              <li>
+                <a href={`tel:${contact.phone}`} dir="ltr">{contact.phone}</a>
               </li>
-            ))}
-          </ul>
-        </div>
-        <div>
-          <h2>{t('site.nav.products')}</h2>
-          <ul>
-            <li><Link href={siteHref(undefined, 'products#dashboard')}>{t('site.product.dashboardTitle')}</Link></li>
-            <li><Link href={siteHref(undefined, 'products#erp')}>{t('site.product.erpTitle')}</Link></li>
-            <li><Link href={siteHref(undefined, 'products#docs')}>{t('site.product.docsTitle')}</Link></li>
-            <li><Link href={siteHref(undefined, 'products#hosting')}>{t('site.product.hostingTitle')}</Link></li>
-            <li><Link href={siteHref(undefined, 'portfolio')}>{t('site.nav.portfolio')}</Link></li>
-          </ul>
-        </div>
-        <div>
-          <h2>{t('site.nav.company')}</h2>
-          <ul>
-            <li><Link href={siteHref(undefined, 'about')}>{t('site.nav.about')}</Link></li>
-            <li><Link href={siteHref(undefined, 'team')}>{t('site.nav.team')}</Link></li>
-            <li><Link href={siteHref(undefined, 'blog')}>{t('site.nav.blog')}</Link></li>
-            <li><Link href={siteHref(undefined, 'academy')}>{t('site.nav.academy')}</Link></li>
-            <li><Link href={siteHref(undefined, 'faq')}>{t('site.nav.faq')}</Link></li>
-            <li><Link href={siteHref(undefined, 'proposal')}>{t('site.nav.proposal')}</Link></li>
-            <li><Link href={siteHref(undefined, 'contact')}>{t('site.nav.contact')}</Link></li>
+            ) : null}
+            {contact?.email ? (
+              <li>
+                <a href={`mailto:${contact.email}`} dir="ltr">{contact.email}</a>
+              </li>
+            ) : null}
+            {contact?.address ? <li>{contact.address}</li> : null}
+            <li>
+              <Link href={siteHref(undefined, 'contact')} className={hasContact ? '' : 'font-bold text-[var(--brand-primary)]'}>
+                {t('site.v2.footerContactPage')}
+              </Link>
+            </li>
             {LEGAL.map((l) => (
               <li key={l.slug}>
                 <Link href={siteHref(undefined, `pages/${l.slug}`)}>{t(l.labelKey)}</Link>
               </li>
             ))}
           </ul>
+        </div>
+        <div>
+          <h2>{t('site.v2.footerSocial')}</h2>
+          {socials?.length ? (
+            <div className="footer-social">
+              {socials.map((s) => (
+                <a key={s.href} href={s.href} target="_blank" rel="noreferrer">
+                  {s.label}
+                </a>
+              ))}
+            </div>
+          ) : (
+            <p className="mt-3 text-sm leading-7 text-[var(--muted)]">{t('site.v2.footerSocialEmpty')}</p>
+          )}
         </div>
       </div>
       <TrustBadgeRail

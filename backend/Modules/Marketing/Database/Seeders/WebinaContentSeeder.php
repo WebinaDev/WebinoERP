@@ -3,6 +3,7 @@
 namespace Modules\Marketing\Database\Seeders;
 
 use Illuminate\Database\Seeder;
+use Modules\Marketing\Entities\MarketingAcademyCourse;
 use Modules\Marketing\Entities\MarketingFaqItem;
 use Modules\Marketing\Entities\MarketingForm;
 use Modules\Marketing\Entities\MarketingMenu;
@@ -33,6 +34,7 @@ class WebinaContentSeeder extends Seeder
         $this->forms();
         $this->company();
         $this->homeDraft();
+        $this->courses();
     }
 
     private function services(): void
@@ -345,5 +347,25 @@ class WebinaContentSeeder extends Seeder
                 ],
             ]
         );
+    }
+
+    /** Homepage brief §7 — course titles verbatim; descriptions intentionally left empty. */
+    private function courses(): void
+    {
+        $rows = [
+            'sales-funnel-conversion' => 'دوره طراحی قیف فروش و افزایش نرخ تبدیل',
+            'online-store-launch' => 'دوره راه‌اندازی فروشگاه اینترنتی اصولی',
+            'smb-automation' => 'دوره اتوماسیون کسب‌وکارهای کوچک و متوسط',
+            'startup-branding' => 'دوره برندینگ کاربردی برای استارتاپ‌ها',
+            'digital-growth-management' => 'دوره مدیریت رشد دیجیتال',
+        ];
+        $sort = 10;
+        foreach ($rows as $slug => $title) {
+            MarketingAcademyCourse::query()->updateOrCreate(
+                ['slug' => $slug],
+                ['title' => $title, 'published' => true, 'sort_order' => $sort],
+            );
+            $sort += 10;
+        }
     }
 }

@@ -4,6 +4,7 @@ import { apiServer, siteHref } from '@/lib/public-api-server';
 import { PRODUCTS, copyFor } from '@/themes/webina-corporate-v1/catalog';
 import { NavIcon } from '@/themes/webina-corporate-v1/components/NavIcon';
 import { SitePage } from '@/themes/webina-corporate-v1/components/SitePage';
+import { HOME_MODULES } from '@/themes/webina-corporate-v1/home-content';
 
 export const revalidate = 60;
 
@@ -31,6 +32,18 @@ export default async function ProductsPage() {
             <Link href={siteHref(undefined, `portfolio/${product.portfolioSlug}`)} className="mt-3 inline-block text-sm font-bold text-[var(--saffron-deep)]">
               {t('site.nav.portfolio')}
             </Link>
+          </article>
+        ))}
+      </div>
+      <h2 className="mt-14 text-2xl font-extrabold">{t('site.v2.modulesHeading')}</h2>
+      <p className="muted mt-2 max-w-2xl">{t('site.v2.productsIntro')}</p>
+      <div className="mod-grid">
+        {HOME_MODULES.map((mod) => (
+          <article key={mod.id} id={mod.id} className="mod-card scroll-mt-28">
+            <span className="mega-ico">
+              <NavIcon name={mod.icon} className="size-4" />
+            </span>
+            <h3>{t(`site.v2.module.${mod.key}`)}</h3>
           </article>
         ))}
       </div>

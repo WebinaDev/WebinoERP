@@ -1,7 +1,7 @@
 import type { Metadata } from 'next';
 import type { ReactNode } from 'react';
 import { ThemeSlot } from '@/builder/theme/ThemeSlot';
-import { SiteFooter } from '@/themes/webina-corporate-v1/components/SiteFooter';
+import { SiteFooter, normalizeSocials, type FooterContact, type FooterSocial } from '@/themes/webina-corporate-v1/components/SiteFooter';
 import { SiteHeader } from '@/themes/webina-corporate-v1/components/SiteHeader';
 import { getPublicSite } from '@/lib/public-api-server';
 import '@/themes/webina-corporate-v1/components/public-site.css';
@@ -28,6 +28,8 @@ export default async function SiteLayout({ children }: { children: ReactNode }) 
   let siteName = 'وبینا';
   let logoUrl: string | null = null;
   let badges: TrustBadge[] | null = null;
+  let socials: FooterSocial[] = [];
+  let contact: FooterContact | null = null;
   try {
     const res = await getPublicSite();
     siteName = res.data.name ?? siteName;
@@ -35,6 +37,10 @@ export default async function SiteLayout({ children }: { children: ReactNode }) 
     const branding = res.data.branding;
     if (branding && Array.isArray(branding.trust_badges)) {
       badges = branding.trust_badges as TrustBadge[];
+    }
+    socials = normalizeSocials(res.data.social_links);
+    if (branding && branding.contact && typeof branding.contact === 'object') {
+      contact = branding.contact as FooterContact;
     }
   } catch {
     /* fallback chrome still renders */
@@ -47,7 +53,7 @@ export default async function SiteLayout({ children }: { children: ReactNode }) 
       </ThemeSlot>
       <main className="flex-1">{children}</main>
       <ThemeSlot kind="footer">
-        <SiteFooter siteName={siteName} logoUrl={logoUrl} badges={badges} />
+        <SiteFooter siteName={siteName} logoUrl={logoUrl} badges={badges} socials={socials} contact={contact} />
       </ThemeSlot>
     </div>
   );

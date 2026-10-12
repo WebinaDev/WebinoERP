@@ -4,6 +4,7 @@ namespace Modules\Marketing\Http\Controllers\Public;
 
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Modules\Marketing\Entities\MarketingAcademyCourse;
 use Modules\Marketing\Entities\MarketingAnnouncement;
 use Modules\Marketing\Entities\MarketingBlogPost;
 use Modules\Marketing\Entities\MarketingFaqItem;
@@ -66,11 +67,14 @@ class PublicSiteController extends Controller
                     ->orderByDesc('pinned')->orderByDesc('id')->limit(5)->get(),
                 'testimonials' => MarketingTestimonial::query()->published()
                     ->orderBy('sort_order')->limit(6)->get(),
-                'portfolio' => MarketingPortfolioItem::query()->published()
+                'portfolio' => MarketingPortfolioItem::query()->published()->with('industry:id,slug,name')
                     ->orderByDesc('featured')->orderByDesc('published_at')->orderBy('id')->limit(10)->get(),
                 'blog' => MarketingBlogPost::query()->published()
-                    ->orderByDesc('published_at')->limit(3)
+                    ->orderByDesc('published_at')->limit(4)
                     ->get(['id', 'slug', 'title', 'excerpt', 'cover_url', 'published_at']),
+                'courses' => MarketingAcademyCourse::query()->where('published', true)
+                    ->orderBy('sort_order')->orderBy('id')->limit(5)
+                    ->get(['id', 'slug', 'title', 'description', 'cover_url']),
                 'services' => MarketingServiceCategory::query()
                     ->whereNull('parent_id')->orderBy('sort_order')->with('children')->limit(12)->get(),
                 'solutions' => MarketingSolutionIndustry::query()
