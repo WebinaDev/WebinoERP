@@ -73,13 +73,26 @@ class SiteContentDefaults
             }
         }
 
-        foreach (['header', 'footer', 'contact'] as $key) {
+        foreach (['header', 'footer', 'contact', 'contact_page', 'company'] as $key) {
             $current = is_array($branding[$key] ?? null) ? $branding[$key] : [];
-            $branding[$key] = $current + ($defaults[$key] ?? []);
+            $branding[$key] = self::fillEmpty($current, $defaults[$key] ?? []);
         }
 
         $social = is_array($social) && $social !== [] ? $social : ($defaults['social_links'] ?? []);
 
         return [$blocks, $branding, $social];
+    }
+
+    /** Keys that are missing, null, '' or [] take the default; anything else is kept. */
+    public static function fillEmpty(array $current, array $defaults): array
+    {
+        foreach ($defaults as $key => $value) {
+            $have = $current[$key] ?? null;
+            if ($have === null || $have === '' || $have === []) {
+                $current[$key] = $value;
+            }
+        }
+
+        return $current;
     }
 }

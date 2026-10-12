@@ -5,6 +5,7 @@ import {
   footerDefaults,
   isExternalHref,
   mergeContent,
+  normalizeCompany,
   normalizeContact,
   normalizeSocials,
   type FooterData,
@@ -50,6 +51,7 @@ export async function SiteFooter({
   socials,
   contact,
   footer,
+  company,
 }: {
   siteName: string;
   logoUrl?: string | null;
@@ -57,6 +59,7 @@ export async function SiteFooter({
   socials?: unknown;
   contact?: unknown;
   footer?: unknown;
+  company?: unknown;
 }) {
   const t = await getTranslations();
   const locale = await getLocale();
@@ -64,6 +67,7 @@ export async function SiteFooter({
   const data: FooterData = fa ? mergeContent(footerDefaults(t), footer) : footerDefaults(t);
   const links = normalizeSocials(socials);
   const reach = normalizeContact(contact);
+  const firm = fa ? normalizeCompany(company) : null;
   const year = new Intl.DateTimeFormat(fa ? 'fa-IR-u-ca-persian' : 'en-US', { year: 'numeric' }).format(new Date());
   const fallback: TrustBadge[] = [
     { id: 'enamad', label: t('site.footer.badgeEnamad'), hint: t('site.footer.badgeEnamadHint') },
@@ -169,6 +173,17 @@ export async function SiteFooter({
         prevLabel={t('site.footer.trustPrev')}
         nextLabel={t('site.footer.trustNext')}
       />
+      {firm?.show_in_footer ? (
+        <div className="webina-shell footer-legal">
+          <strong>
+            {firm.name}
+            {firm.legal_type ? ` (${firm.legal_type})` : ''}
+          </strong>
+          {firm.registration_no ? <span>شماره ثبت: {firm.registration_no}</span> : null}
+          {firm.national_id ? <span>شناسه ملی: {firm.national_id}</span> : null}
+          {firm.address ? <span className="footer-legal-address">{firm.address}</span> : null}
+        </div>
+      ) : null}
       <div className="webina-shell footer-base">
         <span>{data.copyright.replace('{year}', year).replace('{site}', siteName)}</span>
         {data.legal_name ? <span>{data.legal_name}</span> : null}

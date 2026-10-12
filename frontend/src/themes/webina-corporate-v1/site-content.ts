@@ -652,3 +652,237 @@ export const BADGE_FIELDS: FieldSpec[] = [
   { key: 'href', label: 'پیوند', kind: 'url' },
   { key: 'image', label: 'نشانی تصویر نماد', kind: 'url' },
 ];
+
+// ---------------------------------------------------------------------------
+// Contact page (/contact): stored in `branding.contact_page`.
+// ---------------------------------------------------------------------------
+
+export type ContactChannel = { label: string; value: string; href?: string; icon?: string; action_label?: string; note?: string };
+export type ContactPageData = {
+  hero_kicker: string;
+  hero_title: string;
+  hero_lead: string;
+  hero_buttons: ButtonItem[];
+  channels_title: string;
+  channels_lead: string;
+  channels: ContactChannel[];
+  copy_label: string;
+  copied_label: string;
+  form_enabled: boolean;
+  form_slug: string;
+  form_title: string;
+  form_lead: string;
+  submit_label: string;
+  success_title: string;
+  success_text: string;
+  again_label: string;
+  privacy_note: string;
+  map_enabled: boolean;
+  map_title: string;
+  map_address: string;
+  map_lat: string;
+  map_lng: string;
+  map_zoom: number;
+  map_embed_url: string;
+  map_directions_url: string;
+  map_links: LinkItem[];
+  map_empty_text: string;
+  hours_title: string;
+  hours: { days: string; time: string }[];
+  hours_note: string;
+  hours_empty: string;
+  social_title: string;
+  social_lead: string;
+  faq_enabled: boolean;
+  faq_title: string;
+  faq_limit: number;
+  faq_items: { question: string; answer: string }[];
+  cta_title: string;
+  cta_text: string;
+  cta_buttons: ButtonItem[];
+};
+
+export function contactPageDefaults(t: T): ContactPageData {
+  const c = (k: string) => t(`site.contactPage.${k}`);
+  return {
+    hero_kicker: c('heroKicker'),
+    hero_title: c('heroTitle'),
+    hero_lead: c('heroLead'),
+    hero_buttons: [
+      { label: c('heroPrimary'), href: '#contact-form', style: 'primary' },
+      { label: c('heroSecondary'), href: 'consultation', style: 'ghost' },
+    ],
+    channels_title: c('channelsTitle'),
+    channels_lead: c('channelsLead'),
+    channels: [],
+    copy_label: c('copy'),
+    copied_label: c('copied'),
+    form_enabled: true,
+    form_slug: 'contact',
+    form_title: c('formTitle'),
+    form_lead: c('formLead'),
+    submit_label: c('submit'),
+    success_title: c('successTitle'),
+    success_text: c('successText'),
+    again_label: c('again'),
+    privacy_note: c('privacy'),
+    map_enabled: true,
+    map_title: c('mapTitle'),
+    map_address: '',
+    map_lat: '',
+    map_lng: '',
+    map_zoom: 15,
+    map_embed_url: '',
+    map_directions_url: '',
+    map_links: [],
+    map_empty_text: c('mapEmpty'),
+    hours_title: c('hoursTitle'),
+    hours: [],
+    hours_note: '',
+    hours_empty: c('hoursEmpty'),
+    social_title: c('socialTitle'),
+    social_lead: c('socialLead'),
+    faq_enabled: true,
+    faq_title: c('faqTitle'),
+    faq_limit: 4,
+    faq_items: [],
+    cta_title: c('ctaTitle'),
+    cta_text: c('ctaText'),
+    cta_buttons: [
+      { label: c('ctaPrimary'), href: 'consultation', style: 'primary' },
+      { label: c('ctaSecondary'), href: 'proposal', style: 'ghost' },
+    ],
+  };
+}
+
+/** Icon for a channel when none is set, guessed from its link. */
+export function channelIcon(channel: { href?: string; icon?: string }): string {
+  if (channel.icon) return channel.icon;
+  const href = channel.href ?? '';
+  if (href.startsWith('tel:')) return 'Phone';
+  if (href.startsWith('mailto:')) return 'Mail';
+  if (href.includes('wa.me') || href.includes('whatsapp')) return 'MessageCircle';
+  if (href.includes('t.me')) return 'Send';
+  if (href.includes('instagram')) return 'Instagram';
+  if (href.includes('linkedin')) return 'Linkedin';
+  return 'MessageSquare';
+}
+
+export const CONTACT_PAGE_SCHEMA: FieldSpec[] = [
+  { key: 'hero_kicker', label: 'هیرو: برچسب بالا', kind: 'text' },
+  { key: 'hero_title', label: 'هیرو: عنوان', kind: 'text' },
+  { key: 'hero_lead', label: 'هیرو: متن', kind: 'textarea' },
+  { key: 'hero_buttons', label: 'هیرو: دکمه‌ها (#contact-form = فرم همین صفحه)', kind: 'list', fields: BUTTON_FIELDS, itemTitle: 'label' },
+  { key: 'channels_title', label: 'کارت‌های تماس: عنوان', kind: 'text' },
+  { key: 'channels_lead', label: 'کارت‌های تماس: توضیح', kind: 'textarea' },
+  {
+    key: 'channels',
+    label: 'کارت‌های تماس (خالی = از «تماس و شبکه‌ها»)',
+    kind: 'list',
+    itemTitle: 'label',
+    fields: [
+      { key: 'label', label: 'عنوان', kind: 'text' },
+      { key: 'value', label: 'مقدار نمایشی (کپی می‌شود)', kind: 'text' },
+      { key: 'href', label: 'پیوند (tel:، https://wa.me/…)', kind: 'url' },
+      { key: 'icon', label: 'آیکن', kind: 'icon' },
+      { key: 'action_label', label: 'متن دکمه', kind: 'text' },
+      { key: 'note', label: 'توضیح کوتاه', kind: 'text' },
+    ],
+  },
+  { key: 'copy_label', label: 'متن دکمه کپی', kind: 'text' },
+  { key: 'copied_label', label: 'متن «کپی شد»', kind: 'text' },
+  { key: 'form_enabled', label: 'نمایش فرم', kind: 'switch' },
+  { key: 'form_slug', label: 'نامک فرم (بازاریابی ← فرم‌ها)', kind: 'text' },
+  { key: 'form_title', label: 'فرم: عنوان', kind: 'text' },
+  { key: 'form_lead', label: 'فرم: توضیح', kind: 'textarea' },
+  { key: 'submit_label', label: 'فرم: دکمه ارسال', kind: 'text' },
+  { key: 'success_title', label: 'فرم: عنوان موفقیت', kind: 'text' },
+  { key: 'success_text', label: 'فرم: متن موفقیت (خالی = پیام فرم)', kind: 'textarea' },
+  { key: 'again_label', label: 'فرم: دکمه پیام دوباره', kind: 'text' },
+  { key: 'privacy_note', label: 'فرم: یادداشت حریم خصوصی', kind: 'text' },
+  { key: 'map_enabled', label: 'نمایش بخش نقشه', kind: 'switch' },
+  { key: 'map_title', label: 'نقشه: عنوان', kind: 'text' },
+  { key: 'map_address', label: 'نقشه: نشانی', kind: 'textarea' },
+  { key: 'map_lat', label: 'نقشه: عرض جغرافیایی (lat)', kind: 'text' },
+  { key: 'map_lng', label: 'نقشه: طول جغرافیایی (lng)', kind: 'text' },
+  { key: 'map_zoom', label: 'نقشه: بزرگ‌نمایی (۳ تا ۱۹)', kind: 'number' },
+  { key: 'map_embed_url', label: 'نقشه: نشانی جاسازی نشان یا بلد (اختیاری)', kind: 'url' },
+  { key: 'map_directions_url', label: 'نقشه: پیوند مسیریابی (اختیاری)', kind: 'url' },
+  { key: 'map_links', label: 'نقشه: دکمه‌های مسیریابی (نشان، بلد، گوگل…)', kind: 'list', fields: LINK_FIELDS, itemTitle: 'label' },
+  { key: 'map_empty_text', label: 'نقشه: متن وقتی نشانی نیست', kind: 'textarea' },
+  { key: 'hours_title', label: 'ساعت کاری: عنوان', kind: 'text' },
+  {
+    key: 'hours',
+    label: 'ساعت کاری',
+    kind: 'list',
+    itemTitle: 'days',
+    fields: [
+      { key: 'days', label: 'روزها', kind: 'text' },
+      { key: 'time', label: 'ساعت', kind: 'text' },
+    ],
+  },
+  { key: 'hours_note', label: 'ساعت کاری: یادداشت', kind: 'text' },
+  { key: 'hours_empty', label: 'ساعت کاری: متن خالی', kind: 'text' },
+  { key: 'social_title', label: 'شبکه‌ها: عنوان', kind: 'text' },
+  { key: 'social_lead', label: 'شبکه‌ها: توضیح', kind: 'text' },
+  { key: 'faq_enabled', label: 'نمایش پرسش‌ها', kind: 'switch' },
+  { key: 'faq_title', label: 'پرسش‌ها: عنوان', kind: 'text' },
+  { key: 'faq_limit', label: 'پرسش‌ها: تعداد', kind: 'number' },
+  {
+    key: 'faq_items',
+    label: 'پرسش‌های اختصاصی (خالی = از بخش FAQ داشبورد)',
+    kind: 'list',
+    itemTitle: 'question',
+    fields: [
+      { key: 'question', label: 'پرسش', kind: 'text' },
+      { key: 'answer', label: 'پاسخ', kind: 'textarea' },
+    ],
+  },
+  { key: 'cta_title', label: 'دعوت پایانی: عنوان', kind: 'text' },
+  { key: 'cta_text', label: 'دعوت پایانی: متن', kind: 'textarea' },
+  { key: 'cta_buttons', label: 'دعوت پایانی: دکمه‌ها', kind: 'list', fields: BUTTON_FIELDS, itemTitle: 'label' },
+];
+
+// ---------------------------------------------------------------------------
+// Official company record: `branding.company` (contact page, about page, footer).
+// ---------------------------------------------------------------------------
+
+export type CompanyData = {
+  name: string;
+  legal_type: string;
+  registered_at: string;
+  city: string;
+  registration_no: string;
+  national_id: string;
+  activity: string;
+  address: string;
+  show_in_footer: boolean;
+};
+
+export function normalizeCompany(raw: unknown): CompanyData | null {
+  if (!isObj(raw) || !raw.name) return null;
+  const s = (k: string) => (raw[k] === null || raw[k] === undefined ? '' : String(raw[k]));
+  return {
+    name: s('name'),
+    legal_type: s('legal_type'),
+    registered_at: s('registered_at'),
+    city: s('city'),
+    registration_no: s('registration_no'),
+    national_id: s('national_id'),
+    activity: s('activity'),
+    address: s('address'),
+    show_in_footer: raw.show_in_footer !== false,
+  };
+}
+
+export const COMPANY_SCHEMA: FieldSpec[] = [
+  { key: 'name', label: 'نام شرکت', kind: 'text' },
+  { key: 'legal_type', label: 'نوع شرکت', kind: 'text' },
+  { key: 'registered_at', label: 'تاریخ ثبت', kind: 'text' },
+  { key: 'city', label: 'محل ثبت', kind: 'text' },
+  { key: 'registration_no', label: 'شماره ثبت', kind: 'text' },
+  { key: 'national_id', label: 'شناسه ملی', kind: 'text' },
+  { key: 'activity', label: 'موضوع فعالیت', kind: 'text' },
+  { key: 'address', label: 'نشانی دفتر مرکزی', kind: 'textarea' },
+  { key: 'show_in_footer', label: 'نمایش در پابرگ', kind: 'switch' },
+];

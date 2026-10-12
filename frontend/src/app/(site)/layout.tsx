@@ -32,6 +32,7 @@ export default async function SiteLayout({ children }: { children: ReactNode }) 
   let contact: unknown = null;
   let header: unknown = null;
   let footer: unknown = null;
+  let company: unknown = null;
   try {
     const res = await getPublicSite();
     siteName = res.data.name ?? siteName;
@@ -44,6 +45,7 @@ export default async function SiteLayout({ children }: { children: ReactNode }) 
     contact = branding?.contact ?? null;
     header = branding?.header ?? null;
     footer = branding?.footer ?? null;
+    company = branding?.company ?? null;
   } catch {
     /* fallback chrome still renders */
   }
@@ -55,7 +57,7 @@ export default async function SiteLayout({ children }: { children: ReactNode }) 
       </ThemeSlot>
       <main className="flex-1">{children}</main>
       <ThemeSlot kind="footer">
-        <SiteFooter siteName={siteName} logoUrl={logoUrl} badges={badges} socials={socials} contact={contact} footer={footer} />
+        <SiteFooter siteName={siteName} logoUrl={logoUrl} badges={badges} socials={socials} contact={contact} footer={footer} company={company} />
       </ThemeSlot>
     </div>
   );

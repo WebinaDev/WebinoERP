@@ -39,7 +39,7 @@ export default async function NotFound() {
         </ThemeSlot>
       </main>
       <ThemeSlot kind="footer" context={{ notFound: true, path: '/404' }}>
-        <SiteFooter siteName={siteName} logoUrl={logoUrl} footer={branding?.footer} contact={branding?.contact} socials={socials} />
+        <SiteFooter siteName={siteName} logoUrl={logoUrl} footer={branding?.footer} company={branding?.company} contact={branding?.contact} socials={socials} />
       </ThemeSlot>
     </div>
   );

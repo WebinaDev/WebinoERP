@@ -10,6 +10,8 @@ import { Button } from "@/components/ui/button"
 import { api } from "@/lib/builder-api"
 import {
   BADGE_FIELDS,
+  COMPANY_SCHEMA,
+  CONTACT_PAGE_SCHEMA,
   CONTACT_SCHEMA,
   FOOTER_SCHEMA,
   HEADER_SCHEMA,
@@ -29,6 +31,8 @@ const TABS = [
   { id: "header", label: "سربرگ" },
   { id: "footer", label: "پابرگ" },
   { id: "contact", label: "تماس و شبکه‌ها" },
+  { id: "contact_page", label: "صفحه تماس" },
+  { id: "company", label: "اطلاعات شرکت" },
   { id: "badges", label: "نشان‌های اعتماد" },
 ] as const
 type TabId = (typeof TABS)[number]["id"]
@@ -193,6 +197,22 @@ export function HomeBuilderPage() {
             value={socials}
             onChange={(v) => setSocials(v)}
           />
+        </Panel>
+      ) : null}
+
+      {loaded && tab === "company" ? (
+        <Panel>
+          <p className="text-muted-foreground text-xs">اطلاعات ثبتی رسمی؛ در پابرگ، صفحه تماس و صفحه درباره ما استفاده می‌شود.</p>
+          <SchemaForm fields={COMPANY_SCHEMA} value={brandingPart("company")} onChange={(v) => setBrandingPart("company", v)} />
+        </Panel>
+      ) : null}
+
+      {loaded && tab === "contact_page" ? (
+        <Panel>
+          <p className="text-muted-foreground text-xs">
+            صفحه /contact. شماره‌ها و شبکه‌ها از «تماس و شبکه‌ها» هم خوانده می‌شوند؛ فیلدهای فرم در بازاریابی ← فرم‌ها (نامک contact) ویرایش می‌شوند.
+          </p>
+          <SchemaForm fields={CONTACT_PAGE_SCHEMA} value={brandingPart("contact_page")} onChange={(v) => setBrandingPart("contact_page", v)} />
         </Panel>
       ) : null}
 

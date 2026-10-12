@@ -2,11 +2,14 @@
 
 namespace Tests\Feature;
 
+use Illuminate\Foundation\Testing\RefreshDatabase;
 use Modules\Marketing\Services\SiteContentDefaults;
 use Tests\TestCase;
 
 class MarketingSiteContentDefaultsTest extends TestCase
 {
+    use RefreshDatabase;
+
     public function test_first_run_orders_blocks_and_keeps_switches(): void
     {
         [$blocks, $branding, $social] = SiteContentDefaults::apply(
@@ -28,6 +31,10 @@ class MarketingSiteContentDefaultsTest extends TestCase
         $this->assertNotEmpty($branding['header']['nav']);
         $this->assertNotEmpty($branding['footer']['quick_links']);
         $this->assertSame('https://instagram.com/WebinaAgency', $social[0]['href']);
+        $this->assertSame('contact', $branding['contact_page']['form_slug']);
+        $this->assertSame('tel:+982191017441', $branding['contact_page']['channels'][0]['href']);
+        $this->assertStringContainsString('اندیشه', $branding['contact_page']['map_address']);
+        $this->assertSame('۱۳۱۰۶', $branding['company']['registration_no']);
     }
 
     public function test_existing_edits_are_never_overwritten(): void
@@ -44,5 +51,17 @@ class MarketingSiteContentDefaultsTest extends TestCase
         $this->assertArrayHasKey('quick_links', $branding['footer']);
         $this->assertSame('X', $social[0]['label']);
         $this->assertContains('about', array_column($blocks, 'type'));
+    }
+
+    public function test_contact_form_accepts_a_submission(): void
+    {
+        $this->withoutMiddleware(\Illuminate\Routing\Middleware\ThrottleRequests::class);
+        $this->seed(\Modules\Marketing\Database\Seeders\MarketingSiteSeeder::class);
+
+        $this->getJson('/api/v1/public/forms/contact')->assertOk()->assertJsonPath('data.fields.0.name', 'name');
+        $this->postJson('/api/v1/public/forms/contact', ['payload' => ['name' => 'آزمون', 'phone' => '09120000000']])
+            ->assertStatus(422);
+        $this->postJson('/api/v1/public/forms/contact', ['payload' => ['name' => 'آزمون', 'phone' => '09120000000', 'message' => 'سلام', 'topic' => 'مشاوره']])
+            ->assertCreated();
     }
 }

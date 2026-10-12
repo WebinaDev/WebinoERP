@@ -890,7 +890,7 @@
       }
     ],
     "email": "",
-    "address": ""
+    "address": "استان تهران، شهرستان شهریار، شهر جدید اندیشه، فاز یک اندیشه، میدان امام خمینی، خیابان شقایق هفتم شرقی، پلاک ۴۴، طبقه ۱، واحد ۶"
   },
   "social_links": [
     {
@@ -941,5 +941,143 @@
       "href": "https://webina.dev",
       "icon": "Globe"
     }
-  ]
+  ],
+  "contact_page": {
+    "hero_kicker": "تماس با وبینا",
+    "hero_title": "خط مستقیم با وبینا",
+    "hero_lead": "پشتیبانی، شبکه‌های اجتماعی و کانال‌های رسمی برای همکاری، مشاوره و پیگیری پروژه.",
+    "hero_buttons": [
+      {
+        "label": "ارسال پیام",
+        "href": "#contact-form",
+        "style": "primary"
+      },
+      {
+        "label": "رزرو مشاوره تخصصی",
+        "href": "consultation",
+        "style": "ghost"
+      }
+    ],
+    "channels_title": "راه‌های ارتباط مستقیم",
+    "channels_lead": "هر کانالی که برایتان راحت‌تر است را انتخاب کنید؛ با یک لمس تماس بگیرید یا شناسه را کپی کنید.",
+    "channels": [
+      {
+        "label": "تلفن ثابت",
+        "value": "021-91017441",
+        "href": "tel:+982191017441",
+        "icon": "Phone",
+        "action_label": "تماس بگیرید",
+        "note": ""
+      },
+      {
+        "label": "موبایل / پشتیبانی",
+        "value": "09925339475",
+        "href": "tel:+989925339475",
+        "icon": "Smartphone",
+        "action_label": "تماس بگیرید",
+        "note": ""
+      },
+      {
+        "label": "واتساپ",
+        "value": "09925339475",
+        "href": "https://wa.me/989925339475",
+        "icon": "MessageCircle",
+        "action_label": "پیام در واتساپ",
+        "note": ""
+      },
+      {
+        "label": "پشتیبانی تلگرام",
+        "value": "t.me/webinasupport",
+        "href": "https://t.me/webinasupport",
+        "icon": "Send",
+        "action_label": "پیام در تلگرام",
+        "note": ""
+      },
+      {
+        "label": "بله",
+        "value": "@WebinaCo",
+        "href": "https://ble.ir/WebinaCo",
+        "icon": "MessageSquare",
+        "action_label": "پیام در بله",
+        "note": ""
+      },
+      {
+        "label": "واتساپ ثابت",
+        "value": "02191017441",
+        "href": "https://wa.me/982191017441",
+        "icon": "MessageCircle",
+        "action_label": "پیام در واتساپ",
+        "note": ""
+      }
+    ],
+    "copy_label": "کپی",
+    "copied_label": "کپی شد",
+    "form_enabled": true,
+    "form_slug": "contact",
+    "form_title": "پیام بگذارید",
+    "form_lead": "چند خط درباره نیازتان بنویسید. پیام مستقیم به تیم وبینا می‌رسد و برای پیگیری با شما تماس می‌گیریم.",
+    "submit_label": "ارسال پیام",
+    "success_title": "پیام شما رسید",
+    "success_text": "",
+    "again_label": "ارسال پیام دیگر",
+    "privacy_note": "اطلاعات شما فقط برای پاسخ به همین درخواست استفاده می‌شود.",
+    "map_enabled": true,
+    "map_title": "نشانی و مسیر",
+    "map_address": "استان تهران، شهرستان شهریار، شهر جدید اندیشه، فاز یک اندیشه، میدان امام خمینی، خیابان شقایق هفتم شرقی، پلاک ۴۴، طبقه ۱، واحد ۶",
+    "map_lat": "35.67909",
+    "map_lng": "51.02020",
+    "map_zoom": 16,
+    "map_embed_url": "",
+    "map_directions_url": "",
+    "map_empty_text": "نشانی دفتر هنوز در تنظیمات سایت ثبت نشده است. برای جلسه حضوری، از یکی از راه‌های ارتباطی هماهنگ کنید.",
+    "hours_title": "ساعت پاسخ‌گویی",
+    "hours": [],
+    "hours_note": "",
+    "hours_empty": "ساعت پاسخ‌گویی پس از ثبت در تنظیمات سایت نمایش داده می‌شود.",
+    "social_title": "وبینا در شبکه‌ها",
+    "social_lead": "تازه‌ها، نمونه‌کارها و پشتیبانی در کانال‌های رسمی.",
+    "faq_enabled": true,
+    "faq_title": "پرسش‌های پرتکرار",
+    "faq_limit": 4,
+    "faq_items": [],
+    "cta_title": "آماده‌ای کسب‌وکارت را اصولی بسازی یا چند پله بالاتر ببری؟",
+    "cta_text": "همین حالا جلسه مشاوره تخصصی رزرو کن.",
+    "cta_buttons": [
+      {
+        "label": "رزرو مشاوره تخصصی",
+        "href": "consultation",
+        "style": "primary"
+      },
+      {
+        "label": "درخواست پیشنهاد پروژه",
+        "href": "proposal",
+        "style": "ghost"
+      }
+    ],
+    "map_links": [
+      {
+        "label": "مسیریابی با نشان",
+        "href": "https://neshan.org/maps/@35.67909,51.02020,16z"
+      },
+      {
+        "label": "مسیریابی با بلد",
+        "href": "https://balad.ir/location?latitude=35.67909&longitude=51.02020&zoom=16"
+      },
+      {
+        "label": "Google Maps",
+        "href": "https://www.google.com/maps/search/?api=1&query=35.67909,51.02020"
+      }
+    ]
+  },
+  "company": {
+    "name": "شرکت توسعه کسب و کار دز آوان",
+    "legal_type": "مسئولیت محدود",
+    "registered_at": "۲۴ دی ۱۴۰۴",
+    "city": "شهر جدید اندیشه",
+    "registration_no": "۱۳۱۰۶",
+    "national_id": "۱۴۰۱۵۰۴۶۵۸۴",
+    "activity": "خدمات کسب‌وکار (کد آیسیک ۸۲۹۳)",
+    "address": "استان تهران، شهرستان شهریار، شهر جدید اندیشه، فاز یک اندیشه، میدان امام خمینی، خیابان شقایق هفتم شرقی، پلاک ۴۴، طبقه ۱، واحد ۶",
+    "show_in_footer": true
+  }
 }

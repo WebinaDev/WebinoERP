@@ -278,15 +278,18 @@ class WebinaContentSeeder extends Seeder
             'consultation' => 'فرم مشاوره',
             'proposal' => 'درخواست پروپوزال',
             'newsletter' => 'خبرنامه',
+            'contact' => 'فرم تماس',
         ] as $slug => $title) {
             MarketingForm::query()->firstOrCreate(
                 ['slug' => $slug],
                 [
                     'title' => $title,
                     'description' => $title.' از سایت وبینا',
-                    'fields' => $slug === 'newsletter'
-                        ? [['name' => 'email', 'label' => 'ایمیل', 'type' => 'email', 'required' => true]]
-                        : $fields,
+                    'fields' => match ($slug) {
+                        'newsletter' => [['name' => 'email', 'label' => 'ایمیل', 'type' => 'email', 'required' => true]],
+                        'contact' => self::contactFormFields(),
+                        default => $fields,
+                    },
                     'success_message' => 'پیام شما ثبت شد. به‌زودی برمی‌گردیم.',
                     'published' => true,
                 ]
@@ -367,5 +370,18 @@ class WebinaContentSeeder extends Seeder
             );
             $sort += 10;
         }
+    }
+
+    /** Contact page form (/contact). Editable later in dashboard → بازاریابی → فرم‌ها. */
+    public static function contactFormFields(): array
+    {
+        return [
+            ['name' => 'name', 'label' => 'نام و نام خانوادگی', 'type' => 'text', 'required' => true],
+            ['name' => 'phone', 'label' => 'شماره تماس', 'type' => 'tel', 'required' => true],
+            ['name' => 'email', 'label' => 'ایمیل', 'type' => 'email', 'required' => false],
+            ['name' => 'company', 'label' => 'نام کسب‌وکار', 'type' => 'text', 'required' => false],
+            ['name' => 'topic', 'label' => 'موضوع', 'type' => 'select', 'required' => false, 'options' => ['مشاوره', 'پروژه جدید', 'پشتیبانی', 'همکاری']],
+            ['name' => 'message', 'label' => 'پیام شما', 'type' => 'textarea', 'required' => true],
+        ];
     }
 }
