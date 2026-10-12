@@ -8,7 +8,7 @@ use Modules\Marketing\Http\Controllers\Public\PublicFormsController;
 use Modules\Marketing\Http\Controllers\Public\PublicContentController;
 use Modules\Marketing\Http\Controllers\Public\PublicSiteController;
 
-Route::middleware('throttle:30,1')->group(function () {
+Route::middleware('throttle:marketing-public')->group(function () {
     Route::get('/site', [PublicSiteController::class, 'site']);
     Route::get('/home', [PublicSiteController::class, 'home']);
     Route::get('/services', [PublicSiteController::class, 'services']);

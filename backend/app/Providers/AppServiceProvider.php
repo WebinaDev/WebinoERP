@@ -71,6 +71,20 @@ class AppServiceProvider extends ServiceProvider
             return Limit::perMinute(600)->by('site-builder:'.($request->user()?->id ?: $request->ip()));
         });
 
+        // Public marketing API: 30/min per visitor. Server-side rendering calls from the Next.js
+        // container (private address, no X-Forwarded-For because they skip Caddy) all share one
+        // IP, so they get their own much larger bucket instead of starving every page render.
+        RateLimiter::for('marketing-public', function (Request $request) {
+            $remote = (string) $request->server('REMOTE_ADDR', '');
+            $internal = ! $request->headers->has('X-Forwarded-For')
+                && filter_var($remote, FILTER_VALIDATE_IP) !== false
+                && filter_var($remote, FILTER_VALIDATE_IP, FILTER_FLAG_NO_PRIV_RANGE | FILTER_FLAG_NO_RES_RANGE) === false;
+
+            return $internal
+                ? Limit::perMinute(3000)->by('marketing-ssr:'.$remote)
+                : Limit::perMinute(30)->by('marketing-public:'.$request->ip());
+        });
+
         RateLimiter::for('auth-public', function (Request $request) {
             return Limit::perMinute(20)->by($request->ip());
         });
