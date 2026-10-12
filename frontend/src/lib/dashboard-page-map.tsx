@@ -206,6 +206,7 @@ import {
 import { BuilderEditorPage } from '@/features/marketing-builder/builder-editor-page';
 import { BuilderListPage } from '@/features/marketing-builder/builder-page';
 import { BuilderSettingsPage } from '@/features/marketing-builder/builder-settings-page';
+import { HomeBuilderPage } from '@/features/marketing-builder/home-builder-page';
 import { ThemeBuilderPage } from '@/features/marketing-builder/theme-builder-page';
 import { UnknownRoutePage } from '@/features/shell/errors/UnknownRoutePage';
 import { ConnectPage } from '@/features/expansion/ConnectPage';
@@ -432,6 +433,7 @@ const EXACT: Record<string, ReactNode> = {
   'theme-builder': <ThemeBuilderPage />,
   builder: <BuilderListPage />,
   'builder/settings': <BuilderSettingsPage />,
+  'builder/site': <HomeBuilderPage />,
 };
 
 const DETAIL_ROOTS = new Set(['pm/projects', 'projects']);

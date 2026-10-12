@@ -446,6 +446,7 @@ export const ERP_MODULES: ErpModuleDef[] = [
           { id: 'marketing-forms', path: 'marketing/forms', titleKey: 'nav.erp.marketing.forms', icon: 'ri-survey-line', requiredPermission: 'marketing.pages.view' },
           { id: 'theme-builder', path: 'theme-builder', titleKey: 'nav.erp.marketing.themeBuilder', icon: 'ri-palette-line', requiredPermission: 'marketing.pages.view' },
           { id: 'builder', path: 'builder', titleKey: 'nav.erp.marketing.builder', icon: 'ri-layout-masonry-line', requiredPermission: 'marketing.pages.view' },
+          { id: 'builder-site', path: 'builder/site', titleKey: 'nav.erp.marketing.siteBuilder', icon: 'ri-home-gear-line', requiredPermission: 'marketing.pages.view' },
           { id: 'builder-settings', path: 'builder/settings', titleKey: 'nav.erp.marketing.builderSettings', icon: 'ri-settings-3-line', requiredPermission: 'marketing.pages.view' },
         ],
       },

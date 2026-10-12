@@ -1877,3 +1877,10 @@ a.panel:hover,
 @media (prefers-reduced-motion: reduce) {
   .float-stat { animation: none !important; }
 }
+
+/* v3: CMS footer contact + socials */
+.footer-grid.v2 .footer-contact { display: flex; flex-direction: column; gap: 2px; }
+.footer-grid.v2 .footer-contact-label { font-size: 12px; color: var(--muted); }
+.footer-grid.v2 .footer-social { display: grid; gap: 6px; }
+.footer-grid.v2 .footer-social a { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; }
+.footer-grid.v2 .footer-social small { font-size: 12px; color: var(--muted); }

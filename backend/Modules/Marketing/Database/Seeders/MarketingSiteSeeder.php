@@ -16,6 +16,7 @@ use Modules\Marketing\Entities\MarketingServiceCategory;
 use Modules\Marketing\Entities\MarketingSiteSetting;
 use Modules\Marketing\Entities\MarketingSolutionIndustry;
 use Modules\Marketing\Entities\MarketingSolutionPage;
+use Modules\Marketing\Services\SiteContentDefaults;
 
 class MarketingSiteSeeder extends Seeder
 {
@@ -56,12 +57,8 @@ class MarketingSiteSeeder extends Seeder
         }
         $branding['description'] = $branding['description'] ?? 'شرکت توسعه کسب و کار وبینا.';
         $blocks = is_array($settings->home_blocks) ? $settings->home_blocks : [];
-        $types = array_map(fn ($b) => $b['type'] ?? '', $blocks);
-        foreach (['hero', 'about', 'stats', 'services', 'products', 'solutions', 'portfolio_teaser', 'process', 'academy', 'blog', 'why', 'testimonials', 'announcements', 'consultation_cta'] as $type) {
-            if (! in_array($type, $types, true)) {
-                $blocks[] = ['type' => $type, 'enabled' => true];
-            }
-        }
+        [$blocks, $branding, $social] = SiteContentDefaults::apply($blocks, $branding, $settings->social_links);
+        $settings->social_links = $social;
         if ($settings->logo_url === null || $settings->logo_url === '') {
             $settings->logo_url = '/brand/logo.png';
         }

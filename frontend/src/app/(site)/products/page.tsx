@@ -4,13 +4,14 @@ import { apiServer, siteHref } from '@/lib/public-api-server';
 import { PRODUCTS, copyFor } from '@/themes/webina-corporate-v1/catalog';
 import { NavIcon } from '@/themes/webina-corporate-v1/components/NavIcon';
 import { SitePage } from '@/themes/webina-corporate-v1/components/SitePage';
-import { HOME_MODULES } from '@/themes/webina-corporate-v1/home-content';
+import { getHomeBlock } from '@/themes/webina-corporate-v1/site-content-server';
 
 export const revalidate = 60;
 
 export default async function ProductsPage() {
   const t = await getTranslations();
   const locale = await getLocale();
+  const modules = await getHomeBlock('products');
   let cms = '';
   try {
     const res = await apiServer<{ data: { body_fa?: string | null; body_en?: string | null } }>('/v1/public/pages/products');
@@ -35,15 +36,15 @@ export default async function ProductsPage() {
           </article>
         ))}
       </div>
-      <h2 className="mt-14 text-2xl font-extrabold">{t('site.v2.modulesHeading')}</h2>
-      <p className="muted mt-2 max-w-2xl">{t('site.v2.productsIntro')}</p>
+      <h2 className="mt-14 text-2xl font-extrabold">{modules.page_heading}</h2>
+      <p className="muted mt-2 max-w-2xl">{modules.intro}</p>
       <div className="mod-grid">
-        {HOME_MODULES.map((mod) => (
-          <article key={mod.id} id={mod.id} className="mod-card scroll-mt-28">
+        {modules.items.map((mod, i) => (
+          <article key={`${mod.anchor}-${i}`} id={mod.anchor || undefined} className="mod-card scroll-mt-28">
             <span className="mega-ico">
-              <NavIcon name={mod.icon} className="size-4" />
+              <NavIcon name={mod.icon || 'Boxes'} className="size-4" />
             </span>
-            <h3>{t(`site.v2.module.${mod.key}`)}</h3>
+            <h3>{mod.title}</h3>
           </article>
         ))}
       </div>

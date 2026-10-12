@@ -1,0 +1,945 @@
+{
+  "home_blocks": [
+    {
+      "type": "hero",
+      "enabled": true,
+      "props": {
+        "title": "وبینا | توسعه کسب‌وکار از ایده تا نتیجه",
+        "subtitle_1": "طراحی، اجرا و رشد کسب‌وکار شما با یک تیم یکپارچه",
+        "subtitle_2": "از استراتژی تا طراحی، از توسعه تا اتوماسیون و افزایش فروش",
+        "text_1": "ما کسب‌وکارها را از صفر می‌سازیم یا کسب‌وکارهای موجود را به سطح بالاتر می‌بریم.",
+        "text_2": "همه‌چیز زیر یک سقف: استراتژی، طراحی، توسعه، اجرا و رشد پایدار.",
+        "buttons": [
+          {
+            "label": "درخواست مشاوره تخصصی",
+            "href": "consultation",
+            "style": "primary"
+          },
+          {
+            "label": "مشاهده مسیر همکاری",
+            "href": "#process",
+            "style": "ghost"
+          },
+          {
+            "label": "دریافت نقشه راه اختصاصی",
+            "href": "proposal",
+            "style": "link"
+          }
+        ],
+        "stats": [
+          {
+            "source": "portfolio_count",
+            "label": "نمونه‌کار منتشرشده",
+            "value": ""
+          },
+          {
+            "source": "service_count",
+            "label": "خدمت تخصصی",
+            "value": ""
+          },
+          {
+            "source": "highlight_result",
+            "label": "نتیجه ثبت‌شده",
+            "value": ""
+          }
+        ],
+        "dock_label": "گفت‌وگوی رایگان با تیم وبینا",
+        "dock_cta_label": "درخواست مشاوره تخصصی",
+        "dock_cta_href": "consultation"
+      }
+    },
+    {
+      "type": "about",
+      "enabled": true,
+      "props": {
+        "title": "وبینا چیست؟",
+        "body": "وبینا یک آژانس تخصصی توسعه کسب‌وکار است که به جای ارائه خدمات پراکنده، مسیر کامل ساخت و رشد کسب‌وکار را طراحی و اجرا می‌کند.",
+        "list_lead": "ما با مجموعه‌هایی کار می‌کنیم که می‌خواهند:",
+        "points": [
+          {
+            "text": "از ایده به محصول و فروش برسند"
+          },
+          {
+            "text": "حضور دیجیتال قوی و یکپارچه داشته باشند"
+          },
+          {
+            "text": "سیستم‌های فروش، پشتیبانی و عملیات‌شان هوشمند شود"
+          },
+          {
+            "text": "رشد قابل اندازه‌گیری و پایدار تجربه کنند"
+          }
+        ],
+        "closing": "رویکرد ما پروژه‌ای، شفاف و نتیجه‌محور است."
+      }
+    },
+    {
+      "type": "services",
+      "enabled": true,
+      "props": {
+        "title": "خدمات جامع توسعه کسب‌وکار",
+        "subtitle": "همه آنچه برای ساختن و رشد دادن یک کسب‌وکار واقعی نیاز دارید",
+        "items": [
+          {
+            "title": "استراتژی و طراحی مدل کسب‌وکار",
+            "body": "تحلیل بازار، تدوین استراتژی رشد، طراحی مدل درآمدی و بیزنس‌پلن",
+            "href": "services/business-strategy",
+            "icon": "Compass",
+            "vip": false
+          },
+          {
+            "title": "طراحی هویت و تجربه برند",
+            "body": "لوگو، هویت بصری، زبان برند، تجربه کاربری و بسته‌بندی",
+            "href": "services/brand-experience",
+            "icon": "PenTool",
+            "vip": false
+          },
+          {
+            "title": "طراحی و توسعه دیجیتال",
+            "body": "وب‌سایت شرکتی، فروشگاهی، لندینگ، داشبورد و نرم‌افزار اختصاصی",
+            "href": "services/digital-development",
+            "icon": "Code",
+            "vip": false
+          },
+          {
+            "title": "اجرا و راه‌اندازی زیرساخت",
+            "body": "اتصال سیستم‌ها، درگاه پرداخت، ارسال، حسابداری و ابزارهای ارتباطی",
+            "href": "services/infrastructure-launch",
+            "icon": "Workflow",
+            "vip": false
+          },
+          {
+            "title": "اتوماسیون و بهینه‌سازی عملیات",
+            "body": "اتوماسیون فروش، پشتیبانی، انبار، گزارش‌گیری و جریان‌های کاری هوشمند",
+            "href": "services/operations-automation",
+            "icon": "Bot",
+            "vip": false
+          },
+          {
+            "title": "رشد و افزایش فروش",
+            "body": "قیف فروش، کمپین، بهینه‌سازی نرخ تبدیل، سئو و باشگاه مشتریان",
+            "href": "services/sales-growth",
+            "icon": "TrendingUp",
+            "vip": false
+          },
+          {
+            "title": "همراهی و مدیریت رشد (VIP)",
+            "body": "مدیریت پروژه یکپارچه، پایش شاخص‌ها و همراهی بلندمدت",
+            "href": "services/vip-growth",
+            "icon": "Sparkles",
+            "vip": true
+          }
+        ],
+        "cta_label": "مشاهده جزئیات همه خدمات",
+        "cta_href": "services"
+      }
+    },
+    {
+      "type": "products",
+      "enabled": true,
+      "props": {
+        "title": "محصولات و ماژول‌های وبینا",
+        "subtitle": "ابزارهای آماده‌ای که می‌توانید به کسب‌وکار خود اضافه کنید",
+        "intro": "علاوه بر پروژه‌های کامل، مجموعه‌ای از ماژول‌ها و افزونه‌های آماده داریم که می‌توانید به‌صورت جداگانه تهیه و استفاده کنید.",
+        "page_heading": "ماژول‌ها و پکیج‌های آماده",
+        "items": [
+          {
+            "title": "ماژول باشگاه مشتریان و امتیازدهی",
+            "anchor": "module-loyalty",
+            "icon": "Award"
+          },
+          {
+            "title": "ماژول مدیریت انبار و موجودی پیشرفته",
+            "anchor": "module-inventory",
+            "icon": "Boxes"
+          },
+          {
+            "title": "ماژول اتصال حسابداری",
+            "anchor": "module-accounting",
+            "icon": "Calculator"
+          },
+          {
+            "title": "ماژول پیامک خودکار و کمپین",
+            "anchor": "module-sms",
+            "icon": "MessageSquare"
+          },
+          {
+            "title": "ماژول گزارش‌گیری مدیریتی",
+            "anchor": "module-reports",
+            "icon": "ChartColumn"
+          },
+          {
+            "title": "ماژول فرم‌ساز پیشرفته",
+            "anchor": "module-forms",
+            "icon": "ClipboardList"
+          },
+          {
+            "title": "ماژول سیستم تیکتینگ و پشتیبانی",
+            "anchor": "module-ticketing",
+            "icon": "Headset"
+          },
+          {
+            "title": "ماژول اتصال به درگاه‌های اقساطی",
+            "anchor": "module-installments",
+            "icon": "CreditCard"
+          },
+          {
+            "title": "پکیج اتوماسیون فروش",
+            "anchor": "package-sales-automation",
+            "icon": "Workflow"
+          },
+          {
+            "title": "پکیج بهینه‌سازی نرخ تبدیل",
+            "anchor": "package-cro",
+            "icon": "MousePointerClick"
+          }
+        ],
+        "cta_label": "مشاهده همه محصولات و ماژول‌ها",
+        "cta_href": "products"
+      }
+    },
+    {
+      "type": "portfolio_teaser",
+      "enabled": true,
+      "props": {
+        "title": "نمونه‌کارهای منتخب",
+        "subtitle": "پروژه‌هایی که از ایده تا نتیجه همراهی‌شان کردیم",
+        "details_label": "مشاهده جزئیات",
+        "cta_label": "مشاهده همه نمونه‌کارها",
+        "cta_href": "portfolio",
+        "limit": 6,
+        "empty": "نمونه‌کار مشتری هنوز منتشر نشده. محصول‌های وبینا را در بخش پشته ببینید."
+      }
+    },
+    {
+      "type": "process",
+      "enabled": true,
+      "props": {
+        "title": "چگونه با هم کار می‌کنیم؟",
+        "anchor": "process",
+        "steps": [
+          {
+            "text": "جلسه کشف و تحلیل نیاز",
+            "highlight": false
+          },
+          {
+            "text": "طراحی نقشه راه اختصاصی",
+            "highlight": false
+          },
+          {
+            "text": "تأیید محدوده و شروع پروژه",
+            "highlight": false
+          },
+          {
+            "text": "اجرای یکپارچه (طراحی + توسعه + راه‌اندازی)",
+            "highlight": false
+          },
+          {
+            "text": "تحویل، آموزش و پشتیبانی اولیه",
+            "highlight": false
+          },
+          {
+            "text": "رشد مستمر و بهینه‌سازی (در همکاری‌های VIP)",
+            "highlight": true
+          }
+        ],
+        "cta_label": "شروع همکاری با رزرو جلسه",
+        "cta_href": "consultation"
+      }
+    },
+    {
+      "type": "academy",
+      "enabled": true,
+      "props": {
+        "title": "آکادمی وبینا",
+        "subtitle": "آموزش‌های کاربردی برای مدیران و تیم‌های کسب‌وکار",
+        "text": "دانش و تجربه اجرای پروژه‌های واقعی را در قالب دوره‌های کوتاه و کاربردی در اختیار شما قرار می‌دهیم.",
+        "cta_label": "مشاهده همه دوره‌ها",
+        "cta_href": "academy",
+        "fallback_courses": [
+          {
+            "title": "دوره طراحی قیف فروش و افزایش نرخ تبدیل",
+            "slug": "sales-funnel-conversion"
+          },
+          {
+            "title": "دوره راه‌اندازی فروشگاه اینترنتی اصولی",
+            "slug": "online-store-launch"
+          },
+          {
+            "title": "دوره اتوماسیون کسب‌وکارهای کوچک و متوسط",
+            "slug": "smb-automation"
+          },
+          {
+            "title": "دوره برندینگ کاربردی برای استارتاپ‌ها",
+            "slug": "startup-branding"
+          },
+          {
+            "title": "دوره مدیریت رشد دیجیتال",
+            "slug": "digital-growth-management"
+          }
+        ]
+      }
+    },
+    {
+      "type": "blog",
+      "enabled": true,
+      "props": {
+        "title": "مجله وبینا",
+        "subtitle": "مقالات، تحلیل‌ها و تازه‌های دنیای توسعه کسب‌وکار",
+        "read_more": "ادامه مطلب",
+        "cta_label": "ورود به مجله وبینا",
+        "cta_href": "blog",
+        "limit": 4,
+        "empty": "هنوز مقاله‌ای منتشر نشده است."
+      }
+    },
+    {
+      "type": "why",
+      "enabled": true,
+      "props": {
+        "title": "چرا کسب‌وکارها وبینا را انتخاب می‌کنند؟",
+        "items": [
+          {
+            "text": "نگاه ۳۶۰ درجه (استراتژی + طراحی + اجرا)"
+          },
+          {
+            "text": "تیم یکپارچه به جای چند پیمانکار"
+          },
+          {
+            "text": "تمرکز واقعی روی نتیجه"
+          },
+          {
+            "text": "شفافیت در فرآیند و گزارش‌دهی"
+          },
+          {
+            "text": "امکان همکاری پروژه‌ای یا بلندمدت"
+          },
+          {
+            "text": "تجربه اجرای پروژه‌های واقعی از صفر تا فروش"
+          }
+        ]
+      }
+    },
+    {
+      "type": "testimonials",
+      "enabled": true,
+      "props": {
+        "title": "صدای کسانی که با ما کار کرده‌اند",
+        "empty": "نظر مشتریان پس از انتشار در داشبورد این‌جا نمایش داده می‌شود.",
+        "limit": 6
+      }
+    },
+    {
+      "type": "consultation_cta",
+      "enabled": true,
+      "props": {
+        "title": "آماده‌ای کسب‌وکارت را اصولی بسازی یا چند پله بالاتر ببری؟",
+        "text_1": "همین حالا جلسه مشاوره تخصصی رزرو کن.",
+        "text_2": "در این جلسه وضعیت فعلی‌ات را بررسی می‌کنیم و نقشه راه اختصاصی را ارائه می‌دهیم.",
+        "buttons": [
+          {
+            "label": "رزرو مشاوره تخصصی",
+            "href": "consultation",
+            "style": "primary"
+          },
+          {
+            "label": "درخواست پیشنهاد پروژه",
+            "href": "proposal",
+            "style": "ghost"
+          },
+          {
+            "label": "تماس مستقیم با تیم وبینا",
+            "href": "contact",
+            "style": "ghost"
+          }
+        ]
+      }
+    }
+  ],
+  "header": {
+    "cta_label": "مشاوره رایگان",
+    "cta_href": "consultation",
+    "mobile_secondary_label": "درخواست پروپوزال",
+    "mobile_secondary_href": "proposal",
+    "promo_small": "مشاوره رایگان",
+    "promo_title": "گام بعدی را مشخص کنید",
+    "panel_hint": "از ساخت سایت تا رشد فروش، هر خدمت یک مسیر مشخص است. محصول‌های وبینا هم کنار همین منو هستند.",
+    "see_all": "مشاهده همه",
+    "nav": [
+      {
+        "label": "خدمات",
+        "href": "services",
+        "columns": [
+          {
+            "title": "فناوری و توسعه وب",
+            "lead": "سایت، فروشگاه، اپ و هوش مصنوعی.",
+            "href": "services/tech",
+            "icon": "Code",
+            "items": [
+              {
+                "label": "طراحی سایت اختصاصی",
+                "href": "services/custom-web",
+                "icon": "PanelsTopLeft"
+              },
+              {
+                "label": "وردپرس پیشرفته",
+                "href": "services/wordpress",
+                "icon": "FileCode"
+              },
+              {
+                "label": "بازطراحی و نوسازی",
+                "href": "services/redesign",
+                "icon": "RefreshCw"
+              },
+              {
+                "label": "صفحه فروش اختصاصی",
+                "href": "services/landing",
+                "icon": "MousePointerClick"
+              },
+              {
+                "label": "فروشگاه اینترنتی",
+                "href": "services/ecommerce",
+                "icon": "ShoppingBag"
+              },
+              {
+                "label": "ساخت بازار چندفروشنده",
+                "href": "services/marketplace",
+                "icon": "Store"
+              },
+              {
+                "label": "سایت قابل نصب روی موبایل",
+                "href": "services/pwa",
+                "icon": "Smartphone"
+              },
+              {
+                "label": "اپلیکیشن اندروید و آیفون",
+                "href": "services/native-app",
+                "icon": "AppWindow"
+              },
+              {
+                "label": "چت‌بات و هوش مصنوعی",
+                "href": "services/ai",
+                "icon": "Bot"
+              }
+            ]
+          },
+          {
+            "title": "رشد و بازاریابی",
+            "lead": "جستجو، تبلیغ، شبکه و محتوا.",
+            "href": "services/growth",
+            "icon": "TrendingUp",
+            "items": [
+              {
+                "label": "دیده شدن در جستجو و جذب ترافیک",
+                "href": "services/seo",
+                "icon": "Search"
+              },
+              {
+                "label": "بهینه‌سازی محتوا و ساختار سایت برای جستجو",
+                "href": "services/seo-technical",
+                "icon": "Wrench"
+              },
+              {
+                "label": "دیده شدن در جستجوی محلی",
+                "href": "services/seo-local",
+                "icon": "MapPin"
+              },
+              {
+                "label": "تبلیغات گوگل",
+                "href": "services/google-ads",
+                "icon": "Megaphone"
+              },
+              {
+                "label": "تبلیغ برای بازدیدکنندگان قبلی",
+                "href": "services/retargeting",
+                "icon": "Repeat"
+              },
+              {
+                "label": "شبکه‌های اجتماعی",
+                "href": "services/social",
+                "icon": "Share2"
+              },
+              {
+                "label": "بازاریابی محتوایی",
+                "href": "services/content",
+                "icon": "PenLine"
+              },
+              {
+                "label": "متن محصول که فروش می‌سازد",
+                "href": "services/copywriting",
+                "icon": "FileText"
+              }
+            ]
+          },
+          {
+            "title": "هویت برند و طراحی",
+            "lead": "نشانه، راهنمای برند و رابط.",
+            "href": "services/branding",
+            "icon": "PenTool",
+            "items": [
+              {
+                "label": "طراحی لوگو",
+                "href": "services/logo",
+                "icon": "Sparkles"
+              },
+              {
+                "label": "راهنمای هویت برند",
+                "href": "services/brandbook",
+                "icon": "BookOpen"
+              },
+              {
+                "label": "تحقیق درباره مشتری",
+                "href": "services/ux-research",
+                "icon": "Users"
+              },
+              {
+                "label": "طراحی رابط وب‌سایت",
+                "href": "services/ui-web",
+                "icon": "Monitor"
+              },
+              {
+                "label": "طراحی رابط موبایل",
+                "href": "services/ui-mobile",
+                "icon": "Tablet"
+              },
+              {
+                "label": "گرافیک تبلیغاتی",
+                "href": "services/ads-graphic",
+                "icon": "Image"
+              }
+            ]
+          },
+          {
+            "title": "استراتژی و مشاوره",
+            "lead": "مدل، طرح، فرآیند و مسیر مشتری.",
+            "href": "services/strategy",
+            "icon": "Compass",
+            "items": [
+              {
+                "label": "نوسازی فروش آنلاین کسب‌وکار",
+                "href": "services/digital-transformation",
+                "icon": "Orbit"
+              },
+              {
+                "label": "بوم مدل کسب‌وکار",
+                "href": "services/bmc",
+                "icon": "LayoutGrid"
+              },
+              {
+                "label": "طرح کسب‌وکار",
+                "href": "services/business-plan",
+                "icon": "ClipboardList"
+              },
+              {
+                "label": "فرآیندهای شفاف و قابل اجرا",
+                "href": "services/systemize",
+                "icon": "Workflow"
+              },
+              {
+                "label": "تحقیقات بازار",
+                "href": "services/market-research",
+                "icon": "LineChart"
+              },
+              {
+                "label": "نقشه مسیر مشتری",
+                "href": "services/journey-map",
+                "icon": "Route"
+              }
+            ]
+          },
+          {
+            "title": "پشتیبانی و زیرساخت",
+            "lead": "پشتیبانی، امنیت، سرعت و میزبانی.",
+            "href": "services/support",
+            "icon": "LifeBuoy",
+            "items": [
+              {
+                "label": "پشتیبانی فنی",
+                "href": "services/support-desk",
+                "icon": "Headset"
+              },
+              {
+                "label": "امنیت و پیکربندی امن",
+                "href": "services/security",
+                "icon": "Shield"
+              },
+              {
+                "label": "پشتیبان‌گیری ابری",
+                "href": "services/backup",
+                "icon": "Cloud"
+              },
+              {
+                "label": "سرعت سایت و امتیاز عملکرد گوگل",
+                "href": "services/performance",
+                "icon": "Gauge"
+              },
+              {
+                "label": "میزبانی و سرور",
+                "href": "services/hosting",
+                "icon": "Server"
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "label": "راهکارها",
+        "href": "solutions",
+        "columns": [
+          {
+            "title": "خرده‌فروشی",
+            "lead": "پوشاک، کالای دیجیتال، مصرف روزانه.",
+            "href": "solutions/retail",
+            "icon": "ShoppingCart",
+            "items": [
+              {
+                "label": "مد و پوشاک",
+                "href": "solutions/retail/fashion",
+                "icon": "Shirt"
+              },
+              {
+                "label": "کالای دیجیتال",
+                "href": "solutions/retail/electronics",
+                "icon": "Cpu"
+              },
+              {
+                "label": "سوپرمارکت و کالاهای مصرفی روزمره",
+                "href": "solutions/retail/fmcg",
+                "icon": "ShoppingBasket"
+              }
+            ]
+          },
+          {
+            "title": "پزشکی و سلامت",
+            "lead": "مطب، کلینیک، دارو و تجهیزات.",
+            "href": "solutions/health",
+            "icon": "HeartPulse",
+            "items": [
+              {
+                "label": "پزشکان و مطب‌ها",
+                "href": "solutions/health/doctors",
+                "icon": "Stethoscope"
+              },
+              {
+                "label": "کلینیک و توریسم سلامت",
+                "href": "solutions/health/clinics",
+                "icon": "Building2"
+              },
+              {
+                "label": "دارو و تجهیزات",
+                "href": "solutions/health/pharma",
+                "icon": "Pill"
+              }
+            ]
+          },
+          {
+            "title": "خدمات شرکتی",
+            "lead": "املاک، حقوقی و خدمات شرکت.",
+            "href": "solutions/corporate",
+            "icon": "Building",
+            "items": [
+              {
+                "label": "املاک و ساخت‌وساز",
+                "href": "solutions/corporate/real-estate",
+                "icon": "Landmark"
+              },
+              {
+                "label": "حقوقی و مالی",
+                "href": "solutions/corporate/legal",
+                "icon": "Scale"
+              },
+              {
+                "label": "خدمات عمومی",
+                "href": "solutions/corporate/general",
+                "icon": "Briefcase"
+              }
+            ]
+          },
+          {
+            "title": "آموزش",
+            "lead": "موسسه و مدرس.",
+            "href": "solutions/education",
+            "icon": "GraduationCap",
+            "items": [
+              {
+                "label": "موسسات و پلتفرم آموزش آنلاین",
+                "href": "solutions/education/institutes",
+                "icon": "Library"
+              },
+              {
+                "label": "مدرسین و برند شخصی",
+                "href": "solutions/education/instructors",
+                "icon": "UserRound"
+              }
+            ]
+          },
+          {
+            "title": "گردشگری و مهمان‌نوازی",
+            "lead": "کافه، رستوران، سفر و اقامت.",
+            "href": "solutions/hospitality",
+            "icon": "Utensils",
+            "items": [
+              {
+                "label": "کافه و رستوران",
+                "href": "solutions/hospitality/cafe",
+                "icon": "Coffee"
+              },
+              {
+                "label": "سفر و اقامت",
+                "href": "solutions/hospitality/travel",
+                "icon": "Plane"
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "label": "نمونه‌کارها",
+        "href": "portfolio",
+        "columns": []
+      },
+      {
+        "label": "منابع",
+        "href": "blog",
+        "columns": [
+          {
+            "title": "دانش و منابع",
+            "lead": "بلاگ، آکادمی، مجله و پرسش‌ها.",
+            "href": "",
+            "icon": "Library",
+            "items": [
+              {
+                "label": "بلاگ",
+                "href": "blog",
+                "icon": "Newspaper"
+              },
+              {
+                "label": "آکادمی",
+                "href": "academy",
+                "icon": "GraduationCap"
+              },
+              {
+                "label": "مجله",
+                "href": "magazine",
+                "icon": "BookMarked"
+              },
+              {
+                "label": "دانلودها",
+                "href": "downloads",
+                "icon": "Download"
+              },
+              {
+                "label": "سوالات متداول",
+                "href": "faq",
+                "icon": "CircleHelp"
+              },
+              {
+                "label": "اطلاعیه‌ها",
+                "href": "announcements",
+                "icon": "Bell"
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "label": "شرکت",
+        "href": "about",
+        "columns": [
+          {
+            "title": "شناخت وبینا",
+            "lead": "شناخت شرکت و محصول‌ها.",
+            "href": "",
+            "icon": "Building2",
+            "items": [
+              {
+                "label": "درباره ما",
+                "href": "about",
+                "icon": "Info"
+              },
+              {
+                "label": "محصول‌ها",
+                "href": "products",
+                "icon": "Layers"
+              },
+              {
+                "label": "تیم",
+                "href": "team",
+                "icon": "Users"
+              },
+              {
+                "label": "همکاری با ما",
+                "href": "cooperation",
+                "icon": "Handshake"
+              },
+              {
+                "label": "تماس",
+                "href": "contact",
+                "icon": "Phone"
+              }
+            ]
+          },
+          {
+            "title": "شروع همکاری",
+            "lead": "مشاوره، پروپوزال، تعرفه.",
+            "href": "",
+            "icon": "ArrowUpRight",
+            "items": [
+              {
+                "label": "مشاوره",
+                "href": "consultation",
+                "icon": "Calendar"
+              },
+              {
+                "label": "درخواست پروپوزال",
+                "href": "proposal",
+                "icon": "FileSpreadsheet"
+              },
+              {
+                "label": "تعرفه‌ها",
+                "href": "pricing",
+                "icon": "BadgeDollarSign"
+              }
+            ]
+          }
+        ]
+      }
+    ]
+  },
+  "footer": {
+    "tagline": "آژانس توسعه کسب و کار",
+    "description": "شریک دیجیتال کسب‌وکارها. طراحی، توسعه، بازاریابی و نرم‌افزار خود وبینا.",
+    "cta_label": "درخواست مشاوره تخصصی",
+    "cta_href": "consultation",
+    "quick_title": "لینک‌های سریع",
+    "quick_links": [
+      {
+        "label": "خدمات",
+        "href": "services"
+      },
+      {
+        "label": "محصولات",
+        "href": "products"
+      },
+      {
+        "label": "نمونه‌کارها",
+        "href": "portfolio"
+      },
+      {
+        "label": "دوره‌ها",
+        "href": "academy"
+      },
+      {
+        "label": "مجله",
+        "href": "blog"
+      },
+      {
+        "label": "درباره ما",
+        "href": "about"
+      },
+      {
+        "label": "تماس",
+        "href": "contact"
+      }
+    ],
+    "contact_title": "اطلاعات تماس",
+    "contact_page_label": "فرم تماس و نشانی‌ها",
+    "contact_page_href": "contact",
+    "social_title": "شبکه‌های اجتماعی",
+    "social_empty": "نشانی شبکه‌ها پس از ثبت در تنظیمات سایت نمایش داده می‌شود.",
+    "legal_links": [
+      {
+        "label": "قوانین و مقررات",
+        "href": "pages/terms"
+      },
+      {
+        "label": "حریم خصوصی",
+        "href": "pages/privacy"
+      },
+      {
+        "label": "تضاد منافع",
+        "href": "pages/conflict-of-interest"
+      }
+    ],
+    "copyright": "© {year} {site}. تمامی حقوق محفوظ است.",
+    "legal_name": "شرکت توسعه کسب و کار وبینا",
+    "trust_title": "نشان‌های اعتماد",
+    "trust_lead": "جایگاه نماد اعتماد و مجوزهای کسب‌وکار. تا وقتی تصویر رسمی در تنظیمات سایت نباشد، این کارت‌ها نمونه هستند."
+  },
+  "contact": {
+    "source": "https://contact.webina.dev/",
+    "items": [
+      {
+        "label": "تلفن ثابت",
+        "value": "021-91017441",
+        "href": "tel:+982191017441"
+      },
+      {
+        "label": "موبایل / پشتیبانی",
+        "value": "09925339475",
+        "href": "tel:+989925339475"
+      },
+      {
+        "label": "واتساپ",
+        "value": "09925339475",
+        "href": "https://wa.me/989925339475"
+      },
+      {
+        "label": "واتساپ ثابت",
+        "value": "02191017441",
+        "href": "https://wa.me/982191017441"
+      }
+    ],
+    "email": "",
+    "address": ""
+  },
+  "social_links": [
+    {
+      "label": "اینستاگرام",
+      "handle": "@WebinaAgency",
+      "href": "https://instagram.com/WebinaAgency",
+      "icon": "Instagram"
+    },
+    {
+      "label": "کانال تلگرام",
+      "handle": "@WebinaAgency",
+      "href": "https://t.me/WebinaAgency",
+      "icon": "Send"
+    },
+    {
+      "label": "پشتیبانی تلگرام",
+      "handle": "t.me/webinasupport",
+      "href": "https://t.me/webinasupport",
+      "icon": "Headset"
+    },
+    {
+      "label": "لینکدین",
+      "handle": "company/webinadev",
+      "href": "https://ir.linkedin.com/company/webinadev",
+      "icon": "Linkedin"
+    },
+    {
+      "label": "بله",
+      "handle": "@WebinaCo",
+      "href": "https://ble.ir/WebinaCo",
+      "icon": "MessageCircle"
+    },
+    {
+      "label": "ایتا",
+      "handle": "09925339475",
+      "href": "https://eitaa.com/sms?phone=09925339475",
+      "icon": "MessageCircle"
+    },
+    {
+      "label": "روبیکا",
+      "handle": "09925339475",
+      "href": "https://rubika.ir",
+      "icon": "MessageCircle"
+    },
+    {
+      "label": "وب‌سایت رسمی",
+      "handle": "webina.dev",
+      "href": "https://webina.dev",
+      "icon": "Globe"
+    }
+  ]
+}

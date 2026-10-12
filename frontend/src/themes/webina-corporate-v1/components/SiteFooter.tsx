@@ -1,15 +1,16 @@
 import Link from 'next/link';
 import { getLocale, getTranslations } from 'next-intl/server';
 import { siteHref } from '@/lib/public-api-server';
-import { FOOTER_QUICK_LINKS } from '../home-content';
+import {
+  footerDefaults,
+  isExternalHref,
+  mergeContent,
+  normalizeContact,
+  normalizeSocials,
+  type FooterData,
+} from '../site-content';
 import { LogoLockup } from './LogoLockup';
 import { TrustBadgeRail, type TrustBadge } from './TrustBadgeRail';
-
-const LEGAL = [
-  { slug: 'terms', labelKey: 'site.footer.terms' },
-  { slug: 'privacy', labelKey: 'site.footer.privacy' },
-  { slug: 'conflict-of-interest', labelKey: 'site.footer.conflict' },
-];
 
 type BadgeInput = {
   id?: string;
@@ -19,46 +20,51 @@ type BadgeInput = {
   image?: string | null;
 };
 
-export type FooterSocial = { label: string; href: string };
-export type FooterContact = { phone?: string | null; email?: string | null; address?: string | null };
-
-/** Accepts the stored social_links shapes: [{label|name|platform, url|href}] or { platform: url }. */
-export function normalizeSocials(raw: unknown): FooterSocial[] {
-  if (Array.isArray(raw)) {
-    return raw
-      .map((row) => {
-        if (!row || typeof row !== 'object') return null;
-        const r = row as Record<string, unknown>;
-        const href = String(r.url ?? r.href ?? '');
-        const label = String(r.label ?? r.name ?? r.platform ?? href);
-        return href ? { label, href } : null;
-      })
-      .filter(Boolean) as FooterSocial[];
-  }
-  if (raw && typeof raw === 'object') {
-    return Object.entries(raw as Record<string, unknown>)
-      .filter(([, v]) => typeof v === 'string' && v)
-      .map(([k, v]) => ({ label: k, href: String(v) }));
-  }
-  return [];
+function go(path: string) {
+  return isExternalHref(path) ? path : siteHref(undefined, path.replace(/^\//, ''));
 }
 
+function SmartA({ to, children, className, dir }: { to: string; children: React.ReactNode; className?: string; dir?: string }) {
+  if (isExternalHref(to)) {
+    return (
+      <a href={to} className={className} dir={dir} target={to.startsWith('http') ? '_blank' : undefined} rel="noreferrer">
+        {children}
+      </a>
+    );
+  }
+  return (
+    <Link href={go(to)} className={className} dir={dir}>
+      {children}
+    </Link>
+  );
+}
+
+/**
+ * Footer content is CMS-driven: `branding.footer`, `branding.contact`, `social_links` and
+ * `branding.trust_badges` (page builder → پابرگ / تماس و شبکه‌ها / نشان‌های اعتماد).
+ */
 export async function SiteFooter({
   siteName,
   logoUrl,
   badges,
   socials,
   contact,
+  footer,
 }: {
   siteName: string;
   logoUrl?: string | null;
   badges?: BadgeInput[] | null;
-  socials?: FooterSocial[] | null;
-  contact?: FooterContact | null;
+  socials?: unknown;
+  contact?: unknown;
+  footer?: unknown;
 }) {
   const t = await getTranslations();
   const locale = await getLocale();
-  const year = new Intl.DateTimeFormat(locale === 'fa' ? 'fa-IR-u-ca-persian' : 'en-US', { year: 'numeric' }).format(new Date());
+  const fa = locale === 'fa';
+  const data: FooterData = fa ? mergeContent(footerDefaults(t), footer) : footerDefaults(t);
+  const links = normalizeSocials(socials);
+  const reach = normalizeContact(contact);
+  const year = new Intl.DateTimeFormat(fa ? 'fa-IR-u-ca-persian' : 'en-US', { year: 'numeric' }).format(new Date());
   const fallback: TrustBadge[] = [
     { id: 'enamad', label: t('site.footer.badgeEnamad'), hint: t('site.footer.badgeEnamadHint') },
     { id: 'samandehi', label: t('site.footer.badgeSamandehi'), hint: t('site.footer.badgeSamandehiHint') },
@@ -68,87 +74,104 @@ export async function SiteFooter({
   const rail: TrustBadge[] = badges?.length
     ? badges.map((b, i) => ({
         id: b.id || `badge-${i}`,
-        label: b.label || fallback[i]?.label || t('site.footer.trustTitle'),
-        hint: b.hint || fallback[i]?.hint || t('site.footer.trustLead'),
+        label: b.label || fallback[i]?.label || data.trust_title,
+        hint: b.hint || fallback[i]?.hint || data.trust_lead,
         href: b.href,
         image: b.image,
       }))
     : fallback;
-  const hasContact = Boolean(contact?.phone || contact?.email || contact?.address);
 
   return (
     <footer className="site-footer">
       <div className="webina-shell footer-grid v2">
         <div>
-          <LogoLockup siteName={siteName} logoUrl={logoUrl} compact tagline={t('site.footer.agencyTagline')} />
-          <p className="mt-5 max-w-sm text-sm leading-7">{t('site.footer.tagline')}</p>
-          <Link href={siteHref(undefined, 'consultation')} className="btn-primary mt-6">
-            {t('site.v2.heroCta1')}
-          </Link>
+          <LogoLockup siteName={siteName} logoUrl={logoUrl} compact tagline={data.tagline} />
+          {data.description ? <p className="mt-5 max-w-sm text-sm leading-7">{data.description}</p> : null}
+          {data.cta_label && data.cta_href ? (
+            <SmartA to={data.cta_href} className="btn-primary mt-6">
+              {data.cta_label}
+            </SmartA>
+          ) : null}
         </div>
         <div>
-          <h2>{t('site.v2.footerQuick')}</h2>
+          <h2>{data.quick_title}</h2>
           <ul>
-            {FOOTER_QUICK_LINKS.map((link) => (
-              <li key={link.href}>
-                <Link href={siteHref(undefined, link.href)}>{t(`site.v2.quick.${link.key}`)}</Link>
+            {data.quick_links.map((link, i) => (
+              <li key={`${link.href}-${i}`}>
+                <SmartA to={link.href}>{link.label}</SmartA>
               </li>
             ))}
           </ul>
         </div>
         <div>
-          <h2>{t('site.v2.footerContact')}</h2>
+          <h2>{data.contact_title}</h2>
           <ul>
-            {contact?.phone ? (
-              <li>
-                <a href={`tel:${contact.phone}`} dir="ltr">{contact.phone}</a>
-              </li>
-            ) : null}
-            {contact?.email ? (
-              <li>
-                <a href={`mailto:${contact.email}`} dir="ltr">{contact.email}</a>
-              </li>
-            ) : null}
-            {contact?.address ? <li>{contact.address}</li> : null}
-            <li>
-              <Link href={siteHref(undefined, 'contact')} className={hasContact ? '' : 'font-bold text-[var(--brand-primary)]'}>
-                {t('site.v2.footerContactPage')}
-              </Link>
-            </li>
-            {LEGAL.map((l) => (
-              <li key={l.slug}>
-                <Link href={siteHref(undefined, `pages/${l.slug}`)}>{t(l.labelKey)}</Link>
+            {reach?.items.map((item, i) => (
+              <li key={`${item.value}-${i}`} className="footer-contact">
+                {item.label ? <span className="footer-contact-label">{item.label}</span> : null}
+                {item.href ? (
+                  <SmartA to={item.href} dir="ltr">
+                    {item.value}
+                  </SmartA>
+                ) : (
+                  <span dir="ltr">{item.value}</span>
+                )}
               </li>
             ))}
-          </ul>
-        </div>
-        <div>
-          <h2>{t('site.v2.footerSocial')}</h2>
-          {socials?.length ? (
-            <div className="footer-social">
-              {socials.map((s) => (
-                <a key={s.href} href={s.href} target="_blank" rel="noreferrer">
-                  {s.label}
+            {reach?.email ? (
+              <li>
+                <a href={`mailto:${reach.email}`} dir="ltr">
+                  {reach.email}
                 </a>
+              </li>
+            ) : null}
+            {reach?.address ? <li>{reach.address}</li> : null}
+            {data.contact_page_label && data.contact_page_href ? (
+              <li>
+                <SmartA to={data.contact_page_href} className="font-bold text-[var(--brand-primary)]">
+                  {data.contact_page_label}
+                </SmartA>
+              </li>
+            ) : null}
+          </ul>
+        </div>
+        <div>
+          <h2>{data.social_title}</h2>
+          {links.length ? (
+            <ul className="footer-social">
+              {links.map((s) => (
+                <li key={s.href}>
+                  <a href={s.href} target="_blank" rel="noreferrer">
+                    <span>{s.label}</span>
+                    {s.handle ? <small dir="ltr">{s.handle}</small> : null}
+                  </a>
+                </li>
               ))}
-            </div>
+            </ul>
           ) : (
-            <p className="mt-3 text-sm leading-7 text-[var(--muted)]">{t('site.v2.footerSocialEmpty')}</p>
+            <p className="mt-3 text-sm leading-7 text-[var(--muted)]">{data.social_empty}</p>
           )}
+          {data.legal_links.length ? (
+            <ul className="mt-6">
+              {data.legal_links.map((l, i) => (
+                <li key={`${l.href}-${i}`}>
+                  <SmartA to={l.href}>{l.label}</SmartA>
+                </li>
+              ))}
+            </ul>
+          ) : null}
         </div>
       </div>
       <TrustBadgeRail
         badges={rail}
-        title={t('site.footer.trustTitle')}
-        lead={t('site.footer.trustLead')}
+        title={data.trust_title}
+        lead={data.trust_lead}
         prevLabel={t('site.footer.trustPrev')}
         nextLabel={t('site.footer.trustNext')}
       />
       <div className="webina-shell footer-base">
-        <span>
-          © {year} {siteName}. {t('site.footer.rights')}
-        </span>
-        <span>{t('site.footer.legalName')}</span>
+        <span>{data.copyright.replace('{year}', year).replace('{site}', siteName)}</span>
+        {data.legal_name ? <span>{data.legal_name}</span> : null}
       </div>
     </footer>
   );

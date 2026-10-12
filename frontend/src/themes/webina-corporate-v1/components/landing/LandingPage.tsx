@@ -9,13 +9,13 @@ import { formatCalendarDate, toPersianDigits } from '@/lib/locale/calendar-date'
 import { cn } from '@/lib/utils';
 import { INDUSTRY_COUNT, SERVICE_COUNT } from '../../site-nav';
 import {
-  HOME_ABOUT_POINTS,
-  HOME_COURSES,
-  HOME_MODULES,
-  HOME_SERVICES,
-  HOME_STEPS,
-  HOME_WHY,
-} from '../../home-content';
+  isExternalHref,
+  resolveHomeBlocks,
+  type ButtonItem,
+  type HomeProps,
+  type RawBlock,
+  type StatItem,
+} from '../../site-content';
 import { NavIcon } from '../NavIcon';
 import { WorkThumb, isDarkThumb, realCover } from '../WorkThumb';
 import { useLandingMotion } from './useLandingMotion';
@@ -35,7 +35,7 @@ export type LandingPortfolioItem = {
 
 export type LandingData = {
   site?: { name?: string; branding?: Record<string, unknown> | null };
-  blocks?: { type: string; enabled?: boolean }[];
+  blocks?: RawBlock[];
   testimonials?: { id: number; author: string; quote: string; company?: string | null; role?: string | null; avatar_url?: string | null }[];
   portfolio?: LandingPortfolioItem[];
   blog?: { id: number; slug: string; title: string; excerpt?: string | null; cover_url?: string | null; published_at?: string | null }[];
@@ -45,13 +45,6 @@ export type LandingData = {
 } | null;
 
 const PRODUCT_IDS = new Set(['webino-dashboard', 'webino-erp', 'webino-docs', 'webino-hosting']);
-
-function show(blocks: { type: string; enabled?: boolean }[] | undefined, type: string) {
-  if (!blocks?.length) return true;
-  const row = blocks.find((b) => b.type === type);
-  if (!row) return true;
-  return row.enabled !== false;
-}
 
 function Arrow({ className = 'size-4' }: { className?: string }) {
   return <ArrowUpLeft className={cn(className, 'ltr:-scale-x-100')} aria-hidden />;
@@ -119,6 +112,58 @@ function DashboardArt() {
   );
 }
 
+function href(path: string) {
+  return isExternalHref(path) ? path : siteHref(undefined, path.replace(/^\//, ''));
+}
+
+function SmartLink({ to, className, children, tabIndex }: { to: string; className?: string; children: React.ReactNode; tabIndex?: number }) {
+  if (/^(https?:|tel:|mailto:)/.test(to)) {
+    return (
+      <a href={to} className={className} tabIndex={tabIndex} target={to.startsWith('http') ? '_blank' : undefined} rel="noreferrer">
+        {children}
+      </a>
+    );
+  }
+  if (to.startsWith('#')) {
+    return (
+      <a href={to} className={className} tabIndex={tabIndex}>
+        {children}
+      </a>
+    );
+  }
+  return (
+    <Link href={href(to)} className={className} tabIndex={tabIndex}>
+      {children}
+    </Link>
+  );
+}
+
+function Buttons({ items, arrowFirst }: { items: ButtonItem[]; arrowFirst?: boolean }) {
+  return (
+    <>
+      {items
+        .filter((b) => b.label && b.href)
+        .map((b, i) => (
+          <SmartLink key={`${b.href}-${i}`} to={b.href} className={b.style === 'link' ? 'text-link' : b.style === 'ghost' ? 'btn-ghost' : 'btn-primary'}>
+            {b.label}
+            {b.style === 'link' || (arrowFirst && b.style === 'primary') ? <Arrow /> : null}
+          </SmartLink>
+        ))}
+    </>
+  );
+}
+
+function Cta({ label, to, className = 'btn-ghost' }: { label?: string; to?: string; className?: string }) {
+  if (!label || !to) return null;
+  return (
+    <div className="mt-8">
+      <SmartLink to={to} className={className}>
+        {label}
+      </SmartLink>
+    </div>
+  );
+}
+
 export function LandingPage({ data }: { data: LandingData }) {
   const t = useTranslations();
   const locale = useLocale();
@@ -141,393 +186,417 @@ export function LandingPage({ data }: { data: LandingData }) {
     const s = String(n).padStart(pad, '0');
     return fa ? toPersianDigits(s) : s;
   };
-  const sec = (n: number) => num(n);
 
-  const blocks = data?.blocks;
+  const blocks = resolveHomeBlocks(data?.blocks, t, fa);
   const portfolio = (data?.portfolio ?? [])
     .filter((item) => !PRODUCT_IDS.has(item.slug))
     .sort((a, b) => Number(Boolean(b.featured)) - Number(Boolean(a.featured)));
-  const featured = portfolio.slice(0, 6);
   const highlight = portfolio.find((item) => item.result_metric);
   const quotes = data?.testimonials ?? [];
-  const posts = (data?.blog ?? []).slice(0, 4);
-  const apiCourses = data?.courses ?? [];
-  const courses = apiCourses.length
-    ? apiCourses.slice(0, 5).map((course) => ({ slug: course.slug, title: course.title }))
-    : HOME_COURSES.map((course) => ({ slug: course.slug, title: t(`site.v2.course.${course.key}`) }));
+  const hero = blocks.find((b) => b.type === 'hero')?.props as HomeProps['hero'] | undefined;
 
-  const heroStats = [
-    portfolio.length ? { value: num(portfolio.length, 1), label: t('site.v2.heroStatProjects') } : null,
-    { value: num(SERVICE_COUNT, 1), label: t('site.v2.heroStatServices') },
-    { value: num(INDUSTRY_COUNT, 1), label: t('site.v2.heroStatIndustries') },
-  ].filter(Boolean) as { value: string; label: string }[];
+  function statValue(stat: StatItem): { value: string; caption?: string; href?: string } | null {
+    switch (stat.source) {
+      case 'portfolio_count':
+        return portfolio.length ? { value: num(portfolio.length, 1) } : null;
+      case 'service_count':
+        return { value: num(SERVICE_COUNT, 1) };
+      case 'industry_count':
+        return { value: num(INDUSTRY_COUNT, 1) };
+      case 'highlight_result':
+        return highlight?.result_metric
+          ? { value: highlight.result_metric, caption: highlight.title, href: `portfolio/${highlight.slug}` }
+          : null;
+      default:
+        return stat.value ? { value: fa ? toPersianDigits(stat.value) : stat.value } : null;
+    }
+  }
 
-  return (
-    <article ref={root} className="webina-landing v2">
-      {show(blocks, 'hero') ? (
-        <section className="webina-shell hero2">
-          <div className="hero2-copy">
-            <h1 className="hero2-title hero-title">
-              <span className="line">{t('site.v2.heroTitle')}</span>
-            </h1>
-            <p className="hero2-subtitle hero-lead">
-              {t('site.v2.heroSubtitle1')}
-              <span>{t('site.v2.heroSubtitle2')}</span>
-            </p>
-            <p className="hero2-text hero-lead">
-              {t('site.v2.heroText1')}
-              <br />
-              {t('site.v2.heroText2')}
-            </p>
-            <div className="hero-actions hero-cta">
-              <Link href={siteHref(undefined, 'consultation')} className="btn-primary">
-                {t('site.v2.heroCta1')}
-              </Link>
-              <a href="#process" className="btn-ghost">
-                {t('site.v2.heroCta2')}
-              </a>
-              <Link href={siteHref(undefined, 'proposal')} className="text-link">
-                {t('site.v2.heroCta3')}
-                <Arrow />
-              </Link>
-            </div>
-          </div>
-          <div className="hero2-visual hero-count" aria-label={t('site.v2.heroStatProjects')}>
-            <DashboardArt />
-            <div className="float-stat fs-1">
-              <strong>{heroStats[0]?.value}</strong>
-              <span>{heroStats[0]?.label}</span>
-            </div>
-            {heroStats[1] ? (
-              <div className="float-stat fs-2">
-                <strong>{heroStats[1].value}</strong>
-                <span>{heroStats[1].label}</span>
+  let index = 0;
+  const sections = blocks.map((block) => {
+    switch (block.type) {
+      case 'hero': {
+        const p = block.props;
+        const stats = p.stats
+          .map((s) => ({ stat: s, data: statValue(s) }))
+          .filter((s): s is { stat: StatItem; data: NonNullable<ReturnType<typeof statValue>> } => Boolean(s.data))
+          .slice(0, 3);
+        return (
+          <section key="hero" className="webina-shell hero2">
+            <div className="hero2-copy">
+              <h1 className="hero2-title hero-title">
+                <span className="line">{p.title}</span>
+              </h1>
+              <p className="hero2-subtitle hero-lead">
+                {p.subtitle_1}
+                {p.subtitle_2 ? <span>{p.subtitle_2}</span> : null}
+              </p>
+              <p className="hero2-text hero-lead">
+                {p.text_1}
+                {p.text_2 ? (
+                  <>
+                    <br />
+                    {p.text_2}
+                  </>
+                ) : null}
+              </p>
+              <div className="hero-actions hero-cta">
+                <Buttons items={p.buttons} />
               </div>
-            ) : null}
-            {highlight ? (
-              <Link href={siteHref(undefined, `portfolio/${highlight.slug}`)} className="float-stat fs-3 is-blue">
-                <small>{t('site.v2.heroStatResult')}</small>
-                <strong>{highlight.result_metric}</strong>
-                <span>{highlight.title}</span>
-              </Link>
-            ) : heroStats[2] ? (
-              <div className="float-stat fs-3">
-                <strong>{heroStats[2].value}</strong>
-                <span>{heroStats[2].label}</span>
-              </div>
-            ) : null}
-          </div>
-        </section>
-      ) : null}
-
-      {show(blocks, 'about') ? (
-        <section className="section">
-          <div className="webina-shell about2">
-            <div className="reveal">
-              <span className="section-index">{sec(1)}</span>
-              <h2>{t('site.v2.aboutTitle')}</h2>
             </div>
-            <div className="reveal">
-              <p className="about2-lead">{t('site.v2.aboutBody')}</p>
-              <p className="muted mt-6 font-bold">{t('site.v2.aboutListLead')}</p>
-              <ul className="check-list">
-                {HOME_ABOUT_POINTS.map((key) => (
-                  <li key={key}>
-                    <Check className="size-4" aria-hidden />
-                    {t(`site.v2.about.${key}`)}
+            <div className="hero2-visual hero-count">
+              <DashboardArt />
+              {stats.map(({ stat, data: d }, i) => {
+                const cls = cn('float-stat', `fs-${i + 1}`, stat.source === 'highlight_result' && 'is-blue');
+                const inner = (
+                  <>
+                    {d.caption ? <small>{stat.label}</small> : null}
+                    <strong>{d.value}</strong>
+                    <span>{d.caption ?? stat.label}</span>
+                  </>
+                );
+                return d.href ? (
+                  <Link key={i} href={href(d.href)} className={cls}>
+                    {inner}
+                  </Link>
+                ) : (
+                  <div key={i} className={cls}>
+                    {inner}
+                  </div>
+                );
+              })}
+            </div>
+          </section>
+        );
+      }
+      case 'about': {
+        const p = block.props;
+        index += 1;
+        return (
+          <section key="about" className="section">
+            <div className="webina-shell about2">
+              <div className="reveal">
+                <span className="section-index">{num(index)}</span>
+                <h2>{p.title}</h2>
+              </div>
+              <div className="reveal">
+                <p className="about2-lead">{p.body}</p>
+                {p.list_lead ? <p className="muted mt-6 font-bold">{p.list_lead}</p> : null}
+                <ul className="check-list">
+                  {p.points.map((point, i) => (
+                    <li key={i}>
+                      <Check className="size-4" aria-hidden />
+                      {point.text}
+                    </li>
+                  ))}
+                </ul>
+                {p.closing ? <p className="about2-closing">{p.closing}</p> : null}
+              </div>
+            </div>
+          </section>
+        );
+      }
+      case 'services': {
+        const p = block.props;
+        index += 1;
+        return (
+          <section key="services" id="services" className="section scroll-mt-24">
+            <div className="webina-shell">
+              <SectionHead index={num(index)} title={p.title} subtitle={p.subtitle} />
+              <div className="svc-grid">
+                {p.items.map((service, i) => (
+                  <SmartLink key={`${service.href}-${i}`} to={service.href || 'services'} className={cn('svc-card reveal', service.vip && 'is-vip')}>
+                    <span className="svc-top">
+                      <span className="mega-ico">
+                        <NavIcon name={service.icon || 'Sparkles'} className="size-4" />
+                      </span>
+                      <span className="svc-no">{num(i + 1)}</span>
+                    </span>
+                    <h3>{service.title}</h3>
+                    <p>{service.body}</p>
+                    <Arrow className="svc-arrow size-5" />
+                  </SmartLink>
+                ))}
+              </div>
+              <Cta label={p.cta_label} to={p.cta_href} />
+            </div>
+          </section>
+        );
+      }
+      case 'products': {
+        const p = block.props;
+        index += 1;
+        return (
+          <section key="products" className="section">
+            <div className="webina-shell">
+              <SectionHead index={num(index)} title={p.title} subtitle={p.subtitle} />
+              {p.intro ? <p className="muted mt-4 max-w-2xl reveal">{p.intro}</p> : null}
+              <div className="mod-grid">
+                {p.items.map((mod, i) => (
+                  <SmartLink key={`${mod.anchor}-${i}`} to={`products${mod.anchor ? `#${mod.anchor}` : ''}`} className="mod-card reveal">
+                    <span className="mega-ico">
+                      <NavIcon name={mod.icon || 'Boxes'} className="size-4" />
+                    </span>
+                    <span className="mod-no">{num(i + 1)}</span>
+                    <h3>{mod.title}</h3>
+                  </SmartLink>
+                ))}
+              </div>
+              <Cta label={p.cta_label} to={p.cta_href} />
+            </div>
+          </section>
+        );
+      }
+      case 'portfolio_teaser': {
+        const p = block.props;
+        index += 1;
+        const featured = portfolio.slice(0, Math.max(1, Number(p.limit) || 6));
+        return (
+          <section key="work" id="work" className="section scroll-mt-24">
+            <div className="webina-shell">
+              <SectionHead
+                index={num(index)}
+                title={p.title}
+                subtitle={p.subtitle}
+                action={p.cta_label && p.cta_href ? { href: href(p.cta_href), label: p.cta_label } : undefined}
+              />
+              {featured.length ? (
+                <div className="work-grid">
+                  {featured.map((item, i) => {
+                    const cover = realCover(item.cover_url);
+                    return (
+                      <article key={item.id} className="work-card reveal">
+                        <Link href={siteHref(undefined, `portfolio/${item.slug}`)} className="block">
+                          <div className={cn('work-thumb', !cover && isDarkThumb(i) && 'is-dark')}>
+                            {cover ? (
+                              // eslint-disable-next-line @next/next/no-img-element
+                              <img src={cover} alt={item.title} className="absolute inset-0 size-full object-cover" loading="lazy" />
+                            ) : (
+                              <WorkThumb index={i} />
+                            )}
+                            <span className="work-no">{num(i + 1)}</span>
+                          </div>
+                        </Link>
+                        <div className="work-meta">
+                          <h3>{item.client || item.title}</h3>
+                          {item.industry?.name ? <span className="work-industry">{item.industry.name}</span> : null}
+                        </div>
+                        {item.result_metric ? <p className="work-metric mt-2">{item.result_metric}</p> : null}
+                        {item.description ? <p className="work-desc line-clamp-2">{item.description}</p> : null}
+                        <Link href={siteHref(undefined, `portfolio/${item.slug}`)} className="text-link mt-3">
+                          {p.details_label}
+                          <Arrow />
+                        </Link>
+                      </article>
+                    );
+                  })}
+                </div>
+              ) : (
+                <p className="empty-note reveal mt-8">{p.empty}</p>
+              )}
+            </div>
+          </section>
+        );
+      }
+      case 'process': {
+        const p = block.props;
+        index += 1;
+        return (
+          <section key="process" id={p.anchor || 'process'} className="section scroll-mt-24">
+            <div className="webina-shell">
+              <SectionHead index={num(index)} title={p.title} />
+              <ol className="steps">
+                {p.steps.map((step, i) => (
+                  <li key={i} className={cn('reveal', step.highlight && 'is-vip')}>
+                    <span className="step-no">{num(i + 1)}</span>
+                    <h3>{step.text}</h3>
                   </li>
                 ))}
-              </ul>
-              <p className="about2-closing">{t('site.v2.aboutClosing')}</p>
+              </ol>
+              <Cta label={p.cta_label} to={p.cta_href} className="btn-primary" />
             </div>
-          </div>
-        </section>
-      ) : null}
-
-      {show(blocks, 'services') ? (
-        <section className="section">
-          <div className="webina-shell">
-            <SectionHead index={sec(2)} title={t('site.v2.servicesTitle')} subtitle={t('site.v2.servicesSubtitle')} />
-            <div className="svc-grid">
-              {HOME_SERVICES.map((service, i) => (
-                <Link key={service.slug} href={siteHref(undefined, `services/${service.slug}`)} className={cn('svc-card reveal', i === 6 && 'is-vip')}>
-                  <span className="svc-top">
-                    <span className="mega-ico">
-                      <NavIcon name={service.icon} className="size-4" />
-                    </span>
-                    <span className="svc-no">{num(i + 1)}</span>
-                  </span>
-                  <h3>{t(`site.v2.service.${service.key}Title`)}</h3>
-                  <p>{t(`site.v2.service.${service.key}Body`)}</p>
-                  <Arrow className="svc-arrow size-5" />
-                </Link>
-              ))}
+          </section>
+        );
+      }
+      case 'academy': {
+        const p = block.props;
+        index += 1;
+        const apiCourses = data?.courses ?? [];
+        const courses = apiCourses.length
+          ? apiCourses.slice(0, 5).map((c) => ({ slug: c.slug, title: c.title }))
+          : p.fallback_courses;
+        return (
+          <section key="academy" className="section">
+            <div className="webina-shell">
+              <SectionHead
+                index={num(index)}
+                title={p.title}
+                subtitle={p.subtitle}
+                action={p.cta_label && p.cta_href ? { href: href(p.cta_href), label: p.cta_label } : undefined}
+              />
+              {p.text ? <p className="muted mt-4 max-w-2xl reveal">{p.text}</p> : null}
+              <div className="row-list">
+                {courses.map((course, i) => (
+                  <Link key={`${course.slug}-${i}`} href={siteHref(undefined, course.slug ? `academy/${course.slug}` : 'academy')} className="row-item reveal">
+                    <span className="row-no">{num(i + 1)}</span>
+                    <div>
+                      <h3>{course.title}</h3>
+                    </div>
+                    <Arrow className="row-arrow size-5" />
+                  </Link>
+                ))}
+              </div>
+              <Cta label={p.cta_label} to={p.cta_href} />
             </div>
-            <div className="mt-8">
-              <Link href={siteHref(undefined, 'services')} className="btn-ghost">
-                {t('site.v2.servicesCta')}
-              </Link>
-            </div>
-          </div>
-        </section>
-      ) : null}
-
-      {show(blocks, 'products') ? (
-        <section className="section">
-          <div className="webina-shell">
-            <SectionHead index={sec(3)} title={t('site.v2.productsTitle')} subtitle={t('site.v2.productsSubtitle')} />
-            <p className="muted mt-4 max-w-2xl reveal">{t('site.v2.productsIntro')}</p>
-            <div className="mod-grid">
-              {HOME_MODULES.map((mod, i) => (
-                <Link key={mod.id} href={siteHref(undefined, `products#${mod.id}`)} className="mod-card reveal">
-                  <span className="mega-ico">
-                    <NavIcon name={mod.icon} className="size-4" />
-                  </span>
-                  <span className="mod-no">{num(i + 1)}</span>
-                  <h3>{t(`site.v2.module.${mod.key}`)}</h3>
-                </Link>
-              ))}
-            </div>
-            <div className="mt-8">
-              <Link href={siteHref(undefined, 'products')} className="btn-ghost">
-                {t('site.v2.productsCta')}
-              </Link>
-            </div>
-          </div>
-        </section>
-      ) : null}
-
-      {show(blocks, 'portfolio_teaser') ? (
-        <section id="work" className="section scroll-mt-24">
-          <div className="webina-shell">
-            <SectionHead
-              index={sec(4)}
-              title={t('site.v2.workTitle')}
-              subtitle={t('site.v2.workSubtitle')}
-              action={{ href: siteHref(undefined, 'portfolio'), label: t('site.v2.workCta') }}
-            />
-            {featured.length ? (
-              <div className="work-grid">
-                {featured.map((item, i) => {
-                  const cover = realCover(item.cover_url);
-                  return (
-                    <article key={item.id} className="work-card reveal">
-                      <Link href={siteHref(undefined, `portfolio/${item.slug}`)} className="block">
-                        <div className={cn('work-thumb', !cover && isDarkThumb(i) && 'is-dark')}>
-                          {cover ? (
+          </section>
+        );
+      }
+      case 'blog': {
+        const p = block.props;
+        index += 1;
+        const posts = (data?.blog ?? []).slice(0, Math.max(1, Number(p.limit) || 4));
+        return (
+          <section key="blog" className="section">
+            <div className="webina-shell">
+              <SectionHead
+                index={num(index)}
+                title={p.title}
+                subtitle={p.subtitle}
+                action={p.cta_label && p.cta_href ? { href: href(p.cta_href), label: p.cta_label } : undefined}
+              />
+              {posts.length ? (
+                <div className="post-grid">
+                  {posts.map((post, i) => (
+                    <article key={post.id} className="post-card reveal">
+                      <Link href={siteHref(undefined, `blog/${post.slug}`)} className="block">
+                        <div className={cn('work-thumb post-thumb', !post.cover_url && isDarkThumb(i + 3) && 'is-dark')}>
+                          {post.cover_url ? (
                             // eslint-disable-next-line @next/next/no-img-element
-                            <img src={cover} alt={item.title} className="absolute inset-0 size-full object-cover" loading="lazy" />
+                            <img src={post.cover_url} alt={post.title} className="absolute inset-0 size-full object-cover" loading="lazy" />
                           ) : (
-                            <WorkThumb index={i} />
+                            <WorkThumb index={i + 3} />
                           )}
-                          <span className="work-no">{num(i + 1)}</span>
                         </div>
                       </Link>
-                      <div className="work-meta">
-                        <h3>{item.client || item.title}</h3>
-                        {item.industry?.name ? <span className="work-industry">{item.industry.name}</span> : null}
-                      </div>
-                      {item.result_metric ? <p className="work-metric mt-2">{item.result_metric}</p> : null}
-                      {item.description ? <p className="work-desc line-clamp-2">{item.description}</p> : null}
-                      <Link href={siteHref(undefined, `portfolio/${item.slug}`)} className="text-link mt-3">
-                        {t('site.v2.workDetails')}
+                      {post.published_at ? (
+                        <time className="post-date" dateTime={post.published_at}>
+                          {formatCalendarDate(post.published_at, fa ? 'fa' : 'en')}
+                        </time>
+                      ) : null}
+                      <h3>
+                        <Link href={siteHref(undefined, `blog/${post.slug}`)}>{post.title}</Link>
+                      </h3>
+                      {post.excerpt ? <p className="work-desc line-clamp-2">{post.excerpt}</p> : null}
+                      <Link href={siteHref(undefined, `blog/${post.slug}`)} className="text-link mt-3">
+                        {p.read_more}
                         <Arrow />
                       </Link>
                     </article>
-                  );
-                })}
-              </div>
-            ) : (
-              <p className="empty-note reveal mt-8">{t('site.landing.portfolioEmpty')}</p>
-            )}
-          </div>
-        </section>
-      ) : null}
-
-      {show(blocks, 'process') ? (
-        <section id="process" className="section scroll-mt-24">
-          <div className="webina-shell">
-            <SectionHead index={sec(5)} title={t('site.v2.processTitle')} />
-            <ol className="steps">
-              {HOME_STEPS.map((id, i) => (
-                <li key={id} className={cn('reveal', i === 5 && 'is-vip')}>
-                  <span className="step-no">{num(i + 1)}</span>
-                  <h3>{t(`site.v2.step.${id}`)}</h3>
-                </li>
-              ))}
-            </ol>
-            <div className="mt-8">
-              <Link href={siteHref(undefined, 'consultation')} className="btn-primary">
-                {t('site.v2.processCta')}
-              </Link>
+                  ))}
+                </div>
+              ) : (
+                <p className="empty-note reveal mt-8">{p.empty}</p>
+              )}
+              <Cta label={p.cta_label} to={p.cta_href} />
             </div>
-          </div>
-        </section>
-      ) : null}
-
-      {show(blocks, 'academy') ? (
-        <section className="section">
-          <div className="webina-shell">
-            <SectionHead
-              index={sec(6)}
-              title={t('site.v2.academyTitle')}
-              subtitle={t('site.v2.academySubtitle')}
-              action={{ href: siteHref(undefined, 'academy'), label: t('site.v2.academyCta') }}
-            />
-            <p className="muted mt-4 max-w-2xl reveal">{t('site.v2.academyText')}</p>
-            <div className="row-list">
-              {courses.map((course, i) => (
-                <Link key={course.slug} href={siteHref(undefined, `academy/${course.slug}`)} className="row-item reveal">
-                  <span className="row-no">{num(i + 1)}</span>
-                  <div>
-                    <h3>{course.title}</h3>
-                  </div>
-                  <Arrow className="row-arrow size-5" />
-                </Link>
-              ))}
+          </section>
+        );
+      }
+      case 'why': {
+        const p = block.props;
+        index += 1;
+        return (
+          <section key="why" className="section why2">
+            <div className="webina-shell">
+              <SectionHead index={num(index)} title={p.title} />
+              <ul className="why-grid">
+                {p.items.map((item, i) => (
+                  <li key={i} className="reveal">
+                    <span className="why-no">{num(i + 1)}</span>
+                    <p>{item.text}</p>
+                  </li>
+                ))}
+              </ul>
             </div>
-            <div className="mt-8">
-              <Link href={siteHref(undefined, 'academy')} className="btn-ghost">
-                {t('site.v2.academyCta')}
-              </Link>
-            </div>
-          </div>
-        </section>
-      ) : null}
-
-      {show(blocks, 'blog') ? (
-        <section className="section">
-          <div className="webina-shell">
-            <SectionHead
-              index={sec(7)}
-              title={t('site.v2.magazineTitle')}
-              subtitle={t('site.v2.magazineSubtitle')}
-              action={{ href: siteHref(undefined, 'blog'), label: t('site.v2.magazineCta') }}
-            />
-            {posts.length ? (
-              <div className="post-grid">
-                {posts.map((post, i) => (
-                  <article key={post.id} className="post-card reveal">
-                    <Link href={siteHref(undefined, `blog/${post.slug}`)} className="block">
-                      <div className={cn('work-thumb post-thumb', !post.cover_url && isDarkThumb(i + 3) && 'is-dark')}>
-                        {post.cover_url ? (
+          </section>
+        );
+      }
+      case 'testimonials': {
+        const p = block.props;
+        index += 1;
+        return (
+          <section key="testimonials" className="section">
+            <div className="webina-shell">
+              <SectionHead index={num(index)} title={p.title} />
+              {quotes.length ? (
+                <div className="quote-grid">
+                  {quotes.slice(0, Math.max(1, Number(p.limit) || 6)).map((q) => (
+                    <blockquote key={q.id} className="quote reveal">
+                      {q.quote}
+                      <footer className="flex items-center gap-3">
+                        {q.avatar_url ? (
                           // eslint-disable-next-line @next/next/no-img-element
-                          <img src={post.cover_url} alt={post.title} className="absolute inset-0 size-full object-cover" loading="lazy" />
-                        ) : (
-                          <WorkThumb index={i + 3} />
-                        )}
-                      </div>
-                    </Link>
-                    {post.published_at ? (
-                      <time className="post-date" dateTime={post.published_at}>
-                        {formatCalendarDate(post.published_at, fa ? 'fa' : 'en')}
-                      </time>
-                    ) : null}
-                    <h3>
-                      <Link href={siteHref(undefined, `blog/${post.slug}`)}>{post.title}</Link>
-                    </h3>
-                    {post.excerpt ? <p className="work-desc line-clamp-2">{post.excerpt}</p> : null}
-                    <Link href={siteHref(undefined, `blog/${post.slug}`)} className="text-link mt-3">
-                      {t('site.v2.readMore')}
-                      <Arrow />
-                    </Link>
-                  </article>
-                ))}
-              </div>
-            ) : (
-              <p className="empty-note reveal mt-8">{t('site.v2.magazineEmpty')}</p>
-            )}
-            <div className="mt-8">
-              <Link href={siteHref(undefined, 'blog')} className="btn-ghost">
-                {t('site.v2.magazineCta')}
-              </Link>
-            </div>
-          </div>
-        </section>
-      ) : null}
-
-      {show(blocks, 'why') ? (
-        <section className="section why2">
-          <div className="webina-shell">
-            <SectionHead index={sec(8)} title={t('site.v2.whyTitle')} />
-            <ul className="why-grid">
-              {HOME_WHY.map((key, i) => (
-                <li key={key} className="reveal">
-                  <span className="why-no">{num(i + 1)}</span>
-                  <p>{t(`site.v2.why.${key}`)}</p>
-                </li>
-              ))}
-            </ul>
-          </div>
-        </section>
-      ) : null}
-
-      {show(blocks, 'testimonials') ? (
-        <section className="section">
-          <div className="webina-shell">
-            <SectionHead index={sec(9)} title={t('site.v2.testimonialsTitle')} />
-            {quotes.length ? (
-              <div className="quote-grid">
-                {quotes.slice(0, 6).map((q) => (
-                  <blockquote key={q.id} className="quote reveal">
-                    {q.quote}
-                    <footer className="flex items-center gap-3">
-                      {q.avatar_url ? (
-                        // eslint-disable-next-line @next/next/no-img-element
-                        <img src={q.avatar_url} alt="" className="size-10 rounded-full object-cover" />
-                      ) : null}
-                      <span className="!mt-0 !font-extrabold !text-[var(--ink)]">
-                        {q.author}
-                        {q.role || q.company ? (
-                          <span className="block text-xs font-normal text-[var(--muted)]">
-                            {[q.role, q.company].filter(Boolean).join('، ')}
-                          </span>
+                          <img src={q.avatar_url} alt="" className="size-10 rounded-full object-cover" />
                         ) : null}
-                      </span>
-                    </footer>
-                  </blockquote>
-                ))}
+                        <span className="!mt-0 !font-extrabold !text-[var(--ink)]">
+                          {q.author}
+                          {q.role || q.company ? (
+                            <span className="block text-xs font-normal text-[var(--muted)]">
+                              {[q.role, q.company].filter(Boolean).join('، ')}
+                            </span>
+                          ) : null}
+                        </span>
+                      </footer>
+                    </blockquote>
+                  ))}
+                </div>
+              ) : (
+                <p className="empty-note reveal mt-8">{p.empty}</p>
+              )}
+            </div>
+          </section>
+        );
+      }
+      case 'consultation_cta': {
+        const p = block.props;
+        return (
+          <section key="cta" className="cta-bar">
+            <div className="webina-shell cta-bar-inner">
+              <div>
+                <h2>{p.title}</h2>
+                <p>
+                  {p.text_1}
+                  {p.text_2 ? (
+                    <>
+                      <br />
+                      {p.text_2}
+                    </>
+                  ) : null}
+                </p>
               </div>
-            ) : (
-              <p className="empty-note reveal mt-8">{t('site.v2.testimonialsEmpty')}</p>
-            )}
-          </div>
-        </section>
-      ) : null}
-
-      {show(blocks, 'consultation_cta') ? (
-        <section className="cta-bar">
-          <div className="webina-shell cta-bar-inner">
-            <div>
-              <h2>{t('site.v2.ctaTitle')}</h2>
-              <p>
-                {t('site.v2.ctaText1')}
-                <br />
-                {t('site.v2.ctaText2')}
-              </p>
+              <div className="flex flex-wrap gap-3">
+                <Buttons items={p.buttons} arrowFirst />
+              </div>
             </div>
-            <div className="flex flex-wrap gap-3">
-              <Link href={siteHref(undefined, 'consultation')} className="btn-primary">
-                {t('site.v2.ctaBtn1')}
-                <Arrow />
-              </Link>
-              <Link href={siteHref(undefined, 'proposal')} className="btn-ghost">
-                {t('site.v2.ctaBtn2')}
-              </Link>
-              <Link href={siteHref(undefined, 'contact')} className="btn-ghost">
-                {t('site.v2.ctaBtn3')}
-              </Link>
-            </div>
-          </div>
-        </section>
-      ) : null}
+          </section>
+        );
+      }
+      default:
+        return null;
+    }
+  });
 
-      <div className={cn('mobile-dock', dock && 'is-visible')} aria-hidden={!dock}>
-        <span>{t('site.landing.dockLabel')}</span>
-        <Link href={siteHref(undefined, 'consultation')} tabIndex={dock ? 0 : -1}>
-          {t('site.v2.heroCta1')}
-        </Link>
-      </div>
+  return (
+    <article ref={root} className="webina-landing v2">
+      {sections}
+      {hero?.dock_cta_label && hero.dock_cta_href ? (
+        <div className={cn('mobile-dock', dock && 'is-visible')} aria-hidden={!dock}>
+          <span>{hero.dock_label}</span>
+          <SmartLink to={hero.dock_cta_href} tabIndex={dock ? 0 : -1}>
+            {hero.dock_cta_label}
+          </SmartLink>
+        </div>
+      ) : null}
     </article>
   );
 }

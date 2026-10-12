@@ -7,10 +7,14 @@ import { SiteHeader } from '@/themes/webina-corporate-v1/components/SiteHeader';
 export default async function NotFound() {
   let siteName = 'Webina';
   let logoUrl: string | null = null;
+  let branding: Record<string, unknown> | null = null;
+  let socials: unknown = null;
   try {
     const res = await getPublicSite();
     siteName = res.data.name ?? siteName;
     logoUrl = res.data.logo_url ?? logoUrl;
+    branding = (res.data.branding as Record<string, unknown> | null) ?? null;
+    socials = res.data.social_links ?? null;
   } catch {
     /* corporate chrome still renders */
   }
@@ -18,7 +22,7 @@ export default async function NotFound() {
   return (
     <div className="flex min-h-svh flex-col bg-[#07070a] text-white">
       <ThemeSlot kind="header" context={{ notFound: true, path: '/404' }}>
-        <SiteHeader siteName={siteName} logoUrl={logoUrl} />
+        <SiteHeader siteName={siteName} logoUrl={logoUrl} header={branding?.header} />
       </ThemeSlot>
       <main className="flex-1">
         <ThemeSlot kind="not_found" context={{ notFound: true, path: '/404' }}>
@@ -35,7 +39,7 @@ export default async function NotFound() {
         </ThemeSlot>
       </main>
       <ThemeSlot kind="footer" context={{ notFound: true, path: '/404' }}>
-        <SiteFooter siteName={siteName} />
+        <SiteFooter siteName={siteName} logoUrl={logoUrl} footer={branding?.footer} contact={branding?.contact} socials={socials} />
       </ThemeSlot>
     </div>
   );

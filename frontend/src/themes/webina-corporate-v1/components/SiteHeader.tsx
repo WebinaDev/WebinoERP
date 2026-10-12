@@ -2,37 +2,34 @@
 
 import Link from 'next/link';
 import { useEffect, useState } from 'react';
-import { useTranslations } from 'next-intl';
+import { useLocale, useTranslations } from 'next-intl';
 import { ArrowUpLeft, ChevronDown, Menu, X } from 'lucide-react';
 import { LanguageMenu } from '@/components/LanguageMenu';
 import { siteHref } from '@/lib/public-api-server';
 import { cn } from '@/lib/utils';
-import { COMPANY_MEGA, RESOURCE_MEGA, SERVICE_MEGA, SOLUTION_MEGA, type MegaDef } from '../site-nav';
+import { headerDefaults, isExternalHref, mergeContent, type HeaderData, type NavItemData } from '../site-content';
 import { LogoLockup } from './LogoLockup';
 import { NavIcon } from './NavIcon';
 
-/** Desktop order from the approved design: services · solutions · portfolio · resources · company. */
-type NavEntry = { kind: 'mega'; mega: MegaDef } | { kind: 'link'; href: string; labelKey: string };
+function go(path?: string) {
+  if (!path) return siteHref();
+  return isExternalHref(path) ? path : siteHref(undefined, path.replace(/^\//, ''));
+}
 
-const NAV: NavEntry[] = [
-  { kind: 'mega', mega: SERVICE_MEGA },
-  { kind: 'mega', mega: SOLUTION_MEGA },
-  { kind: 'link', href: 'portfolio', labelKey: 'site.nav.portfolio' },
-  { kind: 'mega', mega: RESOURCE_MEGA },
-  { kind: 'mega', mega: COMPANY_MEGA },
-];
-
-const MEGAS = [SERVICE_MEGA, SOLUTION_MEGA, RESOURCE_MEGA, COMPANY_MEGA];
-
+/** Header content comes from site settings `branding.header` (page builder → سربرگ). */
 export function SiteHeader({
   siteName,
   logoUrl,
+  header,
 }: {
   siteName: string;
   logoUrl?: string | null;
+  header?: unknown;
 }) {
   const t = useTranslations();
-  const [openId, setOpenId] = useState<string | null>(null);
+  const locale = useLocale();
+  const data: HeaderData = locale === 'fa' ? mergeContent(headerDefaults(t), header) : headerDefaults(t);
+  const [openId, setOpenId] = useState<number | null>(null);
   const [mobile, setMobile] = useState(false);
   const [scrolled, setScrolled] = useState(false);
 
@@ -51,7 +48,7 @@ export function SiteHeader({
   }, [mobile]);
 
   useEffect(() => {
-    if (!openId) return;
+    if (openId === null) return;
     const onKey = (event: KeyboardEvent) => {
       if (event.key === 'Escape') setOpenId(null);
     };
@@ -59,41 +56,33 @@ export function SiteHeader({
     return () => window.removeEventListener('keydown', onKey);
   }, [openId]);
 
-  const openMega = MEGAS.find((m) => m.id === openId);
+  const openMega = openId !== null ? data.nav[openId] : undefined;
 
   return (
-    <header
-      className={cn('site-header', (scrolled || openId) && 'is-scrolled')}
-      onMouseLeave={() => setOpenId(null)}
-    >
+    <header className={cn('site-header', (scrolled || openId !== null) && 'is-scrolled')} onMouseLeave={() => setOpenId(null)}>
       <div className="webina-shell site-header-bar">
         <Link href={siteHref()} aria-label={siteName} onClick={() => setMobile(false)}>
           <LogoLockup siteName={siteName} logoUrl={logoUrl} />
         </Link>
 
         <nav className="desk-nav" aria-label={t('site.nav.mainMenu')}>
-          {NAV.map((entry) =>
-            entry.kind === 'link' ? (
-              <Link
-                key={entry.href}
-                href={siteHref(undefined, entry.href)}
-                className="nav-link"
-                onMouseEnter={() => setOpenId(null)}
-              >
-                {t(entry.labelKey)}
+          {data.nav.map((entry, i) =>
+            !entry.columns?.length ? (
+              <Link key={`${entry.href}-${i}`} href={go(entry.href)} className="nav-link" onMouseEnter={() => setOpenId(null)}>
+                {entry.label}
               </Link>
             ) : (
               <button
-                key={entry.mega.id}
+                key={`${entry.href}-${i}`}
                 type="button"
-                className={cn('nav-trigger', openId === entry.mega.id && 'is-open')}
-                onMouseEnter={() => setOpenId(entry.mega.id)}
-                onFocus={() => setOpenId(entry.mega.id)}
-                onClick={() => setOpenId((id) => (id === entry.mega.id ? null : entry.mega.id))}
-                aria-expanded={openId === entry.mega.id}
+                className={cn('nav-trigger', openId === i && 'is-open')}
+                onMouseEnter={() => setOpenId(i)}
+                onFocus={() => setOpenId(i)}
+                onClick={() => setOpenId((id) => (id === i ? null : i))}
+                aria-expanded={openId === i}
               >
-                {t(entry.mega.labelKey)}
-                <ChevronDown className={cn('size-3.5 opacity-60 transition', openId === entry.mega.id && 'rotate-180')} />
+                {entry.label}
+                <ChevronDown className={cn('size-3.5 opacity-60 transition', openId === i && 'rotate-180')} />
               </button>
             ),
           )}
@@ -103,9 +92,11 @@ export function SiteHeader({
           <div className="lang-slot">
             <LanguageMenu />
           </div>
-          <Link href={siteHref(undefined, 'consultation')} className="nav-cta">
-            {t('site.nav.freeConsultation')}
-          </Link>
+          {data.cta_label ? (
+            <Link href={go(data.cta_href)} className="nav-cta">
+              {data.cta_label}
+            </Link>
+          ) : null}
           <button
             type="button"
             className="menu-toggle"
@@ -118,144 +109,131 @@ export function SiteHeader({
         </div>
       </div>
 
-      {openMega ? <MegaPanel mega={openMega} t={t} onNavigate={() => setOpenId(null)} /> : null}
+      {openMega?.columns?.length ? <MegaPanel mega={openMega} data={data} onNavigate={() => setOpenId(null)} /> : null}
 
-      {mobile ? <MobileNav t={t} onClose={() => setMobile(false)} /> : null}
+      {mobile ? <MobileNav data={data} onClose={() => setMobile(false)} /> : null}
     </header>
   );
 }
 
-function MegaPanel({ mega, t, onNavigate }: { mega: MegaDef; t: (key: string) => string; onNavigate: () => void }) {
-  const cols = mega.columns.length >= 5 ? 'cols-5' : mega.columns.length === 1 ? 'cols-1' : 'cols-2';
+function MegaPanel({ mega, data, onNavigate }: { mega: NavItemData; data: HeaderData; onNavigate: () => void }) {
+  const columns = mega.columns ?? [];
+  const cols = columns.length >= 5 ? 'cols-5' : columns.length === 1 ? 'cols-1' : 'cols-2';
   return (
     <div className="mega-sheet hidden min-[1100px]:block">
       <div className="webina-shell">
         <div className={cn('mega-grid', cols)}>
-          {mega.columns.map((col) => (
-            <div key={col.titleKey} className="mega-col">
+          {columns.map((col, ci) => (
+            <div key={`${col.title}-${ci}`} className="mega-col">
               <h3 className="flex items-center gap-2">
                 <span className="mega-ico">
-                  <NavIcon name={col.icon} className="size-4" />
+                  <NavIcon name={col.icon || 'Circle'} className="size-4" />
                 </span>
                 {col.href ? (
-                  <Link href={siteHref(undefined, col.href)} onClick={onNavigate}>
-                    {t(col.titleKey)}
+                  <Link href={go(col.href)} onClick={onNavigate}>
+                    {col.title}
                   </Link>
                 ) : (
-                  <span>{t(col.titleKey)}</span>
+                  <span>{col.title}</span>
                 )}
               </h3>
-              <p>{t(col.leadKey)}</p>
+              {col.lead ? <p>{col.lead}</p> : null}
               <ul>
-                {col.items.map((item) => (
-                  <li key={item.href}>
-                    <Link href={siteHref(undefined, item.href)} className="mega-item" onClick={onNavigate}>
+                {(col.items ?? []).map((item, ii) => (
+                  <li key={`${item.href}-${ii}`}>
+                    <Link href={go(item.href)} className="mega-item" onClick={onNavigate}>
                       <span className="mega-ico">
-                        <NavIcon name={item.icon} className="size-3.5" />
+                        <NavIcon name={item.icon || 'Circle'} className="size-3.5" />
                       </span>
-                      {t(item.labelKey)}
+                      {item.label}
                     </Link>
                   </li>
                 ))}
               </ul>
             </div>
           ))}
-          {mega.columns.length < 5 ? (
-            <Link href={siteHref(undefined, 'consultation')} className="mega-promo" onClick={onNavigate}>
-              <small className="text-xs">{t('site.nav.freeConsultation')}</small>
-              <strong className="mt-3 block text-xl leading-snug">{t('site.landing.finalTitle')}</strong>
+          {columns.length < 5 && data.promo_title ? (
+            <Link href={go(data.cta_href)} className="mega-promo" onClick={onNavigate}>
+              <small className="text-xs">{data.promo_small}</small>
+              <strong className="mt-3 block text-xl leading-snug">{data.promo_title}</strong>
               <span className="mt-3 flex items-center gap-1 text-sm">
-                {t('site.mega.panelHint')}
+                {data.panel_hint}
                 <ArrowUpLeft className="size-4 ltr:-scale-x-100" />
               </span>
             </Link>
           ) : null}
         </div>
         <div className="mega-foot">
-          <p>{t('site.mega.panelHint')}</p>
-          <Link href={siteHref(undefined, mega.href)} onClick={onNavigate}>
-            {t('site.mega.seeAll')}
-          </Link>
+          <p>{data.panel_hint}</p>
+          {mega.href && data.see_all ? (
+            <Link href={go(mega.href)} onClick={onNavigate}>
+              {data.see_all}
+            </Link>
+          ) : null}
         </div>
       </div>
     </div>
   );
 }
 
-function MobileNav({ t, onClose }: { t: (key: string) => string; onClose: () => void }) {
-  const [open, setOpen] = useState<string | null>(null);
+function MobileNav({ data, onClose }: { data: HeaderData; onClose: () => void }) {
+  const [open, setOpen] = useState<number | null>(null);
 
   return (
     <div className="mobile-sheet min-[1100px]:hidden">
       <div className="webina-shell pb-10 pt-2">
-        {MEGAS.slice(0, 2).map((mega) => (
-          <MobileGroup key={mega.id} mega={mega} open={open === mega.id} onToggle={() => setOpen((id) => (id === mega.id ? null : mega.id))} t={t} onClose={onClose} />
-        ))}
-        <Link href={siteHref(undefined, 'portfolio')} onClick={onClose} className="mobile-link">
-          {t('site.nav.portfolio')}
-        </Link>
-        <Link href={siteHref(undefined, 'products')} onClick={onClose} className="mobile-link">
-          {t('site.nav.products')}
-        </Link>
-        {MEGAS.slice(2).map((mega) => (
-          <MobileGroup key={mega.id} mega={mega} open={open === mega.id} onToggle={() => setOpen((id) => (id === mega.id ? null : mega.id))} t={t} onClose={onClose} />
-        ))}
+        {data.nav.map((entry, i) =>
+          entry.columns?.length ? (
+            <MobileGroup key={`${entry.href}-${i}`} mega={entry} open={open === i} onToggle={() => setOpen((id) => (id === i ? null : i))} onClose={onClose} />
+          ) : (
+            <Link key={`${entry.href}-${i}`} href={go(entry.href)} onClick={onClose} className="mobile-link">
+              {entry.label}
+            </Link>
+          ),
+        )}
         <div className="mt-6 grid gap-2">
-          <Link href={siteHref(undefined, 'consultation')} onClick={onClose} className="btn-primary w-full">
-            {t('site.nav.freeConsultation')}
-          </Link>
-          <Link href={siteHref(undefined, 'proposal')} onClick={onClose} className="btn-ghost w-full">
-            {t('site.nav.proposal')}
-          </Link>
+          {data.cta_label ? (
+            <Link href={go(data.cta_href)} onClick={onClose} className="btn-primary w-full">
+              {data.cta_label}
+            </Link>
+          ) : null}
+          {data.mobile_secondary_label ? (
+            <Link href={go(data.mobile_secondary_href)} onClick={onClose} className="btn-ghost w-full">
+              {data.mobile_secondary_label}
+            </Link>
+          ) : null}
         </div>
       </div>
     </div>
   );
 }
 
-function MobileGroup({
-  mega,
-  open,
-  onToggle,
-  t,
-  onClose,
-}: {
-  mega: MegaDef;
-  open: boolean;
-  onToggle: () => void;
-  t: (key: string) => string;
-  onClose: () => void;
-}) {
+function MobileGroup({ mega, open, onToggle, onClose }: { mega: NavItemData; open: boolean; onToggle: () => void; onClose: () => void }) {
   return (
     <div className="mobile-group">
-      <button
-        type="button"
-        className="flex w-full items-center justify-between py-4 text-start"
-        aria-expanded={open}
-        onClick={onToggle}
-      >
-        {t(mega.labelKey)}
+      <button type="button" className="flex w-full items-center justify-between py-4 text-start" aria-expanded={open} onClick={onToggle}>
+        {mega.label}
         <ChevronDown className={cn('size-5 text-[var(--brand-primary)] transition', open && 'rotate-180')} />
       </button>
       {open ? (
         <div className="space-y-5 pb-5">
-          {mega.columns.map((col) => (
-            <div key={col.titleKey}>
+          {(mega.columns ?? []).map((col, ci) => (
+            <div key={`${col.title}-${ci}`}>
               {col.href ? (
-                <Link href={siteHref(undefined, col.href)} onClick={onClose} className="mobile-group-title">
-                  {t(col.titleKey)}
+                <Link href={go(col.href)} onClick={onClose} className="mobile-group-title">
+                  {col.title}
                 </Link>
               ) : (
-                <p className="mobile-group-title">{t(col.titleKey)}</p>
+                <p className="mobile-group-title">{col.title}</p>
               )}
               <ul className="mt-2 grid grid-cols-1 gap-0.5 sm:grid-cols-2">
-                {col.items.map((item) => (
-                  <li key={item.href}>
-                    <Link href={siteHref(undefined, item.href)} onClick={onClose} className="mega-item">
+                {(col.items ?? []).map((item, ii) => (
+                  <li key={`${item.href}-${ii}`}>
+                    <Link href={go(item.href)} onClick={onClose} className="mega-item">
                       <span className="mega-ico">
-                        <NavIcon name={item.icon} className="size-3.5" />
+                        <NavIcon name={item.icon || 'Circle'} className="size-3.5" />
                       </span>
-                      {t(item.labelKey)}
+                      {item.label}
                     </Link>
                   </li>
                 ))}

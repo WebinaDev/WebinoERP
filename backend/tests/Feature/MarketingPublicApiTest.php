@@ -47,7 +47,7 @@ class MarketingPublicApiTest extends TestCase
 
         $this->getJson('/api/v1/public/home')
             ->assertOk()
-            ->assertJsonPath('data.faq.0.question', 'همکاری از کجا شروع می‌شود؟');
+            ->assertJsonPath('data.faq.0.question', 'پروژه از کجا شروع می‌شود؟');
     }
 
     public function test_public_page_by_slug(): void

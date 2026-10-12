@@ -176,7 +176,8 @@
         "forms": "Forms",
         "themeBuilder": "Theme builder",
         "builder": "Page builder",
-        "builderSettings": "Global settings"
+        "builderSettings": "Global settings",
+        "siteBuilder": "Corporate site builder"
       },
       "hrm": {
         "group": "Human resources",
