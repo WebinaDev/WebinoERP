@@ -369,11 +369,11 @@ class WebinocrmModirPayamakCompatController extends Controller
 
         // Entitlement is domain-only; optional license_key from WP clients is ignored.
         $license = CoreLicenseResolver::find($domain, $request->input('product') ?? $request->query('product'));
-        if (! $license) {
+        if (! $license && (bool) config('integrations.modirpayamak.require_license', false)) {
             // Unlicensed domains must not get an SMS account (and spend/read a tenant wallet) by guessing a domain.
             abort(403, __('messages.license_not_found_for_domain'));
         }
-        if ($license->status !== 'active') {
+        if ($license && $license->status !== 'active') {
             abort(403, __('messages.license_inactive_for_domain'));
         }
 

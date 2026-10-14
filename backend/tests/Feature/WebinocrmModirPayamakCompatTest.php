@@ -44,10 +44,19 @@ class WebinocrmModirPayamakCompatTest extends TestCase
     public function test_invalid_license_returns_unavailable(): void
     {
         // license_key ignored for entitlement — domain identity wins
+        config(['integrations.modirpayamak.require_license' => true]);
         $this->getJson('/api/webinocrm/v1/modirpayamak/dashboard?domain=shop.test&license_key=wrong')
             ->assertOk()
             ->assertJsonPath('ok', false)
             ->assertJsonPath('unavailable', true);
+    }
+
+    public function test_unlicensed_domain_still_served_when_license_not_required(): void
+    {
+        config(['integrations.modirpayamak.require_license' => false]);
+        $this->getJson('/api/webinocrm/v1/modirpayamak/dashboard?domain=shop.test')
+            ->assertOk()
+            ->assertJsonPath('ok', true);
     }
 
     public function test_secretaries_process_never_returns_silent_skipped(): void

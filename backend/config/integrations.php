@@ -11,6 +11,8 @@ return [
     'modirpayamak' => [
         'api_key' => env('MODIRPAYAMAK_API_KEY', ''),
         'mock' => filter_var(env('MODIRPAYAMAK_MOCK', false), FILTER_VALIDATE_BOOLEAN),
+        // Refuse the WP-facing SMS edge for domains without a CoreLicense (off until every SMS domain is licensed).
+        'require_license' => filter_var(env('MODIRPAYAMAK_REQUIRE_LICENSE', false), FILTER_VALIDATE_BOOLEAN),
         'enabled' => env('MODIRPAYAMAK_ENABLED'),
         'timeout' => (int) env('MODIRPAYAMAK_TIMEOUT', 15),
         'connect_timeout' => (int) env('MODIRPAYAMAK_CONNECT_TIMEOUT', 5),
