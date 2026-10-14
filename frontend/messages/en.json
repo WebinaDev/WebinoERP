@@ -866,7 +866,9 @@
     "tasksPerColumn": "Total tasks: {count} — per column:",
     "invalidJsonDot": "Invalid JSON.",
     "invalidModuleReposDot": "Invalid module_repos JSON.",
-    "invalidGitDot": "Invalid git JSON."
+    "invalidGitDot": "Invalid git JSON.",
+    "error": "An error occurred.",
+    "status": "Status"
   },
   "a11y": {
     "toggleSubmenu": "Toggle submenu",
@@ -4299,7 +4301,8 @@
       "unknown": "Unknown"
     },
     "loading": "Loading…",
-    "domainIdentityHint": "License identity (domain)"
+    "domainIdentityHint": "License identity (domain)",
+    "statusLabel": "Status"
   },
   "platform": {
     "dashboardTitle": "Platform dashboard",
@@ -4363,7 +4366,8 @@
       "pullImagePlaceholder": "nginx:latest",
       "confirmDeleteImage": "Delete image {ref}?",
       "showRaw": "Show raw JSON",
-      "hideRaw": "Hide raw JSON"
+      "hideRaw": "Hide raw JSON",
+      "noData": "No data"
     },
     "projects": {
       "title": "Projects",
@@ -4878,6 +4882,57 @@
       "date": "Date",
       "confirmDelete": "Delete this draft?",
       "useInSend": "Use in send"
+    },
+    "recipientCount": "{count} recipients",
+    "useInSend": "Use in send",
+    "events": {
+      "pending_on_create": "Order created (pending payment)",
+      "pending_on_status": "Status changed to pending payment",
+      "on-hold": "On hold",
+      "processing": "Processing",
+      "packaged": "Packaged",
+      "sent-to-warehouse": "Sent to warehouse",
+      "courier": "Handed to courier",
+      "post": "Shipped by post",
+      "tipax": "Shipped by Tipax",
+      "completed": "Completed",
+      "cancelled": "Cancelled",
+      "failed": "Failed",
+      "refunded": "Refunded",
+      "checkout-draft": "Checkout draft",
+      "cart-abandoned": "Abandoned cart",
+      "order-abandoned": "Abandoned order",
+      "user-welcome": "New user welcome",
+      "stock-low": "Low stock",
+      "stock-out": "Out of stock",
+      "otp_login": "Login code (OTP)",
+      "otp_register": "Registration code (OTP)"
+    },
+    "statuses": {
+      "active": "Active",
+      "inactive": "Inactive",
+      "suspended": "Suspended",
+      "pending": "Pending",
+      "paid": "Paid",
+      "failed": "Failed",
+      "cancelled": "Cancelled",
+      "canceled": "Cancelled",
+      "sent": "Sent",
+      "delivered": "Delivered",
+      "queued": "Queued",
+      "scheduled": "Scheduled",
+      "open": "Open",
+      "closed": "Closed",
+      "done": "Done",
+      "expired": "Expired",
+      "verified": "Verified",
+      "draft": "Draft",
+      "rejected": "Rejected",
+      "approved": "Approved",
+      "undelivered": "Undelivered",
+      "webservice": "Web service",
+      "pattern": "Pattern",
+      "peer_to_peer": "Peer to peer"
     }
   },
   "bale": {
@@ -5339,7 +5394,20 @@
       "dependencies": "Dependencies",
       "dependsOn": "Depends on",
       "noDependencies": "No dependencies",
-      "columnCount": "{name}: {count}"
+      "columnCount": "{name}: {count}",
+      "durationDays": "Duration (days)",
+      "progress": "Progress",
+      "prevMonth": "Previous month",
+      "nextMonth": "Next month",
+      "selectDay": "Select a day",
+      "selectDayHint": "Click a day in the calendar to see its tasks.",
+      "weekdaySat": "Sat",
+      "weekdaySun": "Sun",
+      "weekdayMon": "Mon",
+      "weekdayTue": "Tue",
+      "weekdayWed": "Wed",
+      "weekdayThu": "Thu",
+      "weekdayFri": "Fri"
     },
     "timeTracking": {
       "active": "Active timer",

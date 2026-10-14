@@ -32,6 +32,7 @@ import {
 } from '@/lib/api/modirpayamak-edge';
 import { getAxiosMessage } from '@/lib/api-helpers';
 import { ModirPayamakOutboxTable } from './components/outbox-table';
+import { ModirPayamakStatusBadge } from './components/status-badge';
 import { ModirPayamakBreadcrumb, ModirPayamakNotConfigured } from './components/shared';
 import { useModirPayamakConfigured } from './hooks/useModirPayamakConfigured';
 
@@ -280,7 +281,9 @@ export function ModirpayamakReportsPage() {
                             <TableCell className="font-mono text-xs" dir="ltr">
                               {String(m.domain ?? '—')}
                             </TableCell>
-                            <TableCell>{String(m.status ?? m.sending_type ?? '—')}</TableCell>
+                            <TableCell>
+                              <ModirPayamakStatusBadge status={String(m.status ?? m.sending_type ?? '—')} />
+                            </TableCell>
                             <TableCell dir="ltr">{String(m.cost ?? '—')}</TableCell>
                             <TableCell className="text-xs text-muted-foreground">
                               {formatDate(m.created_at)}

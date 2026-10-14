@@ -91,10 +91,19 @@ const ORDER_EVENTS = [
 
 const SITE_EVENTS = ['otp_login', 'otp_register'];
 
-function eventLabel(t: (key: string) => string, key: string): string {
-  if (key === 'otp_login') return t('eventOtpLogin');
-  if (key === 'otp_register') return t('eventOtpRegister');
-  return key;
+type ModirT = ((key: string) => string) & { has?: (key: string) => boolean };
+
+function eventLabel(t: ModirT, key: string): string {
+  if (!key) return '—';
+  const k = `events.${key}`;
+  return t.has?.(k) ? t(k) : key;
+}
+
+function scopeLabel(t: ModirT, scope: string): string {
+  if (scope === 'order_customer') return t('scopeOrderCustomer');
+  if (scope === 'order_admin') return t('scopeOrderAdmin');
+  if (scope === 'site') return t('scopeSiteOtp');
+  return scope || '—';
 }
 
 function SyncBadge({ status }: { status?: string }) {
@@ -427,7 +436,7 @@ export function ModirpayamakPatternsPage() {
                           <TableCell className="font-mono text-xs" dir="ltr">
                             {r.domain || '—'}
                           </TableCell>
-                          <TableCell className="text-xs">{r.scope}</TableCell>
+                          <TableCell className="text-xs">{scopeLabel(t, r.scope ?? '')}</TableCell>
                           <TableCell className="text-xs">{eventLabel(t, r.event_key ?? '')}</TableCell>
                           <TableCell className="font-mono text-xs" dir="ltr">
                             {r.ippanel_code || '—'}
@@ -688,7 +697,7 @@ export function ModirpayamakPatternsPage() {
                   <TableBody>
                     {domainRegistry.map((r, i) => (
                       <TableRow key={`${r.scope}-${r.event_key}-${i}`}>
-                        <TableCell className="text-xs">{r.scope}</TableCell>
+                        <TableCell className="text-xs">{scopeLabel(t, r.scope ?? '')}</TableCell>
                         <TableCell className="text-xs">{eventLabel(t, r.event_key ?? '')}</TableCell>
                         <TableCell className="font-mono text-xs" dir="ltr">
                           {r.ippanel_code || '—'}

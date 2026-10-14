@@ -273,7 +273,7 @@ export function LaunchControlPanel({
                 </p>
               </div>
               <div className="text-end">
-                <p className="text-muted-foreground text-xs">{t('status')}</p>
+                <p className="text-muted-foreground text-xs">{t('statusLabel')}</p>
                 <p className="text-sm font-medium" data-testid="launch-status">
                   {provision?.status ?? '—'}
                 </p>

@@ -42,8 +42,8 @@ class ModirPayamakSiteSmsService
             'otp_expiry_minutes' => 5,
             'otp_max_attempts' => 3,
             'otp_length' => 6,
-            'otp_login_template' => 'Code: {code}',
-            'otp_register_template' => 'Registration code: {code}',
+            'otp_login_template' => 'کد ورود شما: {code}',
+            'otp_register_template' => 'کد ثبت‌نام شما: {code}',
             'use_pattern_for_otp' => false,
         ];
     }
