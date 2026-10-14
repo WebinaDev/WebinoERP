@@ -21,6 +21,8 @@ class MarketingAcademyLessonsController extends Controller
             'course_id' => ($creating ? 'required' : 'sometimes').'|exists:marketing_academy_courses,id',
             'slug' => ($creating ? 'required' : 'sometimes').'|string|max:255',
             'title' => ($creating ? 'required' : 'sometimes').'|string|max:255',
+            'chapter_id' => 'nullable|exists:marketing_academy_chapters,id',
+            'summary' => 'nullable|string',
             'content' => 'nullable|string',
             'video_url' => 'nullable|string|max:500',
             'sort_order' => 'nullable|integer|min:0',

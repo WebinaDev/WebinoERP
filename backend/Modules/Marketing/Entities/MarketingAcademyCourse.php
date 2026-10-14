@@ -14,6 +14,11 @@ class MarketingAcademyCourse extends Model
 
     protected $casts = ['is_free' => 'boolean', 'published' => 'boolean'];
 
+    public function chapters(): HasMany
+    {
+        return $this->hasMany(MarketingAcademyChapter::class, 'course_id')->orderBy('sort_order');
+    }
+
     public function lessons(): HasMany
     {
         return $this->hasMany(MarketingAcademyLesson::class, 'course_id')->orderBy('sort_order');

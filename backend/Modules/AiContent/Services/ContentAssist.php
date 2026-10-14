@@ -18,6 +18,7 @@ class ContentAssist
         'translate' => true, 'seo_title' => false, 'seo_description' => false, 'slug' => false,
         'excerpt' => false, 'read_time' => false, 'alt_text' => true, 'faq' => true, 'outline' => true,
         'case_study' => true, 'page_draft' => true,
+        'course_structure' => true, 'chapter_content' => true, 'lesson_content' => true,
     ];
 
     public const TONES = ['formal' => 'رسمی و حرفه‌ای', 'friendly' => 'صمیمی و گرم', 'persuasive' => 'متقاعدکننده و فروش‌محور', 'simple' => 'ساده و روان برای عموم', 'expert' => 'تخصصی و دقیق'];
@@ -128,10 +129,10 @@ class ContentAssist
     /** @return array{0: string, 1: string, 2: bool} system, user, expects JSON */
     private function prompt(string $action, string $text, array $in): array
     {
-        $html = ($in['format'] ?? 'text') === 'html';
+        $html = ($in['format'] ?? 'text') === 'html' || $action === 'lesson_content';
         $locale = ($in['target_locale'] ?? 'fa') === 'en' ? 'en' : 'fa';
         $ctx = array_filter((array) ($in['context'] ?? []), fn ($v) => is_scalar($v) && trim((string) $v) !== '');
-        $ctxText = $ctx ? "\nبافت (برای درک موضوع؛ عیناً تکرار نکن):\n".collect($ctx)->map(fn ($v, $k) => "- {$k}: ".Str::limit((string) $v, 600))->implode("\n") : '';
+        $ctxText = $ctx ? "\nبافت (برای درک موضوع؛ عیناً تکرار نکن):\n".collect($ctx)->map(fn ($v, $k) => "- {$k}: ".Str::limit((string) $v, 3000))->implode("\n") : '';
         $system = 'تو ویراستار و نویسنده ارشد محتوای فارسی «وبینا» (آژانس طراحی سایت، برند و رشد) هستی. '
             .'فارسی معیار و روان بنویس، با نیم‌فاصله درست (می‌شود، طراحی‌ها)، اعداد فارسی، علائم نگارشی فارسی (، ؛ ؟ « »)، بدون اغراق و ادعای ساختگی؛ '
             .'هیچ آمار، نام مشتری یا نتیجه‌ای را که در متن ورودی نیست از خودت نساز. '
@@ -157,9 +158,12 @@ class ContentAssist
             'faq' => "بر اساس این موضوع/متن ۵ پرسش متداول واقعی مشتری و پاسخ کوتاه دقیق بنویس. فقط JSON: {\"items\":[{\"q\":\"...\",\"a\":\"...\"}]}\n{$src}",
             'outline' => "برای این دوره آموزشی سرفصل مرحله‌ای (۵ تا ۸ درس) و خروجی‌های یادگیری بنویس. فقط JSON: {\"lessons\":[{\"title\":\"...\",\"summary\":\"...\"}],\"outcomes\":[\"...\"]}\n{$src}",
             'case_study' => "از این یادداشت‌ها متن نمونه‌کار بساز. فقط از واقعیت‌های داده‌شده استفاده کن و اگر نتیجه عددی نیست، عدد نساز. فقط JSON: {\"challenge\":\"...\",\"solution\":\"...\",\"results\":\"...\"}\n{$src}",
+            'course_structure' => "برای این دوره آموزشی (عنوان و توضیح در بافت) یک توضیح دوره (۲ تا ۴ جمله) و ساختار مرحله‌ای از مبتدی به پیشرفته بنویس: ۳ تا ۷ فصل و برای هر فصل ۲ تا ۶ درس، هر کدام با خلاصه یک‌جمله‌ای. فقط JSON: {\"description\":\"...\",\"outcomes\":[\"...\"],\"chapters\":[{\"title\":\"...\",\"summary\":\"...\",\"lessons\":[{\"title\":\"...\",\"summary\":\"...\"}]}]}\nیادداشت نویسنده: «{$text}»",
+            'chapter_content' => "برای این فصل از دوره (عنوان فصل و ساختار دوره در بافت) خلاصه فصل و فهرست درس‌های مرتب را بنویس یا تکمیل کن. فقط JSON: {\"summary\":\"...\",\"lessons\":[{\"title\":\"...\",\"summary\":\"...\"}]}\nفصل: «{$text}»",
+            'lesson_content' => "متن آموزشی کامل این درس را بنویس: مقدمه کوتاه، توضیح مرحله‌ای با تیتر h2/h3، یک مثال کاربردی، یک تمرین کوتاه و جمع‌بندی. با درس‌های قبل و بعد (در بافت) هماهنگ باشد و تکرار نکند.\nدرس: «{$text}»",
             'page_draft' => "برای یک صفحه سایت بر اساس این بریف پیش‌نویس ساختار و متن بنویس (۴ تا ۷ بخش؛ اولی هیرو). فقط JSON: {\"title\":\"...\",\"seo_title\":\"...\",\"seo_description\":\"...\",\"sections\":[{\"title\":\"...\",\"subtitle\":\"...\",\"text\":\"...\"}]}\nبریف: «{$text}»",
         };
-        $json = in_array($action, ['faq', 'outline', 'case_study', 'page_draft'], true);
+        $json = in_array($action, ['faq', 'outline', 'case_study', 'page_draft', 'course_structure', 'chapter_content'], true);
 
         return [$system.($json ? ' پاسخ فقط یک شیء JSON معتبر است.' : ''), $user.$ctxText, $json];
     }
@@ -179,6 +183,8 @@ class ContentAssist
             'faq' => collect($d['items'] ?? [])->map(fn ($i) => ($i['q'] ?? '').'|'.($i['a'] ?? ''))->implode("\n"),
             'outline' => collect($d['outcomes'] ?? [])->implode("\n"),
             'case_study' => trim(($d['challenge'] ?? '')."\n\n".($d['solution'] ?? '')."\n\n".($d['results'] ?? '')),
+            'course_structure' => (string) ($d['description'] ?? ''),
+            'chapter_content' => (string) ($d['summary'] ?? ''),
             'page_draft' => collect($d['sections'] ?? [])->map(fn ($s) => ($s['title'] ?? ''))->implode("\n"),
             default => '',
         };

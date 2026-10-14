@@ -1,6 +1,7 @@
 'use client';
 
 import { MarketingMenusPage as MenuAdminPage } from './menu_admin';
+import { CourseStructurePanel } from './course_structure_panel';
 import { MarketingResourcePage } from './marketing_resource_page';
 
 export function MarketingPagesPage() {
@@ -91,6 +92,7 @@ export function MarketingMagazinePage() {
 
 export function MarketingAcademyPage() {
   return (
+    <>
     <MarketingResourcePage
       titleKey="nav.erp.marketing.academy"
       endpoint="/v1/marketing/academy"
@@ -117,6 +119,8 @@ export function MarketingAcademyPage() {
         { key: 'published', labelKey: 'marketing.published', kind: 'checkbox' },
       ]}
     />
+      <CourseStructurePanel />
+    </>
   );
 }
 
@@ -132,7 +136,9 @@ export function MarketingAcademyLessonsPage() {
       ]}
       fields={[
         { key: 'course_id', labelKey: 'marketing.course', kind: 'select', optionsEndpoint: '/v1/marketing/academy', optionLabel: 'title' },
+        { key: 'chapter_id', labelKey: 'marketing.chapter', kind: 'select', optionsEndpoint: '/v1/marketing/academy-chapters', optionLabel: 'title' },
         { key: 'slug', labelKey: 'marketing.slug' },
+        { key: 'summary', labelKey: 'marketing.excerpt', kind: 'textarea' },
         { key: 'title', labelKey: 'marketing.title' },
         { key: 'video_url', labelKey: 'marketing.videoUrl' },
         { key: 'sort_order', labelKey: 'marketing.sortOrder', kind: 'number' },

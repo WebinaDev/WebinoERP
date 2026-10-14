@@ -10,13 +10,15 @@ import apiClient from '@/lib/api-client';
 
 export type AssistAction =
   | 'generate' | 'rewrite' | 'shorten' | 'expand' | 'tone' | 'translate' | 'seo_title' | 'seo_description'
-  | 'slug' | 'excerpt' | 'read_time' | 'alt_text' | 'faq' | 'outline' | 'case_study' | 'page_draft';
+  | 'slug' | 'excerpt' | 'read_time' | 'alt_text' | 'faq' | 'outline' | 'case_study' | 'page_draft'
+  | 'course_structure' | 'chapter_content' | 'lesson_content';
 
 export const ACTION_LABELS: Record<AssistAction, string> = {
   generate: 'نوشتن پیش‌نویس', rewrite: 'بازنویسی', shorten: 'کوتاه‌تر', expand: 'مفصل‌تر', tone: 'تغییر لحن',
   translate: 'ترجمه', seo_title: 'عنوان سئو', seo_description: 'توضیح متا', slug: 'نامک', excerpt: 'خلاصه',
   read_time: 'زمان مطالعه', alt_text: 'متن جایگزین تصویر', faq: 'ساخت پرسش‌های متداول', outline: 'سرفصل و خروجی دوره',
   case_study: 'چالش / راهکار / نتیجه', page_draft: 'پیش‌نویس صفحه از بریف',
+  course_structure: 'ساختار دوره', chapter_content: 'تولید فصل', lesson_content: 'تولید درس',
 };
 
 const TONES = [['formal', 'رسمی'], ['friendly', 'صمیمی'], ['persuasive', 'متقاعدکننده'], ['simple', 'ساده'], ['expert', 'تخصصی']] as const;

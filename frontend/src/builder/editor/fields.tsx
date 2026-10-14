@@ -6,6 +6,7 @@
 
 import { ArrowDown, ArrowUp, Plus, Trash2 } from "lucide-react"
 import { useTranslations } from "next-intl"
+import { AiAssist } from "@/features/ai/content-assist"
 
 import { LocaleDatePicker } from "@/components/ui/locale-date-picker"
 import { COLOR_TOKENS } from "../globals"
@@ -81,6 +82,14 @@ function SubField({ field, value, onChange }: { field: RepeaterSubField; value: 
   return <input className={input} dir={field.kind === "url" ? "ltr" : undefined} value={value} onChange={(event) => onChange(event.target.value)} />
 }
 
+/** Per-row AI for repeater text cells (the row's other cells are sent as context). */
+function RowAi({ field, value, row, onChange }: { field: RepeaterSubField; value: string; row: Record<string, string>; onChange: (v: string) => void }) {
+  if (field.kind !== "text" && field.kind !== "textarea") return null
+  const key = field.key === "a" && "q" in row ? "answer" : field.key === "q" ? "question" : field.key
+  const context = Object.fromEntries(Object.entries(row).filter(([k, v]) => k !== field.key && v && !/^(href|url|icon|image|img)$/i.test(k)).map(([k, v]) => [k, v]))
+  return <AiAssist compact value={value} onApply={onChange} surface="builder.repeater" field={key} kind={field.kind === "textarea" ? "textarea" : "text"} context={context} />
+}
+
 /** Repeater: edits rows and stores them in the legacy `a|b|c` line format so existing renderers keep working. */
 export function RepeaterInput({ value, fields, onChange }: { value: unknown; fields: RepeaterSubField[]; onChange: (value: string) => void }) {
   const t = useTranslations("builder")
@@ -108,7 +117,7 @@ export function RepeaterInput({ value, fields, onChange }: { value: unknown; fie
           </div>
           {fields.map((field) => (
             <label key={field.key} className="grid gap-0.5 text-[11px]">
-              {field.label}
+              <span className="flex items-center justify-between">{field.label}<RowAi field={field} value={row[field.key] ?? ""} row={row} onChange={(v) => write(rows.map((r, i) => (i === index ? { ...r, [field.key]: v } : r)))} /></span>
               <SubField field={field} value={row[field.key] ?? ""} onChange={(v) => write(rows.map((r, i) => (i === index ? { ...r, [field.key]: v } : r)))} />
             </label>
           ))}

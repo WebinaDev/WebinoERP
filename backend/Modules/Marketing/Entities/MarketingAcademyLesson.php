@@ -9,7 +9,7 @@ class MarketingAcademyLesson extends Model
 {
     protected $table = 'marketing_academy_lessons';
 
-    protected $fillable = ['course_id', 'slug', 'title', 'content', 'video_url', 'sort_order', 'published'];
+    protected $fillable = ['course_id', 'chapter_id', 'summary', 'slug', 'title', 'content', 'video_url', 'sort_order', 'published'];
 
     protected $casts = ['published' => 'boolean'];
 

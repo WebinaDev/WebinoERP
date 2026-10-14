@@ -112,7 +112,10 @@ class PublicContentController extends Controller
     {
         $course = MarketingAcademyCourse::query()->published()
             ->where('slug', $slug)
-            ->with(['lessons' => fn ($q) => $q->where('published', true)->orderBy('sort_order')])
+            ->with([
+                'lessons' => fn ($q) => $q->where('published', true)->orderBy('sort_order'),
+                'chapters' => fn ($q) => $q->orderBy('sort_order'),
+            ])
             ->firstOrFail();
 
         return response()->json(['data' => $course]);

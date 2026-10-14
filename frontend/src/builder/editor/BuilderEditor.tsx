@@ -64,6 +64,7 @@ type PagePayload = {
   slug: string
   status: string
   document: unknown
+  seo?: PageSeo
 }
 
 type TemplatePayload = {
@@ -119,6 +120,8 @@ export function BuilderEditor({ mode }: { mode: Mode }) {
   const [saving, setSaving] = useState(false)
   const [globals, setGlobals] = useState<BuilderGlobals>(DEFAULT_GLOBALS)
   const [widgetQuery, setWidgetQuery] = useState("")
+  const [seo, setSeo] = useState<PageSeo>({})
+  const [seoOpen, setSeoOpen] = useState(false)
 
   const commit = useCallback((next: BuilderDocument) => {
     setPast((items) => [...items.slice(-49), doc])
@@ -170,6 +173,7 @@ export function BuilderEditor({ mode }: { mode: Mode }) {
           setTitle(row.title)
           setSlug(row.slug)
           setPageId(row.id)
+          setSeo(row.seo && typeof row.seo === "object" ? row.seo : {})
         } else {
           setTitle(t("create"))
           setSlug("page")
@@ -284,6 +288,8 @@ export function BuilderEditor({ mode }: { mode: Mode }) {
         next = insertWidget(next, col, 0, w)
       })
       commit(next)
+      const st = r.structured as { seo_title?: string; seo_description?: string }
+      if (st.seo_title || st.seo_description) setSeo((cur) => ({ ...cur, title: cur.title || st.seo_title, description: cur.description || st.seo_description }))
       toast.success("پیش‌نویس به سند اضافه شد؛ بازبینی کنید و سپس ذخیره/انتشار را بزنید.")
     } catch (e: unknown) {
       toast.error((e as { response?: { data?: { message?: string } } })?.response?.data?.message || "ساخت پیش‌نویس انجام نشد.")
@@ -330,7 +336,7 @@ export function BuilderEditor({ mode }: { mode: Mode }) {
       if (!id) {
         const created = await api<PagePayload>("/api/v1/builder/pages", {
           method: "POST",
-          json: { title: title || t("create"), slug, document: doc },
+          json: { title: title || t("create"), slug, document: doc, seo },
         })
         id = created.id
         setPageId(id)
@@ -339,7 +345,7 @@ export function BuilderEditor({ mode }: { mode: Mode }) {
       } else {
         await api(`/api/v1/builder/pages/${id}`, {
           method: "PATCH",
-          json: { title, slug, document: doc },
+          json: { title, slug, document: doc, seo },
         })
       }
       if (publish) {
@@ -377,6 +383,12 @@ export function BuilderEditor({ mode }: { mode: Mode }) {
         </div>
         {mode.kind === "page" ? (
           <button type="button" className="rounded-md px-2 py-1 text-xs text-violet-200 hover:bg-white/10" onClick={() => void draftFromBrief()}>✨ پیش‌نویس با AI</button>
+        ) : null}
+        {mode.kind === "page" ? (
+          <span className="relative">
+            <button type="button" className="rounded-md px-2 py-1 text-xs text-white/80 hover:bg-white/10" onClick={() => setSeoOpen((o) => !o)}>سئو</button>
+            {seoOpen ? <SeoPanel seo={seo} onChange={setSeo} title={title} slug={slug} pageId={pageId} onClose={() => setSeoOpen(false)} /> : null}
+          </span>
         ) : null}
         <IconButton label={t("undo")} onClick={undo}><Undo2 className="size-4" /></IconButton>
         <IconButton label={t("redo")} onClick={redo}><Redo2 className="size-4" /></IconButton>
@@ -683,5 +695,31 @@ function TokenColor({ label, value, onChange }: { label: string; value?: string;
         <input type="color" value={value && value.startsWith("#") ? value : "#0C2D63"} onChange={(event) => onChange(event.target.value)} />
       )}
     </label>
+  )
+}
+
+type PageSeo = { title?: string; description?: string; og_image?: string; canonical?: string; noindex?: boolean }
+
+/** Page SEO (saved with «ذخیره» into marketing_pages.meta.seo and rendered as the page metadata). */
+function SeoPanel({ seo, onChange, title, slug, pageId, onClose }: { seo: PageSeo; onChange: (next: PageSeo) => void; title: string; slug: string; pageId: number | null; onClose: () => void }) {
+  const set = (k: keyof PageSeo, v: string | boolean) => onChange({ ...seo, [k]: v })
+  const ctx = { title, slug }
+  const len = (v?: string) => (v ?? "").length
+  return (
+    <div className="absolute end-0 z-50 mt-2 grid w-96 gap-2 rounded-xl bg-white p-4 text-xs text-[#0C2D63] shadow-2xl" dir="rtl">
+      <div className="flex items-center justify-between font-bold">سئوی صفحه<button type="button" onClick={onClose} aria-label="بستن">×</button></div>
+      <label className="grid gap-1">
+        <span className="flex items-center justify-between">عنوان سئو ({len(seo.title)}/۶۰)<AiAssist compact value={seo.title || title} onApply={(v) => set("title", v)} surface="builder.page" field="seo_title" context={ctx} targetId={pageId} /></span>
+        <input className="h-9 rounded-md border px-2" value={seo.title ?? ""} placeholder={title} onChange={(e) => set("title", e.target.value)} />
+      </label>
+      <label className="grid gap-1">
+        <span className="flex items-center justify-between">توضیح متا ({len(seo.description)}/۱۵۵)<AiAssist compact value={seo.description || title} onApply={(v) => set("description", v)} surface="builder.page" field="seo_description" context={ctx} targetId={pageId} /></span>
+        <textarea className="min-h-20 rounded-md border px-2 py-1" value={seo.description ?? ""} onChange={(e) => set("description", e.target.value)} />
+      </label>
+      <label className="grid gap-1">تصویر اشتراک (og:image)<input dir="ltr" className="h-9 rounded-md border px-2" value={seo.og_image ?? ""} onChange={(e) => set("og_image", e.target.value)} /></label>
+      <label className="grid gap-1">نشانی canonical (اختیاری)<input dir="ltr" className="h-9 rounded-md border px-2" value={seo.canonical ?? ""} onChange={(e) => set("canonical", e.target.value)} /></label>
+      <label className="flex items-center gap-2"><input type="checkbox" checked={seo.noindex === true} onChange={(e) => set("noindex", e.target.checked)} />عدم نمایه‌سازی (noindex)</label>
+      <p className="text-[10px] opacity-60">با «ذخیره» ذخیره می‌شود و در متادیتای صفحه نمایش داده می‌شود.</p>
+    </div>
   )
 }

@@ -50,6 +50,12 @@ class BuilderController extends Controller
             'title' => 'required|string|max:255',
             'slug' => 'nullable|string|max:120',
             'document' => 'nullable|array',
+            'seo' => 'nullable|array',
+            'seo.title' => 'nullable|string|max:120',
+            'seo.description' => 'nullable|string|max:320',
+            'seo.og_image' => 'nullable|string|max:500',
+            'seo.canonical' => 'nullable|string|max:500',
+            'seo.noindex' => 'nullable|boolean',
         ]);
         $slug = $this->slug($data['slug'] ?? null, $data['title']);
         abort_if(MarketingPage::query()->where('slug', $slug)->exists(), 422, 'slug taken');
@@ -61,6 +67,7 @@ class BuilderController extends Controller
             'published' => false,
             'status' => 'draft',
             'builder_draft' => $this->document($data['document'] ?? ['version' => 1, 'sections' => []]),
+            'meta' => isset($data['seo']) ? self::withSeo([], $data['seo']) : null,
         ]);
 
         return response()->json(['data' => $this->serializeDetail($row)], 201);
@@ -73,7 +80,16 @@ class BuilderController extends Controller
             'title' => 'sometimes|string|max:255',
             'slug' => 'sometimes|string|max:120',
             'document' => 'sometimes|array',
+            'seo' => 'sometimes|array',
+            'seo.title' => 'nullable|string|max:120',
+            'seo.description' => 'nullable|string|max:320',
+            'seo.og_image' => 'nullable|string|max:500',
+            'seo.canonical' => 'nullable|string|max:500',
+            'seo.noindex' => 'nullable|boolean',
         ]);
+        if (array_key_exists('seo', $data)) {
+            $row->meta = self::withSeo($row->meta, $data['seo']);
+        }
         if (isset($data['slug'])) {
             $slug = $this->slug($data['slug'], $row->title_fa);
             abort_if(
@@ -233,10 +249,27 @@ class BuilderController extends Controller
     }
 
     /** @return array<string, mixed> */
+    /** Page SEO lives in marketing_pages.meta.seo; other meta keys are kept. */
+    public static function withSeo(mixed $meta, array $seo): array
+    {
+        $meta = is_array($meta) ? $meta : [];
+        $clean = array_filter([
+            'title' => trim((string) ($seo['title'] ?? '')),
+            'description' => trim((string) ($seo['description'] ?? '')),
+            'og_image' => trim((string) ($seo['og_image'] ?? '')),
+            'canonical' => trim((string) ($seo['canonical'] ?? '')),
+            'noindex' => ! empty($seo['noindex']) ? true : null,
+        ], fn ($v) => $v !== '' && $v !== null);
+        $meta['seo'] = $clean;
+
+        return $meta;
+    }
+
     private function serializeDetail(MarketingPage $page): array
     {
         return [
             ...$this->serializeList($page),
+            'seo' => (object) (is_array($page->meta) ? ($page->meta['seo'] ?? []) : []),
             'document' => $page->builder_draft ?? ['version' => 1, 'sections' => []],
             'published_document' => $page->builder_published,
         ];

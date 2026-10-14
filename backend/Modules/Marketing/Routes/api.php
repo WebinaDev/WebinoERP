@@ -1,8 +1,10 @@
 <?php
 
 use Illuminate\Support\Facades\Route;
+use Modules\Marketing\Http\Controllers\MarketingAcademyChaptersController;
 use Modules\Marketing\Http\Controllers\MarketingAcademyController;
 use Modules\Marketing\Http\Controllers\MarketingAcademyLessonsController;
+use Modules\Marketing\Http\Controllers\MarketingAcademyStructureController;
 use Modules\Marketing\Http\Controllers\MarketingAnnouncementsController;
 use Modules\Marketing\Http\Controllers\MarketingBlogCategoriesController;
 use Modules\Marketing\Http\Controllers\MarketingBlogController;
@@ -36,6 +38,9 @@ Route::delete('/blog/categories/{id}', [MarketingBlogCategoriesController::class
 Route::apiResource('blog', MarketingBlogController::class);
 
 Route::apiResource('magazine', MarketingMagazineController::class);
+Route::get('academy/{id}/structure', [MarketingAcademyStructureController::class, 'show'])->whereNumber('id');
+Route::put('academy/{id}/structure', [MarketingAcademyStructureController::class, 'save'])->whereNumber('id');
+Route::apiResource('academy-chapters', MarketingAcademyChaptersController::class);
 Route::apiResource('academy-lessons', MarketingAcademyLessonsController::class);
 Route::apiResource('academy', MarketingAcademyController::class);
 Route::apiResource('portfolio-categories', MarketingPortfolioCategoriesController::class);

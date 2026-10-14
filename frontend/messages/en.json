@@ -2333,7 +2333,8 @@
     "fileType": "File type",
     "fileUrl": "File URL",
     "relatedUrl": "Suggestion after download (link)",
-    "gated": "Ask for email before download"
+    "gated": "Ask for email before download",
+    "chapter": "Chapter"
   },
   "analytics": {
     "title": "Analytics",
