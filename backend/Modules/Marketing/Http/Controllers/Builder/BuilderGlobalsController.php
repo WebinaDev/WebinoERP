@@ -2,16 +2,16 @@
 
 namespace Modules\Marketing\Http\Controllers\Builder;
 
-use Modules\Marketing\Http\Controllers\Controller;
-use Modules\Marketing\Entities\BuilderGlobal;
-use Modules\Marketing\Services\Builder\BuilderGlobalsNormalizer;
-use Modules\Marketing\Services\Builder\BuilderSite;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Modules\Marketing\Entities\BuilderGlobal;
+use Modules\Marketing\Http\Controllers\Controller;
+use Modules\Marketing\Services\Builder\BuilderGlobalsNormalizer;
+use Modules\Marketing\Services\Builder\BuilderSite;
 
 class BuilderGlobalsController extends Controller
 {
-        public function show(Request $request): JsonResponse
+    public function show(Request $request): JsonResponse
     {
         $row = BuilderGlobal::query()->where('tenant_id', BuilderSite::ID)->first();
         $normalizer = app(BuilderGlobalsNormalizer::class);
