@@ -271,7 +271,7 @@ class WebinocrmModirPayamakCompatController extends Controller
             return $this->unavailable("Unknown path: {$path}");
         }
 
-        return $this->adapt($response);
+        return $this->adapt($response, $resource === 'packages' ? 'packages' : null);
     }
 
     protected function forwardCustomer(Request $request, string $path): JsonResponse
@@ -378,7 +378,7 @@ class WebinocrmModirPayamakCompatController extends Controller
         return $domain;
     }
 
-    protected function adapt(JsonResponse $response): JsonResponse
+    protected function adapt(JsonResponse $response, ?string $listKey = null): JsonResponse
     {
         $status = $response->getStatusCode();
         $content = $response->getData(true);
@@ -397,6 +397,12 @@ class WebinocrmModirPayamakCompatController extends Controller
 
         $payload = $content['data'] ?? $content;
         if (is_array($payload)) {
+            if ($listKey !== null && array_is_list($payload)) {
+                // Dashboard reads the list under a named key (e.g. `packages`); the numeric
+                // keys of the old merged shape are kept for backward compatibility.
+                return $this->ok(array_merge($payload, [$listKey => $payload]));
+            }
+
             return $this->ok($payload);
         }
 
