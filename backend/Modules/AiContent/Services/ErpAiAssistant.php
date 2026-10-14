@@ -65,29 +65,10 @@ class ErpAiAssistant
      */
     private function tryProvider(string $purpose, array $context, array $settings): ?array
     {
-        $candidates = [
-            [
-                'name' => 'gapgpt',
-                'key' => (string) ($settings['gapgpt_api_key'] ?? env('GAPGPT_API_KEY', '')),
-                'model' => (string) ($settings['gapgpt_model'] ?: 'gpt-4o-mini'),
-                'base' => rtrim((string) env('GAPGPT_BASE_URL', 'https://api.gapgpt.app/v1'), '/'),
-            ],
-            [
-                'name' => 'openai',
-                'key' => (string) ($settings['openai_api_key'] ?? env('OPENAI_API_KEY', '')),
-                'model' => (string) ($settings['openai_model'] ?: 'gpt-4o-mini'),
-                'base' => rtrim((string) env('OPENAI_BASE_URL', 'https://api.openai.com/v1'), '/'),
-            ],
-        ];
-
-        $preferred = (string) ($settings['default_provider'] ?? 'gapgpt');
-        usort($candidates, fn ($a, $b) => ($a['name'] === $preferred ? 0 : 1) <=> ($b['name'] === $preferred ? 0 : 1));
+        $candidates = $this->candidates($settings);
 
         $prompt = $this->prompt($purpose, $context, (string) ($settings['language'] ?? 'fa'));
         foreach ($candidates as $candidate) {
-            if ($candidate['key'] === '') {
-                continue;
-            }
             try {
                 $response = Http::timeout(25)
                     ->withToken($candidate['key'])
@@ -120,6 +101,83 @@ class ErpAiAssistant
         }
 
         return null;
+    }
+
+    /**
+     * Provider candidates from the AiContent settings (preferred provider first); only those with a key.
+     *
+     * @param  array<string, mixed>  $settings
+     * @return list<array{name: string, key: string, model: string, base: string}>
+     */
+    private function candidates(array $settings): array
+    {
+        $candidates = [
+            [
+                'name' => 'gapgpt',
+                'key' => (string) ($settings['gapgpt_api_key'] ?? env('GAPGPT_API_KEY', '')),
+                'model' => (string) ($settings['gapgpt_model'] ?: 'gpt-4o-mini'),
+                'base' => rtrim((string) env('GAPGPT_BASE_URL', 'https://api.gapgpt.app/v1'), '/'),
+            ],
+            [
+                'name' => 'openai',
+                'key' => (string) ($settings['openai_api_key'] ?? env('OPENAI_API_KEY', '')),
+                'model' => (string) ($settings['openai_model'] ?: 'gpt-4o-mini'),
+                'base' => rtrim((string) env('OPENAI_BASE_URL', 'https://api.openai.com/v1'), '/'),
+            ],
+        ];
+
+        $preferred = (string) ($settings['default_provider'] ?? 'gapgpt');
+        usort($candidates, fn ($a, $b) => ($a['name'] === $preferred ? 0 : 1) <=> ($b['name'] === $preferred ? 0 : 1));
+
+        return array_values(array_filter($candidates, fn ($c) => $c['key'] !== ''));
+    }
+
+    /** True when a provider key is configured (settings or env). */
+    public function hasProvider(): bool
+    {
+        return $this->candidates($this->settings()) !== [];
+    }
+
+    /**
+     * Free-form completion with the shared provider config, for callers that build their own prompts
+     * (content assist). Returns null when no provider is configured or every provider failed.
+     *
+     * @return array{text: string, provider: string, model: string, tokens_in: int, tokens_out: int}|null
+     */
+    public function complete(string $system, string $user, float $temperature = 0.5, int $timeout = 60): ?array
+    {
+        foreach ($this->candidates($this->settings()) as $candidate) {
+            try {
+                $response = Http::timeout($timeout)->withToken($candidate['key'])->acceptJson()
+                    ->post($candidate['base'].'/chat/completions', [
+                        'model' => $candidate['model'],
+                        'temperature' => $temperature,
+                        'messages' => [['role' => 'system', 'content' => $system], ['role' => 'user', 'content' => $user]],
+                    ]);
+            } catch (\Throwable) {
+                continue;
+            }
+            $content = $response->successful() ? (string) data_get($response->json(), 'choices.0.message.content', '') : '';
+            if ($content === '') {
+                continue;
+            }
+
+            return [
+                'text' => $content,
+                'provider' => $candidate['name'],
+                'model' => $candidate['model'],
+                'tokens_in' => (int) data_get($response->json(), 'usage.prompt_tokens', 0),
+                'tokens_out' => (int) data_get($response->json(), 'usage.completion_tokens', 0),
+            ];
+        }
+
+        return null;
+    }
+
+    /** Settings merged with defaults (shared with the cost estimate). */
+    public function settingsSnapshot(): array
+    {
+        return $this->settings();
     }
 
     private function extractJson(string $content): string

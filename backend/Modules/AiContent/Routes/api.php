@@ -2,6 +2,7 @@
 
 use Illuminate\Support\Facades\Route;
 use Modules\AiContent\Http\Controllers\CalendarController;
+use Modules\AiContent\Http\Controllers\ContentAssistController;
 use Modules\AiContent\Http\Controllers\JobController;
 use Modules\AiContent\Http\Controllers\OverviewController;
 use Modules\AiContent\Http\Controllers\PageController;
@@ -70,3 +71,6 @@ Route::post('attribute-templates', [TaxonomyController::class, 'saveAttrTemplate
 Route::post('attribute-templates/{cat_id}/suggest', [TaxonomyController::class, 'suggestAttrTemplate'])->whereNumber('cat_id');
 Route::get('attribute-templates/{cat_id}/draft', [TaxonomyController::class, 'attrDraft'])->whereNumber('cat_id');
 Route::delete('attribute-templates/{cat_id}', [TaxonomyController::class, 'deleteAttrTemplate'])->whereNumber('cat_id');
+
+Route::post('content-assist', [ContentAssistController::class, 'assist'])->middleware('throttle:30,1');
+Route::get('content-assist/history', [ContentAssistController::class, 'history']);

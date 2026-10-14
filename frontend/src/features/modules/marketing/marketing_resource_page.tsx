@@ -10,6 +10,7 @@ import { Button } from '@/components/ui/button';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import apiClient from '@/lib/api-client';
 import { normalizeListPayload } from '@/lib/list-utils';
+import { AiAssist } from '@/features/ai/content-assist';
 
 export type MarketingField = {
   key: string;
@@ -130,7 +131,20 @@ export function MarketingResourcePage({ titleKey, endpoint, columns, fields }: M
           <CardContent className="grid gap-3 pt-6 md:grid-cols-2">
             {formFields.map((field) => (
               <label key={field.key} className="grid gap-1 text-sm">
-                <span>{tNav(field.labelKey)}</span>
+                <span className="flex items-center justify-between gap-2">
+                  {tNav(field.labelKey)}
+                  {!field.kind || field.kind === 'text' || field.kind === 'textarea' || field.kind === 'lines' ? (
+                    <AiAssist
+                      value={draft[field.key] ?? ''}
+                      onApply={(next) => setDraft((d) => (d ? { ...d, [field.key]: next } : d))}
+                      surface={endpoint.replace(/^\/v1\/marketing\//, '').replace(/\//g, '.')}
+                      field={field.key}
+                      kind={field.key === 'body' ? 'html' : field.kind === 'text' || !field.kind ? 'text' : 'textarea'}
+                      targetId={editingId}
+                      context={Object.fromEntries(['title', 'name', 'question', 'excerpt', 'description', 'group', 'category'].filter((k) => k !== field.key && draft[k]).map((k) => [k, draft[k]]))}
+                    />
+                  ) : null}
+                </span>
                 {field.kind === 'select' ? (
                   <select
                     className="border-input h-9 rounded-md border bg-transparent px-3"
