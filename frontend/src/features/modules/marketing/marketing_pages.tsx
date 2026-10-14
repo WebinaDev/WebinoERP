@@ -74,20 +74,47 @@ export function MarketingPortfolioPage() {
       columns={[
         { key: 'slug', labelKey: 'marketing.slug' },
         { key: 'title', labelKey: 'marketing.title' },
-        { key: 'client', labelKey: 'marketing.client' },
         { key: 'result_metric', labelKey: 'marketing.result' },
+        { key: 'featured', labelKey: 'marketing.featured' },
         { key: 'published', labelKey: 'marketing.published' },
+        { key: 'sort_order', labelKey: 'marketing.sortOrder' },
       ]}
       fields={[
         { key: 'slug', labelKey: 'marketing.slug' },
         { key: 'title', labelKey: 'marketing.title' },
+        { key: 'category_id', labelKey: 'marketing.category', kind: 'select', optionsEndpoint: '/v1/marketing/portfolio-categories' },
         { key: 'client', labelKey: 'marketing.client' },
-        { key: 'description', labelKey: 'marketing.description', kind: 'textarea' },
-        { key: 'case_study', labelKey: 'marketing.caseStudy', kind: 'textarea' },
-        { key: 'result_metric', labelKey: 'marketing.result' },
         { key: 'cover_url', labelKey: 'marketing.cover' },
+        { key: 'result_metric', labelKey: 'marketing.result' },
+        { key: 'description', labelKey: 'marketing.description', kind: 'textarea' },
+        { key: 'challenge', labelKey: 'marketing.challenge', kind: 'textarea' },
+        { key: 'solution', labelKey: 'marketing.solution', kind: 'textarea' },
+        { key: 'results', labelKey: 'marketing.results', kind: 'textarea' },
+        { key: 'technologies', labelKey: 'marketing.serviceTags', kind: 'lines' },
+        { key: 'images', labelKey: 'marketing.gallery', kind: 'lines' },
+        { key: 'sort_order', labelKey: 'marketing.sortOrder', kind: 'number' },
         { key: 'published', labelKey: 'marketing.published', kind: 'checkbox' },
         { key: 'featured', labelKey: 'marketing.featured', kind: 'checkbox' },
+      ]}
+    />
+  );
+}
+
+export function MarketingPortfolioCategoriesPage() {
+  return (
+    <MarketingResourcePage
+      titleKey="nav.erp.marketing.portfolioCategories"
+      endpoint="/v1/marketing/portfolio-categories"
+      columns={[
+        { key: 'slug', labelKey: 'marketing.slug' },
+        { key: 'name', labelKey: 'marketing.name' },
+        { key: 'sort_order', labelKey: 'marketing.sortOrder' },
+      ]}
+      fields={[
+        { key: 'slug', labelKey: 'marketing.slug' },
+        { key: 'name', labelKey: 'marketing.name' },
+        { key: 'description', labelKey: 'marketing.description', kind: 'textarea' },
+        { key: 'sort_order', labelKey: 'marketing.sortOrder', kind: 'number' },
       ]}
     />
   );

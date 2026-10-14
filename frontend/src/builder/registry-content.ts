@@ -357,4 +357,23 @@ export const CONTENT_WIDGETS: WidgetDef[] = [
     ],
     create: () => node("rahn-estimate", { title: "", token: "" }),
   },
+  {
+    type: "portfolio-grid",
+    label: "نمونه‌کارها (گرید با فیلتر دسته)",
+    category: "content",
+    fields: [
+      { kind: "text", key: "allLabel", label: "برچسب «همه»" },
+      { kind: "switch", key: "showSort", label: "مرتب‌سازی (جدیدترین / شاخص‌ترین)" },
+      { kind: "text", key: "category", label: "فقط این دسته (نامک، اختیاری)" },
+      { kind: "number", key: "limit", label: "حداکثر تعداد", min: 1, max: 50 },
+      { kind: "text", key: "detailLabel", label: "متن دکمه کارت" },
+      { kind: "text", key: "emptyTitle", label: "عنوان حالت خالی" },
+      { kind: "textarea", key: "emptyText", label: "متن حالت خالی" },
+      { kind: "text", key: "emptyPrimaryLabel", label: "دکمه اول حالت خالی" },
+      { kind: "link", key: "emptyPrimaryHref", label: "پیوند دکمه اول" },
+      { kind: "text", key: "emptySecondaryLabel", label: "دکمه دوم حالت خالی" },
+      { kind: "link", key: "emptySecondaryHref", label: "پیوند دکمه دوم" },
+    ],
+    create: () => node("portfolio-grid", { allLabel: "همه", showSort: true, limit: 50, detailLabel: "مشاهده جزئیات", emptyTitle: "به‌زودی", emptyText: "", emptyPrimaryLabel: "", emptyPrimaryHref: "", emptySecondaryLabel: "", emptySecondaryHref: "" }),
+  },
 ]

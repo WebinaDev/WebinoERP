@@ -177,7 +177,8 @@
         "themeBuilder": "پوسته‌ساز",
         "builder": "صفحه‌ساز",
         "builderSettings": "تنظیمات سراسری",
-        "siteBuilder": "صفحه‌ساز سایت شرکتی"
+        "siteBuilder": "صفحه‌ساز سایت شرکتی",
+        "portfolioCategories": "دسته‌های نمونه‌کار"
       },
       "hrm": {
         "group": "مدیریت منابع انسانی",
@@ -2303,7 +2304,13 @@
     "location": "جایگاه",
     "success": "پیام موفقیت",
     "titleEn": "عنوان انگلیسی",
-    "body": "متن"
+    "body": "متن",
+    "challenge": "چالش",
+    "solution": "راه‌حل",
+    "results": "نتایج",
+    "serviceTags": "خدمات انجام‌شده (هر خط یک برچسب)",
+    "gallery": "گالری (هر خط یک نشانی تصویر)",
+    "sortOrder": "ترتیب"
   },
   "analytics": {
     "title": "آمار",

@@ -11,6 +11,7 @@ use Modules\Marketing\Entities\MarketingDownload;
 use Modules\Marketing\Entities\MarketingFaqItem;
 use Modules\Marketing\Entities\MarketingMagazinePost;
 use Modules\Marketing\Entities\MarketingPage;
+use Modules\Marketing\Entities\MarketingPortfolioCategory;
 use Modules\Marketing\Entities\MarketingPortfolioItem;
 use Modules\Marketing\Entities\MarketingService;
 use Modules\Marketing\Entities\MarketingSolutionIndustry;
@@ -102,12 +103,28 @@ class PublicContentController extends Controller
             $query->whereHas('industry', fn ($q) => $q->where('slug', $request->get('industry')));
         }
 
-        $items = $query->orderByDesc('published_at')->paginate(min((int) $request->get('per_page', 12), 50));
+        if ($request->get('sort') === 'featured') {
+            $query->orderByDesc('featured')->orderBy('sort_order');
+        } else {
+            $query->orderBy('sort_order');
+        }
+        $items = $query->orderByDesc('published_at')->orderByDesc('id')->paginate(min((int) $request->get('per_page', 12), 50));
 
         return response()->json([
             'data' => $items->items(),
             'meta' => ['current_page' => $items->currentPage(), 'last_page' => $items->lastPage(), 'total' => $items->total()],
         ]);
+    }
+
+    /** Portfolio categories (filter chips) with their published item counts. */
+    public function portfolioCategories(): JsonResponse
+    {
+        $rows = MarketingPortfolioCategory::query()
+            ->withCount(['items' => fn ($q) => $q->where('published', true)])
+            ->orderBy('sort_order')->orderBy('id')
+            ->get(['id', 'slug', 'name', 'description', 'sort_order']);
+
+        return response()->json(['data' => $rows]);
     }
 
     public function portfolioShow(string $slug): JsonResponse
