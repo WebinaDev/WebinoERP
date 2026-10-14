@@ -78,13 +78,13 @@ class SuccessionController extends Controller
             ]
         );
 
-        return response()->json(['data' => $plan->load(['position', 'successor']), 'message' => 'Successor saved'], 201);
+        return response()->json(['data' => $plan->load(['position', 'successor']), 'message' => __('messages.successor_saved')], 201);
     }
 
     public function destroy(HrmSuccessionPlan $successionPlan): JsonResponse
     {
         $successionPlan->delete();
 
-        return response()->noContent();
+        return response()->json(null, 204);
     }
 }

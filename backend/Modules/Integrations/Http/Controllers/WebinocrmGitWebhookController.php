@@ -71,12 +71,12 @@ class WebinocrmGitWebhookController extends Controller
             || collect($allowed)->contains(fn (string $a) => str_ends_with($host, '.'.$a));
 
         if ($host === '' || ! $hostOk) {
-            return response()->json(['message' => 'Repository host not allowed'], 422);
+            return response()->json(['message' => __('messages.repository_host_not_allowed')], 422);
         }
 
         // Reject userinfo / odd schemes that survived url validation.
         if (parse_url($data['repo_url'], PHP_URL_USER) || parse_url($data['repo_url'], PHP_URL_PASS)) {
-            return response()->json(['message' => 'Repository URL must not include credentials'], 422);
+            return response()->json(['message' => __('messages.repository_url_must_not_include_credentials')], 422);
         }
 
         ModuleGitSource::query()->updateOrCreate(

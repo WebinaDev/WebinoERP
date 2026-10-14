@@ -58,7 +58,7 @@ class WebinocrmModirPayamakCompatController extends Controller
 
             if ($this->isUnavailablePath($path)) {
                 if ($path === 'newsletter' || str_starts_with($path, 'newsletter/')) {
-                    return $this->unavailable('Newsletter SMS is not available on ERP Edge; use Dashboard local newsletter.');
+                    return $this->unavailable(__('messages.newsletter_sms_is_not_available_on_erp_edge_use_dashboard_lo'));
                 }
 
                 return $this->unavailable("Path not implemented: {$path}");
@@ -66,9 +66,9 @@ class WebinocrmModirPayamakCompatController extends Controller
 
             return $this->forward($request, $path);
         } catch (\Symfony\Component\HttpKernel\Exception\HttpException $e) {
-            return $this->unavailable($e->getMessage() ?: 'Request failed', $e->getStatusCode());
+            return $this->unavailable($e->getMessage() ?: __('messages.request_failed'), $e->getStatusCode());
         } catch (\Throwable $e) {
-            return $this->unavailable($e->getMessage() ?: 'Request failed');
+            return $this->unavailable($e->getMessage() ?: __('messages.request_failed'));
         }
     }
 
@@ -271,7 +271,7 @@ class WebinocrmModirPayamakCompatController extends Controller
             return $this->unavailable("Unknown path: {$path}");
         }
 
-        return $this->adapt($response);
+        return $this->adapt($response, $resource === 'packages' ? 'packages' : null);
     }
 
     protected function forwardCustomer(Request $request, string $path): JsonResponse
@@ -364,13 +364,17 @@ class WebinocrmModirPayamakCompatController extends Controller
     {
         $domain = $this->manager->normalizeDomain((string) ($request->input('domain') ?? $request->query('domain', '')));
         if ($domain === '') {
-            abort(422, 'Domain is required');
+            abort(422, __('messages.domain_is_required'));
         }
 
         // Entitlement is domain-only; optional license_key from WP clients is ignored.
         $license = CoreLicenseResolver::find($domain, $request->input('product') ?? $request->query('product'));
+        if (! $license && (bool) config('integrations.modirpayamak.require_license', false)) {
+            // Unlicensed domains must not get an SMS account (and spend/read a tenant wallet) by guessing a domain.
+            abort(403, __('messages.license_not_found_for_domain'));
+        }
         if ($license && $license->status !== 'active') {
-            abort(403, 'License inactive for domain');
+            abort(403, __('messages.license_inactive_for_domain'));
         }
 
         $this->manager->assertLicensedDomain($domain);
@@ -378,15 +382,15 @@ class WebinocrmModirPayamakCompatController extends Controller
         return $domain;
     }
 
-    protected function adapt(JsonResponse $response): JsonResponse
+    protected function adapt(JsonResponse $response, ?string $listKey = null): JsonResponse
     {
         $status = $response->getStatusCode();
         $content = $response->getData(true);
 
         if ($status >= 400) {
             $message = is_array($content)
-                ? (string) ($content['message'] ?? $content['error'] ?? 'Request failed')
-                : 'Request failed';
+                ? (string) ($content['message'] ?? $content['error'] ?? __('messages.request_failed'))
+                : __('messages.request_failed');
 
             return $this->unavailable($message, $status);
         }
@@ -397,6 +401,12 @@ class WebinocrmModirPayamakCompatController extends Controller
 
         $payload = $content['data'] ?? $content;
         if (is_array($payload)) {
+            if ($listKey !== null && array_is_list($payload)) {
+                // Dashboard reads the list under a named key (e.g. `packages`); the numeric
+                // keys of the old merged shape are kept for backward compatibility.
+                return $this->ok(array_merge($payload, [$listKey => $payload]));
+            }
+
             return $this->ok($payload);
         }
 
@@ -425,10 +435,10 @@ class WebinocrmModirPayamakCompatController extends Controller
     {
         $trimmed = trim($message);
         if ($trimmed === '') {
-            return 'SMS service is temporarily unavailable.';
+            return __('messages.sms_service_temporarily_unavailable');
         }
         if (preg_match('/SQLSTATE|Undefined table|relation\s+"|modirpayamak_|ippanel|stack\s+trace/i', $trimmed)) {
-            return 'SMS service is temporarily unavailable.';
+            return __('messages.sms_service_temporarily_unavailable');
         }
 
         return $trimmed;

@@ -14,7 +14,7 @@ class CrmMergeService
 {
     public function mergeAccounts(int $primaryId, int $duplicateId, ?int $userId): CrmAccount
     {
-        abort_if($primaryId === $duplicateId, 422, 'Choose two different accounts');
+        abort_if($primaryId === $duplicateId, 422, __('messages.choose_two_different_accounts'));
         $primary = CrmAccount::query()->findOrFail($primaryId);
         $duplicate = CrmAccount::query()->findOrFail($duplicateId);
 
@@ -58,7 +58,7 @@ class CrmMergeService
 
     public function mergeContacts(int $primaryId, int $duplicateId, ?int $userId): CrmContact
     {
-        abort_if($primaryId === $duplicateId, 422, 'Choose two different contacts');
+        abort_if($primaryId === $duplicateId, 422, __('messages.choose_two_different_contacts'));
         $primary = CrmContact::query()->findOrFail($primaryId);
         $duplicate = CrmContact::query()->findOrFail($duplicateId);
 

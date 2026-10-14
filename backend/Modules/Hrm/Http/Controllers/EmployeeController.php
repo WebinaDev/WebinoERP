@@ -59,7 +59,7 @@ class EmployeeController extends Controller
         app(HrmCompensationRules::class)->assertEmployee(new HrmEmployee($data));
         $employee = HrmEmployee::create($data);
 
-        return response()->json(['data' => $employee, 'message' => 'Employee created'], 201);
+        return response()->json(['data' => $employee, 'message' => __('messages.employee_created')], 201);
     }
 
     public function show(HrmEmployee $employee): JsonResponse
@@ -74,7 +74,7 @@ class EmployeeController extends Controller
         if ($request->boolean('onboarding')) {
             $employee = app(\Modules\Hrm\Services\HrmEmployeeOnboarding::class)->update($request, $employee);
 
-            return response()->json(['data' => $employee, 'message' => 'Employee updated']);
+            return response()->json(['data' => $employee, 'message' => __('messages.employee_updated')]);
         }
 
         $data = $request->validate([
@@ -114,7 +114,7 @@ class EmployeeController extends Controller
         app(HrmCompensationRules::class)->assertEmployee(new HrmEmployee(array_merge($employee->toArray(), $data)));
         $employee->update($data);
 
-        return response()->json(['data' => $employee->fresh(), 'message' => 'Employee updated']);
+        return response()->json(['data' => $employee->fresh(), 'message' => __('messages.employee_updated')]);
     }
 
     public function destroy(HrmEmployee $employee): \Illuminate\Http\Response

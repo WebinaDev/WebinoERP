@@ -34,7 +34,7 @@ class RecruitmentController extends Controller
 
         $job = HrmJobPosting::create($data);
 
-        return response()->json(['data' => $job, 'message' => 'Job posting created'], 201);
+        return response()->json(['data' => $job, 'message' => __('messages.job_posting_created')], 201);
     }
 
     public function update(Request $request, HrmJobPosting $job): JsonResponse
@@ -49,13 +49,13 @@ class RecruitmentController extends Controller
 
         $job->update($data);
 
-        return response()->json(['data' => $job->fresh(), 'message' => 'Job posting updated']);
+        return response()->json(['data' => $job->fresh(), 'message' => __('messages.job_posting_updated')]);
     }
 
     public function destroy(HrmJobPosting $job): JsonResponse
     {
         $job->delete();
 
-        return response()->noContent();
+        return response()->json(null, 204);
     }
 }

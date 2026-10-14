@@ -15,10 +15,10 @@ class ElementorLeadController extends Controller
         $sig = (string) $request->header('X-Webino-Signature', '');
         $raw = $request->getContent();
         if ($secret === '') {
-            return response()->json(['message' => 'HMAC secret not configured'], 503);
+            return response()->json(['message' => __('messages.hmac_secret_not_configured')], 503);
         }
         if ($sig === '' || ! hash_equals(hash_hmac('sha256', $raw, $secret), $sig)) {
-            return response()->json(['message' => 'Invalid signature'], 403);
+            return response()->json(['message' => __('messages.invalid_signature')], 403);
         }
 
         $data = $request->validate([
@@ -40,7 +40,7 @@ class ElementorLeadController extends Controller
 
         $statusId = CrmStatus::query()->orderBy('id')->value('id');
         if (! $statusId) {
-            return response()->json(['message' => 'No CRM status configured'], 500);
+            return response()->json(['message' => __('messages.no_crm_status_configured')], 500);
         }
 
         $lead = CrmLead::query()->create([

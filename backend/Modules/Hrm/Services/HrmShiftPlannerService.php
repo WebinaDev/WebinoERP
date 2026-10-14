@@ -64,7 +64,7 @@ class HrmShiftPlannerService
         $conflicts = $this->conflicts($employeeId, $date);
         if ($conflicts !== [] && ! $force) {
             throw new \Illuminate\Http\Exceptions\HttpResponseException(response()->json([
-                'message' => 'Shift conflicts with leave or attendance',
+                'message' => __('messages.shift_conflicts_with_leave_or_attendance'),
                 'errors' => ['conflicts' => $conflicts],
             ], 422));
         }

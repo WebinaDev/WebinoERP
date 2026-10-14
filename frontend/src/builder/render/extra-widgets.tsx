@@ -1,0 +1,694 @@
+"use client"
+
+/* Content widgets ported from WebinoDashboard (render/extra-widgets.tsx): banner grid, tabs,
+ * FAQ accordion (FAQPage JSON-LD), icon box/list, testimonials, gallery/carousel, announcement,
+ * map, counters, social/share, pricing, blog query, curated feed. Storefront-only widgets
+ * (product carousel, brand slider, category list, search box, login CTA) stay on Dashboard:
+ * the ERP company site is not a storefront tenant. */
+
+import {
+  BadgeCheck,
+  BarChart3,
+  Check,
+  CheckCircle2,
+  ChevronLeft,
+  ChevronRight,
+  ClipboardList,
+  Clock,
+  Compass,
+  CreditCard,
+  Gift,
+  Handshake,
+  Headphones,
+  Heart,
+  Layers,
+  Lightbulb,
+  Link2,
+  MapPin,
+  MessageCircle,
+  Phone,
+  Rocket,
+  Route,
+  Search,
+  ShieldCheck,
+  Sparkles,
+  Star,
+  Target,
+  Truck,
+  Users,
+  X,
+  type LucideIcon,
+} from "lucide-react"
+import Link from "next/link"
+import { useEffect, useMemo, useRef, useState, type ReactNode, type RefObject } from "react"
+
+import { linkAttrs, propBool, propNum, propStr } from "../props"
+import type { WidgetNode } from "../types"
+import { Img } from "./img"
+
+/* ------------------------------------------------------------------ utils */
+
+/** "a|b|c" per line → string[][]; a literal "\n" inside a cell becomes a newline. */
+export function splitRows(text: string): string[][] {
+  return text
+    .split("\n")
+    .map((line) => line.trim())
+    .filter(Boolean)
+    .map((line) => line.split("|").map((cell) => cell.trim().replace(/\\n/g, "\n")))
+}
+
+const ICONS: Record<string, LucideIcon> = {
+  truck: Truck,
+  shield: ShieldCheck,
+  star: Star,
+  sparkles: Sparkles,
+  heart: Heart,
+  gift: Gift,
+  phone: Phone,
+  clock: Clock,
+  card: CreditCard,
+  badge: BadgeCheck,
+  support: Headphones,
+  map: MapPin,
+  users: Users,
+  target: Target,
+  route: Route,
+  check: Check,
+  "check-circle": CheckCircle2,
+  message: MessageCircle,
+  compass: Compass,
+  rocket: Rocket,
+  layers: Layers,
+  chart: BarChart3,
+  idea: Lightbulb,
+  handshake: Handshake,
+  clipboard: ClipboardList,
+  search: Search,
+}
+
+
+export function WIcon({ name, size = 22 }: { name: string; size?: number }) {
+  const Icon = ICONS[name] ?? BadgeCheck
+  return <Icon size={size} aria-hidden="true" />
+}
+
+function SectionTitle({ title, href, more }: { title: string; href?: string; more?: string }) {
+  if (!title) return null
+  return (
+    <div className="mb-4 flex items-center justify-between gap-3">
+      <h2 className="text-lg font-extrabold text-foreground md:text-xl">{title}</h2>
+      {href ? (
+        <Link href={href} className="inline-flex items-center gap-1 text-sm font-semibold text-primary">
+          {more || "مشاهده همه"} <ChevronLeft size={14} />
+        </Link>
+      ) : null}
+    </div>
+  )
+}
+
+function safeHref(href: string, fallback = "#"): string {
+  const v = href.trim()
+  if (!v) return fallback
+  if (/^(https?:|mailto:|tel:|\/|#)/i.test(v)) return v
+  return fallback
+}
+
+/* ------------------------------------------------------- product carousel */
+
+/* ------------------------------------------------------------ banner grid */
+
+export function BannerGridWidget({ widget }: { widget: WidgetNode }) {
+  const rows = splitRows(propStr(widget.props, "items", ""))
+  const cols = Math.max(1, Math.min(4, propNum(widget.props, "columns", 2)))
+  const ratio = propStr(widget.props, "ratio", "16/7")
+  const radius = Math.max(0, Math.min(40, propNum(widget.props, "radius", 16)))
+  if (!rows.length) return <p className="rounded-2xl border border-dashed border-border p-6 text-center text-sm text-muted-foreground">بنرها را در تنظیمات ویجت وارد کنید (تصویر|پیوند|عنوان).</p>
+  return (
+    <div className="grid gap-3" style={{ gridTemplateColumns: `repeat(${cols}, minmax(0, 1fr))` }}>
+      {rows.map(([image, href, alt], i) => (
+        <Link key={i} href={safeHref(href || "", "/shop")} className="block overflow-hidden bg-muted" style={{ aspectRatio: ratio.replace(":", "/"), borderRadius: radius }}>
+          {image ? <Img src={image} alt={alt || ""} loading="lazy" className="h-full w-full object-cover" /> : <span className="grid h-full place-items-center text-sm font-bold">{alt}</span>}
+        </Link>
+      ))}
+    </div>
+  )
+}
+
+/* ------------------------------------------------------------------- tabs */
+
+export function TabsWidget({ widget }: { widget: WidgetNode }) {
+  const rows = splitRows(propStr(widget.props, "items", ""))
+  const [active, setActive] = useState(0)
+  if (!rows.length) return null
+  const current = rows[Math.min(active, rows.length - 1)]
+  return (
+    <div className="rounded-2xl border border-border bg-card">
+      <div role="tablist" className="flex gap-1 overflow-x-auto border-b border-border p-2">
+        {rows.map(([title], i) => (
+          <button
+            key={i}
+            type="button"
+            role="tab"
+            aria-selected={i === active}
+            onClick={() => setActive(i)}
+            className={`whitespace-nowrap rounded-xl px-4 py-2 text-sm font-semibold ${i === active ? "bg-primary text-primary-foreground" : "text-foreground/70 hover:bg-muted"}`}
+          >
+            {title}
+          </button>
+        ))}
+      </div>
+      <div role="tabpanel" className="whitespace-pre-wrap p-5 text-sm leading-7 text-foreground/80">
+        {current?.[1] ?? ""}
+      </div>
+    </div>
+  )
+}
+
+/* -------------------------------------------------------- accordion / FAQ */
+
+export function AccordionWidget({ widget }: { widget: WidgetNode }) {
+  const rows = splitRows(propStr(widget.props, "items", "")).filter(([q]) => q)
+  const title = propStr(widget.props, "title", "")
+  const schema = propBool(widget.props, "faqSchema", true)
+  const firstOpen = propBool(widget.props, "firstOpen", true)
+  const [open, setOpen] = useState<number | null>(firstOpen ? 0 : null)
+  const json = useMemo(
+    () =>
+      schema && rows.length
+        ? JSON.stringify({
+            "@context": "https://schema.org",
+            "@type": "FAQPage",
+            mainEntity: rows.map(([q, a]) => ({ "@type": "Question", name: q, acceptedAnswer: { "@type": "Answer", text: a ?? "" } })),
+          }).replace(/</g, "\\u003c")
+        : "",
+    [rows, schema],
+  )
+  if (!rows.length) return null
+  return (
+    <section>
+      <SectionTitle title={title} />
+      <div className="divide-y divide-border overflow-hidden rounded-2xl border border-border bg-card">
+        {rows.map(([q, a], i) => {
+          const isOpen = open === i
+          return (
+            <div key={i}>
+              <button type="button" aria-expanded={isOpen} onClick={() => setOpen(isOpen ? null : i)} className="flex w-full items-center justify-between gap-3 p-4 text-start text-sm font-bold text-foreground">
+                <span>{q}</span>
+                <ChevronLeft size={16} className={`shrink-0 transition-transform ${isOpen ? "-rotate-90" : ""}`} />
+              </button>
+              {isOpen ? <div className="whitespace-pre-wrap px-4 pb-4 text-sm leading-7 text-foreground/75">{a}</div> : null}
+            </div>
+          )
+        })}
+      </div>
+      {json ? <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: json }} /> : null}
+    </section>
+  )
+}
+
+/* --------------------------------------------------------- icon box / list */
+
+export function IconBoxWidget({ widget }: { widget: WidgetNode }) {
+  const icon = propStr(widget.props, "icon", "badge")
+  const title = propStr(widget.props, "title", "")
+  const text = propStr(widget.props, "text", "")
+  const href = propStr(widget.props, "href", "")
+  const side = propStr(widget.props, "layout", "top") === "side"
+  const body = (
+    <div className={`flex h-full gap-3 rounded-2xl border border-border bg-card p-5 ${side ? "items-start" : "flex-col items-center text-center"}`}>
+      <span className="grid size-12 shrink-0 place-items-center rounded-2xl bg-primary/10 text-primary">
+        <WIcon name={icon} />
+      </span>
+      <span>
+        {title ? <strong className="block text-sm font-extrabold text-foreground">{title}</strong> : null}
+        {text ? <span className="mt-1 block text-xs leading-6 text-foreground/70">{text}</span> : null}
+      </span>
+    </div>
+  )
+  return href ? <Link href={safeHref(href)} {...linkAttrs(widget.props, "href")}>{body}</Link> : body
+}
+
+export function IconListWidget({ widget }: { widget: WidgetNode }) {
+  const rows = splitRows(propStr(widget.props, "items", ""))
+  const inline = propStr(widget.props, "direction", "column") === "row"
+  if (!rows.length) return null
+  return (
+    <ul className={`flex gap-3 ${inline ? "flex-wrap" : "flex-col"}`}>
+      {rows.map(([icon, text, href], i) => {
+        const inner = (
+          <>
+            <span className="text-primary">
+              <WIcon name={icon || "badge"} size={18} />
+            </span>
+            <span>{text}</span>
+          </>
+        )
+        return (
+          <li key={i} className="flex items-center gap-2 text-sm text-foreground/80">
+            {href ? (
+              <Link href={safeHref(href)} className="flex items-center gap-2 hover:text-primary">
+                {inner}
+              </Link>
+            ) : (
+              inner
+            )}
+          </li>
+        )
+      })}
+    </ul>
+  )
+}
+
+/* ------------------------------------------------------------ testimonials */
+
+export function TestimonialsWidget({ widget }: { widget: WidgetNode }) {
+  const rows = splitRows(propStr(widget.props, "items", "")).filter(([name, text]) => name || text)
+  const title = propStr(widget.props, "title", "")
+  if (!rows.length) return null
+  return (
+    <section>
+      <SectionTitle title={title} />
+      <div className="flex snap-x gap-3 overflow-x-auto pb-2">
+        {rows.map(([name, text, rating, avatar], i) => {
+          const stars = Math.max(0, Math.min(5, Number(rating) || 0))
+          return (
+            <figure key={i} className="w-72 shrink-0 snap-start rounded-2xl border border-border bg-card p-5">
+              {stars ? (
+                <div className="mb-2 flex gap-0.5 text-[var(--sfc-rating,#f9bc00)]" aria-label={`${stars} / 5`}>
+                  {Array.from({ length: stars }).map((_, k) => (
+                    <Star key={k} size={14} fill="currentColor" />
+                  ))}
+                </div>
+              ) : null}
+              <blockquote className="text-sm leading-7 text-foreground/80">{text}</blockquote>
+              <figcaption className="mt-3 flex items-center gap-2 text-xs font-bold text-foreground">
+                {avatar ? <Img src={avatar} alt="" className="size-8 rounded-full object-cover" loading="lazy" /> : null}
+                {name}
+              </figcaption>
+            </figure>
+          )
+        })}
+      </div>
+    </section>
+  )
+}
+
+/* ------------------------------------------------------------ brand slider */
+
+/* ---------------------------------------------------- gallery & carousel */
+
+export function ImageGalleryWidget({ widget }: { widget: WidgetNode }) {
+  const rows = splitRows(propStr(widget.props, "images", "")).filter(([src]) => src)
+  const cols = Math.max(1, Math.min(6, propNum(widget.props, "columns", 3)))
+  const lightbox = propBool(widget.props, "lightbox", true)
+  const [open, setOpen] = useState<number | null>(null)
+  useEffect(() => {
+    if (open == null) return
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") setOpen(null)
+    }
+    window.addEventListener("keydown", onKey)
+    return () => window.removeEventListener("keydown", onKey)
+  }, [open])
+  if (!rows.length) return null
+  return (
+    <>
+      <div className="grid gap-2" style={{ gridTemplateColumns: `repeat(${cols}, minmax(0, 1fr))` }}>
+        {rows.map(([src, alt], i) => (
+          <button key={i} type="button" disabled={!lightbox} onClick={() => setOpen(i)} className="aspect-square overflow-hidden rounded-xl bg-muted">
+            <Img src={src} alt={alt || ""} loading="lazy" className="h-full w-full object-cover" />
+          </button>
+        ))}
+      </div>
+      {open != null && rows[open] ? (
+        <div role="dialog" aria-modal="true" className="fixed inset-0 z-[80] grid place-items-center bg-black/80 p-4" onClick={() => setOpen(null)}>
+          <button type="button" aria-label="بستن" className="absolute end-4 top-4 rounded-full bg-white/15 p-2 text-white">
+            <X size={20} />
+          </button>
+          <Img src={rows[open][0]} alt={rows[open][1] || ""} className="max-h-[85vh] max-w-full rounded-xl object-contain" />
+        </div>
+      ) : null}
+    </>
+  )
+}
+
+export function ImageCarouselWidget({ widget }: { widget: WidgetNode }) {
+  const rows = splitRows(propStr(widget.props, "images", "")).filter(([src]) => src)
+  const seconds = Math.max(0, propNum(widget.props, "autoplay", 5))
+  const ratio = propStr(widget.props, "ratio", "16/6")
+  const [index, setIndex] = useState(0)
+  const count = rows.length
+  useEffect(() => {
+    if (count < 2 || !seconds) return
+    const timer = window.setInterval(() => setIndex((i) => (i + 1) % count), seconds * 1000)
+    return () => window.clearInterval(timer)
+  }, [count, seconds])
+  if (!count) return null
+  const [src, href, alt] = rows[Math.min(index, count - 1)]
+  const img = <Img src={src} alt={alt || ""} className="h-full w-full object-cover" />
+  return (
+    <div className="relative overflow-hidden rounded-2xl bg-muted" style={{ aspectRatio: ratio.replace(":", "/") }}>
+      {href ? <Link href={safeHref(href)}>{img}</Link> : img}
+      {count > 1 ? (
+        <>
+          <button type="button" aria-label="قبلی" onClick={() => setIndex((i) => (i - 1 + count) % count)} className="absolute start-2 top-1/2 -translate-y-1/2 rounded-full bg-black/40 p-2 text-white">
+            <ChevronRight size={18} />
+          </button>
+          <button type="button" aria-label="بعدی" onClick={() => setIndex((i) => (i + 1) % count)} className="absolute end-2 top-1/2 -translate-y-1/2 rounded-full bg-black/40 p-2 text-white">
+            <ChevronLeft size={18} />
+          </button>
+          <div className="absolute inset-x-0 bottom-2 flex justify-center gap-1.5">
+            {rows.map((_, i) => (
+              <button key={i} type="button" aria-label={String(i + 1)} onClick={() => setIndex(i)} className={`h-1.5 rounded-full ${i === index ? "w-5 bg-white" : "w-1.5 bg-white/60"}`} />
+            ))}
+          </div>
+        </>
+      ) : null}
+    </div>
+  )
+}
+
+/* -------------------------------------------------------- announcement bar */
+
+export function AnnouncementWidget({ widget }: { widget: WidgetNode }) {
+  const text = propStr(widget.props, "text", "")
+  const href = propStr(widget.props, "href", "")
+  const bg = propStr(widget.props, "background", "")
+  const color = propStr(widget.props, "color", "")
+  const dismissible = propBool(widget.props, "dismissible", true)
+  const key = `wb_announce_${widget.id}`
+  const [hidden, setHidden] = useState(false)
+  useEffect(() => {
+    if (dismissible && window.localStorage.getItem(key) === "1") setHidden(true)
+  }, [dismissible, key])
+  if (!text || hidden) return null
+  return (
+    <div className="relative flex items-center justify-center gap-2 rounded-xl px-10 py-2.5 text-center text-sm font-semibold" style={{ background: bg || "var(--color-primary)", color: color || "var(--color-primary-foreground, #fff)" }}>
+      {href ? <Link href={safeHref(href)} {...linkAttrs(widget.props, "href")}>{text}</Link> : <span>{text}</span>}
+      {dismissible ? (
+        <button
+          type="button"
+          aria-label="بستن"
+          className="absolute end-3 top-1/2 -translate-y-1/2 opacity-80"
+          onClick={() => {
+            window.localStorage.setItem(key, "1")
+            setHidden(true)
+          }}
+        >
+          <X size={16} />
+        </button>
+      ) : null}
+    </div>
+  )
+}
+
+/* --------------------------------------------------------------------- map */
+
+export function MapWidget({ widget }: { widget: WidgetNode }) {
+  const lat = Number(propStr(widget.props, "lat", "35.6892"))
+  const lng = Number(propStr(widget.props, "lng", "51.389"))
+  const zoom = Math.max(3, Math.min(18, propNum(widget.props, "zoom", 15)))
+  const height = Math.max(160, Math.min(800, propNum(widget.props, "height", 320)))
+  const address = propStr(widget.props, "address", "")
+  if (!Number.isFinite(lat) || !Number.isFinite(lng)) return null
+  const d = 0.01 * Math.pow(2, 15 - zoom)
+  const src = `https://www.openstreetmap.org/export/embed.html?bbox=${lng - d},${lat - d},${lng + d},${lat + d}&layer=mapnik&marker=${lat},${lng}`
+  return (
+    <div className="overflow-hidden rounded-2xl border border-border bg-card">
+      <iframe title={address || "map"} src={src} className="w-full border-0" style={{ height }} loading="lazy" referrerPolicy="no-referrer" />
+      {address ? (
+        <p className="flex items-center gap-2 p-3 text-sm text-foreground/80">
+          <MapPin size={16} className="text-primary" /> {address}
+        </p>
+      ) : null}
+    </div>
+  )
+}
+
+/* ----------------------------------------------------------------- counter */
+
+function useInView<T extends Element>(): [RefObject<T>, boolean] {
+  const ref = useRef<T>(null)
+  const [seen, setSeen] = useState(false)
+  useEffect(() => {
+    const el = ref.current
+    if (!el || seen) return
+    if (typeof IntersectionObserver === "undefined") {
+      setSeen(true)
+      return
+    }
+    const io = new IntersectionObserver((entries) => {
+      if (entries.some((e) => e.isIntersecting)) setSeen(true)
+    })
+    io.observe(el)
+    return () => io.disconnect()
+  }, [seen])
+  return [ref, seen]
+}
+
+export function CounterWidget({ widget }: { widget: WidgetNode }) {
+  const rows = splitRows(propStr(widget.props, "items", "")).filter(([n]) => n)
+  const [ref, seen] = useInView<HTMLDivElement>()
+  const [progress, setProgress] = useState(0)
+  useEffect(() => {
+    if (!seen) return
+    let frame = 0
+    const start = performance.now()
+    const tick = (t: number) => {
+      const p = Math.min(1, (t - start) / 1200)
+      setProgress(p)
+      if (p < 1) frame = requestAnimationFrame(tick)
+    }
+    frame = requestAnimationFrame(tick)
+    return () => cancelAnimationFrame(frame)
+  }, [seen])
+  if (!rows.length) return null
+  return (
+    <div ref={ref} className="grid grid-cols-2 gap-3 md:grid-cols-4">
+      {rows.map(([raw, label, suffix], i) => {
+        const target = Number(raw.replace(/[۰-۹]/g, (d) => String("۰۱۲۳۴۵۶۷۸۹".indexOf(d))).replace(/[^\d.]/g, "")) || 0
+        const value = Math.round(target * progress)
+        return (
+          <div key={i} className="rounded-2xl border border-border bg-card p-5 text-center">
+            <strong className="block text-2xl font-black text-primary">
+              {value.toLocaleString("fa-IR")}
+              {suffix ? <span className="ms-1 text-base">{suffix}</span> : null}
+            </strong>
+            <span className="mt-1 block text-xs text-foreground/70">{label}</span>
+          </div>
+        )
+      })}
+    </div>
+  )
+}
+
+/* ------------------------------------------------------- social and share */
+
+const NETWORK_LABEL: Record<string, string> = {
+  instagram: "اینستاگرام",
+  telegram: "تلگرام",
+  whatsapp: "واتساپ",
+  x: "ایکس",
+  twitter: "ایکس",
+  linkedin: "لینکدین",
+  youtube: "یوتیوب",
+  aparat: "آپارات",
+  eitaa: "ایتا",
+  bale: "بله",
+  rubika: "روبیکا",
+}
+
+export function SocialIconsWidget({ widget }: { widget: WidgetNode }) {
+  const rows = splitRows(propStr(widget.props, "items", "")).filter(([, href]) => href)
+  if (!rows.length) return null
+  return (
+    <div className="flex flex-wrap gap-2">
+      {rows.map(([network, href], i) => (
+        <a key={i} href={safeHref(href)} target="_blank" rel="noopener noreferrer" className="rounded-full border border-border bg-card px-4 py-2 text-xs font-bold text-foreground hover:border-primary hover:text-primary">
+          {NETWORK_LABEL[network.toLowerCase()] ?? network}
+        </a>
+      ))}
+    </div>
+  )
+}
+
+export function ShareButtonsWidget({ widget }: { widget: WidgetNode }) {
+  const title = propStr(widget.props, "title", "اشتراک‌گذاری")
+  const [url, setUrl] = useState("")
+  const [copied, setCopied] = useState(false)
+  useEffect(() => setUrl(window.location.href), [])
+  const enc = encodeURIComponent(url)
+  const links = [
+    { id: "telegram", href: `https://t.me/share/url?url=${enc}` },
+    { id: "whatsapp", href: `https://wa.me/?text=${enc}` },
+    { id: "x", href: `https://x.com/intent/post?url=${enc}` },
+    { id: "linkedin", href: `https://www.linkedin.com/sharing/share-offsite/?url=${enc}` },
+  ]
+  return (
+    <div className="flex flex-wrap items-center gap-2">
+      {title ? <span className="text-sm font-bold text-foreground">{title}</span> : null}
+      {links.map((l) => (
+        <a key={l.id} href={url ? l.href : "#"} target="_blank" rel="noopener noreferrer" className="rounded-full border border-border bg-card px-3 py-1.5 text-xs font-semibold text-foreground hover:text-primary">
+          {NETWORK_LABEL[l.id]}
+        </a>
+      ))}
+      <button
+        type="button"
+        className="inline-flex items-center gap-1 rounded-full border border-border bg-card px-3 py-1.5 text-xs font-semibold text-foreground hover:text-primary"
+        onClick={() => {
+          void navigator.clipboard?.writeText(url).then(() => setCopied(true))
+        }}
+      >
+        <Link2 size={14} /> {copied ? "کپی شد" : "کپی پیوند"}
+      </button>
+    </div>
+  )
+}
+
+/* ----------------------------------------------------------------- pricing */
+
+export function PricingWidget({ widget }: { widget: WidgetNode }) {
+  const rows = splitRows(propStr(widget.props, "plans", "")).filter(([name]) => name)
+  const cta = propStr(widget.props, "cta", "انتخاب")
+  if (!rows.length) return null
+  return (
+    <div className="grid gap-3 md:grid-cols-3">
+      {rows.map(([name, price, features, href, featured], i) => {
+        const hot = featured === "1" || featured === "true"
+        return (
+          <div key={i} className={`flex flex-col rounded-2xl border bg-card p-5 ${hot ? "border-primary shadow-lg" : "border-border"}`}>
+            <strong className="text-base font-extrabold text-foreground">{name}</strong>
+            {price ? <span className="mt-2 text-2xl font-black text-primary">{price}</span> : null}
+            <ul className="mt-4 flex-1 space-y-2 text-sm text-foreground/75">
+              {(features ?? "")
+                .split(";")
+                .map((f) => f.trim())
+                .filter(Boolean)
+                .map((f, k) => (
+                  <li key={k} className="flex items-center gap-2">
+                    <BadgeCheck size={14} className="text-primary" /> {f}
+                  </li>
+                ))}
+            </ul>
+            {href ? (
+              <Link href={safeHref(href)} className={`mt-5 rounded-full px-4 py-2.5 text-center text-sm font-bold ${hot ? "bg-primary text-primary-foreground" : "border border-border text-foreground"}`}>
+                {cta}
+              </Link>
+            ) : null}
+          </div>
+        )
+      })}
+    </div>
+  )
+}
+
+/* -------------------------------------------------------------- blog query */
+
+type PostRow = { slug: string; title: string; excerpt?: string; cover_url?: string }
+
+export function BlogPostsWidget({ widget }: { widget: WidgetNode }) {
+  const title = propStr(widget.props, "title", "")
+  const limit = Math.max(1, Math.min(12, propNum(widget.props, "limit", 3)))
+  const layout = propStr(widget.props, "layout", "grid")
+  const category = propStr(widget.props, "category", "")
+  const [posts, setPosts] = useState<PostRow[] | null>(null)
+  useEffect(() => {
+    let cancel = false
+    const base = process.env.NEXT_PUBLIC_API_URL ?? ""
+    const params = new URLSearchParams({ per_page: String(limit) })
+    if (category) params.set("category", category)
+    fetch(`${base}/api/v1/public/blog?${params}`, { credentials: "include" })
+      .then((res) => (res.ok ? res.json() : null))
+      .then((json) => {
+        if (cancel) return
+        const items = Array.isArray(json?.data) ? json.data : Array.isArray(json?.data?.items) ? json.data.items : []
+        setPosts(items.slice(0, limit))
+      })
+      .catch(() => !cancel && setPosts([]))
+    return () => {
+      cancel = true
+    }
+  }, [category, limit])
+  if (!posts || !posts.length) return null
+  return (
+    <section>
+      <SectionTitle title={title} href="/blog" />
+      <div className={layout === "list" ? "flex flex-col gap-3" : "grid gap-3 md:grid-cols-3"}>
+        {posts.map((post) => (
+          <Link key={post.slug} href={`/blog/${post.slug}`} className={`overflow-hidden rounded-2xl border border-border bg-card ${layout === "list" ? "flex gap-3" : "block"}`}>
+            <span className={`block bg-muted ${layout === "list" ? "w-32 shrink-0" : "aspect-video"}`}>
+              {post.cover_url ? <Img src={post.cover_url} alt="" loading="lazy" className="h-full w-full object-cover" /> : null}
+            </span>
+            <span className="block p-4">
+              <strong className="line-clamp-2 text-sm font-extrabold text-foreground">{post.title}</strong>
+              {post.excerpt ? <span className="mt-1 line-clamp-2 block text-xs leading-6 text-foreground/70">{post.excerpt}</span> : null}
+            </span>
+          </Link>
+        ))}
+      </div>
+    </section>
+  )
+}
+
+/* -------------------------------------------------------------- search box */
+
+/* ----------------------------------------------------------- category list */
+
+/* ------------------------------------------------------------- login CTA */
+
+/* -------------------------------------------- section intro (for chrome widgets) */
+
+export function WidgetIntro({ widget, children }: { widget: WidgetNode; children: ReactNode }) {
+  const title = propStr(widget.props, "title", "")
+  const intro = propStr(widget.props, "intro", "")
+  if (!title && !intro) return <>{children}</>
+  return (
+    <div>
+      <div className="mx-auto max-w-6xl px-4 pt-4">
+        {title ? <h2 className="text-lg font-extrabold text-foreground">{title}</h2> : null}
+        {intro ? <p className="mt-1 text-sm text-foreground/70">{intro}</p> : null}
+      </div>
+      {children}
+    </div>
+  )
+}
+
+/* ------------------------------------------------- Instagram / social feed */
+
+/** 3.16 — Instagram has no public, key-less API, so the feed is curated: image|post link|caption per line. */
+export function FeedWidget({ widget }: { widget: WidgetNode }) {
+  const rows = splitRows(propStr(widget.props, "items", "")).filter(([src]) => src)
+  const handle = propStr(widget.props, "handle", "").replace(/^@/, "")
+  const profile = propStr(widget.props, "profileUrl", "") || (handle ? `https://instagram.com/${handle}` : "")
+  const title = propStr(widget.props, "title", "")
+  const cols = Math.max(2, Math.min(6, propNum(widget.props, "columns", 4)))
+  if (!rows.length) return null
+  return (
+    <section>
+      <div className="mb-3 flex items-center justify-between gap-3">
+        {title ? <h2 className="text-lg font-extrabold text-foreground">{title}</h2> : <span />}
+        {profile ? (
+          <a href={safeHref(profile)} target="_blank" rel="noopener noreferrer" className="text-sm font-semibold text-primary" dir="ltr">
+            {handle ? `@${handle}` : "Instagram"}
+          </a>
+        ) : null}
+      </div>
+      <div className="grid gap-2" style={{ gridTemplateColumns: `repeat(${cols}, minmax(0, 1fr))` }}>
+        {rows.map(([src, href, caption], i) => {
+          const img = <Img src={src} alt={caption || ""} loading="lazy" className="h-full w-full object-cover transition-transform hover:scale-105" />
+          return (
+            <div key={i} className="aspect-square overflow-hidden rounded-xl bg-muted">
+              {href ? (
+                <a href={safeHref(href)} target="_blank" rel="noopener noreferrer" aria-label={caption || "post"}>
+                  {img}
+                </a>
+              ) : (
+                img
+              )}
+            </div>
+          )
+        })}
+      </div>
+    </section>
+  )
+}

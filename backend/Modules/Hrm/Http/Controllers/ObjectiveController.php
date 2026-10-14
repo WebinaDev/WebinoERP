@@ -57,7 +57,7 @@ class ObjectiveController extends Controller
         }
         $this->recalculate($objective);
 
-        return response()->json(['data' => $objective->load(['employee', 'keyResults']), 'message' => 'Objective saved'], 201);
+        return response()->json(['data' => $objective->load(['employee', 'keyResults']), 'message' => __('messages.objective_saved')], 201);
     }
 
     public function updateKeyResult(Request $request, HrmKeyResult $keyResult): JsonResponse

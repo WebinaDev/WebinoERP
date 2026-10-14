@@ -44,7 +44,7 @@ class TimesheetController extends Controller
         $this->assertProject($data);
         $row = HrmTimesheet::query()->create($data + ['status' => 'draft']);
 
-        return response()->json(['data' => $row->load('employee'), 'message' => 'Timesheet saved'], 201);
+        return response()->json(['data' => $row->load('employee'), 'message' => __('messages.timesheet_saved')], 201);
     }
 
     public function submit(HrmTimesheet $timesheet): JsonResponse
@@ -120,10 +120,10 @@ class TimesheetController extends Controller
     private function assertProject(array $data): void
     {
         if (! empty($data['project_id']) && Schema::hasTable('prj_projects')) {
-            abort_unless(DB::table('prj_projects')->where('id', $data['project_id'])->exists(), 422, 'Unknown project');
+            abort_unless(DB::table('prj_projects')->where('id', $data['project_id'])->exists(), 422, __('messages.unknown_project'));
         }
         if (! empty($data['task_id']) && Schema::hasTable('prj_tasks')) {
-            abort_unless(DB::table('prj_tasks')->where('id', $data['task_id'])->exists(), 422, 'Unknown task');
+            abort_unless(DB::table('prj_tasks')->where('id', $data['task_id'])->exists(), 422, __('messages.unknown_task'));
         }
     }
 

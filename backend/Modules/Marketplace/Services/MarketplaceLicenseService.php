@@ -6,6 +6,7 @@ use Illuminate\Support\Facades\DB;
 use Modules\Core\Entities\CoreLicense;
 use Modules\Core\Entities\ModuleGitSource;
 use Modules\Core\Services\CoreLicenseMetaNormalizer;
+use Modules\Core\Services\CoreLicenseResolver;
 use Modules\Marketplace\Entities\MarketplaceEntitlement;
 use Modules\Marketplace\Entities\MarketplaceModule;
 use Modules\Marketplace\Entities\MarketplaceOrder;
@@ -22,7 +23,7 @@ class MarketplaceLicenseService
         return DB::transaction(function () use ($order) {
             $order->loadMissing('items');
             if ($order->items->isEmpty()) {
-                throw new RuntimeException('Order has no items.');
+                throw new RuntimeException(__('messages.order_has_no_items'));
             }
 
             $license = $this->resolveLicense($order);
@@ -110,7 +111,7 @@ class MarketplaceLicenseService
     public function grantModuleToSite(WebinoSiteProvision $site, string $moduleSlug): CoreLicense
     {
         if (! $site->license_id) {
-            throw new RuntimeException('Site has no license.');
+            throw new RuntimeException(__('messages.site_has_no_license'));
         }
 
         /** @var CoreLicense $license */
@@ -163,7 +164,7 @@ class MarketplaceLicenseService
             }
         }
 
-        throw new RuntimeException('Cannot resolve license for order; set site_provision_id or license_id.');
+        throw new RuntimeException(__('messages.cannot_resolve_license_for_order_set_site_provision_id_or_li'));
     }
 
     protected function resolveCloneUrl(string $slug, ?int $moduleId): ?string

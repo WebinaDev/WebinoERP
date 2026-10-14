@@ -31,7 +31,7 @@ class LeaveNestedController extends Controller
         ]);
         $type = HrmLeaveType::create($data);
 
-        return response()->json(['data' => $type, 'message' => 'Leave type saved'], 201);
+        return response()->json(['data' => $type, 'message' => __('messages.leave_type_saved')], 201);
     }
 
     public function requestsIndex(Request $request): JsonResponse
@@ -61,7 +61,7 @@ class LeaveNestedController extends Controller
         }
         $leave = HrmLeaveRequest::create([...$data, ...$boot]);
 
-        return response()->json(['data' => $leave->load('employee'), 'message' => 'Request created'], 201);
+        return response()->json(['data' => $leave->load('employee'), 'message' => __('messages.request_created')], 201);
     }
 
     public function requestApprove(Request $request, HrmLeaveRequest $leaveRequest): JsonResponse
@@ -118,7 +118,7 @@ class LeaveNestedController extends Controller
             'درخواست مرخصی leave:'.$leaveRequest->id.' رد شد.'
         );
 
-        return response()->json(['data' => $leaveRequest->fresh('employee'), 'message' => 'Rejected']);
+        return response()->json(['data' => $leaveRequest->fresh('employee'), 'message' => __('messages.rejected')]);
     }
 
     public function balancesIndex(Request $request): JsonResponse

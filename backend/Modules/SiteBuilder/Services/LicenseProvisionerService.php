@@ -26,7 +26,7 @@ class LicenseProvisionerService
         $provision->loadMissing(['package.businessType.category', 'package.features', 'license']);
 
         if (! $provision->package) {
-            throw new RuntimeException('Package is required.');
+            throw new RuntimeException(__('messages.package_is_required'));
         }
 
         $product = self::PRODUCT;

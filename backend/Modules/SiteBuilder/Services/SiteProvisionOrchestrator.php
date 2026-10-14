@@ -205,7 +205,7 @@ class SiteProvisionOrchestrator
                 'backend' => $this->local->updateBackend($provision),
                 'migrate' => $this->local->migrate($provision),
                 'full' => $this->local->updateApp($provision),
-                default => throw new \InvalidArgumentException('Invalid update target.'),
+                default => throw new \InvalidArgumentException(__('messages.invalid_update_target')),
             };
         } else {
             $result = $this->remote->runUpdate($provision, $target);
@@ -382,7 +382,7 @@ class SiteProvisionOrchestrator
             WebinoSiteProvision::STATUS_PROVISIONING,
             WebinoSiteProvision::STATUS_SSL_PENDING,
         ], true)) {
-            throw new \InvalidArgumentException('Only in-progress provisions can be cancelled.');
+            throw new \InvalidArgumentException(__('messages.only_in_progress_provisions_can_be_cancelled'));
         }
 
         $provision->update([

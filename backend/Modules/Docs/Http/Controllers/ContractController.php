@@ -59,7 +59,7 @@ class ContractController extends Controller
 
         $contract = DocsContract::create($data);
 
-        return response()->json(['data' => $contract, 'message' => 'Contract created'], 201);
+        return response()->json(['data' => $contract, 'message' => __('messages.contract_created')], 201);
     }
 
     public function show(DocsContract $contract): JsonResponse
@@ -111,21 +111,21 @@ class ContractController extends Controller
 
         $contract->update($data);
 
-        return response()->json(['data' => $contract->fresh(), 'message' => 'Contract updated']);
+        return response()->json(['data' => $contract->fresh(), 'message' => __('messages.contract_updated')]);
     }
 
     public function destroy(DocsContract $contract): JsonResponse
     {
         $contract->delete();
 
-        return response()->noContent();
+        return response()->json(null, 204);
     }
 
     public function cancel(DocsContract $contract): JsonResponse
     {
         $contract->update(['status' => 'cancelled']);
 
-        return response()->json(['data' => $contract->fresh(), 'message' => 'Contract cancelled']);
+        return response()->json(['data' => $contract->fresh(), 'message' => __('messages.contract_cancelled')]);
     }
 
     public function linkProject(Request $request, DocsContract $contract): JsonResponse
@@ -137,6 +137,6 @@ class ContractController extends Controller
         $meta['project_ids'] = array_values(array_unique($projects));
         $contract->update(['meta' => $meta]);
 
-        return response()->json(['data' => $contract->fresh(), 'message' => 'Project linked']);
+        return response()->json(['data' => $contract->fresh(), 'message' => __('messages.project_linked')]);
     }
 }

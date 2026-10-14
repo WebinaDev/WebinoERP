@@ -89,7 +89,7 @@ class ChatController extends Controller
             $channel = $message->channel;
             $this->authorize('participate', $channel);
             if ((int) $message->user_id !== (int) $request->user()->id) {
-                return response()->json(['message' => 'Forbidden'], 403);
+                return response()->json(['message' => __('messages.forbidden')], 403);
             }
             $message->update([
                 'body' => $data['body'],
@@ -121,7 +121,7 @@ class ChatController extends Controller
         if (! empty($data['reply_to'])) {
             $parent = CoreChatMessage::query()->findOrFail($data['reply_to']);
             if ((int) $parent->channel_id !== (int) $channel->id) {
-                return response()->json(['message' => 'Invalid reply_to for this channel.'], 422);
+                return response()->json(['message' => __('messages.invalid_reply_to_for_this_channel')], 422);
             }
         }
 
@@ -141,7 +141,7 @@ class ChatController extends Controller
     public function direct(Request $request, int $userId): JsonResponse
     {
         if ($userId === $request->user()->id) {
-            return response()->json(['message' => 'Cannot open direct chat with yourself.'], 422);
+            return response()->json(['message' => __('messages.cannot_open_direct_chat_with_yourself')], 422);
         }
 
         User::query()->findOrFail($userId);
@@ -190,7 +190,7 @@ class ChatController extends Controller
         if ($lastId !== null) {
             $msg = CoreChatMessage::query()->findOrFail($lastId);
             if ((int) $msg->channel_id !== (int) $channel->id) {
-                return response()->json(['message' => 'Message does not belong to this channel.'], 422);
+                return response()->json(['message' => __('messages.message_does_not_belong_to_this_channel')], 422);
             }
         }
 
@@ -275,7 +275,7 @@ class ChatController extends Controller
                 ->where('user_id', $request->user()->id)
                 ->first();
             if (! $member || $member->role !== 'admin') {
-                return response()->json(['message' => 'Forbidden'], 403);
+                return response()->json(['message' => __('messages.forbidden')], 403);
             }
         }
 

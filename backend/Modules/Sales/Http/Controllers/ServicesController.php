@@ -86,7 +86,7 @@ class ServicesController extends Controller
 
         $catalog->update(['meta' => $meta]);
 
-        return response()->json(['data' => $catalog->fresh(), 'message' => 'Updated']);
+        return response()->json(['data' => $catalog->fresh(), 'message' => __('messages.updated')]);
     }
 
     public function convertContract(Request $request, SalesCatalogItem $catalog): JsonResponse
@@ -99,7 +99,7 @@ class ServicesController extends Controller
                     'contract_id' => $meta['converted_contract_id'],
                     'status' => 'already_converted',
                 ],
-                'message' => 'Already converted',
+                'message' => __('messages.already_converted'),
             ]);
         }
 
@@ -126,7 +126,7 @@ class ServicesController extends Controller
                 'contract_id' => $contract->id,
                 'status' => 'created',
             ],
-            'message' => 'Contract created from catalog item',
+            'message' => __('messages.contract_created_from_catalog_item'),
         ], 201);
     }
 }

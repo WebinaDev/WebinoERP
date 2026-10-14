@@ -46,7 +46,7 @@ class MfgWorkOrderService
     public function release(MfgWorkOrder $wo): MfgWorkOrder
     {
         if ($wo->status !== 'draft') {
-            abort(422, 'Only draft work orders can be released');
+            abort(422, __('messages.only_draft_work_orders_can_be_released'));
         }
         $wo->update(['status' => 'released']);
 
@@ -56,7 +56,7 @@ class MfgWorkOrderService
     public function start(MfgWorkOrder $wo): MfgWorkOrder
     {
         if (! in_array($wo->status, ['released', 'draft'], true)) {
-            abort(422, 'Work order cannot be started from current status');
+            abort(422, __('messages.work_order_cannot_be_started_from_current_status'));
         }
         $wo->update(['status' => 'in_progress']);
 
@@ -69,7 +69,7 @@ class MfgWorkOrderService
     public function complete(MfgWorkOrder $wo, array $options = []): MfgWorkOrder
     {
         if (! in_array($wo->status, ['in_progress', 'released'], true)) {
-            abort(422, 'Work order cannot be completed from current status');
+            abort(422, __('messages.work_order_cannot_be_completed_from_current_status'));
         }
 
         $qtyProduced = isset($options['qty_produced'])
@@ -93,7 +93,7 @@ class MfgWorkOrderService
     public function cancel(MfgWorkOrder $wo): MfgWorkOrder
     {
         if ($wo->status === 'completed') {
-            abort(422, 'Completed work orders cannot be cancelled');
+            abort(422, __('messages.completed_work_orders_cannot_be_cancelled'));
         }
         $wo->update(['status' => 'cancelled']);
 

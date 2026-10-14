@@ -94,7 +94,7 @@ class Review360Controller extends Controller
             $payload = $this->redact($payload, $own?->id);
         }
 
-        return response()->json(['data' => $payload, 'message' => 'Rating submitted']);
+        return response()->json(['data' => $payload, 'message' => __('messages.rating_submitted')]);
     }
 
     private function redact(HrmReview360 $review, ?int $employeeId): HrmReview360

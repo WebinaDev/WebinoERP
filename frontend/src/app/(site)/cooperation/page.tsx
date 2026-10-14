@@ -1,12 +1,8 @@
-import { getTranslations } from 'next-intl/server';
-import { ConsultationForm } from '@/themes/webina-corporate-v1/components/ConsultationForm';
-import { SitePage } from '@/themes/webina-corporate-v1/components/SitePage';
+import { BuilderPageRoute } from '@/themes/webina-corporate-v1/builder/BuilderPageRoute';
 
-export default async function CooperationPage() {
-  const t = await getTranslations();
-  return (
-    <SitePage kicker={t('site.nav.company')} title={t('site.nav.cooperation')} lead={t('site.page.cooperationLead')}>
-      <ConsultationForm source="cooperation" title={t('common.cooperationTitle')} submitLabel={t('common.cooperationSubmit')} />
-    </SitePage>
-  );
+export const revalidate = 60;
+
+/** Content is the builder page «cooperation» in the database (Pages list); nothing is hardcoded here. */
+export default function Page() {
+  return <BuilderPageRoute slug="cooperation" />;
 }

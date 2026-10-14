@@ -95,7 +95,7 @@ class HrmSettingsController extends Controller
     public function myChannels(): JsonResponse
     {
         $employee = HrmAccess::employee();
-        abort_unless($employee, 404, 'No employee profile linked to this user');
+        abort_unless($employee, 404, __('messages.no_employee_profile_linked_to_this_user'));
         $profile = HrmEmployeeProfile::query()->where('employee_id', $employee->id)->first();
         $s = HrmNotifier::settings();
 
@@ -110,7 +110,7 @@ class HrmSettingsController extends Controller
     public function myChannelsSave(Request $request): JsonResponse
     {
         $employee = HrmAccess::employee();
-        abort_unless($employee, 404, 'No employee profile linked to this user');
+        abort_unless($employee, 404, __('messages.no_employee_profile_linked_to_this_user'));
         $data = $request->validate([
             'bale_chat_id' => ['nullable', 'string', 'max:64', 'regex:/^-?[0-9A-Za-z_@]+$/'],
             'telegram_chat_id' => ['nullable', 'string', 'max:64', 'regex:/^-?[0-9A-Za-z_@]+$/'],

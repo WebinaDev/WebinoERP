@@ -47,7 +47,7 @@ class CampaignController extends Controller
         $data['budget'] = $data['budget'] ?? 0;
         $campaign = SalesCampaign::create($data);
 
-        return response()->json(['data' => $campaign, 'message' => 'Created'], 201);
+        return response()->json(['data' => $campaign, 'message' => __('messages.created')], 201);
     }
 
     public function show(SalesCampaign $campaign): JsonResponse
@@ -68,13 +68,13 @@ class CampaignController extends Controller
         ]);
         $campaign->update($data);
 
-        return response()->json(['data' => $campaign->fresh(), 'message' => 'Updated']);
+        return response()->json(['data' => $campaign->fresh(), 'message' => __('messages.updated')]);
     }
 
     public function destroy(SalesCampaign $campaign): JsonResponse
     {
         $campaign->delete();
 
-        return response()->noContent();
+        return response()->json(null, 204);
     }
 }

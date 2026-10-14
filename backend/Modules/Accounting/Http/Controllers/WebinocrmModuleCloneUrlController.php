@@ -21,7 +21,7 @@ class WebinocrmModuleCloneUrlController extends Controller
     public function handle(Request $request, OrgGitProviderFactory $factory): JsonResponse
     {
         if (! $this->verifyLicenseRequest($request)) {
-            return response()->json(['error' => ['code' => 'INVALID_SIGNATURE', 'message' => 'Invalid signature']], 403);
+            return response()->json(['error' => ['code' => 'INVALID_SIGNATURE', 'message' => __('messages.invalid_signature')]], 403);
         }
 
         $data = $request->validate([
@@ -40,24 +40,24 @@ class WebinocrmModuleCloneUrlController extends Controller
         $row = CoreLicenseResolver::find($domain, $product);
 
         if (! $row) {
-            return response()->json(['error' => ['code' => 'NOT_FOUND', 'message' => 'License not found']], 404);
+            return response()->json(['error' => ['code' => 'NOT_FOUND', 'message' => __('messages.license_not_found')]], 404);
         }
 
         $norm = CoreLicenseMetaNormalizer::normalize($row->meta);
         if (! in_array($slug, $norm['licensed_modules'], true)) {
-            return response()->json(['error' => ['code' => 'NOT_LICENSED', 'message' => 'Module not entitled']], 403);
+            return response()->json(['error' => ['code' => 'NOT_LICENSED', 'message' => __('messages.module_not_entitled')]], 403);
         }
 
         $urls = CoreLicenseMetaNormalizer::mergeModuleGitReposWithRegistry($norm['module_git_repos']);
         $baseUrl = $urls[$slug] ?? null;
         if (! is_string($baseUrl) || $baseUrl === '') {
-            return response()->json(['error' => ['code' => 'NO_REPO', 'message' => 'No clone URL for module']], 404);
+            return response()->json(['error' => ['code' => 'NO_REPO', 'message' => __('messages.no_clone_url_for_module')]], 404);
         }
 
         $host = parse_url($baseUrl, PHP_URL_HOST);
         $allowed = $factory->allowedCloneHosts();
         if (is_string($host) && $allowed !== [] && ! in_array(strtolower($host), $allowed, true)) {
-            return response()->json(['error' => ['code' => 'HOST_DENIED', 'message' => 'Clone host not allowed']], 403);
+            return response()->json(['error' => ['code' => 'HOST_DENIED', 'message' => __('messages.clone_host_not_allowed')]], 403);
         }
 
         try {

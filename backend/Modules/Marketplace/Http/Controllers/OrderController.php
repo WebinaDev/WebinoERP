@@ -141,7 +141,7 @@ class OrderController extends Controller
             $order->update(['total' => $total]);
         }
 
-        return response()->json(['data' => $order->fresh('items'), 'message' => 'Created'], 201);
+        return response()->json(['data' => $order->fresh('items'), 'message' => __('messages.created')], 201);
     }
 
     /**
@@ -208,12 +208,12 @@ class OrderController extends Controller
                     'license' => $license,
                     'payment' => null,
                 ],
-                'message' => 'Module licensed',
+                'message' => __('messages.module_licensed'),
             ], 201);
         }
 
         if (! ($data['pay'] ?? true)) {
-            return response()->json(['data' => ['order' => $order->fresh('items')], 'message' => 'Order created'], 201);
+            return response()->json(['data' => ['order' => $order->fresh('items')], 'message' => __('messages.order_created')], 201);
         }
 
         try {
@@ -254,7 +254,7 @@ class OrderController extends Controller
                 'order' => $order->fresh('items'),
                 'payment' => $payment,
             ],
-            'message' => 'Payment initiated',
+            'message' => __('messages.payment_initiated'),
         ], 201);
     }
 
@@ -292,7 +292,7 @@ class OrderController extends Controller
         if (! $verified) {
             $order->update(['status' => 'cancelled']);
 
-            return response()->json(['message' => 'Payment not verified', 'data' => $order->fresh()], 422);
+            return response()->json(['message' => __('messages.payment_not_verified'), 'data' => $order->fresh()], 422);
         }
 
         $order->update([
@@ -313,14 +313,14 @@ class OrderController extends Controller
                 'order' => $order->fresh('items'),
                 'license' => $license,
             ],
-            'message' => 'Payment verified and license granted',
+            'message' => __('messages.payment_verified_and_license_granted'),
         ]);
     }
 
     public function grantLicense(MarketplaceOrder $order, MarketplaceLicenseService $licenses): JsonResponse
     {
         if (! in_array($order->status, ['paid', 'fulfilled'], true)) {
-            return response()->json(['message' => 'Order must be paid before granting license'], 422);
+            return response()->json(['message' => __('messages.order_must_be_paid_before_granting_license')], 422);
         }
 
         try {
@@ -357,7 +357,7 @@ class OrderController extends Controller
         ]);
         $order->update($data);
 
-        return response()->json(['data' => $order->fresh('items'), 'message' => 'Updated']);
+        return response()->json(['data' => $order->fresh('items'), 'message' => __('messages.updated')]);
     }
 
     public function destroy(MarketplaceOrder $order): Response
@@ -387,7 +387,7 @@ class OrderController extends Controller
             ]);
             $json = $res->json();
             if (($json['data']['code'] ?? 0) !== 100) {
-                throw new \RuntimeException('Zarinpal init failed');
+                throw new \RuntimeException(__('messages.zarinpal_init_failed'));
             }
             $authority = (string) ($json['data']['authority'] ?? '');
             Cache::put('payment:'.$authority, [

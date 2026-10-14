@@ -28,7 +28,7 @@ class PerformanceNestedController extends Controller
         ]);
         $template = HrmKpiTemplate::create($data);
 
-        return response()->json(['data' => $template, 'message' => 'KPI template saved'], 201);
+        return response()->json(['data' => $template, 'message' => __('messages.kpi_template_saved')], 201);
     }
 
     public function cyclesIndex(Request $request): JsonResponse
@@ -46,7 +46,7 @@ class PerformanceNestedController extends Controller
         ]);
         $cycle = HrmPerformanceCycle::create($data);
 
-        return response()->json(['data' => $cycle, 'message' => 'Cycle saved'], 201);
+        return response()->json(['data' => $cycle, 'message' => __('messages.cycle_saved')], 201);
     }
 
     public function reviewsIndex(Request $request): JsonResponse
@@ -65,6 +65,6 @@ class PerformanceNestedController extends Controller
         $data['reviewer_id'] = $request->user()->id;
         $review = HrmPerformanceReview::create($data);
 
-        return response()->json(['data' => $review->load('employee'), 'message' => 'Review saved'], 201);
+        return response()->json(['data' => $review->load('employee'), 'message' => __('messages.review_saved')], 201);
     }
 }

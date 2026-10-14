@@ -1,12 +1,8 @@
-import { getTranslations } from 'next-intl/server';
-import { ConsultationForm } from '@/themes/webina-corporate-v1/components/ConsultationForm';
-import { SitePage } from '@/themes/webina-corporate-v1/components/SitePage';
+import { BuilderPageRoute } from '@/themes/webina-corporate-v1/builder/BuilderPageRoute';
 
-export default async function ConsultationPage() {
-  const t = await getTranslations();
-  return (
-    <SitePage kicker={t('site.nav.freeConsultation')} title={t('site.nav.consultation')} lead={t('site.page.consultationLead')}>
-      <ConsultationForm source="consultation" />
-    </SitePage>
-  );
+export const revalidate = 60;
+
+/** Content is the builder page «consultation» in the database (Pages list); nothing is hardcoded here. */
+export default function Page() {
+  return <BuilderPageRoute slug="consultation" />;
 }

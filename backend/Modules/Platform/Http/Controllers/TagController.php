@@ -63,7 +63,7 @@ class TagController extends Controller
         return response()->json([
             'success' => true,
             'data' => null,
-            'message' => 'Deleted',
+            'message' => __('messages.deleted'),
             'meta' => null,
             'errors' => null,
         ]);

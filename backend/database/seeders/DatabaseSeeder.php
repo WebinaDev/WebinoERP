@@ -6,6 +6,12 @@ use Illuminate\Database\Seeder;
 use Modules\Core\Database\Seeders\RolesAndPermissionsSeeder;
 use Modules\Core\Database\Seeders\SystemModulesSeeder;
 use Modules\Core\Database\Seeders\SystemSettingsSeeder;
+use Modules\Crm\Database\Seeders\CrmLookupSeeder;
+use Modules\Marketing\Database\Seeders\MarketingFormsSeeder;
+use Modules\Marketplace\Database\Seeders\DemoPaidModuleSeeder;
+use Modules\Marketplace\Database\Seeders\SiteThemeSeeder;
+use Modules\Platform\Database\Seeders\PlatformServiceTemplatesSeeder;
+use Modules\SiteBuilder\Database\Seeders\SiteBuilderSeeder;
 
 class DatabaseSeeder extends Seeder
 {
@@ -15,12 +21,12 @@ class DatabaseSeeder extends Seeder
             RolesAndPermissionsSeeder::class,
             SystemModulesSeeder::class,
             SystemSettingsSeeder::class,
-            \Modules\Crm\Database\Seeders\CrmLookupSeeder::class,
-            \Modules\SiteBuilder\Database\Seeders\SiteBuilderSeeder::class,
-            \Modules\Platform\Database\Seeders\PlatformServiceTemplatesSeeder::class,
-            \Modules\Marketplace\Database\Seeders\SiteThemeSeeder::class,
-            \Modules\Marketplace\Database\Seeders\DemoPaidModuleSeeder::class,
-            \Modules\Marketing\Database\Seeders\MarketingSiteSeeder::class,
+            CrmLookupSeeder::class,
+            SiteBuilderSeeder::class,
+            PlatformServiceTemplatesSeeder::class,
+            SiteThemeSeeder::class,
+            DemoPaidModuleSeeder::class,
+            MarketingFormsSeeder::class,
             DemoUserSeeder::class,
         ]);
     }

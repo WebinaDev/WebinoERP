@@ -16,7 +16,7 @@ class CalendarFeedController extends Controller
     public function mine(Request $request, HrmCalendarFeedService $feeds): Response
     {
         $employee = HrmAccess::employee();
-        abort_unless($employee, 404, 'No employee profile');
+        abort_unless($employee, 404, __('messages.no_employee_profile'));
 
         return $this->icsResponse($feeds->ics($employee, (string) $request->input('lang', 'fa')), 'my-hr.ics', true);
     }
@@ -25,7 +25,7 @@ class CalendarFeedController extends Controller
     public function ensure(HrmCalendarFeedService $feeds): JsonResponse
     {
         $employee = HrmAccess::employee();
-        abort_unless($employee, 404, 'No employee profile');
+        abort_unless($employee, 404, __('messages.no_employee_profile'));
 
         return response()->json(['data' => $feeds->links($feeds->feedFor($employee))]);
     }
@@ -34,7 +34,7 @@ class CalendarFeedController extends Controller
     public function regenerate(HrmCalendarFeedService $feeds): JsonResponse
     {
         $employee = HrmAccess::employee();
-        abort_unless($employee, 404, 'No employee profile');
+        abort_unless($employee, 404, __('messages.no_employee_profile'));
 
         return response()->json(['data' => $feeds->links($feeds->regenerate($employee))]);
     }

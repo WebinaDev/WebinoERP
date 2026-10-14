@@ -94,7 +94,7 @@ class OutreachController extends Controller
         } else {
             $context = $messenger->contextFor($data['related_type'], (int) $data['related_id']);
             $to = $data['to'] ?? ($data['channel'] === 'sms' ? ($context['mobile'] ?? '') : ($context['email'] ?? ''));
-            abort_if($to === '' || empty($data['body']), 422, 'Recipient and body are required');
+            abort_if($to === '' || empty($data['body']), 422, __('messages.recipient_and_body_are_required'));
             $message = $messenger->send(
                 $data['channel'],
                 $data['related_type'],
@@ -156,7 +156,7 @@ class OutreachController extends Controller
             'related_id' => 'required|integer|min:1',
         ]);
         $first = $sequence->steps->first();
-        abort_if(! $first, 422, 'Sequence has no steps');
+        abort_if(! $first, 422, __('messages.sequence_has_no_steps'));
         $enrollment = CrmSequenceEnrollment::query()->create([
             'sequence_id' => $sequence->id,
             'related_type' => $data['related_type'],

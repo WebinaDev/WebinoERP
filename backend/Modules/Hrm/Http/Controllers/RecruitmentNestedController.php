@@ -32,7 +32,7 @@ class RecruitmentNestedController extends Controller
         ]);
         $posting = HrmJobPosting::create($data);
 
-        return response()->json(['data' => $posting, 'message' => 'Posting saved'], 201);
+        return response()->json(['data' => $posting, 'message' => __('messages.posting_saved')], 201);
     }
 
     public function applicantsIndex(Request $request): JsonResponse
@@ -57,14 +57,14 @@ class RecruitmentNestedController extends Controller
         ]);
         $applicant = HrmJobApplicant::create([...$data, 'status' => 'applied']);
 
-        return response()->json(['data' => $applicant->load('jobPosting'), 'message' => 'Applicant saved'], 201);
+        return response()->json(['data' => $applicant->load('jobPosting'), 'message' => __('messages.applicant_saved')], 201);
     }
 
     public function applicantsDestroy(HrmJobApplicant $applicant): JsonResponse
     {
         $applicant->delete();
 
-        return response()->noContent();
+        return response()->json(null, 204);
     }
 
     public function applicantHire(Request $request, HrmJobApplicant $applicant): JsonResponse
@@ -96,7 +96,7 @@ class RecruitmentNestedController extends Controller
 
         return response()->json([
             'data' => array_merge($employee->toArray(), ['onboarding' => $onboarding]),
-            'message' => 'Applicant hired',
+            'message' => __('messages.applicant_hired'),
         ], 201);
     }
 
@@ -115,6 +115,6 @@ class RecruitmentNestedController extends Controller
         ]);
         $interview = HrmInterview::create($data);
 
-        return response()->json(['data' => $interview->load('applicant'), 'message' => 'Interview scheduled'], 201);
+        return response()->json(['data' => $interview->load('applicant'), 'message' => __('messages.interview_scheduled')], 201);
     }
 }

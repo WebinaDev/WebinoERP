@@ -57,7 +57,7 @@ class MeSuiteController extends Controller
         $employee = HrmAccess::employee();
         abort_unless($employee && $onboardingTask->onboarding?->employee_id === $employee->id, 404);
         if ($onboardingTask->document_category) {
-            return response()->json(['message' => 'Upload the required document to complete this task'], 422);
+            return response()->json(['message' => __('messages.upload_the_required_document_to_complete_this_task')], 422);
         }
         $onboardingTask->update(['status' => 'done', 'completed_at' => now()]);
 
@@ -103,6 +103,6 @@ class MeSuiteController extends Controller
         abort_unless($employee && $document->employee_id === $employee->id, 404);
         $signed = $signer->sign($document, $request, false);
 
-        return response()->json(['data' => $signed, 'message' => 'Signed']);
+        return response()->json(['data' => $signed, 'message' => __('messages.signed')]);
     }
 }

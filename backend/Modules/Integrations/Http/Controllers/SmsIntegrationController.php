@@ -43,7 +43,7 @@ class SmsIntegrationController extends Controller
 
             return response()->json([
                 'data' => ['queued' => true, 'provider' => $provider],
-                'message' => 'SMS queued',
+                'message' => __('messages.sms_queued'),
             ]);
         }
 

@@ -90,7 +90,7 @@ class CustomerPortalController extends Controller
         $projectId = $data['project_id'] ?? null;
         if ($projectId) {
             $owns = Project::query()->whereKey($projectId)->whereIn('customer_account_id', $accountIds)->exists();
-            abort_unless($owns, 422, 'Project is not linked to this customer.');
+            abort_unless($owns, 422, __('messages.project_is_not_linked_to_this_customer'));
         }
 
         $ticket = PrjTicket::query()->create([
@@ -113,7 +113,7 @@ class CustomerPortalController extends Controller
         $ticket = PrjTicket::query()->whereKey($id);
         $access->scopeTickets($ticket, $user);
         $ticket = $ticket->firstOrFail();
-        abort_if(in_array($ticket->status, ['closed'], true), 422, 'Ticket is closed.');
+        abort_if(in_array($ticket->status, ['closed'], true), 422, __('messages.ticket_is_closed'));
 
         $data = $request->validate(['body' => 'required|string|max:5000']);
         $reply = PrjTicketReply::query()->create([

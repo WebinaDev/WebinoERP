@@ -2,16 +2,16 @@
 
 namespace Modules\Marketing\Http\Controllers\Builder;
 
-use Modules\Marketing\Http\Controllers\Controller;
-use Modules\Marketing\Entities\BuilderTemplate;
-use Modules\Marketing\Services\Builder\BuilderDocumentRules;
-use Modules\Marketing\Services\Builder\ThemePresetLibrary;
-use Modules\Marketing\Services\Builder\ThemeTemplateKinds;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
+use Modules\Marketing\Entities\BuilderTemplate;
+use Modules\Marketing\Http\Controllers\Controller;
+use Modules\Marketing\Services\Builder\BuilderDocumentRules;
 use Modules\Marketing\Services\Builder\BuilderSite;
+use Modules\Marketing\Services\Builder\ThemePresetLibrary;
+use Modules\Marketing\Services\Builder\ThemeTemplateKinds;
 
 class ThemeBuilderController extends Controller
 {

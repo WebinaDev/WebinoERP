@@ -43,7 +43,7 @@ class MarketplaceGiteaClient
 
             return [
                 'ok' => false,
-                'message' => 'Gitea base URL and owner namespace are required.',
+                'message' => __('messages.gitea_base_url_and_owner_namespace_are_required'),
                 'user' => '',
                 'diag' => $diag,
                 'steps' => $steps,
@@ -61,7 +61,7 @@ class MarketplaceGiteaClient
 
             return [
                 'ok' => false,
-                'message' => 'API token is required.',
+                'message' => __('messages.api_token_is_required'),
                 'user' => '',
                 'diag' => $diag,
                 'steps' => $steps,
@@ -146,13 +146,13 @@ class MarketplaceGiteaClient
     {
         $name = Str::slug($name);
         if ($name === '') {
-            return ['ok' => false, 'message' => 'Invalid repository name.', 'code' => 400];
+            return ['ok' => false, 'message' => __('messages.invalid_repository_name'), 'code' => 400];
         }
 
         $config = $this->resolveConfig();
         $owner = (string) $config['org'];
         if ($owner === '' || $config['api_token'] === '') {
-            return ['ok' => false, 'message' => 'Gitea org and token required.', 'code' => 422];
+            return ['ok' => false, 'message' => __('messages.gitea_org_and_token_required'), 'code' => 422];
         }
 
         $body = [
@@ -232,7 +232,7 @@ class MarketplaceGiteaClient
 
         return is_array($last)
             ? $last
-            : ['ok' => false, 'message' => 'Could not download source archive from Gitea.'];
+            : ['ok' => false, 'message' => __('messages.could_not_download_source_archive_from_gitea')];
     }
 
     /**

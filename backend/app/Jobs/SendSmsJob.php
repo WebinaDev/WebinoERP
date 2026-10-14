@@ -26,7 +26,8 @@ class SendSmsJob implements ShouldQueue
         public string $message,
         public array $settings = []
     ) {
-        $this->onQueue('sms');
+        // Default queue: production workers run `queue:work redis` (default queue only),
+        // so jobs on a dedicated "sms" queue were never processed.
     }
 
     public function handle(): void

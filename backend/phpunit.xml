@@ -29,5 +29,8 @@
         <env name="QUEUE_CONNECTION" value="sync"/>
         <env name="SESSION_DRIVER" value="array"/>
         <env name="TELESCOPE_ENABLED" value="false"/>
+        <!-- never call the real ippanel/ModirPayamak API from tests -->
+        <env name="MODIRPAYAMAK_MOCK" value="true" force="true"/>
+        <env name="MODIRPAYAMAK_API_KEY" value="" force="true"/>
     </php>
 </phpunit>

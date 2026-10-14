@@ -30,7 +30,7 @@ class MarketplaceServiceProvider extends ServiceProvider
             ->group(function () {
                 Route::post('/start', [BasalamOAuthController::class, 'start']);
                 Route::post('/refresh', [BasalamOAuthController::class, 'refresh']);
-                Route::post('/disconnect', [BasalamOAuthController::class, 'disconnect']);
+                Route::post('/disconnect', [BasalamOAuthController::class, 'disconnect'])->middleware('webino.site');
             });
 
         $this->loadMigrationsFrom(module_path($this->moduleName, 'Database/Migrations'));

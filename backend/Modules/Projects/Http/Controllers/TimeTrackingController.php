@@ -42,7 +42,7 @@ class TimeTrackingController extends Controller
             ->first();
 
         if (! $entry) {
-            return response()->json(['data' => ['stopped' => false, 'message' => 'No active timer']], 404);
+            return response()->json(['data' => ['stopped' => false, 'message' => __('messages.no_active_timer')]], 404);
         }
 
         $duration = max(0, now()->diffInSeconds($entry->started_at ?? now()));

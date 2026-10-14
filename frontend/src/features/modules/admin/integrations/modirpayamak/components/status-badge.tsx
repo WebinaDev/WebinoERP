@@ -15,5 +15,7 @@ export function ModirPayamakStatusBadge({ status }: { status: string }) {
         ? 'secondary'
         : 'outline';
 
-  return <Badge variant={variant}>{status === '—' ? '—' : status}</Badge>;
+  const key = `modirpayamak.statuses.${normalized.replace(/[\s-]+/g, '_')}`;
+  const label = status === '—' || !status ? '—' : t.has(key) ? t(key) : status;
+  return <Badge variant={variant}>{label}</Badge>;
 }

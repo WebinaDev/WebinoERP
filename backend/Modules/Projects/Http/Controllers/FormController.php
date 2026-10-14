@@ -69,7 +69,7 @@ class FormController extends Controller
     public function submit(Request $request, string $slug): JsonResponse
     {
         if ($request->filled('website')) {
-            return response()->json(['message' => 'Invalid'], 422);
+            return response()->json(['message' => __('messages.invalid')], 422);
         }
 
         $form = PrjForm::query()->where('slug', $slug)->where('is_active', true)->firstOrFail();

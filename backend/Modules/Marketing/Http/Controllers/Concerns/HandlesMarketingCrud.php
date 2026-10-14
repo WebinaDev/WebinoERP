@@ -2,7 +2,6 @@
 
 namespace Modules\Marketing\Http\Controllers\Concerns;
 
-use Illuminate\Database\Eloquent\Model;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 

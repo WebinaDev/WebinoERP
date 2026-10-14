@@ -68,8 +68,16 @@ class IntegrationsServiceProvider extends ServiceProvider
             ->group(module_path($this->moduleName, 'Routes/webinocrm-hosting.php'));
 
         Route::prefix('api/webinocrm/v1')
-            ->middleware('api')
+            ->middleware(['api', 'webino.site'])
             ->group(module_path($this->moduleName, 'Routes/webinocrm-modirpayamak.php'));
+
+        // Per-site Edge auth enrollment (proof of domain control via callback).
+        Route::prefix('api/webinocrm/v1/site-auth')
+            ->middleware(['api', 'throttle:10,1'])
+            ->group(function () {
+                Route::post('/enroll', [\Modules\Core\Http\Controllers\SiteAuthController::class, 'enroll']);
+                Route::get('/status', [\Modules\Core\Http\Controllers\SiteAuthController::class, 'status']);
+            });
 
         Route::prefix('api/webinocrm/v1/payments')
             ->middleware(['api', 'throttle:60,1'])

@@ -191,7 +191,7 @@ class WebinocrmV1RestController extends Controller
                     ['quantity' => 0]
                 );
                 if ((float) $stock->quantity < $qty) {
-                    throw new \RuntimeException('Insufficient stock for product '.$pid);
+                    throw new \RuntimeException(__('messages.insufficient_stock_for_product').$pid);
                 }
                 $stock->update(['quantity' => (float) $stock->quantity - $qty]);
             }

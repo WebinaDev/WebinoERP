@@ -131,7 +131,7 @@ class AudienceController extends Controller
             'campaign_id' => 'nullable|integer',
         ]);
         if (! empty($data['campaign_id']) && DB::getSchemaBuilder()->hasTable('sales_campaigns')) {
-            abort_unless(DB::table('sales_campaigns')->where('id', $data['campaign_id'])->exists(), 422, 'Campaign not found');
+            abort_unless(DB::table('sales_campaigns')->where('id', $data['campaign_id'])->exists(), 422, __('messages.campaign_not_found'));
         }
         $data['created_by'] = $request->user()->id;
         $row = CrmMarketingList::query()->create($data);
@@ -151,7 +151,7 @@ class AudienceController extends Controller
             'campaign_id' => 'nullable|integer',
         ]);
         if (array_key_exists('campaign_id', $data) && $data['campaign_id'] && DB::getSchemaBuilder()->hasTable('sales_campaigns')) {
-            abort_unless(DB::table('sales_campaigns')->where('id', $data['campaign_id'])->exists(), 422, 'Campaign not found');
+            abort_unless(DB::table('sales_campaigns')->where('id', $data['campaign_id'])->exists(), 422, __('messages.campaign_not_found'));
         }
         $row->update($data);
 

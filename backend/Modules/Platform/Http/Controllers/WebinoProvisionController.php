@@ -68,7 +68,7 @@ class WebinoProvisionController extends Controller
                     'provision' => $row,
                     'queued' => true,
                 ],
-                'message' => 'Launch queued.',
+                'message' => __('messages.launch_queued'),
                 'meta' => null,
                 'errors' => null,
             ], 202);

@@ -34,7 +34,7 @@ class LeaveController extends Controller
 
         $leave = HrmLeaveRequest::create($data);
 
-        return response()->json(['data' => $leave->load('employee'), 'message' => 'Leave request created'], 201);
+        return response()->json(['data' => $leave->load('employee'), 'message' => __('messages.leave_request_created')], 201);
     }
 
     public function update(Request $request, HrmLeaveRequest $leave): JsonResponse
@@ -53,13 +53,13 @@ class LeaveController extends Controller
 
         $leave->update($data);
 
-        return response()->json(['data' => $leave->fresh('employee'), 'message' => 'Leave updated']);
+        return response()->json(['data' => $leave->fresh('employee'), 'message' => __('messages.leave_updated')]);
     }
 
     public function destroy(HrmLeaveRequest $leave): JsonResponse
     {
         $leave->delete();
 
-        return response()->noContent();
+        return response()->json(null, 204);
     }
 }

@@ -17,7 +17,7 @@ class NavigationController extends Controller
         $user = $request->user();
         if (! $user) {
             return response()->json([
-                'error' => ['code' => 'UNAUTHORIZED', 'message' => 'Not authenticated'],
+                'error' => ['code' => 'UNAUTHORIZED', 'message' => __('messages.not_authenticated')],
             ], 401);
         }
 

@@ -77,7 +77,7 @@ class CrmOutboundMessenger
         $to = $template->channel === 'sms'
             ? (string) ($context['mobile'] ?? '')
             : (string) ($context['email'] ?? '');
-        abort_if($to === '', 422, 'Recipient address is missing');
+        abort_if($to === '', 422, __('messages.recipient_address_is_missing'));
 
         return $this->send(
             $template->channel,

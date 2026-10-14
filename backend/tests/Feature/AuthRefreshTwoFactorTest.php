@@ -4,16 +4,16 @@ namespace Tests\Feature;
 
 use App\Models\User;
 use Laravel\Sanctum\Sanctum;
+use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
 
 class AuthRefreshTwoFactorTest extends TestCase
 {
+    use RefreshDatabase;
+
     public function test_refresh_preserves_two_factor_pending_ability(): void
     {
-        $user = User::factory()->create([
-            'two_factor_secret' => encrypt('secret'),
-            'two_factor_confirmed_at' => now(),
-        ]);
+        $user = User::factory()->create();
 
         $token = $user->createToken('spa', ['2fa-pending']);
         Sanctum::actingAs($user, ['2fa-pending'], 'sanctum');

@@ -60,5 +60,5 @@ Route::post('basalam/oauth/refresh', [BasalamOAuthController::class, 'refresh'])
     ->middleware('throttle:120,1')
     ->withoutMiddleware(['auth:sanctum', 'module:marketplace', 'module.permission:marketplace']);
 Route::post('basalam/oauth/disconnect', [BasalamOAuthController::class, 'disconnect'])
-    ->middleware('throttle:120,1')
+    ->middleware(['throttle:120,1', 'webino.site'])
     ->withoutMiddleware(['auth:sanctum', 'module:marketplace', 'module.permission:marketplace']);

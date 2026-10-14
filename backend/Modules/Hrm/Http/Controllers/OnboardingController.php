@@ -53,7 +53,7 @@ class OnboardingController extends Controller
             ]);
         }
 
-        return response()->json(['data' => $template->load('items'), 'message' => 'Template saved'], 201);
+        return response()->json(['data' => $template->load('items'), 'message' => __('messages.template_saved')], 201);
     }
 
     public function index(Request $request): JsonResponse
@@ -77,7 +77,7 @@ class OnboardingController extends Controller
         $employee = HrmEmployee::query()->findOrFail($data['employee_id']);
         $row = $service->start($employee, (int) $data['template_id']);
 
-        return response()->json(['data' => $row, 'message' => 'Onboarding started'], 201);
+        return response()->json(['data' => $row, 'message' => __('messages.onboarding_started')], 201);
     }
 
     public function completeTask(HrmOnboardingTask $onboardingTask, HrmOnboardingService $service): JsonResponse

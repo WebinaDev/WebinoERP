@@ -80,6 +80,7 @@ Route::middleware(['auth:sanctum', 'module.permission:core'])->group(function ()
     Route::get('/settings', [SettingsParityController::class, 'show']);
     Route::post('/settings', [SettingsParityController::class, 'saveUiPreferences']);
     Route::put('/settings', [SettingsParityController::class, 'update']);
+    Route::patch('/settings', [SettingsParityController::class, 'update']);
     Route::put('/settings/white-label', [SettingsParityController::class, 'updateWhiteLabel']);
     Route::put('/settings/auth', [SettingsParityController::class, 'updateAuth']);
 

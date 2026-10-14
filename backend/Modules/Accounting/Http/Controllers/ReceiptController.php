@@ -26,12 +26,12 @@ class ReceiptController extends Controller
     {
         $r = AccReceiptVoucher::query()->findOrFail($id);
         if ($r->status === 'posted') {
-            return response()->json(['message' => 'Already posted'], 422);
+            return response()->json(['message' => __('messages.already_posted')], 422);
         }
         $cash = AccChartAccount::query()->where('code', '111')->where('is_postable', true)->first();
         $ar = AccChartAccount::query()->where('code', '113')->where('is_postable', true)->first();
         if (! $cash || ! $ar) {
-            return response()->json(['message' => 'Chart accounts 111 and 113 required'], 422);
+            return response()->json(['message' => __('messages.chart_accounts_111_and_113_required')], 422);
         }
         $amt = (float) $r->amount;
         DB::transaction(function () use ($r, $cash, $ar, $amt, $request) {

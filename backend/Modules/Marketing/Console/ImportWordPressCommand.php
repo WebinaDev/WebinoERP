@@ -4,12 +4,9 @@ namespace Modules\Marketing\Console;
 
 use Illuminate\Console\Command;
 use Illuminate\Support\Facades\Http;
-use Illuminate\Support\Str;
 use Modules\Marketing\Entities\MarketingBlogPost;
 use Modules\Marketing\Entities\MarketingMagazinePost;
-use Modules\Marketing\Entities\MarketingMedia;
 use Modules\Marketing\Entities\MarketingPage;
-use Modules\Marketing\Entities\MarketingSiteSetting;
 
 class ImportWordPressCommand extends Command
 {

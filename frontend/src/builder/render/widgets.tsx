@@ -34,6 +34,27 @@ import { fillDocumentTokens } from "../theme/tokens"
 import { propBool, propNum, propStr, parseLinks } from "../props"
 import type { BuilderDocument, EditorApi, WidgetNode } from "../types"
 import { BuilderRuntimeProvider, useBuilderGlobals, useBuilderRuntime } from "./runtime"
+import { FormWidget } from "./form-widget"
+import { RahnEstimateWidget } from "./rahn-widget"
+import {
+  AccordionWidget,
+  AnnouncementWidget,
+  BannerGridWidget,
+  BlogPostsWidget,
+  CounterWidget,
+  FeedWidget,
+  IconBoxWidget,
+  IconListWidget,
+  ImageCarouselWidget,
+  ImageGalleryWidget,
+  MapWidget,
+  PricingWidget,
+  ShareButtonsWidget,
+  SocialIconsWidget,
+  TabsWidget,
+  TestimonialsWidget,
+} from "./extra-widgets"
+import { BadgesWidget, ComparisonTableWidget, CtaBannerWidget, IconCardsWidget, SectionHeadingWidget, StepsWidget } from "./content-widgets"
 import { CorporateWidget } from "@/themes/webina-corporate-v1/builder/CorporateWidget"
 import { isCorporateType } from "@/themes/webina-corporate-v1/builder/blocks"
 
@@ -173,6 +194,52 @@ export function WidgetBody({ widget, editor }: { widget: WidgetNode; editor?: Ed
       return <StoreHeader widget={widget} siteName={runtime.siteName} logoUrl={runtime.logoUrl} />
     case "store-footer":
       return <StoreFooter widget={widget} siteName={runtime.siteName} />
+    case "banner-grid":
+      return <BannerGridWidget widget={widget} />
+    case "tabs":
+      return <TabsWidget widget={widget} />
+    case "accordion":
+      return <AccordionWidget widget={widget} />
+    case "icon-box":
+      return <IconBoxWidget widget={widget} />
+    case "icon-list":
+      return <IconListWidget widget={widget} />
+    case "testimonials":
+      return <TestimonialsWidget widget={widget} />
+    case "image-gallery":
+      return <ImageGalleryWidget widget={widget} />
+    case "image-carousel":
+      return <ImageCarouselWidget widget={widget} />
+    case "announcement-bar":
+      return <AnnouncementWidget widget={widget} />
+    case "map":
+      return <MapWidget widget={widget} />
+    case "counter":
+      return <CounterWidget widget={widget} />
+    case "social-icons":
+      return <SocialIconsWidget widget={widget} />
+    case "share-buttons":
+      return <ShareButtonsWidget widget={widget} />
+    case "pricing-table":
+      return <PricingWidget widget={widget} />
+    case "blog-posts":
+      return <BlogPostsWidget widget={widget} />
+    case "feed":
+      return <FeedWidget widget={widget} />
+    case "section-heading":
+      return <SectionHeadingWidget widget={widget} />
+    case "steps":
+      return <StepsWidget widget={widget} />
+    case "icon-cards":
+      return <IconCardsWidget widget={widget} />
+    case "badges":
+      return <BadgesWidget widget={widget} />
+    case "cta-banner":
+      return <CtaBannerWidget widget={widget} />
+    case "rahn-estimate":
+      return <RahnEstimateWidget widget={widget} editing={editing} />
+    case "comparison-table":
+      return <ComparisonTableWidget widget={widget} />
     case "container":
       return null
     default:
@@ -318,45 +385,6 @@ function MenuWidget({ widget }: { widget: WidgetNode }) {
         </Link>
       ))}
     </nav>
-  )
-}
-
-function FormWidget({ widget }: { widget: WidgetNode }) {
-  const [done, setDone] = useState(false)
-  const [error, setError] = useState("")
-  if (done) return <p className="wb-type-body rounded-2xl bg-[#F5F8FB] p-4 text-[#0C2D63]">پیام شما ثبت شد. به‌زودی پاسخ می‌دهیم.</p>
-  return (
-    <form
-      className="grid gap-3 rounded-3xl border border-[#e6eef6] bg-white p-4"
-      onSubmit={(event) => {
-        event.preventDefault()
-        const data = new FormData(event.currentTarget)
-        if (!String(data.get("name") ?? "").trim() || !String(data.get("phone") ?? "").trim() || !String(data.get("message") ?? "").trim()) {
-          setError("همه فیلدها را کامل کنید.")
-          return
-        }
-        setError("")
-        setDone(true)
-      }}
-    >
-      <h3 className="wb-type-h3">{propStr(widget.props, "title", "فرم")}</h3>
-      <label className="grid gap-1">
-        <span className="wb-label">نام</span>
-        <input required name="name" className="wb-field" />
-      </label>
-      <label className="grid gap-1">
-        <span className="wb-label">موبایل</span>
-        <input required name="phone" className="wb-field" />
-      </label>
-      <label className="grid gap-1">
-        <span className="wb-label">پیام</span>
-        <textarea required name="message" className="wb-field min-h-24" />
-      </label>
-      {error ? <p className="wb-form-error">{error}</p> : null}
-      <button type="submit" className="wb-btn wb-btn-primary">
-        {propStr(widget.props, "submit", "ارسال")}
-      </button>
-    </form>
   )
 }
 

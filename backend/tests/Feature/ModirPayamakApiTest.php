@@ -27,7 +27,7 @@ class ModirPayamakApiTest extends TestCase
 
     public function test_packages_and_topup_init_with_mock_edge(): void
     {
-        putenv('MODIRPAYAMAK_MOCK=true');
+        config(['integrations.modirpayamak.mock' => true]);
         $user = $this->actingAsRole('system_manager');
         Sanctum::actingAs($user);
 
@@ -44,7 +44,7 @@ class ModirPayamakApiTest extends TestCase
 
     public function test_send_validation_requires_recipients(): void
     {
-        putenv('MODIRPAYAMAK_MOCK=true');
+        config(['integrations.modirpayamak.mock' => true]);
         $user = $this->actingAsRole('system_manager');
         Sanctum::actingAs($user);
 
@@ -90,7 +90,7 @@ class ModirPayamakApiTest extends TestCase
 
     public function test_admin_edge_lists_do_not_require_domain(): void
     {
-        putenv('MODIRPAYAMAK_MOCK=true');
+        config(['integrations.modirpayamak.mock' => true]);
         $user = $this->actingAsRole('system_manager');
         Sanctum::actingAs($user);
 
@@ -111,7 +111,7 @@ class ModirPayamakApiTest extends TestCase
 
     public function test_admin_proxy_tickets_users_drafts_with_mock(): void
     {
-        putenv('MODIRPAYAMAK_MOCK=true');
+        config(['integrations.modirpayamak.mock' => true]);
         $user = $this->actingAsRole('system_manager');
         Sanctum::actingAs($user);
 
@@ -154,7 +154,7 @@ class ModirPayamakApiTest extends TestCase
 
     public function test_admin_packages_crud_with_crm_field_aliases(): void
     {
-        putenv('MODIRPAYAMAK_MOCK=true');
+        config(['integrations.modirpayamak.mock' => true]);
         $user = $this->actingAsRole('system_manager');
         Sanctum::actingAs($user);
 
@@ -187,7 +187,7 @@ class ModirPayamakApiTest extends TestCase
 
     public function test_admin_tariffs_and_secretaries_crud(): void
     {
-        putenv('MODIRPAYAMAK_MOCK=true');
+        config(['integrations.modirpayamak.mock' => true]);
         $user = $this->actingAsRole('system_manager');
         Sanctum::actingAs($user);
 
@@ -228,7 +228,7 @@ class ModirPayamakApiTest extends TestCase
 
     public function test_admin_numbers_attach_detach_and_pattern_registry(): void
     {
-        putenv('MODIRPAYAMAK_MOCK=true');
+        config(['integrations.modirpayamak.mock' => true]);
         $user = $this->actingAsRole('system_manager');
         Sanctum::actingAs($user);
 
@@ -270,7 +270,7 @@ class ModirPayamakApiTest extends TestCase
 
     public function test_admin_balance_ledger_and_local_messages(): void
     {
-        putenv('MODIRPAYAMAK_MOCK=true');
+        config(['integrations.modirpayamak.mock' => true]);
         $user = $this->actingAsRole('system_manager');
         Sanctum::actingAs($user);
 

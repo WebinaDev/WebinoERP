@@ -26,6 +26,7 @@ class CoreServiceProvider extends ServiceProvider
     {
         if ($this->app->runningInConsole()) {
             $this->commands([
+                \Modules\Core\Console\SiteAuthCommand::class,
                 \Modules\Core\Console\SendScheduledReportsCommand::class,
             ]);
         }

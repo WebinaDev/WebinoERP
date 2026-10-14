@@ -68,7 +68,7 @@ class AccountController extends Controller
     public function store(StoreAccountRequest $request): JsonResponse
     {
         $payload = $request->validated() + ['created_by' => $request->user()?->id];
-        $payload['type'] = $payload['type'] ?: 'customer';
+        $payload['type'] = ($payload['type'] ?? null) ?: 'customer';
 
         $account = CrmAccount::query()->create($payload);
 
@@ -94,7 +94,7 @@ class AccountController extends Controller
     {
         CrmAccount::query()->whereKey($id)->delete();
 
-        return response()->noContent();
+        return response()->json(null, 204);
     }
 
     public function bulkDelete(BulkActionRequest $request): JsonResponse

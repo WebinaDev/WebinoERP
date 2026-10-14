@@ -63,7 +63,7 @@ class ModirPayamakAdminController extends Controller
             'query' => 'nullable|array',
         ]);
         if (! $this->edge->isConfigured()) {
-            abort(503, 'ModirPayamak is not configured');
+            abort(503, __('messages.modirpayamak_is_not_configured'));
         }
         $result = $this->edge->request($data['method'], $data['path'], $data['body'] ?? [], $data['query'] ?? []);
 
@@ -131,7 +131,7 @@ class ModirPayamakAdminController extends Controller
             'data' => [
                 'account' => $this->manager->formatAccountPublic($account),
             ],
-            'message' => 'Balance updated',
+            'message' => __('messages.balance_updated'),
         ]);
     }
 
@@ -220,7 +220,7 @@ class ModirPayamakAdminController extends Controller
 
         return response()->json([
             'data' => ['id' => $package->id, 'package' => $this->manager->formatPackage($package->fresh())],
-            'message' => 'Package saved',
+            'message' => __('messages.package_saved'),
         ], empty($data['id']) ? 201 : 200);
     }
 
@@ -228,7 +228,7 @@ class ModirPayamakAdminController extends Controller
     {
         $package->delete();
 
-        return response()->json(['data' => ['message' => 'Deleted']]);
+        return response()->json(['data' => ['message' => __('messages.deleted')]]);
     }
 
     public function tariffsIndex(): JsonResponse
@@ -280,7 +280,7 @@ class ModirPayamakAdminController extends Controller
             $tariff = ModirPayamakTariff::query()->create($payload);
         }
 
-        return response()->json(['data' => ['id' => $tariff->id], 'message' => 'Tariff saved']);
+        return response()->json(['data' => ['id' => $tariff->id], 'message' => __('messages.tariff_saved')]);
     }
 
     public function tariffsDestroy(int $id): JsonResponse
@@ -288,14 +288,14 @@ class ModirPayamakAdminController extends Controller
         $tariff = ModirPayamakTariff::query()->findOrFail($id);
         $tariff->delete();
 
-        return response()->json(['data' => ['message' => 'Deleted']]);
+        return response()->json(['data' => ['message' => __('messages.deleted')]]);
     }
 
     public function secretariesIndex(Request $request): JsonResponse
     {
         $domain = $this->manager->normalizeDomain((string) $request->query('domain', ''));
         if ($domain === '') {
-            return response()->json(['message' => 'Domain is required'], 422);
+            return response()->json(['message' => __('messages.domain_is_required')], 422);
         }
 
         $rows = ModirPayamakSecretary::query()
@@ -348,7 +348,7 @@ class ModirPayamakAdminController extends Controller
             $rule = ModirPayamakSecretary::query()->create($payload);
         }
 
-        return response()->json(['data' => ['ok' => true, 'rule' => $rule], 'message' => 'Saved']);
+        return response()->json(['data' => ['ok' => true, 'rule' => $rule], 'message' => __('messages.saved')]);
     }
 
     public function secretariesDestroy(Request $request): JsonResponse
@@ -364,7 +364,7 @@ class ModirPayamakAdminController extends Controller
             ->delete();
 
         if (! $deleted) {
-            return response()->json(['message' => 'Secretary rule not found'], 404);
+            return response()->json(['message' => __('messages.secretary_rule_not_found')], 404);
         }
 
         return response()->json(['data' => ['ok' => true, 'id' => (int) $data['id']]]);
@@ -437,7 +437,7 @@ class ModirPayamakAdminController extends Controller
         ]);
 
         if (! $this->edge->isConfigured()) {
-            abort(503, 'ModirPayamak is not configured');
+            abort(503, __('messages.modirpayamak_is_not_configured'));
         }
 
         $sendingType = $data['sending_type'] ?? (! empty($data['code']) ? 'pattern' : 'webservice');
@@ -447,7 +447,7 @@ class ModirPayamakAdminController extends Controller
         if ($sendingType === 'pattern') {
             $code = (string) ($data['code'] ?? '');
             if ($code === '') {
-                return response()->json(['message' => 'Pattern code is required'], 422);
+                return response()->json(['message' => __('messages.pattern_code_is_required')], 422);
             }
             $params = is_array($data['params'] ?? null) ? $data['params'] : [];
             $result = $this->edge->sendPattern($from, $code, $recipients, $params);
@@ -455,7 +455,7 @@ class ModirPayamakAdminController extends Controller
         } else {
             $message = (string) ($data['message'] ?? '');
             if ($message === '') {
-                return response()->json(['message' => 'Message is required'], 422);
+                return response()->json(['message' => __('messages.message_is_required')], 422);
             }
             $result = $this->edge->sendWebservice($from, $message, $recipients);
             $messageBody = $message;
@@ -471,7 +471,7 @@ class ModirPayamakAdminController extends Controller
         $cost = count($recipients) * $this->manager->pricePerUnit();
         if ($debit) {
             if ($domain === '') {
-                return response()->json(['message' => 'Domain is required'], 422);
+                return response()->json(['message' => __('messages.domain_is_required')], 422);
             }
             $account = $this->manager->debit($domain, $cost, 'send');
         }
@@ -515,12 +515,12 @@ class ModirPayamakAdminController extends Controller
 
         return response()->json([
             'data' => [
-                'message' => 'Number attached',
+                'message' => __('messages.number_attached'),
                 'number' => $number,
                 'attachments' => $this->manager->getNumberAttachments($data['number']),
                 'account' => $this->manager->formatAccountPublic($this->manager->getOrCreateAccount($domain)),
             ],
-            'message' => 'Number attached',
+            'message' => __('messages.number_attached'),
         ]);
     }
 
@@ -536,10 +536,10 @@ class ModirPayamakAdminController extends Controller
 
         return response()->json([
             'data' => [
-                'message' => 'Number detached',
+                'message' => __('messages.number_detached'),
                 'account' => $this->manager->formatAccountPublic($this->manager->getOrCreateAccount($domain)),
             ],
-            'message' => 'Number detached',
+            'message' => __('messages.number_detached'),
         ]);
     }
 
@@ -571,11 +571,11 @@ class ModirPayamakAdminController extends Controller
 
         return response()->json([
             'data' => [
-                'message' => 'Pattern attached to shop',
+                'message' => __('messages.pattern_attached_to_shop'),
                 'result' => $result,
                 'registry' => $this->manager->listPatternRegistry($data['domain']),
             ],
-            'message' => 'Pattern attached to shop',
+            'message' => __('messages.pattern_attached_to_shop'),
         ]);
     }
 
@@ -590,10 +590,10 @@ class ModirPayamakAdminController extends Controller
 
         return response()->json([
             'data' => [
-                'message' => 'Pattern detached',
+                'message' => __('messages.pattern_detached'),
                 'registry' => $registry,
             ],
-            'message' => 'Pattern detached',
+            'message' => __('messages.pattern_detached'),
         ]);
     }
 
@@ -612,7 +612,7 @@ class ModirPayamakAdminController extends Controller
     public function reportsOutbox(Request $request): JsonResponse
     {
         if (! $this->edge->isConfigured()) {
-            abort(503, 'ModirPayamak is not configured');
+            abort(503, __('messages.modirpayamak_is_not_configured'));
         }
         try {
             $result = $this->edge->reportOutbox(
@@ -630,7 +630,7 @@ class ModirPayamakAdminController extends Controller
     public function reportsInbox(Request $request): JsonResponse
     {
         if (! $this->edge->isConfigured()) {
-            abort(503, 'ModirPayamak is not configured');
+            abort(503, __('messages.modirpayamak_is_not_configured'));
         }
         try {
             $result = $this->edge->reportInbox(
@@ -648,7 +648,7 @@ class ModirPayamakAdminController extends Controller
     public function reportOutboxDetail(string $id): JsonResponse
     {
         if (! $this->edge->isConfigured()) {
-            abort(503, 'ModirPayamak is not configured');
+            abort(503, __('messages.modirpayamak_is_not_configured'));
         }
         $result = $this->edge->reportOutboxById($id);
 
@@ -658,7 +658,7 @@ class ModirPayamakAdminController extends Controller
     public function patterns(Request $request): JsonResponse
     {
         if (! $this->edge->isConfigured()) {
-            abort(503, 'ModirPayamak is not configured');
+            abort(503, __('messages.modirpayamak_is_not_configured'));
         }
         try {
             $result = $this->edge->listPatterns($request->query());
@@ -672,7 +672,7 @@ class ModirPayamakAdminController extends Controller
     public function numbers(Request $request): JsonResponse
     {
         if (! $this->edge->isConfigured()) {
-            abort(503, 'ModirPayamak is not configured');
+            abort(503, __('messages.modirpayamak_is_not_configured'));
         }
         $result = $this->edge->listNumbers($request->query());
 
@@ -682,7 +682,7 @@ class ModirPayamakAdminController extends Controller
     public function phonebooks(Request $request): JsonResponse
     {
         if (! $this->edge->isConfigured()) {
-            abort(503, 'ModirPayamak is not configured');
+            abort(503, __('messages.modirpayamak_is_not_configured'));
         }
         if ($request->isMethod('post')) {
             $payload = $request->validate(['name' => 'required|string|max:150', 'title' => 'nullable|string|max:150']);
@@ -701,7 +701,7 @@ class ModirPayamakAdminController extends Controller
     public function phonebookContacts(Request $request, int $id): JsonResponse
     {
         if (! $this->edge->isConfigured()) {
-            abort(503, 'ModirPayamak is not configured');
+            abort(503, __('messages.modirpayamak_is_not_configured'));
         }
         if ($request->isMethod('post')) {
             $payload = $request->validate([
@@ -755,11 +755,11 @@ class ModirPayamakAdminController extends Controller
     {
         $domain = $this->manager->normalizeDomain((string) ($request->input('domain') ?? $request->query('domain', '')));
         if ($domain === '') {
-            return response()->json(['message' => 'Domain is required'], 422);
+            return response()->json(['message' => __('messages.domain_is_required')], 422);
         }
-        if (! filter_var(env('MODIRPAYAMAK_MOCK', false), FILTER_VALIDATE_BOOLEAN) && ! $this->edge->isConfigured()) {
+        if (! (bool) config('integrations.modirpayamak.mock', false) && ! $this->edge->isConfigured()) {
             return response()->json([
-                'message' => 'ModirPayamak Edge is not configured; secretaries cannot process inbox.',
+                'message' => __('messages.modirpayamak_edge_is_not_configured_secretaries_cannot_proce'),
                 'unavailable' => true,
                 'processed' => 0,
                 'matched' => 0,
@@ -883,7 +883,7 @@ class ModirPayamakAdminController extends Controller
     {
         $domain = $this->manager->normalizeDomain((string) ($request->input('domain') ?? $request->query('domain', '')));
         if ($domain === '') {
-            return response()->json(['message' => 'Domain is required'], 422);
+            return response()->json(['message' => __('messages.domain_is_required')], 422);
         }
 
         $eventKey = trim((string) $request->input('event_key', ''));
@@ -899,7 +899,7 @@ class ModirPayamakAdminController extends Controller
         if (! in_array($eventKey, ModirPayamakManager::ORDER_EVENTS, true)
             && ! in_array($eventKey, ModirPayamakManager::SITE_EVENTS, true)) {
             return response()->json([
-                'message' => 'Unknown event_key: '.$eventKey,
+                'message' => __('messages.unknown_event_key').$eventKey,
                 'ok' => false,
                 'event_key' => $eventKey,
                 'results' => [],
@@ -907,9 +907,9 @@ class ModirPayamakAdminController extends Controller
             ], 422);
         }
 
-        if (! filter_var(env('MODIRPAYAMAK_MOCK', false), FILTER_VALIDATE_BOOLEAN) && ! $this->edge->isConfigured()) {
+        if (! (bool) config('integrations.modirpayamak.mock', false) && ! $this->edge->isConfigured()) {
             return response()->json([
-                'message' => 'ModirPayamak Edge is not configured; order notify unavailable.',
+                'message' => __('messages.modirpayamak_edge_is_not_configured_order_notify_unavailable'),
                 'unavailable' => true,
                 'ok' => false,
                 'event_key' => $eventKey,
@@ -933,7 +933,7 @@ class ModirPayamakAdminController extends Controller
                 'event_key' => $eventKey,
                 'results' => [],
                 'reason' => 'pattern_not_bound',
-                'message' => 'No pattern bound for event '.$eventKey,
+                'message' => __('messages.no_pattern_bound_for_event').$eventKey,
             ], 422);
         }
 

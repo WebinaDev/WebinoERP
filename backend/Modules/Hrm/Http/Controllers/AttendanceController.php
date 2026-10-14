@@ -38,7 +38,7 @@ class AttendanceController extends Controller
             $data
         );
 
-        return response()->json(['data' => $record->load('employee'), 'message' => 'Attendance saved'], 201);
+        return response()->json(['data' => $record->load('employee'), 'message' => __('messages.attendance_saved')], 201);
     }
 
     public function update(Request $request, HrmAttendanceRecord $attendance): JsonResponse
@@ -52,13 +52,13 @@ class AttendanceController extends Controller
 
         $attendance->update($data);
 
-        return response()->json(['data' => $attendance->fresh('employee'), 'message' => 'Attendance updated']);
+        return response()->json(['data' => $attendance->fresh('employee'), 'message' => __('messages.attendance_updated')]);
     }
 
     public function destroy(HrmAttendanceRecord $attendance): JsonResponse
     {
         $attendance->delete();
 
-        return response()->noContent();
+        return response()->json(null, 204);
     }
 }

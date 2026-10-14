@@ -18,7 +18,7 @@ class WebinocrmPortainerController extends Controller
 
         $client = PortainerApiClient::fromCurrentSettings();
         if ($client === null) {
-            return response()->json(['message' => 'Portainer URL or API token not configured.'], 503);
+            return response()->json(['message' => __('messages.portainer_url_or_api_token_not_configured')], 503);
         }
 
         try {
@@ -43,7 +43,7 @@ class WebinocrmPortainerController extends Controller
     {
         $client = PortainerApiClient::fromCurrentSettings();
         if ($client === null) {
-            return response()->json(['message' => 'Portainer URL or API token not configured.'], 503);
+            return response()->json(['message' => __('messages.portainer_url_or_api_token_not_configured')], 503);
         }
 
         try {
@@ -67,7 +67,7 @@ class WebinocrmPortainerController extends Controller
     public function stackAction(Request $request, int $stackId, string $action): JsonResponse
     {
         if (! in_array($action, ['start', 'stop'], true)) {
-            return response()->json(['message' => 'Invalid action'], 422);
+            return response()->json(['message' => __('messages.invalid_action')], 422);
         }
 
         $data = $request->validate([
@@ -76,7 +76,7 @@ class WebinocrmPortainerController extends Controller
 
         $settings = CoreHostingSetting::current();
         if (! filled($settings->portainer_url) || ! filled($settings->portainer_api_token)) {
-            return response()->json(['message' => 'Portainer not configured.'], 503);
+            return response()->json(['message' => __('messages.portainer_not_configured')], 503);
         }
 
         PortainerStackActionJob::dispatch($request->user()?->id, $stackId, (int) $data['endpoint_id'], $action);

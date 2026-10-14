@@ -42,7 +42,7 @@ class QualityInspectionController extends Controller
             $data['check_items'] ?? [],
         );
 
-        return response()->json(['data' => $inspection, 'message' => 'Created'], 201);
+        return response()->json(['data' => $inspection, 'message' => __('messages.created')], 201);
     }
 
     public function show(MfgQualityInspection $inspection): JsonResponse
@@ -53,7 +53,7 @@ class QualityInspectionController extends Controller
     public function update(Request $request, MfgQualityInspection $inspection): JsonResponse
     {
         if ($inspection->status === 'completed') {
-            return response()->json(['message' => 'Completed inspections cannot be edited'], 422);
+            return response()->json(['message' => __('messages.completed_inspections_cannot_be_edited')], 422);
         }
 
         $data = $request->validate([

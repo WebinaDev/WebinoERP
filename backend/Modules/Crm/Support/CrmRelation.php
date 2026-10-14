@@ -20,7 +20,7 @@ class CrmRelation
     public static function classFor(string $type): string
     {
         $key = strtolower($type);
-        abort_unless(isset(self::MAP[$key]), 422, 'Unknown related type');
+        abort_unless(isset(self::MAP[$key]), 422, __('messages.unknown_related_type'));
 
         return self::MAP[$key];
     }

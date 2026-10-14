@@ -25,7 +25,7 @@ class GiteaOrgGitProvider extends AbstractOrgGitProvider
     {
         $res = $this->http()->get($this->apiBase().'/user');
         if (! $res->successful()) {
-            return ['ok' => false, 'message' => 'Gitea auth failed: HTTP '.$res->status()];
+            return ['ok' => false, 'message' => __('messages.gitea_auth_failed_http').$res->status()];
         }
 
         return ['ok' => true, 'user' => $res->json('login')];

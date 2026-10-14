@@ -43,7 +43,7 @@ class CatalogController extends Controller
         ]);
         $item = SalesCatalogItem::create($data);
 
-        return response()->json(['data' => $item, 'message' => 'Created'], 201);
+        return response()->json(['data' => $item, 'message' => __('messages.created')], 201);
     }
 
     public function show(SalesCatalogItem $catalog): JsonResponse
@@ -64,13 +64,13 @@ class CatalogController extends Controller
         ]);
         $catalog->update($data);
 
-        return response()->json(['data' => $catalog->fresh(), 'message' => 'Updated']);
+        return response()->json(['data' => $catalog->fresh(), 'message' => __('messages.updated')]);
     }
 
     public function destroy(SalesCatalogItem $catalog): JsonResponse
     {
         $catalog->delete();
 
-        return response()->noContent();
+        return response()->json(null, 204);
     }
 }

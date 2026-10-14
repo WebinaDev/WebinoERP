@@ -6,6 +6,18 @@ return [
         'default' => env('SMS_PROVIDER', 'stub'),
     ],
 
+    // Read via config() — env() returns null at runtime once `php artisan config:cache`
+    // has run (update.sh does this), which silently disabled ModirPayamak SMS.
+    'modirpayamak' => [
+        'api_key' => env('MODIRPAYAMAK_API_KEY', ''),
+        'mock' => filter_var(env('MODIRPAYAMAK_MOCK', false), FILTER_VALIDATE_BOOLEAN),
+        // Refuse the WP-facing SMS edge for domains without a CoreLicense (off until every SMS domain is licensed).
+        'require_license' => filter_var(env('MODIRPAYAMAK_REQUIRE_LICENSE', false), FILTER_VALIDATE_BOOLEAN),
+        'enabled' => env('MODIRPAYAMAK_ENABLED'),
+        'timeout' => (int) env('MODIRPAYAMAK_TIMEOUT', 15),
+        'connect_timeout' => (int) env('MODIRPAYAMAK_CONNECT_TIMEOUT', 5),
+    ],
+
     'payment' => [
         'default' => env('PAYMENT_PROVIDER', 'stub'),
     ],
@@ -75,4 +87,11 @@ return [
         'secret' => env('WEBINOCRM_ELEMENTOR_SECRET'),
     ],
 
+
+    // Per-site HMAC auth for WP-facing Edge routes (SMS edge, Basalam disconnect, license calls).
+    // off | grace (enrolled domains must sign, others pass) | enforce (everyone must sign).
+    'site_auth' => [
+        'mode' => env('WEBINO_SITE_AUTH_MODE', 'grace'),
+        'allow_http' => filter_var(env('WEBINO_SITE_AUTH_ALLOW_HTTP', false), FILTER_VALIDATE_BOOLEAN),
+    ],
 ];

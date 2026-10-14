@@ -143,7 +143,7 @@ class CrmParityController extends Controller
         $request->validate(['file' => 'required|file|mimes:csv,txt|max:5120']);
         $defaultStatus = CrmStatus::query()->orderBy('sort_order')->value('id');
         if (! $defaultStatus) {
-            return response()->json(['message' => 'No CRM status configured'], 422);
+            return response()->json(['message' => __('messages.no_crm_status_configured')], 422);
         }
 
         $path = $request->file('file')->getRealPath();
@@ -370,7 +370,7 @@ class CrmParityController extends Controller
     {
         $c = CrmConsultation::query()->findOrFail($id);
         if ($c->converted_project_id) {
-            return response()->json(['message' => 'Consultation already converted'], 422);
+            return response()->json(['message' => __('messages.consultation_already_converted')], 422);
         }
         $project = Project::query()->create([
             'name' => 'From consultation: '.$c->title,

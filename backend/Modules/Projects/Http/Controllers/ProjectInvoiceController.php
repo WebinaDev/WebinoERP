@@ -110,7 +110,7 @@ class ProjectInvoiceController extends Controller
                 'data' => [
                     'invoice_id' => $id,
                     'url' => null,
-                    'message' => 'PDF unavailable: install barryvdh/laravel-dompdf and PHP ext-dom.',
+                    'message' => __('messages.pdf_unavailable_install_barryvdh_laravel_dompdf_and_php_ext_2'),
                 ],
             ]);
         }
@@ -151,7 +151,7 @@ class ProjectInvoiceController extends Controller
         } catch (\Throwable $e) {
             report($e);
 
-            return response()->json(['message' => 'Mail failed: '.$e->getMessage()], 422);
+            return response()->json(['message' => __('messages.mail_failed').$e->getMessage()], 422);
         }
     }
 

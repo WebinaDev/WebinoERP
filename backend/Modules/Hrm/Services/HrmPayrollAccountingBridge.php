@@ -26,7 +26,7 @@ class HrmPayrollAccountingBridge
             || ! Schema::hasTable('acc_journal_entries')
             || ! Schema::hasTable('acc_journal_lines')
             || ! Schema::hasTable('acc_chart_accounts')) {
-            return ['ok' => false, 'journal_entry_id' => null, 'message' => 'Accounting module/tables unavailable'];
+            return ['ok' => false, 'journal_entry_id' => null, 'message' => __('messages.accounting_module_tables_unavailable')];
         }
         if ($run->journal_entry_id) {
             return ['ok' => true, 'journal_entry_id' => (int) $run->journal_entry_id, 'message' => 'already_linked'];

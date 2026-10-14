@@ -15,7 +15,7 @@ class MaintenanceParityController extends Controller
     public function optimize(Request $request): JsonResponse
     {
         if (! $request->user()->hasRole('system_manager')) {
-            return response()->json(['message' => 'Forbidden'], 403);
+            return response()->json(['message' => __('messages.forbidden')], 403);
         }
 
         App::terminating(function () {
@@ -34,7 +34,7 @@ class MaintenanceParityController extends Controller
     public function cacheClear(Request $request): JsonResponse
     {
         if (! $request->user()->hasRole('system_manager')) {
-            return response()->json(['message' => 'Forbidden'], 403);
+            return response()->json(['message' => __('messages.forbidden')], 403);
         }
         $data = $request->validate(['type' => 'required|string|in:all,entity,key']);
         if ($data['type'] === 'all') {
@@ -51,7 +51,7 @@ class MaintenanceParityController extends Controller
     public function cacheStats(Request $request): JsonResponse
     {
         if (! $request->user()->hasRole('system_manager')) {
-            return response()->json(['message' => 'Forbidden'], 403);
+            return response()->json(['message' => __('messages.forbidden')], 403);
         }
 
         return response()->json([

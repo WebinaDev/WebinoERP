@@ -292,7 +292,7 @@ class MePortalController extends Controller
     {
         $employee = $this->resolveEmployee();
         if (! $employee) {
-            return response()->json(['message' => 'No employee profile linked to this user'], 404);
+            return response()->json(['message' => __('messages.no_employee_profile_linked_to_this_user')], 404);
         }
 
         $data = $request->validate([
@@ -407,7 +407,7 @@ class MePortalController extends Controller
     {
         $employee = $this->resolveEmployee();
         if (! $employee) {
-            return response()->json(['message' => 'No employee profile linked to this user'], 404);
+            return response()->json(['message' => __('messages.no_employee_profile_linked_to_this_user')], 404);
         }
 
         $data = $request->validate([
@@ -421,7 +421,7 @@ class MePortalController extends Controller
         $data['employee_id'] = $employee->id;
         $dependent = HrmDependent::create($data);
 
-        return response()->json(['data' => $dependent, 'message' => 'Dependent saved'], 201);
+        return response()->json(['data' => $dependent, 'message' => __('messages.dependent_saved')], 201);
     }
 
     public function orgChart(): JsonResponse
@@ -502,7 +502,7 @@ class MePortalController extends Controller
     {
         $employee = $this->resolveEmployee();
         if (! $employee) {
-            return response()->json(['message' => 'No employee profile linked to this user'], 404);
+            return response()->json(['message' => __('messages.no_employee_profile_linked_to_this_user')], 404);
         }
 
         $data = $request->validate([
@@ -534,7 +534,7 @@ class MePortalController extends Controller
         }
         $profile->save();
 
-        return response()->json(['data' => ['profile' => $profile->fresh()], 'message' => 'Profile updated']);
+        return response()->json(['data' => ['profile' => $profile->fresh()], 'message' => __('messages.profile_updated')]);
     }
 
     public function requestsInbox(Request $request): JsonResponse
@@ -723,7 +723,7 @@ class MePortalController extends Controller
 
         $decree = HrmEmploymentDecree::create($data);
 
-        return response()->json(['data' => $this->formatDecree($decree), 'message' => 'Decree saved'], 201);
+        return response()->json(['data' => $this->formatDecree($decree), 'message' => __('messages.decree_saved')], 201);
     }
 
     protected function formatDecree(HrmEmploymentDecree $d): array
@@ -779,7 +779,7 @@ class MePortalController extends Controller
     {
         $employee = $this->resolveEmployee();
         if (! $employee) {
-            return response()->json(['message' => 'No employee profile linked to this user'], 404);
+            return response()->json(['message' => __('messages.no_employee_profile_linked_to_this_user')], 404);
         }
 
         $data = $request->validate([
@@ -807,7 +807,7 @@ class MePortalController extends Controller
             'notes' => $data['notes'] ?? null,
         ], $boot));
 
-        return response()->json(['data' => $this->formatRequest($row), 'message' => 'Request submitted'], 201);
+        return response()->json(['data' => $this->formatRequest($row), 'message' => __('messages.request_submitted')], 201);
     }
 
     public function requestApprove(Request $request, HrmRequest $hrmRequest): JsonResponse
@@ -843,7 +843,7 @@ class MePortalController extends Controller
             'درخواست '.$hrmRequest->type.' #'.$hrmRequest->id.' رد شد.'
         );
 
-        return response()->json(['data' => $this->formatRequest($hrmRequest->fresh('user')), 'message' => 'Rejected']);
+        return response()->json(['data' => $this->formatRequest($hrmRequest->fresh('user')), 'message' => __('messages.rejected')]);
     }
 
     public function myDocuments(): JsonResponse
@@ -860,7 +860,7 @@ class MePortalController extends Controller
     {
         $employee = $this->resolveEmployee();
         if (! $employee) {
-            return response()->json(['message' => 'No employee profile linked to this user'], 404);
+            return response()->json(['message' => __('messages.no_employee_profile_linked_to_this_user')], 404);
         }
 
         return $this->storeDocument($request, $employee);
@@ -948,7 +948,7 @@ class MePortalController extends Controller
             app(\Modules\Hrm\Services\HrmOnboardingService::class)->attachDocument($employee->id, $doc->category, $doc->id);
         }
 
-        return response()->json(['data' => $doc, 'message' => 'Document stored'], 201);
+        return response()->json(['data' => $doc, 'message' => __('messages.document_stored')], 201);
     }
 
     protected function downloadDocument(HrmPersonnelDocument $document)

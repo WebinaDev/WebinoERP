@@ -35,7 +35,7 @@ class AccInvoiceController extends Controller
         }
         $last = $q->value('number');
         $next = is_string($last) && preg_match('/(\d+)$/', $last, $m)
-            ? preg_replace('/\d+$/', (string) ((int) $m[1] + 1), $last)
+            ? preg_replace('/\d+$/', str_pad((string) ((int) $m[1] + 1), strlen($m[1]), '0', STR_PAD_LEFT), $last)
             : 'INV-'.Str::upper(Str::random(6));
 
         return response()->json(['data' => ['next_number' => $next]]);
@@ -45,13 +45,13 @@ class AccInvoiceController extends Controller
     {
         $inv = AccountingInvoice::query()->findOrFail($id);
         if ($inv->status === 'posted') {
-            return response()->json(['message' => 'Already posted'], 422);
+            return response()->json(['message' => __('messages.already_posted')], 422);
         }
 
         $ar = AccChartAccount::query()->where('code', '113')->where('is_postable', true)->first();
         $rev = AccChartAccount::query()->where('code', '401')->where('is_postable', true)->first();
         if (! $ar || ! $rev) {
-            return response()->json(['message' => 'Chart accounts 113 and 401 required (seed chart)'], 422);
+            return response()->json(['message' => __('messages.chart_accounts_113_and_401_required_seed_chart')], 422);
         }
 
         $total = (float) $inv->total;

@@ -41,7 +41,7 @@ class LmsController extends Controller
         ]);
         $lesson = HrmTrainingLesson::query()->create($data);
 
-        return response()->json(['data' => $lesson->load('course'), 'message' => 'Lesson saved'], 201);
+        return response()->json(['data' => $lesson->load('course'), 'message' => __('messages.lesson_saved')], 201);
     }
 
     public function complete(Request $request, HrmTrainingLesson $lesson, HrmCertificateService $certs): JsonResponse
@@ -75,7 +75,7 @@ class LmsController extends Controller
                 'progress' => $progress,
                 'certificate' => $certificate ? $this->certificatePayload($certificate) : null,
             ],
-            'message' => 'Progress saved',
+            'message' => __('messages.progress_saved'),
         ]);
     }
 

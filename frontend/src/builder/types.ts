@@ -99,8 +99,19 @@ export type FieldDef =
   | { kind: "number"; key: string; label: string; min?: number; max?: number }
   | { kind: "select"; key: string; label: string; options: { value: string; label: string }[] }
   | { kind: "switch"; key: string; label: string }
+  /* Extended controls ported from WebinoDashboard (editor/fields.tsx). */
+  | { kind: "media"; key: string; label: string; accept?: "image" | "video" | "all" }
+  | { kind: "icon"; key: string; label: string; options: { value: string; label: string }[] }
+  /** URL plus `${key}NewTab` / `${key}Nofollow` switches. */
+  | { kind: "link"; key: string; label: string }
+  | { kind: "slider"; key: string; label: string; min: number; max: number; step?: number; unit?: string }
+  | { kind: "date" | "time" | "datetime"; key: string; label: string }
+  /** Rows stored in the legacy `a|b|c` line format so renderers keep reading strings. */
+  | { kind: "repeater"; key: string; label: string; fields: RepeaterSubField[] }
 
-export type WidgetCategory = "layout" | "basic" | "commerce" | "chrome" | "corporate"
+export type RepeaterSubField = { key: string; label: string; kind: "text" | "url" | "media" | "icon" | "textarea" | "select"; options?: { value: string; label: string }[] }
+
+export type WidgetCategory = "layout" | "basic" | "content" | "commerce" | "chrome" | "corporate"
 
 export type WidgetDef = {
   type: string

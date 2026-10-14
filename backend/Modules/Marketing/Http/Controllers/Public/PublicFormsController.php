@@ -4,10 +4,13 @@ namespace Modules\Marketing\Http\Controllers\Public;
 
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Validation\Rule;
 use Modules\Marketing\Entities\MarketingForm;
 use Modules\Marketing\Entities\MarketingFormSubmission;
 use Modules\Marketing\Entities\MarketingMenu;
 use Modules\Marketing\Http\Controllers\Controller;
+use Modules\Marketing\Services\FormSubmissionHooks;
+use Modules\Marketing\Services\FormUploads;
 
 class PublicFormsController extends Controller
 {
@@ -44,17 +47,48 @@ class PublicFormsController extends Controller
             $key = 'payload.'.$field['name'];
             $rule = ! empty($field['required']) ? 'required' : 'nullable';
             $type = $field['type'] ?? 'text';
-            $rules[$key] = $rule.'|string|max:5000'.($type === 'email' ? '|email' : '');
+            $rules[$key] = [$rule, 'string', 'max:5000'];
+            if ($type === 'email') {
+                $rules[$key][] = 'email';
+            }
+            if ($type === 'file') {
+                $rules[$key][] = 'regex:/^[A-Za-z0-9]{40}$/';
+                $rules[$key][] = fn (string $attr, mixed $value, \Closure $fail) => FormUploads::valid((string) $value) ? null : $fail('فایل پیوست نامعتبر است.');
+            }
+            if ($type === 'checkbox' && ! empty($field['options']) && is_array($field['options'])) {
+                $allowed = array_map('strval', $field['options']);
+                $rules[$key][] = fn (string $attr, mixed $value, \Closure $fail) => array_diff(array_map('trim', explode('،', (string) $value)), $allowed) ? $fail('گزینه نامعتبر است.') : null;
+            }
+            if ($type === 'select' && ! empty($field['options']) && is_array($field['options'])) {
+                $rules[$key][] = Rule::in(array_values(array_map('strval', $field['options'])));
+            }
         }
-        $data = $request->validate($rules + ['payload' => 'required|array']);
+        // Builder form anti-spam (ported from Dashboard): hidden honeypot filled or submitted too fast.
+        if (filled($request->input('_hp')) || ($request->has('_t') && (int) $request->input('_t') < 1500)) {
+            return response()->json(['data' => ['id' => null, 'message' => $form->success_message ?: 'دریافت شد']], 201);
+        }
+        $data = $request->validate($rules + ['payload' => 'required|array', 'page_uri' => 'nullable|string|max:255']);
         $row = MarketingFormSubmission::query()->create([
             'form_id' => $form->id,
             'payload' => $data['payload'],
             'locale' => substr((string) $request->header('Accept-Language', ''), 0, 8) ?: null,
         ]);
 
+        FormSubmissionHooks::dispatch($form, $data['payload'], $data['page_uri'] ?? null);
+
         return response()->json([
             'data' => ['id' => $row->id, 'message' => $form->success_message ?: 'دریافت شد'],
         ], 201);
+    }
+
+    /** Private attachment for a published form that has a file field; returns an opaque token. */
+    public function upload(Request $request, string $slug): JsonResponse
+    {
+        $form = MarketingForm::query()->where('slug', $slug)->where('published', true)->firstOrFail();
+        $hasFile = collect($form->fields ?? [])->contains(fn ($f) => is_array($f) && ($f['type'] ?? '') === 'file');
+        abort_unless($hasFile, 422, 'این فرم فایل پیوست ندارد.');
+        $request->validate(['file' => 'required|file|mimes:'.FormUploads::MIMES.'|max:'.FormUploads::MAX_KB]);
+
+        return response()->json(['data' => ['token' => FormUploads::store($request->file('file'), $form->slug)]], 201);
     }
 }

@@ -168,7 +168,7 @@ class CoreLicenseMetaNormalizer
 
         foreach (array_keys($meta) as $key) {
             if (! is_string($key) || ! in_array($key, self::ALLOWED_META_KEYS, true)) {
-                throw new InvalidArgumentException('Unknown meta key: '.$key);
+                throw new InvalidArgumentException(__('messages.unknown_meta_key').$key);
             }
         }
 
@@ -199,7 +199,7 @@ class CoreLicenseMetaNormalizer
             } elseif (is_string($s) && preg_match('/^[a-zA-Z0-9._-]{1,128}$/', $s)) {
                 $clean['sku'] = $s;
             } else {
-                throw new InvalidArgumentException('Invalid meta.sku');
+                throw new InvalidArgumentException(__('messages.invalid_meta_sku'));
             }
         }
 
@@ -280,12 +280,12 @@ class CoreLicenseMetaNormalizer
         if (isset($meta['module_matrix']) && is_array($meta['module_matrix'])) {
             $matrix = [];
             foreach ($meta['module_matrix'] as $mod => $subs) {
-                if (! is_string($mod) || ! preg_match('/^[a-z0-9_]{1,64}$/', $mod) || ! is_array($subs)) {
+                if (! is_string($mod) || ! preg_match('/^[a-z0-9_-]{1,64}$/', $mod) || ! is_array($subs)) {
                     continue;
                 }
                 $cleanSubs = [];
                 foreach ($subs as $sub) {
-                    if (is_string($sub) && preg_match('/^[a-z0-9_]{1,64}$/', $sub)) {
+                    if (is_string($sub) && preg_match('/^[a-z0-9_-]{1,64}$/', $sub)) {
                         $cleanSubs[] = $sub;
                     }
                 }

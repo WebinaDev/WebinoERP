@@ -38,7 +38,7 @@ class ModirPayamakSettingsController extends Controller
         }
 
         return response()->json([
-            'message' => 'Settings saved',
+            'message' => __('messages.settings_saved'),
             'data' => $this->payload(),
         ]);
     }

@@ -207,7 +207,7 @@ class BasalamOAuthService
         $key = $this->sessionKey($state);
         $session = Cache::pull($key);
         if (! is_array($session) || empty($session['site_url'])) {
-            throw new \RuntimeException('OAuth session expired or invalid. Start connection again from your store dashboard.');
+            throw new \RuntimeException(__('messages.oauth_session_expired_or_invalid_start_connection_again_from'));
         }
 
         $cfg = $this->getConfig();
@@ -223,7 +223,7 @@ class BasalamOAuthService
         $refresh = (string) ($token['refresh_token'] ?? '');
         $expires = (int) ($token['expires_in'] ?? 0);
         if ($access === '') {
-            throw new \RuntimeException('Basalam did not return an access token.');
+            throw new \RuntimeException(__('messages.basalam_did_not_return_an_access_token'));
         }
 
         $site = rtrim((string) $session['site_url'], '/');
@@ -271,7 +271,7 @@ class BasalamOAuthService
         $sessionHost = parse_url($site, PHP_URL_HOST);
         $handoffHost = parse_url($handoff, PHP_URL_HOST);
         if (! is_string($sessionHost) || ! is_string($handoffHost) || strcasecmp($sessionHost, $handoffHost) !== 0) {
-            throw new \RuntimeException('Merchant handoff host mismatch.');
+            throw new \RuntimeException(__('messages.merchant_handoff_host_mismatch'));
         }
 
         return $handoff;

@@ -185,7 +185,7 @@ class SiteProvisionController extends Controller
             }
             if (! empty($data['channel'])) {
                 if ($data['channel'] === 'stable') {
-                    return response()->json(['message' => 'Stable channel is not available yet.'], 503);
+                    return response()->json(['message' => __('messages.stable_channel_is_not_available_yet')], 503);
                 }
                 $wizard['channel'] = $data['channel'];
             }
@@ -270,7 +270,7 @@ class SiteProvisionController extends Controller
     public function prepareLicense(WebinoSiteProvision $siteProvision, LicenseProvisionerService $licenses, Request $request): JsonResponse
     {
         if (! $siteProvision->package_id) {
-            return response()->json(['message' => 'Package is required.'], 422);
+            return response()->json(['message' => __('messages.package_is_required')], 422);
         }
 
         $siteProvision->load(['package.businessType.category', 'package.features', 'license']);
@@ -321,7 +321,7 @@ class SiteProvisionController extends Controller
                 // and must not enqueue a second build.
                 return response()->json([
                     'data' => $this->safeProvisionPayload($siteProvision),
-                    'message' => 'Provisioning queued.',
+                    'message' => __('messages.provisioning_queued'),
                 ]);
             }
 
@@ -330,11 +330,11 @@ class SiteProvisionController extends Controller
                 WebinoSiteProvision::STATUS_FAILED,
                 WebinoSiteProvision::STATUS_CANCELLED,
             ], true)) {
-                return response()->json(['message' => 'Provision already launched.'], 422);
+                return response()->json(['message' => __('messages.provision_already_launched')], 422);
             }
 
             if (! $siteProvision->package_id) {
-                return response()->json(['message' => 'Package is required.'], 422);
+                return response()->json(['message' => __('messages.package_is_required')], 422);
             }
 
             if ($schema = $this->schemaOutdatedResponse()) {
@@ -363,7 +363,7 @@ class SiteProvisionController extends Controller
 
             return response()->json([
                 'data' => $this->safeProvisionPayload($siteProvision),
-                'message' => 'Provisioning queued.',
+                'message' => __('messages.provisioning_queued'),
             ]);
         } catch (DecryptException $e) {
             report($e);
@@ -429,7 +429,7 @@ class SiteProvisionController extends Controller
         ], true)) {
             return response()->json([
                 'data' => $fresh,
-                'message' => 'Provisioning queued.',
+                'message' => __('messages.provisioning_queued'),
             ]);
         }
 
@@ -451,7 +451,7 @@ class SiteProvisionController extends Controller
             $row = $orchestrator->cancel($siteProvision);
             app(SiteProvisionAuditLogger::class)->log($request->user()?->id, 'provision.cancel_requested', $row);
 
-            return response()->json(['data' => $row, 'message' => 'Cancelled']);
+            return response()->json(['data' => $row, 'message' => __('messages.cancelled')]);
         } catch (\InvalidArgumentException $e) {
             return response()->json(['message' => $e->getMessage()], 422);
         } catch (Throwable $e) {
@@ -466,7 +466,7 @@ class SiteProvisionController extends Controller
                 WebinoSiteProvision::STATUS_FAILED,
                 WebinoSiteProvision::STATUS_CANCELLED,
             ], true)) {
-                return response()->json(['message' => 'Only failed or cancelled provisions can be retried.'], 422);
+                return response()->json(['message' => __('messages.only_failed_or_cancelled_provisions_can_be_retried')], 422);
             }
 
             if ($schema = $this->schemaOutdatedResponse()) {
@@ -489,7 +489,7 @@ class SiteProvisionController extends Controller
                 return response()->json(LaunchSchema::queueUnavailablePayload(), 422);
             }
 
-            return response()->json(['data' => $siteProvision, 'message' => 'Retry queued.']);
+            return response()->json(['data' => $siteProvision, 'message' => __('messages.retry_queued')]);
         } catch (DecryptException $e) {
             report($e);
 
@@ -1120,7 +1120,7 @@ class SiteProvisionController extends Controller
 
         return response()->json([
             'data' => $siteProvision->fresh(['license']),
-            'message' => 'Update queued.',
+            'message' => __('messages.update_queued'),
         ]);
     }
 
@@ -1143,7 +1143,7 @@ class SiteProvisionController extends Controller
             $siteProvision->delete();
         }
 
-        return response()->json(['message' => 'Deleted']);
+        return response()->json(['message' => __('messages.deleted')]);
     }
 
     protected function uniqueSlug(?string $requested, mixed $siteName, ?int $ignoreId = null): string

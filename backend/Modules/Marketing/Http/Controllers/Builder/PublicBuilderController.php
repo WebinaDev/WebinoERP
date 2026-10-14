@@ -2,18 +2,18 @@
 
 namespace Modules\Marketing\Http\Controllers\Builder;
 
-use Modules\Marketing\Http\Controllers\Controller;
+use Illuminate\Http\JsonResponse;
+use Illuminate\Http\Request;
 use Modules\Marketing\Entities\MarketingPage;
+use Modules\Marketing\Http\Controllers\Controller;
+use Modules\Marketing\Services\Builder\BuilderSite;
 use Modules\Marketing\Services\Builder\ThemeRequestContext;
 use Modules\Marketing\Services\Builder\ThemeTemplateKinds;
 use Modules\Marketing\Services\Builder\ThemeTemplateResolver;
-use Illuminate\Http\JsonResponse;
-use Illuminate\Http\Request;
-use Modules\Marketing\Services\Builder\BuilderSite;
 
 class PublicBuilderController extends Controller
 {
-        public function page(Request $request, string $slug): JsonResponse
+    public function page(Request $request, string $slug): JsonResponse
     {
         $page = MarketingPage::query()
             ->where('slug', $slug)

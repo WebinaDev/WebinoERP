@@ -106,11 +106,11 @@ class ModuleController extends Controller
             && in_array($status, ['published', 'active'], true)
             && empty($data['module_git_source_id'])
             && empty($data['gitea_repo'])) {
-            return response()->json(['message' => 'Git-distributed modules require module_git_source_id or gitea_repo.'], 422);
+            return response()->json(['message' => __('messages.git_distributed_modules_require_module_git_source_id_or_gite')], 422);
         }
         $module = MarketplaceModule::create($data);
 
-        return response()->json(['data' => $module->fresh(['repo', 'releases', 'category']), 'message' => 'Module created'], 201);
+        return response()->json(['data' => $module->fresh(['repo', 'releases', 'category']), 'message' => __('messages.module_created')], 201);
     }
 
     public function show(MarketplaceModule $module): JsonResponse
@@ -133,20 +133,20 @@ class ModuleController extends Controller
             && in_array($status, ['published', 'active'], true)
             && empty($gitSourceId)
             && empty($giteaRepo)) {
-            return response()->json(['message' => 'Git-distributed modules require module_git_source_id or gitea_repo.'], 422);
+            return response()->json(['message' => __('messages.git_distributed_modules_require_module_git_source_id_or_gite')], 422);
         }
         if (array_key_exists('distribution', $data) && ! array_key_exists('requires_license', $data)) {
             $data['requires_license'] = $data['distribution'] === 'git';
         }
         $module->update($data);
 
-        return response()->json(['data' => $module->fresh(['repo', 'releases', 'category']), 'message' => 'Module updated']);
+        return response()->json(['data' => $module->fresh(['repo', 'releases', 'category']), 'message' => __('messages.module_updated')]);
     }
 
     public function destroy(Request $request, MarketplaceModule $module, MarketplaceGiteaClient $gitea): JsonResponse|Response
     {
         if ($module->is_core) {
-            return response()->json(['message' => 'Core modules cannot be deleted'], 422);
+            return response()->json(['message' => __('messages.core_modules_cannot_be_deleted')], 422);
         }
 
         if ($request->boolean('delete_gitea_repo') && ($module->package_source === 'gitea' || $module->gitea_repo)) {
@@ -168,7 +168,7 @@ class ModuleController extends Controller
 
         $module->delete();
 
-        return response()->noContent();
+        return response()->json(null, 204);
     }
 
     public function attachRepo(Request $request, MarketplaceModule $module, MarketplaceGiteaClient $gitea): JsonResponse
@@ -213,7 +213,7 @@ class ModuleController extends Controller
                 'repo' => $repo,
                 'module' => $module->fresh(['repo', 'releases', 'category']),
             ],
-            'message' => 'Repo linked',
+            'message' => __('messages.repo_linked'),
         ], 201);
     }
 
@@ -222,14 +222,14 @@ class ModuleController extends Controller
         $repo = MarketplaceModuleRepo::query()->firstOrCreate(['module_id' => $module->id]);
         $cloneUrl = $repo->repo_url ?: $module->gitSource?->clone_url;
         if (! is_string($cloneUrl) || $cloneUrl === '') {
-            return response()->json(['message' => 'No repo_url configured for module'], 422);
+            return response()->json(['message' => __('messages.no_repo_url_configured_for_module')], 422);
         }
 
         try {
             $provider = $factory->make($repo->provider);
             $parsed = AbstractOrgGitProvider::parseOwnerRepo($repo->gitea_repo ?: $cloneUrl);
             if (! $parsed) {
-                return response()->json(['message' => 'Unable to parse owner/repo from URL'], 422);
+                return response()->json(['message' => __('messages.unable_to_parse_owner_repo_from_url')], 422);
             }
 
             $branch = $provider->getDefaultBranch($parsed['owner'], $parsed['repo'])
@@ -264,7 +264,7 @@ class ModuleController extends Controller
                     'repo' => $repo->fresh(),
                     'module' => $module->fresh(['repo', 'releases', 'category']),
                 ],
-                'message' => 'Repo synced',
+                'message' => __('messages.repo_synced'),
             ]);
         } catch (\Throwable $e) {
             return response()->json(['message' => $e->getMessage()], 422);
@@ -317,7 +317,7 @@ class ModuleController extends Controller
                 'repo' => $repo->fresh(),
                 'module' => $module->fresh(['repo', 'releases', 'category']),
             ],
-            'message' => 'Repo updated',
+            'message' => __('messages.repo_updated'),
         ]);
     }
 
@@ -325,14 +325,14 @@ class ModuleController extends Controller
     {
         $repo = $module->repo;
         if (! $repo?->repo_url) {
-            return response()->json(['message' => 'No repo linked'], 422);
+            return response()->json(['message' => __('messages.no_repo_linked')], 422);
         }
 
         try {
             $provider = $factory->make($repo->provider);
             $parsed = AbstractOrgGitProvider::parseOwnerRepo($repo->gitea_repo ?: $repo->repo_url);
             if (! $parsed) {
-                return response()->json(['message' => 'Unable to parse owner/repo'], 422);
+                return response()->json(['message' => __('messages.unable_to_parse_owner_repo')], 422);
             }
             $readme = $provider->getReadme($parsed['owner'], $parsed['repo'], $repo->repo_branch);
             $repo->update([
@@ -348,7 +348,7 @@ class ModuleController extends Controller
                     'readme_excerpt' => $readme,
                     'module' => $module->fresh(['repo', 'releases', 'category']),
                 ],
-                'message' => 'Readme synced',
+                'message' => __('messages.readme_synced'),
             ]);
         } catch (\Throwable $e) {
             return response()->json(['message' => $e->getMessage()], 422);
@@ -373,7 +373,7 @@ class ModuleController extends Controller
             'status' => 'draft',
         ]);
 
-        return response()->json(['data' => $release, 'message' => 'Release created'], 201);
+        return response()->json(['data' => $release, 'message' => __('messages.release_created')], 201);
     }
 
     /** @return array<string, string> */

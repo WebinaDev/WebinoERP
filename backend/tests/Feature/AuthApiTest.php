@@ -34,7 +34,9 @@ class AuthApiTest extends TestCase
 
         $response->assertOk();
         $response->assertJsonPath('data.user.email', 'test@example.com');
-        $this->assertNotEmpty($response->json('data.token'));
+        // Token is delivered only as an httpOnly cookie (never in the JSON body).
+        $this->assertNull($response->json('data.token'));
+        $response->assertCookie(config('auth.cookie_name', 'webino_auth_token'));
     }
 
     public function test_protected_navigation_requires_bearer_token(): void

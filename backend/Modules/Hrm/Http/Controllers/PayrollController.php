@@ -31,7 +31,7 @@ class PayrollController extends Controller
         $data['created_by'] = $request->user()->id;
         $run = HrmPayrollRun::create($data);
 
-        return response()->json(['data' => $run, 'message' => 'Payroll run created'], 201);
+        return response()->json(['data' => $run, 'message' => __('messages.payroll_run_created')], 201);
     }
 
     public function show(HrmPayrollRun $payroll): JsonResponse
@@ -51,14 +51,14 @@ class PayrollController extends Controller
 
         $payroll->update($data);
 
-        return response()->json(['data' => $payroll->fresh(), 'message' => 'Payroll run updated']);
+        return response()->json(['data' => $payroll->fresh(), 'message' => __('messages.payroll_run_updated')]);
     }
 
     public function destroy(HrmPayrollRun $payroll): JsonResponse
     {
         $payroll->delete();
 
-        return response()->noContent();
+        return response()->json(null, 204);
     }
 
     public function storeItem(Request $request, HrmPayrollRun $payroll): JsonResponse
@@ -73,7 +73,7 @@ class PayrollController extends Controller
         $item = $payroll->items()->create($data);
         $payroll->update(['total_amount' => $payroll->items()->sum('net')]);
 
-        return response()->json(['data' => $item->load('employee'), 'message' => 'Payroll item added'], 201);
+        return response()->json(['data' => $item->load('employee'), 'message' => __('messages.payroll_item_added')], 201);
     }
 
     public function destroyItem(HrmPayrollRun $payroll, HrmPayrollItem $item): JsonResponse
@@ -82,6 +82,6 @@ class PayrollController extends Controller
         $item->delete();
         $payroll->update(['total_amount' => $payroll->items()->sum('net')]);
 
-        return response()->noContent();
+        return response()->json(null, 204);
     }
 }
