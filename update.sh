@@ -235,10 +235,10 @@ done
 source "${ERP_DIR}/scripts/apply-erp-migrations.sh"
 log "Applying migrations only (no seed, no fresh)"
 apply_erp_migrations
-compose_cli exec -T backend php artisan db:seed --class='Modules\\SiteBuilder\\Database\\Seeders\\SiteBuilderSeeder' --force || true
+compose_cli exec -T backend php artisan db:seed --class='Modules\SiteBuilder\Database\Seeders\SiteBuilderSeeder' --force || true
 # Site pages, menus and CMS content are never seeded on update: they live only in the database
 # and are edited in the page builder. Only Marketing form definitions are ensured (firstOrCreate).
-compose_cli exec -T backend php artisan db:seed --class='Modules\\Marketing\\Database\\Seeders\\MarketingFormsSeeder' --force || true
+compose_cli exec -T backend php artisan db:seed --class='Modules\Marketing\Database\Seeders\MarketingFormsSeeder' --force || true
 compose_cli exec -T backend php artisan site-builder:ensure-hosting-defaults || true
 # Stacks first (compose + attach backend to webino_sites), then Caddy snippets
 # so /api can reach ws-*-backend:8080 (same pattern as ERP Caddyfile).
