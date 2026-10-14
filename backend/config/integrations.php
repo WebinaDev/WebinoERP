@@ -87,4 +87,11 @@ return [
         'secret' => env('WEBINOCRM_ELEMENTOR_SECRET'),
     ],
 
+
+    // Per-site HMAC auth for WP-facing Edge routes (SMS edge, Basalam disconnect, license calls).
+    // off | grace (enrolled domains must sign, others pass) | enforce (everyone must sign).
+    'site_auth' => [
+        'mode' => env('WEBINO_SITE_AUTH_MODE', 'grace'),
+        'allow_http' => filter_var(env('WEBINO_SITE_AUTH_ALLOW_HTTP', false), FILTER_VALIDATE_BOOLEAN),
+    ],
 ];

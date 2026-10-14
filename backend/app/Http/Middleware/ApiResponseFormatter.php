@@ -41,6 +41,7 @@ class ApiResponseFormatter
             'api/v1/integrations/bridges/webhook',
             'api/webinocrm/v1/bale/webhook', // Bale bot webhook: raw {ok} body
             'api/webinocrm/v1/basalam/', // WP Basalam engine reads top-level url / access_token
+            'api/webinocrm/v1/site-auth/',
             'api/v1/core/sso/saml',
         ] as $prefix) {
             if (str_starts_with($request->path(), $prefix)) {

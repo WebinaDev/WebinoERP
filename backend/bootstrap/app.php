@@ -41,6 +41,7 @@ return Application::configure(basePath: dirname(__DIR__))
     )
     ->withMiddleware(function (Middleware $middleware) {
         $middleware->alias([
+            'webino.site' => \Modules\Core\Http\Middleware\VerifyWebinoSite::class,
             'module' => CheckModuleLicense::class,
             'module.permission' => \Modules\Core\Http\Middleware\EnforceModulePermission::class,
             'role' => \Spatie\Permission\Middleware\RoleMiddleware::class,

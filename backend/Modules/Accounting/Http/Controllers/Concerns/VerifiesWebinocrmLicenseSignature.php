@@ -22,9 +22,17 @@ trait VerifiesWebinocrmLicenseSignature
      */
     protected function verifyLicenseRequest(Request $request): bool
     {
+        // Per-site HMAC (SiteAuth) wins: a valid site signature authenticates the call;
+        // an invalid/mismatched one, or an unsigned call for an enrolled domain, is refused.
+        $site = \Modules\Core\Services\SiteAuth::authorize($request, (string) $request->input('domain', ''));
+        if (\Modules\Core\Services\SiteAuth::hasSignature($request) || ! $site['ok']) {
+            return $site['ok'];
+        }
+
         $secret = $this->licenseHmacSecret();
         if ($secret === '') {
-            // Optional service auth: no shared secret → allow domain-based calls.
+            // No shared secret: unsigned domain calls pass only in SiteAuth grace mode
+            // (authorize() above already refused them in enforce mode).
             return true;
         }
         $domain = CoreLicenseResolver::normalizeDomain((string) $request->input('domain', ''));
