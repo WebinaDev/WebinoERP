@@ -11,10 +11,9 @@ class MarketingMagazinePost extends Model
 
     protected $fillable = [
         'slug', 'title', 'excerpt', 'body', 'cover_url',
-        'status', 'published_at', 'wp_id', 'meta',
-    ];
+        'status', 'published_at', 'wp_id', 'meta', 'issue', 'author', 'featured'];
 
-    protected $casts = ['published_at' => 'datetime', 'meta' => 'array'];
+    protected $casts = ['featured' => 'boolean', 'published_at' => 'datetime', 'meta' => 'array'];
 
     public function scopePublished(Builder $q): Builder
     {

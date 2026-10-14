@@ -178,7 +178,9 @@
         "builder": "Page builder",
         "builderSettings": "Global settings",
         "siteBuilder": "Corporate site builder",
-        "portfolioCategories": "Portfolio categories"
+        "portfolioCategories": "Portfolio categories",
+        "blogCategories": "Blog topics",
+        "academyLessons": "Academy lessons"
       },
       "hrm": {
         "group": "Human resources",
@@ -2310,7 +2312,28 @@
     "results": "Results",
     "serviceTags": "Services (one tag per line)",
     "gallery": "Gallery (one image URL per line)",
-    "sortOrder": "Order"
+    "sortOrder": "Order",
+    "topic": "Topic",
+    "publishedAt": "Published at (YYYY-MM-DD)",
+    "excerpt": "Summary",
+    "bodyHtml": "Body (HTML; h2/h3 build the TOC)",
+    "issue": "Issue / dossier",
+    "level": "Level",
+    "duration": "Duration",
+    "instructor": "Instructor / approach",
+    "enrollUrl": "Enroll link",
+    "outcomes": "Learning outcomes (one per line)",
+    "isFree": "Free",
+    "course": "Course",
+    "videoUrl": "Video URL",
+    "answer": "Answer",
+    "type": "Type",
+    "startsAt": "Show from",
+    "endsAt": "Show until",
+    "fileType": "File type",
+    "fileUrl": "File URL",
+    "relatedUrl": "Suggestion after download (link)",
+    "gated": "Ask for email before download"
   },
   "analytics": {
     "title": "Analytics",

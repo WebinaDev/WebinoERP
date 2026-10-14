@@ -22,6 +22,12 @@ class MarketingDownloadsController extends Controller
             'category' => 'nullable|string|max:128',
             'published' => 'nullable|boolean',
             'sort_order' => 'nullable|integer|min:0',
+            'slug' => 'nullable|string|max:255',
+            'description' => 'nullable|string',
+            'file_type' => 'nullable|string|max:64',
+            'file_url' => 'nullable|string|max:500',
+            'gated' => 'nullable|boolean',
+            'related_url' => 'nullable|string|max:500',
         ];
     }
 }

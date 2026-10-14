@@ -17,6 +17,8 @@ export type MarketingField = {
   /** `lines` = string array edited one item per line; `select` loads options from `optionsEndpoint`. */
   kind?: 'text' | 'textarea' | 'checkbox' | 'number' | 'lines' | 'select';
   optionsEndpoint?: string;
+  /** Fixed choices for `select` (value stored as string). */
+  options?: { value: string; label: string }[];
   optionLabel?: string;
 };
 
@@ -87,7 +89,8 @@ export function MarketingResourcePage({ titleKey, endpoint, columns, fields }: M
       const raw = draft[field.key] ?? '';
       if (field.kind === 'checkbox') body[field.key] = raw === 'true' || raw === '1';
       else if (field.kind === 'lines') body[field.key] = raw.split('\n').map((x) => x.trim()).filter(Boolean);
-      else if (field.kind === 'number' || field.kind === 'select') body[field.key] = raw === '' ? null : Number(raw);
+      else if (field.kind === 'number' || (field.kind === 'select' && field.optionsEndpoint)) body[field.key] = raw === '' ? null : Number(raw);
+      else if (field.kind === 'select') body[field.key] = raw === '' ? null : raw;
       else if (raw !== '' || editingId) body[field.key] = raw;
     }
     try {
@@ -135,7 +138,7 @@ export function MarketingResourcePage({ titleKey, endpoint, columns, fields }: M
                     onChange={(e) => setDraft({ ...draft, [field.key]: e.target.value })}
                   >
                     <option value="">—</option>
-                    {(options[field.key] ?? []).map((o) => (
+                    {(field.options ?? options[field.key] ?? []).map((o) => (
                       <option key={o.value} value={o.value}>{o.label}</option>
                     ))}
                   </select>

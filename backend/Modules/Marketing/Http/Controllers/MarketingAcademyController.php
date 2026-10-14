@@ -23,6 +23,12 @@ class MarketingAcademyController extends Controller
             'cover_url' => 'nullable|string|max:500',
             'published' => 'nullable|boolean',
             'sort_order' => 'nullable|integer|min:0',
+            'level' => 'nullable|string|max:120',
+            'duration' => 'nullable|string|max:120',
+            'instructor' => 'nullable|string|max:255',
+            'outcomes' => 'nullable|string',
+            'enroll_url' => 'nullable|string|max:500',
+            'is_free' => 'nullable|boolean',
         ];
     }
 }

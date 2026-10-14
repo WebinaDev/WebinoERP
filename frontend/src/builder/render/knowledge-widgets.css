@@ -1,0 +1,42 @@
+.wbx-kn-meta { color: var(--wb-muted, #5b6475); font-size: .8rem; }
+.wbx-kn-more { color: var(--wb-primary, #0054ff); font-weight: 600; font-size: .9rem; margin-top: .3rem; }
+.wbx-kn-badges { display: flex; flex-wrap: wrap; align-items: center; gap: .4rem; }
+.wbx-kn-pill { font-size: .75rem; border: 1px solid var(--wb-border, #dfe4ee); border-radius: 999px; padding: .1rem .55rem; color: var(--wb-muted, #5b6475); }
+.wbx-kn-feature { display: grid; gap: 1.25rem; color: inherit; text-decoration: none; border-radius: 20px; overflow: hidden; background: var(--wb-surface, #fff); box-shadow: 0 1px 3px rgba(15, 23, 42, .06); }
+@media (min-width: 900px) { .wbx-kn-feature { grid-template-columns: 1.3fr 1fr; align-items: center; } .wbx-kn-feature .wbx-pf-cover { aspect-ratio: 16 / 9; height: 100%; } }
+.wbx-kn-feature-body { padding: 1.25rem 1.5rem 1.5rem; display: grid; gap: .6rem; }
+.wbx-kn-feature-body h2 { margin: 0; font-size: 1.6rem; font-weight: 800; line-height: 1.5; }
+.wbx-kn-feature-body p { margin: 0; color: var(--wb-muted, #5b6475); line-height: 1.9; }
+.wbx-kn-dl .wbx-pf-body { gap: .55rem; padding: 1.4rem; }
+.wbx-kn-dl .wbx-pf-btn { justify-self: start; margin-top: .4rem; cursor: pointer; }
+.wbx-kn-icon { font-size: 2rem; color: var(--wb-primary, #0054ff); }
+.wbx-kn-modal { position: fixed; inset: 0; z-index: 100; display: grid; place-items: center; background: rgba(10, 15, 30, .55); padding: 1rem; }
+.wbx-kn-modal-box { position: relative; width: min(440px, 100%); background: var(--wb-surface, #fff); border-radius: 20px; padding: 1.6rem; display: grid; gap: .8rem; }
+.wbx-kn-modal-box h3 { margin: 0; font-size: 1.15rem; font-weight: 800; padding-inline-end: 2rem; }
+.wbx-kn-close { position: absolute; top: .6rem; inset-inline-end: .8rem; border: 0; background: none; font-size: 1.6rem; cursor: pointer; color: var(--wb-muted, #5b6475); }
+.wbx-kn-form, .wbx-kn-done { display: grid; gap: .65rem; }
+.wbx-kn-form p, .wbx-kn-done p { margin: 0; color: var(--wb-muted, #5b6475); line-height: 1.8; }
+.wbx-kn-form input, .wbx-kn-search { width: 100%; border: 1px solid var(--wb-border, #dfe4ee); border-radius: 12px; padding: .7rem .9rem; font: inherit; background: transparent; }
+.wbx-kn-hp { position: absolute !important; left: -9999px; width: 1px; height: 1px; opacity: 0; }
+.wbx-kn-err { color: #c62828 !important; }
+.wbx-kn-offer { margin-top: .5rem !important; color: inherit !important; font-weight: 600; }
+.wbx-kn-faq { display: grid; gap: 1.75rem; }
+.wbx-kn-search { max-width: 560px; }
+.wbx-kn-faq-group h2 { font-size: 1.25rem; font-weight: 800; margin: 0 0 .75rem; }
+.wbx-kn-faq-item { border-bottom: 1px solid var(--wb-border, #dfe4ee); }
+.wbx-kn-faq-item summary { cursor: pointer; padding: 1rem 0; font-weight: 600; list-style: none; display: flex; justify-content: space-between; gap: 1rem; }
+.wbx-kn-faq-item summary::after { content: "+"; color: var(--wb-primary, #0054ff); font-size: 1.2rem; }
+.wbx-kn-faq-item[open] summary::after { content: "−"; }
+.wbx-kn-faq-a { padding: 0 0 1rem; color: var(--wb-muted, #5b6475); line-height: 1.9; }
+.wbx-kn-faq-a p { margin: 0; }
+.wbx-kn-faq-cta { margin: .9rem 0 0; font-size: .92rem; color: var(--wb-muted, #5b6475); }
+.wbx-kn-faq-cta a { color: var(--wb-primary, #0054ff); font-weight: 700; }
+.wbx-kn-ann { list-style: none; margin: 0; padding: 0; display: grid; gap: .9rem; }
+.wbx-kn-ann a { display: grid; gap: .45rem; padding: 1.15rem 1.3rem; border: 1px solid var(--wb-border, #dfe4ee); border-radius: 16px; color: inherit; text-decoration: none; }
+.wbx-kn-ann a:hover { border-color: var(--wb-primary, #0054ff); }
+.wbx-kn-ann h3 { margin: 0; font-size: 1.05rem; font-weight: 700; }
+.wbx-kn-ann p { margin: 0; color: var(--wb-muted, #5b6475); font-size: .92rem; line-height: 1.8; }
+.wbx-kn-type { font-size: .75rem; font-weight: 700; border-radius: 999px; padding: .15rem .65rem; background: rgba(0, 84, 255, .08); color: var(--wb-primary, #0054ff); }
+.wbx-kn-type.is-event { background: rgba(124, 58, 237, .1); color: #6d28d9; }
+.wbx-kn-type.is-update { background: rgba(5, 150, 105, .1); color: #047857; }
+.wbx-kn-type.is-important { background: rgba(220, 38, 38, .1); color: #b91c1c; }

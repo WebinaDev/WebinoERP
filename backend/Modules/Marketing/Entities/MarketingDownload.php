@@ -10,9 +10,9 @@ class MarketingDownload extends Model
 {
     protected $table = 'marketing_downloads';
 
-    protected $fillable = ['title', 'file_id', 'category', 'published', 'sort_order'];
+    protected $fillable = ['title', 'file_id', 'category', 'published', 'sort_order', 'slug', 'description', 'file_type', 'file_url', 'gated', 'related_url'];
 
-    protected $casts = ['published' => 'boolean'];
+    protected $casts = ['gated' => 'boolean', 'published' => 'boolean'];
 
     public function file(): BelongsTo
     {

@@ -4,8 +4,11 @@ namespace Modules\Marketing\Http\Controllers\Public;
 
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Modules\Crm\Entities\CrmLead;
+use Modules\Crm\Entities\CrmStatus;
 use Modules\Marketing\Entities\MarketingAcademyCourse;
 use Modules\Marketing\Entities\MarketingAnnouncement;
+use Modules\Marketing\Entities\MarketingBlogCategory;
 use Modules\Marketing\Entities\MarketingBlogPost;
 use Modules\Marketing\Entities\MarketingDownload;
 use Modules\Marketing\Entities\MarketingFaqItem;
@@ -34,34 +37,60 @@ class PublicContentController extends Controller
     public function blog(Request $request): JsonResponse
     {
         $perPage = min((int) $request->get('per_page', 12), 50);
-        $posts = MarketingBlogPost::query()->published()
-            ->with('category')
-            ->orderByDesc('published_at')
-            ->paginate($perPage);
+        $query = MarketingBlogPost::query()->published()->with('category');
+        if ($request->filled('category')) {
+            $query->whereHas('category', fn ($q) => $q->where('slug', $request->get('category')));
+        }
+        $posts = $query->orderByDesc('published_at')->paginate($perPage);
 
         return response()->json([
-            'data' => $posts->items(),
+            'data' => array_map(fn ($p) => self::withReadTime($p->makeHidden('body')->toArray(), (string) $p->body), $posts->items()),
             'meta' => ['current_page' => $posts->currentPage(), 'last_page' => $posts->lastPage(), 'total' => $posts->total()],
         ]);
+    }
+
+    /** Blog topics (filter chips). */
+    public function blogCategories(): JsonResponse
+    {
+        return response()->json(['data' => MarketingBlogCategory::query()->orderBy('name')->get(['id', 'slug', 'name'])]);
+    }
+
+    /** Minutes at ~200 words per minute (Persian body text), at least 1. */
+    private static function withReadTime(array $row, string $body): array
+    {
+        $words = count(preg_split('/\s+/u', trim(strip_tags($body)), -1, PREG_SPLIT_NO_EMPTY) ?: []);
+        $row['read_minutes'] = max(1, (int) ceil($words / 200));
+
+        return $row;
     }
 
     public function blogShow(string $slug): JsonResponse
     {
         $post = MarketingBlogPost::query()->published()->where('slug', $slug)->with('category')->firstOrFail();
+        $related = MarketingBlogPost::query()->published()->where('id', '!=', $post->id)
+            ->when($post->category_id, fn ($q) => $q->where('category_id', $post->category_id))
+            ->orderByDesc('published_at')->limit(3)->get(['id', 'slug', 'title', 'excerpt', 'cover_url', 'published_at']);
+        $data = self::withReadTime($post->toArray(), (string) $post->body);
+        $data['related'] = $related;
 
-        return response()->json(['data' => $post]);
+        return response()->json(['data' => $data]);
     }
 
     public function magazine(Request $request): JsonResponse
     {
         $perPage = min((int) $request->get('per_page', 12), 50);
-        $posts = MarketingMagazinePost::query()->published()
-            ->orderByDesc('published_at')
-            ->paginate($perPage);
+        $query = MarketingMagazinePost::query()->published();
+        if ($request->filled('issue')) {
+            $query->where('issue', $request->get('issue'));
+        }
+        $posts = $query->orderByDesc('featured')->orderByDesc('published_at')->paginate($perPage);
+        $issues = MarketingMagazinePost::query()->published()->whereNotNull('issue')->where('issue', '!=', '')
+            ->distinct()->orderBy('issue')->pluck('issue');
 
         return response()->json([
-            'data' => $posts->items(),
-            'meta' => ['current_page' => $posts->currentPage(), 'last_page' => $posts->lastPage(), 'total' => $posts->total()],
+            'data' => array_map(fn ($p) => $p->makeHidden('body')->toArray(), $posts->items()),
+            // The API envelope keeps only data/meta, so the issue list travels in meta.
+            'meta' => ['current_page' => $posts->currentPage(), 'last_page' => $posts->lastPage(), 'total' => $posts->total(), 'issues' => $issues],
         ]);
     }
 
@@ -137,16 +166,55 @@ class PublicContentController extends Controller
 
     public function faq(): JsonResponse
     {
-        $items = MarketingFaqItem::query()->published()->orderBy('sort_order')->get();
+        $items = MarketingFaqItem::query()->published()->orderBy('sort_order')->orderBy('id')->get(['id', 'group', 'question', 'answer', 'sort_order']);
+        $groups = [];
+        foreach ($items as $item) {
+            $groups[$item->group ?: 'عمومی'][] = $item;
+        }
 
-        return response()->json(['data' => $items]);
+        return response()->json(['data' => $items, 'meta' => ['groups' => array_map(fn ($name, $rows) => ['name' => $name, 'items' => $rows], array_keys($groups), $groups)]]);
     }
 
-    public function downloads(): JsonResponse
+    public function downloads(Request $request): JsonResponse
     {
-        $items = MarketingDownload::query()->published()->with('file')->orderBy('sort_order')->get();
+        $query = MarketingDownload::query()->published()->orderBy('sort_order')->orderBy('id');
+        if ($request->filled('type')) {
+            $query->where('file_type', $request->get('type'));
+        }
 
-        return response()->json(['data' => $items]);
+        // The file link is never listed: gated files are released by downloadRequest(), open ones too (counted).
+        return response()->json(['data' => $query->get(['id', 'slug', 'title', 'description', 'category', 'file_type', 'gated', 'related_url', 'sort_order'])]);
+    }
+
+    /** Email gate: store a CRM lead (unless ungated and no contact given) and return the file link + follow-up. */
+    public function downloadRequest(Request $request, int $id): JsonResponse
+    {
+        $item = MarketingDownload::query()->published()->with('file')->findOrFail($id);
+        if (filled($request->input('_hp')) || ($request->has('_t') && (int) $request->input('_t') < 1500)) {
+            return response()->json(['data' => ['url' => null]]);
+        }
+        $data = $request->validate([
+            'name' => [$item->gated ? 'required' : 'nullable', 'string', 'max:120'],
+            'email' => array_merge(['nullable', 'email', 'max:190'], $item->gated ? ['required_without:phone'] : []),
+            'phone' => ['nullable', 'string', 'max:30'],
+        ]);
+
+        if (filled($data['name'] ?? null) && (filled($data['email'] ?? null) || filled($data['phone'] ?? null))) {
+            $status = CrmStatus::query()->where('is_active', true)->orderBy('sort_order')->orderBy('id')->first()
+                ?? CrmStatus::query()->create(['name' => 'جدید', 'color' => '#0054ff', 'sort_order' => 0, 'is_active' => true]);
+            $parts = preg_split('/\s+/u', trim($data['name']), 2) ?: [$data['name']];
+            CrmLead::query()->create([
+                'topic' => 'دانلود: '.$item->title,
+                'first_name' => $parts[0], 'last_name' => $parts[1] ?? '',
+                'email' => $data['email'] ?? null, 'mobile' => (string) ($data['phone'] ?? ''), 'phone' => $data['phone'] ?? null,
+                'status_id' => $status->id, 'industry' => 'download',
+                'description' => "منبع: دانلودها (/downloads)\nفایل: {$item->title}",
+            ]);
+        }
+
+        $url = $item->file_url ?: ($item->file?->public_url ?: null);
+
+        return response()->json(['data' => ['url' => $url, 'related_url' => $item->related_url ?: '/consultation']]);
     }
 
     public function team(): JsonResponse
@@ -156,12 +224,35 @@ class PublicContentController extends Controller
         return response()->json(['data' => $members]);
     }
 
-    public function announcements(): JsonResponse
+    public function announcements(Request $request): JsonResponse
     {
-        $items = MarketingAnnouncement::query()->active()
-            ->orderByDesc('pinned')->orderByDesc('id')->get();
+        if (! $request->boolean('archive') && ! $request->filled('type') && ! $request->filled('from')) {
+            $items = MarketingAnnouncement::query()->active()->orderByDesc('pinned')->orderByDesc('id')->get();
 
-        return response()->json(['data' => $items]);
+            return response()->json(['data' => $items]);
+        }
+        // Archive: every published announcement (also expired ones), optionally by type and date window.
+        $query = MarketingAnnouncement::query()->where('published', true);
+        if ($request->filled('type')) {
+            $query->where('type', $request->get('type'));
+        }
+        if ($request->filled('from')) {
+            $query->where('created_at', '>=', $request->date('from'));
+        }
+        if ($request->filled('to')) {
+            $query->where('created_at', '<', $request->date('to'));
+        }
+
+        return response()->json(['data' => $query->orderByDesc('pinned')->orderByDesc('created_at')->limit(200)
+            ->get(['id', 'slug', 'title', 'summary', 'type', 'pinned', 'starts_at', 'created_at'])]);
+    }
+
+    public function announcementShow(string $slug): JsonResponse
+    {
+        $q = MarketingAnnouncement::query()->where('published', true);
+        $item = ctype_digit($slug) ? $q->where('id', (int) $slug)->firstOrFail() : $q->where('slug', $slug)->firstOrFail();
+
+        return response()->json(['data' => $item]);
     }
 
     public function testimonials(): JsonResponse

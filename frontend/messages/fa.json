@@ -178,7 +178,9 @@
         "builder": "صفحه‌ساز",
         "builderSettings": "تنظیمات سراسری",
         "siteBuilder": "صفحه‌ساز سایت شرکتی",
-        "portfolioCategories": "دسته‌های نمونه‌کار"
+        "portfolioCategories": "دسته‌های نمونه‌کار",
+        "blogCategories": "موضوعات بلاگ",
+        "academyLessons": "سرفصل‌های آکادمی"
       },
       "hrm": {
         "group": "مدیریت منابع انسانی",
@@ -2310,7 +2312,28 @@
     "results": "نتایج",
     "serviceTags": "خدمات انجام‌شده (هر خط یک برچسب)",
     "gallery": "گالری (هر خط یک نشانی تصویر)",
-    "sortOrder": "ترتیب"
+    "sortOrder": "ترتیب",
+    "topic": "موضوع",
+    "publishedAt": "تاریخ انتشار (YYYY-MM-DD)",
+    "excerpt": "خلاصه",
+    "bodyHtml": "متن (HTML؛ تیترهای h2/h3 فهرست مطالب می‌سازند)",
+    "issue": "شماره / پرونده",
+    "level": "سطح",
+    "duration": "مدت",
+    "instructor": "مدرس / رویکرد",
+    "enrollUrl": "پیوند ثبت‌نام",
+    "outcomes": "خروجی یادگیری (هر خط یک مورد)",
+    "isFree": "رایگان",
+    "course": "دوره",
+    "videoUrl": "پیوند ویدیو",
+    "answer": "پاسخ",
+    "type": "نوع",
+    "startsAt": "شروع نمایش",
+    "endsAt": "پایان نمایش",
+    "fileType": "نوع فایل",
+    "fileUrl": "نشانی فایل",
+    "relatedUrl": "پیشنهاد بعد از دانلود (پیوند)",
+    "gated": "دریافت ایمیل قبل از دانلود"
   },
   "analytics": {
     "title": "آمار",

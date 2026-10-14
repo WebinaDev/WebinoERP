@@ -36,6 +36,7 @@ import type { BuilderDocument, EditorApi, WidgetNode } from "../types"
 import { BuilderRuntimeProvider, useBuilderGlobals, useBuilderRuntime } from "./runtime"
 import { FormWidget } from "./form-widget"
 import { PortfolioGridWidget } from "./portfolio-widget"
+import { AcademyGridWidget, AnnouncementsListWidget, BlogListWidget, DownloadsListWidget, FaqCategorizedWidget, MagazineFeatureWidget } from "./knowledge-widgets"
 import { RahnEstimateWidget } from "./rahn-widget"
 import {
   AccordionWidget,
@@ -241,6 +242,18 @@ export function WidgetBody({ widget, editor }: { widget: WidgetNode; editor?: Ed
       return <RahnEstimateWidget widget={widget} editing={editing} />
     case "portfolio-grid":
       return <PortfolioGridWidget widget={widget} />
+    case "blog-list":
+      return <BlogListWidget widget={widget} />
+    case "academy-grid":
+      return <AcademyGridWidget widget={widget} />
+    case "magazine-feature":
+      return <MagazineFeatureWidget widget={widget} />
+    case "downloads-list":
+      return <DownloadsListWidget widget={widget} />
+    case "faq-categorized":
+      return <FaqCategorizedWidget widget={widget} />
+    case "announcements-list":
+      return <AnnouncementsListWidget widget={widget} />
     case "comparison-table":
       return <ComparisonTableWidget widget={widget} />
     case "container":

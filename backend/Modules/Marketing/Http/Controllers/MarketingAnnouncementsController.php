@@ -23,6 +23,9 @@ class MarketingAnnouncementsController extends Controller
             'published' => 'nullable|boolean',
             'starts_at' => 'nullable|date',
             'ends_at' => 'nullable|date',
+            'slug' => 'nullable|string|max:255',
+            'type' => 'nullable|string|max:32',
+            'summary' => 'nullable|string',
         ];
     }
 }

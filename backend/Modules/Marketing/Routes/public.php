@@ -17,6 +17,7 @@ Route::middleware('throttle:marketing-public')->group(function () {
     Route::get('/pages/{slug}', [PublicContentController::class, 'page']);
 
     Route::get('/blog', [PublicContentController::class, 'blog']);
+    Route::get('/blog-categories', [PublicContentController::class, 'blogCategories']);
     Route::get('/blog/{slug}', [PublicContentController::class, 'blogShow']);
 
     Route::get('/magazine', [PublicContentController::class, 'magazine']);
@@ -40,6 +41,7 @@ Route::middleware('throttle:marketing-public')->group(function () {
     Route::get('/downloads', [PublicContentController::class, 'downloads']);
     Route::get('/team', [PublicContentController::class, 'team']);
     Route::get('/announcements', [PublicContentController::class, 'announcements']);
+    Route::get('/announcements/{slug}', [PublicContentController::class, 'announcementShow']);
     Route::get('/testimonials', [PublicContentController::class, 'testimonials']);
 
     Route::get('/services/{slug}', [PublicContentController::class, 'serviceShow']);
@@ -53,5 +55,7 @@ Route::post('/consultations', [PublicConsultationController::class, 'store'])
 Route::post('/forms/{slug}', [PublicFormsController::class, 'submit'])
     ->middleware('throttle:5,1');
 
+Route::post('/downloads/{id}/request', [PublicContentController::class, 'downloadRequest'])
+    ->whereNumber('id')->middleware('throttle:10,1');
 Route::post('/forms/{slug}/upload', [PublicFormsController::class, 'upload'])
     ->middleware('throttle:10,1');
