@@ -56,6 +56,7 @@ import { DocumentView } from "../render/DocumentView"
 import { SchemaForm } from "@/features/marketing-builder/schema-form"
 import { EXTENDED_KINDS, ExtendedField } from "./fields"
 import { widgetLabel } from "../render/widgets"
+import { AiAssist, contentAssist } from "@/features/ai/content-assist"
 
 type PagePayload = {
   id: number
@@ -261,6 +262,34 @@ export function BuilderEditor({ mode }: { mode: Mode }) {
     setSelectedId(widget.id)
   }
 
+  /** Appends AI-drafted sections (heading + text widgets) to the editor document only; nothing is saved or published. */
+  async function draftFromBrief() {
+    const brief = window.prompt("بریف صفحه را بنویسید (موضوع، مخاطب، هدف، نکات کلیدی):")
+    if (!brief?.trim()) return
+    try {
+      toast.info("در حال ساخت پیش‌نویس…")
+      const r = await contentAssist({ action: "page_draft", surface: "builder.page", text: brief, target_id: pageId, context: { title, slug } })
+      const sections = Array.isArray(r.structured.sections) ? (r.structured.sections as { title?: string; subtitle?: string; text?: string }[]) : []
+      if (!sections.length) {
+        toast.error("پیشنهادی دریافت نشد.")
+        return
+      }
+      let next = doc
+      sections.forEach((s, i) => {
+        next = addSection(next)
+        const col = next.sections[next.sections.length - 1]?.columns[0]?.id
+        const w = createWidget("section-heading")
+        if (!col || !w) return
+        w.props = { ...w.props, title: s.title ?? "", subtitle: s.subtitle ?? "", text: s.text ?? "", tag: i === 0 && !doc.sections.some((x) => x.columns.some((c) => c.widgets.length)) ? "h1" : "h2" }
+        next = insertWidget(next, col, 0, w)
+      })
+      commit(next)
+      toast.success("پیش‌نویس به سند اضافه شد؛ بازبینی کنید و سپس ذخیره/انتشار را بزنید.")
+    } catch (e: unknown) {
+      toast.error((e as { response?: { data?: { message?: string } } })?.response?.data?.message || "ساخت پیش‌نویس انجام نشد.")
+    }
+  }
+
   async function save(publish: boolean) {
     setSaving(true)
     try {
@@ -346,6 +375,9 @@ export function BuilderEditor({ mode }: { mode: Mode }) {
           <IconButton label={t("tablet")} active={device === "tablet"} onClick={() => setDevice("tablet")}><Tablet className="size-4" /></IconButton>
           <IconButton label={t("mobile")} active={device === "mobile"} onClick={() => setDevice("mobile")}><Smartphone className="size-4" /></IconButton>
         </div>
+        {mode.kind === "page" ? (
+          <button type="button" className="rounded-md px-2 py-1 text-xs text-violet-200 hover:bg-white/10" onClick={() => void draftFromBrief()}>✨ پیش‌نویس با AI</button>
+        ) : null}
         <IconButton label={t("undo")} onClick={undo}><Undo2 className="size-4" /></IconButton>
         <IconButton label={t("redo")} onClick={redo}><Redo2 className="size-4" /></IconButton>
         <Link href="/dashboard/builder/settings" className="inline-flex items-center gap-1 rounded-md px-2 py-1 text-xs text-white/80 hover:bg-white/10">
@@ -568,15 +600,21 @@ function WidgetFields({ type, props, onChange }: { type: string; props: Record<s
         if (EXTENDED_KINDS.has(field.kind)) {
           return (
             <div key={field.key} className="grid gap-1 text-xs">
-              {label}
+              <span className="flex items-center justify-between">{label}{field.kind === "repeater" && type === "accordion" ? (
+                <AiAssist compact value={typeof value === "string" ? value : ""} onApply={(next) => onChange(field.key, next)} surface={`builder.${type}`} field="faq" kind="textarea" />
+              ) : null}</span>
               <ExtendedField field={field} props={props} onChange={onChange} />
             </div>
           )
         }
+        const ai = (kind: "text" | "textarea") => (
+          <AiAssist compact value={typeof value === "string" ? value : ""} onApply={(next) => onChange(field.key, next)} surface={`builder.${type}`} field={field.key} kind={kind}
+            context={{ widget: def?.label ?? type, ...Object.fromEntries(["title", "subtitle", "heading"].filter((k) => k !== field.key && typeof props[k] === "string" && props[k]).map((k) => [k, props[k]])) }} />
+        )
         if (field.kind === "textarea") {
           return (
             <label key={field.key} className="grid gap-1 text-xs">
-              {label}
+              <span className="flex items-center justify-between">{label}{ai("textarea")}</span>
               <textarea className="min-h-24 rounded-md border px-2 py-1" value={typeof value === "string" ? value : ""} onChange={(event) => onChange(field.key, event.target.value)} />
             </label>
           )
@@ -609,7 +647,7 @@ function WidgetFields({ type, props, onChange }: { type: string; props: Record<s
         }
         return (
           <label key={field.key} className="grid gap-1 text-xs">
-            {label}
+            <span className="flex items-center justify-between">{label}{field.kind === "text" ? ai("text") : null}</span>
             <input className="h-9 rounded-md border px-2" value={typeof value === "string" ? value : ""} onChange={(event) => onChange(field.key, event.target.value)} />
           </label>
         )

@@ -2,6 +2,7 @@
 
 namespace Modules\AiContent\Http\Controllers;
 
+use Carbon\Carbon;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Modules\AiContent\Entities\AiCalendarSlot;
@@ -64,7 +65,7 @@ class CalendarController extends Controller
         ]);
 
         $lines = preg_split('/\r\n|\r|\n/', trim($data['topics'])) ?: [];
-        $date = \Carbon\Carbon::parse($data['start_date']);
+        $date = Carbon::parse($data['start_date']);
         $created = [];
         foreach ($lines as $line) {
             $line = trim($line);
