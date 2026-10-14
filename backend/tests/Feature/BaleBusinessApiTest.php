@@ -3,6 +3,7 @@
 namespace Tests\Feature;
 
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\Http;
 use Laravel\Sanctum\Sanctum;
 use Modules\Integrations\Entities\IntegrationSetting;
 use Tests\Concerns\SeedsRbac;
@@ -49,8 +50,21 @@ class BaleBusinessApiTest extends TestCase
             ],
         ];
 
+        Http::fake(['tapi.bale.ai/*' => Http::response(['ok' => true, 'result' => []])]);
+
         $this->postJson('/api/webinocrm/v1/bale/webhook', $payload)
             ->assertOk()
             ->assertJsonPath('ok', true);
+        Http::assertSent(fn ($req) => str_contains($req->url(), '/sendMessage'));
+    }
+
+    public function test_bale_webhook_acknowledges_when_reply_fails(): void
+    {
+        Http::fake(['tapi.bale.ai/*' => Http::response(['ok' => false], 500)]);
+
+        $this->postJson('/api/webinocrm/v1/bale/webhook', [
+            'update_id' => 9002,
+            'message' => ['chat' => ['id' => '12345'], 'text' => '/start'],
+        ])->assertOk();
     }
 }

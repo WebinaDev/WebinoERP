@@ -694,13 +694,13 @@
     {
       "route": "admin/integrations/modirpayamak/reports",
       "module": "sales/modirpayamak",
-      "apiHint": "/v1/integrations/modirpayamak/reports",
+      "apiHint": "/v1/integrations/modirpayamak/admin/reports/outbox",
       "e2ePath": "admin/integrations/modirpayamak/reports",
       "e2eAuth": true,
       "component": "ModirpayamakReportsPage",
       "apiSmoke": {
         "method": "GET",
-        "path": "/api/v1/integrations/modirpayamak/reports",
+        "path": "/api/v1/integrations/modirpayamak/admin/reports/outbox",
         "role": "system_manager",
         "allowNotFound": false
       }
@@ -750,13 +750,13 @@
     {
       "route": "admin/integrations/modirpayamak/patterns",
       "module": "sales/modirpayamak",
-      "apiHint": "/v1/integrations/modirpayamak/patterns",
+      "apiHint": "/v1/integrations/modirpayamak/admin/patterns",
       "e2ePath": "admin/integrations/modirpayamak/patterns",
       "e2eAuth": true,
       "component": "ModirpayamakPatternsPage",
       "apiSmoke": {
         "method": "GET",
-        "path": "/api/v1/integrations/modirpayamak/patterns",
+        "path": "/api/v1/integrations/modirpayamak/admin/patterns",
         "role": "system_manager",
         "allowNotFound": false
       }
@@ -764,13 +764,13 @@
     {
       "route": "admin/integrations/modirpayamak/phonebooks",
       "module": "sales/modirpayamak",
-      "apiHint": "/v1/integrations/modirpayamak/phonebooks",
+      "apiHint": "/v1/integrations/modirpayamak/admin/phonebooks",
       "e2ePath": "admin/integrations/modirpayamak/phonebooks",
       "e2eAuth": true,
       "component": "ModirpayamakPhonebooksPage",
       "apiSmoke": {
         "method": "GET",
-        "path": "/api/v1/integrations/modirpayamak/phonebooks",
+        "path": "/api/v1/integrations/modirpayamak/admin/phonebooks",
         "role": "system_manager",
         "allowNotFound": false
       }
@@ -778,13 +778,13 @@
     {
       "route": "admin/integrations/modirpayamak/numbers",
       "module": "sales/modirpayamak",
-      "apiHint": "/v1/integrations/modirpayamak/numbers",
+      "apiHint": "/v1/integrations/modirpayamak/admin/numbers",
       "e2ePath": "admin/integrations/modirpayamak/numbers",
       "e2eAuth": true,
       "component": "ModirpayamakNumbersPage",
       "apiSmoke": {
         "method": "GET",
-        "path": "/api/v1/integrations/modirpayamak/numbers",
+        "path": "/api/v1/integrations/modirpayamak/admin/numbers",
         "role": "system_manager",
         "allowNotFound": false
       }

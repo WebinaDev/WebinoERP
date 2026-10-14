@@ -199,8 +199,14 @@ class LicenseParityController extends Controller
         $data = $request->validate([
             'expires_at' => 'nullable|date',
         ]);
+        $expires = $data['expires_at'] ?? null;
+        // A date-only expiry means "valid through that day"; midnight local time would serialize
+        // as the previous day in UTC.
+        $expiresAt = $expires === null
+            ? now()->addYear()
+            : (preg_match('/^\d{4}-\d{2}-\d{2}$/', (string) $expires) ? \Illuminate\Support\Carbon::parse($expires)->endOfDay() : $expires);
         $license->update([
-            'expires_at' => $data['expires_at'] ?? now()->addYear(),
+            'expires_at' => $expiresAt,
             'status' => 'active',
         ]);
 

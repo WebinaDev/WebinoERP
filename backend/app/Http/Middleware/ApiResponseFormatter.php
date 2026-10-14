@@ -162,6 +162,10 @@ class ApiResponseFormatter
         $message = null;
         $errors = null;
         $data = null;
+        // Keep a payload that error responses carry on purpose (e.g. readiness checks on 503).
+        if (array_key_exists('data', $content)) {
+            $data = $content['data'];
+        }
 
         if (isset($content['error']) && is_array($content['error'])) {
             $error = $content['error'];

@@ -56,7 +56,9 @@ class BaleWebhookHandler
                 'line' => $e->getLine(),
             ]);
 
-            return ['ok' => false, 'error' => 'dispatch_failed', 'status' => 500];
+            // The update is already marked as seen, so a non-2xx would only make Bale retry into
+            // the duplicate guard; acknowledge with 200 and keep the failure in the log.
+            return ['ok' => false, 'error' => 'dispatch_failed', 'status' => 200];
         }
 
         return ['ok' => true, 'status' => 200];

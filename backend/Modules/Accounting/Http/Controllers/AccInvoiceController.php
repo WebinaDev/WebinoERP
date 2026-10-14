@@ -35,7 +35,7 @@ class AccInvoiceController extends Controller
         }
         $last = $q->value('number');
         $next = is_string($last) && preg_match('/(\d+)$/', $last, $m)
-            ? preg_replace('/\d+$/', (string) ((int) $m[1] + 1), $last)
+            ? preg_replace('/\d+$/', str_pad((string) ((int) $m[1] + 1), strlen($m[1]), '0', STR_PAD_LEFT), $last)
             : 'INV-'.Str::upper(Str::random(6));
 
         return response()->json(['data' => ['next_number' => $next]]);

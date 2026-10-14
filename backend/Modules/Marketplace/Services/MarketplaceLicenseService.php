@@ -6,6 +6,7 @@ use Illuminate\Support\Facades\DB;
 use Modules\Core\Entities\CoreLicense;
 use Modules\Core\Entities\ModuleGitSource;
 use Modules\Core\Services\CoreLicenseMetaNormalizer;
+use Modules\Core\Services\CoreLicenseResolver;
 use Modules\Marketplace\Entities\MarketplaceEntitlement;
 use Modules\Marketplace\Entities\MarketplaceModule;
 use Modules\Marketplace\Entities\MarketplaceOrder;

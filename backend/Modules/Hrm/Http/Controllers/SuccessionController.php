@@ -85,6 +85,6 @@ class SuccessionController extends Controller
     {
         $successionPlan->delete();
 
-        return response()->noContent();
+        return response()->json(null, 204);
     }
 }

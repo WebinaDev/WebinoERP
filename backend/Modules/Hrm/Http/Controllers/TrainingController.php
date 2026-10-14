@@ -60,7 +60,7 @@ class TrainingController extends Controller
     {
         $course->delete();
 
-        return response()->noContent();
+        return response()->json(null, 204);
     }
 
     public function enroll(Request $request, HrmTrainingCourse $course): JsonResponse

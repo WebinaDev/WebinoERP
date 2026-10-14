@@ -58,7 +58,7 @@ class PipelineController extends Controller
     {
         $pipeline->delete();
 
-        return response()->noContent();
+        return response()->json(null, 204);
     }
 
     public function storeStage(Request $request, CrmPipeline $pipeline): JsonResponse
@@ -95,7 +95,7 @@ class PipelineController extends Controller
         abort_unless($stage->pipeline_id === $pipeline->id, 404);
         $stage->delete();
 
-        return response()->noContent();
+        return response()->json(null, 204);
     }
 
     public function kanban(CrmPipeline $pipeline): JsonResponse

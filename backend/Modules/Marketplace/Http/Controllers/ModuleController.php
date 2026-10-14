@@ -168,7 +168,7 @@ class ModuleController extends Controller
 
         $module->delete();
 
-        return response()->noContent();
+        return response()->json(null, 204);
     }
 
     public function attachRepo(Request $request, MarketplaceModule $module, MarketplaceGiteaClient $gitea): JsonResponse

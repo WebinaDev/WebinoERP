@@ -4,10 +4,13 @@ namespace Tests\Feature;
 
 use Modules\Core\Entities\CoreLicense;
 use Modules\Integrations\Entities\ModirPayamakAccount;
+use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
 
 class WebinocrmModirPayamakCompatTest extends TestCase
 {
+    use RefreshDatabase;
+
     public function test_dashboard_requires_domain(): void
     {
         $this->getJson('/api/webinocrm/v1/modirpayamak/dashboard')

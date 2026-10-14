@@ -34,6 +34,7 @@ class AuthOtpApiTest extends TestCase
     {
         $mobile = '09129876543';
         $code = '123456';
+        \App\Models\User::factory()->create(['phone' => $mobile, 'is_active' => true]);
         Cache::put('otp_login:'.$mobile, $code, now()->addMinutes(5));
 
         $response = $this->postJson('/api/v1/core/auth/otp/verify', [
@@ -43,7 +44,8 @@ class AuthOtpApiTest extends TestCase
 
         $response->assertOk();
         $response->assertJsonPath('data.verified', true);
-        $this->assertNotEmpty($response->json('data.token'));
+        $this->assertNull($response->json('data.token'));
+        $response->assertCookie(config('auth.cookie_name', 'webino_auth_token'));
     }
 
     public function test_verify_login_otp_rejects_invalid_code(): void

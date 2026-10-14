@@ -2,10 +2,13 @@
 
 namespace Tests\Feature;
 
+use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
 
 class CoreConfigApiTest extends TestCase
 {
+    use RefreshDatabase;
+
     public function test_public_config_endpoint_returns_success_structure(): void
     {
         $response = $this->getJson('/api/v1/core/config');

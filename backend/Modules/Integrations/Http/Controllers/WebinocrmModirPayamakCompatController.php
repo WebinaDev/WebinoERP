@@ -66,9 +66,9 @@ class WebinocrmModirPayamakCompatController extends Controller
 
             return $this->forward($request, $path);
         } catch (\Symfony\Component\HttpKernel\Exception\HttpException $e) {
-            return $this->unavailable($e->getMessage() ?: 'Request failed', $e->getStatusCode());
+            return $this->unavailable($e->getMessage() ?: __('messages.request_failed'), $e->getStatusCode());
         } catch (\Throwable $e) {
-            return $this->unavailable($e->getMessage() ?: 'Request failed');
+            return $this->unavailable($e->getMessage() ?: __('messages.request_failed'));
         }
     }
 
@@ -369,7 +369,11 @@ class WebinocrmModirPayamakCompatController extends Controller
 
         // Entitlement is domain-only; optional license_key from WP clients is ignored.
         $license = CoreLicenseResolver::find($domain, $request->input('product') ?? $request->query('product'));
-        if ($license && $license->status !== 'active') {
+        if (! $license) {
+            // Unlicensed domains must not get an SMS account (and spend/read a tenant wallet) by guessing a domain.
+            abort(403, __('messages.license_not_found_for_domain'));
+        }
+        if ($license->status !== 'active') {
             abort(403, __('messages.license_inactive_for_domain'));
         }
 
@@ -385,8 +389,8 @@ class WebinocrmModirPayamakCompatController extends Controller
 
         if ($status >= 400) {
             $message = is_array($content)
-                ? (string) ($content['message'] ?? $content['error'] ?? 'Request failed')
-                : 'Request failed';
+                ? (string) ($content['message'] ?? $content['error'] ?? __('messages.request_failed'))
+                : __('messages.request_failed');
 
             return $this->unavailable($message, $status);
         }
@@ -431,10 +435,10 @@ class WebinocrmModirPayamakCompatController extends Controller
     {
         $trimmed = trim($message);
         if ($trimmed === '') {
-            return 'SMS service is temporarily unavailable.';
+            return __('messages.sms_service_temporarily_unavailable');
         }
         if (preg_match('/SQLSTATE|Undefined table|relation\s+"|modirpayamak_|ippanel|stack\s+trace/i', $trimmed)) {
-            return 'SMS service is temporarily unavailable.';
+            return __('messages.sms_service_temporarily_unavailable');
         }
 
         return $trimmed;

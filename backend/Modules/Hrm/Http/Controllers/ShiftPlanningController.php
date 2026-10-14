@@ -40,7 +40,7 @@ class ShiftPlanningController extends Controller
     {
         $shiftTemplate->delete();
 
-        return response()->noContent();
+        return response()->json(null, 204);
     }
 
     public function rotationsIndex(Request $request): JsonResponse

@@ -84,7 +84,7 @@ class InvoiceController extends Controller
     {
         $invoice->delete();
 
-        return response()->noContent();
+        return response()->json(null, 204);
     }
 
     public function projectsForCustomer(Request $request): JsonResponse

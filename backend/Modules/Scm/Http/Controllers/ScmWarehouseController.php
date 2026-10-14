@@ -40,7 +40,7 @@ class ScmWarehouseController extends Controller
     {
         $this->warehouse->deleteWarehouse($warehouse->id);
 
-        return response()->noContent();
+        return response()->json(null, 204);
     }
 
     public function stock(Request $request): JsonResponse

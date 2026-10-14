@@ -76,7 +76,7 @@ class DealController extends Controller
     {
         $deal->delete();
 
-        return response()->noContent();
+        return response()->json(null, 204);
     }
 
     public function move(Request $request, CrmDeal $deal, CrmAutomationDispatcher $automation): JsonResponse

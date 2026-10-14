@@ -70,7 +70,7 @@ class StaffNestedController extends Controller
     {
         $staff->delete();
 
-        return response()->noContent();
+        return response()->json(null, 204);
     }
 
     public function getProfile(HrmEmployee $staff): JsonResponse
@@ -127,7 +127,7 @@ class StaffNestedController extends Controller
     {
         $orgPosition->delete();
 
-        return response()->noContent();
+        return response()->json(null, 204);
     }
 
     public function dependentsIndex(HrmEmployee $staff): \Illuminate\Http\JsonResponse

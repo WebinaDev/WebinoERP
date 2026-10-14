@@ -81,7 +81,9 @@ class AuthController extends Controller
         }
 
         $current = $request->user()?->currentAccessToken();
-        $currentAbilities = $current && property_exists($current, 'abilities')
+        // Eloquent attributes are not real properties (property_exists() was always false, so a
+        // 2fa-pending token was silently upgraded to '*' on refresh — 2FA bypass).
+        $currentAbilities = $current !== null && isset($current->abilities)
             ? (array) $current->abilities
             : [];
         $abilities = in_array('2fa-pending', $currentAbilities, true) ? ['2fa-pending'] : ['*'];

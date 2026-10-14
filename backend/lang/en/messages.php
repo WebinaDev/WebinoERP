@@ -307,4 +307,7 @@ return [
     'work_order_cannot_be_completed_from_current_status' => 'Work order cannot be completed from current status',
     'work_order_cannot_be_started_from_current_status' => 'Work order cannot be started from current status',
     'zarinpal_init_failed' => 'Zarinpal init failed',
+    'request_failed' => 'Request failed',
+    'sms_service_temporarily_unavailable' => 'SMS service is temporarily unavailable.',
+    'attendance_select_employee_first' => 'Select an employee, or link this login to a staff record, before check-in.',
 ];

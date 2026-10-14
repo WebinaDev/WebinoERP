@@ -307,4 +307,7 @@ return [
     'work_order_cannot_be_completed_from_current_status' => 'دستور کار از وضعیت فعلی قابل تکمیل نیست',
     'work_order_cannot_be_started_from_current_status' => 'دستور کار از وضعیت فعلی قابل شروع نیست',
     'zarinpal_init_failed' => 'شروع پرداخت زرین‌پال ناموفق بود',
+    'request_failed' => 'درخواست ناموفق بود',
+    'sms_service_temporarily_unavailable' => 'سرویس پیامک موقتاً در دسترس نیست.',
+    'attendance_select_employee_first' => 'پیش از ثبت ورود، یک کارمند انتخاب کنید یا این حساب کاربری را به پرونده‌ی پرسنلی متصل کنید.',
 ];

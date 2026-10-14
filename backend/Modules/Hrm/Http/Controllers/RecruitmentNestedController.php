@@ -64,7 +64,7 @@ class RecruitmentNestedController extends Controller
     {
         $applicant->delete();
 
-        return response()->noContent();
+        return response()->json(null, 204);
     }
 
     public function applicantHire(Request $request, HrmJobApplicant $applicant): JsonResponse

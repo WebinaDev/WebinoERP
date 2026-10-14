@@ -58,7 +58,7 @@ class PayrollController extends Controller
     {
         $payroll->delete();
 
-        return response()->noContent();
+        return response()->json(null, 204);
     }
 
     public function storeItem(Request $request, HrmPayrollRun $payroll): JsonResponse
@@ -82,6 +82,6 @@ class PayrollController extends Controller
         $item->delete();
         $payroll->update(['total_amount' => $payroll->items()->sum('net')]);
 
-        return response()->noContent();
+        return response()->json(null, 204);
     }
 }

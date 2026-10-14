@@ -75,6 +75,6 @@ class CampaignController extends Controller
     {
         $campaign->delete();
 
-        return response()->noContent();
+        return response()->json(null, 204);
     }
 }

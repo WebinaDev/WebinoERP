@@ -17,10 +17,7 @@ class AttendanceNestedController extends Controller
             'notes' => 'nullable|string|max:500',
         ]);
         $today = now()->toDateString();
-        $record = HrmAttendanceRecord::query()->firstOrCreate(
-            ['employee_id' => $employeeId, 'date' => $today],
-            ['status' => 'present']
-        );
+        $record = $this->todayRecord($employeeId, $today, ['status' => 'present']);
         $record->update([
             'check_in' => now()->format('H:i:s'),
             'status' => 'present',
@@ -34,10 +31,7 @@ class AttendanceNestedController extends Controller
     {
         $employeeId = $this->resolveEmployeeId($request);
         $today = now()->toDateString();
-        $record = HrmAttendanceRecord::query()->firstOrCreate(
-            ['employee_id' => $employeeId, 'date' => $today],
-            ['status' => 'present', 'check_in' => now()->format('H:i:s')]
-        );
+        $record = $this->todayRecord($employeeId, $today, ['status' => 'present', 'check_in' => now()->format('H:i:s')]);
         if (! $record->check_in) {
             $record->check_in = now()->format('H:i:s');
         }
@@ -45,6 +39,24 @@ class AttendanceNestedController extends Controller
         $record->save();
 
         return response()->json(['data' => $record->fresh('employee'), 'message' => __('messages.checked_out')]);
+    }
+
+    /**
+     * `date` is cast to a datetime, so firstOrCreate(['date' => 'Y-m-d']) misses the stored
+     * row on drivers that keep the time part and then violates the (employee_id, date) unique key.
+     *
+     * @param  array<string, mixed>  $defaults
+     */
+    private function todayRecord(int $employeeId, string $today, array $defaults): HrmAttendanceRecord
+    {
+        $record = HrmAttendanceRecord::query()
+            ->where('employee_id', $employeeId)
+            ->whereDate('date', $today)
+            ->first();
+
+        return $record ?? HrmAttendanceRecord::query()->create(
+            ['employee_id' => $employeeId, 'date' => $today] + $defaults
+        );
     }
 
     private function resolveEmployeeId(Request $request): int
@@ -66,7 +78,7 @@ class AttendanceNestedController extends Controller
         }
         if (! $employee) {
             throw ValidationException::withMessages([
-                'employee_id' => 'Select an employee, or link this login to a staff record, before check-in.',
+                'employee_id' => __('messages.attendance_select_employee_first'),
             ]);
         }
 

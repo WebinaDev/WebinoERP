@@ -60,6 +60,6 @@ class LeaveController extends Controller
     {
         $leave->delete();
 
-        return response()->noContent();
+        return response()->json(null, 204);
     }
 }

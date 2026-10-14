@@ -11,6 +11,9 @@ class ModirPayamakEdgeClient
 
     public function isConfigured(): bool
     {
+        if ((bool) config('integrations.modirpayamak.mock', false)) {
+            return true; // mock mode never hits ippanel
+        }
         if ($this->apiKey() === '') {
             return false;
         }
