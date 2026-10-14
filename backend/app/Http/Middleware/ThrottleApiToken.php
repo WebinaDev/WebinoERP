@@ -12,6 +12,11 @@ class ThrottleApiToken
     public function handle(Request $request, Closure $next): Response
     {
         $user = $request->user();
+        // Public site API (guests): limited per visitor by throttle:marketing-public; the site's server-side
+        // renders all come from one container IP, so this shared guest bucket turned busy minutes into 404 pages.
+        if ($user === null && $request->is('api/v1/public/*')) {
+            return $next($request);
+        }
         $wizard = $this->isSiteBuilderWizardRequest($request);
         $limit = $this->maxAttempts($wizard);
 

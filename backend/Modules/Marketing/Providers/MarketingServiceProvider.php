@@ -21,8 +21,11 @@ class MarketingServiceProvider extends ServiceProvider
 
         $this->loadMigrationsFrom(module_path($this->moduleName, 'Database/Migrations'));
 
+        // Rate limiting lives in Routes/public.php (throttle:marketing-public, AppServiceProvider): visitors per IP,
+        // server-side renders in their own large bucket. An extra blanket throttle:120,1 here made every page
+        // render share one bucket and turned busy minutes into 404s.
         Route::prefix('api/v1/public')
-            ->middleware(['api', 'throttle:120,1'])
+            ->middleware(['api'])
             ->group(module_path($this->moduleName, 'Routes/public.php'));
 
         Route::prefix('api/v1/marketing')
