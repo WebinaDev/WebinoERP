@@ -7660,7 +7660,12 @@
     "globals": "Global settings",
     "widget_search": "Search widgets",
     "theme_builder": "Theme builder",
-    "empty_list": "No pages yet. Create one or load the ishop starter."
+    "empty_list": "No pages yet. Create one or load the ishop starter.",
+    "move_up": "Move up",
+    "move_down": "Move down",
+    "repeater_add": "Add row",
+    "link_new_tab": "New tab",
+    "link_nofollow": "nofollow"
   },
   "theme_builder": {
     "title": "Theme builder",

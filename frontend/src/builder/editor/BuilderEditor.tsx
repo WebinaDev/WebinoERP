@@ -54,6 +54,7 @@ import type { BuilderDocument, DeviceMode, EditorApi, StyleProps } from "../type
 import { DND_WIDGET } from "../types"
 import { DocumentView } from "../render/DocumentView"
 import { SchemaForm } from "@/features/marketing-builder/schema-form"
+import { EXTENDED_KINDS, ExtendedField } from "./fields"
 import { widgetLabel } from "../render/widgets"
 
 type PagePayload = {
@@ -564,6 +565,14 @@ function WidgetFields({ type, props, onChange }: { type: string; props: Record<s
             {field.label}
           </span>
         )
+        if (EXTENDED_KINDS.has(field.kind)) {
+          return (
+            <div key={field.key} className="grid gap-1 text-xs">
+              {label}
+              <ExtendedField field={field} props={props} onChange={onChange} />
+            </div>
+          )
+        }
         if (field.kind === "textarea") {
           return (
             <label key={field.key} className="grid gap-1 text-xs">

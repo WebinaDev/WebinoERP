@@ -2,6 +2,7 @@ import { uid } from "./ids"
 import { createSection } from "./tree"
 import type { WidgetDef, WidgetNode } from "./types"
 import { CORPORATE_WIDGETS } from "@/themes/webina-corporate-v1/builder/blocks"
+import { CONTENT_WIDGETS, FORM_WIDGET, PORTED_WIDGETS } from "./registry-content"
 
 function node(type: string, props: Record<string, unknown>, children?: WidgetNode["children"]): WidgetNode {
   return { id: uid("w"), type, props, children }
@@ -114,16 +115,7 @@ export const WIDGETS: WidgetDef[] = [
     fields: [{ kind: "textarea", key: "links", label: "پیوندها (برچسب|نشانی)" }],
     create: () => node("menu", { links: "خانه|/\nفروشگاه|/shop\nحساب|/account" }),
   },
-  {
-    type: "form",
-    label: "فرم",
-    category: "basic",
-    fields: [
-      { kind: "text", key: "title", label: "عنوان" },
-      { kind: "text", key: "submit", label: "دکمه" },
-    ],
-    create: () => node("form", { title: "پیام به ویبینو", submit: "ارسال" }),
-  },
+  FORM_WIDGET,
   {
     type: "hero-slider",
     label: "اسلایدر هیرو",
@@ -297,7 +289,7 @@ export const WIDGETS: WidgetDef[] = [
   },
 ]
 
-WIDGETS.push(...CORPORATE_WIDGETS)
+WIDGETS.push(...PORTED_WIDGETS, ...CONTENT_WIDGETS, ...CORPORATE_WIDGETS)
 
 const byType = new Map(WIDGETS.map((widget) => [widget.type, widget]))
 
@@ -313,6 +305,7 @@ export function createWidget(type: string): WidgetNode | null {
 export const WIDGET_CATEGORIES: { id: WidgetDef["category"]; label: string }[] = [
   { id: "layout", label: "چیدمان" },
   { id: "basic", label: "پایه" },
+  { id: "content", label: "محتوا و لندینگ" },
   { id: "commerce", label: "فروشگاه" },
   { id: "chrome", label: "قالب" },
   { id: "corporate", label: "وبینا" },
