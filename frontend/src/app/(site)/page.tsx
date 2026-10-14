@@ -1,3 +1,4 @@
+import { routeMetadata } from '@/lib/seo';
 import { getTranslations } from 'next-intl/server';
 import { apiServer } from '@/lib/public-api-server';
 import { loadPublishedPage, StorefrontDocument } from '@/builder/public-document';
@@ -8,6 +9,10 @@ import { LandingPage, type LandingData } from '@/themes/webina-corporate-v1/comp
 export const revalidate = 60;
 
 type HomeData = { data: NonNullable<LandingData> };
+
+export function generateMetadata() {
+  return routeMetadata('/', {});
+}
 
 export default async function SiteHomePage() {
   const t = await getTranslations();

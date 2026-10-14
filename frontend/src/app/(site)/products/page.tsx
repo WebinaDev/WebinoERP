@@ -1,3 +1,4 @@
+import { routeMetadata } from '@/lib/seo';
 import { getLocale, getTranslations } from 'next-intl/server';
 import Link from 'next/link';
 import { apiServer, siteHref } from '@/lib/public-api-server';
@@ -7,6 +8,10 @@ import { SitePage } from '@/themes/webina-corporate-v1/components/SitePage';
 import { getHomeBlock } from '@/themes/webina-corporate-v1/site-content-server';
 
 export const revalidate = 60;
+
+export function generateMetadata() {
+  return routeMetadata('/products', { title: 'محصولات' });
+}
 
 export default async function ProductsPage() {
   const t = await getTranslations();

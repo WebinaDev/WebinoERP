@@ -1,3 +1,4 @@
+import { routeMetadata } from '@/lib/seo';
 import Link from 'next/link';
 import { getLocale, getTranslations } from 'next-intl/server';
 import { ArrowUpLeft, Clock, MapPin, Navigation } from 'lucide-react';
@@ -51,6 +52,10 @@ function osmEmbed(lat: number, lng: number, zoom: number) {
   const d = 0.012 * 2 ** (15 - Math.min(19, Math.max(3, zoom)));
   const bbox = [lng - d, lat - d * 0.6, lng + d, lat + d * 0.6].map((n) => n.toFixed(5)).join(',');
   return `https://www.openstreetmap.org/export/embed.html?bbox=${bbox}&layer=mapnik&marker=${lat},${lng}`;
+}
+
+export function generateMetadata() {
+  return routeMetadata('/contact', { title: 'تماس با ما' });
 }
 
 export default async function ContactPage() {

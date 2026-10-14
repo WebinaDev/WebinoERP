@@ -10,12 +10,12 @@ class MarketingBlogPost extends Model
 {
     protected $table = 'marketing_blog_posts';
 
-    protected $fillable = [
+    protected $fillable = ['seo', 
         'category_id', 'slug', 'title', 'excerpt', 'body',
         'cover_url', 'status', 'published_at', 'wp_id', 'meta',
     ];
 
-    protected $casts = ['published_at' => 'datetime', 'meta' => 'array'];
+    protected $casts = ['seo' => 'array', 'published_at' => 'datetime', 'meta' => 'array'];
 
     public function category(): BelongsTo
     {

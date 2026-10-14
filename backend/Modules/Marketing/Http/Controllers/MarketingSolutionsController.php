@@ -20,6 +20,12 @@ class MarketingSolutionsController extends Controller
     public function storeIndustry(Request $request): JsonResponse
     {
         $data = $request->validate([
+            'seo' => 'nullable|array',
+            'seo.title' => 'nullable|string|max:120',
+            'seo.description' => 'nullable|string|max:320',
+            'seo.og_image' => 'nullable|string|max:500',
+            'seo.canonical' => 'nullable|string|max:500',
+            'seo.noindex' => 'nullable|boolean',
             'slug' => 'required|string|max:255',
             'name' => 'required|string|max:255',
             'description' => 'nullable|string',
@@ -34,6 +40,12 @@ class MarketingSolutionsController extends Controller
     {
         $row = MarketingSolutionIndustry::query()->findOrFail($id);
         $data = $request->validate([
+            'seo' => 'nullable|array',
+            'seo.title' => 'nullable|string|max:120',
+            'seo.description' => 'nullable|string|max:320',
+            'seo.og_image' => 'nullable|string|max:500',
+            'seo.canonical' => 'nullable|string|max:500',
+            'seo.noindex' => 'nullable|boolean',
             'slug' => 'sometimes|string|max:255',
             'name' => 'sometimes|string|max:255',
             'description' => 'nullable|string',
@@ -62,6 +74,12 @@ class MarketingSolutionsController extends Controller
     public function storePage(Request $request, int $industryId): JsonResponse
     {
         $data = $request->validate([
+            'seo' => 'nullable|array',
+            'seo.title' => 'nullable|string|max:120',
+            'seo.description' => 'nullable|string|max:320',
+            'seo.og_image' => 'nullable|string|max:500',
+            'seo.canonical' => 'nullable|string|max:500',
+            'seo.noindex' => 'nullable|boolean',
             'slug' => 'required|string|max:255',
             'title' => 'required|string|max:255',
             'body' => 'nullable|string',
@@ -76,6 +94,12 @@ class MarketingSolutionsController extends Controller
     {
         $row = MarketingSolutionPage::query()->findOrFail($id);
         $data = $request->validate([
+            'seo' => 'nullable|array',
+            'seo.title' => 'nullable|string|max:120',
+            'seo.description' => 'nullable|string|max:320',
+            'seo.og_image' => 'nullable|string|max:500',
+            'seo.canonical' => 'nullable|string|max:500',
+            'seo.noindex' => 'nullable|boolean',
             'slug' => 'sometimes|string|max:255',
             'title' => 'sometimes|string|max:255',
             'body' => 'nullable|string',

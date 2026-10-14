@@ -10,6 +10,7 @@ use Modules\Marketing\Http\Controllers\Public\PublicSiteController;
 
 Route::middleware('throttle:marketing-public')->group(function () {
     Route::get('/site', [PublicSiteController::class, 'site']);
+    Route::get('/sitemap', [\Modules\Marketing\Http\Controllers\Public\PublicSitemapController::class, 'index']);
     Route::get('/home', [PublicSiteController::class, 'home']);
     Route::get('/services', [PublicSiteController::class, 'services']);
     Route::get('/solutions', [PublicSiteController::class, 'solutions']);

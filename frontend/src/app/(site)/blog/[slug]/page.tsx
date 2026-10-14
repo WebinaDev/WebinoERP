@@ -1,3 +1,4 @@
+import { articleLd, breadcrumbLd, itemMetadata, JsonLd, siteName, siteOrigin } from '@/lib/seo';
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import { apiServer } from '@/lib/public-api-server';
@@ -7,7 +8,7 @@ import { SitePage } from '@/themes/webina-corporate-v1/components/SitePage';
 export const revalidate = 60;
 
 type Related = { slug: string; title: string; excerpt?: string | null };
-type BlogPost = { title: string; body?: string | null; excerpt?: string | null; read_minutes?: number; published_at?: string | null; category?: { name: string } | null; related?: Related[] };
+type BlogPost = { title: string; slug?: string; cover_url?: string | null; updated_at?: string | null; body?: string | null; excerpt?: string | null; read_minutes?: number; published_at?: string | null; category?: { name: string } | null; related?: Related[] };
 
 const fa = (n: number) => String(n).replace(/\d/g, (d) => '۰۱۲۳۴۵۶۷۸۹'[Number(d)]);
 
@@ -34,13 +35,15 @@ function prepare(html: string) {
 }
 
 export async function generateMetadata({ params }: { params: Promise<{ slug: string }> }) {
-  const post = await load((await params).slug);
-  return post ? { title: post.title, description: post.excerpt ?? undefined } : {};
+  const { slug } = await params;
+  return itemMetadata<Record<string, unknown>>(`/v1/public/blog/${encodeURIComponent(slug)}`, `/blog/${slug}`, (d) => ({ title: d.title as string, description: (d.excerpt || d.body) as string, image: d.cover_url as string, type: 'article' as const, publishedTime: d.published_at as string }));
 }
 
 export default async function BlogPostPage({ params }: { params: Promise<{ slug: string }> }) {
-  const post = await load((await params).slug);
+  const { slug } = await params;
+  const post = await load(slug);
   if (!post) notFound();
+  const [origin, publisher] = await Promise.all([siteOrigin(), siteName()]);
   const { toc, first, second } = prepare(post.body ?? '');
   const meta = [post.category?.name, post.published_at ? new Intl.DateTimeFormat('fa-IR-u-ca-persian', { dateStyle: 'long' }).format(new Date(post.published_at)) : '', post.read_minutes ? `${fa(post.read_minutes)} دقیقه مطالعه` : ''].filter(Boolean).join(' · ');
   const cta = (
@@ -54,6 +57,10 @@ export default async function BlogPostPage({ params }: { params: Promise<{ slug:
   );
   return (
     <SitePage kicker="بلاگ" title={post.title} lead={post.excerpt || undefined}>
+      <JsonLd data={[
+        articleLd(origin, { title: post.title, path: `/blog/${slug}`, description: post.excerpt || post.body, image: post.cover_url, published: post.published_at, modified: post.updated_at, publisher }),
+        breadcrumbLd(origin, [{ name: 'خانه', path: '/' }, { name: 'بلاگ', path: '/blog' }, ...(post.category ? [{ name: post.category.name, path: '/blog' }] : []), { name: post.title, path: `/blog/${slug}` }]),
+      ]} />
       {meta ? <p className="mb-6 text-sm opacity-70">{meta}</p> : null}
       {toc.length >= 3 ? (
         <nav aria-label="فهرست مطالب" className="mb-8 rounded-2xl border p-5">

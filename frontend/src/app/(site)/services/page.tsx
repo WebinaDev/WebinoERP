@@ -1,3 +1,4 @@
+import { routeMetadata } from '@/lib/seo';
 import { getLocale, getTranslations } from 'next-intl/server';
 import Link from 'next/link';
 import { apiServer, siteHref } from '@/lib/public-api-server';
@@ -12,6 +13,10 @@ type ServiceCategory = {
   name: string;
   services?: { slug: string; title: string }[];
 };
+
+export function generateMetadata() {
+  return routeMetadata('/services', { title: 'خدمات' });
+}
 
 export default async function ServicesPage() {
   const t = await getTranslations();

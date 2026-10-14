@@ -1,3 +1,4 @@
+import { itemMetadata } from '@/lib/seo';
 import { getLocale, getTranslations } from 'next-intl/server';
 import Link from 'next/link';
 import { apiServer, siteHref } from '@/lib/public-api-server';
@@ -10,6 +11,11 @@ import { getHomeBlock } from '@/themes/webina-corporate-v1/site-content-server';
 export const revalidate = 60;
 
 type ServiceDetail = { title: string; excerpt?: string | null; body?: string | null; slug?: string };
+
+export async function generateMetadata({ params }: { params: Promise<{ slug: string }> }) {
+  const { slug } = await params;
+  return itemMetadata<Record<string, unknown>>(`/v1/public/services/${encodeURIComponent(slug)}`, `/services/${slug}`, (d) => ({ title: (d.title || d.name) as string, description: (d.excerpt || d.description || d.body) as string, image: (d.cover_url || d.image_url) as string }));
+}
 
 export default async function ServicePage({ params }: { params: Promise<{ slug: string }> }) {
   const t = await getTranslations();

@@ -25,6 +25,17 @@ use Modules\Marketing\Http\Controllers\MarketingTeamController;
 use Modules\Marketing\Http\Controllers\MarketingTestimonialsController;
 
 Route::get('/settings', [MarketingSettingsController::class, 'show']);
+Route::get('/seo-routes', [\Modules\Marketing\Http\Controllers\MarketingSeoController::class, 'index']);
+Route::put('/seo-routes', [\Modules\Marketing\Http\Controllers\MarketingSeoController::class, 'update']);
+Route::put('/seo-routes/{id}', [\Modules\Marketing\Http\Controllers\MarketingSeoController::class, 'update'])->whereNumber('id');
+Route::put('/pages/{id}/seo', function (\Illuminate\Http\Request $request, int $id) {
+    $row = \Modules\Marketing\Entities\MarketingPage::query()->findOrFail($id);
+    $data = $request->validate(['seo' => 'present|array', 'seo.title' => 'nullable|string|max:120', 'seo.description' => 'nullable|string|max:320', 'seo.og_image' => 'nullable|string|max:500', 'seo.canonical' => 'nullable|string|max:500', 'seo.noindex' => 'nullable|boolean']);
+    $row->meta = \Modules\Marketing\Http\Controllers\Builder\BuilderController::withSeo($row->meta, $data['seo']);
+    $row->save();
+
+    return response()->json(['data' => ['id' => $row->id, 'seo' => $row->meta['seo']]]);
+})->whereNumber('id');
 Route::put('/settings', [MarketingSettingsController::class, 'update']);
 
 Route::apiResource('pages', MarketingPagesController::class);

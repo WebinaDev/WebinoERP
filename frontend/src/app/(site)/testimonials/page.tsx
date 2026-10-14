@@ -1,3 +1,4 @@
+import { routeMetadata } from '@/lib/seo';
 import { getTranslations } from 'next-intl/server';
 import { apiServer } from '@/lib/public-api-server';
 import { EmptyNote, SitePage } from '@/themes/webina-corporate-v1/components/SitePage';
@@ -5,6 +6,10 @@ import { EmptyNote, SitePage } from '@/themes/webina-corporate-v1/components/Sit
 export const revalidate = 60;
 
 type TestimonialItem = { id: number; author: string; quote: string; company?: string | null };
+
+export function generateMetadata() {
+  return routeMetadata('/testimonials', { title: 'نظرات مشتریان' });
+}
 
 export default async function TestimonialsPage() {
   const t = await getTranslations();

@@ -180,7 +180,8 @@
         "siteBuilder": "صفحه‌ساز سایت شرکتی",
         "portfolioCategories": "دسته‌های نمونه‌کار",
         "blogCategories": "موضوعات بلاگ",
-        "academyLessons": "سرفصل‌های آکادمی"
+        "academyLessons": "سرفصل‌های آکادمی",
+        "seoRoutes": "سئوی مسیرها"
       },
       "hrm": {
         "group": "مدیریت منابع انسانی",
@@ -2334,7 +2335,12 @@
     "fileUrl": "نشانی فایل",
     "relatedUrl": "پیشنهاد بعد از دانلود (پیوند)",
     "gated": "دریافت ایمیل قبل از دانلود",
-    "chapter": "فصل"
+    "chapter": "فصل",
+    "seoTitle": "عنوان سئو",
+    "seoDescription": "توضیح متا",
+    "ogImage": "تصویر اشتراک (og:image)",
+    "canonical": "canonical",
+    "noindex": "noindex"
   },
   "analytics": {
     "title": "آمار",

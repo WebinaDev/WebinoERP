@@ -10,9 +10,9 @@ class MarketingAcademyCourse extends Model
 {
     protected $table = 'marketing_academy_courses';
 
-    protected $fillable = ['slug', 'title', 'description', 'cover_url', 'published', 'sort_order', 'level', 'duration', 'instructor', 'outcomes', 'enroll_url', 'is_free'];
+    protected $fillable = ['seo', 'slug', 'title', 'description', 'cover_url', 'published', 'sort_order', 'level', 'duration', 'instructor', 'outcomes', 'enroll_url', 'is_free'];
 
-    protected $casts = ['is_free' => 'boolean', 'published' => 'boolean'];
+    protected $casts = ['seo' => 'array', 'is_free' => 'boolean', 'published' => 'boolean'];
 
     public function chapters(): HasMany
     {

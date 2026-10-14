@@ -1,3 +1,4 @@
+import { itemMetadata, type Seo } from '@/lib/seo';
 import { getTranslations } from 'next-intl/server';
 import { resolveServerLocale } from '@/lib/server-translations';
 import { apiServer } from '@/lib/public-api-server';
@@ -14,6 +15,11 @@ type CmsPageData = {
   body_en?: string | null;
   document?: unknown;
 };
+
+export async function generateMetadata({ params }: { params: Promise<{ slug: string }> }) {
+  const { slug } = await params;
+  return itemMetadata<Record<string, unknown>>(`/v1/public/pages/${encodeURIComponent(slug)}`, `/pages/${slug}`, (d) => ({ title: d.title_fa as string, description: d.body_fa as string, seo: ((d.meta as Record<string, unknown> | null)?.seo as Seo) ?? null }));
+}
 
 export default async function CmsPage({ params }: { params: Promise<{ slug: string }> }) {
   const t = await getTranslations();

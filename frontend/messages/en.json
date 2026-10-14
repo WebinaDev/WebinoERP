@@ -180,7 +180,8 @@
         "siteBuilder": "Corporate site builder",
         "portfolioCategories": "Portfolio categories",
         "blogCategories": "Blog topics",
-        "academyLessons": "Academy lessons"
+        "academyLessons": "Academy lessons",
+        "seoRoutes": "Route SEO"
       },
       "hrm": {
         "group": "Human resources",
@@ -2334,7 +2335,12 @@
     "fileUrl": "File URL",
     "relatedUrl": "Suggestion after download (link)",
     "gated": "Ask for email before download",
-    "chapter": "Chapter"
+    "chapter": "Chapter",
+    "seoTitle": "SEO title",
+    "seoDescription": "Meta description",
+    "ogImage": "Share image (og:image)",
+    "canonical": "Canonical",
+    "noindex": "noindex"
   },
   "analytics": {
     "title": "Analytics",

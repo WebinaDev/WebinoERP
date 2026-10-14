@@ -10,9 +10,9 @@ class MarketingService extends Model
 {
     protected $table = 'marketing_services';
 
-    protected $fillable = ['category_id', 'slug', 'title', 'excerpt', 'body', 'published', 'sort_order'];
+    protected $fillable = ['seo', 'category_id', 'slug', 'title', 'excerpt', 'body', 'published', 'sort_order'];
 
-    protected $casts = ['published' => 'boolean'];
+    protected $casts = ['seo' => 'array', 'published' => 'boolean'];
 
     public function category(): BelongsTo
     {

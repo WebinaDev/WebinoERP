@@ -258,6 +258,7 @@ const EXACT: Record<string, DashboardRouteMeta> = {
   'marketing/portfolio': { titleFa: 'نمونه کار', titleEn: 'Portfolio', group: 'core' },
   'marketing/portfolio-categories': { titleFa: 'دسته‌های نمونه‌کار', titleEn: 'Portfolio categories', group: 'core' },
   'marketing/blog-categories': { titleFa: 'موضوعات بلاگ', titleEn: 'Blog topics', group: 'core' },
+  'marketing/seo-routes': { titleFa: 'سئوی مسیرها', titleEn: 'Route SEO', group: 'core' },
   'marketing/academy-lessons': { titleFa: 'سرفصل‌های آکادمی', titleEn: 'Academy lessons', group: 'core' },
   'marketing/faq': { titleFa: 'پرسش‌ها', titleEn: 'FAQ', group: 'core' },
   'marketing/services': { titleFa: 'خدمات', titleEn: 'Services', group: 'core' },

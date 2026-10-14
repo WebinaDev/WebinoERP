@@ -9,9 +9,9 @@ class MarketingAnnouncement extends Model
 {
     protected $table = 'marketing_announcements';
 
-    protected $fillable = ['title', 'body', 'pinned', 'published', 'starts_at', 'ends_at', 'slug', 'type', 'summary'];
+    protected $fillable = ['seo', 'title', 'body', 'pinned', 'published', 'starts_at', 'ends_at', 'slug', 'type', 'summary'];
 
-    protected $casts = [
+    protected $casts = ['seo' => 'array', 
         'pinned' => 'boolean',
         'published' => 'boolean',
         'starts_at' => 'datetime',

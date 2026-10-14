@@ -7,6 +7,7 @@ import { MarketingResourcePage } from './marketing_resource_page';
 export function MarketingPagesPage() {
   return (
     <MarketingResourcePage
+      seo="meta"
       titleKey="nav.erp.marketing.pages"
       endpoint="/v1/marketing/pages"
       columns={[
@@ -28,6 +29,7 @@ export function MarketingPagesPage() {
 export function MarketingBlogPage() {
   return (
     <MarketingResourcePage
+      seo="column"
       titleKey="nav.erp.marketing.blog"
       endpoint="/v1/marketing/blog"
       columns={[
@@ -66,6 +68,7 @@ export function MarketingBlogCategoriesPage() {
 export function MarketingMagazinePage() {
   return (
     <MarketingResourcePage
+      seo="column"
       titleKey="nav.erp.marketing.magazine"
       endpoint="/v1/marketing/magazine"
       columns={[
@@ -94,6 +97,7 @@ export function MarketingAcademyPage() {
   return (
     <>
     <MarketingResourcePage
+      seo="column"
       titleKey="nav.erp.marketing.academy"
       endpoint="/v1/marketing/academy"
       columns={[
@@ -127,6 +131,7 @@ export function MarketingAcademyPage() {
 export function MarketingAcademyLessonsPage() {
   return (
     <MarketingResourcePage
+      seo="column"
       titleKey="nav.erp.marketing.academyLessons"
       endpoint="/v1/marketing/academy-lessons"
       columns={[
@@ -152,6 +157,7 @@ export function MarketingAcademyLessonsPage() {
 export function MarketingPortfolioPage() {
   return (
     <MarketingResourcePage
+      seo="column"
       titleKey="nav.erp.marketing.portfolio"
       endpoint="/v1/marketing/portfolio"
       columns={[
@@ -265,6 +271,7 @@ export function MarketingTeamPage() {
 export function MarketingAnnouncementsPage() {
   return (
     <MarketingResourcePage
+      seo="column"
       titleKey="nav.erp.marketing.announcements"
       endpoint="/v1/marketing/announcements"
       columns={[
@@ -306,6 +313,7 @@ export function MarketingTestimonialsPage() {
 export function MarketingServicesPage() {
   return (
     <MarketingResourcePage
+      seo="column"
       titleKey="nav.erp.marketing.services"
       endpoint="/v1/marketing/services"
       columns={[
@@ -319,6 +327,7 @@ export function MarketingServicesPage() {
 export function MarketingSolutionsPage() {
   return (
     <MarketingResourcePage
+      seo="column"
       titleKey="nav.erp.marketing.solutions"
       endpoint="/v1/marketing/solutions/industries"
       columns={[
@@ -345,6 +354,7 @@ export function MarketingMediaPage() {
 export function MarketingDownloadsPage() {
   return (
     <MarketingResourcePage
+      seo="column"
       titleKey="nav.erp.marketing.downloads"
       endpoint="/v1/marketing/downloads"
       columns={[
@@ -365,6 +375,27 @@ export function MarketingDownloadsPage() {
         { key: 'description', labelKey: 'marketing.description', kind: 'textarea' },
         { key: 'gated', labelKey: 'marketing.gated', kind: 'checkbox' },
         { key: 'published', labelKey: 'marketing.published', kind: 'checkbox' },
+      ]}
+    />
+  );
+}
+
+export function MarketingSeoRoutesPage() {
+  return (
+    <MarketingResourcePage
+      titleKey="nav.erp.marketing.seoRoutes"
+      endpoint="/v1/marketing/seo-routes"
+      columns={[
+        { key: 'path', labelKey: 'marketing.path' },
+        { key: 'title', labelKey: 'marketing.seoTitle' },
+        { key: 'noindex', labelKey: 'marketing.noindex' },
+      ]}
+      fields={[
+        { key: 'title', labelKey: 'marketing.seoTitle' },
+        { key: 'description', labelKey: 'marketing.seoDescription', kind: 'textarea' },
+        { key: 'og_image', labelKey: 'marketing.ogImage' },
+        { key: 'canonical', labelKey: 'marketing.canonical' },
+        { key: 'noindex', labelKey: 'marketing.noindex', kind: 'checkbox' },
       ]}
     />
   );

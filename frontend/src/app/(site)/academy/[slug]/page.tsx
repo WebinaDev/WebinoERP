@@ -1,3 +1,4 @@
+import { breadcrumbLd, itemMetadata, JsonLd, siteName, siteOrigin } from '@/lib/seo';
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import { apiServer } from '@/lib/public-api-server';
@@ -21,13 +22,15 @@ async function load(slug: string): Promise<Course | null> {
 }
 
 export async function generateMetadata({ params }: { params: Promise<{ slug: string }> }) {
-  const c = await load((await params).slug);
-  return c ? { title: c.title, description: c.description?.split('\n')[0] } : {};
+  const { slug } = await params;
+  return itemMetadata<Record<string, unknown>>(`/v1/public/academy/${encodeURIComponent(slug)}`, `/academy/${slug}`, (d) => ({ title: d.title as string, description: d.description as string, image: d.cover_url as string }));
 }
 
 export default async function AcademyCoursePage({ params }: { params: Promise<{ slug: string }> }) {
-  const course = await load((await params).slug);
+  const { slug } = await params;
+  const course = await load(slug);
   if (!course) notFound();
+  const [origin, provider] = await Promise.all([siteOrigin(), siteName()]);
   const outcomes = (course.outcomes ?? '').split('\n').map((s) => s.trim()).filter(Boolean);
   const facts = [['سطح', course.level], ['مدت', course.duration], ['مدرس / رویکرد', course.instructor], ['هزینه', course.is_free ? 'رایگان' : null]].filter((f) => f[1]);
   const enroll = course.enroll_url || '/consultation';
@@ -38,6 +41,13 @@ export default async function AcademyCoursePage({ params }: { params: Promise<{ 
     : [{ title: '', summary: null, lessons }];
   return (
     <SitePage kicker="آکادمی" title={course.title} lead={course.description?.split('\n')[0] || undefined}>
+      <JsonLd data={[
+        { '@context': 'https://schema.org', '@type': 'Course', name: course.title, description: (course.description ?? course.title).slice(0, 500), inLanguage: 'fa-IR',
+          provider: { '@type': 'Organization', name: provider, sameAs: origin }, url: `${origin}/academy/${slug}`,
+          ...(course.level ? { educationalLevel: course.level } : {}), ...(course.is_free ? { isAccessibleForFree: true } : {}),
+          hasCourseInstance: { '@type': 'CourseInstance', courseMode: 'online', ...(course.duration ? { courseWorkload: course.duration } : {}) } },
+        breadcrumbLd(origin, [{ name: 'خانه', path: '/' }, { name: 'آکادمی', path: '/academy' }, { name: course.title, path: `/academy/${slug}` }]),
+      ]} />
       {facts.length ? <dl className="mb-8 flex flex-wrap gap-6 text-sm">{facts.map(([k, v]) => <div key={k}><dt className="opacity-60">{k}</dt><dd className="font-bold">{v}</dd></div>)}</dl> : null}
       {outcomes.length ? (
         <section className="mb-10">

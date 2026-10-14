@@ -1,3 +1,4 @@
+import { breadcrumbLd, itemMetadata, JsonLd, siteOrigin } from '@/lib/seo';
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import { apiServer } from '@/lib/public-api-server';
@@ -17,16 +18,19 @@ async function load(slug: string): Promise<Ann | null> {
 }
 
 export async function generateMetadata({ params }: { params: Promise<{ slug: string }> }) {
-  const a = await load((await params).slug);
-  return a ? { title: a.title, description: a.summary ?? undefined } : {};
+  const { slug } = await params;
+  return itemMetadata<Record<string, unknown>>(`/v1/public/announcements/${encodeURIComponent(slug)}`, `/announcements/${slug}`, (d) => ({ title: d.title as string, description: (d.summary || d.body) as string, type: 'article' as const, publishedTime: (d.starts_at || d.created_at) as string }));
 }
 
 export default async function AnnouncementPage({ params }: { params: Promise<{ slug: string }> }) {
-  const a = await load((await params).slug);
+  const { slug } = await params;
+  const a = await load(slug);
   if (!a) notFound();
+  const origin = await siteOrigin();
   const when = a.starts_at || a.created_at;
   return (
     <SitePage kicker={(a.type && TYPES[a.type]) || 'اطلاعیه'} title={a.title} lead={a.summary || undefined}>
+      <JsonLd data={breadcrumbLd(origin, [{ name: 'خانه', path: '/' }, { name: 'اطلاعیه‌ها', path: '/announcements' }, { name: a.title, path: `/announcements/${slug}` }])} />
       {when ? <p className="mb-6 text-sm opacity-70">{new Intl.DateTimeFormat('fa-IR-u-ca-persian', { dateStyle: 'long' }).format(new Date(when))}</p> : null}
       <div className="rich-copy" dangerouslySetInnerHTML={{ __html: a.body ?? '' }} />
       <Link href="/announcements" className="mt-8 inline-block text-sm font-bold text-[var(--saffron-deep)]">همه اطلاعیه‌ها</Link>

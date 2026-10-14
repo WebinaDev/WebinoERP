@@ -9,7 +9,9 @@ class MarketingSolutionIndustry extends Model
 {
     protected $table = 'marketing_solution_industries';
 
-    protected $fillable = ['slug', 'name', 'description', 'sort_order'];
+    protected $casts = ['seo' => 'array'];
+
+    protected $fillable = ['seo', 'slug', 'name', 'description', 'sort_order'];
 
     public function pages(): HasMany
     {

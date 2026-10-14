@@ -1,9 +1,12 @@
-import { MetadataRoute } from 'next';
+import type { MetadataRoute } from 'next';
+import { siteOrigin } from '@/lib/seo';
 
-export default function robots(): MetadataRoute.Robots {
-  const base = process.env.NEXT_PUBLIC_SITE_URL ?? 'https://webina.ir';
+/** Per-page noindex is sent as <meta name="robots"> and those pages are left out of the sitemap. */
+export default async function robots(): Promise<MetadataRoute.Robots> {
+  const base = await siteOrigin();
   return {
-    rules: { userAgent: '*', allow: '/', disallow: ['/admin/', '/dashboard/', '/login'] },
+    rules: { userAgent: '*', allow: '/', disallow: ['/admin/', '/dashboard/', '/login', '/api/', '/rahn/'] },
     sitemap: `${base}/sitemap.xml`,
+    host: base,
   };
 }

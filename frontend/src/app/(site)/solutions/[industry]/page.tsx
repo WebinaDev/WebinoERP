@@ -1,3 +1,4 @@
+import { itemMetadata } from '@/lib/seo';
 import { getLocale, getTranslations } from 'next-intl/server';
 import Link from 'next/link';
 import { apiServer, siteHref } from '@/lib/public-api-server';
@@ -8,6 +9,11 @@ import { SitePage } from '@/themes/webina-corporate-v1/components/SitePage';
 export const revalidate = 60;
 
 type SolutionIndustry = { name: string; description?: string | null; pages?: { slug: string; title: string }[] };
+
+export async function generateMetadata({ params }: { params: Promise<{ industry: string }> }) {
+  const { industry } = await params;
+  return itemMetadata<Record<string, unknown>>(`/v1/public/solutions/${encodeURIComponent(industry)}`, `/solutions/${industry}`, (d) => ({ title: d.name as string, description: d.description as string }));
+}
 
 export default async function SolutionIndustryPage({ params }: { params: Promise<{ industry: string }> }) {
   const t = await getTranslations();

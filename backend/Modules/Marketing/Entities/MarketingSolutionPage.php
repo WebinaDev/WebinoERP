@@ -10,9 +10,9 @@ class MarketingSolutionPage extends Model
 {
     protected $table = 'marketing_solution_pages';
 
-    protected $fillable = ['industry_id', 'slug', 'title', 'body', 'published'];
+    protected $fillable = ['seo', 'industry_id', 'slug', 'title', 'body', 'published'];
 
-    protected $casts = ['published' => 'boolean'];
+    protected $casts = ['seo' => 'array', 'published' => 'boolean'];
 
     public function industry(): BelongsTo
     {

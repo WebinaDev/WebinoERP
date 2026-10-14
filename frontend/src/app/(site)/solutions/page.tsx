@@ -1,3 +1,4 @@
+import { routeMetadata } from '@/lib/seo';
 import { getLocale, getTranslations } from 'next-intl/server';
 import Link from 'next/link';
 import { apiServer, siteHref } from '@/lib/public-api-server';
@@ -8,6 +9,10 @@ import { SitePage } from '@/themes/webina-corporate-v1/components/SitePage';
 export const revalidate = 60;
 
 type Industry = { slug: string; name: string; pages?: { slug: string; title: string }[] };
+
+export function generateMetadata() {
+  return routeMetadata('/solutions', { title: 'راهکارها' });
+}
 
 export default async function SolutionsPage() {
   const t = await getTranslations();

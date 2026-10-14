@@ -437,6 +437,7 @@ export const ERP_MODULES: ErpModuleDef[] = [
           { id: 'marketing-portfolio', path: 'marketing/portfolio', titleKey: 'nav.erp.marketing.portfolio', icon: 'ri-gallery-line', requiredPermission: 'marketing.pages.view' },
           { id: 'marketing-portfolio-categories', path: 'marketing/portfolio-categories', titleKey: 'nav.erp.marketing.portfolioCategories', icon: 'ri-price-tag-3-line', requiredPermission: 'marketing.pages.view' },
           { id: 'marketing-blog-categories', path: 'marketing/blog-categories', titleKey: 'nav.erp.marketing.blogCategories', icon: 'ri-price-tag-3-line', requiredPermission: 'marketing.pages.view' },
+          { id: 'marketing-seo-routes', path: 'marketing/seo-routes', titleKey: 'nav.erp.marketing.seoRoutes', icon: 'ri-search-eye-line', requiredPermission: 'marketing.pages.view' },
           { id: 'marketing-academy-lessons', path: 'marketing/academy-lessons', titleKey: 'nav.erp.marketing.academyLessons', icon: 'ri-list-check-2', requiredPermission: 'marketing.pages.view' },
           { id: 'marketing-faq', path: 'marketing/faq', titleKey: 'nav.erp.marketing.faq', icon: 'ri-question-line', requiredPermission: 'marketing.pages.view' },
           { id: 'marketing-services', path: 'marketing/services', titleKey: 'nav.erp.marketing.services', icon: 'ri-service-line', requiredPermission: 'marketing.pages.view' },

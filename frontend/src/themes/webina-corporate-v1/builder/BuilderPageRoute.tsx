@@ -1,6 +1,6 @@
 import type { Metadata } from 'next';
 import { notFound } from 'next/navigation';
-import { apiServer } from '@/lib/public-api-server';
+import { itemMetadata, type Seo } from '@/lib/seo';
 import { loadPublishedPage, StorefrontDocument } from '@/builder/public-document';
 import { prefetchCorporate } from '@/themes/webina-corporate-v1/builder/prefetch';
 
@@ -14,22 +14,7 @@ export async function BuilderPageRoute({ slug }: { slug: string }) {
   return <StorefrontDocument document={published} themeClass="webina-builder" runtime={{ prefetch: await prefetchCorporate(published) }} />;
 }
 
-type PageSeo = { title?: string; description?: string; og_image?: string; canonical?: string; noindex?: boolean };
-
-/** Page metadata from the builder page's SEO fields (داشبورد ← صفحه‌ساز ← سئو); falls back to the page title. */
+/** Page metadata from the builder page's SEO fields (صفحه‌ساز ← سئو); falls back to the page title. */
 export async function builderPageMetadata(slug: string): Promise<Metadata> {
-  try {
-    const res = await apiServer<{ data?: { title?: string; seo?: PageSeo } }>(`/v1/public/builder/pages/${encodeURIComponent(slug)}`);
-    const seo = res?.data?.seo ?? {};
-    const title = seo.title || res?.data?.title || undefined;
-    return {
-      title,
-      description: seo.description || undefined,
-      alternates: seo.canonical ? { canonical: seo.canonical } : undefined,
-      robots: seo.noindex ? { index: false, follow: true } : undefined,
-      openGraph: { title, description: seo.description || undefined, images: seo.og_image ? [seo.og_image] : undefined },
-    };
-  } catch {
-    return {};
-  }
+  return itemMetadata<{ title?: string; seo?: Seo }>(`/v1/public/builder/pages/${encodeURIComponent(slug)}`, slug === 'home' ? '/' : `/${slug}`, (d) => ({ title: d.title, seo: d.seo }));
 }

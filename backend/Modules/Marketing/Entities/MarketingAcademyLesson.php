@@ -9,9 +9,9 @@ class MarketingAcademyLesson extends Model
 {
     protected $table = 'marketing_academy_lessons';
 
-    protected $fillable = ['course_id', 'chapter_id', 'summary', 'slug', 'title', 'content', 'video_url', 'sort_order', 'published'];
+    protected $fillable = ['seo', 'course_id', 'chapter_id', 'summary', 'slug', 'title', 'content', 'video_url', 'sort_order', 'published'];
 
-    protected $casts = ['published' => 'boolean'];
+    protected $casts = ['seo' => 'array', 'published' => 'boolean'];
 
     public function course(): BelongsTo
     {

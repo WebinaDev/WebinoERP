@@ -1,3 +1,4 @@
+import { routeMetadata } from '@/lib/seo';
 import { getLocale, getTranslations } from 'next-intl/server';
 import { getPublicSite } from '@/lib/public-api-server';
 import { loadPublishedPage, StorefrontDocument } from '@/builder/public-document';
@@ -9,6 +10,10 @@ import { AboutPage } from '@/themes/webina-corporate-v1/components/about/AboutPa
 import { normalizeCompany } from '@/themes/webina-corporate-v1/site-content';
 
 export const revalidate = 60;
+
+export function generateMetadata() {
+  return routeMetadata('/about', { title: 'درباره ما' });
+}
 
 export default async function AboutRoute() {
   const t = await getTranslations();

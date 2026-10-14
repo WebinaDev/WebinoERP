@@ -1,3 +1,4 @@
+import { itemMetadata } from '@/lib/seo';
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import { apiServer } from '@/lib/public-api-server';
@@ -34,12 +35,7 @@ function Block({ title, text }: { title: string; text?: string | null }) {
 
 export async function generateMetadata({ params }: { params: Promise<{ slug: string }> }) {
   const { slug } = await params;
-  try {
-    const res = await apiServer<{ data: PortfolioItem }>(`/v1/public/portfolio/${encodeURIComponent(slug)}`);
-    return { title: res.data.title, description: res.data.result_metric || res.data.description || undefined };
-  } catch {
-    return {};
-  }
+  return itemMetadata<Record<string, unknown>>(`/v1/public/portfolio/${encodeURIComponent(slug)}`, `/portfolio/${slug}`, (d) => ({ title: d.title as string, description: (d.excerpt || d.challenge || d.result_metric) as string, image: d.cover_url as string }));
 }
 
 export default async function PortfolioDetailPage({ params }: { params: Promise<{ slug: string }> }) {

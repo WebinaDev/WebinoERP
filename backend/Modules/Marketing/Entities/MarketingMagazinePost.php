@@ -9,11 +9,11 @@ class MarketingMagazinePost extends Model
 {
     protected $table = 'marketing_magazine_posts';
 
-    protected $fillable = [
+    protected $fillable = ['seo', 
         'slug', 'title', 'excerpt', 'body', 'cover_url',
         'status', 'published_at', 'wp_id', 'meta', 'issue', 'author', 'featured'];
 
-    protected $casts = ['featured' => 'boolean', 'published_at' => 'datetime', 'meta' => 'array'];
+    protected $casts = ['seo' => 'array', 'featured' => 'boolean', 'published_at' => 'datetime', 'meta' => 'array'];
 
     public function scopePublished(Builder $q): Builder
     {

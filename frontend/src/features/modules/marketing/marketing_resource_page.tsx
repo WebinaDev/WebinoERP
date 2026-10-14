@@ -28,15 +28,18 @@ type MarketingResourcePageProps = {
   endpoint: string;
   columns: { key: string; labelKey: string }[];
   fields?: MarketingField[];
+  /** Adds the SEO block (title, description, og image, canonical, noindex) with AI. `meta` = stored in row.meta.seo and saved via `${endpoint}/{id}/seo`. */
+  seo?: 'column' | 'meta';
 };
 
-export function MarketingResourcePage({ titleKey, endpoint, columns, fields }: MarketingResourcePageProps) {
+export function MarketingResourcePage({ titleKey, endpoint, columns, fields, seo }: MarketingResourcePageProps) {
   const tNav = useTranslations();
   const { layoutProps, applyAxiosError, setSuccess } = useCrmFeedback();
   const [rows, setRows] = useState<Record<string, unknown>[]>([]);
   const [draft, setDraft] = useState<Record<string, string> | null>(null);
   const [editingId, setEditingId] = useState<number | null>(null);
   const formFields: MarketingField[] = fields ?? columns.map((c) => ({ key: c.key, labelKey: c.labelKey, kind: 'text' as const }));
+  const [seoDraft, setSeoDraft] = useState<SeoValue>({});
   const [options, setOptions] = useState<Record<string, { value: string; label: string }[]>>({});
   const selectSources = formFields.filter((f) => f.kind === 'select' && f.optionsEndpoint).map((f) => `${f.key}|${f.optionsEndpoint}|${f.optionLabel ?? 'name'}`).join(',');
 
@@ -71,10 +74,13 @@ export function MarketingResourcePage({ titleKey, endpoint, columns, fields }: M
   function openNew() {
     setEditingId(null);
     setDraft(Object.fromEntries(formFields.map((f) => [f.key, f.kind === 'checkbox' ? 'false' : ''])));
+    setSeoDraft({});
   }
 
   function openEdit(row: Record<string, unknown>) {
     setEditingId(Number(row.id));
+    const stored = seo === 'meta' ? (row.meta as Record<string, unknown> | null)?.seo : row.seo;
+    setSeoDraft(stored && typeof stored === 'object' ? (stored as SeoValue) : {});
     setDraft(Object.fromEntries(formFields.map((f) => {
       const v = row[f.key];
       if (f.kind === 'lines') return [f.key, Array.isArray(v) ? v.join('\n') : ''];
@@ -94,9 +100,12 @@ export function MarketingResourcePage({ titleKey, endpoint, columns, fields }: M
       else if (field.kind === 'select') body[field.key] = raw === '' ? null : raw;
       else if (raw !== '' || editingId) body[field.key] = raw;
     }
+    if (seo === 'column') body.seo = seoDraft;
     try {
+      let id = editingId;
       if (editingId) await apiClient.put(`${endpoint}/${editingId}`, body);
-      else await apiClient.post(endpoint, body);
+      else id = Number((await apiClient.post(endpoint, body)).data?.data?.id ?? 0) || null;
+      if (seo === 'meta' && id) await apiClient.put(`${endpoint}/${id}/seo`, { seo: seoDraft });
       setSuccess(tNav('common.saved'));
       setDraft(null);
       await load();
@@ -178,6 +187,15 @@ export function MarketingResourcePage({ titleKey, endpoint, columns, fields }: M
                 )}
               </label>
             ))}
+            {seo ? (
+              <SeoFields
+                value={seoDraft}
+                onChange={setSeoDraft}
+                surface={endpoint.replace(/^\/v1\/marketing\//, '').replace(/\//g, '.')}
+                targetId={editingId}
+                context={Object.fromEntries(['title', 'name', 'title_fa', 'excerpt', 'summary', 'description', 'body', 'path'].filter((k) => draft[k]).map((k) => [k, draft[k]]))}
+              />
+            ) : null}
             <div className="flex gap-2 md:col-span-2">
               <Button size="sm" onClick={() => void save()}>{tNav('common.save')}</Button>
               <Button size="sm" variant="outline" onClick={() => setDraft(null)}>{tNav('common.cancel')}</Button>
@@ -217,5 +235,33 @@ export function MarketingResourcePage({ titleKey, endpoint, columns, fields }: M
         </CardContent>
       </Card>
     </CrmPageLayout>
+  );
+}
+
+type SeoValue = { title?: string; description?: string; og_image?: string; canonical?: string; noindex?: boolean };
+
+/** Editable SEO overrides; empty fields fall back to the item's title / excerpt / cover on the site. */
+export function SeoFields({ value, onChange, surface, targetId, context }: { value: SeoValue; onChange: (v: SeoValue) => void; surface: string; targetId?: number | null; context: Record<string, string> }) {
+  const set = (k: keyof SeoValue, v: string | boolean) => onChange({ ...value, [k]: v });
+  const base = context.title || context.name || context.title_fa || context.path || '';
+  const src = [base, context.excerpt || context.summary || context.description || context.body || ''].filter(Boolean).join('\n');
+  const box = 'border-input h-9 rounded-md border bg-transparent px-3';
+  return (
+    <fieldset className="grid gap-3 rounded-lg border p-3 md:col-span-2">
+      <legend className="px-1 text-sm font-semibold">سئو</legend>
+      <label className="grid gap-1 text-sm">
+        <span className="flex items-center justify-between">عنوان سئو ({(value.title ?? '').length}/۶۰)<AiAssist value={value.title || src} onApply={(v) => set('title', v)} surface={surface} field="seo_title" targetId={targetId} context={context} /></span>
+        <input className={box} value={value.title ?? ''} placeholder={base} onChange={(e) => set('title', e.target.value)} />
+      </label>
+      <label className="grid gap-1 text-sm">
+        <span className="flex items-center justify-between">توضیح متا ({(value.description ?? '').length}/۱۵۵)<AiAssist value={value.description || src} onApply={(v) => set('description', v)} surface={surface} field="seo_description" targetId={targetId} context={context} /></span>
+        <textarea className="border-input min-h-16 rounded-md border bg-transparent px-3 py-2" value={value.description ?? ''} onChange={(e) => set('description', e.target.value)} />
+      </label>
+      <div className="grid gap-3 md:grid-cols-2">
+        <label className="grid gap-1 text-sm">تصویر اشتراک (og:image)<input dir="ltr" className={box} value={value.og_image ?? ''} onChange={(e) => set('og_image', e.target.value)} /></label>
+        <label className="grid gap-1 text-sm">canonical (اختیاری)<input dir="ltr" className={box} value={value.canonical ?? ''} onChange={(e) => set('canonical', e.target.value)} /></label>
+      </div>
+      <label className="flex items-center gap-2 text-sm"><input type="checkbox" checked={value.noindex === true} onChange={(e) => set('noindex', e.target.checked)} />noindex (از نتایج جست‌وجو و نقشه سایت حذف شود)</label>
+    </fieldset>
   );
 }

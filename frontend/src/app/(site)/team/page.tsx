@@ -1,3 +1,4 @@
+import { routeMetadata } from '@/lib/seo';
 import { getTranslations } from 'next-intl/server';
 import { apiServer } from '@/lib/public-api-server';
 import { EmptyNote, SitePage } from '@/themes/webina-corporate-v1/components/SitePage';
@@ -5,6 +6,10 @@ import { EmptyNote, SitePage } from '@/themes/webina-corporate-v1/components/Sit
 export const revalidate = 60;
 
 type TeamMember = { id: number; name: string; role?: string | null; bio?: string | null };
+
+export function generateMetadata() {
+  return routeMetadata('/team', { title: 'تیم وبینا' });
+}
 
 export default async function TeamPage() {
   const t = await getTranslations();
