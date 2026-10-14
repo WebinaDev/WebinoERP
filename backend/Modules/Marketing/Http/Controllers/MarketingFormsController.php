@@ -3,9 +3,11 @@
 namespace Modules\Marketing\Http\Controllers;
 
 use Illuminate\Http\JsonResponse;
-use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Storage;
 use Modules\Marketing\Entities\MarketingForm;
 use Modules\Marketing\Http\Controllers\Concerns\HandlesMarketingCrud;
+use Modules\Marketing\Services\FormUploads;
+use Symfony\Component\HttpFoundation\StreamedResponse;
 
 class MarketingFormsController extends Controller
 {
@@ -37,5 +39,14 @@ class MarketingFormsController extends Controller
         $form = MarketingForm::query()->findOrFail($id);
 
         return response()->json(['data' => $form->submissions()->latest()->limit(100)->get()]);
+    }
+
+    /** Staff download of a public form attachment (token from a submission payload). */
+    public function upload(string $token): StreamedResponse
+    {
+        $path = FormUploads::path($token);
+        abort_unless($path && Storage::disk('local')->exists($path), 404);
+
+        return Storage::disk('local')->download($path, FormUploads::originalName($token) ?? basename($path));
     }
 }

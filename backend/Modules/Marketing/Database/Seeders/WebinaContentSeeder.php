@@ -4,24 +4,21 @@ namespace Modules\Marketing\Database\Seeders;
 
 use Illuminate\Database\Seeder;
 use Modules\Marketing\Entities\MarketingAcademyCourse;
-use Modules\Marketing\Entities\MarketingFaqItem;
-use Modules\Marketing\Entities\MarketingForm;
-use Modules\Marketing\Entities\MarketingMenu;
-use Modules\Marketing\Entities\MarketingMenuItem;
-use Modules\Marketing\Entities\MarketingPage;
 use Modules\Marketing\Entities\MarketingPortfolioCategory;
 use Modules\Marketing\Entities\MarketingPortfolioItem;
 use Modules\Marketing\Entities\MarketingService;
 use Modules\Marketing\Entities\MarketingServiceCategory;
 use Modules\Marketing\Entities\MarketingSolutionIndustry;
 use Modules\Marketing\Entities\MarketingSolutionPage;
-use Modules\Marketing\Entities\MarketingTeamMember;
-use Modules\Marketing\Entities\MarketingTestimonial;
 
 /**
  * Company-site content aligned with Website-SiteMap-Complete.md and
  * frontend site-nav (the WebinoDocs xmind structure already in this repo).
  * WebinoDocs itself was not readable from this environment.
+ */
+/**
+ * Pages, menus and builder documents are NOT seeded: page content lives only in the database and is
+ * built in the page builder. Forms are seeded by MarketingFormsSeeder.
  */
 class WebinaContentSeeder extends Seeder
 {
@@ -30,11 +27,6 @@ class WebinaContentSeeder extends Seeder
         $this->services();
         $this->solutions();
         $this->portfolio();
-        $this->menus();
-        $this->forms();
-        $this->company();
-        $this->homeDraft();
-        \Modules\Marketing\Services\CorporatePageDocuments::apply();
         $this->courses();
     }
 
@@ -198,161 +190,6 @@ class WebinaContentSeeder extends Seeder
         }
     }
 
-    private function menus(): void
-    {
-        $header = MarketingMenu::query()->firstOrCreate(
-            ['location' => 'header'],
-            ['name' => 'منوی اصلی', 'published' => true]
-        );
-        $footer = MarketingMenu::query()->firstOrCreate(
-            ['location' => 'footer'],
-            ['name' => 'فوتر', 'published' => true]
-        );
-        $this->item($header->id, null, 'خدمات', '/services', 1, [
-            ['فناوری', '/services/tech'],
-            ['رشد', '/services/growth'],
-            ['برند', '/services/branding'],
-            ['استراتژی', '/services/strategy'],
-            ['پشتیبانی', '/services/support'],
-        ]);
-        $this->item($header->id, null, 'راهکارها', '/solutions', 2, [
-            ['خرده‌فروشی', '/solutions/retail'],
-            ['سلامت', '/solutions/health'],
-            ['سازمانی', '/solutions/corporate'],
-            ['آموزش', '/solutions/education'],
-            ['مهمان‌نوازی', '/solutions/hospitality'],
-        ]);
-        $this->item($header->id, null, 'نمونه‌کارها', '/portfolio', 3);
-        $this->item($header->id, null, 'منابع', '/blog', 4, [
-            ['بلاگ', '/blog'],
-            ['آکادمی', '/academy'],
-            ['مجله', '/magazine'],
-            ['دانلودها', '/downloads'],
-            ['سوالات', '/faq'],
-        ]);
-        $this->item($header->id, null, 'شرکت', '/about', 5, [
-            ['درباره', '/about'],
-            ['تیم', '/team'],
-            ['همکاری', '/cooperation'],
-            ['تماس', '/contact'],
-            ['مشاوره', '/consultation'],
-            ['پروپوزال', '/proposal'],
-        ]);
-        $this->item($footer->id, null, 'حریم خصوصی', '/pages/privacy', 1);
-        $this->item($footer->id, null, 'قوانین', '/pages/terms', 2);
-    }
-
-    /** @param  list<array{0: string, 1: string}>  $children */
-    private function item(int $menuId, ?int $parentId, string $label, string $href, int $sort, array $children = []): void
-    {
-        $query = MarketingMenuItem::query()->where('menu_id', $menuId)->where('href', $href);
-        if ($parentId === null) {
-            $query->whereNull('parent_id');
-        } else {
-            $query->where('parent_id', $parentId);
-        }
-        $row = $query->first();
-        if (! $row) {
-            $row = MarketingMenuItem::query()->create([
-                'menu_id' => $menuId,
-                'parent_id' => $parentId,
-                'label' => $label,
-                'href' => $href,
-                'sort_order' => $sort,
-                'published' => true,
-            ]);
-        }
-        foreach ($children as $i => [$childLabel, $childHref]) {
-            $this->item($menuId, $row->id, $childLabel, $childHref, $i + 1);
-        }
-    }
-
-    private function forms(): void
-    {
-        $fields = [
-            ['name' => 'name', 'label' => 'نام', 'type' => 'text', 'required' => true],
-            ['name' => 'phone', 'label' => 'تلفن', 'type' => 'tel', 'required' => true],
-            ['name' => 'email', 'label' => 'ایمیل', 'type' => 'email', 'required' => false],
-            ['name' => 'message', 'label' => 'شرح نیاز', 'type' => 'textarea', 'required' => true],
-        ];
-        foreach ([
-            'consultation' => 'فرم مشاوره',
-            'proposal' => 'درخواست پروپوزال',
-            'newsletter' => 'خبرنامه',
-            'contact' => 'فرم تماس',
-        ] as $slug => $title) {
-            MarketingForm::query()->firstOrCreate(
-                ['slug' => $slug],
-                [
-                    'title' => $title,
-                    'description' => $title.' از سایت وبینا',
-                    'fields' => match ($slug) {
-                        'newsletter' => [['name' => 'email', 'label' => 'ایمیل', 'type' => 'email', 'required' => true]],
-                        'contact' => self::contactFormFields(),
-                        default => $fields,
-                    },
-                    'success_message' => 'پیام شما ثبت شد. به‌زودی برمی‌گردیم.',
-                    'published' => true,
-                ]
-            );
-        }
-    }
-
-    private function company(): void
-    {
-        MarketingPage::query()->firstOrCreate(
-            ['slug' => 'cooperation'],
-            ['title_fa' => 'همکاری', 'title_en' => 'Cooperation', 'published' => true, 'status' => 'published', 'body_fa' => '<p>همکاری با تیم‌های محصول، آژانس‌ها و واحدهای داخلی سازمان.</p>']
-        );
-        foreach ([
-            ['q' => 'پروژه از کجا شروع می‌شود؟', 'a' => 'با یک جلسه کشف رایگان. خروجی‌اش دامنه، زمان و معیار موفقیت است.'],
-            ['q' => 'آیا محتوا از داشبورد قابل ویرایش است؟', 'a' => 'بله. برگه‌ها، نمونه‌کار، منو، فرم، راهکار و پوسته‌ساز در ERP ویرایش می‌شوند.'],
-            ['q' => 'زبان سایت چیست؟', 'a' => 'فارسی پیش‌فرض است و چیدمان RTL دارد. انگلیسی از سوییچ زبان فعال می‌شود.'],
-        ] as $i => $faq) {
-            MarketingFaqItem::query()->firstOrCreate(
-                ['question' => $faq['q']],
-                ['answer' => $faq['a'], 'group' => 'home', 'sort_order' => $i, 'published' => true]
-            );
-        }
-        MarketingTeamMember::query()->firstOrCreate(
-            ['name' => 'تیم محصول وبینا'],
-            ['role' => 'استراتژی، طراحی و مهندسی', 'bio' => 'یک تیم کوچک که از بوم کسب‌وکار تا انتشار را با هم جلو می‌برد.', 'published' => true, 'sort_order' => 1]
-        );
-        MarketingTestimonial::query()->firstOrCreate(
-            ['author' => 'نسیم راد', 'company' => 'کلینیک آرورا'],
-            ['role' => 'مدیر', 'quote' => 'مسیر نوبت‌دهی بالاخره به اندازه خود درمان جدی گرفته شد.', 'rating' => 5, 'published' => true, 'sort_order' => 1]
-        );
-    }
-
-    private function homeDraft(): void
-    {
-        MarketingPage::query()->firstOrCreate(
-            ['slug' => 'home'],
-            [
-                'title_fa' => 'خانه وبینا',
-                'title_en' => 'Webina home',
-                'published' => false,
-                'status' => 'draft',
-                'body_fa' => '<p>پیش‌نویس صفحه‌ساز. تا وقتی منتشر نشود، صفحه اصلی طراحی‌شده سایت نشان داده می‌شود.</p>',
-                'builder_draft' => [
-                    'version' => 1,
-                    'sections' => [[
-                        'id' => 'sec_home_hero',
-                        'columns' => [[
-                            'id' => 'col_home_hero',
-                            'span' => 12,
-                            'widgets' => [[
-                                'id' => 'w_home_hero',
-                                'type' => 'heading',
-                                'props' => ['text' => 'کسب‌وکار شما را به سطح بعدی می‌بریم', 'tag' => 'h1'],
-                            ]],
-                        ]],
-                    ]],
-                ],
-            ]
-        );
-    }
-
     /** Homepage brief §7 — course titles verbatim; descriptions intentionally left empty. */
     private function courses(): void
     {
@@ -371,18 +208,5 @@ class WebinaContentSeeder extends Seeder
             );
             $sort += 10;
         }
-    }
-
-    /** Contact page form (/contact). Editable later in dashboard → بازاریابی → فرم‌ها. */
-    public static function contactFormFields(): array
-    {
-        return [
-            ['name' => 'name', 'label' => 'نام و نام خانوادگی', 'type' => 'text', 'required' => true],
-            ['name' => 'phone', 'label' => 'شماره تماس', 'type' => 'tel', 'required' => true],
-            ['name' => 'email', 'label' => 'ایمیل', 'type' => 'email', 'required' => false],
-            ['name' => 'company', 'label' => 'نام کسب‌وکار', 'type' => 'text', 'required' => false],
-            ['name' => 'topic', 'label' => 'موضوع', 'type' => 'select', 'required' => false, 'options' => ['مشاوره', 'پروژه جدید', 'پشتیبانی', 'همکاری']],
-            ['name' => 'message', 'label' => 'پیام شما', 'type' => 'textarea', 'required' => true],
-        ];
     }
 }

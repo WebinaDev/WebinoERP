@@ -7,11 +7,11 @@ use Modules\Marketing\Http\Controllers\MarketingBlogCategoriesController;
 use Modules\Marketing\Http\Controllers\MarketingBlogController;
 use Modules\Marketing\Http\Controllers\MarketingDownloadsController;
 use Modules\Marketing\Http\Controllers\MarketingFaqController;
+use Modules\Marketing\Http\Controllers\MarketingFormsController;
 use Modules\Marketing\Http\Controllers\MarketingMagazineController;
 use Modules\Marketing\Http\Controllers\MarketingMediaController;
-use Modules\Marketing\Http\Controllers\MarketingPagesController;
-use Modules\Marketing\Http\Controllers\MarketingFormsController;
 use Modules\Marketing\Http\Controllers\MarketingMenusController;
+use Modules\Marketing\Http\Controllers\MarketingPagesController;
 use Modules\Marketing\Http\Controllers\MarketingPortfolioCategoriesController;
 use Modules\Marketing\Http\Controllers\MarketingPortfolioController;
 use Modules\Marketing\Http\Controllers\MarketingServiceCategoriesController;
@@ -47,6 +47,7 @@ Route::post('/menus/{id}/items', [MarketingMenusController::class, 'storeItem'])
 Route::put('/menu-items/{itemId}', [MarketingMenusController::class, 'updateItem']);
 Route::delete('/menu-items/{itemId}', [MarketingMenusController::class, 'destroyItem']);
 
+Route::get('/forms/uploads/{token}', [MarketingFormsController::class, 'upload'])->where('token', '[A-Za-z0-9]{40}');
 Route::apiResource('forms', MarketingFormsController::class);
 Route::get('/forms/{id}/submissions', [MarketingFormsController::class, 'submissions']);
 Route::apiResource('faq', MarketingFaqController::class);

@@ -5,17 +5,15 @@ namespace Modules\Marketing\Http\Controllers\Public;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Validation\Rule;
-use Modules\Crm\Entities\CrmConsultation;
 use Modules\Marketing\Entities\MarketingForm;
 use Modules\Marketing\Entities\MarketingFormSubmission;
 use Modules\Marketing\Entities\MarketingMenu;
 use Modules\Marketing\Http\Controllers\Controller;
+use Modules\Marketing\Services\FormSubmissionHooks;
+use Modules\Marketing\Services\FormUploads;
 
 class PublicFormsController extends Controller
 {
-    /** Forms whose submissions also open a CRM consultation (CRM ← مشاوره‌ها). */
-    private const CONSULTATION_FORMS = ['consultation', 'consultation-booking'];
-
     public function menu(string $location): JsonResponse
     {
         $menu = MarketingMenu::query()->where('location', $location)->where('published', true)->first();
@@ -53,6 +51,14 @@ class PublicFormsController extends Controller
             if ($type === 'email') {
                 $rules[$key][] = 'email';
             }
+            if ($type === 'file') {
+                $rules[$key][] = 'regex:/^[A-Za-z0-9]{40}$/';
+                $rules[$key][] = fn (string $attr, mixed $value, \Closure $fail) => FormUploads::valid((string) $value) ? null : $fail('فایل پیوست نامعتبر است.');
+            }
+            if ($type === 'checkbox' && ! empty($field['options']) && is_array($field['options'])) {
+                $allowed = array_map('strval', $field['options']);
+                $rules[$key][] = fn (string $attr, mixed $value, \Closure $fail) => array_diff(array_map('trim', explode('،', (string) $value)), $allowed) ? $fail('گزینه نامعتبر است.') : null;
+            }
             if ($type === 'select' && ! empty($field['options']) && is_array($field['options'])) {
                 $rules[$key][] = Rule::in(array_values(array_map('strval', $field['options'])));
             }
@@ -68,30 +74,21 @@ class PublicFormsController extends Controller
             'locale' => substr((string) $request->header('Accept-Language', ''), 0, 8) ?: null,
         ]);
 
-        if (in_array($form->slug, self::CONSULTATION_FORMS, true)) {
-            $this->openConsultation($form, $data['payload'], $data['page_uri'] ?? null);
-        }
+        FormSubmissionHooks::dispatch($form, $data['payload'], $data['page_uri'] ?? null);
 
         return response()->json([
             'data' => ['id' => $row->id, 'message' => $form->success_message ?: 'دریافت شد'],
         ], 201);
     }
 
-    private function openConsultation(MarketingForm $form, array $payload, ?string $page): void
+    /** Private attachment for a published form that has a file field; returns an opaque token. */
+    public function upload(Request $request, string $slug): JsonResponse
     {
-        $labels = collect($form->fields ?? [])->filter(fn ($f) => is_array($f) && ! empty($f['name']))
-            ->mapWithKeys(fn ($f) => [$f['name'] => $f['label'] ?? $f['name']]);
-        $notes = collect($payload)
-            ->filter(fn ($v) => is_scalar($v) && trim((string) $v) !== '')
-            ->map(fn ($v, $k) => ($labels[$k] ?? $k).': '.$v)
-            ->push('منبع: '.($page ?: 'سایت عمومی').' (فرم '.$form->slug.')')
-            ->implode("\n");
-        $name = trim((string) ($payload['name'] ?? ''));
+        $form = MarketingForm::query()->where('slug', $slug)->where('published', true)->firstOrFail();
+        $hasFile = collect($form->fields ?? [])->contains(fn ($f) => is_array($f) && ($f['type'] ?? '') === 'file');
+        abort_unless($hasFile, 422, 'این فرم فایل پیوست ندارد.');
+        $request->validate(['file' => 'required|file|mimes:'.FormUploads::MIMES.'|max:'.FormUploads::MAX_KB]);
 
-        CrmConsultation::query()->create([
-            'title' => $name !== '' ? 'درخواست مشاوره: '.mb_substr($name, 0, 200) : 'درخواست مشاوره از سایت',
-            'status' => 'new',
-            'notes' => $notes,
-        ]);
+        return response()->json(['data' => ['token' => FormUploads::store($request->file('file'), $form->slug)]], 201);
     }
 }

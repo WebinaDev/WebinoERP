@@ -9,7 +9,6 @@ use Modules\Marketing\Entities\MarketingAnnouncement;
 use Modules\Marketing\Entities\MarketingBlogCategory;
 use Modules\Marketing\Entities\MarketingBlogPost;
 use Modules\Marketing\Entities\MarketingFaqItem;
-use Modules\Marketing\Entities\MarketingPage;
 use Modules\Marketing\Entities\MarketingPortfolioItem;
 use Modules\Marketing\Entities\MarketingService;
 use Modules\Marketing\Entities\MarketingServiceCategory;
@@ -23,7 +22,6 @@ class MarketingSiteSeeder extends Seeder
     public function run(): void
     {
         $this->settings();
-        $this->pages();
         $this->services();
         $this->solutions();
         $this->portfolio();
@@ -69,60 +67,6 @@ class MarketingSiteSeeder extends Seeder
         $settings->home_blocks = $blocks;
         $settings->active_theme_slug = $settings->active_theme_slug ?: 'webina-corporate-v1';
         $settings->save();
-    }
-
-    private function pages(): void
-    {
-        $this->fillPage('about', 'درباره ما', 'About', <<<'HTML'
-<p>شرکت توسعه کسب و کار وبینا خدمات دیجیتال و نرم‌افزار خودش را کنار هم عرضه می‌کند.</p>
-<p>خدمات: فناوری و توسعه وب، رشد و بازاریابی، هویت برند و طراحی، استراتژی و مشاوره، پشتیبانی و زیرساخت.</p>
-<p>محصول‌ها: Webino Dashboard (سایت فروشگاه، مجله، کافه، رزومه یا شرکت)، WebinoERP (سامانه ماژولار همین محصول)، مستندات API و ماژول‌ها، و سکوی میزبانی Platform برای سرور، داکر، دامنه و پشتیبان.</p>
-<p>شروع همکاری از فرم مشاوره یا درخواست پروپوزال است. متن این صفحه از داشبورد بازاریابی قابل ویرایش است.</p>
-HTML);
-        $this->fillPage('products', 'محصول‌های وبینا', 'Webina products', <<<'HTML'
-<p>چهار محصول داخل همین اکوسیستم هستند و با خدمات آژانس یکی نیستند.</p>
-<h2>Webino Dashboard</h2>
-<p>سایت‌ساز. نوع سایت: فروشگاه، مجله، کافه، رزومه، شرکت. از Site Builder راه می‌افتد.</p>
-<h2>WebinoERP</h2>
-<p>سامانه ماژولار مدیریت کسب‌وکار با API و داشبورد.</p>
-<h2>مستندات</h2>
-<p>راهنمای API و ماژول‌ها، از جمله سکوی میزبانی، در docs-site همین محصول.</p>
-<h2>سکوی میزبانی</h2>
-<p>ماژول Platform: سرور، داکر، دامنه، گواهی و پشتیبان.</p>
-HTML);
-        $legal = 'متن حقوقی این صفحه هنوز جایگزین نشده است. از داشبورد بازاریابی، برگه‌ها، آن را ویرایش کنید.';
-        $this->fillPage('terms', 'قوانین و مقررات', 'Terms', '<p>'.$legal.'</p>');
-        $this->fillPage('privacy', 'حریم خصوصی', 'Privacy', '<p>'.$legal.'</p>');
-        $this->fillPage('conflict-of-interest', 'تضاد منافع', 'Conflict of interest', '<p>'.$legal.'</p>');
-    }
-
-    private function fillPage(string $slug, string $titleFa, string $titleEn, string $body): void
-    {
-        $page = MarketingPage::query()->firstOrCreate(
-            ['slug' => $slug],
-            [
-                'title_fa' => $titleFa,
-                'title_en' => $titleEn,
-                'body_fa' => $body,
-                'body_en' => $body,
-                'published' => true,
-            ]
-        );
-        $thin = [
-            null,
-            '',
-            '<p>محتوای این صفحه از داشبورد قابل ویرایش است.</p>',
-            '<p>وبینا، شریک دیجیتال کسب‌وکارها.</p>',
-        ];
-        if (in_array($page->body_fa, $thin, true)) {
-            $page->fill([
-                'title_fa' => $titleFa,
-                'title_en' => $titleEn,
-                'body_fa' => $body,
-                'body_en' => $body,
-                'published' => true,
-            ])->save();
-        }
     }
 
     private function services(): void

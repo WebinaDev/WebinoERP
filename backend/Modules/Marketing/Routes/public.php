@@ -4,8 +4,8 @@ use Illuminate\Support\Facades\Route;
 use Modules\Marketing\Http\Controllers\Builder\BuilderGlobalsController;
 use Modules\Marketing\Http\Controllers\Builder\PublicBuilderController;
 use Modules\Marketing\Http\Controllers\Public\PublicConsultationController;
-use Modules\Marketing\Http\Controllers\Public\PublicFormsController;
 use Modules\Marketing\Http\Controllers\Public\PublicContentController;
+use Modules\Marketing\Http\Controllers\Public\PublicFormsController;
 use Modules\Marketing\Http\Controllers\Public\PublicSiteController;
 
 Route::middleware('throttle:marketing-public')->group(function () {
@@ -51,3 +51,6 @@ Route::post('/consultations', [PublicConsultationController::class, 'store'])
 
 Route::post('/forms/{slug}', [PublicFormsController::class, 'submit'])
     ->middleware('throttle:5,1');
+
+Route::post('/forms/{slug}/upload', [PublicFormsController::class, 'upload'])
+    ->middleware('throttle:10,1');
