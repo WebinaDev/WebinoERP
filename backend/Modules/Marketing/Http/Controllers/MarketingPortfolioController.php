@@ -32,6 +32,12 @@ class MarketingPortfolioController extends Controller
             'technologies' => 'nullable|array',
             'case_study' => 'nullable|string',
             'featured' => 'nullable|boolean',
+            'images.*' => 'string|max:500',
+            'technologies.*' => 'string|max:120',
+            'challenge' => 'nullable|string',
+            'solution' => 'nullable|string',
+            'results' => 'nullable|string',
+            'sort_order' => 'nullable|integer',
         ];
     }
 }

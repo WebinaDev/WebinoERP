@@ -35,6 +35,7 @@ import { propBool, propNum, propStr, parseLinks } from "../props"
 import type { BuilderDocument, EditorApi, WidgetNode } from "../types"
 import { BuilderRuntimeProvider, useBuilderGlobals, useBuilderRuntime } from "./runtime"
 import { FormWidget } from "./form-widget"
+import { PortfolioGridWidget } from "./portfolio-widget"
 import { RahnEstimateWidget } from "./rahn-widget"
 import {
   AccordionWidget,
@@ -238,6 +239,8 @@ export function WidgetBody({ widget, editor }: { widget: WidgetNode; editor?: Ed
       return <CtaBannerWidget widget={widget} />
     case "rahn-estimate":
       return <RahnEstimateWidget widget={widget} editing={editing} />
+    case "portfolio-grid":
+      return <PortfolioGridWidget widget={widget} />
     case "comparison-table":
       return <ComparisonTableWidget widget={widget} />
     case "container":

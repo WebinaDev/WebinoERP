@@ -278,7 +278,7 @@ class InvoiceController extends Controller
         $text = implode("\n", $lines);
         // Escape for PDF literal string
         $escaped = str_replace(['\\', '(', ')'], ['\\\\', '\\(', '\\)'], $text);
-        $stream = "BT /F1 10 Tf 40 750 Td 14 TL (".str_replace("\n", ') Tj T* (', $escaped).") Tj ET";
+        $stream = 'BT /F1 10 Tf 40 750 Td 14 TL ('.str_replace("\n", ') Tj T* (', $escaped).') Tj ET';
         $len = strlen($stream);
 
         return "%PDF-1.4\n".

@@ -6,6 +6,7 @@ use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Str;
 use Modules\Crm\Entities\CrmAccount;
 use Modules\Crm\Entities\CrmLead;
+use Modules\Crm\Entities\CrmStatus;
 use Modules\Docs\Entities\DocsContract;
 use Modules\Sales\Entities\SalesInvoice;
 use Modules\Sales\Entities\SalesRahnQuote;
@@ -646,30 +647,6 @@ class RahnService
             false
         );
 
-        $catalogPublic = [];
-        foreach ((array) $settings['catalog'] as $item) {
-            if (empty($item['active'])) {
-                continue;
-            }
-            $catalogPublic[] = [
-                'id' => $item['id'],
-                'name' => $item['name'],
-                'billing' => $item['billing'],
-                'period_months' => $item['period_months'],
-                'renewable' => ! empty($item['renewable']),
-                'amount' => (float) ($item['amount'] ?? 0),
-                'category' => $item['category'],
-                'category_id' => (string) ($item['category_id'] ?? ''),
-                'description' => $item['description'],
-                'default_selected' => ! empty($item['default_selected']),
-                'choice_group' => (string) ($item['choice_group'] ?? ''),
-                'choice_value' => (string) ($item['choice_value'] ?? ''),
-                'fee_label' => (string) ($item['fee_label'] ?? ''),
-                'show_when_item_id' => (string) ($item['show_when_item_id'] ?? ''),
-                'sort_order' => (int) ($item['sort_order'] ?? 0),
-            ];
-        }
-
         $snap = is_array($quote->calc_snapshot) ? $quote->calc_snapshot : [];
         $wizard = is_array($snap['wizard'] ?? null) ? $snap['wizard'] : [];
 
@@ -679,15 +656,7 @@ class RahnService
             'status' => (string) $quote->status,
             'locked' => in_array($quote->status, ['locked', 'contracted'], true),
             'selected_ids' => $quote->selected_ids ?? [],
-            'catalog' => $catalogPublic,
-            'topics' => array_values(array_filter((array) ($settings['topics'] ?? []), fn ($t) => is_array($t) && (! isset($t['active']) || ! empty($t['active'])))),
-            'domains' => array_values(array_filter((array) ($settings['domains'] ?? []), fn ($t) => is_array($t) && (! isset($t['active']) || ! empty($t['active'])))),
-            'categories' => array_values(array_filter((array) ($settings['categories'] ?? []), fn ($t) => is_array($t) && (! isset($t['active']) || ! empty($t['active'])))),
-            'duration_options' => array_values((array) ($settings['duration_options'] ?? RahnSettingsService::DURATION_OPTIONS)),
-            'wizard_steps' => array_values(array_filter(
-                (array) ($settings['wizard_steps'] ?? RahnSettingsService::defaultWizardSteps()),
-                fn ($s) => is_array($s) && (! isset($s['active']) || ! empty($s['active']))
-            )),
+        ] + $this->publicCatalogConfig($settings) + [
             'public' => $calc['public'],
             'p_min' => (float) $settings['p_min'],
             'p_max' => (float) $settings['p_max'],
@@ -781,32 +750,7 @@ class RahnService
         );
         $lock = $calc['lock'];
 
-        $leadContent = sprintf(
-            "درخواست رهن‌درصد\nنام: %s\nتلفن: %s\nایمیل: %s\nثابت: %s\nدرصد: %s\n%s\n%s",
-            $name,
-            $phone,
-            $email,
-            RahnCalculator::formatMoney((float) $lock['F']),
-            RahnCalculator::formatPercent((float) $lock['p']).'%',
-            (string) $calc['clause'],
-            $note
-        );
-
-        $leadId = 0;
-        if (Schema::hasTable('crm_leads')) {
-            $parts = preg_split('/\s+/', $name, 2) ?: [$name];
-            $lead = CrmLead::query()->create([
-                'topic' => 'لید رهن‌درصد — '.$name,
-                'first_name' => $parts[0] ?? $name,
-                'last_name' => $parts[1] ?? '',
-                'email' => $email ?: null,
-                'mobile' => $phone ?: null,
-                'phone' => $phone ?: null,
-                'description' => $leadContent,
-                'industry' => 'rahn_percent',
-            ]);
-            $leadId = (int) $lead->id;
-        }
+        $leadId = $this->createRahnLead($name, $phone, $email, $note, $lock, (string) $calc['clause']);
 
         $quote->update([
             'lead_id' => $leadId,
@@ -824,6 +768,206 @@ class RahnService
             'message' => 'درخواست شما ثبت شد. به‌زودی با شما تماس می‌گیریم.',
             'lead_id' => $leadId,
             'public' => $calc['public'],
+        ];
+    }
+
+    /**
+     * Token-free public calculator (website /pricing): defaults from settings, no quote needed.
+     *
+     * @return array<string, mixed>
+     */
+    public function siteConfig(): array
+    {
+        $settings = RahnSettingsService::get();
+        $defaults = [];
+        foreach ((array) $settings['catalog'] as $item) {
+            if (! empty($item['active']) && ! empty($item['default_selected'])) {
+                $defaults[] = (string) $item['id'];
+            }
+        }
+        $calc = $this->runCalc(['selected_ids' => $defaults], $settings, false);
+
+        return [
+            'token' => null,
+            'title' => '',
+            'status' => 'draft',
+            'locked' => false,
+            'selected_ids' => $calc['selected_ids'],
+        ] + $this->publicCatalogConfig($settings) + [
+            'public' => $calc['public'],
+            'p_min' => (float) $settings['p_min'],
+            'p_max' => (float) $settings['p_max'],
+            's_hat' => (float) $settings['s_hat_default'],
+            'T' => (int) $settings['T'],
+            'wizard' => ['business_name' => '', 'topic_id' => '', 'domain_id' => ''],
+            'site_name' => (string) config('app.name', 'Webino'),
+        ];
+    }
+
+    /**
+     * Only customer-controlled inputs reach the calculator (never items_snapshot price overrides).
+     *
+     * @param  array<string, mixed>  $params
+     * @return array<string, mixed>
+     */
+    private function siteCalcParams(array $params): array
+    {
+        $out = ['selected_ids' => $this->parseSelectedIds($params), 'mode' => strtolower((string) ($params['mode'] ?? 'from_p'))];
+        foreach (['T', 'duration', 's_hat', 'p_wanted', 'F_wanted', 'p_percent', 'business_name', 'topic_id', 'domain_id'] as $key) {
+            if (isset($params[$key]) && $params[$key] !== '') {
+                $out[$key] = $params[$key];
+            }
+        }
+        if (! in_array($out['mode'], ['from_p', 'from_f'], true)) {
+            $out['mode'] = 'from_p';
+        }
+
+        return $out;
+    }
+
+    /**
+     * @param  array<string, mixed>  $params
+     * @return array<string, mixed>
+     */
+    public function siteCalculate(array $params): array
+    {
+        $calc = $this->runCalc($this->siteCalcParams($params), RahnSettingsService::get(), false);
+
+        return ['public' => $calc['public'], 'selected_ids' => $calc['selected_ids'], 'clause' => $calc['clause']];
+    }
+
+    /**
+     * Website submission: CRM lead + a draft quote (same records as the internal flow), marked source=website.
+     *
+     * @param  array<string, mixed>  $params
+     * @return array<string, mixed>
+     */
+    public function siteSubmit(array $params): array
+    {
+        $name = trim((string) ($params['name'] ?? ''));
+        $phone = trim((string) ($params['phone'] ?? ''));
+        $email = trim((string) ($params['email'] ?? ''));
+        if ($name === '' || ($phone === '' && $email === '')) {
+            abort(400, 'نام و شماره تماس یا ایمیل الزامی است.');
+        }
+        $calcParams = $this->siteCalcParams($params);
+        if ($calcParams['selected_ids'] === []) {
+            abort(400, 'حداقل یک خدمت را انتخاب کنید.');
+        }
+
+        $settings = RahnSettingsService::get();
+        $calc = $this->runCalc($calcParams, $settings, true);
+        $lock = $calc['lock'];
+        $leadId = $this->createRahnLead($name, $phone, $email, trim((string) ($params['note'] ?? '')), $lock, (string) $calc['clause'], 'وب‌سایت (/pricing)');
+
+        $business = (string) ($calc['wizard']['business_name'] ?? '');
+        $quote = SalesRahnQuote::query()->create([
+            'title' => 'وب‌سایت — '.($business !== '' ? $business : $name).' — '.RahnCalculator::formatMoney((float) $lock['F']),
+            'customer_id' => 0,
+            'lead_id' => $leadId,
+            'selected_ids' => $calc['selected_ids'],
+            'items_snapshot' => $calc['items'],
+            'calc_snapshot' => array_merge($lock, ['wizard' => $calc['wizard'], 'source' => 'website', 'contact' => compact('name', 'phone', 'email')]),
+            's_hat' => (float) $lock['S_hat'],
+            'duration' => (int) $lock['T'],
+            'mode' => (string) $lock['mode'],
+            'p_wanted' => (float) $lock['p'],
+            'f_wanted' => (float) $lock['F'],
+            'F' => (float) $lock['F'],
+            'p' => (float) $lock['p'],
+            'clause' => (string) $calc['clause'],
+            'token' => bin2hex(random_bytes(16)),
+            'status' => 'draft',
+            'created_by' => null,
+        ]);
+
+        return [
+            'message' => 'درخواست شما ثبت شد. به‌زودی با شما تماس می‌گیریم.',
+            'lead_id' => $leadId,
+            'quote_id' => (int) $quote->id,
+            'public' => $calc['public'],
+        ];
+    }
+
+    /**
+     * @param  array<string, mixed>  $lock
+     */
+    private function createRahnLead(string $name, string $phone, string $email, string $note, array $lock, string $clause, ?string $source = null): int
+    {
+        if (! Schema::hasTable('crm_leads')) {
+            return 0;
+        }
+        $content = sprintf(
+            "درخواست رهن‌درصد\nنام: %s\nتلفن: %s\nایمیل: %s\nثابت: %s\nدرصد: %s\n%s\n%s",
+            $name, $phone, $email,
+            RahnCalculator::formatMoney((float) $lock['F']),
+            RahnCalculator::formatPercent((float) $lock['p']).'%',
+            $clause, $note
+        );
+        if ($source !== null) {
+            $content = "منبع: {$source}\n".$content;
+        }
+        $parts = preg_split('/\s+/', $name, 2) ?: [$name];
+        $status = CrmStatus::query()->where('is_active', true)->orderBy('sort_order')->orderBy('id')->first()
+            ?? CrmStatus::query()->create(['name' => 'جدید', 'color' => '#0054ff', 'sort_order' => 0, 'is_active' => true]);
+
+        return (int) CrmLead::query()->create([
+            'status_id' => $status->id,
+            'topic' => 'لید رهن‌درصد — '.$name,
+            'first_name' => $parts[0] ?? $name,
+            'last_name' => $parts[1] ?? '',
+            'email' => $email ?: null,
+            'mobile' => $phone ?: null,
+            'phone' => $phone ?: null,
+            'description' => $content,
+            'industry' => 'rahn_percent',
+        ])->id;
+    }
+
+    /**
+     * Customer-safe calculator config shared by the share-token and the token-free site flow:
+     * active catalog (customer prices only), topics/domains/categories, durations and wizard steps.
+     * Never includes cost basis, margins (m, k) or break-even numbers.
+     *
+     * @param  array<string, mixed>  $settings
+     * @return array<string, mixed>
+     */
+    private function publicCatalogConfig(array $settings): array
+    {
+        $catalogPublic = [];
+        foreach ((array) $settings['catalog'] as $item) {
+            if (empty($item['active'])) {
+                continue;
+            }
+            $catalogPublic[] = [
+                'id' => $item['id'],
+                'name' => $item['name'],
+                'billing' => $item['billing'],
+                'period_months' => $item['period_months'],
+                'renewable' => ! empty($item['renewable']),
+                'amount' => (float) ($item['amount'] ?? 0),
+                'category' => $item['category'],
+                'category_id' => (string) ($item['category_id'] ?? ''),
+                'description' => $item['description'],
+                'default_selected' => ! empty($item['default_selected']),
+                'choice_group' => (string) ($item['choice_group'] ?? ''),
+                'choice_value' => (string) ($item['choice_value'] ?? ''),
+                'fee_label' => (string) ($item['fee_label'] ?? ''),
+                'show_when_item_id' => (string) ($item['show_when_item_id'] ?? ''),
+                'sort_order' => (int) ($item['sort_order'] ?? 0),
+            ];
+        }
+
+        return [
+            'catalog' => $catalogPublic,
+            'topics' => array_values(array_filter((array) ($settings['topics'] ?? []), fn ($t) => is_array($t) && (! isset($t['active']) || ! empty($t['active'])))),
+            'domains' => array_values(array_filter((array) ($settings['domains'] ?? []), fn ($t) => is_array($t) && (! isset($t['active']) || ! empty($t['active'])))),
+            'categories' => array_values(array_filter((array) ($settings['categories'] ?? []), fn ($t) => is_array($t) && (! isset($t['active']) || ! empty($t['active'])))),
+            'duration_options' => array_values((array) ($settings['duration_options'] ?? RahnSettingsService::DURATION_OPTIONS)),
+            'wizard_steps' => array_values(array_filter(
+                (array) ($settings['wizard_steps'] ?? RahnSettingsService::defaultWizardSteps()),
+                fn ($s) => is_array($s) && (! isset($s['active']) || ! empty($s['active']))
+            )),
         ];
     }
 

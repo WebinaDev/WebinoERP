@@ -33,6 +33,7 @@ Route::middleware('throttle:marketing-public')->group(function () {
     Route::get('/forms/{slug}', [PublicFormsController::class, 'show']);
 
     Route::get('/portfolio', [PublicContentController::class, 'portfolio']);
+    Route::get('/portfolio-categories', [PublicContentController::class, 'portfolioCategories']);
     Route::get('/portfolio/{slug}', [PublicContentController::class, 'portfolioShow']);
 
     Route::get('/faq', [PublicContentController::class, 'faq']);

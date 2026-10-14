@@ -14,6 +14,7 @@ class MarketingPortfolioItem extends Model
         'slug', 'title', 'description', 'images', 'service_id',
         'industry_id', 'client', 'published', 'published_at',
         'category_id', 'cover_url', 'result_metric', 'technologies', 'case_study', 'featured',
+        'challenge', 'solution', 'results', 'sort_order',
     ];
 
     protected $casts = [
@@ -21,6 +22,7 @@ class MarketingPortfolioItem extends Model
         'technologies' => 'array',
         'published' => 'boolean',
         'featured' => 'boolean',
+        'sort_order' => 'integer',
         'published_at' => 'datetime',
     ];
 

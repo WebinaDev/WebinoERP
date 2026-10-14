@@ -177,7 +177,8 @@
         "themeBuilder": "Theme builder",
         "builder": "Page builder",
         "builderSettings": "Global settings",
-        "siteBuilder": "Corporate site builder"
+        "siteBuilder": "Corporate site builder",
+        "portfolioCategories": "Portfolio categories"
       },
       "hrm": {
         "group": "Human resources",
@@ -2303,7 +2304,13 @@
     "location": "Location",
     "success": "Success message",
     "titleEn": "English title",
-    "body": "Body"
+    "body": "Body",
+    "challenge": "Challenge",
+    "solution": "Solution",
+    "results": "Results",
+    "serviceTags": "Services (one tag per line)",
+    "gallery": "Gallery (one image URL per line)",
+    "sortOrder": "Order"
   },
   "analytics": {
     "title": "Analytics",

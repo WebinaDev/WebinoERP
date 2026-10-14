@@ -13,7 +13,7 @@ type PublicPayload = {
   T: number;
   p_min: number;
   p_max: number;
-  F_min: number;
+  F_min?: number;
   services: Array<{
     id: string;
     name: string;
@@ -69,7 +69,8 @@ function money(n: number) {
 }
 
 async function rahnPublicApi<T>(path: string, init?: RequestInit): Promise<{ ok: boolean; data?: T; message?: string }> {
-  const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL?.trim() || '/api'}/v1/sales/rahn/public/${path.replace(/^\//, '')}`, {
+  const base = `${process.env.NEXT_PUBLIC_API_URL?.trim() || '/api'}/v1/sales/rahn`
+  const res = await fetch(`${base}/${path.replace(/^\//, '')}`, {
     ...init,
     headers: {
       'Content-Type': 'application/json',
@@ -102,8 +103,8 @@ const DEFAULT_STEPS: WizardStep[] = [
   { id: 'contact', type: 'summary', label: 'ثبت درخواست', sort_order: 6, active: true },
 ];
 
-/** Public rahn estimate wizard (share token from داشبورد ← فروش ← رهن درصدی). Used by /rahn/[token] and the builder «برآورد قیمت» widget. */
-export function RahnPublicEstimate({ token, embedded = false }: { token: string; embedded?: boolean }) {
+/** Public rahn estimate wizard. With a share `token` it loads that quote; without one it uses the token-free website calculator (/v1/sales/rahn/site). Used by /rahn/[token] and the builder «برآورد قیمت» widget. */
+export function RahnPublicEstimate({ token = '', embedded = false }: { token?: string; embedded?: boolean }) {
 
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -128,6 +129,7 @@ export function RahnPublicEstimate({ token, embedded = false }: { token: string;
   const [topicId, setTopicId] = useState('');
   const [domainId, setDomainId] = useState('');
   const [name, setName] = useState('');
+  const [hp, setHp] = useState('');
   const [phone, setPhone] = useState('');
   const [email, setEmail] = useState('');
   const [note, setNote] = useState('');
@@ -148,9 +150,10 @@ export function RahnPublicEstimate({ token, embedded = false }: { token: string;
   );
   const currentStep = activeSteps.find((s) => s.id === stepId) ?? activeSteps[0];
   const stepType = currentStep?.type ?? 'business';
+  const apiRoot = token ? `public/${token}` : 'site'
 
   const load = useCallback(async () => {
-    if (!token) return;
+    try { sessionStorage.setItem('rahn_t0', String(Date.now())) } catch { /* ignore */ }
     setLoading(true);
     try {
       const res = await rahnPublicApi<{
@@ -170,7 +173,7 @@ export function RahnPublicEstimate({ token, embedded = false }: { token: string;
         T?: number;
         wizard?: { business_name?: string; topic_id?: string; domain_id?: string };
         site_name?: string;
-      }>(token);
+      }>(token ? `public/${token}` : 'site/config');
       if (!res.ok || !res.data) {
         setError(res.message || 'پیش‌نویس یافت نشد.');
         return;
@@ -203,7 +206,7 @@ export function RahnPublicEstimate({ token, embedded = false }: { token: string;
     } finally {
       setLoading(false);
     }
-  }, [token]);
+  }, [token, apiRoot]);
 
   useEffect(() => {
     void load();
@@ -226,7 +229,7 @@ export function RahnPublicEstimate({ token, embedded = false }: { token: string;
       domainId?: string;
       businessName?: string;
     }) => {
-      if (locked || !token) return;
+      if (locked) return;
       const body = {
         selected_ids: next.selected ?? selected,
         s_hat: next.sHat ?? sHat,
@@ -238,7 +241,7 @@ export function RahnPublicEstimate({ token, embedded = false }: { token: string;
         topic_id: next.topicId ?? topicId,
         domain_id: next.domainId ?? domainId,
       };
-      const res = await rahnPublicApi<{ public: PublicPayload }>(`${token}/calculate`, {
+      const res = await rahnPublicApi<{ public: PublicPayload }>(`${apiRoot}/calculate`, {
         method: 'POST',
         body: JSON.stringify(body),
       });
@@ -248,7 +251,7 @@ export function RahnPublicEstimate({ token, embedded = false }: { token: string;
         setFWanted(res.data.public.F);
       }
     },
-    [locked, token, selected, sHat, duration, mode, pPercent, fWanted, businessName, topicId, domainId],
+    [locked, apiRoot, selected, sHat, duration, mode, pPercent, fWanted, businessName, topicId, domainId],
   );
 
   useEffect(() => {
@@ -262,7 +265,8 @@ export function RahnPublicEstimate({ token, embedded = false }: { token: string;
   }, [domainId]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const submit = async () => {
-    const res = await rahnPublicApi<{ message?: string }>(`${token}/submit`, {
+    const started = Number((() => { try { return sessionStorage.getItem('rahn_t0') } catch { return null } })() || Date.now())
+    const res = await rahnPublicApi<{ message?: string }>(`${apiRoot}/submit`, {
       method: 'POST',
       body: JSON.stringify({
         name,
@@ -278,6 +282,8 @@ export function RahnPublicEstimate({ token, embedded = false }: { token: string;
         business_name: businessName,
         topic_id: topicId,
         domain_id: domainId,
+        _hp: hp,
+        _t: Date.now() - started,
       }),
     });
     if (!res.ok) {
@@ -628,6 +634,7 @@ export function RahnPublicEstimate({ token, embedded = false }: { token: string;
         ) : (
           <section className="space-y-3 rounded-2xl border p-5">
             <h2 className="font-medium">ثبت علاقه‌مندی</h2>
+            <input type="text" name="website" tabIndex={-1} autoComplete="off" aria-hidden="true" className="hidden" value={hp} onChange={(e) => setHp(e.target.value)} />
             <input
               className="w-full rounded-xl border px-3 py-2 text-start"
               placeholder="نام"

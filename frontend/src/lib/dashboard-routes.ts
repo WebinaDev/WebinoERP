@@ -256,6 +256,7 @@ const EXACT: Record<string, DashboardRouteMeta> = {
   'marketing/blog': { titleFa: 'بلاگ', titleEn: 'Blog', group: 'core' },
   'marketing/academy': { titleFa: 'آکادمی', titleEn: 'Academy', group: 'core' },
   'marketing/portfolio': { titleFa: 'نمونه کار', titleEn: 'Portfolio', group: 'core' },
+  'marketing/portfolio-categories': { titleFa: 'دسته‌های نمونه‌کار', titleEn: 'Portfolio categories', group: 'core' },
   'marketing/faq': { titleFa: 'پرسش‌ها', titleEn: 'FAQ', group: 'core' },
   'marketing/services': { titleFa: 'خدمات', titleEn: 'Services', group: 'core' },
   'marketing/solutions': { titleFa: 'راه‌حل‌ها', titleEn: 'Solutions', group: 'core' },

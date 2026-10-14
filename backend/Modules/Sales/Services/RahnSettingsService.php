@@ -162,7 +162,7 @@ class RahnSettingsService
         $out = [];
         $i = 0;
         foreach ($rows as $row) {
-            ++$i;
+            $i++;
             $out[] = [
                 'id' => (string) $row['id'],
                 'name' => (string) $row['name'],
@@ -354,7 +354,7 @@ class RahnSettingsService
                 if (! is_array($row)) {
                     continue;
                 }
-                ++$order;
+                $order++;
                 $id = preg_replace('/[^a-z0-9_\-]/i', '', (string) ($row['id'] ?? '')) ?: ('svc_'.bin2hex(random_bytes(4)));
                 $billing = strtolower((string) ($row['billing'] ?? 'once'));
                 if (! in_array($billing, ['once', 'monthly', 'yearly', 'custom'], true)) {
@@ -454,7 +454,6 @@ class RahnSettingsService
     }
 
     /**
-     * @param  mixed  $raw
      * @param  list<array<string, mixed>>  $fallback
      * @return list<array<string, mixed>>
      */
@@ -469,7 +468,7 @@ class RahnSettingsService
             if (! is_array($row)) {
                 continue;
             }
-            ++$order;
+            $order++;
             $id = preg_replace('/[^a-z0-9_\-]/i', '', (string) ($row['id'] ?? '')) ?: ('item_'.bin2hex(random_bytes(3)));
             $item = [
                 'id' => $id,
@@ -490,7 +489,6 @@ class RahnSettingsService
     }
 
     /**
-     * @param  mixed  $raw
      * @param  list<array<string, mixed>>  $fallback
      * @return list<array<string, mixed>>
      */
@@ -500,7 +498,6 @@ class RahnSettingsService
     }
 
     /**
-     * @param  mixed  $raw
      * @param  list<array<string, mixed>>  $fallback
      * @return list<array<string, mixed>>
      */
@@ -528,7 +525,6 @@ class RahnSettingsService
     }
 
     /**
-     * @param  mixed  $raw
      * @param  list<array<string, mixed>>  $fallback
      * @return list<array<string, mixed>>
      */
@@ -545,7 +541,7 @@ class RahnSettingsService
             if (! is_array($row)) {
                 continue;
             }
-            ++$order;
+            $order++;
             $type = strtolower((string) ($row['type'] ?? 'note'));
             if (! in_array($type, $allowedTypes, true)) {
                 $type = 'note';

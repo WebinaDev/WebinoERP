@@ -14,7 +14,10 @@ import { normalizeListPayload } from '@/lib/list-utils';
 export type MarketingField = {
   key: string;
   labelKey: string;
-  kind?: 'text' | 'textarea' | 'checkbox';
+  /** `lines` = string array edited one item per line; `select` loads options from `optionsEndpoint`. */
+  kind?: 'text' | 'textarea' | 'checkbox' | 'number' | 'lines' | 'select';
+  optionsEndpoint?: string;
+  optionLabel?: string;
 };
 
 type MarketingResourcePageProps = {
@@ -30,7 +33,24 @@ export function MarketingResourcePage({ titleKey, endpoint, columns, fields }: M
   const [rows, setRows] = useState<Record<string, unknown>[]>([]);
   const [draft, setDraft] = useState<Record<string, string> | null>(null);
   const [editingId, setEditingId] = useState<number | null>(null);
-  const formFields = fields ?? columns.map((c) => ({ key: c.key, labelKey: c.labelKey, kind: 'text' as const }));
+  const formFields: MarketingField[] = fields ?? columns.map((c) => ({ key: c.key, labelKey: c.labelKey, kind: 'text' as const }));
+  const [options, setOptions] = useState<Record<string, { value: string; label: string }[]>>({});
+  const selectSources = formFields.filter((f) => f.kind === 'select' && f.optionsEndpoint).map((f) => `${f.key}|${f.optionsEndpoint}|${f.optionLabel ?? 'name'}`).join(',');
+
+  useEffect(() => {
+    if (!selectSources) return;
+    void Promise.all(
+      selectSources.split(',').map(async (src) => {
+        const [key, url, label] = src.split('|');
+        try {
+          const res = await apiClient.get(url);
+          return [key, normalizeListPayload(res.data).map((r) => ({ value: String(r.id), label: String(r[label] ?? r.id) }))] as const;
+        } catch {
+          return [key, []] as const;
+        }
+      }),
+    ).then((pairs) => setOptions(Object.fromEntries(pairs)));
+  }, [selectSources]);
 
   const load = useCallback(async () => {
     try {
@@ -52,7 +72,12 @@ export function MarketingResourcePage({ titleKey, endpoint, columns, fields }: M
 
   function openEdit(row: Record<string, unknown>) {
     setEditingId(Number(row.id));
-    setDraft(Object.fromEntries(formFields.map((f) => [f.key, String(row[f.key] ?? '')])));
+    setDraft(Object.fromEntries(formFields.map((f) => {
+      const v = row[f.key];
+      if (f.kind === 'lines') return [f.key, Array.isArray(v) ? v.join('\n') : ''];
+      if (f.kind === 'checkbox') return [f.key, v ? 'true' : 'false'];
+      return [f.key, v === null || v === undefined ? '' : String(v)];
+    })));
   }
 
   async function save() {
@@ -61,6 +86,8 @@ export function MarketingResourcePage({ titleKey, endpoint, columns, fields }: M
     for (const field of formFields) {
       const raw = draft[field.key] ?? '';
       if (field.kind === 'checkbox') body[field.key] = raw === 'true' || raw === '1';
+      else if (field.kind === 'lines') body[field.key] = raw.split('\n').map((x) => x.trim()).filter(Boolean);
+      else if (field.kind === 'number' || field.kind === 'select') body[field.key] = raw === '' ? null : Number(raw);
       else if (raw !== '' || editingId) body[field.key] = raw;
     }
     try {
@@ -101,7 +128,18 @@ export function MarketingResourcePage({ titleKey, endpoint, columns, fields }: M
             {formFields.map((field) => (
               <label key={field.key} className="grid gap-1 text-sm">
                 <span>{tNav(field.labelKey)}</span>
-                {field.kind === 'textarea' ? (
+                {field.kind === 'select' ? (
+                  <select
+                    className="border-input h-9 rounded-md border bg-transparent px-3"
+                    value={draft[field.key] ?? ''}
+                    onChange={(e) => setDraft({ ...draft, [field.key]: e.target.value })}
+                  >
+                    <option value="">—</option>
+                    {(options[field.key] ?? []).map((o) => (
+                      <option key={o.value} value={o.value}>{o.label}</option>
+                    ))}
+                  </select>
+                ) : field.kind === 'textarea' || field.kind === 'lines' ? (
                   <textarea
                     className="border-input min-h-24 rounded-md border bg-transparent px-3 py-2"
                     value={draft[field.key] ?? ''}
@@ -115,6 +153,7 @@ export function MarketingResourcePage({ titleKey, endpoint, columns, fields }: M
                   />
                 ) : (
                   <input
+                    type={field.kind === 'number' ? 'number' : 'text'}
                     className="border-input h-9 rounded-md border bg-transparent px-3"
                     value={draft[field.key] ?? ''}
                     onChange={(e) => setDraft({ ...draft, [field.key]: e.target.value })}
