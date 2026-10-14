@@ -2,7 +2,7 @@ import { uid } from "./ids"
 import type { BuilderDocument, ColumnNode, SectionNode, WidgetNode } from "./types"
 
 export function emptyDocument(): BuilderDocument {
-  return { version: 1, sections: [] }
+  return { version: 2, sections: [] }
 }
 
 export function isDocument(value: unknown): value is BuilderDocument {
@@ -262,7 +262,7 @@ export function resizeColumn(doc: BuilderDocument, columnId: string, span: numbe
   }))
 }
 
-function cloneWidget(widget: WidgetNode): WidgetNode {
+export function cloneWidget(widget: WidgetNode): WidgetNode {
   return {
     ...widget,
     id: uid("w"),
@@ -272,7 +272,7 @@ function cloneWidget(widget: WidgetNode): WidgetNode {
   }
 }
 
-function cloneSection(section: SectionNode): SectionNode {
+export function cloneSection(section: SectionNode): SectionNode {
   return {
     ...section,
     id: uid("sec"),

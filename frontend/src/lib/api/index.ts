@@ -44,3 +44,6 @@ export async function apiFetch(
 
   return res.data
 }
+
+// Dashboard-compatible client used by the ported page builder / storefront.
+export { api, apiDownload, ApiError, type ApiOptions } from "./builder-compat"

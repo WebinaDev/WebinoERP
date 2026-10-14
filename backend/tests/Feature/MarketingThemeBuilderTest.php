@@ -80,13 +80,13 @@ class MarketingThemeBuilderTest extends TestCase
         $this->postJson('/api/v1/theme-builder/templates/'.$default['id'].'/default')->assertOk();
 
         $applied = $this->postJson('/api/v1/theme-builder/library/apply', [
-            'preset' => 'ishop-404',
+            'preset' => 'classic-404',
         ])->assertCreated()->json('data');
         $this->assertSame('not_found', $applied['kind']);
         $this->assertTrue($applied['is_default']);
         $this->assertFalse($applied['has_published']);
 
-        $this->postJson('/api/v1/theme-builder/library/apply', ['preset' => 'ishop-kit'])
+        $this->postJson('/api/v1/theme-builder/library/apply', ['preset' => 'classic-kit'])
             ->assertCreated()
             ->assertJsonStructure(['data' => ['templates']]);
 

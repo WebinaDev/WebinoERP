@@ -4,9 +4,10 @@ import { formatCalendarDate, type AppDateLocale } from './calendar-date';
 
 export function formatDate(
   iso: string,
-  opts: { locale: Locale; includeTime?: boolean } = { locale: 'fa' }
+  opts: string | { locale: string; includeTime?: boolean } = { locale: 'fa' }
 ): string {
-  return formatCalendarDate(iso, opts.locale as AppDateLocale, Boolean(opts.includeTime));
+  const o = typeof opts === 'string' ? { locale: opts } : opts
+  return formatCalendarDate(iso, o.locale as AppDateLocale, Boolean(o.includeTime));
 }
 
 export function formatDateTime(iso: string, locale: Locale): string {

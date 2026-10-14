@@ -270,3 +270,8 @@ export function getAxiosMessage(err: unknown): string {
 
   return 'خطای ناشناخته';
 }
+
+/** Dashboard alias. */
+export function getApiErrorMessage(err: unknown, _body?: unknown): string {
+  return getAxiosMessage(err)
+}

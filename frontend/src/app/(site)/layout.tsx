@@ -1,5 +1,9 @@
 import type { Metadata } from 'next';
 import type { ReactNode } from 'react';
+import { headers } from 'next/headers';
+import { requestPageLang } from '@/builder/page-lang';
+import { loadPublishedGlobals } from '@/builder/public-document';
+import { CustomCodeSlot } from '@/builder/render/custom-code';
 import { ThemeSlot } from '@/builder/theme/ThemeSlot';
 import { SiteFooter } from '@/themes/webina-corporate-v1/components/SiteFooter';
 import { SiteHeader } from '@/themes/webina-corporate-v1/components/SiteHeader';
@@ -50,8 +54,12 @@ export default async function SiteLayout({ children }: { children: ReactNode }) 
     /* fallback chrome still renders */
   }
 
+  const requestPath = ((await headers()).get('x-webino-path') ?? '/').split('?')[0];
+  const [globals, pageLang] = await Promise.all([loadPublishedGlobals().catch(() => null), requestPageLang().catch(() => null)]);
+
   return (
-    <div className="webina-public flex min-h-svh flex-col">
+    <div className="webina-public flex min-h-svh flex-col" {...(pageLang ? { dir: pageLang.dir, lang: pageLang.lang } : {})}>
+      <CustomCodeSlot entries={globals?.customCode} location="head" path={requestPath} />
       <ThemeSlot kind="header">
         <SiteHeader siteName={siteName} logoUrl={logoUrl} header={header} />
       </ThemeSlot>
@@ -59,6 +67,7 @@ export default async function SiteLayout({ children }: { children: ReactNode }) 
       <ThemeSlot kind="footer">
         <SiteFooter siteName={siteName} logoUrl={logoUrl} badges={badges} socials={socials} contact={contact} footer={footer} company={company} />
       </ThemeSlot>
+      <CustomCodeSlot entries={globals?.customCode} location="body_end" path={requestPath} />
     </div>
   );
 }

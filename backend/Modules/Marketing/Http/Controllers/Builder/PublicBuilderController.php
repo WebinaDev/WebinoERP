@@ -31,6 +31,17 @@ class PublicBuilderController extends Controller
         ]);
     }
 
+    /** Draft preview via an expiring, unguessable token (no login needed). */
+    public function preview(Request $request, string $token): JsonResponse
+    {
+        $page = app(\Modules\Marketing\Services\Builder\BuilderPageLifecycle::class)->findByPreviewToken(BuilderSite::ID, $token);
+        abort_unless($page && is_array($page->builder_draft), 404);
+
+        return response()->json([
+            'data' => ['slug' => $page->slug, 'title' => $page->title, 'document' => $page->builder_draft, 'lang' => $page->lang, 'preview' => true],
+        ])->header('Cache-Control', 'no-store')->header('X-Robots-Tag', 'noindex, nofollow');
+    }
+
     public function template(Request $request, string $kind): JsonResponse
     {
         return $this->resolved($request, $kind, new ThemeRequestContext);
@@ -45,7 +56,16 @@ class PublicBuilderController extends Controller
             'archive' => 'nullable|string|max:32',
             'search' => 'nullable|boolean',
             'not_found' => 'nullable|boolean',
+            'slug' => 'nullable|string|max:191',
+            'category' => 'nullable|string|max:191',
         ]);
+
+        // Product pages: derive the catalog item's category so `product_category` rules can match.
+        if (($data['singular'] ?? null) === 'product' && ! empty($data['slug']) && empty($data['category'])) {
+            $item = \Modules\Sales\Entities\SalesCatalogItem::query()->get(['id', 'sku', 'meta'])
+                ->first(fn ($i) => (string) (($i->meta['slug'] ?? null) ?: $i->sku) === $data['slug']);
+            $data['category'] = $item ? (($item->meta['category_slug'] ?? null) ?: null) : null;
+        }
 
         return $this->resolved($request, $data['kind'], ThemeRequestContext::fromArray($data));
     }

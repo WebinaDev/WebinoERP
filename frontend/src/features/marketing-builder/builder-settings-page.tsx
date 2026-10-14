@@ -5,15 +5,18 @@ import { useTranslations } from "next-intl"
 import { useEffect, useState } from "react"
 import { toast } from "sonner"
 
-import { asGlobals, DEFAULT_GLOBALS, type BuilderGlobals } from "@/builder/globals"
+import { asGlobals, DEFAULT_GLOBALS, FONT_PRESETS, type BuilderGlobals } from "@/builder/globals"
 import { SETTINGS_SECTION_ICONS } from "@/builder/theme/icons"
 import { PageShell } from "@/components/PageShell"
 import { Button } from "@/components/ui/button"
-import { api } from "@/lib/builder-api"
+import { api } from "@/lib/api"
+
+import { KitPanel, RolesPanel } from "./builder-kit-roles"
+import { CodeManagerPanel, DesignSystemPanel, VariablesPanel } from "./builder-design-system"
 
 type SectionId = keyof typeof SETTINGS_SECTION_ICONS
 
-const SECTIONS: SectionId[] = ["colors", "fonts", "typography", "buttons", "images", "forms", "layout", "lightbox", "variables"]
+const SECTIONS: SectionId[] = ["colors", "fonts", "typography", "buttons", "images", "forms", "layout", "lightbox", "variables", "design_system", "code", "kit", "roles"]
 const COLOR_KEYS = ["primary", "secondary", "text", "accent", "background", "surface", "border", "muted", "success", "danger"] as const
 const TYPE_KEYS = ["h1", "h2", "h3", "h4", "h5", "h6", "body", "small", "link"] as const
 const BUTTONS = ["primary", "secondary", "outline", "ghost"] as const
@@ -106,12 +109,55 @@ export function BuilderSettingsPage() {
           ) : null}
           {section === "fonts" ? (
             <div className="grid gap-3">
+              <div className="grid gap-1 text-xs">
+                {t("font_presets")}
+                <div className="flex flex-wrap gap-2">
+                  {FONT_PRESETS.map((preset) => (
+                    <button
+                      key={preset.id}
+                      type="button"
+                      className="rounded-lg border px-3 py-1.5 text-sm"
+                      onClick={() => {
+                        const others = settings.customFonts.filter((font) => !preset.faces.some((face) => face.family === font.family))
+                        setSettings({ ...settings, fonts: { body: preset.stack, heading: preset.stack, accent: preset.stack }, customFonts: [...others, ...preset.faces] })
+                      }}
+                    >
+                      {preset.label}
+                    </button>
+                  ))}
+                </div>
+              </div>
               {(["body", "heading", "accent"] as const).map((key) => (
                 <label key={key} className="grid gap-1 text-xs">
                   {t(`${key}_font`)}
                   <input className="h-9 rounded-md border px-2" value={settings.fonts[key]} onChange={(event) => setSettings({ ...settings, fonts: { ...settings.fonts, [key]: event.target.value } })} />
                 </label>
               ))}
+              <div className="grid gap-2 text-xs">
+                <div className="text-sm font-medium">{t("custom_fonts")}</div>
+                <p className="text-muted-foreground">{t("custom_fonts_hint")}</p>
+                {settings.customFonts.map((font, index) => (
+                  <div key={index} className="grid grid-cols-[1fr_2fr_80px_auto] items-center gap-2">
+                    <input aria-label={t("font_family")} className="h-9 rounded-md border px-2" value={font.family} placeholder="Vazirmatn" onChange={(event) => {
+                      const customFonts = settings.customFonts.slice()
+                      customFonts[index] = { ...font, family: event.target.value }
+                      setSettings({ ...settings, customFonts })
+                    }} />
+                    <input aria-label={t("font_url")} dir="ltr" className="h-9 rounded-md border px-2" value={font.url} placeholder="https://…/font.woff2" onChange={(event) => {
+                      const customFonts = settings.customFonts.slice()
+                      customFonts[index] = { ...font, url: event.target.value }
+                      setSettings({ ...settings, customFonts })
+                    }} />
+                    <input aria-label={t("font_weight")} dir="ltr" className="h-9 rounded-md border px-2" value={font.weight ?? "400"} onChange={(event) => {
+                      const customFonts = settings.customFonts.slice()
+                      customFonts[index] = { ...font, weight: event.target.value }
+                      setSettings({ ...settings, customFonts })
+                    }} />
+                    <Button type="button" variant="outline" size="sm" onClick={() => setSettings({ ...settings, customFonts: settings.customFonts.filter((_, i) => i !== index) })}>{t("remove")}</Button>
+                  </div>
+                ))}
+                <Button type="button" variant="outline" size="sm" className="w-fit" onClick={() => setSettings({ ...settings, customFonts: [...settings.customFonts, { family: "", url: "", weight: "400" }] })}>{t("add_font")}</Button>
+              </div>
             </div>
           ) : null}
           {section === "typography" ? (
@@ -177,6 +223,9 @@ export function BuilderSettingsPage() {
               <Field label={t("column_gap")} value={settings.layout.columnGap} onChange={(columnGap) => setSettings({ ...settings, layout: { ...settings.layout, columnGap } })} />
               <Field label={t("content_padding")} value={settings.layout.contentPadding} onChange={(contentPadding) => setSettings({ ...settings, layout: { ...settings.layout, contentPadding } })} />
               <ColorField label={t("page_background")} value={settings.layout.background} onChange={(background) => setSettings({ ...settings, layout: { ...settings.layout, background } })} />
+              <Field label={t("bp_tablet")} value={String(settings.breakpoints.tablet)} onChange={(v) => setSettings({ ...settings, breakpoints: { ...settings.breakpoints, tablet: Number(v) || 1024 } })} />
+              <Field label={t("bp_mobile")} value={String(settings.breakpoints.mobile)} onChange={(v) => setSettings({ ...settings, breakpoints: { ...settings.breakpoints, mobile: Number(v) || 767 } })} />
+              <p className="text-muted-foreground text-xs sm:col-span-2">{t("bp_hint")}</p>
             </div>
           ) : null}
           {section === "lightbox" ? (
@@ -185,6 +234,9 @@ export function BuilderSettingsPage() {
               <Field label={t("background")} value={settings.lightbox.background} onChange={(background) => setSettings({ ...settings, lightbox: { ...settings.lightbox, background } })} />
             </div>
           ) : null}
+          {section === "variables" ? <VariablesPanel settings={settings} onChange={setSettings} /> : null}
+          {section === "design_system" ? <DesignSystemPanel settings={settings} onChange={setSettings} /> : null}
+          {section === "code" ? <CodeManagerPanel settings={settings} onChange={setSettings} /> : null}
           {section === "variables" ? (
             <label className="grid gap-1 text-xs">
               {t("custom_vars")}
@@ -192,6 +244,8 @@ export function BuilderSettingsPage() {
               <span className="text-muted-foreground">{t("custom_vars_hint")}</span>
             </label>
           ) : null}
+          {section === "kit" ? <KitPanel /> : null}
+          {section === "roles" ? <RolesPanel /> : null}
         </section>
       </div>
     </PageShell>

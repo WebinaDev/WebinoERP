@@ -448,6 +448,7 @@ export const ERP_MODULES: ErpModuleDef[] = [
           { id: 'builder', path: 'builder', titleKey: 'nav.erp.marketing.builder', icon: 'ri-layout-masonry-line', requiredPermission: 'marketing.pages.view' },
           { id: 'builder-site', path: 'builder/site', titleKey: 'nav.erp.marketing.siteBuilder', icon: 'ri-home-gear-line', requiredPermission: 'marketing.pages.view' },
           { id: 'builder-settings', path: 'builder/settings', titleKey: 'nav.erp.marketing.builderSettings', icon: 'ri-settings-3-line', requiredPermission: 'marketing.pages.view' },
+          { id: 'builder-collections', path: 'builder/collections', titleKey: 'nav.erp.marketing.builderCollections', icon: 'ri-database-2-line', requiredPermission: 'marketing.pages.view' },
         ],
       },
     ],

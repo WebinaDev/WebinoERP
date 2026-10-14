@@ -5,9 +5,10 @@ export type CartLine = {
   qty: number
   tone: string
   image?: string | null
+  productId?: number
 }
 
-const KEY = "webino.ishop.cart"
+const KEY = "webino.storefront.cart"
 const listeners = new Set<() => void>()
 
 function read(): CartLine[] {
@@ -20,7 +21,7 @@ function read(): CartLine[] {
     return parsed.filter((line): line is CartLine => {
       if (!line || typeof line !== "object") return false
       const row = line as Partial<CartLine>
-      return typeof row.slug === "string" && typeof row.name === "string" && typeof row.price === "number"
+      return typeof row.slug === "string" && typeof row.name === "string" && typeof row.price === "number" && typeof row.qty === "number"
     })
   } catch {
     return []
