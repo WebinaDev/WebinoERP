@@ -280,12 +280,12 @@ class CoreLicenseMetaNormalizer
         if (isset($meta['module_matrix']) && is_array($meta['module_matrix'])) {
             $matrix = [];
             foreach ($meta['module_matrix'] as $mod => $subs) {
-                if (! is_string($mod) || ! preg_match('/^[a-z0-9_]{1,64}$/', $mod) || ! is_array($subs)) {
+                if (! is_string($mod) || ! preg_match('/^[a-z0-9_-]{1,64}$/', $mod) || ! is_array($subs)) {
                     continue;
                 }
                 $cleanSubs = [];
                 foreach ($subs as $sub) {
-                    if (is_string($sub) && preg_match('/^[a-z0-9_]{1,64}$/', $sub)) {
+                    if (is_string($sub) && preg_match('/^[a-z0-9_-]{1,64}$/', $sub)) {
                         $cleanSubs[] = $sub;
                     }
                 }

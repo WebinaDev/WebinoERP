@@ -620,6 +620,11 @@ class RahnSettingsService
             }
         }
 
+        // A snapshot without an explicit selection means "price exactly these items".
+        if (is_array($override) && $selectedIds === []) {
+            return array_values($map);
+        }
+
         $items = [];
         foreach ($selectedIds as $id) {
             $id = (string) $id;

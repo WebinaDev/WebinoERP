@@ -127,6 +127,8 @@ class CrmPmSuiteTest extends TestCase
             'subject' => 'Hi {{first_name}}',
             'body' => 'Welcome {{name}}',
         ])->assertCreated();
+        // No SMS provider configured (not even the test mock) → message is only logged.
+        config(['integrations.modirpayamak.mock' => false]);
         $this->postJson('/api/v1/crm/messages', [
             'channel' => 'sms',
             'related_type' => 'lead',

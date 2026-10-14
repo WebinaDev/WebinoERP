@@ -39,6 +39,7 @@ class ApiResponseFormatter
             'api/v1/core/scim',
             'api/v1/integrations/calendars/webhook',
             'api/v1/integrations/bridges/webhook',
+            'api/webinocrm/v1/bale/webhook', // Bale bot webhook: raw {ok} body
             'api/v1/core/sso/saml',
         ] as $prefix) {
             if (str_starts_with($request->path(), $prefix)) {
@@ -144,13 +145,21 @@ class ApiResponseFormatter
             $data = $data['data'];
         }
 
-        return [
+        $out = [
             'success' => true,
             'data' => $data,
             'message' => $message,
             'meta' => $meta === [] ? null : $meta,
             'errors' => null,
         ];
+        // `{data: [...], total: N}` list responses (WebinoCRM/WP-mirror contract) used to lose
+        // `total` here; keep it at the top level and in meta.
+        if (array_key_exists('total', $content) && is_numeric($content['total']) && is_array($data) && array_is_list($data)) {
+            $out['total'] = (int) $content['total'];
+            $out['meta'] = ($out['meta'] ?? []) + ['total' => (int) $content['total']];
+        }
+
+        return $out;
     }
 
     /**
