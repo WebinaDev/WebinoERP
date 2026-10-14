@@ -56,7 +56,7 @@ class MarketingSiteContentDefaultsTest extends TestCase
     public function test_contact_form_accepts_a_submission(): void
     {
         $this->withoutMiddleware(\Illuminate\Routing\Middleware\ThrottleRequests::class);
-        $this->seed(\Modules\Marketing\Database\Seeders\MarketingSiteSeeder::class);
+        $this->seed(\Modules\Marketing\Database\Seeders\MarketingFormsSeeder::class);
 
         $this->getJson('/api/v1/public/forms/contact')->assertOk()->assertJsonPath('data.fields.0.name', 'name');
         $this->postJson('/api/v1/public/forms/contact', ['payload' => ['name' => 'آزمون', 'phone' => '09120000000']])
