@@ -255,7 +255,7 @@ class RahnCalculator
             'T' => (int) ($lock['T'] ?? 0),
             'p_min' => (float) ($lock['p_min'] ?? 0),
             'p_max' => (float) ($lock['p_max'] ?? 1),
-            'F_min' => (float) ($lock['F_min'] ?? 0),
+            // F_min (k·C) is cost-derived: internal only, never in the customer payload.
             'services' => $services,
             'clause' => $clause,
         ];

@@ -353,7 +353,7 @@ export const CONTENT_WIDGETS: WidgetDef[] = [
     category: "content",
     fields: [
       { kind: "text", key: "title", label: "عنوان (اختیاری)" },
-      { kind: "text", key: "token", label: "توکن اشتراک پیشنهاد (/rahn/…)" },
+      { kind: "text", key: "token", label: "توکن اشتراک (اختیاری؛ خالی = برآورد عمومی سایت)" },
     ],
     create: () => node("rahn-estimate", { title: "", token: "" }),
   },
