@@ -651,6 +651,10 @@ export const BADGE_FIELDS: FieldSpec[] = [
   { key: 'hint', label: 'توضیح', kind: 'textarea' },
   { key: 'href', label: 'پیوند', kind: 'url' },
   { key: 'image', label: 'نشانی تصویر نماد', kind: 'url' },
+  { key: 'alt', label: 'متن جایگزین تصویر', kind: 'text' },
+  { key: 'referrerpolicy', label: 'referrerpolicy (برای اینماد: origin)', kind: 'text' },
+  { key: 'code', label: 'کد نماد (ویژگی code تصویر، اختیاری)', kind: 'text' },
+  { key: 'embed', label: 'کد جاسازی (اختیاری؛ پیوند/تصویر/کد از آن خوانده می‌شود)', kind: 'textarea' },
 ];
 
 // ---------------------------------------------------------------------------

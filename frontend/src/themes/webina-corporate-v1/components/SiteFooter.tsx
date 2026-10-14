@@ -19,6 +19,10 @@ type BadgeInput = {
   hint?: string;
   href?: string | null;
   image?: string | null;
+  alt?: string | null;
+  referrerpolicy?: string | null;
+  code?: string | null;
+  embed?: string | null;
 };
 
 function go(path: string) {
@@ -44,6 +48,26 @@ function SmartA({ to, children, className, dir }: { to: string; children: React.
  * Footer content is CMS-driven: `branding.footer`, `branding.contact`, `social_links` and
  * `branding.trust_badges` (page builder → پابرگ / تماس و شبکه‌ها / نشان‌های اعتماد).
  */
+/**
+ * A badge can be given as fields or as the issuer's embed code (e.g. eNamad's <a><img></a>). The embed is
+ * never injected as HTML: only an https link, an https image, referrerpolicy, alt and code are read from it.
+ */
+function fromEmbed(b: BadgeInput) {
+  const raw = b.embed ?? '';
+  const attr = (tag: string, name: string) => {
+    const el = raw.match(new RegExp(`<${tag}\\b[^>]*>`, 'i'))?.[0] ?? '';
+    return el.match(new RegExp(`\\b${name}\\s*=\\s*(?:"([^"]*)"|'([^']*)')`, 'i'))?.slice(1).find((v) => v !== undefined)?.replace(/&amp;/g, '&');
+  };
+  const https = (v?: string | null) => (v && /^https:\/\//i.test(v) ? v : undefined);
+  return {
+    href: https(b.href) ?? https(attr('a', 'href')) ?? b.href,
+    image: https(b.image) ?? https(attr('img', 'src')) ?? b.image,
+    alt: b.alt ?? attr('img', 'alt') ?? null,
+    referrerpolicy: b.referrerpolicy || attr('img', 'referrerpolicy') || attr('a', 'referrerpolicy') || null,
+    code: b.code || attr('img', 'code') || null,
+  };
+}
+
 export async function SiteFooter({
   siteName,
   logoUrl,
@@ -80,8 +104,7 @@ export async function SiteFooter({
         id: b.id || `badge-${i}`,
         label: b.label || fallback[i]?.label || data.trust_title,
         hint: b.hint || fallback[i]?.hint || data.trust_lead,
-        href: b.href,
-        image: b.image,
+        ...fromEmbed(b),
       }))
     : fallback;
 

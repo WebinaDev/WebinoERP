@@ -9,7 +9,14 @@ export type TrustBadge = {
   hint: string;
   href?: string | null;
   image?: string | null;
+  alt?: string | null;
+  referrerpolicy?: string | null;
+  code?: string | null;
 };
+
+const POLICIES = ['no-referrer', 'no-referrer-when-downgrade', 'origin', 'origin-when-cross-origin', 'same-origin', 'strict-origin', 'strict-origin-when-cross-origin', 'unsafe-url'] as const;
+type Policy = (typeof POLICIES)[number];
+const policy = (v?: string | null): Policy | undefined => (POLICIES as readonly string[]).includes(v ?? '') ? (v as Policy) : undefined;
 
 function Seal({ id }: { id: string }) {
   const glyph = id === 'ssl' ? 'SSL' : id === 'hosting' ? 'SRV' : id === 'samandehi' ? 'IR' : 'نماد';
@@ -96,7 +103,14 @@ export function TrustBadgeRail({
                 <>
                   {badge.image ? (
                     // eslint-disable-next-line @next/next/no-img-element
-                    <img src={badge.image} alt="" className="seal object-contain" />
+                    <img
+                      src={badge.image}
+                      alt={badge.alt ?? ''}
+                      className="seal object-contain"
+                      referrerPolicy={policy(badge.referrerpolicy)}
+                      style={{ cursor: 'pointer' }}
+                      {...(badge.code ? { code: badge.code } : {})}
+                    />
                   ) : (
                     <Seal id={badge.id} />
                   )}
@@ -107,7 +121,14 @@ export function TrustBadgeRail({
                 </>
               );
               return badge.href ? (
-                <a key={badge.id} href={badge.href} className="trust-card" target="_blank" rel="noreferrer">
+                <a
+                  key={badge.id}
+                  href={badge.href}
+                  className="trust-card"
+                  target="_blank"
+                  referrerPolicy={policy(badge.referrerpolicy)}
+                  rel={policy(badge.referrerpolicy) ? 'noopener' : 'noreferrer'}
+                >
                   {inner}
                 </a>
               ) : (
