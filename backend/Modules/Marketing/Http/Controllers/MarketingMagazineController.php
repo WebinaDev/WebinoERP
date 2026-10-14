@@ -25,6 +25,9 @@ class MarketingMagazineController extends Controller
             'status' => 'nullable|string|max:24',
             'published_at' => 'nullable|date',
             'meta' => 'nullable|array',
+            'issue' => 'nullable|string|max:255',
+            'author' => 'nullable|string|max:255',
+            'featured' => 'nullable|boolean',
         ];
     }
 }

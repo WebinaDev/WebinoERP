@@ -9,7 +9,7 @@ class MarketingAnnouncement extends Model
 {
     protected $table = 'marketing_announcements';
 
-    protected $fillable = ['title', 'body', 'pinned', 'published', 'starts_at', 'ends_at'];
+    protected $fillable = ['title', 'body', 'pinned', 'published', 'starts_at', 'ends_at', 'slug', 'type', 'summary'];
 
     protected $casts = [
         'pinned' => 'boolean',
