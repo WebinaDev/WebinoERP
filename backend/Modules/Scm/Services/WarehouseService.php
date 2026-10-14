@@ -82,7 +82,7 @@ class WarehouseService
                 );
                 $delta = $inbound ? $qty : -$qty;
                 if (! $inbound && (float) $stock->quantity + $delta < 0) {
-                    throw new \RuntimeException('Insufficient stock for product '.$pid);
+                    throw new \RuntimeException(__('messages.insufficient_stock_for_product').$pid);
                 }
                 $stock->update(['quantity' => (float) $stock->quantity + $delta]);
             }

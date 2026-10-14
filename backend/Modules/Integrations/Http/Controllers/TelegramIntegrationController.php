@@ -17,7 +17,7 @@ class TelegramIntegrationController extends Controller
         ]);
         $token = config('integrations.telegram.token');
         if (! $token) {
-            return response()->json(['message' => 'TELEGRAM_BOT_TOKEN not configured'], 422);
+            return response()->json(['message' => __('messages.telegram_bot_token_not_configured')], 422);
         }
         $url = 'https://api.telegram.org/bot'.$token.'/sendMessage';
         $res = Http::asJson()->post($url, [
@@ -35,7 +35,7 @@ class TelegramIntegrationController extends Controller
     {
         $secret = (string) config('integrations.telegram.webhook_secret', env('TELEGRAM_WEBHOOK_SECRET', ''));
         if ($secret === '') {
-            return response()->json(['message' => 'Webhook secret not configured'], 503);
+            return response()->json(['message' => __('messages.webhook_secret_not_configured')], 503);
         }
 
         $raw = $request->getContent();
@@ -52,7 +52,7 @@ class TelegramIntegrationController extends Controller
         $validHmac = $sigHeader !== '' && hash_equals($expectedHmac, $sigHeader);
 
         if (! $validPlain && ! $validHmac) {
-            return response()->json(['message' => 'Invalid signature'], 401);
+            return response()->json(['message' => __('messages.invalid_signature')], 401);
         }
 
         $payload = json_decode($raw, true);

@@ -38,7 +38,7 @@ class RequireAjaxHeader
 
         if (strcasecmp($requestedWith, 'XMLHttpRequest') !== 0 && ! $acceptsJson) {
             return response()->json([
-                'message' => 'Missing X-Requested-With header',
+                'message' => __('messages.missing_x_requested_with_header'),
                 'errors' => ['code' => 'AJAX_REQUIRED'],
             ], 403);
         }
@@ -48,7 +48,7 @@ class RequireAjaxHeader
             && strcasecmp($requestedWith, 'XMLHttpRequest') !== 0
             && ! $request->bearerToken()) {
             return response()->json([
-                'message' => 'Missing X-Requested-With header',
+                'message' => __('messages.missing_x_requested_with_header'),
                 'errors' => ['code' => 'AJAX_REQUIRED'],
             ], 403);
         }

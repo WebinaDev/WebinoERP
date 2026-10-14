@@ -394,7 +394,7 @@ class AccountingWpActionService
     private function seedChart(): array
     {
         if (AccChartAccount::query()->exists()) {
-            return ['count' => 0, 'message' => 'Chart already seeded'];
+            return ['count' => 0, 'message' => __('messages.chart_already_seeded')];
         }
 
         $roots = [

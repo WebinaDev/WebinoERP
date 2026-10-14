@@ -29,7 +29,7 @@ class TrainingNestedController extends Controller
         ]);
         $course = HrmTrainingCourse::create($data);
 
-        return response()->json(['data' => $course, 'message' => 'Course saved'], 201);
+        return response()->json(['data' => $course, 'message' => __('messages.course_saved')], 201);
     }
 
     public function sessionsIndex(Request $request): JsonResponse
@@ -49,7 +49,7 @@ class TrainingNestedController extends Controller
         ]);
         $session = HrmTrainingSession::create($data);
 
-        return response()->json(['data' => $session->load('course'), 'message' => 'Session saved'], 201);
+        return response()->json(['data' => $session->load('course'), 'message' => __('messages.session_saved')], 201);
     }
 
     public function enrollmentsIndex(Request $request): JsonResponse
@@ -69,6 +69,6 @@ class TrainingNestedController extends Controller
             ['status' => $data['status'] ?? 'enrolled']
         );
 
-        return response()->json(['data' => $enrollment->load(['course', 'employee']), 'message' => 'Enrollment saved'], 201);
+        return response()->json(['data' => $enrollment->load(['course', 'employee']), 'message' => __('messages.enrollment_saved')], 201);
     }
 }

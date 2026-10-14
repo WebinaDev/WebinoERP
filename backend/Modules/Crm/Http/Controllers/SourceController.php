@@ -27,6 +27,6 @@ class SourceController extends Controller
         ]);
         $source = CrmSource::create($data);
 
-        return response()->json(['data' => $source, 'message' => 'Source created'], 201);
+        return response()->json(['data' => $source, 'message' => __('messages.source_created')], 201);
     }
 }

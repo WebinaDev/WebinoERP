@@ -15,7 +15,7 @@ class HrAnalyticsController extends Controller
     {
         $from = Carbon::parse($request->input('from', now()->startOfYear()->toDateString()))->startOfDay();
         $to = Carbon::parse($request->input('to', now()->toDateString()))->endOfDay();
-        abort_if($from->gt($to), 422, 'Invalid range');
+        abort_if($from->gt($to), 422, __('messages.invalid_range'));
 
         return response()->json(['data' => $analytics->summary($from, $to)]);
     }
@@ -52,7 +52,7 @@ class HrAnalyticsController extends Controller
             ['headcount' => $data['headcount'], 'cost_budget' => $data['cost_budget'], 'notes' => $data['notes'] ?? null]
         );
 
-        return response()->json(['data' => $row, 'message' => 'Budget saved'], 201);
+        return response()->json(['data' => $row, 'message' => __('messages.budget_saved')], 201);
     }
 
     public function budgetsDestroy(HrmWorkforceBudget $budget): JsonResponse
@@ -60,6 +60,6 @@ class HrAnalyticsController extends Controller
         abort_unless(\Modules\Hrm\Support\HrmAccess::canManageStaff(), 403);
         $budget->delete();
 
-        return response()->json(['message' => 'Deleted']);
+        return response()->json(['message' => __('messages.deleted')]);
     }
 }

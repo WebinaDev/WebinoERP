@@ -32,7 +32,7 @@ class StaffNestedController extends Controller
         if ($request->boolean('onboarding')) {
             $employee = app(\Modules\Hrm\Services\HrmEmployeeOnboarding::class)->create($request);
 
-            return response()->json(['data' => $employee, 'message' => 'Staff created'], 201);
+            return response()->json(['data' => $employee, 'message' => __('messages.staff_created')], 201);
         }
 
         $data = $request->validate([
@@ -63,7 +63,7 @@ class StaffNestedController extends Controller
         app(HrmCompensationRules::class)->assertEmployee(new HrmEmployee($data));
         $employee = HrmEmployee::create($data);
 
-        return response()->json(['data' => $employee, 'message' => 'Staff created'], 201);
+        return response()->json(['data' => $employee, 'message' => __('messages.staff_created')], 201);
     }
 
     public function destroy(HrmEmployee $staff): JsonResponse
@@ -98,7 +98,7 @@ class StaffNestedController extends Controller
         ]);
         $profile = HrmEmployeeProfile::query()->updateOrCreate(['employee_id' => $staff->id], $data);
 
-        return response()->json(['data' => $profile, 'message' => 'Profile saved']);
+        return response()->json(['data' => $profile, 'message' => __('messages.profile_saved')]);
     }
 
     public function orgPositionsIndex(Request $request): JsonResponse
@@ -120,7 +120,7 @@ class StaffNestedController extends Controller
         ]);
         $position = HrmOrgPosition::create($data);
 
-        return response()->json(['data' => $position, 'message' => 'Position saved'], 201);
+        return response()->json(['data' => $position, 'message' => __('messages.position_saved')], 201);
     }
 
     public function orgPositionDestroy(HrmOrgPosition $orgPosition): JsonResponse
@@ -150,7 +150,7 @@ class StaffNestedController extends Controller
         $data['employee_id'] = $staff->id;
         $row = HrmDependent::query()->create($data);
 
-        return response()->json(['data' => $row, 'message' => 'Dependent saved'], 201);
+        return response()->json(['data' => $row, 'message' => __('messages.dependent_saved')], 201);
     }
 
     public function documentsIndex(HrmEmployee $staff): \Illuminate\Http\JsonResponse
@@ -187,7 +187,7 @@ class StaffNestedController extends Controller
             app(\Modules\Hrm\Services\HrmOnboardingService::class)->attachDocument($staff->id, $doc->category, $doc->id);
         }
 
-        return response()->json(['data' => $doc, 'message' => 'Document stored'], 201);
+        return response()->json(['data' => $doc, 'message' => __('messages.document_stored')], 201);
     }
 
     public function documentsDownload(HrmEmployee $staff, HrmPersonnelDocument $document)
@@ -203,6 +203,6 @@ class StaffNestedController extends Controller
         abort_unless($document->employee_id === $staff->id, 404);
         $signed = app(\Modules\Hrm\Services\HrmDocumentSignatureService::class)->sign($document, $request, true);
 
-        return response()->json(['data' => $signed, 'message' => 'Signed']);
+        return response()->json(['data' => $signed, 'message' => __('messages.signed')]);
     }
 }

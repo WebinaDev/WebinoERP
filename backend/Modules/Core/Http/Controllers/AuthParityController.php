@@ -54,7 +54,7 @@ class AuthParityController extends Controller
 
         $payload = [
             'sent' => true,
-            'message' => 'OTP sent',
+            'message' => __('messages.otp_sent'),
         ];
         if (config('app.debug') && app()->environment('local')) {
             $payload['debug_code'] = $code;
@@ -84,7 +84,7 @@ class AuthParityController extends Controller
             }
 
             return response()->json([
-                'data' => ['verified' => false, 'message' => 'Invalid code'],
+                'data' => ['verified' => false, 'message' => __('messages.invalid_code')],
             ], 422);
         }
         Cache::forget($key);
@@ -93,13 +93,13 @@ class AuthParityController extends Controller
         $user = User::query()->where('phone', $data['mobile'])->first();
         if (! $user) {
             return response()->json([
-                'data' => ['verified' => false, 'message' => 'User not found'],
+                'data' => ['verified' => false, 'message' => __('messages.user_not_found')],
             ], 404);
         }
 
         if ($user->is_active === false) {
             return response()->json([
-                'data' => ['verified' => false, 'message' => 'User inactive'],
+                'data' => ['verified' => false, 'message' => __('messages.user_inactive')],
             ], 403);
         }
 

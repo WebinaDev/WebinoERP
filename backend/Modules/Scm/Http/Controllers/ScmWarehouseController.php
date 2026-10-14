@@ -92,7 +92,7 @@ class ScmWarehouseController extends Controller
         ]);
         $result = $this->warehouse->createDocument($data, 'inbound', $request->user()?->id);
 
-        return response()->json(['data' => $result, 'message' => 'Inbound draft created'], 201);
+        return response()->json(['data' => $result, 'message' => __('messages.inbound_draft_created')], 201);
     }
 
     public function postInbound(Request $request): JsonResponse
@@ -100,7 +100,7 @@ class ScmWarehouseController extends Controller
         $id = (int) $request->validate(['id' => 'required|exists:scm_warehouse_documents,id'])['id'];
         $data = $this->warehouse->postDocument($id, 'inbound', true);
 
-        return response()->json(['data' => $data, 'message' => 'Inbound posted']);
+        return response()->json(['data' => $data, 'message' => __('messages.inbound_posted')]);
     }
 
     public function outbound(Request $request): JsonResponse
@@ -133,7 +133,7 @@ class ScmWarehouseController extends Controller
         ]);
         $result = $this->warehouse->createDocument($data, 'outbound', $request->user()?->id);
 
-        return response()->json(['data' => $result, 'message' => 'Outbound draft created'], 201);
+        return response()->json(['data' => $result, 'message' => __('messages.outbound_draft_created')], 201);
     }
 
     public function postOutbound(Request $request): JsonResponse
@@ -141,7 +141,7 @@ class ScmWarehouseController extends Controller
         $id = (int) $request->validate(['id' => 'required|exists:scm_warehouse_documents,id'])['id'];
         $data = $this->warehouse->postDocument($id, 'outbound', false);
 
-        return response()->json(['data' => $data, 'message' => 'Outbound posted']);
+        return response()->json(['data' => $data, 'message' => __('messages.outbound_posted')]);
     }
 
     public function audit(Request $request): JsonResponse
@@ -168,7 +168,7 @@ class ScmWarehouseController extends Controller
         ]);
         $result = $this->warehouse->createAudit($data, $request->user()?->id);
 
-        return response()->json(['data' => $result, 'message' => 'Audit draft created'], 201);
+        return response()->json(['data' => $result, 'message' => __('messages.audit_draft_created')], 201);
     }
 
     public function recordAudit(Request $request): JsonResponse
@@ -196,7 +196,7 @@ class ScmWarehouseController extends Controller
         $id = (int) $request->validate(['id' => 'required|exists:scm_warehouse_documents,id'])['id'];
         $data = $this->warehouse->postAudit($id);
 
-        return response()->json(['data' => $data, 'message' => 'Audit posted']);
+        return response()->json(['data' => $data, 'message' => __('messages.audit_posted')]);
     }
 
     public function storeWarehouse(Request $request): JsonResponse
@@ -209,6 +209,6 @@ class ScmWarehouseController extends Controller
         ]);
         $warehouse = ScmWarehouse::create($data);
 
-        return response()->json(['data' => $warehouse, 'message' => 'Warehouse created'], 201);
+        return response()->json(['data' => $warehouse, 'message' => __('messages.warehouse_created')], 201);
     }
 }

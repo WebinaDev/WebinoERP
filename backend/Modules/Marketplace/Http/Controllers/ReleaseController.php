@@ -17,12 +17,12 @@ class ReleaseController extends Controller
         $release->loadMissing('module.repo');
         $module = $release->module;
         if (! $module) {
-            return response()->json(['message' => 'Release module missing'], 422);
+            return response()->json(['message' => __('messages.release_module_missing')], 422);
         }
 
         $tag = (string) ($release->tag_name ?: $release->version);
         if ($tag === '') {
-            return response()->json(['message' => 'Release version/tag is required'], 422);
+            return response()->json(['message' => __('messages.release_version_tag_is_required')], 422);
         }
 
         $packagePath = $release->package_path;
@@ -78,7 +78,7 @@ class ReleaseController extends Controller
             'package_source' => $packageSource ?: $module->package_source,
         ]);
 
-        return response()->json(['data' => $release->fresh('module'), 'message' => 'Release published']);
+        return response()->json(['data' => $release->fresh('module'), 'message' => __('messages.release_published')]);
     }
 
     public function destroy(MarketplaceRelease $release): Response

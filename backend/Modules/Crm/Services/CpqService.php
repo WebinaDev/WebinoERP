@@ -38,7 +38,7 @@ class CpqService
                 ->orderByDesc('min_qty')
                 ->first();
             if (! $item) {
-                throw new \InvalidArgumentException('No price for product '.$line['product_id']);
+                throw new \InvalidArgumentException(__('messages.no_price_for_product').$line['product_id']);
             }
             $product = $item->product()->first();
             $unit = (float) $item->unit_price;
@@ -179,7 +179,7 @@ class CpqService
             return round($amount / (float) $inverse->rate, 2);
         }
 
-        throw new \InvalidArgumentException('Missing exchange rate '.$from.' to '.$to);
+        throw new \InvalidArgumentException(__('messages.missing_exchange_rate').$from.' to '.$to);
     }
 
     private function nodePercent(CrmDiscountNode $node, float $amount): float

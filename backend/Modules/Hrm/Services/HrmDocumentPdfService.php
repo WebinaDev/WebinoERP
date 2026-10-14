@@ -67,7 +67,7 @@ class HrmDocumentPdfService
                 'url' => null,
                 'serial_no' => $serial,
                 'pdf_available' => false,
-                'message' => 'PDF unavailable: install barryvdh/laravel-dompdf and PHP ext-dom. HTML returned for print.',
+                'message' => __('messages.pdf_unavailable_install_barryvdh_laravel_dompdf_and_php_ext'),
             ];
         }
         $path = $folder.'/'.$basename.'-'.Str::random(6).'.pdf';

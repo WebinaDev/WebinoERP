@@ -15,7 +15,7 @@ class HrmDocumentSignatureService
             'signature_image' => 'nullable|string|max:2500000',
         ]);
         if ($document->document_status === 'signed' && ! $allowResign) {
-            throw new \Illuminate\Http\Exceptions\HttpResponseException(response()->json(['message' => 'Document already signed'], 422));
+            throw new \Illuminate\Http\Exceptions\HttpResponseException(response()->json(['message' => __('messages.document_already_signed')], 422));
         }
 
         $path = $document->signature_path;
@@ -54,7 +54,7 @@ class HrmDocumentSignatureService
         }
         $binary = base64_decode($m[2], true);
         if ($binary === false) {
-            throw new \Illuminate\Http\Exceptions\HttpResponseException(response()->json(['message' => 'Invalid signature image'], 422));
+            throw new \Illuminate\Http\Exceptions\HttpResponseException(response()->json(['message' => __('messages.invalid_signature_image')], 422));
         }
         $ext = $m[1] === 'jpeg' ? 'jpg' : $m[1];
         $path = 'hrm/signatures/'.$document->employee_id.'/doc-'.$document->id.'.'.$ext;

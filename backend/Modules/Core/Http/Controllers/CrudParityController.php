@@ -330,12 +330,12 @@ class CrudParityController extends Controller
     {
         $payload = Cache::get('pdf_download_token:'.$token);
         if (! is_array($payload) || empty($payload['path'])) {
-            return response()->json(['data' => ['url' => null, 'message' => 'Invalid or expired token']], 404);
+            return response()->json(['data' => ['url' => null, 'message' => __('messages.invalid_or_expired_token')]], 404);
         }
         $disk = $payload['disk'] ?? 'public';
         $path = $payload['path'];
         if (! Storage::disk($disk)->exists($path)) {
-            return response()->json(['data' => ['url' => null, 'message' => 'File no longer available']], 404);
+            return response()->json(['data' => ['url' => null, 'message' => __('messages.file_no_longer_available')]], 404);
         }
 
         return response()->json([

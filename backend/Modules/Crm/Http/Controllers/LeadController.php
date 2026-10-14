@@ -45,7 +45,7 @@ class LeadController extends Controller
         $scoring->applyAndSave($lead);
         $lead->load(['status', 'source']);
 
-        return response()->json(['data' => $lead->fresh(['status', 'source']), 'message' => 'Lead created'], 201);
+        return response()->json(['data' => $lead->fresh(['status', 'source']), 'message' => __('messages.lead_created')], 201);
     }
 
     public function show(CrmLead $lead): JsonResponse
@@ -63,7 +63,7 @@ class LeadController extends Controller
         $scoring->applyAndSave($lead);
         $lead->load(['status', 'source']);
 
-        return response()->json(['data' => $lead->fresh(['status', 'source']), 'message' => 'Lead updated']);
+        return response()->json(['data' => $lead->fresh(['status', 'source']), 'message' => __('messages.lead_updated')]);
     }
 
     public function destroy(CrmLead $lead)

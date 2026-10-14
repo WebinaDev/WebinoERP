@@ -33,7 +33,7 @@ class PortainerApiClient
             ->get($this->api('/stacks'));
 
         if (! $res->successful()) {
-            throw new RuntimeException('Portainer stacks list failed: '.$res->body());
+            throw new RuntimeException(__('messages.portainer_stacks_list_failed').$res->body());
         }
 
         $json = $res->json();
@@ -72,7 +72,7 @@ class PortainerApiClient
             ->get($this->api('/endpoints'));
 
         if (! $res->successful()) {
-            throw new RuntimeException('Portainer endpoints list failed: '.$res->body());
+            throw new RuntimeException(__('messages.portainer_endpoints_list_failed').$res->body());
         }
 
         $json = $res->json();

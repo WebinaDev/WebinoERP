@@ -19,7 +19,7 @@ class LeadConversionService
         return DB::transaction(function () use ($lead, $options) {
             $lead = CrmLead::query()->whereKey($lead->id)->lockForUpdate()->firstOrFail();
             if ($lead->converted_at) {
-                throw new \InvalidArgumentException('Lead already converted');
+                throw new \InvalidArgumentException(__('messages.lead_already_converted'));
             }
 
             $existingId = $options['existing_account_id'] ?? null;

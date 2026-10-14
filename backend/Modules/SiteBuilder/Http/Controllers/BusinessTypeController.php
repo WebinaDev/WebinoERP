@@ -48,7 +48,7 @@ class BusinessTypeController extends Controller
             ->where('slug', $data['slug'])
             ->exists();
         if ($exists) {
-            return response()->json(['message' => 'Slug already exists for this category.'], 422);
+            return response()->json(['message' => __('messages.slug_already_exists_for_this_category')], 422);
         }
 
         $row = WebinoBusinessType::query()->create($data);
@@ -100,7 +100,7 @@ class BusinessTypeController extends Controller
                 ->where('id', '!=', $siteType->id)
                 ->exists();
             if ($exists) {
-                return response()->json(['message' => 'Slug already exists for this category.'], 422);
+                return response()->json(['message' => __('messages.slug_already_exists_for_this_category')], 422);
             }
         }
 
@@ -119,6 +119,6 @@ class BusinessTypeController extends Controller
     {
         $siteType->delete();
 
-        return response()->json(['message' => 'Deleted']);
+        return response()->json(['message' => __('messages.deleted')]);
     }
 }

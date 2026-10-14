@@ -46,7 +46,7 @@ class BomController extends Controller
             $data['lines'] ?? [],
         );
 
-        return response()->json(['data' => $bom, 'message' => 'Created'], 201);
+        return response()->json(['data' => $bom, 'message' => __('messages.created')], 201);
     }
 
     public function show(MfgBom $bom): JsonResponse
@@ -71,7 +71,7 @@ class BomController extends Controller
         $lines = array_key_exists('lines', $data) ? ($data['lines'] ?? []) : null;
         $updated = $this->service->update($bom, collect($data)->except('lines')->all(), $lines);
 
-        return response()->json(['data' => $updated, 'message' => 'Updated']);
+        return response()->json(['data' => $updated, 'message' => __('messages.updated')]);
     }
 
     public function destroy(MfgBom $bom): JsonResponse

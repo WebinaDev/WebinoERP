@@ -26,15 +26,15 @@ class ConsultationIngestController extends Controller
         $raw = $request->getContent();
 
         if ($secret === '') {
-            return response()->json(['message' => 'HMAC secret not configured'], 503);
+            return response()->json(['message' => __('messages.hmac_secret_not_configured')], 503);
         }
 
         if ($sig === '' || ! hash_equals(hash_hmac('sha256', $raw, $secret), $sig)) {
-            return response()->json(['message' => 'Invalid signature'], 403);
+            return response()->json(['message' => __('messages.invalid_signature')], 403);
         }
 
         if ($token === '') {
-            return response()->json(['message' => 'Missing site token'], 401);
+            return response()->json(['message' => __('messages.missing_site_token')], 401);
         }
 
         $tenantDomain = (string) ($request->input('tenant_domain') ?? '');
@@ -46,7 +46,7 @@ class ConsultationIngestController extends Controller
             ->where('provision_token', $token)
             ->where('domain', $tenantDomain);
         if (! $provisionQuery->exists()) {
-            return response()->json(['message' => 'Invalid site token'], 401);
+            return response()->json(['message' => __('messages.invalid_site_token')], 401);
         }
 
         $data = $request->validate([

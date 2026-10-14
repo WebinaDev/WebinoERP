@@ -43,7 +43,7 @@ class WorkOrderController extends Controller
             $data['operations'] ?? [],
         );
 
-        return response()->json(['data' => $wo, 'message' => 'Created'], 201);
+        return response()->json(['data' => $wo, 'message' => __('messages.created')], 201);
     }
 
     public function show(MfgWorkOrder $workOrder): JsonResponse
@@ -54,7 +54,7 @@ class WorkOrderController extends Controller
     public function update(Request $request, MfgWorkOrder $workOrder): JsonResponse
     {
         if ($workOrder->status === 'completed') {
-            return response()->json(['message' => 'Completed work orders cannot be edited'], 422);
+            return response()->json(['message' => __('messages.completed_work_orders_cannot_be_edited')], 422);
         }
 
         $data = $request->validate([
@@ -78,7 +78,7 @@ class WorkOrderController extends Controller
     public function destroy(MfgWorkOrder $workOrder): JsonResponse
     {
         if ($workOrder->status === 'in_progress') {
-            return response()->json(['message' => 'Cannot delete in-progress work order'], 422);
+            return response()->json(['message' => __('messages.cannot_delete_in_progress_work_order')], 422);
         }
         $workOrder->delete();
 

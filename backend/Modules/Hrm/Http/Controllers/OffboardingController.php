@@ -43,7 +43,7 @@ class OffboardingController extends Controller
             return $template;
         });
 
-        return response()->json(['data' => $template->load('items'), 'message' => 'Template saved'], 201);
+        return response()->json(['data' => $template->load('items'), 'message' => __('messages.template_saved')], 201);
     }
 
     public function templatesUpdate(Request $request, HrmOffboardingTemplate $offboardingTemplate): JsonResponse
@@ -68,7 +68,7 @@ class OffboardingController extends Controller
         abort_unless(HrmAccess::canManageStaff(), 403);
         $offboardingTemplate->delete();
 
-        return response()->json(['message' => 'Deleted']);
+        return response()->json(['message' => __('messages.deleted')]);
     }
 
     public function index(Request $request): JsonResponse
@@ -111,10 +111,10 @@ class OffboardingController extends Controller
         ]);
         $employee = HrmEmployee::query()->findOrFail($data['employee_id']);
         $open = HrmOffboarding::query()->where('employee_id', $employee->id)->where('status', 'in_progress')->exists();
-        abort_if($open, 422, 'An offboarding is already in progress for this employee');
+        abort_if($open, 422, __('messages.an_offboarding_is_already_in_progress_for_this_employee'));
         $row = $service->start($employee, (int) $data['template_id'], $data['last_day'] ?? null, $data['reason'] ?? null);
 
-        return response()->json(['data' => $row->load(['employee', 'tasks']), 'message' => 'Offboarding started'], 201);
+        return response()->json(['data' => $row->load(['employee', 'tasks']), 'message' => __('messages.offboarding_started')], 201);
     }
 
     public function update(Request $request, HrmOffboarding $offboarding): JsonResponse
@@ -142,7 +142,7 @@ class OffboardingController extends Controller
         abort_unless(HrmAccess::canManageStaff(), 403);
         $offboarding->delete();
 
-        return response()->json(['message' => 'Deleted']);
+        return response()->json(['message' => __('messages.deleted')]);
     }
 
     public function completeTask(Request $request, HrmOffboardingTask $offboardingTask, HrmOffboardingService $service): JsonResponse
@@ -165,7 +165,7 @@ class OffboardingController extends Controller
             abort_unless(HrmAccess::employee()?->id === $offboarding->employee_id, 403);
             abort_unless($task->owner === 'employee', 403);
         }
-        abort_if($offboarding->status === 'cancelled', 422, 'Offboarding is cancelled');
+        abort_if($offboarding->status === 'cancelled', 422, __('messages.offboarding_is_cancelled'));
         $data = $request->validate([
             'notes' => 'nullable|string|max:5000',
             'asset_label' => 'nullable|string|max:150',

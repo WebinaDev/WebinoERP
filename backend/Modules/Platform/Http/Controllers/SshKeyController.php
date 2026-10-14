@@ -43,7 +43,7 @@ class SshKeyController extends Controller
             return response()->json([
                 'success' => false,
                 'data' => null,
-                'message' => 'Forbidden',
+                'message' => __('messages.forbidden'),
                 'meta' => null,
                 'errors' => ['code' => 'FORBIDDEN'],
             ], 403);

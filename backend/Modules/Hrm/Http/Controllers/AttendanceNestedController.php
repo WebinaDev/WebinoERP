@@ -27,7 +27,7 @@ class AttendanceNestedController extends Controller
             'notes' => $data['notes'] ?? $record->notes,
         ]);
 
-        return response()->json(['data' => $record->fresh('employee'), 'message' => 'Checked in']);
+        return response()->json(['data' => $record->fresh('employee'), 'message' => __('messages.checked_in')]);
     }
 
     public function checkOut(Request $request): JsonResponse
@@ -44,7 +44,7 @@ class AttendanceNestedController extends Controller
         $record->check_out = now()->format('H:i:s');
         $record->save();
 
-        return response()->json(['data' => $record->fresh('employee'), 'message' => 'Checked out']);
+        return response()->json(['data' => $record->fresh('employee'), 'message' => __('messages.checked_out')]);
     }
 
     private function resolveEmployeeId(Request $request): int

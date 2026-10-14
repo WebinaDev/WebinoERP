@@ -132,7 +132,7 @@ class TicketController extends Controller
     {
         abort_if($access->isPortalCustomer($request->user()), 403);
         $ticket = $this->findVisible($request, $id, $access);
-        abort_if($ticket->converted_task_id, 422, 'Ticket already converted.');
+        abort_if($ticket->converted_task_id, 422, __('messages.ticket_already_converted'));
         $data = $request->validate([
             'project_id' => 'nullable|exists:prj_projects,id',
         ]);
@@ -168,7 +168,7 @@ class TicketController extends Controller
         $owns = (int) $t->customer_user_id === (int) $user->id
             || ($access->isPortalCustomer($user) && in_array((int) $t->customer_account_id, $access->accountIds($user), true));
         abort_unless($owns, 403);
-        abort_unless(in_array($t->status, ['resolved', 'closed'], true), 422, 'Ticket is not ready for rating.');
+        abort_unless(in_array($t->status, ['resolved', 'closed'], true), 422, __('messages.ticket_is_not_ready_for_rating'));
         $data = $request->validate(['rating' => 'required|integer|min:1|max:5']);
         $t->update(['rating' => $data['rating']]);
 

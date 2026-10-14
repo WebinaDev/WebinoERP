@@ -153,7 +153,7 @@ class PmDeliveryController extends Controller
     public function storeFile(Request $request, ?int $id = null): JsonResponse
     {
         $projectId = $id ?: (int) $request->input('project_id');
-        abort_if($projectId <= 0, 422, 'Project is required');
+        abort_if($projectId <= 0, 422, __('messages.project_is_required'));
         $id = $projectId;
         Project::query()->findOrFail($id);
         $request->validate([

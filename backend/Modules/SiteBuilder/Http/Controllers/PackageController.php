@@ -81,6 +81,6 @@ class PackageController extends Controller
     {
         $sitePackage->delete();
 
-        return response()->json(['message' => 'Deleted']);
+        return response()->json(['message' => __('messages.deleted')]);
     }
 }

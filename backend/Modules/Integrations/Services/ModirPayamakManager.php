@@ -69,11 +69,11 @@ class ModirPayamakManager
     {
         $domain = $this->normalizeDomain($domain);
         if ($domain === '') {
-            abort(422, 'Domain is required');
+            abort(422, __('messages.domain_is_required'));
         }
         $account = $this->getOrCreateAccount($domain);
         if ($account->status !== 'active') {
-            abort(403, 'ModirPayamak account suspended');
+            abort(403, __('messages.modirpayamak_account_suspended'));
         }
     }
 
@@ -98,7 +98,7 @@ class ModirPayamakManager
     {
         $account = $this->getOrCreateAccount($domain);
         if ((float) $account->balance < $amount) {
-            abort(402, 'Insufficient ModirPayamak balance');
+            abort(402, __('messages.insufficient_modirpayamak_balance'));
         }
 
         return $this->credit($domain, -$amount, $type, $reference, $meta);
@@ -115,8 +115,8 @@ class ModirPayamakManager
             return;
         }
         ModirPayamakPackage::insert([
-            ['name' => 'Starter', 'amount' => 100000, 'sms_units' => 200, 'is_active' => true, 'sort_order' => 1, 'created_at' => now(), 'updated_at' => now()],
-            ['name' => 'Business', 'amount' => 500000, 'sms_units' => 1100, 'is_active' => true, 'sort_order' => 2, 'created_at' => now(), 'updated_at' => now()],
+            ['name' => 'بستهٔ پایه', 'amount' => 100000, 'sms_units' => 200, 'is_active' => true, 'sort_order' => 1, 'created_at' => now(), 'updated_at' => now()],
+            ['name' => 'بستهٔ تجاری', 'amount' => 500000, 'sms_units' => 1100, 'is_active' => true, 'sort_order' => 2, 'created_at' => now(), 'updated_at' => now()],
         ]);
     }
 
@@ -211,7 +211,7 @@ class ModirPayamakManager
         $role = $this->normalizeNumberRole($role);
         $label = trim($label);
         if ($domain === '' || $number === '') {
-            abort(422, 'Domain and number are required');
+            abort(422, __('messages.domain_and_number_are_required'));
         }
 
         $this->getOrCreateAccount($domain);
@@ -311,10 +311,10 @@ class ModirPayamakManager
         $patternCode = trim($patternCode);
 
         if ($domain === '' || $eventKey === '' || $patternCode === '') {
-            abort(422, 'Domain, event and pattern code are required');
+            abort(422, __('messages.domain_event_and_pattern_code_are_required'));
         }
         if (! in_array($scope, self::PATTERN_SCOPES, true)) {
-            abort(422, 'Invalid pattern scope');
+            abort(422, __('messages.invalid_pattern_scope'));
         }
 
         $this->getOrCreateAccount($domain);

@@ -47,7 +47,7 @@ class TwoFactorController extends Controller
                 Cache::forget($attemptsKey);
             }
 
-            return response()->json(['message' => 'Invalid verification code'], 422);
+            return response()->json(['message' => __('messages.invalid_verification_code')], 422);
         }
 
         Cache::forget($key);

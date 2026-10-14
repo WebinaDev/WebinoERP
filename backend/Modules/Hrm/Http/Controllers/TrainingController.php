@@ -31,7 +31,7 @@ class TrainingController extends Controller
 
         $course = HrmTrainingCourse::create($data);
 
-        return response()->json(['data' => $course, 'message' => 'Course created'], 201);
+        return response()->json(['data' => $course, 'message' => __('messages.course_created')], 201);
     }
 
     public function show(HrmTrainingCourse $course): JsonResponse
@@ -53,7 +53,7 @@ class TrainingController extends Controller
 
         $course->update($data);
 
-        return response()->json(['data' => $course->fresh(), 'message' => 'Course updated']);
+        return response()->json(['data' => $course->fresh(), 'message' => __('messages.course_updated')]);
     }
 
     public function destroy(HrmTrainingCourse $course): JsonResponse
@@ -75,6 +75,6 @@ class TrainingController extends Controller
             ['status' => $data['status'] ?? 'enrolled']
         );
 
-        return response()->json(['data' => $enrollment->load('employee'), 'message' => 'Enrolled'], 201);
+        return response()->json(['data' => $enrollment->load('employee'), 'message' => __('messages.enrolled')], 201);
     }
 }

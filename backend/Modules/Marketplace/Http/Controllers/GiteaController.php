@@ -73,7 +73,7 @@ class GiteaController extends Controller
         return response()->json([
             'data' => $this->formatSettings($fresh),
             'settings' => $this->formatSettings($fresh),
-            'message' => 'Settings saved',
+            'message' => __('messages.settings_saved'),
         ]);
     }
 
@@ -94,7 +94,7 @@ class GiteaController extends Controller
             try {
                 $settings = MarketplaceGiteaSetting::query()->first();
                 if (! $settings && ! $request->filled('provider')) {
-                    return response()->json(['message' => 'Org git not configured', 'data' => $diagnostics], 422);
+                    return response()->json(['message' => __('messages.org_git_not_configured'), 'data' => $diagnostics], 422);
                 }
                 $provider = $factory->make($settings?->provider);
                 $result = $provider->testConnection();

@@ -51,7 +51,7 @@ class PayrollNestedController extends Controller
             HrmPayrollSetting::query()->updateOrCreate(['key' => $key], ['value' => $value]);
         }
 
-        return response()->json(['message' => 'Settings saved']);
+        return response()->json(['message' => __('messages.settings_saved')]);
     }
 
     public function componentsIndex(Request $request): JsonResponse
@@ -73,7 +73,7 @@ class PayrollNestedController extends Controller
         ]);
         $component = HrmPayrollComponent::create($data);
 
-        return response()->json(['data' => $component, 'message' => 'Component saved'], 201);
+        return response()->json(['data' => $component, 'message' => __('messages.component_saved')], 201);
     }
 
     public function employeeSalariesGet(Request $request): JsonResponse
@@ -101,7 +101,7 @@ class PayrollNestedController extends Controller
         $employee->save();
         $salary = HrmEmployeeSalary::create($data);
 
-        return response()->json(['data' => $salary->load('employee'), 'message' => 'Salary saved'], 201);
+        return response()->json(['data' => $salary->load('employee'), 'message' => __('messages.salary_saved')], 201);
     }
 
     public function runsIndex(Request $request): JsonResponse
@@ -119,7 +119,7 @@ class PayrollNestedController extends Controller
         $data['created_by'] = $request->user()->id;
         $run = HrmPayrollRun::create($data);
 
-        return response()->json(['data' => $run, 'message' => 'Run created'], 201);
+        return response()->json(['data' => $run, 'message' => __('messages.run_created')], 201);
     }
 
     public function runGet(HrmPayrollRun $run): JsonResponse
@@ -157,7 +157,7 @@ class PayrollNestedController extends Controller
             $run->update(['status' => 'calculated', 'total_amount' => $total]);
         });
 
-        return response()->json(['data' => $run->fresh('items.employee'), 'message' => 'Calculated']);
+        return response()->json(['data' => $run->fresh('items.employee'), 'message' => __('messages.calculated')]);
     }
 
     public function runApprove(HrmPayrollRun $run): JsonResponse
@@ -182,7 +182,7 @@ class PayrollNestedController extends Controller
         return response()->json([
             'data' => $run->fresh('items.employee'),
             'accounting' => $accounting,
-            'message' => 'Approved',
+            'message' => __('messages.approved'),
         ]);
     }
 
@@ -203,7 +203,7 @@ class PayrollNestedController extends Controller
         return response()->json([
             'data' => $run->fresh('items.employee'),
             'accounting' => $accounting,
-            'message' => 'Marked paid',
+            'message' => __('messages.marked_paid'),
         ]);
     }
 
@@ -388,7 +388,7 @@ class PayrollNestedController extends Controller
                 'item' => $item,
                 'html' => $html,
             ],
-            'message' => 'Payslip issued',
+            'message' => __('messages.payslip_issued'),
         ], 201);
     }
 
@@ -424,14 +424,14 @@ class PayrollNestedController extends Controller
         $data['status'] = 'active';
         $loan = HrmLoan::query()->create($data);
 
-        return response()->json(['data' => $loan->load('employee'), 'message' => 'Loan saved'], 201);
+        return response()->json(['data' => $loan->load('employee'), 'message' => __('messages.loan_saved')], 201);
     }
 
     public function loansSettle(HrmLoan $hrmLoan): JsonResponse
     {
         $hrmLoan->update(['status' => 'settled', 'remaining_balance' => 0]);
 
-        return response()->json(['data' => $hrmLoan->fresh(), 'message' => 'Settled']);
+        return response()->json(['data' => $hrmLoan->fresh(), 'message' => __('messages.settled')]);
     }
 
     public function templatesIndex(): JsonResponse
@@ -454,7 +454,7 @@ class PayrollNestedController extends Controller
             $data
         );
 
-        return response()->json(['data' => $template, 'message' => 'Template saved']);
+        return response()->json(['data' => $template, 'message' => __('messages.template_saved')]);
     }
 
     public function templatesRender(Request $request, string $slug): JsonResponse

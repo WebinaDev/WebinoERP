@@ -58,7 +58,7 @@ class WebinocrmModirPayamakCompatController extends Controller
 
             if ($this->isUnavailablePath($path)) {
                 if ($path === 'newsletter' || str_starts_with($path, 'newsletter/')) {
-                    return $this->unavailable('Newsletter SMS is not available on ERP Edge; use Dashboard local newsletter.');
+                    return $this->unavailable(__('messages.newsletter_sms_is_not_available_on_erp_edge_use_dashboard_lo'));
                 }
 
                 return $this->unavailable("Path not implemented: {$path}");
@@ -364,13 +364,13 @@ class WebinocrmModirPayamakCompatController extends Controller
     {
         $domain = $this->manager->normalizeDomain((string) ($request->input('domain') ?? $request->query('domain', '')));
         if ($domain === '') {
-            abort(422, 'Domain is required');
+            abort(422, __('messages.domain_is_required'));
         }
 
         // Entitlement is domain-only; optional license_key from WP clients is ignored.
         $license = CoreLicenseResolver::find($domain, $request->input('product') ?? $request->query('product'));
         if ($license && $license->status !== 'active') {
-            abort(403, 'License inactive for domain');
+            abort(403, __('messages.license_inactive_for_domain'));
         }
 
         $this->manager->assertLicensedDomain($domain);

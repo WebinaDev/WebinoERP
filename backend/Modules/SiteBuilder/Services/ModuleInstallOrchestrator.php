@@ -30,7 +30,7 @@ class ModuleInstallOrchestrator
     public function install(WebinoSiteProvision $site, string $moduleSlug, bool $async = true): array
     {
         if (! $site->license_id) {
-            throw new RuntimeException('Site has no license. Purchase or prepare a license first.');
+            throw new RuntimeException(__('messages.site_has_no_license_purchase_or_prepare_a_license_first'));
         }
 
         $this->ensureEntitled($site, $moduleSlug);
@@ -163,7 +163,7 @@ class ModuleInstallOrchestrator
         }
 
         throw new RuntimeException(
-            'Module not licensed for this site. Purchase via Marketplace first: '.$moduleSlug
+            __('messages.module_not_licensed_for_this_site_purchase_via_marketplace_f').$moduleSlug
         );
     }
 
@@ -178,7 +178,7 @@ class ModuleInstallOrchestrator
 
         $url = $source?->clone_url ?: $marketplace?->repo?->repo_url;
         if (! is_string($url) || $url === '') {
-            throw new RuntimeException('No ModuleGitSource / marketplace repo for '.$moduleSlug);
+            throw new RuntimeException(__('messages.no_modulegitsource_marketplace_repo_for').$moduleSlug);
         }
 
         // Best-effort provider health (non-fatal if token missing in local/dev).

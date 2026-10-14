@@ -70,7 +70,7 @@ class OrgGitProviderFactory
             'github' => new GithubOrgGitProvider($baseUrl, $token, $org),
             'gitlab' => new GitlabOrgGitProvider($baseUrl, $token, $org),
             'gitea' => new GiteaOrgGitProvider($baseUrl, $token, $org),
-            default => throw new InvalidArgumentException('Unsupported git provider: '.$provider),
+            default => throw new InvalidArgumentException(__('messages.unsupported_git_provider').$provider),
         };
     }
 

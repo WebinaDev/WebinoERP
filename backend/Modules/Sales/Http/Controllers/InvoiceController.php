@@ -58,7 +58,7 @@ class InvoiceController extends Controller
         }
         $invoice = SalesInvoice::create($data);
 
-        return response()->json(['data' => $invoice->fresh(), 'message' => 'Created'], 201);
+        return response()->json(['data' => $invoice->fresh(), 'message' => __('messages.created')], 201);
     }
 
     public function show(SalesInvoice $invoice): JsonResponse
@@ -77,7 +77,7 @@ class InvoiceController extends Controller
         }
         $invoice->update($data);
 
-        return response()->json(['data' => $invoice->fresh(), 'message' => 'Updated']);
+        return response()->json(['data' => $invoice->fresh(), 'message' => __('messages.updated')]);
     }
 
     public function destroy(SalesInvoice $invoice): JsonResponse
@@ -141,7 +141,7 @@ class InvoiceController extends Controller
         } catch (\Throwable $e) {
             report($e);
 
-            return response()->json(['message' => 'Mail failed: '.$e->getMessage()], 422);
+            return response()->json(['message' => __('messages.mail_failed').$e->getMessage()], 422);
         }
 
         return response()->json([
@@ -150,7 +150,7 @@ class InvoiceController extends Controller
                 'sent_to' => $data['email'],
                 'had_pdf_attachment' => true,
             ],
-            'message' => 'Invoice email sent',
+            'message' => __('messages.invoice_email_sent'),
         ]);
     }
 

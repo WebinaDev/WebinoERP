@@ -31,7 +31,7 @@ class ProductController extends Controller
         ]);
         $product = MarketplaceProduct::create($data);
 
-        return response()->json(['data' => $product->load('category'), 'message' => 'Created'], 201);
+        return response()->json(['data' => $product->load('category'), 'message' => __('messages.created')], 201);
     }
 
     public function show(MarketplaceProduct $product): JsonResponse
@@ -51,7 +51,7 @@ class ProductController extends Controller
         ]);
         $product->update($data);
 
-        return response()->json(['data' => $product->fresh('category'), 'message' => 'Updated']);
+        return response()->json(['data' => $product->fresh('category'), 'message' => __('messages.updated')]);
     }
 
     public function destroy(MarketplaceProduct $product): Response

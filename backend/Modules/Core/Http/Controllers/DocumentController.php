@@ -64,7 +64,7 @@ class DocumentController extends Controller
     {
         $doc = CoreDocument::query()->findOrFail($id);
         if (! Storage::disk($doc->disk)->exists($doc->path)) {
-            return response()->json(['data' => ['url' => null, 'message' => 'File not found']], 404);
+            return response()->json(['data' => ['url' => null, 'message' => __('messages.file_not_found')]], 404);
         }
 
         return response()->json([

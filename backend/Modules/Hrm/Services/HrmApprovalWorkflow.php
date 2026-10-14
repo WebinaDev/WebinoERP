@@ -247,7 +247,7 @@ class HrmApprovalWorkflow
         $chain = $this->chain($type);
         $role = $this->currentRoleForStep($step, $type) ?? 'hr';
         if (! $this->userCanAct($user, $role, $type, $step, $model)) {
-            abort(403, 'Not allowed for approval step: '.$role);
+            abort(403, __('messages.not_allowed_for_approval_step').$role);
         }
 
         $log = is_array($model->approval_log ?? null) ? $model->approval_log : [];
@@ -283,7 +283,7 @@ class HrmApprovalWorkflow
         $step = (int) ($model->approval_step ?? 1) ?: 1;
         $role = $this->currentRoleForStep($step, $type) ?? 'hr';
         if (! $this->userCanAct($user, $role, $type, $step, $model)) {
-            abort(403, 'Not allowed for approval step: '.$role);
+            abort(403, __('messages.not_allowed_for_approval_step').$role);
         }
         $log = is_array($model->approval_log ?? null) ? $model->approval_log : [];
         $log[] = array_merge([

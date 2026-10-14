@@ -42,7 +42,7 @@ class BasalamOAuthController extends Controller
     {
         if (! $this->oauth->isReady()) {
             return response()->json([
-                'message' => 'Basalam OAuth is not configured on Marketplace (missing client secret).',
+                'message' => __('messages.basalam_oauth_is_not_configured_on_marketplace_missing_clien'),
             ], 503);
         }
 
@@ -64,7 +64,7 @@ class BasalamOAuthController extends Controller
     public function refresh(Request $request): JsonResponse
     {
         if (! $this->oauth->isReady()) {
-            return response()->json(['message' => 'Basalam OAuth is not configured.'], 503);
+            return response()->json(['message' => __('messages.basalam_oauth_is_not_configured')], 503);
         }
 
         $data = $request->validate([

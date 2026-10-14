@@ -1010,7 +1010,7 @@ class LocalSameVpsProvisioner
         // Always JSON object so HMAC body matches Laravel request content on the tenant.
         $body = json_encode($payload === [] ? new \stdClass : $payload, JSON_UNESCAPED_UNICODE);
         if ($body === false) {
-            throw new RuntimeException('Failed to encode tenant API payload.');
+            throw new RuntimeException(__('messages.failed_to_encode_tenant_api_payload'));
         }
 
         try {

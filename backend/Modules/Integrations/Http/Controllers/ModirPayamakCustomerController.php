@@ -27,7 +27,7 @@ class ModirPayamakCustomerController extends Controller
         $this->manager->assertLicensedDomain($domain);
         $mock = (bool) config('integrations.modirpayamak.mock', false);
         if (! $mock && ! $this->edge->isConfigured()) {
-            abort(503, 'ModirPayamak is not configured');
+            abort(503, __('messages.modirpayamak_is_not_configured'));
         }
 
         return $this->manager->normalizeDomain($domain);
@@ -151,14 +151,14 @@ class ModirPayamakCustomerController extends Controller
             }
             $account = $this->manager->getOrCreateAccount($domain);
 
-            return response()->json(['data' => ['order' => $order?->fresh(), 'account' => $account, 'payment' => $intent->fresh()->toApiArray()], 'message' => 'Topup verified']);
+            return response()->json(['data' => ['order' => $order?->fresh(), 'account' => $account, 'payment' => $intent->fresh()->toApiArray()], 'message' => __('messages.topup_verified')]);
         }
         $cached = Cache::get('modirpayamak:topup:'.$data['authority']);
         $order = ModirPayamakOrder::query()->where('authority', $data['authority'])->where('domain', $domain)->firstOrFail();
         if (($data['status'] ?? 'OK') !== 'OK') {
             $order->update(['status' => 'failed']);
 
-            return response()->json(['message' => 'Payment failed'], 422);
+            return response()->json(['message' => __('messages.payment_failed')], 422);
         }
         $order->update(['status' => 'paid', 'ref_id' => $data['authority']]);
         $package = $order->package;
@@ -166,7 +166,7 @@ class ModirPayamakCustomerController extends Controller
         $account = $this->manager->credit($domain, $units, 'topup', (string) $order->id, ['package_id' => $order->package_id]);
         Cache::forget('modirpayamak:topup:'.$data['authority']);
 
-        return response()->json(['data' => ['order' => $order->fresh(), 'account' => $account], 'message' => 'Topup verified']);
+        return response()->json(['data' => ['order' => $order->fresh(), 'account' => $account], 'message' => __('messages.topup_verified')]);
     }
 
     public function send(Request $request): JsonResponse

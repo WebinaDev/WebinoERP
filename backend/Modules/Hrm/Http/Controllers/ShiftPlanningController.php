@@ -33,7 +33,7 @@ class ShiftPlanningController extends Controller
         ]);
         $row = HrmShiftTemplate::query()->create($data);
 
-        return response()->json(['data' => $row, 'message' => 'Shift template saved'], 201);
+        return response()->json(['data' => $row, 'message' => __('messages.shift_template_saved')], 201);
     }
 
     public function templatesDestroy(HrmShiftTemplate $shiftTemplate): JsonResponse
@@ -61,7 +61,7 @@ class ShiftPlanningController extends Controller
         $data['cycle_length'] = $data['cycle_length'] ?? count($data['pattern']);
         $row = HrmShiftRotation::query()->create($data);
 
-        return response()->json(['data' => $row, 'message' => 'Rotation saved'], 201);
+        return response()->json(['data' => $row, 'message' => __('messages.rotation_saved')], 201);
     }
 
     public function applyRotation(Request $request, HrmShiftRotation $rotation, HrmShiftPlannerService $planner): JsonResponse
@@ -88,7 +88,7 @@ class ShiftPlanningController extends Controller
             'چرخش شیفت از '.$request->input('start_date').' اعمال شد.'
         );
 
-        return response()->json(['data' => $result, 'message' => 'Rotation applied']);
+        return response()->json(['data' => $result, 'message' => __('messages.rotation_applied')]);
     }
 
     public function assignmentsStore(Request $request, HrmShiftPlannerService $planner): JsonResponse
@@ -129,7 +129,7 @@ class ShiftPlanningController extends Controller
         return response()->json([
             'data' => $assignment,
             'conflicts' => $result['conflicts'],
-            'message' => 'Assignment saved',
+            'message' => __('messages.assignment_saved'),
         ], 201);
     }
 

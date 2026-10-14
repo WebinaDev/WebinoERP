@@ -30,7 +30,7 @@ class PerformanceController extends Controller
         $data['reviewer_id'] = $request->user()->id;
         $review = HrmPerformanceReview::create($data);
 
-        return response()->json(['data' => $review->load('employee'), 'message' => 'Review created'], 201);
+        return response()->json(['data' => $review->load('employee'), 'message' => __('messages.review_created')], 201);
     }
 
     public function update(Request $request, HrmPerformanceReview $review): JsonResponse
@@ -43,7 +43,7 @@ class PerformanceController extends Controller
 
         $review->update($data);
 
-        return response()->json(['data' => $review->fresh('employee'), 'message' => 'Review updated']);
+        return response()->json(['data' => $review->fresh('employee'), 'message' => __('messages.review_updated')]);
     }
 
     public function destroy(HrmPerformanceReview $review): JsonResponse

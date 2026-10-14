@@ -79,7 +79,7 @@ class MailboxService
                 ], 'saveToSentItems' => true]
             );
             if (! $response->successful()) {
-                throw new \RuntimeException('Graph send failed.');
+                throw new \RuntimeException(__('messages.graph_send_failed'));
             }
         } elseif ($account->smtp_host) {
             $this->smtpSend($account, $draft['to'], $draft['subject'], $draft['body']);
@@ -196,7 +196,7 @@ class MailboxService
             $params
         );
         if (! $list->successful()) {
-            throw new \RuntimeException('Gmail list failed.');
+            throw new \RuntimeException(__('messages.gmail_list_failed'));
         }
         $rows = [];
         foreach ((array) $list->json('messages', []) as $item) {
@@ -244,7 +244,7 @@ class MailboxService
             $params
         );
         if (! $list->successful()) {
-            throw new \RuntimeException('Graph mail list failed.');
+            throw new \RuntimeException(__('messages.graph_mail_list_failed'));
         }
         $rows = [];
         foreach ((array) $list->json('value', []) as $item) {
@@ -290,7 +290,7 @@ class MailboxService
         $mailbox = sprintf('{%s:%d/imap/ssl}INBOX', $account->imap_host, (int) ($account->imap_port ?: 993));
         $stream = @imap_open($mailbox, (string) $account->username, (string) $account->password, OP_READONLY, 1);
         if (! $stream) {
-            throw new \RuntimeException('IMAP login failed.');
+            throw new \RuntimeException(__('messages.imap_login_failed'));
         }
         $ids = imap_search($stream, 'ALL') ?: [];
         $ids = array_slice($ids, -10);
@@ -325,7 +325,7 @@ class MailboxService
         $port = (int) ($account->imap_port ?: 993);
         $socket = @stream_socket_client('ssl://'.$account->imap_host.':'.$port, $errno, $errstr, 12);
         if (! $socket) {
-            throw new \RuntimeException('IMAP connection failed: '.$errstr);
+            throw new \RuntimeException(__('messages.imap_connection_failed').$errstr);
         }
         stream_set_timeout($socket, 12);
         $this->imapRead($socket);
@@ -366,7 +366,7 @@ class MailboxService
         $scheme = $port === 587 ? 'tcp' : 'ssl';
         $socket = @stream_socket_client($scheme.'://'.$account->smtp_host.':'.$port, $errno, $errstr, 12);
         if (! $socket) {
-            throw new \RuntimeException('SMTP connection failed: '.$errstr);
+            throw new \RuntimeException(__('messages.smtp_connection_failed').$errstr);
         }
         $read = function () use ($socket): string {
             $data = '';
@@ -392,7 +392,7 @@ class MailboxService
         $write($user);
         $auth = $write($pass);
         if (! str_starts_with($auth, '235')) {
-            throw new \RuntimeException('SMTP auth failed.');
+            throw new \RuntimeException(__('messages.smtp_auth_failed'));
         }
         $write('MAIL FROM:<'.$account->email.'>');
         $write('RCPT TO:<'.$to.'>');

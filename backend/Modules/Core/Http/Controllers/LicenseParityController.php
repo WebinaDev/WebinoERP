@@ -39,7 +39,7 @@ class LicenseParityController extends Controller
         $domain = CoreLicenseResolver::normalizeDomain($data['domain']);
         $product = CoreLicenseResolver::normalizeProduct($data['product'] ?? 'webinodashboard');
         if ($domain === '' || ! $this->isValidDomain($domain)) {
-            return response()->json(['message' => 'Invalid domain'], 422);
+            return response()->json(['message' => __('messages.invalid_domain')], 422);
         }
 
         $existsQ = CoreLicense::query()->where('domain', $domain);
@@ -47,7 +47,7 @@ class LicenseParityController extends Controller
             $existsQ->where('product', $product);
         }
         if ($existsQ->exists()) {
-            return response()->json(['message' => 'Domain already licensed for this product'], 422);
+            return response()->json(['message' => __('messages.domain_already_licensed_for_this_product')], 422);
         }
 
         $key = CoreLicenseResolver::internalKeyFor($domain, $product);
@@ -142,7 +142,7 @@ class LicenseParityController extends Controller
         if (array_key_exists('domain', $data)) {
             $domain = CoreLicenseResolver::normalizeDomain((string) $data['domain']);
             if ($domain === '' || ! $this->isValidDomain($domain)) {
-                return response()->json(['message' => 'Invalid domain'], 422);
+                return response()->json(['message' => __('messages.invalid_domain')], 422);
             }
             $product = CoreLicenseResolver::normalizeProduct(
                 $data['product'] ?? $license->product ?? 'webino'
@@ -152,7 +152,7 @@ class LicenseParityController extends Controller
                 $dup->where('product', $product);
             }
             if ($dup->exists()) {
-                return response()->json(['message' => 'Domain already licensed for this product'], 422);
+                return response()->json(['message' => __('messages.domain_already_licensed_for_this_product')], 422);
             }
             $data['domain'] = $domain;
             $data['license_key'] = CoreLicenseResolver::internalKeyFor($domain, $product);

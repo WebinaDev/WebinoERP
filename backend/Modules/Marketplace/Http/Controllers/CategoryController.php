@@ -32,12 +32,12 @@ class CategoryController extends Controller
             $data['slug'] = Str::slug($data['name']);
         }
         if ($data['slug'] === '') {
-            return response()->json(['message' => 'Unable to derive slug from name'], 422);
+            return response()->json(['message' => __('messages.unable_to_derive_slug_from_name')], 422);
         }
         $data['sort'] = $data['sort'] ?? 0;
         $data['status'] = $data['status'] ?? 'active';
 
-        return response()->json(['data' => MarketplaceCategory::create($data), 'message' => 'Created'], 201);
+        return response()->json(['data' => MarketplaceCategory::create($data), 'message' => __('messages.created')], 201);
     }
 
     public function update(Request $request, MarketplaceCategory $category): JsonResponse
@@ -54,7 +54,7 @@ class CategoryController extends Controller
         }
         $category->update($data);
 
-        return response()->json(['data' => $category->fresh(), 'message' => 'Updated']);
+        return response()->json(['data' => $category->fresh(), 'message' => __('messages.updated')]);
     }
 
     public function destroy(MarketplaceCategory $category): Response

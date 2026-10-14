@@ -53,7 +53,7 @@ class AttendanceDeviceController extends Controller
                 'api_key' => $plain,
                 'ingest_url' => url('/api/v1/hrm/attendance/ingest'),
             ],
-            'message' => 'Device registered. Store the API key; it is not shown again.',
+            'message' => __('messages.device_registered_store_the_api_key_it_is_not_shown_again'),
         ], 201);
     }
 
@@ -90,7 +90,7 @@ class AttendanceDeviceController extends Controller
         abort_unless(HrmAccess::canManageStaff(), 403);
         $device->delete();
 
-        return response()->json(['message' => 'Deleted']);
+        return response()->json(['message' => __('messages.deleted')]);
     }
 
     public function mappings(Request $request): JsonResponse
@@ -128,7 +128,7 @@ class AttendanceDeviceController extends Controller
         abort_unless(HrmAccess::canManageStaff(), 403);
         $mapping->delete();
 
-        return response()->json(['message' => 'Deleted']);
+        return response()->json(['message' => __('messages.deleted')]);
     }
 
     public function punches(Request $request): JsonResponse
@@ -208,14 +208,14 @@ class AttendanceDeviceController extends Controller
             ? HrmAttendanceDevice::query()->where('device_code', $deviceCode)->where('is_active', true)->first()
             : null;
         if (! $device || $key === '' || ! hash_equals((string) $device->api_key_hash, hash('sha256', $key))) {
-            return response()->json(['message' => 'Invalid device credentials'], 401);
+            return response()->json(['message' => __('messages.invalid_device_credentials')], 401);
         }
         $punches = $request->input('punches');
         if (! is_array($punches)) {
             $punches = [$request->except(['api_key', 'device_code'])];
         }
         if (count($punches) > 2000) {
-            return response()->json(['message' => 'Too many punches in one request (max 2000)'], 422);
+            return response()->json(['message' => __('messages.too_many_punches_in_one_request_max_2000')], 422);
         }
         $result = $ingest->ingest($device, array_values($punches), 'device');
         $rows = collect($result['punches'])->map(fn ($p) => [

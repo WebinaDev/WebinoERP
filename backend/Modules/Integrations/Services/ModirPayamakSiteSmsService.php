@@ -243,7 +243,7 @@ class ModirPayamakSiteSmsService
         $eventKey = trim($eventKey);
         $code = trim($code);
         if ($code === '') {
-            return ['ok' => false, 'ippanel_code' => '', 'sync_status' => self::STATUS_FAILED, 'message' => 'Pattern code is required.'];
+            return ['ok' => false, 'ippanel_code' => '', 'sync_status' => self::STATUS_FAILED, 'message' => __('messages.pattern_code_is_required_2')];
         }
 
         $edge = $this->edge->getPattern($code);
@@ -301,18 +301,18 @@ class ModirPayamakSiteSmsService
         $purpose = $purpose === 'register' ? 'register' : 'login';
 
         if ($phone === '') {
-            return ['ok' => false, 'message' => 'Phone is required.'];
+            return ['ok' => false, 'message' => __('messages.phone_is_required')];
         }
 
         $settings = $this->getSiteSettings($domain);
         if (empty($settings['enabled'])) {
-            return ['ok' => false, 'message' => 'Site SMS is disabled.'];
+            return ['ok' => false, 'message' => __('messages.site_sms_is_disabled')];
         }
         if ($purpose === 'register' && empty($settings['otp_register_enabled'])) {
-            return ['ok' => false, 'message' => 'Registration OTP is disabled.'];
+            return ['ok' => false, 'message' => __('messages.registration_otp_is_disabled')];
         }
         if ($purpose === 'login' && empty($settings['otp_login_enabled'])) {
-            return ['ok' => false, 'message' => 'Login OTP is disabled.'];
+            return ['ok' => false, 'message' => __('messages.login_otp_is_disabled')];
         }
 
         $length = max(4, min(8, (int) ($settings['otp_length'] ?? 6)));
@@ -338,7 +338,7 @@ class ModirPayamakSiteSmsService
             if ($patternCode === '' || ($row?->sync_status === self::STATUS_FAILED)) {
                 Cache::forget($this->otpCacheKey($domain, $phone, $purpose));
 
-                return ['ok' => false, 'message' => 'OTP pattern is not ready.'];
+                return ['ok' => false, 'message' => __('messages.otp_pattern_is_not_ready')];
             }
             $result = $this->edge->sendPattern($from, $patternCode, [$phone], ['code' => $code]);
         } else {

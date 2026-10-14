@@ -53,7 +53,7 @@ class ActivityController extends Controller
         $data['created_by'] = $request->user()->id;
         $activity = CrmActivity::create($data);
 
-        return response()->json(['data' => $activity, 'message' => 'Activity created'], 201);
+        return response()->json(['data' => $activity, 'message' => __('messages.activity_created')], 201);
     }
 
     public function destroy(CrmActivity $activity): JsonResponse

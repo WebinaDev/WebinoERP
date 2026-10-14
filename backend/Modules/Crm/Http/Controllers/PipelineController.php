@@ -31,7 +31,7 @@ class PipelineController extends Controller
         $data['created_by'] = $request->user()->id;
         $pipeline = CrmPipeline::create($data);
 
-        return response()->json(['data' => $pipeline, 'message' => 'Pipeline created'], 201);
+        return response()->json(['data' => $pipeline, 'message' => __('messages.pipeline_created')], 201);
     }
 
     public function show(CrmPipeline $pipeline): JsonResponse
@@ -51,7 +51,7 @@ class PipelineController extends Controller
         ]);
         $pipeline->update($data);
 
-        return response()->json(['data' => $pipeline->fresh('stages'), 'message' => 'Pipeline updated']);
+        return response()->json(['data' => $pipeline->fresh('stages'), 'message' => __('messages.pipeline_updated')]);
     }
 
     public function destroy(CrmPipeline $pipeline): JsonResponse
@@ -73,7 +73,7 @@ class PipelineController extends Controller
         ]);
         $stage = $pipeline->stages()->create($data);
 
-        return response()->json(['data' => $stage, 'message' => 'Stage created'], 201);
+        return response()->json(['data' => $stage, 'message' => __('messages.stage_created')], 201);
     }
 
     public function updateStage(Request $request, CrmPipeline $pipeline, CrmStage $stage): JsonResponse
@@ -87,7 +87,7 @@ class PipelineController extends Controller
         ]);
         $stage->update($data);
 
-        return response()->json(['data' => $stage->fresh(), 'message' => 'Stage updated']);
+        return response()->json(['data' => $stage->fresh(), 'message' => __('messages.stage_updated')]);
     }
 
     public function destroyStage(CrmPipeline $pipeline, CrmStage $stage): JsonResponse

@@ -69,6 +69,6 @@ class BusinessCategoryController extends Controller
     {
         $siteCategory->delete();
 
-        return response()->json(['message' => 'Deleted']);
+        return response()->json(['message' => __('messages.deleted')]);
     }
 }

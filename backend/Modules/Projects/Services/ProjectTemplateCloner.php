@@ -12,7 +12,7 @@ class ProjectTemplateCloner
 {
     public function instantiate(Project $template, string $name, ?int $userId, ?int $accountId = null): Project
     {
-        abort_unless($template->is_template, 422, 'Project is not a template');
+        abort_unless($template->is_template, 422, __('messages.project_is_not_a_template'));
 
         return DB::transaction(function () use ($template, $name, $userId, $accountId) {
             $project = Project::query()->create([

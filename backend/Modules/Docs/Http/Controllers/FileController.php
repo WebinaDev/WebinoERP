@@ -43,7 +43,7 @@ class FileController extends Controller
                 'folder_id' => $request->integer('folder_id') ?: null,
             ]);
 
-            return response()->json(['data' => $file, 'message' => 'File uploaded'], 201);
+            return response()->json(['data' => $file, 'message' => __('messages.file_uploaded')], 201);
         }
 
         $data = $request->validate([
@@ -56,7 +56,7 @@ class FileController extends Controller
         $data['uploaded_by'] = $request->user()->id;
         $file = DocsFile::create($data);
 
-        return response()->json(['data' => $file, 'message' => 'File registered'], 201);
+        return response()->json(['data' => $file, 'message' => __('messages.file_registered')], 201);
     }
 
     public function update(Request $request, DocsFile $file): JsonResponse
@@ -67,13 +67,13 @@ class FileController extends Controller
         ]);
         $file->update($data);
 
-        return response()->json(['data' => $file->fresh(), 'message' => 'File updated']);
+        return response()->json(['data' => $file->fresh(), 'message' => __('messages.file_updated')]);
     }
 
     public function download(DocsFile $file): StreamedResponse|JsonResponse
     {
         if (! Storage::disk($file->disk ?? 'local')->exists($file->path)) {
-            return response()->json(['message' => 'File not found on disk'], 404);
+            return response()->json(['message' => __('messages.file_not_found_on_disk')], 404);
         }
 
         return Storage::disk($file->disk ?? 'local')->download($file->path, $file->name);
@@ -91,7 +91,7 @@ class FileController extends Controller
             'uploaded_by' => $request->user()->id,
         ]);
 
-        return response()->json(['data' => $folder, 'message' => 'Folder created'], 201);
+        return response()->json(['data' => $folder, 'message' => __('messages.folder_created')], 201);
     }
 
     public function share(DocsFile $file): JsonResponse

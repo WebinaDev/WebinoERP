@@ -18,7 +18,7 @@ class BaleIntegrationController extends Controller
         $token = (string) config('integrations.bale.token', '');
         $client = new BaleApiClient($token);
         if (! $client->hasToken()) {
-            return response()->json(['message' => 'BALE_BOT_TOKEN not configured'], 422);
+            return response()->json(['message' => __('messages.bale_bot_token_not_configured')], 422);
         }
         $out = $client->sendMessage([
             'chat_id' => $data['chat_id'],
@@ -37,7 +37,7 @@ class BaleIntegrationController extends Controller
         $token = (string) config('integrations.bale.token', '');
         $client = new BaleApiClient($token);
         if (! $client->hasToken()) {
-            return response()->json(['message' => 'BALE_BOT_TOKEN not configured'], 422);
+            return response()->json(['message' => __('messages.bale_bot_token_not_configured')], 422);
         }
         $sent = 0;
         foreach ($data['recipients'] as $rid) {
@@ -54,7 +54,7 @@ class BaleIntegrationController extends Controller
     {
         $secret = (string) config('integrations.bale.webhook_secret', env('BALE_WEBHOOK_SECRET', ''));
         if ($secret === '') {
-            return response()->json(['message' => 'Webhook secret not configured'], 503);
+            return response()->json(['message' => __('messages.webhook_secret_not_configured')], 503);
         }
 
         $raw = $request->getContent();
@@ -71,7 +71,7 @@ class BaleIntegrationController extends Controller
         $validHmac = $sigHeader !== '' && hash_equals($expectedHmac, $sigHeader);
 
         if (! $validPlain && ! $validHmac) {
-            return response()->json(['message' => 'Invalid signature'], 401);
+            return response()->json(['message' => __('messages.invalid_signature')], 401);
         }
 
         $payload = json_decode($raw, true);

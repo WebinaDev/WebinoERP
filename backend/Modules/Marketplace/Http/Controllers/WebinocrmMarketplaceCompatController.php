@@ -30,7 +30,7 @@ class WebinocrmMarketplaceCompatController extends Controller
     public function catalog(Request $request): JsonResponse
     {
         if (! $this->verifyLicenseRequest($request)) {
-            return response()->json(['error' => ['code' => 'INVALID_SIGNATURE', 'message' => 'Invalid signature']], 403);
+            return response()->json(['error' => ['code' => 'INVALID_SIGNATURE', 'message' => __('messages.invalid_signature')]], 403);
         }
 
         $domain = strtolower(trim((string) $request->input('domain', '')));
@@ -89,7 +89,7 @@ class WebinocrmMarketplaceCompatController extends Controller
     public function purchase(Request $request, MarketplaceLicenseService $licenses): JsonResponse
     {
         if (! $this->verifyLicenseRequest($request)) {
-            return response()->json(['error' => ['code' => 'INVALID_SIGNATURE', 'message' => 'Invalid signature']], 403);
+            return response()->json(['error' => ['code' => 'INVALID_SIGNATURE', 'message' => __('messages.invalid_signature')]], 403);
         }
 
         $data = $request->validate([
@@ -107,7 +107,7 @@ class WebinocrmMarketplaceCompatController extends Controller
         $product = CoreLicenseResolver::normalizeProduct($data['product'] ?? null);
         $license = CoreLicenseResolver::find($domain, $product);
         if (! $license) {
-            return response()->json(['error' => ['code' => 'LICENSE_NOT_FOUND', 'message' => 'License not found for domain']], 404);
+            return response()->json(['error' => ['code' => 'LICENSE_NOT_FOUND', 'message' => __('messages.license_not_found_for_domain')]], 404);
         }
 
         $module = null;
@@ -157,12 +157,12 @@ class WebinocrmMarketplaceCompatController extends Controller
                     'license' => $granted,
                     'payment' => null,
                 ],
-                'message' => 'Module licensed',
+                'message' => __('messages.module_licensed'),
             ], 201);
         }
 
         if (! ($data['pay'] ?? true)) {
-            return response()->json(['data' => ['order' => $order->fresh('items')], 'message' => 'Order created'], 201);
+            return response()->json(['data' => ['order' => $order->fresh('items')], 'message' => __('messages.order_created')], 201);
         }
 
         $callback = $data['callback_url']
@@ -187,7 +187,7 @@ class WebinocrmMarketplaceCompatController extends Controller
                     'callback_url' => $callback,
                 ],
             ],
-            'message' => 'Payment initiated',
+            'message' => __('messages.payment_initiated'),
         ], 201);
     }
 
@@ -209,7 +209,7 @@ class WebinocrmMarketplaceCompatController extends Controller
         }
 
         if (! $order) {
-            return response()->json(['message' => 'Order not found'], 404);
+            return response()->json(['message' => __('messages.order_not_found')], 404);
         }
 
         $cached = is_string($authority) ? Cache::pull('payment:'.$authority) : null;
@@ -220,7 +220,7 @@ class WebinocrmMarketplaceCompatController extends Controller
         if (! $verified) {
             $order->update(['status' => 'cancelled']);
 
-            return response()->json(['message' => 'Payment not verified', 'data' => $order->fresh()], 422);
+            return response()->json(['message' => __('messages.payment_not_verified'), 'data' => $order->fresh()], 422);
         }
 
         $order->update([
@@ -241,7 +241,7 @@ class WebinocrmMarketplaceCompatController extends Controller
                 'order' => $order->fresh('items'),
                 'license' => $license,
             ],
-            'message' => 'Payment verified and license granted',
+            'message' => __('messages.payment_verified_and_license_granted'),
         ]);
     }
 
@@ -252,7 +252,7 @@ class WebinocrmMarketplaceCompatController extends Controller
     public function coreCheck(Request $request): JsonResponse
     {
         if (! $this->verifyLicenseRequest($request)) {
-            return response()->json(['error' => ['code' => 'INVALID_SIGNATURE', 'message' => 'Invalid signature']], 403);
+            return response()->json(['error' => ['code' => 'INVALID_SIGNATURE', 'message' => __('messages.invalid_signature')]], 403);
         }
 
         $current = (string) $request->input('current_version', '0.0.0');

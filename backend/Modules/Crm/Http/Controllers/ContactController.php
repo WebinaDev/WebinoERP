@@ -43,7 +43,7 @@ class ContactController extends Controller
         }
         $contact = CrmContact::create($data);
 
-        return response()->json(['data' => $contact->load('account'), 'message' => 'Contact created'], 201);
+        return response()->json(['data' => $contact->load('account'), 'message' => __('messages.contact_created')], 201);
     }
 
     public function show(CrmContact $contact): JsonResponse
@@ -69,7 +69,7 @@ class ContactController extends Controller
         }
         $contact->update($data);
 
-        return response()->json(['data' => $contact->fresh('account'), 'message' => 'Contact updated']);
+        return response()->json(['data' => $contact->fresh('account'), 'message' => __('messages.contact_updated')]);
     }
 
     public function destroy(CrmContact $contact): JsonResponse

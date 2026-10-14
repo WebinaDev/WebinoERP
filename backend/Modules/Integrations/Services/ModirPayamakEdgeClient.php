@@ -52,7 +52,7 @@ class ModirPayamakEdgeClient
 
         $key = $this->apiKey();
         if ($key === '') {
-            return ['ok' => false, 'code' => 503, 'data' => null, 'meta' => [], 'message' => 'ModirPayamak API key is not configured.'];
+            return ['ok' => false, 'code' => 503, 'data' => null, 'meta' => [], 'message' => __('messages.modirpayamak_api_key_is_not_configured')];
         }
 
         $url = rtrim(self::BASE_URL, '/').'/'.ltrim($path, '/');
@@ -78,7 +78,7 @@ class ModirPayamakEdgeClient
             // WP dashboard treats as "ERP down" and shows the wallet as disconnected).
             \Illuminate\Support\Facades\Log::warning('modirpayamak.edge.transport', ['path' => $path, 'error' => $e->getMessage()]);
 
-            return ['ok' => false, 'code' => 504, 'data' => null, 'meta' => [], 'message' => 'SMS provider is temporarily unreachable.'];
+            return ['ok' => false, 'code' => 504, 'data' => null, 'meta' => [], 'message' => __('messages.sms_provider_is_temporarily_unreachable')];
         }
 
         $json = $response->json();
@@ -292,7 +292,7 @@ class ModirPayamakEdgeClient
             'code' => 501,
             'data' => null,
             'meta' => [],
-            'message' => 'Newsletter SMS is not available on the Edge provider; use Dashboard local newsletter.',
+            'message' => __('messages.newsletter_sms_is_not_available_on_the_edge_provider_use_das'),
         ];
     }
 

@@ -20,21 +20,21 @@ class WebinocrmAccountingCompatController extends Controller
     public function ledger(Request $request): JsonResponse
     {
         if (! $this->verifyLicenseRequest($request)) {
-            return response()->json(['error' => ['code' => 'INVALID_SIGNATURE', 'message' => 'Invalid signature']], 403);
+            return response()->json(['error' => ['code' => 'INVALID_SIGNATURE', 'message' => __('messages.invalid_signature')]], 403);
         }
 
         $domain = CoreLicenseResolver::normalizeDomain((string) $request->input('domain', ''));
         $product = CoreLicenseResolver::normalizeProduct($request->input('product'));
         $license = CoreLicenseResolver::find($domain, $product);
         if (! $license) {
-            return response()->json(['error' => ['code' => 'LICENSE_NOT_FOUND', 'message' => 'License not found']], 404);
+            return response()->json(['error' => ['code' => 'LICENSE_NOT_FOUND', 'message' => __('messages.license_not_found')]], 404);
         }
 
         if (! DB::getSchemaBuilder()->hasTable('acc_journal_lines')) {
             return response()->json([
                 'ok' => false,
                 'unavailable' => true,
-                'message' => 'Accounting ledger tables are not migrated on ERP.',
+                'message' => __('messages.accounting_ledger_tables_are_not_migrated_on_erp'),
                 'data' => ['lines' => [], 'totals' => ['debit' => 0, 'credit' => 0], 'source' => 'erp'],
             ], 200);
         }

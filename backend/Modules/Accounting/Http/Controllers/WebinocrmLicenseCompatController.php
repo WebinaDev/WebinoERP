@@ -30,7 +30,7 @@ class WebinocrmLicenseCompatController extends Controller
         // Domain (+ product) entitlement. HMAC is optional service auth.
         // Unsigned checks are allowed (rate-limited); bad signatures still rejected.
         if (! $this->authorizeLicenseCheck($request)) {
-            return response()->json(['error' => ['code' => 'INVALID_SIGNATURE', 'message' => 'Invalid signature']], 403);
+            return response()->json(['error' => ['code' => 'INVALID_SIGNATURE', 'message' => __('messages.invalid_signature')]], 403);
         }
 
         $domain = CoreLicenseResolver::normalizeDomain(
@@ -38,7 +38,7 @@ class WebinocrmLicenseCompatController extends Controller
         );
         $rateKey = 'license-domain-check:'.$request->ip().':'.$domain;
         if (RateLimiter::tooManyAttempts($rateKey, 60)) {
-            return response()->json(['error' => ['code' => 'RATE_LIMITED', 'message' => 'Too many license checks']], 429);
+            return response()->json(['error' => ['code' => 'RATE_LIMITED', 'message' => __('messages.too_many_license_checks')]], 429);
         }
         RateLimiter::hit($rateKey, 60);
         // WP compat: if license_key looks like a hostname and domain empty, use it as domain.
@@ -167,7 +167,7 @@ class WebinocrmLicenseCompatController extends Controller
     public function activate(Request $request): JsonResponse
     {
         if (! $this->verifyLicenseRequest($request)) {
-            return response()->json(['error' => ['code' => 'INVALID_SIGNATURE', 'message' => 'Invalid signature']], 403);
+            return response()->json(['error' => ['code' => 'INVALID_SIGNATURE', 'message' => __('messages.invalid_signature')]], 403);
         }
 
         $data = $request->validate([
@@ -223,7 +223,7 @@ class WebinocrmLicenseCompatController extends Controller
         return response()->json([
             'data' => [
                 'status' => 'ok',
-                'message' => 'License stored',
+                'message' => __('messages.license_stored'),
                 'license_id' => $row->id,
                 'domain' => $domain,
                 'product' => $product,

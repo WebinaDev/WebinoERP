@@ -68,7 +68,7 @@ class ApprovalFlowController extends Controller
             ]
         );
 
-        return response()->json(['data' => $row, 'message' => 'Flow saved'], 201);
+        return response()->json(['data' => $row, 'message' => __('messages.flow_saved')], 201);
     }
 
     public function destroy(HrmApprovalFlow $flow): JsonResponse
@@ -76,7 +76,7 @@ class ApprovalFlowController extends Controller
         abort_unless(HrmAccess::canManageStaff(), 403);
         $flow->delete();
 
-        return response()->json(['message' => 'Deleted']);
+        return response()->json(['message' => __('messages.deleted')]);
     }
 
     /** Search users for "specific user" steps. */

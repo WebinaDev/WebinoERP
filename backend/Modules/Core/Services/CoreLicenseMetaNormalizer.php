@@ -168,7 +168,7 @@ class CoreLicenseMetaNormalizer
 
         foreach (array_keys($meta) as $key) {
             if (! is_string($key) || ! in_array($key, self::ALLOWED_META_KEYS, true)) {
-                throw new InvalidArgumentException('Unknown meta key: '.$key);
+                throw new InvalidArgumentException(__('messages.unknown_meta_key').$key);
             }
         }
 
@@ -199,7 +199,7 @@ class CoreLicenseMetaNormalizer
             } elseif (is_string($s) && preg_match('/^[a-zA-Z0-9._-]{1,128}$/', $s)) {
                 $clean['sku'] = $s;
             } else {
-                throw new InvalidArgumentException('Invalid meta.sku');
+                throw new InvalidArgumentException(__('messages.invalid_meta_sku'));
             }
         }
 

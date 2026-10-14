@@ -47,7 +47,7 @@ class DealController extends Controller
         $data['created_by'] = $request->user()->id;
         $deal = CrmDeal::create($data);
 
-        return response()->json(['data' => $deal->load(['account', 'stage']), 'message' => 'Deal created'], 201);
+        return response()->json(['data' => $deal->load(['account', 'stage']), 'message' => __('messages.deal_created')], 201);
     }
 
     public function show(CrmDeal $deal): JsonResponse
@@ -69,7 +69,7 @@ class DealController extends Controller
         ]);
         $deal->update($data);
 
-        return response()->json(['data' => $deal->fresh(['account', 'stage']), 'message' => 'Deal updated']);
+        return response()->json(['data' => $deal->fresh(['account', 'stage']), 'message' => __('messages.deal_updated')]);
     }
 
     public function destroy(CrmDeal $deal): JsonResponse
@@ -83,7 +83,7 @@ class DealController extends Controller
     {
         $data = $request->validate(['stage_id' => 'required|exists:crm_stages,id']);
         $stage = CrmStage::query()->findOrFail($data['stage_id']);
-        abort_unless($stage->pipeline_id === $deal->pipeline_id, 422, 'Stage must belong to deal pipeline');
+        abort_unless($stage->pipeline_id === $deal->pipeline_id, 422, __('messages.stage_must_belong_to_deal_pipeline'));
 
         $previousStageId = (int) $deal->stage_id;
         $updates = ['stage_id' => $stage->id, 'probability' => $stage->probability];
@@ -102,6 +102,6 @@ class DealController extends Controller
         $fresh = $deal->fresh(['stage', 'account']);
         $automation->dealStageChanged($fresh, $previousStageId);
 
-        return response()->json(['data' => $fresh, 'message' => 'Deal moved']);
+        return response()->json(['data' => $fresh, 'message' => __('messages.deal_moved')]);
     }
 }

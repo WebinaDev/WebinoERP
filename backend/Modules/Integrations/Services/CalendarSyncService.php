@@ -48,7 +48,7 @@ class CalendarSyncService
     {
         $cached = Cache::pull($this->stateKey($state));
         if (! is_array($cached) || ($cached['provider'] ?? '') !== $provider) {
-            throw new \InvalidArgumentException('Invalid OAuth state.');
+            throw new \InvalidArgumentException(__('messages.invalid_oauth_state'));
         }
         $tokens = $provider === 'outlook' ? $this->exchangeOutlook($code) : $this->exchangeGoogle($code);
 
@@ -135,7 +135,7 @@ class CalendarSyncService
             ]);
         if (! $response->successful()) {
             $account->update(['status' => 'error']);
-            throw new \RuntimeException('Google calendar pull failed.');
+            throw new \RuntimeException(__('messages.google_calendar_pull_failed'));
         }
         $pulled = 0;
         $removed = 0;
@@ -172,7 +172,7 @@ class CalendarSyncService
             ]);
         if (! $response->successful()) {
             $account->update(['status' => 'error']);
-            throw new \RuntimeException('Outlook calendar pull failed.');
+            throw new \RuntimeException(__('messages.outlook_calendar_pull_failed'));
         }
         $pulled = 0;
         $removed = 0;
@@ -430,7 +430,7 @@ class CalendarSyncService
             'grant_type' => 'authorization_code',
         ]);
         if (! $response->successful()) {
-            throw new \RuntimeException('Google token exchange failed.');
+            throw new \RuntimeException(__('messages.google_token_exchange_failed'));
         }
 
         return $response->json();
@@ -450,7 +450,7 @@ class CalendarSyncService
             'grant_type' => 'authorization_code',
         ]);
         if (! $response->successful()) {
-            throw new \RuntimeException('Outlook token exchange failed.');
+            throw new \RuntimeException(__('messages.outlook_token_exchange_failed'));
         }
 
         return $response->json();
