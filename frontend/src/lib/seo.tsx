@@ -22,6 +22,32 @@ export async function siteOrigin(): Promise<string> {
   return (process.env.NEXT_PUBLIC_SITE_URL ?? 'https://webina.dev').replace(/\/$/, '');
 }
 
+/** First meaningful text inside a builder document / content object (description fallback). */
+export function firstText(node: unknown, depth = 0): string {
+  if (depth > 12 || node == null) return '';
+  if (Array.isArray(node)) {
+    for (const n of node) { const t = firstText(n, depth + 1); if (t) return t; }
+    return '';
+  }
+  if (typeof node !== 'object') return '';
+  const o = node as Record<string, unknown>;
+  for (const k of ['subtitle', 'description', 'excerpt', 'summary', 'text', 'body', 'content', 'html']) {
+    const v = o[k];
+    if (typeof v === 'string') { const t = plain(v); if (t.length >= 30) return t; }
+  }
+  for (const [k, v] of Object.entries(o)) if (k !== 'seo' && typeof v === 'object') { const t = firstText(v, depth + 1); if (t) return t; }
+  return '';
+}
+
+async function siteDescription(): Promise<string> {
+  try {
+    const d = (await getPublicSite()).data as { name?: string; branding?: { description?: string } };
+    return plain(d.branding?.description) || plain(d.name);
+  } catch {
+    return '';
+  }
+}
+
 export async function siteName(): Promise<string> {
   try {
     return (await getPublicSite()).data.name || 'وبینا';
@@ -34,24 +60,27 @@ export async function siteName(): Promise<string> {
 export async function buildMetadata(opts: { path: string; seo?: Seo | null; title?: string | null; description?: string | null; image?: string | null; type?: 'website' | 'article'; publishedTime?: string | null; noindex?: boolean }): Promise<Metadata> {
   const seo = opts.seo ?? {};
   const origin = await siteOrigin();
-  const title = plain(seo.title || opts.title, 120) || undefined;
-  const description = plain(seo.description || opts.description) || undefined;
+  const name = await siteName();
+  const own = plain(seo.title || opts.title, 120);
+  const titleText = own || name;
+  // Home / untitled pages: plain site name (no "name | name" from the layout template).
+  const title: Metadata['title'] = !own || own === name ? { absolute: titleText } : titleText;
+  const description = plain(seo.description || opts.description) || (await siteDescription()) || titleText;
   const rawImage = seo.og_image || opts.image || undefined;
   const image = rawImage ? (rawImage.startsWith('http') ? rawImage : `${origin}${rawImage.startsWith('/') ? '' : '/'}${rawImage}`) : undefined;
   const canonical = seo.canonical || `${origin}${opts.path === '/' ? '' : opts.path}` || origin;
   const noindex = Boolean(seo.noindex || opts.noindex);
-  const name = await siteName();
   return {
     title,
     description,
     alternates: { canonical, languages: { fa: canonical, 'x-default': canonical } },
     robots: noindex ? { index: false, follow: true } : { index: true, follow: true },
     openGraph: {
-      type: opts.type ?? 'website', url: canonical, siteName: name, locale: 'fa_IR', title, description,
+      type: opts.type ?? 'website', url: canonical, siteName: name, locale: 'fa_IR', title: titleText, description,
       images: image ? [{ url: image }] : undefined,
       ...(opts.type === 'article' && opts.publishedTime ? { publishedTime: opts.publishedTime } : {}),
     },
-    twitter: { card: image ? 'summary_large_image' : 'summary', title, description, images: image ? [image] : undefined },
+    twitter: { card: image ? 'summary_large_image' : 'summary', title: titleText, description, images: image ? [image] : undefined },
   };
 }
 
@@ -71,11 +100,12 @@ export async function routeMetadata(path: string, fallback: { title?: string; de
 export async function itemMetadata<T extends Record<string, unknown>>(apiPath: string, path: string, map: (d: T) => { title?: string | null; description?: string | null; image?: string | null; type?: 'website' | 'article'; publishedTime?: string | null; seo?: Seo | null }): Promise<Metadata> {
   try {
     const res = await apiServer<{ data: T }>(apiPath);
-    if (!res?.data) return {};
+    if (!res?.data) return buildMetadata({ path });
     const m = map(res.data);
-    return buildMetadata({ path, seo: m.seo ?? (res.data.seo as Seo | undefined) ?? null, ...m });
+    const seo = m.seo ?? (res.data.seo as Seo | undefined) ?? null;
+    return buildMetadata({ path, ...m, seo: Array.isArray(seo) ? null : seo, description: plain(m.description) || firstText(res.data) || undefined });
   } catch {
-    return {};
+    return buildMetadata({ path });
   }
 }
 
