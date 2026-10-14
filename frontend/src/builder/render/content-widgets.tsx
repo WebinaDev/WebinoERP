@@ -1,7 +1,8 @@
 "use client"
 
 /* Content widgets for landing/service pages (ERP-native, not in WebinoDashboard yet):
- * section heading, numbered steps/timeline, icon cards grid, trust badges and CTA banner.
+ * section heading, numbered steps/timeline, icon cards grid (optionally prefilling a form), trust badges,
+ * CTA banner and a two-column comparison table.
  * Repeater props use the shared legacy line format (`a|b|c` per line), so they edit with the
  * same RepeaterInput as the ported Dashboard widgets. */
 
@@ -40,6 +41,11 @@ export function SectionHeadingWidget({ widget }: { widget: WidgetNode }) {
       {title ? <Tag className="wbx-heading-title">{title}</Tag> : null}
       {subtitle ? <p className="wbx-heading-subtitle">{subtitle}</p> : null}
       {text ? <p className="wbx-heading-text">{text}</p> : null}
+      {propStr(widget.props, "linkLabel") ? (
+        <Link href={safeHref(propStr(widget.props, "linkHref", "#"))} className="wbx-heading-link" {...linkAttrs(widget.props, "linkHref")}>
+          {propStr(widget.props, "linkLabel")}
+        </Link>
+      ) : null}
     </header>
   )
 }
@@ -76,23 +82,42 @@ export function StepsWidget({ widget }: { widget: WidgetNode }) {
 }
 
 export function IconCardsWidget({ widget }: { widget: WidgetNode }) {
-  const rows = parseRows(widget.props.items, ["icon", "title", "text"]).filter((row) => row.title || row.text)
-  const columns = Math.max(1, Math.min(4, Number(propStr(widget.props, "columns", "3")) || 3))
+  const rows = parseRows(widget.props.items, ["icon", "title", "text", "prefill"]).filter((row) => row.title || row.text)
+  const columns = Math.max(1, Math.min(5, Number(propStr(widget.props, "columns", "3")) || 3))
   const variant = propStr(widget.props, "variant", "card")
+  const anchor = propStr(widget.props, "anchor").replace(/[^\w-]/g, "")
   if (!rows.length) return <p className="wbx-empty">کارت‌ها را در تنظیمات ویجت وارد کنید (آیکن|عنوان|متن).</p>
   return (
     <ul className={`wbx-cards wbx-cards-${variant}`} style={{ ["--wbx-cols" as string]: columns }}>
-      {rows.map((row, index) => (
-        <li key={index} className="wbx-card">
-          <span className="wbx-card-icon">
-            <WIcon name={row.icon || (variant === "check" ? "check" : "badge")} size={variant === "check" ? 18 : 22} />
-          </span>
-          <span className="wbx-card-body">
-            {row.title ? <strong className="wbx-card-title">{row.title}</strong> : null}
-            {row.text ? <span className="wbx-card-text">{row.text}</span> : null}
-          </span>
-        </li>
-      ))}
+      {rows.map((row, index) => {
+        const inner = (
+          <>
+            <span className="wbx-card-icon">
+              <WIcon name={row.icon || (variant === "check" ? "check" : "badge")} size={variant === "check" ? 18 : 22} />
+            </span>
+            <span className="wbx-card-body">
+              {row.title ? <strong className="wbx-card-title">{row.title}</strong> : null}
+              {row.text ? <span className="wbx-card-text">{row.text}</span> : null}
+            </span>
+          </>
+        )
+        const match = row.prefill.match(/^([\w.-]+)\s*=\s*(.*)$/)
+        if (!match && !anchor) return <li key={index} className="wbx-card">{inner}</li>
+        return (
+          <li key={index} className="wbx-card wbx-card-action">
+            <button
+              type="button"
+              className="wbx-card-button"
+              onClick={() => {
+                if (match) window.dispatchEvent(new CustomEvent("wb:form-prefill", { detail: { anchor, name: match[1], value: match[2].trim() } }))
+                if (anchor) document.getElementById(anchor)?.scrollIntoView({ behavior: "smooth", block: "start" })
+              }}
+            >
+              {inner}
+            </button>
+          </li>
+        )
+      })}
     </ul>
   )
 }
@@ -117,6 +142,7 @@ export function CtaBannerWidget({ widget }: { widget: WidgetNode }) {
   const text = propStr(widget.props, "text")
   const label = propStr(widget.props, "label")
   const href = propStr(widget.props, "href", "#")
+  const secondary = propStr(widget.props, "secondaryLabel")
   const tone = propStr(widget.props, "tone", "primary")
   return (
     <div className={`wbx-cta wbx-cta-${tone}`}>
@@ -127,6 +153,39 @@ export function CtaBannerWidget({ widget }: { widget: WidgetNode }) {
           {label}
         </Link>
       ) : null}
+      {secondary ? (
+        <Link href={safeHref(propStr(widget.props, "secondaryHref", "#"))} className="wbx-cta-link" {...linkAttrs(widget.props, "secondaryHref")}>
+          {secondary}
+        </Link>
+      ) : null}
+    </div>
+  )
+}
+
+export function ComparisonTableWidget({ widget }: { widget: WidgetNode }) {
+  const rows = parseRows(widget.props.rows, ["a", "b"]).filter((row) => row.a || row.b)
+  const colA = propStr(widget.props, "colA")
+  const colB = propStr(widget.props, "colB")
+  const highlight = propStr(widget.props, "highlight", "b")
+  if (!rows.length) return <p className="wbx-empty">ردیف‌های جدول را وارد کنید (ستون اول|ستون دوم).</p>
+  return (
+    <div className="wbx-compare-wrap">
+      <table className={`wbx-compare wbx-compare-hl-${highlight || "none"}`}>
+        <thead>
+          <tr>
+            <th scope="col">{colA}</th>
+            <th scope="col">{colB}</th>
+          </tr>
+        </thead>
+        <tbody>
+          {rows.map((row, index) => (
+            <tr key={index}>
+              <td data-label={colA}>{row.a}</td>
+              <td data-label={colB}>{row.b}</td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
     </div>
   )
 }

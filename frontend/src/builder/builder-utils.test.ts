@@ -19,8 +19,15 @@ describe("builder forms", () => {
     expect(visiblePayload(fields, { kind: "فرد", company: "x", note: "n" })).toEqual({ kind: "فرد", note: "n" })
   })
 
-  it("falls back to text for unsupported types", () => {
-    expect(parseFormFields("پیوست|cv|file")[0].type).toBe("text")
+  it("falls back to text for unknown types", () => {
+    expect(parseFormFields("x|x|weird")[0].type).toBe("text")
+  })
+
+  it("treats heading rows as optional group titles outside the payload", () => {
+    const fields = parseFormFields("اطلاعات تماس|g1|heading\nنام|name|text")
+    expect(fields[0].required).toBe(false)
+    expect(missingOnStep(fields, {}, 1)).toEqual(["name"])
+    expect(visiblePayload(fields, { name: "a" })).toEqual({ name: "a" })
   })
 })
 

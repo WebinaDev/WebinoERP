@@ -35,6 +35,7 @@ import { propBool, propNum, propStr, parseLinks } from "../props"
 import type { BuilderDocument, EditorApi, WidgetNode } from "../types"
 import { BuilderRuntimeProvider, useBuilderGlobals, useBuilderRuntime } from "./runtime"
 import { FormWidget } from "./form-widget"
+import { RahnEstimateWidget } from "./rahn-widget"
 import {
   AccordionWidget,
   AnnouncementWidget,
@@ -53,7 +54,7 @@ import {
   TabsWidget,
   TestimonialsWidget,
 } from "./extra-widgets"
-import { BadgesWidget, CtaBannerWidget, IconCardsWidget, SectionHeadingWidget, StepsWidget } from "./content-widgets"
+import { BadgesWidget, ComparisonTableWidget, CtaBannerWidget, IconCardsWidget, SectionHeadingWidget, StepsWidget } from "./content-widgets"
 import { CorporateWidget } from "@/themes/webina-corporate-v1/builder/CorporateWidget"
 import { isCorporateType } from "@/themes/webina-corporate-v1/builder/blocks"
 
@@ -235,6 +236,10 @@ export function WidgetBody({ widget, editor }: { widget: WidgetNode; editor?: Ed
       return <BadgesWidget widget={widget} />
     case "cta-banner":
       return <CtaBannerWidget widget={widget} />
+    case "rahn-estimate":
+      return <RahnEstimateWidget widget={widget} editing={editing} />
+    case "comparison-table":
+      return <ComparisonTableWidget widget={widget} />
     case "container":
       return null
     default:

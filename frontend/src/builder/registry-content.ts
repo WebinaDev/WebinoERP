@@ -7,7 +7,7 @@ import { FORM_FIELD_TYPES, type FormFieldType } from "./forms"
 import { ICON_OPTIONS } from "./render/icon-options"
 import type { WidgetDef, WidgetNode } from "./types"
 
-const FORM_TYPE_LABELS: Record<FormFieldType, string> = { text: "متن", email: "ایمیل", tel: "تلفن", number: "عدد", textarea: "متن بلند", select: "فهرست کشویی", radio: "تک‌انتخابی", checkbox: "چندانتخابی", date: "تاریخ" }
+const FORM_TYPE_LABELS: Record<FormFieldType, string> = { text: "متن", email: "ایمیل", tel: "تلفن", number: "عدد", textarea: "متن بلند", select: "فهرست کشویی", radio: "تک‌انتخابی", checkbox: "چندانتخابی", date: "تاریخ", file: "فایل (پیوست)", heading: "عنوان گروه" }
 
 function node(type: string, props: Record<string, unknown>): WidgetNode {
   return { id: uid("w"), type, props }
@@ -32,7 +32,7 @@ export const FORM_WIDGET: WidgetDef = {
     {
       kind: "repeater",
       key: "fields",
-      label: "فیلدها",
+      label: "فیلدها (خالی = فیلدهای خود فرم در بازاریابی ← فرم‌ها)",
       fields: [
         { key: "label", label: "برچسب", kind: "text" },
         { key: "name", label: "نام فنی (name)", kind: "text" },
@@ -47,6 +47,9 @@ export const FORM_WIDGET: WidgetDef = {
     { kind: "text", key: "success", label: "پیام موفقیت" },
     { kind: "textarea", key: "note", label: "متن زیر فرم" },
     { kind: "text", key: "anchor", label: "شناسه لنگر (#)" },
+    { kind: "textarea", key: "stepTitles", label: "عنوان مراحل (هر خط یک مرحله)" },
+    { kind: "switch", key: "review", label: "مرحله بررسی نهایی (خلاصه قابل ویرایش)" },
+    { kind: "repeater", key: "confirms", label: "تأییدهای الزامی", fields: [{ key: "text", label: "متن", kind: "text" }] },
     { kind: "switch", key: "showPhone", label: "فیلد تلفن" },
     { kind: "switch", key: "showEmail", label: "فیلد ایمیل" },
   ],
@@ -55,7 +58,7 @@ export const FORM_WIDGET: WidgetDef = {
       title: "ارسال پیام",
       submit: "ارسال",
       formKey: "contact",
-      fields: "نام|name|text\nموبایل|phone|tel\nپیام|message|textarea",
+      fields: "",
       success: "پیام شما ثبت شد.",
       columns: "1",
     }),
@@ -261,6 +264,8 @@ export const CONTENT_WIDGETS: WidgetDef[] = [
       ] },
       { kind: "text", key: "subtitle", label: "زیرعنوان" },
       { kind: "textarea", key: "text", label: "متن" },
+      { kind: "text", key: "linkLabel", label: "متن پیوند" },
+      { kind: "link", key: "linkHref", label: "پیوند" },
       ALIGN,
     ],
     create: () => node("section-heading", { title: "عنوان بخش", tag: "h2", align: "center" }),
@@ -284,7 +289,8 @@ export const CONTENT_WIDGETS: WidgetDef[] = [
     label: "کارت‌های آیکن‌دار",
     category: "content",
     fields: [
-      { kind: "repeater", key: "items", label: "کارت‌ها", fields: [{ key: "icon", label: "آیکن", kind: "icon", options: ICON_OPTIONS }, { key: "title", label: "عنوان", kind: "text" }, { key: "text", label: "متن", kind: "textarea" }] },
+      { kind: "repeater", key: "items", label: "کارت‌ها", fields: [{ key: "icon", label: "آیکن", kind: "icon", options: ICON_OPTIONS }, { key: "title", label: "عنوان", kind: "text" }, { key: "text", label: "متن", kind: "textarea" }, { key: "prefill", label: "پیش‌پرکردن فرم (name=مقدار)", kind: "text" }] },
+      { kind: "text", key: "anchor", label: "فرم مقصد کلیک کارت (شناسه لنگر)" },
       { kind: "select", key: "columns", label: "ستون‌ها", options: [
         { value: "1", label: "۱" },
         { value: "2", label: "۲" },
@@ -319,6 +325,8 @@ export const CONTENT_WIDGETS: WidgetDef[] = [
       { kind: "textarea", key: "text", label: "متن" },
       { kind: "text", key: "label", label: "متن دکمه" },
       { kind: "link", key: "href", label: "پیوند دکمه" },
+      { kind: "text", key: "secondaryLabel", label: "متن پیوند دوم" },
+      { kind: "link", key: "secondaryHref", label: "پیوند دوم" },
       { kind: "select", key: "tone", label: "رنگ", options: [
         { value: "primary", label: "اصلی" },
         { value: "dark", label: "تیره" },
@@ -326,5 +334,27 @@ export const CONTENT_WIDGETS: WidgetDef[] = [
       ] },
     ],
     create: () => node("cta-banner", { title: "آماده شروع هستید؟", text: "", label: "تماس با ما", href: "/contact", tone: "primary" }),
+  },
+  {
+    type: "comparison-table",
+    label: "جدول مقایسه",
+    category: "content",
+    fields: [
+      { kind: "text", key: "colA", label: "عنوان ستون اول" },
+      { kind: "text", key: "colB", label: "عنوان ستون دوم" },
+      { kind: "repeater", key: "rows", label: "ردیف‌ها", fields: [{ key: "a", label: "ستون اول", kind: "text" }, { key: "b", label: "ستون دوم", kind: "text" }] },
+      { kind: "select", key: "highlight", label: "ستون برجسته", options: [{ value: "b", label: "ستون دوم" }, { value: "a", label: "ستون اول" }, { value: "", label: "هیچ‌کدام" }] },
+    ],
+    create: () => node("comparison-table", { colA: "گزینه الف", colB: "گزینه ب", rows: "|", highlight: "b" }),
+  },
+  {
+    type: "rahn-estimate",
+    label: "برآورد قیمت (رهن درصدی)",
+    category: "content",
+    fields: [
+      { kind: "text", key: "title", label: "عنوان (اختیاری)" },
+      { kind: "text", key: "token", label: "توکن اشتراک پیشنهاد (/rahn/…)" },
+    ],
+    create: () => node("rahn-estimate", { title: "", token: "" }),
   },
 ]
