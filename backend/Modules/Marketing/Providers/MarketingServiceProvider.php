@@ -84,6 +84,9 @@ class MarketingServiceProvider extends ServiceProvider
                 Route::post('/builder/collections/{collection}/items', [\Modules\Marketing\Http\Controllers\Builder\BuilderCollectionsController::class, 'storeItem'])->whereNumber('collection');
                 Route::put('/builder/collections/{collection}/items/{collectionItem}', [\Modules\Marketing\Http\Controllers\Builder\BuilderCollectionsController::class, 'updateItem'])->whereNumber('collection')->whereNumber('collectionItem');
                 Route::delete('/builder/collections/{collection}/items/{collectionItem}', [\Modules\Marketing\Http\Controllers\Builder\BuilderCollectionsController::class, 'destroyItem'])->whereNumber('collection')->whereNumber('collectionItem');
+                Route::post('/builder/collections/{collection}/items/bulk', [\Modules\Marketing\Http\Controllers\Builder\BuilderCollectionsController::class, 'bulk'])->whereNumber('collection');
+                Route::get('/builder/collections/{collection}/export', [\Modules\Marketing\Http\Controllers\Builder\BuilderCollectionsController::class, 'export'])->whereNumber('collection');
+                Route::post('/builder/collections/{collection}/import', [\Modules\Marketing\Http\Controllers\Builder\BuilderCollectionsController::class, 'import'])->whereNumber('collection')->middleware('throttle:10,1,builder-collections-import');
                 Route::get('/builder/kit', [\Modules\Marketing\Http\Controllers\Builder\BuilderKitController::class, 'export']);
                 Route::post('/builder/kit', [\Modules\Marketing\Http\Controllers\Builder\BuilderKitController::class, 'import'])->middleware('throttle:10,1');
                 Route::get('/builder/roles', [\Modules\Marketing\Http\Controllers\Builder\BuilderRolesController::class, 'show']);

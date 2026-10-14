@@ -190,6 +190,8 @@ export type RuntimeContext = {
   customFields?: Record<string, string>
   /** Published loop-item template rendered inside product grids. */
   loopDocument?: BuilderDocument
+  /** CMS collection item on /c/<collection>/<item> (collection_item templates) — `item.*` dynamic tags. */
+  collectionItem?: import("./dynamic").DynamicItem | null
   /** Server-fetched public API data keyed by path (used by «وبینا» widgets). */
   prefetch?: Record<string, unknown>
 }
