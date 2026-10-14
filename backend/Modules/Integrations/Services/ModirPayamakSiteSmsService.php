@@ -247,7 +247,7 @@ class ModirPayamakSiteSmsService
         }
 
         $edge = $this->edge->getPattern($code);
-        if (! $edge['ok'] && ! env('MODIRPAYAMAK_MOCK', false)) {
+        if (! $edge['ok'] && ! config('integrations.modirpayamak.mock', false)) {
             $this->upsertRegistry($domain, $scope, $eventKey, $code, self::STATUS_FAILED, (string) ($edge['message'] ?? 'Pattern not found'), $paramMap);
 
             return [
@@ -346,7 +346,7 @@ class ModirPayamakSiteSmsService
             $result = $this->edge->sendWebservice($from, $message, [$phone]);
         }
 
-        if (! $result['ok'] && ! env('MODIRPAYAMAK_MOCK', false)) {
+        if (! $result['ok'] && ! config('integrations.modirpayamak.mock', false)) {
             Cache::forget($this->otpCacheKey($domain, $phone, $purpose));
 
             return ['ok' => false, 'message' => (string) ($result['message'] ?: 'Send failed')];

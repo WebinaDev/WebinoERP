@@ -757,7 +757,7 @@ class ModirPayamakAdminController extends Controller
         if ($domain === '') {
             return response()->json(['message' => 'Domain is required'], 422);
         }
-        if (! filter_var(env('MODIRPAYAMAK_MOCK', false), FILTER_VALIDATE_BOOLEAN) && ! $this->edge->isConfigured()) {
+        if (! (bool) config('integrations.modirpayamak.mock', false) && ! $this->edge->isConfigured()) {
             return response()->json([
                 'message' => 'ModirPayamak Edge is not configured; secretaries cannot process inbox.',
                 'unavailable' => true,
@@ -907,7 +907,7 @@ class ModirPayamakAdminController extends Controller
             ], 422);
         }
 
-        if (! filter_var(env('MODIRPAYAMAK_MOCK', false), FILTER_VALIDATE_BOOLEAN) && ! $this->edge->isConfigured()) {
+        if (! (bool) config('integrations.modirpayamak.mock', false) && ! $this->edge->isConfigured()) {
             return response()->json([
                 'message' => 'ModirPayamak Edge is not configured; order notify unavailable.',
                 'unavailable' => true,

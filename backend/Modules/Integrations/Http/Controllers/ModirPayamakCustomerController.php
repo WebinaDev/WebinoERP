@@ -25,7 +25,7 @@ class ModirPayamakCustomerController extends Controller
     {
         $domain = (string) ($request->input('domain') ?? $request->query('domain', ''));
         $this->manager->assertLicensedDomain($domain);
-        $mock = filter_var(env('MODIRPAYAMAK_MOCK', false), FILTER_VALIDATE_BOOLEAN);
+        $mock = (bool) config('integrations.modirpayamak.mock', false);
         if (! $mock && ! $this->edge->isConfigured()) {
             abort(503, 'ModirPayamak is not configured');
         }
@@ -37,9 +37,15 @@ class ModirPayamakCustomerController extends Controller
     {
         $domain = $this->domain($request);
         $account = $this->manager->getOrCreateAccount($domain);
-        $credit = $this->edge->myCredit();
+        // Upstream credit is informational only; cache it and never let a slow/failed
+        // ippanel call fail the balance endpoint (tenant balance comes from our DB).
+        $credit = \Illuminate\Support\Facades\Cache::remember('modirpayamak:edge_credit', 120, function () {
+            $res = $this->edge->myCredit();
 
-        return response()->json(['data' => ['account' => $account, 'edge_credit' => $credit['data']]]);
+            return $res['ok'] ? $res['data'] : null;
+        });
+
+        return response()->json(['data' => ['account' => $account, 'edge_credit' => $credit]]);
     }
 
     public function packages(): JsonResponse

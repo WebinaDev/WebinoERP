@@ -11,12 +11,23 @@ class ModirPayamakEdgeClient
 
     public function isConfigured(): bool
     {
-        return $this->apiKey() !== '' && IntegrationSetting::getString('modirpayamak', 'enabled', '0') === '1';
+        if ($this->apiKey() === '') {
+            return false;
+        }
+        // DB toggle wins. Without one: MODIRPAYAMAK_ENABLED if set, else enabled when the key comes from .env.
+        $envEnabled = config('integrations.modirpayamak.enabled');
+        if ($envEnabled !== null && $envEnabled !== '') {
+            $default = filter_var($envEnabled, FILTER_VALIDATE_BOOLEAN) ? '1' : '0';
+        } else {
+            $default = (string) config('integrations.modirpayamak.api_key', '') !== '' ? '1' : '0';
+        }
+
+        return IntegrationSetting::getString('modirpayamak', 'enabled', $default) === '1';
     }
 
     public function apiKey(): string
     {
-        return IntegrationSetting::getString('modirpayamak', 'api_key', env('MODIRPAYAMAK_API_KEY', ''));
+        return IntegrationSetting::getString('modirpayamak', 'api_key', (string) config('integrations.modirpayamak.api_key', ''));
     }
 
     public function defaultFrom(): string
@@ -33,7 +44,7 @@ class ModirPayamakEdgeClient
      */
     public function request(string $method, string $path, array $body = [], array $query = []): array
     {
-        if (env('MODIRPAYAMAK_MOCK', false)) {
+        if (config('integrations.modirpayamak.mock', false)) {
             $data = $this->mockResponse($path, $method, $body, $query);
 
             return ['ok' => true, 'code' => 200, 'data' => $data, 'meta' => ['current_page' => 1, 'last_page' => 1], 'message' => ''];
@@ -45,21 +56,30 @@ class ModirPayamakEdgeClient
         }
 
         $url = rtrim(self::BASE_URL, '/').'/'.ltrim($path, '/');
-        $req = Http::timeout(45)
+        $req = Http::timeout(max(3, (int) config('integrations.modirpayamak.timeout', 15)))
+            ->connectTimeout(max(2, (int) config('integrations.modirpayamak.connect_timeout', 5)))
             ->withHeaders([
                 'Authorization' => $key,
                 'Content-Type' => 'application/json',
                 'Accept' => 'application/json',
             ]);
 
-        $response = match (strtoupper($method)) {
+        try {
+            $response = match (strtoupper($method)) {
             'GET' => $req->get($url, $query),
             'POST' => $req->post($url, $body),
             'PUT' => $req->put($url, $body),
             'PATCH' => $req->patch($url, $body),
             'DELETE' => $req->delete($url, $body),
             default => $req->send($method, $url, ['json' => $body]),
-        };
+            };
+        } catch (\Throwable $e) {
+            // Network/timeout to edge.ippanel.com must not bubble up as a 500 (which the
+            // WP dashboard treats as "ERP down" and shows the wallet as disconnected).
+            \Illuminate\Support\Facades\Log::warning('modirpayamak.edge.transport', ['path' => $path, 'error' => $e->getMessage()]);
+
+            return ['ok' => false, 'code' => 504, 'data' => null, 'meta' => [], 'message' => 'SMS provider is temporarily unreachable.'];
+        }
 
         $json = $response->json();
         $data = is_array($json) ? ($json['data'] ?? null) : null;

@@ -6,6 +6,16 @@ return [
         'default' => env('SMS_PROVIDER', 'stub'),
     ],
 
+    // Read via config() — env() returns null at runtime once `php artisan config:cache`
+    // has run (update.sh does this), which silently disabled ModirPayamak SMS.
+    'modirpayamak' => [
+        'api_key' => env('MODIRPAYAMAK_API_KEY', ''),
+        'mock' => filter_var(env('MODIRPAYAMAK_MOCK', false), FILTER_VALIDATE_BOOLEAN),
+        'enabled' => env('MODIRPAYAMAK_ENABLED'),
+        'timeout' => (int) env('MODIRPAYAMAK_TIMEOUT', 15),
+        'connect_timeout' => (int) env('MODIRPAYAMAK_CONNECT_TIMEOUT', 5),
+    ],
+
     'payment' => [
         'default' => env('PAYMENT_PROVIDER', 'stub'),
     ],
