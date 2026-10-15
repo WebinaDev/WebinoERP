@@ -53,6 +53,7 @@ class BuilderPageSettingsController extends Controller
             }
             $seo['seo_robots'] = ! empty($seo['noindex']) ? 'noindex,follow' : null;
             $row->seo = array_merge(is_array($row->seo) ? $row->seo : [], $seo);
+            $row->meta = \Modules\Marketing\Http\Controllers\Builder\BuilderController::withSeo($row->meta, is_array($row->seo) ? $row->seo : []);
         }
         if (array_key_exists('lang', $data)) {
             $row->lang = $data['lang'];

@@ -26,7 +26,7 @@ class PublicBuilderController extends Controller
             'data' => [
                 'slug' => $page->slug,
                 'title' => $page->title_fa,
-                'seo' => (object) (is_array($page->meta) ? ($page->meta['seo'] ?? []) : []),
+                'seo' => (object) (is_array($page->seo) && $page->seo ? $page->seo : (is_array($page->meta) ? ($page->meta['seo'] ?? []) : [])),
                 'document' => $page->builder_published,
             ],
         ]);
