@@ -67,3 +67,13 @@ ERP-only (not in the package): corporate «وبینا» widgets (`themes/webina-
 Dashboard-only: Iranian commerce widgets (taste-box, amazing-offers, installment-info, …), tenant scoping.
 
 Next step for Dashboard: replace its local `builder/forms.ts`, `lang.ts`, `ids.ts` and the six landing defs + form def with re-exports from `@webina/ui/builder`; raise its upload limit to `FORM_UPLOAD_MAX_BYTES` + zip; pass its own prefix to `publicFormEndpoints`; register commerce widgets as a plugin.
+
+## Shared package `@webina/ui`
+
+The shared builder core lives in its own public repo `WebinaDev/webina-ui` (exports `@webina/ui`, `@webina/ui/builder`). ERP installs a pinned tag:
+
+```json
+"@webina/ui": "git+https://github.com/WebinaDev/webina-ui.git#v0.1.0"
+```
+
+`dist/` is committed in that repo, so no build step is needed. To upgrade: tag a new version there, bump the `#vX.Y.Z` here, run `npm install`. The Docker image installs it via git (no sibling `packages/webina-ui` copy).
