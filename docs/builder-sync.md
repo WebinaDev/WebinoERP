@@ -34,6 +34,8 @@ Widgets read tokens such as `var(--wb-color-primary)` from published global sett
 
 Publishing a page whose slug is `home` replaces the designed homepage. Until then the corporate landing stays. Publishing a header or footer template replaces the designed chrome for matching URLs. The request path is sent as `x-webino-path`.
 
+Shared landing widgets (both platforms): `section-heading`, `steps`, `icon-cards`, `badges`, `cta-banner`, `comparison-table`. Shared form extras: group `heading` fields, review step, required confirms, two-column layout, intro/note/anchor, and `wb:form-prefill` / `?prefill_`.
+
 ## Sync gaps
 
 - Dashboard scopes `builder_templates` and `builder_globals` with a `tenant_id` foreign key. ERP is the single company site: the column exists and is always `1`, with no `tenants` table.
@@ -44,3 +46,24 @@ Publishing a page whose slug is `home` replaces the designed homepage. Until the
 - WordPress/Elementor import stays on Dashboard. ERP keeps `marketing:import-wordpress` for classic content, not Elementor documents.
 - WebinoDocs (`WebinaDev/WebinoDocs`) was not readable here. Seeded pages, services, solutions, and menus follow `Website-SiteMap-Complete.md` and `frontend/src/themes/webina-corporate-v1/site-nav.ts` (the Docs xmind map already in this repo).
 - Form field schemas are stored as JSON on `marketing_forms.fields`. The dashboard form screen edits title, slug, and publish; field arrays are accepted by `PUT /api/v1/marketing/forms/{id}`.
+
+## Shared core: `@webina/ui/builder`
+
+Path: `Plugins/Webina/packages/webina-ui/src/builder/` (built to `dist/builder`, subpath export `@webina/ui/builder`). Both frontends depend on `@webina/ui` via `file:../../packages/webina-ui`.
+
+Public API:
+- Types: `SharedWidgetDef`, `SharedFieldDef`, `SharedRepeaterSubField`, `SharedOption`, `SharedWidgetNode`, `SharedWidgetCategory`, `SHARED_WIDGET_IDS`.
+- Forms: `FORM_FIELD_TYPES`, `parseFormFields`, `isVisible`, `stepCount`, `missingOnStep`, `visiblePayload`, `fieldsFromDefinition`, `FormField`, `FormFieldType`.
+- Server surface: `publicFormEndpoints(apiBase, prefix = "/v1/public/forms")` → `{ definition, submit, upload }` URLs. GET definition returns `{ data: { fields } }` for `fieldsFromDefinition`.
+- Upload rule: `FORM_UPLOAD_MAX_BYTES` (10 MB), `FORM_UPLOAD_EXTENSIONS` / `FORM_UPLOAD_ACCEPT` (jpg, jpeg, png, webp, pdf, doc, docx, zip), `checkFormUpload`.
+- Lang: `RTL_LANGS`, `dirForLang`, `pageSlugFromPath`, `uiLocaleForLang`, `previewTokenFromPath`.
+- Ids: `uid`, `safeClass`.
+- Widgets (editor schema + defaults): `sharedContentWidgets(iconOptions?)` → section-heading, steps, icon-cards, badges, cta-banner, comparison-table; `sharedFormWidget({ formKeyLabel, fieldsLabel })` → form with intro/note/anchor/columns/stepTitles/review/confirms; `DEFAULT_ICON_OPTIONS`.
+- Registry: `createWidgetRegistry(core, onConflict)` + `WidgetPlugin` for theme/platform packs.
+
+Renderers stay per platform but must honour the same props.
+
+ERP-only (not in the package): corporate «وبینا» widgets (`themes/webina-corporate-v1/builder/blocks`), `rahn-estimate`, Marketing wiring (form slug = Marketing form, `/v1/public/forms` routes, `canonicalSiteSegments`).
+Dashboard-only: Iranian commerce widgets (taste-box, amazing-offers, installment-info, …), tenant scoping.
+
+Next step for Dashboard: replace its local `builder/forms.ts`, `lang.ts`, `ids.ts` and the six landing defs + form def with re-exports from `@webina/ui/builder`; raise its upload limit to `FORM_UPLOAD_MAX_BYTES` + zip; pass its own prefix to `publicFormEndpoints`; register commerce widgets as a plugin.

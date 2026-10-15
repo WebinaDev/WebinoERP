@@ -1,6 +1,6 @@
 "use client"
 
-/* Content widgets for landing/service pages (ERP-native, not in WebinoDashboard yet):
+/* Content widgets for landing/service pages (shared with WebinoDashboard):
  * section heading, numbered steps/timeline, icon cards grid (optionally prefilling a form), trust badges,
  * CTA banner and a two-column comparison table.
  * Repeater props use the shared legacy line format (`a|b|c` per line), so they edit with the

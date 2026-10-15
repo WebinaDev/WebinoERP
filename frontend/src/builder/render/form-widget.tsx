@@ -4,14 +4,16 @@ import { useEffect, useRef, useState } from "react"
 
 import { LocaleDatePicker } from "@/components/ui/locale-date-picker"
 
+import { FORM_UPLOAD_ACCEPT, FORM_UPLOAD_MAX_BYTES, publicFormEndpoints } from "@webina/ui/builder"
 import { fieldsFromDefinition, isVisible, missingOnStep, parseFormFields, stepCount, visiblePayload, type FormField } from "../forms"
 import { parseRows, propStr } from "../props"
 import type { WidgetNode } from "../types"
 
 const API_BASE = process.env.NEXT_PUBLIC_API_URL?.trim() || "/api"
 
-const FILE_ACCEPT = ".jpg,.jpeg,.png,.webp,.pdf,.doc,.docx,.zip"
-const FILE_MAX = 10 * 1024 * 1024
+const FILE_ACCEPT = FORM_UPLOAD_ACCEPT
+const FILE_MAX = FORM_UPLOAD_MAX_BYTES
+const FORM_API = publicFormEndpoints(API_BASE)
 
 /** File field: uploads to private storage right away and keeps only the opaque token as the value. */
 function FileField({ field, formKey, onChange }: { field: FormField; formKey: string; onChange: (value: string, name: string) => void }) {
@@ -33,7 +35,7 @@ function FileField({ field, formKey, onChange }: { field: FormField; formKey: st
           setState({ name: file.name, status: "uploading" })
           const body = new FormData()
           body.append("file", file)
-          void fetch(`${API_BASE}/v1/public/forms/${encodeURIComponent(formKey)}/upload`, { method: "POST", body, headers: { Accept: "application/json" } })
+          void fetch(FORM_API.upload(formKey), { method: "POST", body, headers: { Accept: "application/json" } })
             .then(async (res) => {
               const json = (await res.json().catch(() => null)) as { data?: { token?: string } } | null
               if (!res.ok || !json?.data?.token) throw new Error("upload_failed")
@@ -101,7 +103,7 @@ function useDefinition(formKey: string, enabled: boolean): FormField[] | null {
   useEffect(() => {
     if (!enabled) return
     let cancel = false
-    void fetch(`${API_BASE}/v1/public/forms/${encodeURIComponent(formKey)}`, { headers: { Accept: "application/json" } })
+    void fetch(FORM_API.submit(formKey), { headers: { Accept: "application/json" } })
       .then((res) => (res.ok ? res.json() : null))
       .then((json: { data?: { fields?: unknown } } | null) => {
         if (!cancel) setFields(fieldsFromDefinition(json?.data?.fields))
@@ -208,7 +210,7 @@ export function FormWidget({ widget }: { widget: WidgetNode }) {
           return
         }
         setPending(true)
-        void fetch(`${API_BASE}/v1/public/forms/${encodeURIComponent(formKey)}`, {
+        void fetch(FORM_API.submit(formKey), {
           method: "POST",
           headers: { "Content-Type": "application/json", Accept: "application/json" },
           body: JSON.stringify({
