@@ -85,6 +85,10 @@
   background: rgba(255, 255, 255, 0.97);
 }
 
+.site-header.is-mobile-open {
+  z-index: 70;
+}
+
 .site-header-bar {
   display: flex;
   align-items: center;
@@ -307,15 +311,41 @@
   font-weight: 700;
 }
 
-.mobile-sheet {
+/*
+ * Mobile nav is portaled to document.body. The sticky header uses
+ * backdrop-filter, which creates a containing block for position:fixed
+ * descendants and collapsed the old in-header drawer to zero height.
+ */
+.mobile-nav-root {
   position: fixed;
+  inset: 0;
+  z-index: 60;
+  pointer-events: none;
+}
+
+.mobile-nav-backdrop {
+  position: absolute;
+  inset: 0;
+  border: 0;
+  padding: 0;
+  pointer-events: auto;
+  cursor: pointer;
+  background: rgba(34, 36, 42, 0.45);
+}
+
+.mobile-sheet {
+  position: absolute;
   inset-inline: 0;
   top: 4.75rem;
   bottom: 0;
-  z-index: 40;
+  z-index: 1;
   overflow: auto;
+  overscroll-behavior: contain;
+  pointer-events: auto;
   background: #fff;
   color: var(--ink);
+  -webkit-overflow-scrolling: touch;
+  box-shadow: 0 -1px 0 var(--line);
 }
 
 .mobile-sheet .nav-link {

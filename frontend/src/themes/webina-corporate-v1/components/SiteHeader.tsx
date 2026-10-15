@@ -1,7 +1,8 @@
 'use client';
 
 import Link from 'next/link';
-import { useEffect, useState } from 'react';
+import { useEffect, useId, useState } from 'react';
+import { createPortal } from 'react-dom';
 import { useLocale, useTranslations } from 'next-intl';
 import { ArrowUpLeft, ChevronDown, Menu, X } from 'lucide-react';
 import { LanguageMenu } from '@/components/LanguageMenu';
@@ -32,6 +33,12 @@ export function SiteHeader({
   const [openId, setOpenId] = useState<number | null>(null);
   const [mobile, setMobile] = useState(false);
   const [scrolled, setScrolled] = useState(false);
+  const [portalReady, setPortalReady] = useState(false);
+  const mobileNavId = useId();
+
+  useEffect(() => {
+    setPortalReady(true);
+  }, []);
 
   useEffect(() => {
     const onScroll = () => setScrolled(window.scrollY > 8);
@@ -48,18 +55,27 @@ export function SiteHeader({
   }, [mobile]);
 
   useEffect(() => {
-    if (openId === null) return;
+    if (openId === null && !mobile) return;
     const onKey = (event: KeyboardEvent) => {
-      if (event.key === 'Escape') setOpenId(null);
+      if (event.key !== 'Escape') return;
+      setOpenId(null);
+      setMobile(false);
     };
     window.addEventListener('keydown', onKey);
     return () => window.removeEventListener('keydown', onKey);
-  }, [openId]);
+  }, [openId, mobile]);
 
   const openMega = openId !== null ? data.nav[openId] : undefined;
 
   return (
-    <header className={cn('site-header', (scrolled || openId !== null) && 'is-scrolled')} onMouseLeave={() => setOpenId(null)}>
+    <header
+      className={cn(
+        'site-header',
+        (scrolled || openId !== null || mobile) && 'is-scrolled',
+        mobile && 'is-mobile-open',
+      )}
+      onMouseLeave={() => setOpenId(null)}
+    >
       <div className="webina-shell site-header-bar">
         <Link href={siteHref()} aria-label={siteName} onClick={() => setMobile(false)}>
           <LogoLockup siteName={siteName} logoUrl={logoUrl} />
@@ -102,7 +118,11 @@ export function SiteHeader({
             className="menu-toggle"
             aria-label={mobile ? t('site.nav.closeMenu') : t('site.nav.openMenu')}
             aria-expanded={mobile}
-            onClick={() => setMobile((v) => !v)}
+            aria-controls={mobileNavId}
+            onClick={() => {
+              setOpenId(null);
+              setMobile((v) => !v);
+            }}
           >
             {mobile ? <X className="size-5" /> : <Menu className="size-5" />}
           </button>
@@ -111,7 +131,17 @@ export function SiteHeader({
 
       {openMega?.columns?.length ? <MegaPanel mega={openMega} data={data} onNavigate={() => setOpenId(null)} /> : null}
 
-      {mobile ? <MobileNav data={data} onClose={() => setMobile(false)} /> : null}
+      {portalReady && mobile
+        ? createPortal(
+            <MobileNav
+              id={mobileNavId}
+              data={data}
+              closeLabel={t('site.nav.closeMenu')}
+              onClose={() => setMobile(false)}
+            />,
+            document.body,
+          )
+        : null}
     </header>
   );
 }
@@ -176,11 +206,23 @@ function MegaPanel({ mega, data, onNavigate }: { mega: NavItemData; data: Header
   );
 }
 
-function MobileNav({ data, onClose }: { data: HeaderData; onClose: () => void }) {
+function MobileNav({
+  id,
+  data,
+  closeLabel,
+  onClose,
+}: {
+  id: string;
+  data: HeaderData;
+  closeLabel: string;
+  onClose: () => void;
+}) {
   const [open, setOpen] = useState<number | null>(null);
 
   return (
-    <div className="mobile-sheet min-[1100px]:hidden">
+    <div className="mobile-nav-root min-[1100px]:hidden" role="dialog" aria-modal="true" id={id}>
+      <button type="button" className="mobile-nav-backdrop" aria-label={closeLabel} onClick={onClose} />
+      <div className="mobile-sheet">
       <div className="webina-shell pb-10 pt-2">
         {data.nav.map((entry, i) =>
           entry.columns?.length ? (
@@ -203,6 +245,7 @@ function MobileNav({ data, onClose }: { data: HeaderData; onClose: () => void })
             </Link>
           ) : null}
         </div>
+      </div>
       </div>
     </div>
   );
