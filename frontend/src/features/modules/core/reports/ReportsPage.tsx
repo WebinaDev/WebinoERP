@@ -125,7 +125,7 @@ export function ReportsPage() {
   }
 
   return (
-    <div className="space-y-6 text-start" dir={isRtl ? 'rtl' : 'ltr'}>
+    <div className="wd-page-shell space-y-6 text-start" dir={isRtl ? 'rtl' : 'ltr'}>
       <CrmPmSnapshot />
     <Card>
       <CardHeader className="flex flex-row flex-wrap items-start justify-between gap-3">

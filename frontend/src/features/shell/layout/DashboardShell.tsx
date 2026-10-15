@@ -139,6 +139,13 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
     return () => document.removeEventListener('fullscreenchange', h);
   }, []);
 
+  useEffect(() => {
+    document.documentElement.dataset.wdDashboard = '1';
+    return () => {
+      delete document.documentElement.dataset.wdDashboard;
+    };
+  }, []);
+
   async function toggleFs() {
     try {
       if (!document.fullscreenElement) {

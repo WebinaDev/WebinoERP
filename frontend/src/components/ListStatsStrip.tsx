@@ -29,7 +29,7 @@ export function ListStatsStrip({
   return (
     <div
       className={cn(
-        "flex gap-2.5 overflow-x-auto pb-1 md:grid md:overflow-visible md:pb-0",
+        "wd-list-stats flex gap-2.5 overflow-x-auto pb-1 md:grid md:overflow-visible md:pb-0",
         cols,
         className,
       )}

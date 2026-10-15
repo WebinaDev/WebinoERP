@@ -5,6 +5,8 @@ import { AlertCircle, Inbox, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 
+const ICON_STROKE = 1.75;
+
 type PageEmptyStateProps = {
   title?: string;
   description?: string;
@@ -15,12 +17,12 @@ type PageEmptyStateProps = {
 export function PageEmptyState({ title, description, actionLabel, onAction }: PageEmptyStateProps) {
   const t = useTranslations('common');
   return (
-    <Card className="border-dashed">
+    <Card className="wd-page-state border-dashed">
       <CardContent className="flex flex-col items-center justify-center gap-3 py-12 text-center">
-        <Inbox className="h-10 w-10 text-muted-foreground" aria-hidden />
+        <Inbox className="text-muted-foreground h-7 w-7" absoluteStrokeWidth strokeWidth={ICON_STROKE} aria-hidden />
         <div>
           <p className="font-medium">{title ?? t('empty')}</p>
-          {description ? <p className="mt-1 text-sm text-muted-foreground">{description}</p> : null}
+          {description ? <p className="text-muted-foreground mt-1 text-sm">{description}</p> : null}
         </div>
         {actionLabel && onAction ? (
           <Button type="button" variant="outline" onClick={onAction}>
@@ -40,10 +42,10 @@ type PageErrorStateProps = {
 export function PageErrorState({ message, onRetry }: PageErrorStateProps) {
   const t = useTranslations('common');
   return (
-    <Card className="border-destructive/40 bg-destructive/5">
+    <Card className="wd-page-state border-destructive/40 bg-destructive/5">
       <CardContent className="flex flex-col items-center justify-center gap-3 py-10 text-center">
-        <AlertCircle className="h-10 w-10 text-destructive" aria-hidden />
-        <p className="text-sm text-destructive">{message ?? t('errorGeneric')}</p>
+        <AlertCircle className="text-destructive h-7 w-7" absoluteStrokeWidth strokeWidth={ICON_STROKE} aria-hidden />
+        <p className="text-destructive text-sm">{message ?? t('errorGeneric')}</p>
         {onRetry ? (
           <Button type="button" variant="outline" onClick={onRetry}>
             {t('retry')}
@@ -57,8 +59,12 @@ export function PageErrorState({ message, onRetry }: PageErrorStateProps) {
 export function PageLoadingState({ label }: { label?: string }) {
   const t = useTranslations('common');
   return (
-    <div className="flex items-center justify-center gap-2 py-16 text-muted-foreground" role="status" aria-live="polite">
-      <Loader2 className="h-5 w-5 animate-spin" aria-hidden />
+    <div
+      className="wd-page-state text-muted-foreground flex items-center justify-center gap-2 py-16"
+      role="status"
+      aria-live="polite"
+    >
+      <Loader2 className="h-5 w-5 animate-spin" absoluteStrokeWidth strokeWidth={ICON_STROKE} aria-hidden />
       <span>{label ?? t('loading')}</span>
     </div>
   );

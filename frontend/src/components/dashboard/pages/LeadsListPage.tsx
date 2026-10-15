@@ -29,6 +29,7 @@ import { ImportCsvDialog } from '@/features/modules/crm/ImportCsvDialog';
 import { PageShell } from '@/components/PageShell';
 import { ListStatsStrip } from '@/components/ListStatsStrip';
 import { useLocale } from '@/hooks/use-locale-next';
+import { useIsMobile } from '@/hooks/use-mobile';
 
 type StatusRow = { id: number; name: string; color?: string };
 type LeadRow = Record<string, unknown>;
@@ -50,7 +51,9 @@ export function LeadsListPage() {
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [selected, setSelected] = useState<Set<number>>(new Set());
+  const isMobile = useIsMobile();
   const [viewMode, setViewMode] = useState<'table' | 'card'>('table');
+  const [viewTouched, setViewTouched] = useState(false);
   const [exporting, setExporting] = useState(false);
   const [importOpen, setImportOpen] = useState(false);
 
@@ -67,6 +70,11 @@ export function LeadsListPage() {
   const [statusChangeOpen, setStatusChangeOpen] = useState(false);
   const [statusChangeId, setStatusChangeId] = useState('');
   const [statusUpdating, setStatusUpdating] = useState(false);
+
+  useEffect(() => {
+    if (viewTouched) return;
+    setViewMode(isMobile ? 'card' : 'table');
+  }, [isMobile, viewTouched]);
 
   const [form, setForm] = useState({
     topic: '',
@@ -408,7 +416,7 @@ export function LeadsListPage() {
           <div className="flex justify-end">
             <PmViewToggle
               value={viewMode}
-              onChange={(id) => setViewMode(id as 'table' | 'card')}
+              onChange={(id) => { setViewTouched(true); setViewMode(id as 'table' | 'card'); }}
               options={[
                 { id: 'table', label: t('viewTable') },
                 { id: 'card', label: t('viewCards') },
