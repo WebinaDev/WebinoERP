@@ -28,6 +28,10 @@ Route::middleware('throttle:marketing-public')->group(function () {
     Route::get('/academy/{slug}', [PublicContentController::class, 'academyShow']);
 
     Route::get('/builder/pages/{slug}', [PublicBuilderController::class, 'page']);
+    Route::get('/builder/preview/{token}', [PublicBuilderController::class, 'preview'])->middleware('throttle:60,1');
+    Route::post('/builder/ab/{test}/event', [\Modules\Marketing\Http\Controllers\Builder\BuilderAbController::class, 'event'])->whereNumber('test')->middleware('throttle:120,1');
+    Route::get('/builder/collections/{slug}/items', [\Modules\Marketing\Http\Controllers\Builder\BuilderCollectionsController::class, 'publicItems']);
+    Route::get('/builder/collections/{slug}/items/{collectionItem}', [\Modules\Marketing\Http\Controllers\Builder\BuilderCollectionsController::class, 'publicItem']);
     Route::get('/builder/templates/{kind}', [PublicBuilderController::class, 'template']);
     Route::get('/builder/resolve', [PublicBuilderController::class, 'resolve']);
     Route::get('/builder/globals', [BuilderGlobalsController::class, 'publicShow']);

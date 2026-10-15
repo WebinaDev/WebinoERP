@@ -1,14 +1,26 @@
 "use client"
 
+import { useRef } from "react"
+
 import { DEFAULT_GLOBALS, globalsCss, type BuilderGlobals } from "../globals"
 import { safeClass } from "../ids"
-import { documentCss, mergeStyle, spanFor, styleToCss } from "../style"
+import { advancedAttrs, advancedClass, advancedId, hasCustomLayout, layoutToCss, mergeStyle, spanFor, styleToCss } from "../style"
+import { migrateDocument } from "../migrate"
+import { viewCss } from "../compile"
+import { dirForLang } from "../lang"
+import { Decor, motionAttrs, useCanvasMotion } from "./decor"
+import { useConditionsVisible } from "./use-conditions"
+import { useResolvedWidget } from "./use-dynamic"
 import type { ColumnNode, DeviceMode, EditorApi, BuilderDocument, RuntimeContext, SectionNode, WidgetNode } from "../types"
 import { DND_NODE, DND_WIDGET } from "../types"
-import { BuilderGlobalsProvider, BuilderRuntimeProvider } from "./runtime"
+import { BuilderGlobalsProvider, BuilderRuntimeProvider, useBuilderGlobals } from "./runtime"
+import { applyPreset, COMPONENT_TYPE, componentsCss, resolveInstance } from "../components"
 import { WidgetBody } from "./widgets"
 
-import "../ishop.css"
+import "../storefront.css"
+import "@/themes/ecommerce-classic/classic-theme.css"
+import "@/themes/storefront-skins.css"
+import "@/themes/ecommerce-classic/parity.css"
 
 type Props = {
   document: BuilderDocument
@@ -25,14 +37,20 @@ function importedCss(document: BuilderDocument): string {
   return raw.replace(/<\/style/gi, "").replace(/<script/gi, "")
 }
 
-export function DocumentView({ document, mode = "view", device = "desktop", runtime, editor, themeClass, globals }: Props) {
+export function DocumentView({ document: rawDocument, mode = "view", device = "desktop", runtime, editor, themeClass, globals }: Props) {
+  // v1 documents render through the legacy path (unchanged output).
+  const document = migrateDocument(rawDocument)
   const activeGlobals = globals ?? DEFAULT_GLOBALS
-  const nodeCss = mode === "view" ? documentCss(document) : ""
-  const css = [globalsCss(activeGlobals), nodeCss, importedCss(document)].filter(Boolean).join("\n")
+  const nodeCss = mode === "view" ? viewCss(document, activeGlobals.breakpoints) : ""
+  // Component (symbol) node CSS is shared by every instance; editor mode needs it too (instances render without inline styles).
+  const symbolCss = componentsCss(document.sections, activeGlobals)
+  const css = [globalsCss(activeGlobals), symbolCss, nodeCss, importedCss(document)].filter(Boolean).join("\n")
+  const canvasRef = useRef<HTMLDivElement>(null)
+  useCanvasMotion(canvasRef, mode === "view")
   return (
     <BuilderGlobalsProvider value={activeGlobals}>
       <BuilderRuntimeProvider value={runtime ?? {}}>
-        <div className={`wb-canvas ${themeClass ?? ""}`} dir="rtl">
+        <div ref={canvasRef} className={`wb-canvas ${themeClass ?? ""}`} dir={dirForLang(runtime?.lang)} lang={runtime?.lang ?? undefined}>
           {css ? <style>{css}</style> : null}
           <div className="wb-section-stack">
             {document.sections.map((section) => (
@@ -45,53 +63,108 @@ export function DocumentView({ document, mode = "view", device = "desktop", runt
   )
 }
 
-function SectionBlock({ section, device, editor }: { section: SectionNode; device: DeviceMode; editor?: EditorApi }) {
+function SectionBlock({ section, device, editor, depth = 0 }: { section: SectionNode; device: DeviceMode; editor?: EditorApi; depth?: number }) {
   const selected = editor?.selectedId === section.id
-  const style = editor ? styleToCss(mergeStyle(section.style, device)) : undefined
+  const sectionStyle = mergeStyle(section.style, device)
+  const style = editor ? styleToCss(sectionStyle) : undefined
+  const conditionsPass = useConditionsVisible(section.advanced?.conditions, Boolean(editor))
+  if ((section.hidden || !conditionsPass) && !editor) return null
   return (
     <section
       id={section.id}
-      className={`${safeClass(section.id)} ${section.fullWidth ? "" : "wb-container"} ${selected ? "outline outline-2 outline-[#E16BA6]" : ""}`}
+      className={`${safeClass(section.id)} ${section.fullWidth ? "" : "wb-container"} ${advancedClass(section.advanced)} ${selected ? "outline outline-2 outline-[#E16BA6]" : ""} ${editor && section.hidden ? "opacity-40" : ""}`}
       style={style}
+      {...advancedAttrs(section.advanced)}
+      {...motionAttrs(section.advanced)}
       onClick={(event) => {
         if (!editor) return
         event.stopPropagation()
-        editor.onSelect(section.id)
+        if (!section.locked) editor.onSelect(section.id)
       }}
+      onContextMenu={editor?.onContextMenu ? (event) => {
+        event.preventDefault()
+        event.stopPropagation()
+        editor.onContextMenu?.(section.id, event.clientX, event.clientY)
+      } : undefined}
     >
+      <Decor advanced={section.advanced} />
       <div
-        className="wb-columns grid items-start"
-        style={{
-          gridTemplateColumns: device === "mobile" ? "minmax(0,1fr)" : "repeat(12, minmax(0,1fr))",
-        }}
+        className={`wb-columns grid items-start ${section.legacy ? "" : "wb-flow"}`}
+        style={
+          section.legacy
+            ? { gridTemplateColumns: device === "mobile" ? "minmax(0,1fr)" : "repeat(12, minmax(0,1fr))" }
+            : editor
+              ? { gridTemplateColumns: "repeat(12, minmax(0,1fr))", ...layoutToCss(sectionStyle) }
+              : undefined
+        }
       >
         {section.columns.map((column) => (
-          <ColumnBlock key={column.id} column={column} device={device} editor={editor} />
+          <ColumnBlock
+            key={column.id}
+            column={column}
+            device={device}
+            editor={editor}
+            legacy={Boolean(section.legacy)}
+            freeLayout={hasCustomLayout(sectionStyle)}
+            depth={depth}
+          />
         ))}
       </div>
     </section>
   )
 }
 
-function ColumnBlock({ column, device, editor }: { column: ColumnNode; device: DeviceMode; editor?: EditorApi }) {
+function ColumnBlock({
+  column,
+  device,
+  editor,
+  legacy,
+  freeLayout,
+  depth = 0,
+}: {
+  column: ColumnNode
+  device: DeviceMode
+  editor?: EditorApi
+  legacy: boolean
+  freeLayout: boolean
+  depth?: number
+}) {
   const span = spanFor(column.span, column.tabletSpan, column.mobileSpan, device)
   const selected = editor?.selectedId === column.id
-  const style = editor ? styleToCss(mergeStyle(column.style, device)) : undefined
+  const columnStyle = mergeStyle(column.style, device)
+  const style = editor ? styleToCss(columnStyle) : undefined
+  // Legacy: inline span (desktop span in view mode, single column in mobile preview).
+  // v2 view mode: spans come from documentCss media rules; v2 editor: spans for the previewed device.
+  const gridColumn = legacy
+    ? `span ${device === "mobile" ? 1 : span}`
+    : editor && !freeLayout
+      ? `span ${span}`
+      : undefined
+  const conditionsPass = useConditionsVisible(column.advanced?.conditions, Boolean(editor))
+  if ((column.hidden || !conditionsPass) && !editor) return null
   return (
     <div
-      className={`${safeClass(column.id)} relative min-w-0 ${selected ? "outline outline-2 outline-dashed outline-[#0C2D63]" : ""}`}
-      style={{ ...style, gridColumn: `span ${device === "mobile" ? 1 : span}` }}
+      {...advancedAttrs(column.advanced)}
+      {...motionAttrs(column.advanced)}
+      className={`${safeClass(column.id)} ${advancedClass(column.advanced)} relative min-w-0 ${selected ? "outline outline-2 outline-dashed outline-[#0C2D63]" : ""} ${editor && column.hidden ? "opacity-40" : ""}`}
+      style={{ ...style, gridColumn }}
       onClick={(event) => {
         if (!editor) return
         event.stopPropagation()
-        editor.onSelect(column.id)
+        if (!column.locked) editor.onSelect(column.id)
       }}
+      onContextMenu={editor?.onContextMenu ? (event) => {
+        event.preventDefault()
+        event.stopPropagation()
+        editor.onContextMenu?.(column.id, event.clientX, event.clientY)
+      } : undefined}
     >
+      <Decor advanced={column.advanced} />
       {editor ? <DropSlot columnId={column.id} index={0} editor={editor} /> : null}
-      <div className="flex flex-col">
+      <div className="wb-col-body flex flex-col" style={!legacy && editor ? layoutToCss(columnStyle) : undefined}>
         {column.widgets.map((widget, index) => (
           <div key={widget.id}>
-            <WidgetBlock widget={widget} device={device} editor={editor} />
+            <WidgetBlock widget={widget} device={device} editor={editor} depth={depth} />
             {editor ? <DropSlot columnId={column.id} index={index + 1} editor={editor} /> : null}
           </div>
         ))}
@@ -106,14 +179,25 @@ function ColumnBlock({ column, device, editor }: { column: ColumnNode; device: D
   )
 }
 
-function WidgetBlock({ widget, device, editor }: { widget: WidgetNode; device: DeviceMode; editor?: EditorApi }) {
+function WidgetBlock({ widget: own, device, editor, depth = 0 }: { widget: WidgetNode; device: DeviceMode; editor?: EditorApi; depth?: number }) {
+  const globals = useBuilderGlobals()
+  const widget = applyPreset(own, globals)
   const selected = editor?.selectedId === widget.id
-  const style = editor ? styleToCss(mergeStyle(widget.style, device)) : undefined
+  const resolved = useResolvedWidget(widget)
+  const conditionsPass = useConditionsVisible(widget.advanced?.conditions, Boolean(editor))
+  const raw = editor ? styleToCss(mergeStyle(widget.style, device)) : undefined
+  // In the editor, hidden widgets stay visible but faded so they can still be selected.
+  const hiddenOnDevice = Boolean(editor && (raw?.display === "none" || widget.advanced?.hideOn?.[device] || widget.hidden))
+  const style = raw && hiddenOnDevice ? { ...raw, display: undefined, opacity: 0.35 } : raw
+  if ((widget.hidden || !conditionsPass) && !editor) return null
   return (
     <div
-      className={`${safeClass(widget.id)} ${selected ? "outline outline-2 outline-[#E16BA6]" : ""}`}
+      id={advancedId(widget.advanced)}
+      className={`${safeClass(widget.id)} ${advancedClass(widget.advanced)} ${selected ? "outline outline-2 outline-[#E16BA6]" : ""}`}
       style={style}
-      draggable={Boolean(editor)}
+      {...advancedAttrs(widget.advanced)}
+      {...motionAttrs(widget.advanced)}
+      draggable={Boolean(editor) && !widget.locked}
       onDragStart={(event) => {
         event.dataTransfer.setData(DND_NODE, widget.id)
         event.dataTransfer.effectAllowed = "move"
@@ -121,13 +205,36 @@ function WidgetBlock({ widget, device, editor }: { widget: WidgetNode; device: D
       onClick={(event) => {
         if (!editor) return
         event.stopPropagation()
-        editor.onSelect(widget.id)
+        if (!widget.locked) editor.onSelect(widget.id)
       }}
+      onContextMenu={editor?.onContextMenu ? (event) => {
+        event.preventDefault()
+        event.stopPropagation()
+        editor.onContextMenu?.(widget.id, event.clientX, event.clientY)
+      } : undefined}
     >
-      <WidgetBody widget={widget} editor={editor} />
+      {widget.type === COMPONENT_TYPE ? (
+        <ComponentInstance widget={widget} device={device} depth={depth} editing={Boolean(editor)} />
+      ) : (
+        <WidgetBody widget={resolved} editor={editor} />
+      )}
       {widget.type === "container" && widget.children
-        ? widget.children.map((section) => <SectionBlock key={section.id} section={section} device={device} editor={editor} />)
+        ? widget.children.map((section) => <SectionBlock key={section.id} section={section} device={device} editor={editor} depth={depth} />)
         : null}
+    </div>
+  )
+}
+
+/** A component instance renders the master (variant + overrides); inside the editor it is selected as one unit. */
+function ComponentInstance({ widget, device, depth, editing }: { widget: WidgetNode; device: DeviceMode; depth: number; editing: boolean }) {
+  const globals = useBuilderGlobals()
+  const sections = depth < 3 ? resolveInstance(globals, widget.props) : null
+  if (!sections) {
+    return editing ? <div className="rounded-xl border border-dashed p-4 text-center text-xs text-[#0C2D63]/60">کامپوننت پیدا نشد</div> : null
+  }
+  return (
+    <div className={editing ? "pointer-events-none" : undefined} data-wb-component={String(widget.props.component)}>
+      {sections.map((section) => <SectionBlock key={section.id} section={section} device={device} depth={depth + 1} />)}
     </div>
   )
 }

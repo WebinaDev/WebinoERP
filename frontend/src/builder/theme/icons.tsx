@@ -1,4 +1,9 @@
 import {
+  ListFilter,
+  ShieldCheck as ShieldIcon,
+  CreditCard,
+  ShoppingCart,
+  UserRound,
   Blocks,
   Braces,
   CircleHelp,
@@ -22,8 +27,7 @@ import {
   ShoppingBag,
   Square,
   Type,
-  type LucideIcon,
-} from "lucide-react"
+  type LucideIcon, Shapes, CodeXml } from "lucide-react"
 
 import type { ThemeKind } from "./context"
 
@@ -54,7 +58,9 @@ const WIDGET_ICONS: Record<string, LucideIcon> = {
   "filter-panel": Settings2,
   "product-detail": Package,
   "cart-lines": ShoppingBag,
+  "checkout": ShoppingBag,
   "checkout-stub": ShoppingBag,
+  "account": FileText,
   "account-stub": FileText,
   "store-header": PanelTop,
   "store-footer": PanelBottom,
@@ -71,6 +77,11 @@ export const THEME_KIND_ICONS: Record<ThemeKind, LucideIcon> = {
   product_archive: LayoutGrid,
   loop_item: GalleryHorizontalEnd,
   not_found: CircleHelp,
+  popup: CircleHelp,
+  cart: ShoppingCart,
+  checkout: CreditCard,
+  account: UserRound,
+  collection_item: Library,
 }
 
 export const SETTINGS_SECTION_ICONS = {
@@ -83,6 +94,11 @@ export const SETTINGS_SECTION_ICONS = {
   layout: Columns3,
   lightbox: GalleryHorizontalEnd,
   variables: Braces,
+  kit: Package,
+  roles: ShieldIcon,
+  design_system: Shapes,
+  queries: ListFilter,
+  code: CodeXml,
 } as const
 
 export function widgetIcon(type: string): LucideIcon {

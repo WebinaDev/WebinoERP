@@ -1,22 +1,18 @@
-# Build context: Plugins/Webina workspace root (includes packages/webina-ui)
+# Build context: Plugins/Webina workspace root. @webina/ui is installed from git (WebinaDev/webina-ui, public).
 # NODE_IMAGE: override for Iranian mirrors, e.g. hub.hamdocker.ir/library/node:22-alpine
 ARG NODE_IMAGE=node:22-alpine
 FROM ${NODE_IMAGE} AS deps
 WORKDIR /src
-COPY packages/webina-ui ./packages/webina-ui
+RUN apk add --no-cache git
 COPY WebinoERP/frontend/package.json WebinoERP/frontend/package-lock.json ./WebinoERP/frontend/
-WORKDIR /src/packages/webina-ui
-RUN npm ci --no-audit --no-fund 2>/dev/null || npm install --no-audit --no-fund
 WORKDIR /src/WebinoERP/frontend
 RUN npm ci --no-audit --no-fund
 
 ARG NODE_IMAGE=node:22-alpine
 FROM ${NODE_IMAGE} AS builder
 WORKDIR /src
-COPY packages/webina-ui ./packages/webina-ui
 COPY WebinoERP/frontend ./WebinoERP/frontend
 COPY --from=deps /src/WebinoERP/frontend/node_modules ./WebinoERP/frontend/node_modules
-COPY --from=deps /src/packages/webina-ui/node_modules ./packages/webina-ui/node_modules
 WORKDIR /src/WebinoERP/frontend
 ENV NEXT_TELEMETRY_DISABLED=1
 ARG API_PROXY_TARGET=http://backend:8080

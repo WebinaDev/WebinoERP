@@ -39,6 +39,7 @@ class ThemeBuilderController extends Controller
 
     public function store(Request $request): JsonResponse
     {
+        \Modules\Marketing\Services\Builder\BuilderAccess::authorize($request, 'design');
         $data = $request->validate([
             'kind' => 'required|string|in:'.implode(',', array_keys(ThemeTemplateKinds::KINDS)),
             'title' => 'required|string|max:255',
@@ -72,6 +73,7 @@ class ThemeBuilderController extends Controller
 
     public function update(Request $request, int $template): JsonResponse
     {
+        \Modules\Marketing\Services\Builder\BuilderAccess::authorize($request, 'design');
         $row = $this->row($request, $template);
         $data = $request->validate([
             'title' => 'sometimes|string|max:255',
@@ -102,6 +104,7 @@ class ThemeBuilderController extends Controller
 
     public function publish(Request $request, int $template): JsonResponse
     {
+        \Modules\Marketing\Services\Builder\BuilderAccess::authorize($request, 'design');
         $row = $this->row($request, $template);
         abort_if(! is_array($row->draft), 422, 'draft missing');
         $row->published = $row->draft;
@@ -112,6 +115,7 @@ class ThemeBuilderController extends Controller
 
     public function makeDefault(Request $request, int $template): JsonResponse
     {
+        \Modules\Marketing\Services\Builder\BuilderAccess::authorize($request, 'design');
         $row = $this->row($request, $template);
         $this->markDefault($row);
 
@@ -120,6 +124,7 @@ class ThemeBuilderController extends Controller
 
     public function destroy(Request $request, int $template): JsonResponse
     {
+        \Modules\Marketing\Services\Builder\BuilderAccess::authorize($request, 'design');
         $row = $this->row($request, $template);
         $wasDefault = (bool) $row->is_default;
         $tid = BuilderSite::ID;
@@ -147,6 +152,7 @@ class ThemeBuilderController extends Controller
 
     public function apply(Request $request): JsonResponse
     {
+        \Modules\Marketing\Services\Builder\BuilderAccess::authorize($request, 'design');
         $data = $request->validate(['preset' => 'required|string|max:80']);
         $library = app(ThemePresetLibrary::class);
         $preset = $library->find($data['preset']);

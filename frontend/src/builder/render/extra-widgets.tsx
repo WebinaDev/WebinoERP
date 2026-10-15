@@ -1,49 +1,40 @@
 "use client"
 
-/* Content widgets ported from WebinoDashboard (render/extra-widgets.tsx): banner grid, tabs,
- * FAQ accordion (FAQPage JSON-LD), icon box/list, testimonials, gallery/carousel, announcement,
- * map, counters, social/share, pricing, blog query, curated feed. Storefront-only widgets
- * (product carousel, brand slider, category list, search box, login CTA) stay on Dashboard:
- * the ERP company site is not a storefront tenant. */
+/* Additional page-builder widgets (product query carousel, banner grid, tabs, FAQ accordion,
+ * icon box/list, testimonials, brand slider, gallery/carousel, announcement, map, counters,
+ * social/share, pricing, blog query, search box, category list, login/tracking/wishlist).
+ * Every widget renders only real data or content entered by the admin — no invented numbers. */
 
 import {
   BadgeCheck,
-  BarChart3,
-  Check,
-  CheckCircle2,
   ChevronLeft,
   ChevronRight,
-  ClipboardList,
   Clock,
-  Compass,
   CreditCard,
   Gift,
-  Handshake,
   Headphones,
   Heart,
-  Layers,
-  Lightbulb,
   Link2,
   MapPin,
-  MessageCircle,
   Phone,
-  Rocket,
-  Route,
   Search,
   ShieldCheck,
   Sparkles,
   Star,
-  Target,
   Truck,
-  Users,
   X,
   type LucideIcon,
 } from "lucide-react"
 import Link from "next/link"
+import { useRouter } from "next/navigation"
 import { useEffect, useMemo, useRef, useState, type ReactNode, type RefObject } from "react"
 
+import { useCatalog, useProductQuery } from "../storefront/use-catalog"
+import { StoreProductCard } from "../storefront/ui"
 import { linkAttrs, propBool, propNum, propStr } from "../props"
 import type { WidgetNode } from "../types"
+import { useIsClassicSkin } from "./runtime"
+import { ClassicProductRow } from "@/themes/ecommerce-classic/components/ClassicHome"
 import { Img } from "./img"
 
 /* ------------------------------------------------------------------ utils */
@@ -70,20 +61,6 @@ const ICONS: Record<string, LucideIcon> = {
   badge: BadgeCheck,
   support: Headphones,
   map: MapPin,
-  users: Users,
-  target: Target,
-  route: Route,
-  check: Check,
-  "check-circle": CheckCircle2,
-  message: MessageCircle,
-  compass: Compass,
-  rocket: Rocket,
-  layers: Layers,
-  chart: BarChart3,
-  idea: Lightbulb,
-  handshake: Handshake,
-  clipboard: ClipboardList,
-  search: Search,
 }
 
 
@@ -114,6 +91,63 @@ function safeHref(href: string, fallback = "#"): string {
 }
 
 /* ------------------------------------------------------- product carousel */
+
+export function ProductQueryWidget({ widget }: { widget: WidgetNode }) {
+  const classic = useIsClassicSkin()
+  const title = propStr(widget.props, "title", "")
+  const limit = Math.max(1, Math.min(24, propNum(widget.props, "limit", 10)))
+  const layout = propStr(widget.props, "layout", "slider")
+  const href = propStr(widget.props, "href", "")
+  const sort = propStr(widget.props, "sort", "newest")
+  const brand = propStr(widget.props, "brand", "")
+  const onSale = propBool(widget.props, "onSale")
+  const inStock = propBool(widget.props, "inStock")
+  const excludeSlug = propStr(widget.props, "excludeSlug", "")
+  // Optional category tabs: "label|category-slug" per line (3.8).
+  const tabs = splitRows(propStr(widget.props, "tabs", "")).filter(([label]) => label)
+  const [tabIndex, setTabIndex] = useState(0)
+  const activeTab = tabs.length ? tabs[Math.min(tabIndex, tabs.length - 1)] : null
+  const category = activeTab ? activeTab[1] ?? "" : propStr(widget.props, "category", "")
+  const query = useProductQuery({ sort, limit: excludeSlug ? limit + 1 : limit, category, brand, onSale, inStock })
+  const loading = query.loading
+  const products = excludeSlug ? query.products.filter((p) => p.slug !== excludeSlug).slice(0, limit) : query.products
+  const moreHref = href || `/shop?${new URLSearchParams({ ...(sort ? { sort } : {}), ...(category ? { category } : {}), ...(brand ? { brand } : {}) }).toString()}`
+  const tabBar = tabs.length ? (
+    <div role="tablist" className="mb-3 flex gap-2 overflow-x-auto">
+      {tabs.map(([label], i) => (
+        <button
+          key={label + i}
+          type="button"
+          role="tab"
+          aria-selected={i === tabIndex}
+          onClick={() => setTabIndex(i)}
+          className={`whitespace-nowrap rounded-full px-4 py-1.5 text-xs font-bold ${i === tabIndex ? "bg-primary text-primary-foreground" : "border border-border bg-card text-foreground/75"}`}
+        >
+          {label}
+        </button>
+      ))}
+    </div>
+  ) : null
+  if (!loading && !products.length && !tabs.length) return null
+  if (classic && layout === "slider")
+    return (
+      <div>
+        {tabBar}
+        <ClassicProductRow title={title || "محصولات"} products={products} href={moreHref} />
+      </div>
+    )
+  return (
+    <section className="wbx-products">
+      <SectionTitle title={title} href={moreHref} />
+      {tabBar}
+      <div className={layout === "slider" ? "flex snap-x gap-3 overflow-x-auto pb-2 [&>*]:w-48 [&>*]:shrink-0 [&>*]:snap-start" : "grid grid-cols-2 gap-3 md:grid-cols-3 xl:grid-cols-5"}>
+        {products.map((product) => (
+          <StoreProductCard key={product.slug} product={product} />
+        ))}
+      </div>
+    </section>
+  )
+}
 
 /* ------------------------------------------------------------ banner grid */
 
@@ -294,6 +328,41 @@ export function TestimonialsWidget({ widget }: { widget: WidgetNode }) {
 }
 
 /* ------------------------------------------------------------ brand slider */
+
+export function BrandSliderWidget({ widget }: { widget: WidgetNode }) {
+  const catalog = useCatalog(48)
+  const title = propStr(widget.props, "title", "")
+  const limit = Math.max(1, propNum(widget.props, "limit", 12))
+  const showNames = propBool(widget.props, "showNames", true)
+  const logos = useMemo(() => {
+    const map = new Map<string, string>()
+    for (const p of catalog.products) {
+      const key = p.brandSlug || p.brand
+      if (key && p.image && !map.has(key)) map.set(key, p.image)
+    }
+    return map
+  }, [catalog.products])
+  const brands = catalog.brands.slice(0, limit)
+  if (!brands.length) return null
+  return (
+    <section>
+      <SectionTitle title={title} href="/shop" />
+      <div className="flex snap-x gap-3 overflow-x-auto pb-2">
+        {brands.map((brand) => {
+          const logo = (brand as { image?: string | null }).image || logos.get(brand.slug) || logos.get(brand.name)
+          return (
+            <Link key={brand.slug} href={`/shop?brand=${encodeURIComponent(brand.slug)}`} className="grid w-32 shrink-0 snap-start place-items-center gap-2 rounded-2xl border border-border bg-card p-3 text-center">
+              <span className="grid size-16 place-items-center overflow-hidden rounded-xl bg-muted">
+                {logo ? <Img src={logo} alt="" loading="lazy" className="h-full w-full object-contain" /> : <span className="text-xs font-bold">{brand.name}</span>}
+              </span>
+              {showNames ? <span className="text-xs font-semibold text-foreground">{brand.name}</span> : null}
+            </Link>
+          )
+        })}
+      </div>
+    </section>
+  )
+}
 
 /* ---------------------------------------------------- gallery & carousel */
 
@@ -632,9 +701,84 @@ export function BlogPostsWidget({ widget }: { widget: WidgetNode }) {
 
 /* -------------------------------------------------------------- search box */
 
+export function SearchBoxWidget({ widget }: { widget: WidgetNode }) {
+  const router = useRouter()
+  const placeholder = propStr(widget.props, "placeholder", "جستجوی محصول…")
+  const button = propStr(widget.props, "button", "جستجو")
+  const [q, setQ] = useState("")
+  return (
+    <form
+      role="search"
+      className="flex items-center gap-2 rounded-2xl border border-border bg-card p-2"
+      onSubmit={(e) => {
+        e.preventDefault()
+        const v = q.trim()
+        router.push(v ? `/shop?q=${encodeURIComponent(v)}` : "/shop")
+      }}
+    >
+      <Search size={18} className="ms-2 text-foreground/50" aria-hidden="true" />
+      <input value={q} onChange={(e) => setQ(e.target.value)} placeholder={placeholder} aria-label={placeholder} className="h-10 flex-1 bg-transparent text-sm outline-none" />
+      <button type="submit" className="h-10 rounded-xl bg-primary px-4 text-sm font-bold text-primary-foreground">
+        {button}
+      </button>
+    </form>
+  )
+}
+
 /* ----------------------------------------------------------- category list */
 
+export function CategoryListWidget({ widget }: { widget: WidgetNode }) {
+  const catalog = useCatalog(16)
+  const title = propStr(widget.props, "title", "")
+  const parent = propStr(widget.props, "parent", "")
+  const layout = propStr(widget.props, "layout", "list")
+  const limit = Math.max(1, propNum(widget.props, "limit", 12))
+  const items = useMemo(() => {
+    const all = catalog.categories
+    if (!parent) return all.filter((c) => !c.parentId).slice(0, limit)
+    const root = all.find((c) => c.slug === parent)
+    if (!root) return []
+    const nested = root.children ?? []
+    const flat = root.id ? all.filter((c) => c.parentId === root.id) : []
+    return (nested.length ? nested : flat).slice(0, limit)
+  }, [catalog.categories, limit, parent])
+  if (!items.length) return null
+  return (
+    <section>
+      <SectionTitle title={title} />
+      <div className={layout === "chips" ? "flex flex-wrap gap-2" : "flex flex-col divide-y divide-border rounded-2xl border border-border bg-card"}>
+        {items.map((c) => (
+          <Link
+            key={c.slug}
+            href={`/shop?category=${encodeURIComponent(c.slug)}`}
+            className={layout === "chips" ? "rounded-full border border-border bg-card px-4 py-2 text-xs font-semibold text-foreground hover:text-primary" : "flex items-center justify-between px-4 py-3 text-sm text-foreground hover:text-primary"}
+          >
+            {c.name}
+            {layout === "chips" ? null : <ChevronLeft size={14} />}
+          </Link>
+        ))}
+      </div>
+    </section>
+  )
+}
+
 /* ------------------------------------------------------------- login CTA */
+
+export function LoginCtaWidget({ widget }: { widget: WidgetNode }) {
+  const title = propStr(widget.props, "title", "ورود یا ثبت‌نام")
+  const text = propStr(widget.props, "text", "")
+  const button = propStr(widget.props, "button", "ورود به حساب")
+  const next = propStr(widget.props, "next", "/account")
+  return (
+    <div className="flex flex-col items-center gap-3 rounded-2xl border border-border bg-card p-6 text-center">
+      <strong className="text-base font-extrabold text-foreground">{title}</strong>
+      {text ? <p className="text-sm text-foreground/70">{text}</p> : null}
+      <Link href={`/login?next=${encodeURIComponent(next.startsWith("/") ? next : "/account")}`} className="rounded-full bg-primary px-6 py-2.5 text-sm font-bold text-primary-foreground">
+        {button}
+      </Link>
+    </div>
+  )
+}
 
 /* -------------------------------------------- section intro (for chrome widgets) */
 

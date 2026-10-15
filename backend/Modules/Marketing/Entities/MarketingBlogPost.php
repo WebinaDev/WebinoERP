@@ -13,9 +13,16 @@ class MarketingBlogPost extends Model
     protected $fillable = ['seo', 
         'category_id', 'slug', 'title', 'excerpt', 'body',
         'cover_url', 'status', 'published_at', 'wp_id', 'meta',
+        'builder_draft', 'builder_published',
     ];
 
-    protected $casts = ['seo' => 'array', 'published_at' => 'datetime', 'meta' => 'array'];
+    protected $casts = ['seo' => 'array', 'published_at' => 'datetime', 'meta' => 'array', 'builder_draft' => 'array', 'builder_published' => 'array'];
+
+    /** Builder revisions target rows by tenant; the ERP company site is BuilderSite::ID. */
+    public function getTenantIdAttribute(): int
+    {
+        return 1;
+    }
 
     public function category(): BelongsTo
     {

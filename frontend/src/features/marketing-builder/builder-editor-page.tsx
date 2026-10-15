@@ -14,6 +14,10 @@ export function BuilderEditorPage({ path }: { path: string }) {
     const chrome = parts[2] === "footer" ? "footer" : "header"
     return <BuilderEditor mode={{ kind: "chrome", chrome }} />
   }
+  if (parts[0] === "builder" && (parts[1] === "product" || parts[1] === "post" || parts[1] === "article") && parts[2]) {
+    const id = Number(parts[2])
+    return <BuilderEditor mode={{ kind: parts[1], id: Number.isFinite(id) ? id : 0 }} />
+  }
   if (path === "builder/new" || parts[2] === "new") {
     return <BuilderEditor mode={{ kind: "page", id: "new" }} />
   }

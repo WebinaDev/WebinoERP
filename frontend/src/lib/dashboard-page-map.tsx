@@ -210,6 +210,7 @@ import {
 import { BuilderEditorPage } from '@/features/marketing-builder/builder-editor-page';
 import { BuilderListPage } from '@/features/marketing-builder/builder-page';
 import { BuilderSettingsPage } from '@/features/marketing-builder/builder-settings-page';
+import { BuilderCollectionsPage } from '@/features/marketing-builder/builder-collections-page';
 import { HomeBuilderPage } from '@/features/marketing-builder/home-builder-page';
 import { ThemeBuilderPage } from '@/features/marketing-builder/theme-builder-page';
 import { UnknownRoutePage } from '@/features/shell/errors/UnknownRoutePage';
@@ -441,6 +442,7 @@ const EXACT: Record<string, ReactNode> = {
   'theme-builder': <ThemeBuilderPage />,
   builder: <BuilderListPage />,
   'builder/settings': <BuilderSettingsPage />,
+  'builder/collections': <BuilderCollectionsPage />,
   'builder/site': <HomeBuilderPage />,
 };
 

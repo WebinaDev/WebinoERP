@@ -38,7 +38,7 @@ async function serverFetch(path: string, init?: RequestInit): Promise<unknown | 
 }
 
 /** Unwrapped API `data` payload (authenticated dashboard home). */
-export async function apiServer<T>(path: string): Promise<T | null> {
+export async function apiServer<T>(path: string, _opts?: { revalidate?: number; tags?: string[] }): Promise<T | null> {
   try {
     const raw = await serverFetch(path);
     if (raw == null) {

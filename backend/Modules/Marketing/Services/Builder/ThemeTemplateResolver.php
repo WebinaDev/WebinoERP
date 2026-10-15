@@ -112,6 +112,9 @@ class ThemeTemplateResolver
             'archive' => $context->archive !== null && ($value === '' || $context->archive === $value),
             'search' => $context->search,
             'not_found' => $context->notFound,
+            'product' => $context->singular === 'product' && $context->slug !== null && ($value === '' || mb_strtolower($value) === $context->slug),
+            'product_category' => $context->category !== null && $value !== '' && mb_strtolower($value) === $context->category,
+            'collection' => $context->singular === 'collection_item' && $context->category !== null && ($value === '' || mb_strtolower($value) === $context->category),
             default => false,
         };
     }

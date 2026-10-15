@@ -7,6 +7,7 @@ import { themeQueryString, type ThemeQuery } from "./theme/context"
 import { requestThemeContext } from "./theme/request"
 import { isDocument } from "./tree"
 import type { BuilderDocument, RuntimeContext } from "./types"
+import { storefrontThemeClass } from "@/themes/shared/storefront-skin"
 
 async function readDocument(path: string): Promise<BuilderDocument | null> {
   try {
@@ -54,7 +55,7 @@ export function PublishedDocument({
   document,
   runtime,
   globals,
-  themeClass = "ishop-store",
+  themeClass,
 }: {
   document: BuilderDocument
   runtime?: RuntimeContext
@@ -63,7 +64,7 @@ export function PublishedDocument({
 }) {
   return (
     <Suspense fallback={null}>
-      <DocumentView document={document} mode="view" device="desktop" runtime={runtime} globals={globals ?? undefined} themeClass={themeClass} />
+      <DocumentView document={document} mode="view" device="desktop" runtime={runtime} globals={globals ?? undefined} themeClass={themeClass ?? (storefrontThemeClass(runtime?.themeSlug) || "sf-classic")} />
     </Suspense>
   )
 }
@@ -82,12 +83,13 @@ export async function StorefrontDocument({
   const globals = await loadPublishedGlobals()
   const query = context ?? (await requestThemeContext())
   const loop = runtime?.loopDocument ?? (await loadResolvedTemplate("loop_item", query))
+  const themeSlug = runtime?.themeSlug ?? (await activeThemeSlug())
   return (
     <PublishedDocument
       document={document}
       globals={globals}
       themeClass={themeClass}
-      runtime={{ ...runtime, loopDocument: loop ?? undefined }}
+      runtime={{ ...runtime, themeSlug, loopDocument: loop ?? undefined }}
     />
   )
 }
@@ -98,9 +100,7 @@ export async function resolveStorefrontDocument(
 ): Promise<BuilderDocument | null> {
   const published = await loadPublishedPage(slug)
   if (published) return published
-  // Dashboard only falls back for ecommerce-ishop. The ERP company site
-  // always falls back to the corporate theme until a document is published.
-  await activeThemeSlug()
+  // ERP company site always falls back to the corporate theme until a document is published.
   return themeFallback
 }
 

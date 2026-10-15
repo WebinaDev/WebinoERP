@@ -1,0 +1,129 @@
+.sf-classic {
+  background: var(--color-background);
+  color: var(--color-foreground);
+}
+
+body:has(.sf-classic) {
+  background: var(--color-background);
+}
+
+.sf-card {
+  background: var(--color-card);
+  color: var(--color-card-foreground);
+  border: 1px solid var(--color-border);
+  border-radius: 1.25rem;
+  box-shadow: var(--shadow-soft);
+}
+
+.sf-muted {
+  background: var(--color-muted);
+  color: var(--color-foreground);
+}
+
+.sf-field {
+  height: 2.75rem;
+  width: 100%;
+  border-radius: 0.9rem;
+  border: 1px solid var(--color-input);
+  background: var(--color-background);
+  color: var(--color-foreground);
+  padding-inline: 0.85rem;
+  font-size: 0.875rem;
+}
+
+.sf-field:focus {
+  outline: 2px solid color-mix(in oklch, var(--color-ring) 55%, transparent);
+  outline-offset: 1px;
+}
+
+.sf-sale {
+  background: var(--color-destructive);
+  color: var(--color-destructive-foreground);
+}
+
+.sf-hero {
+  background: linear-gradient(
+    120deg,
+    var(--color-primary),
+    color-mix(in oklch, var(--color-primary) 42%, var(--color-accent))
+  );
+  color: var(--color-primary-foreground);
+}
+
+.sf-pdp {
+  padding-bottom: 5.5rem;
+}
+
+.sf-sticky-cta {
+  position: fixed;
+  inset-inline: 0;
+  bottom: 0;
+  z-index: 45;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  padding: 0.75rem 1rem calc(0.75rem + env(safe-area-inset-bottom));
+  background: color-mix(in oklch, var(--color-card) 92%, transparent);
+  border-top: 1px solid var(--color-border);
+  backdrop-filter: blur(12px);
+}
+
+@media (min-width: 768px) {
+  .sf-pdp {
+    padding-bottom: 0;
+  }
+
+  .sf-sticky-cta {
+    display: none;
+  }
+}
+
+/* Advanced tab: entrance animations (start when scrolled into view once .wb-motion is on the canvas; respect reduced motion). */
+@keyframes wb-anim-fade { from { opacity: 0 } to { opacity: 1 } }
+@keyframes wb-anim-slide-up { from { opacity: 0; transform: translateY(24px) } to { opacity: 1; transform: none } }
+@keyframes wb-anim-slide-down { from { opacity: 0; transform: translateY(-24px) } to { opacity: 1; transform: none } }
+@keyframes wb-anim-slide-start { from { opacity: 0; transform: translateX(24px) } to { opacity: 1; transform: none } }
+@keyframes wb-anim-slide-end { from { opacity: 0; transform: translateX(-24px) } to { opacity: 1; transform: none } }
+@keyframes wb-anim-zoom { from { opacity: 0; transform: scale(0.92) } to { opacity: 1; transform: none } }
+@keyframes wb-anim-flip { from { opacity: 0; transform: perspective(600px) rotateX(-70deg) } to { opacity: 1; transform: none } }
+@keyframes wb-anim-bounce { 0% { opacity: 0; transform: scale(.8) } 60% { opacity: 1; transform: scale(1.05) } 100% { transform: none } }
+.wb-anim { animation-duration: .6s; animation-timing-function: ease; animation-fill-mode: both; }
+.wb-anim-fade { animation-name: wb-anim-fade; }
+.wb-anim-slide-up { animation-name: wb-anim-slide-up; }
+.wb-anim-slide-down { animation-name: wb-anim-slide-down; }
+.wb-anim-slide-start { animation-name: wb-anim-slide-start; }
+.wb-anim-slide-end { animation-name: wb-anim-slide-end; }
+[dir="rtl"] .wb-anim-slide-start { animation-name: wb-anim-slide-end; }
+[dir="rtl"] .wb-anim-slide-end { animation-name: wb-anim-slide-start; }
+.wb-anim-zoom { animation-name: wb-anim-zoom; }
+.wb-anim-flip { animation-name: wb-anim-flip; }
+.wb-anim-bounce { animation-name: wb-anim-bounce; }
+.wb-motion .wb-anim:not(.wb-in) { opacity: 0; animation-name: none; }
+
+/* Hover animations */
+.wb-hover-grow, .wb-hover-shrink, .wb-hover-float, .wb-hover-rotate { transition: transform .25s ease; }
+.wb-hover-grow:hover { transform: scale(1.05); }
+.wb-hover-shrink:hover { transform: scale(.95); }
+.wb-hover-float:hover { transform: translateY(-6px); }
+.wb-hover-rotate:hover { transform: rotate(3deg); }
+@keyframes wb-pulse { 50% { transform: scale(1.05) } }
+.wb-hover-pulse:hover { animation: wb-pulse 1s ease infinite; }
+
+/* Section backgrounds: video / overlay / shape dividers */
+.wb-decor { position: relative; isolation: isolate; }
+.wb-decor > .wb-bg-video, .wb-decor > .wb-bg-overlay { position: absolute; inset: 0; z-index: -1; width: 100%; height: 100%; object-fit: cover; pointer-events: none; }
+.wb-decor > .wb-shape { position: absolute; inset-inline: 0; z-index: 0; line-height: 0; pointer-events: none; }
+.wb-decor > .wb-shape svg { display: block; width: 100%; height: 100%; }
+.wb-decor > .wb-shape-top { top: -1px; }
+.wb-decor > .wb-shape-bottom { bottom: -1px; transform: rotate(180deg); }
+
+@media (prefers-reduced-motion: reduce) {
+  .wb-anim, .wb-hover-pulse:hover { animation: none !important; }
+  .wb-motion .wb-anim:not(.wb-in) { opacity: 1; }
+  .wb-hover-grow:hover, .wb-hover-shrink:hover, .wb-hover-float:hover, .wb-hover-rotate:hover { transform: none; }
+  [data-wb-parallax], [data-wb-tilt] { transform: none !important; }
+}
+
+/* v2 builder sections: 12-column default with zero specificity so per-node layout rules win. */
+:where(.wb-columns.wb-flow) { grid-template-columns: repeat(12, minmax(0, 1fr)); }
