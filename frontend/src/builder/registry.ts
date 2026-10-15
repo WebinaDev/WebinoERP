@@ -4,7 +4,7 @@ import type { WidgetDef, WidgetNode } from "./types"
 import { FORM_FIELD_TYPES, type FormFieldType } from "./forms"
 import { ICON_OPTIONS } from "./render/icon-options"
 import { CORPORATE_WIDGETS } from "@/themes/webina-corporate-v1/builder/blocks"
-import { CONTENT_WIDGETS, FORM_WIDGET } from "./registry-content"
+import { CONTENT_WIDGETS, FORM_WIDGET, GAP_WIDGETS } from "./registry-content"
 
 const FORM_TYPE_LABELS: Record<FormFieldType, string> = { text: "متن", email: "ایمیل", tel: "تلفن", number: "عدد", textarea: "متن بلند", select: "فهرست کشویی", radio: "تک‌انتخابی", checkbox: "چندانتخابی", date: "تاریخ", file: "فایل (پیوست)" , heading: "عنوان گروه"}
 
@@ -1212,7 +1212,7 @@ export const WIDGETS: WidgetDef[] = [
   },
 ]
 
-WIDGETS.push(...CONTENT_WIDGETS, ...CORPORATE_WIDGETS)
+WIDGETS.push(...CONTENT_WIDGETS, ...GAP_WIDGETS, ...CORPORATE_WIDGETS)
 
 const byType = new Map(WIDGETS.map((widget) => [widget.type, widget]))
 
@@ -1229,6 +1229,7 @@ export const WIDGET_CATEGORIES: { id: WidgetDef["category"]; label: string }[] =
   { id: "layout", label: "چیدمان" },
   { id: "basic", label: "پایه" },
   { id: "content", label: "محتوا و لندینگ" },
+  { id: "media", label: "مدیا" },
   { id: "commerce", label: "فروشگاه" },
   { id: "chrome", label: "قالب" },
   { id: "parts", label: "قطعات قالب" },

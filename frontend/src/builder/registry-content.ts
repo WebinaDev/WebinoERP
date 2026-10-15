@@ -1,13 +1,20 @@
 /* Widget definitions shared with WebinoDashboard, plus ERP form wiring.
- * CONTENT_WIDGETS: landing-page widgets (section heading, steps, icon cards, badges, CTA, comparison, rahn). */
+ * CONTENT_WIDGETS: landing-page widgets (section heading, steps, icon cards, badges, CTA, comparison, rahn).
+ * GAP_WIDGETS: team/media/layout/chrome/auth from @webina/ui v0.2 (schemas shared; renderers here). */
 
 import { uid } from "./ids"
-import { sharedContentWidgets, sharedFormWidget } from "@webina/ui/builder"
+import { sharedContentWidgets, sharedFormWidget, sharedGapWidgets } from "@webina/ui/builder"
 import { ICON_OPTIONS } from "./render/icon-options"
+import { createSection } from "./tree"
 import type { WidgetDef, WidgetNode } from "./types"
 
-function node(type: string, props: Record<string, unknown>): WidgetNode {
-  return { id: uid("w"), type, props }
+function node(type: string, props: Record<string, unknown>, children?: WidgetNode["children"]): WidgetNode {
+  return { id: uid("w"), type, props, children }
+}
+
+function spansFromPreset(preset: string): number[] {
+  const spans = preset.split("-").map((part) => Number(part)).filter((n) => Number.isFinite(n) && n > 0)
+  return spans.length ? spans : [12]
 }
 
 /** Shared form; ERP adapter: formKey = Marketing form slug (bazaryabi ← forms). */
@@ -120,3 +127,27 @@ export const CONTENT_WIDGETS: WidgetDef[] = [
     create: () => node("announcements-list", {"allLabel": "همه", "archiveLabel": "آرشیو ماهانه / سالانه", "emptyText": "اطلاعیه‌ای منتشر نشده است."}),
   },
 ]
+
+/** Shared gap widgets (v0.2); layout types get nested section children for the canvas. */
+export const GAP_WIDGETS: WidgetDef[] = sharedGapWidgets(ICON_OPTIONS).map((def) => {
+  if (def.type === "section" || def.type === "columns") {
+    return {
+      ...def,
+      create: () => {
+        const base = def.create()
+        const preset = typeof base.props.columnPreset === "string" ? base.props.columnPreset : "6-6"
+        return node(def.type, base.props, [createSection(spansFromPreset(preset))])
+      },
+    }
+  }
+  if (def.type === "flex-container" || def.type === "grid-container") {
+    return {
+      ...def,
+      create: () => {
+        const base = def.create()
+        return node(def.type, base.props, [createSection([12])])
+      },
+    }
+  }
+  return def as WidgetDef
+})

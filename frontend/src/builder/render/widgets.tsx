@@ -46,6 +46,18 @@ import { PortfolioGridWidget } from "./portfolio-widget"
 import { AcademyGridWidget, AnnouncementsListWidget, BlogListWidget, DownloadsListWidget, FaqCategorizedWidget, MagazineFeatureWidget } from "./knowledge-widgets"
 import { RahnEstimateWidget } from "./rahn-widget"
 import { BadgesWidget, ComparisonTableWidget, CtaBannerWidget, IconCardsWidget, SectionHeadingWidget, StepsWidget } from "./content-widgets"
+import {
+  AudioBlockWidget,
+  BeforeAfterWidget,
+  LoginFormWidget,
+  LottieWidget,
+  OffCanvasWidget,
+  RegisterFormWidget,
+  SiteFooterWidget,
+  SiteHeaderWidget,
+  TeamGridWidget,
+  VideoEmbedWidget,
+} from "./gap-widgets"
 import { CorporateWidget } from "@/themes/webina-corporate-v1/builder/CorporateWidget"
 import { isCorporateType } from "@/themes/webina-corporate-v1/builder/blocks"
 import { PopupWidget } from "./popup-widget"
@@ -404,6 +416,30 @@ export function WidgetBody({ widget, editor }: { widget: WidgetNode; editor?: Ed
       return <AnnouncementsListWidget widget={widget} />
     case "comparison-table":
       return <ComparisonTableWidget widget={widget} />
+    case "team-grid":
+      return <TeamGridWidget widget={widget} />
+    case "video-embed":
+      return <VideoEmbedWidget widget={widget} />
+    case "audio-block":
+      return <AudioBlockWidget widget={widget} />
+    case "before-after":
+      return <BeforeAfterWidget widget={widget} />
+    case "lottie":
+      return <LottieWidget widget={widget} />
+    case "login-form":
+      return <LoginFormWidget widget={widget} />
+    case "register-form":
+      return <RegisterFormWidget widget={widget} />
+    case "off-canvas":
+      return <OffCanvasWidget widget={widget} />
+    case "site-header":
+      return <SiteHeaderWidget widget={widget} siteName={runtime.siteName} logoUrl={runtime.logoUrl} />
+    case "site-footer":
+      return <SiteFooterWidget widget={widget} siteName={runtime.siteName} />
+    case "section":
+    case "columns":
+    case "flex-container":
+    case "grid-container":
     case "container":
       return null
     default:

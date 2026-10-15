@@ -1,9 +1,11 @@
 "use client"
 
 import { useRef } from "react"
+import type { CSSProperties } from "react"
 
 import { DEFAULT_GLOBALS, globalsCss, type BuilderGlobals } from "../globals"
 import { safeClass } from "../ids"
+import { propNum, propStr } from "../props"
 import { advancedAttrs, advancedClass, advancedId, hasCustomLayout, layoutToCss, mergeStyle, spanFor, styleToCss } from "../style"
 import { migrateDocument } from "../migrate"
 import { viewCss } from "../compile"
@@ -179,6 +181,35 @@ function ColumnBlock({
   )
 }
 
+
+const NESTED_LAYOUT_TYPES = new Set(["container", "section", "columns", "flex-container", "grid-container"])
+
+function layoutShellStyle(widget: WidgetNode): CSSProperties | undefined {
+  if (widget.type === "flex-container") {
+    return {
+      display: "flex",
+      flexDirection: (propStr(widget.props, "direction", "row") as CSSProperties["flexDirection"]) || "row",
+      justifyContent: propStr(widget.props, "justify", "start") || "start",
+      alignItems: propStr(widget.props, "align", "stretch") || "stretch",
+      flexWrap: (propStr(widget.props, "wrap", "wrap") as CSSProperties["flexWrap"]) || "wrap",
+      gap: `${propNum(widget.props, "gap", 16)}px`,
+    }
+  }
+  if (widget.type === "grid-container") {
+    const template = propStr(widget.props, "template")
+    const cols = Math.max(1, Math.min(12, propNum(widget.props, "columns", 2)))
+    return {
+      display: "grid",
+      gridTemplateColumns: template || `repeat(${cols}, minmax(0, 1fr))`,
+      gap: `${propNum(widget.props, "gap", 16)}px`,
+    }
+  }
+  if (widget.type === "columns") {
+    return { display: "grid", gap: `${propNum(widget.props, "gap", 24)}px` }
+  }
+  return undefined
+}
+
 function WidgetBlock({ widget: own, device, editor, depth = 0 }: { widget: WidgetNode; device: DeviceMode; editor?: EditorApi; depth?: number }) {
   const globals = useBuilderGlobals()
   const widget = applyPreset(own, globals)
@@ -188,7 +219,11 @@ function WidgetBlock({ widget: own, device, editor, depth = 0 }: { widget: Widge
   const raw = editor ? styleToCss(mergeStyle(widget.style, device)) : undefined
   // In the editor, hidden widgets stay visible but faded so they can still be selected.
   const hiddenOnDevice = Boolean(editor && (raw?.display === "none" || widget.advanced?.hideOn?.[device] || widget.hidden))
-  const style = raw && hiddenOnDevice ? { ...raw, display: undefined, opacity: 0.35 } : raw
+  const shell = layoutShellStyle(widget)
+  const style = {
+    ...(raw && hiddenOnDevice ? { ...raw, display: undefined, opacity: 0.35 } : raw),
+    ...shell,
+  }
   if ((widget.hidden || !conditionsPass) && !editor) return null
   return (
     <div
@@ -218,7 +253,7 @@ function WidgetBlock({ widget: own, device, editor, depth = 0 }: { widget: Widge
       ) : (
         <WidgetBody widget={resolved} editor={editor} />
       )}
-      {widget.type === "container" && widget.children
+      {NESTED_LAYOUT_TYPES.has(widget.type) && widget.children
         ? widget.children.map((section) => <SectionBlock key={section.id} section={section} device={device} editor={editor} depth={depth} />)
         : null}
     </div>

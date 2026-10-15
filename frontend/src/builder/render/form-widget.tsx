@@ -143,6 +143,10 @@ export function FormWidget({ widget }: { widget: WidgetNode }) {
   const intro = propStr(widget.props, "intro", "")
   const note = propStr(widget.props, "note", "")
   const anchor = propStr(widget.props, "anchor", "").replace(/[^\w-]/g, "")
+  const captcha = widget.props.captcha === true
+  const webhookUrl = propStr(widget.props, "webhookUrl")
+  const crmAction = propStr(widget.props, "crmAction")
+  const crmKey = propStr(widget.props, "crmKey")
 
   useEffect(() => {
     const names = new Set(fields.map((field) => field.name))
@@ -218,12 +222,23 @@ export function FormWidget({ widget }: { widget: WidgetNode }) {
             page_uri: typeof window !== "undefined" ? window.location.pathname : "",
             _hp: hp,
             _t: started.current ? Date.now() - started.current : 0,
+            webhook_url: webhookUrl || undefined,
+            crm_action: crmAction || undefined,
+            crm_key: crmAction === "custom" ? crmKey || undefined : undefined,
           }),
         })
           .then(async (res) => {
             const json = (await res.json().catch(() => null)) as { message?: string } | null
             if (!res.ok) throw new Error(json?.message || "submit_failed")
-            window.dispatchEvent(new CustomEvent("wb:form-success", { detail: { formKey } }))
+            window.dispatchEvent(new CustomEvent("wb:form-success", { detail: { formKey, webhookUrl, crmAction, crmKey } }))
+            if (webhookUrl && /^https?:\/\//i.test(webhookUrl)) {
+              void fetch(webhookUrl, {
+                method: "POST",
+                headers: { "Content-Type": "application/json", Accept: "application/json" },
+                body: JSON.stringify({ formKey, payload: visiblePayload(fields, values), crm_action: crmAction || undefined }),
+                mode: "no-cors",
+              }).catch(() => null)
+            }
             setDone(true)
           })
           .catch(() => setError("ارسال ناموفق بود. دوباره تلاش کنید."))
@@ -307,6 +322,12 @@ export function FormWidget({ widget }: { widget: WidgetNode }) {
       {error ? <p className="wb-form-error" role="alert">{error}</p> : null}
       <div className="flex gap-2">
         {step > 1 ? <button type="button" className="wb-btn wb-btn-outline" onClick={() => { setError(""); setStep(step - 1) }}>قبلی</button> : null}
+        {captcha && last ? (
+          <label className="flex items-center gap-2 rounded-2xl border border-border bg-muted/40 px-3 py-2 text-sm">
+            <input type="checkbox" name="_captcha" value="1" required />
+            <span>من ربات نیستم</span>
+          </label>
+        ) : null}
         <button type="submit" className="wb-btn wb-btn-primary flex-1" disabled={pending}>
           {pending ? "…" : last ? propStr(widget.props, "submit", "ارسال") : "بعدی"}
         </button>
