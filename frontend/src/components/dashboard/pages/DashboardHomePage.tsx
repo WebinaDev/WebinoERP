@@ -18,6 +18,15 @@ import { localizeToken } from '@/features/modules/dashboard/localize';
 import { useInitialDashboardStats } from '@/lib/initial-dashboard-context';
 import { dashboardHref } from '@/lib/route-resolver';
 import { useLocale } from '@/hooks/use-locale-next';
+import {
+  BarChart3,
+  Briefcase,
+  ClipboardList,
+  FolderKanban,
+  Settings2,
+  Ticket,
+  Users,
+} from 'lucide-react';
 import { CustomerPortalPanel } from '@/features/modules/portal/CustomerPortalPanel';
 import { CrmPmSnapshot } from '@/features/modules/dashboard/CrmPmSnapshot';
 import { GlobalSearchBox } from '@/features/modules/dashboard/GlobalSearchBox';
@@ -87,6 +96,27 @@ function roleQuickLinks(role: string): QuickLink[] {
     { href: 'profile', labelKey: 'quickLinks.profile' },
   ];
 }
+
+
+const QUICK_LINK_ICONS: Record<string, typeof FolderKanban> = {
+  'pm/projects': FolderKanban,
+  'pm/tasks': ClipboardList,
+  'pm/time-tracking': Briefcase,
+  'pm/appointments': Briefcase,
+  reports: BarChart3,
+  'crm/leads': Users,
+  'crm/deals': Briefcase,
+  'crm/customers': Users,
+  'crm/tickets': Ticket,
+  'admin/settings': Settings2,
+  profile: Users,
+  'hrm/staff': Users,
+  'hrm/payroll': Briefcase,
+  'hrm/cartable': ClipboardList,
+  'hrm/me': Users,
+  'hrm/my-payroll': Briefcase,
+  'hrm/leave': ClipboardList,
+};
 
 export function DashboardHomePage() {
   const t = useTranslations('dashboard');
@@ -257,9 +287,58 @@ export function DashboardHomePage() {
 
   const labelOf = (value: string) => localizeToken(value, (key) => t(key as 'badges.open'), formatDigits);
 
+  const initial = (user?.name ?? user?.email ?? 'W').trim().charAt(0).toUpperCase();
+
   return (
-    <div className="space-y-6 text-start" dir={isRtl ? 'rtl' : 'ltr'}>
-      <header className="wd-home-hero relative z-0 space-y-3">
+    <div className="wd-mobile-home space-y-6 text-start md:space-y-6" dir={isRtl ? 'rtl' : 'ltr'}>
+      {/* Mobile chrome: Bale-style hero + lifted quick actions */}
+      <div className="md:hidden -mx-3 -mt-3">
+        <header className="wd-mobile-hero">
+          <div className="wd-mobile-hero-top">
+            <div className="min-w-0">
+              <h1>
+                {user?.name
+                  ? t('welcomeNamed', { name: user.name })
+                  : t('welcome')}
+              </h1>
+              <p className="wd-mobile-sub">{t('heroSubtitle')}</p>
+            </div>
+            <div className="flex items-center gap-2">
+              <span className="wd-mobile-hero-badge">{roleLabel}</span>
+              <span className="wd-mobile-avatar" aria-hidden>
+                {initial}
+              </span>
+            </div>
+          </div>
+        </header>
+        <div className="wd-mobile-lift">
+          <div className="mb-3 overflow-hidden rounded-2xl bg-card shadow-[var(--wd-mobile-shadow)]">
+            <div className="p-2">
+              <GlobalSearchBox />
+            </div>
+          </div>
+          <div className="wd-mobile-actions">
+            {quickLinks.slice(0, 6).map((link) => {
+              const Icon = QUICK_LINK_ICONS[link.href] ?? FolderKanban;
+              return (
+                <Link
+                  key={link.href}
+                  href={dashboardHref(locale, link.href)}
+                  className="wd-mobile-action"
+                >
+                  <span className="wd-mobile-action-ic">
+                    <Icon className="size-5" strokeWidth={2} />
+                  </span>
+                  <span>{t(link.labelKey as 'quickLinks.projects')}</span>
+                </Link>
+              );
+            })}
+          </div>
+        </div>
+      </div>
+
+      {/* Desktop hero (unchanged layout) */}
+      <header className="wd-home-hero wd-home-hero--desktop relative z-0 hidden space-y-3 md:block">
         <div className="flex flex-wrap items-center gap-2">
           <span className="text-sm text-muted-foreground">{t('roleLabel')}:</span>
           <Badge variant="secondary">{roleLabel}</Badge>
@@ -328,38 +407,59 @@ export function DashboardHomePage() {
         </div>
       ) : null}
 
-      <Tabs defaultValue="overview">
-        <TabsList>
-          <TabsTrigger value="overview">{t('tabs.overview')}</TabsTrigger>
-          {showTeamTab ? <TabsTrigger value="team">{t('tabs.teamProjects')}</TabsTrigger> : null}
+      <Tabs defaultValue="overview" className="mt-2 md:mt-0">
+        <TabsList className="mx-0 w-full justify-start overflow-x-auto rounded-xl bg-muted/70 p-1 md:w-auto">
+          <TabsTrigger value="overview" className="rounded-lg">{t('tabs.overview')}</TabsTrigger>
+          {showTeamTab ? <TabsTrigger value="team" className="rounded-lg">{t('tabs.teamProjects')}</TabsTrigger> : null}
         </TabsList>
         <TabsContent value="overview" className="space-y-4">
           {showFullOverview ? (
-          <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-5">
-            {[
-              { label: t('stats.users'), value: merged.leads, key: 'leads' },
-              { label: t('stats.projects'), value: merged.projects, key: 'projects' },
-              { label: t('stats.tasks'), value: merged.tasks, key: 'tasks' },
-              { label: t('stats.tickets'), value: merged.tickets, key: 'tickets' },
-              { label: t('stats.revenue'), value: merged.contracts, key: 'contracts' },
-            ].map((card) => (
-              <Card key={card.key} variant="stat" className="wd-mini-tint">
-                <CardHeader className="pb-2">
-                  <CardDescription>{card.label}</CardDescription>
-                  <CardTitle className="text-3xl font-bold tabular-nums">
-                    {loading ? '…' : error ? tCommon('emptyValue') : formatNumber(card.value)}
-                  </CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <Progress value={Math.min(100, (card.value / maxBar) * 100)} />
-                </CardContent>
-              </Card>
-            ))}
-          </div>
+            <>
+              <div className="wd-mobile-section md:hidden !mt-4 !px-0">
+                <div className="wd-mobile-section-title">
+                  <span>{t('tabs.overview')}</span>
+                </div>
+                <div className="wd-mobile-tiles">
+                  {[
+                    { label: t('stats.users'), value: merged.leads, key: 'leads' },
+                    { label: t('stats.projects'), value: merged.projects, key: 'projects' },
+                    { label: t('stats.tasks'), value: merged.tasks, key: 'tasks' },
+                    { label: t('stats.tickets'), value: merged.tickets, key: 'tickets' },
+                  ].map((card) => (
+                    <div key={card.key} className="wd-mobile-tile">
+                      <div className="v">{loading ? '…' : error ? tCommon('emptyValue') : formatNumber(card.value)}</div>
+                      <div className="k">{card.label}</div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              <div className="hidden gap-4 sm:grid-cols-2 xl:grid-cols-5 md:grid">
+                {[
+                  { label: t('stats.users'), value: merged.leads, key: 'leads' },
+                  { label: t('stats.projects'), value: merged.projects, key: 'projects' },
+                  { label: t('stats.tasks'), value: merged.tasks, key: 'tasks' },
+                  { label: t('stats.tickets'), value: merged.tickets, key: 'tickets' },
+                  { label: t('stats.revenue'), value: merged.contracts, key: 'contracts' },
+                ].map((card) => (
+                  <Card key={card.key} variant="stat" className="wd-mini-tint">
+                    <CardHeader className="pb-2">
+                      <CardDescription>{card.label}</CardDescription>
+                      <CardTitle className="text-3xl font-bold tabular-nums">
+                        {loading ? '…' : error ? tCommon('emptyValue') : formatNumber(card.value)}
+                      </CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                      <Progress value={Math.min(100, (card.value / maxBar) * 100)} />
+                    </CardContent>
+                  </Card>
+                ))}
+              </div>
+            </>
           ) : null}
 
           {showFullOverview ? (
-          <Card variant="glass">
+          <Card variant="glass" className="hidden md:block">
             <CardHeader>
               <CardTitle className="text-base">{t('charts.monthlyActivity')}</CardTitle>
             </CardHeader>
@@ -378,7 +478,7 @@ export function DashboardHomePage() {
           ) : null}
 
           {showFullOverview ? (
-          <Card variant="glass">
+          <Card variant="glass" className="hidden md:block">
             <CardHeader>
               <CardTitle className="text-base">{t('charts.statusDistribution')}</CardTitle>
             </CardHeader>
@@ -398,7 +498,7 @@ export function DashboardHomePage() {
                   <CardContent>
                     <ul className="space-y-2 text-sm">
                       {(w.items ?? []).slice(0, 8).map((it, idx) => (
-                        <li key={idx} className="rounded-md border border-border/60 px-2 py-1.5">
+                        <li key={idx} className="wd-mobile-list-item rounded-md border border-border/60 px-2 py-1.5 md:rounded-md">
                           {summarizeWidgetRow(it)}
                         </li>
                       ))}

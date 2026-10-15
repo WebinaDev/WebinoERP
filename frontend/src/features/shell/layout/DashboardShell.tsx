@@ -30,11 +30,13 @@ import { usePermissions } from '@/features/shared/hooks/usePermissions';
 import { usePathname, useRouter } from '@/lib/i18n-navigation';
 import { NotificationBell } from '@/features/expansion/NotificationBell';
 import { PwaRegistrar } from '@/features/expansion/PwaRegistrar';
+import { MobileBottomNav } from '@/features/shell/layout/MobileBottomNav';
+import { cn } from '@/lib/utils';
+import './mobile-chrome.css';
 
 function toDashboardUrl(path: string): string {
   const raw = path.replace(/^\//, '');
   if (!raw) return '/dashboard';
-  // Avoid /dashboard/dashboard when basePath was already absolute under the shell.
   if (raw === 'dashboard' || raw.startsWith('dashboard/')) {
     return `/${raw}`;
   }
@@ -149,71 +151,88 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
     }
   }
 
+  const pageTitle = crumbs[crumbs.length - 1]?.label ?? t('nav.erp.dashboard');
+
   return (
     <SidebarProvider>
-      <AppSidebar
-        side={sidebarSide(locale)}
-        brandTitle="Webino ERP"
-        brandSubtitle={t('app.title')}
-        brandTo={dashboardHref(locale, '')}
-        pinnedItems={pinnedItems}
-        moduleSections={moduleSections}
-        navLoading={navLoading}
-        user={user}
-        logoutLabel={t('login.logout')}
-        onLogout={async () => {
-          await logout().catch(() => undefined);
-          router.replace('/login');
-        }}
-      />
-      <SidebarInset dir={htmlDir(locale)}>
-        <header className="sticky top-0 z-30 flex h-14 shrink-0 items-center gap-2 border-b border-border/60 bg-background/80 backdrop-blur-md transition-[width,height] ease-linear supports-[backdrop-filter]:bg-background/70 group-has-[[data-collapsible=icon]]/sidebar-wrapper:h-12 sm:h-16">
-          <div className="flex w-full min-w-0 items-center gap-2 px-3 sm:px-4">
-            <SidebarTrigger className="-ms-1" />
-            <Separator orientation="vertical" className="me-2 data-[orientation=vertical]:h-4" />
-            <Breadcrumb>
-              <BreadcrumbList>
-                {crumbs.map((crumb, i) => (
-                  <span key={crumb.href ?? crumb.label} className="contents">
-                    {i > 0 ? <BreadcrumbSeparator className="hidden md:block" /> : null}
-                    <BreadcrumbItem className={i === 0 ? 'hidden md:block' : undefined}>
-                      {i === crumbs.length - 1 ? (
-                        <BreadcrumbPage>{crumb.label}</BreadcrumbPage>
-                      ) : (
-                        <BreadcrumbLink href={crumb.href!}>{crumb.label}</BreadcrumbLink>
-                      )}
-                    </BreadcrumbItem>
-                  </span>
-                ))}
-              </BreadcrumbList>
-            </Breadcrumb>
-            <div className="ms-auto flex items-center gap-2">
-              <PwaRegistrar />
-              <NotificationBell />
-              <Button
-                type="button"
-                variant="outline"
-                size="icon"
-                aria-label={t('nav.fullscreen')}
-                onClick={() => void toggleFs()}
-              >
-                {fs ? <Minimize className="size-4" /> : <Maximize className="size-4" />}
-              </Button>
-              <Button variant="outline" size="icon" asChild>
-                <a href="/" target="_blank" rel="noreferrer" aria-label={t('nav.visitSite')}>
-                  <ExternalLink className="size-4" />
-                </a>
-              </Button>
-              <LanguageMenu />
-              <AccentMenu />
-              <ThemeMenu />
+      <>
+        <AppSidebar
+          side={sidebarSide(locale)}
+          brandTitle="Webino ERP"
+          brandSubtitle={t('app.title')}
+          brandTo={dashboardHref(locale, '')}
+          pinnedItems={pinnedItems}
+          moduleSections={moduleSections}
+          navLoading={navLoading}
+          user={user}
+          logoutLabel={t('login.logout')}
+          onLogout={async () => {
+            await logout().catch(() => undefined);
+            router.replace('/login');
+          }}
+        />
+        <SidebarInset dir={htmlDir(locale)} className="wd-mobile-chrome">
+          <header
+            className={cn(
+              'sticky top-0 z-30 flex shrink-0 items-center gap-2 border-b border-border/60 bg-background/80 backdrop-blur-md transition-[width,height] ease-linear supports-[backdrop-filter]:bg-background/70 group-has-[[data-collapsible=icon]]/sidebar-wrapper:h-12',
+              'wd-mobile-topbar h-[52px] sm:h-14 md:h-16',
+            )}
+          >
+            <div className="flex w-full min-w-0 items-center gap-2 px-3 sm:px-4">
+              <SidebarTrigger className="-ms-1 md:inline-flex" />
+              <Separator orientation="vertical" className="me-2 hidden data-[orientation=vertical]:h-4 md:block" />
+              {/* Mobile: compact page title */}
+              <div className="min-w-0 flex-1 md:hidden">
+                <p className="truncate text-[15px] font-bold tracking-tight text-foreground">{pageTitle}</p>
+              </div>
+              <Breadcrumb className="hidden md:block">
+                <BreadcrumbList>
+                  {crumbs.map((crumb, i) => (
+                    <span key={crumb.href ?? crumb.label} className="contents">
+                      {i > 0 ? <BreadcrumbSeparator className="hidden md:block" /> : null}
+                      <BreadcrumbItem className={i === 0 ? 'hidden md:block' : undefined}>
+                        {i === crumbs.length - 1 ? (
+                          <BreadcrumbPage>{crumb.label}</BreadcrumbPage>
+                        ) : (
+                          <BreadcrumbLink href={crumb.href!}>{crumb.label}</BreadcrumbLink>
+                        )}
+                      </BreadcrumbItem>
+                    </span>
+                  ))}
+                </BreadcrumbList>
+              </Breadcrumb>
+              <div className="ms-auto flex items-center gap-1.5 sm:gap-2">
+                <PwaRegistrar />
+                <NotificationBell />
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="icon"
+                  className="hidden sm:inline-flex"
+                  aria-label={t('nav.fullscreen')}
+                  onClick={() => void toggleFs()}
+                >
+                  {fs ? <Minimize className="size-4" /> : <Maximize className="size-4" />}
+                </Button>
+                <Button variant="outline" size="icon" className="hidden sm:inline-flex" asChild>
+                  <a href="/" target="_blank" rel="noreferrer" aria-label={t('nav.visitSite')}>
+                    <ExternalLink className="size-4" />
+                  </a>
+                </Button>
+                <div className="hidden md:contents">
+                  <LanguageMenu />
+                  <AccentMenu />
+                  <ThemeMenu />
+                </div>
+              </div>
             </div>
+          </header>
+          <div className="@container/main wd-app-atmosphere wd-mobile-main flex min-w-0 flex-1 flex-col gap-3 p-3 sm:gap-4 sm:p-4 md:pb-4">
+            {children}
           </div>
-        </header>
-        <div className="@container/main wd-app-atmosphere flex min-w-0 flex-1 flex-col gap-3 p-3 sm:gap-4 sm:p-4">
-          {children}
-        </div>
-      </SidebarInset>
+          <MobileBottomNav />
+        </SidebarInset>
+      </>
     </SidebarProvider>
   );
 }

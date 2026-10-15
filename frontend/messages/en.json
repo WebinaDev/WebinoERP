@@ -5263,7 +5263,8 @@
       "unassigned": "Unassigned",
       "unknown": "Unknown",
       "customer": "Customer"
-    }
+    },
+    "welcomeNamed": "Hi {name}, welcome"
   },
   "profile": {
     "title": "Profile",
@@ -9296,5 +9297,15 @@
     "next": "Next",
     "gallery_hint": "One image URL per line",
     "no_refs": "No items in the target collection"
+  },
+  "shell": {
+    "mobileNav": {
+      "aria": "Mobile primary navigation",
+      "home": "Home",
+      "crm": "CRM",
+      "tasks": "Tasks",
+      "reports": "Reports",
+      "more": "More"
+    }
   }
 }
