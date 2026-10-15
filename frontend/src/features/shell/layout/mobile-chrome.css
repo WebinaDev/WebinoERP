@@ -1,18 +1,19 @@
-/* Mobile dashboard chrome — Bale mini-app quality bar, Webina brand.
-   Desktop (md+) is untouched; all rules scoped under .wd-mobile-chrome or .md:hidden. */
+/* Mobile dashboard chrome — formal / clean Webina brand.
+   Desktop (md+) untouched. Uses ERP Yekan Bakh via --font-yekan (do not ship font files). */
 
 :root {
   --wd-brand: #0054ff;
-  --wd-brand-dark: #003fcc;
+  --wd-brand-dark: #0041d4;
   --wd-ink: #22242a;
-  --wd-mobile-bg: #f3f5f9;
+  --wd-mobile-bg: #f5f6f8;
   --wd-mobile-card: #ffffff;
   --wd-mobile-hint: #6b7280;
-  --wd-mobile-line: #e6eaf0;
-  --wd-mobile-mint: color-mix(in srgb, var(--wd-brand) 12%, #ffffff);
-  --wd-mobile-radius: 16px;
-  --wd-mobile-shadow: 0 1px 2px rgba(34, 36, 42, 0.06), 0 4px 14px rgba(34, 36, 42, 0.06);
-  --wd-mobile-tabbar-h: 64px;
+  --wd-mobile-line: #e5e7eb;
+  --wd-mobile-tint: color-mix(in srgb, var(--wd-brand) 9%, #ffffff);
+  --wd-mobile-radius: 12px;
+  --wd-mobile-shadow: 0 1px 2px rgba(34, 36, 42, 0.04), 0 2px 8px rgba(34, 36, 42, 0.04);
+  --wd-mobile-tabbar-h: 60px;
+  --wd-mobile-font: var(--font-yekan), var(--wd-font-ui), "Yekan Bakh", Tahoma, sans-serif;
 }
 
 .dark {
@@ -20,14 +21,15 @@
   --wd-mobile-card: #1a1d25;
   --wd-mobile-hint: #94a3b8;
   --wd-mobile-line: #2a2f3a;
-  --wd-mobile-mint: color-mix(in srgb, var(--wd-brand) 28%, #1a1d25);
-  --wd-mobile-shadow: 0 1px 2px rgba(0, 0, 0, 0.35);
+  --wd-mobile-tint: color-mix(in srgb, var(--wd-brand) 22%, #1a1d25);
+  --wd-mobile-shadow: 0 1px 2px rgba(0, 0, 0, 0.28);
 }
 
 @media (max-width: 767px) {
   .wd-mobile-chrome {
     background: var(--wd-mobile-bg);
     color: var(--wd-ink);
+    font-family: var(--wd-mobile-font);
   }
 
   .dark .wd-mobile-chrome {
@@ -39,119 +41,133 @@
   }
 
   .wd-mobile-chrome .wd-app-atmosphere::before {
-    opacity: 0.35;
+    opacity: 0.22;
   }
 
   .wd-mobile-topbar {
     height: 52px;
-    border-bottom-color: color-mix(in srgb, var(--wd-mobile-line) 80%, transparent);
-    background: color-mix(in srgb, var(--wd-mobile-card) 88%, transparent);
-    backdrop-filter: blur(12px);
-    -webkit-backdrop-filter: blur(12px);
+    border-bottom-color: var(--wd-mobile-line);
+    background: color-mix(in srgb, var(--wd-mobile-card) 92%, transparent);
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+    font-family: var(--wd-mobile-font);
+  }
+
+  .wd-mobile-topbar .wd-mobile-page-title {
+    font-family: var(--wd-mobile-font);
+    font-weight: 600;
+    font-size: 15px;
+    letter-spacing: -0.01em;
   }
 
   .wd-mobile-chrome .wd-mobile-main {
-    padding: 0 0 calc(var(--wd-mobile-tabbar-h) + 16px + env(safe-area-inset-bottom, 0px));
+    padding: 0 0 calc(var(--wd-mobile-tabbar-h) + 14px + env(safe-area-inset-bottom, 0px));
     gap: 0;
+    font-family: var(--wd-mobile-font);
   }
 
-  /* Home hero — Bale-style gradient + lift */
+  /* Formal hero — restrained gradient, no decorative orb */
   .wd-mobile-hero {
-    background: linear-gradient(160deg, var(--wd-brand) 0%, var(--wd-brand-dark) 100%);
+    background: linear-gradient(165deg, var(--wd-brand) 0%, var(--wd-brand-dark) 100%);
     color: #fff;
-    padding: 18px 16px 56px;
-    border-radius: 0 0 26px 26px;
+    padding: 16px 16px 48px;
+    border-radius: 0 0 18px 18px;
     position: relative;
-    overflow: hidden;
-  }
-
-  .wd-mobile-hero::after {
-    content: "";
-    position: absolute;
-    inset: auto -48px -70px auto;
-    width: 180px;
-    height: 180px;
-    border-radius: 50%;
-    background: rgba(255, 255, 255, 0.08);
-    pointer-events: none;
+    font-family: var(--wd-mobile-font);
   }
 
   .wd-mobile-hero-top {
     display: flex;
-    align-items: center;
+    align-items: flex-start;
     justify-content: space-between;
     gap: 12px;
-    position: relative;
-    z-index: 1;
   }
 
   .wd-mobile-avatar {
-    width: 42px;
-    height: 42px;
-    border-radius: 50%;
-    background: rgba(255, 255, 255, 0.18);
+    width: 40px;
+    height: 40px;
+    border-radius: 10px;
+    background: rgba(255, 255, 255, 0.16);
+    border: 1px solid rgba(255, 255, 255, 0.22);
     display: grid;
     place-items: center;
-    font-weight: 700;
-    font-size: 15px;
+    font-weight: 600;
+    font-size: 14px;
     flex: none;
+    font-family: var(--wd-mobile-font);
   }
 
   .wd-mobile-hero h1 {
     margin: 0;
-    font-size: 18px;
-    font-weight: 700;
-    line-height: 1.45;
+    font-size: 17px;
+    font-weight: 600;
+    line-height: 1.5;
+    letter-spacing: -0.01em;
+    font-family: var(--wd-mobile-font);
   }
 
   .wd-mobile-hero .wd-mobile-sub {
-    opacity: 0.82;
-    font-size: 12.5px;
-    margin-top: 2px;
+    opacity: 0.78;
+    font-size: 12px;
+    margin-top: 4px;
+    font-weight: 400;
+    line-height: 1.6;
   }
 
   .wd-mobile-hero-badge {
     display: inline-flex;
     align-items: center;
-    gap: 4px;
-    padding: 2px 10px;
-    border-radius: 999px;
-    font-size: 11.5px;
-    background: rgba(255, 255, 255, 0.18);
+    padding: 3px 9px;
+    border-radius: 6px;
+    font-size: 11px;
+    font-weight: 500;
+    background: rgba(255, 255, 255, 0.14);
+    border: 1px solid rgba(255, 255, 255, 0.18);
     color: #fff;
     white-space: nowrap;
+    font-family: var(--wd-mobile-font);
   }
 
   .wd-mobile-lift {
-    margin-top: -42px;
+    margin-top: -36px;
     padding: 0 14px;
     position: relative;
     z-index: 2;
   }
 
+  .wd-mobile-search {
+    background: var(--wd-mobile-card);
+    border: 1px solid var(--wd-mobile-line);
+    border-radius: var(--wd-mobile-radius);
+    box-shadow: var(--wd-mobile-shadow);
+    margin-bottom: 10px;
+    overflow: hidden;
+  }
+
   .wd-mobile-actions {
     display: grid;
     grid-template-columns: repeat(3, 1fr);
-    gap: 10px;
+    gap: 8px;
   }
 
   .wd-mobile-action {
     background: var(--wd-mobile-card);
-    border: 0;
+    border: 1px solid var(--wd-mobile-line);
     border-radius: var(--wd-mobile-radius);
-    box-shadow: var(--wd-mobile-shadow);
-    padding: 14px 6px 10px;
+    box-shadow: none;
+    padding: 12px 6px 10px;
     display: flex;
     flex-direction: column;
     align-items: center;
-    gap: 6px;
+    gap: 8px;
     text-align: center;
-    font-size: 12px;
-    font-weight: 600;
+    font-size: 11.5px;
+    font-weight: 500;
     color: var(--wd-ink);
     text-decoration: none;
-    min-height: 88px;
-    transition: transform 0.12s ease;
+    min-height: 84px;
+    font-family: var(--wd-mobile-font);
+    transition: background 0.12s ease, border-color 0.12s ease;
   }
 
   .dark .wd-mobile-action {
@@ -159,53 +175,69 @@
   }
 
   .wd-mobile-action:active {
-    transform: scale(0.97);
+    background: var(--wd-mobile-tint);
+    border-color: color-mix(in srgb, var(--wd-brand) 28%, var(--wd-mobile-line));
   }
 
   .wd-mobile-action-ic {
-    width: 42px;
-    height: 42px;
-    border-radius: 14px;
-    background: var(--wd-mobile-mint);
+    width: 40px;
+    height: 40px;
+    border-radius: 10px;
+    background: var(--wd-mobile-tint);
     color: var(--wd-brand);
     display: grid;
     place-items: center;
   }
 
+  .wd-mobile-action-ic svg {
+    width: 20px;
+    height: 20px;
+    stroke-width: 1.75;
+  }
+
   .wd-mobile-section {
     padding: 0 14px;
-    margin-top: 18px;
+    margin-top: 16px;
   }
 
   .wd-mobile-section-title {
     display: flex;
     align-items: center;
     justify-content: space-between;
-    margin: 0 4px 10px;
-    font-weight: 700;
-    font-size: 14.5px;
+    margin: 0 2px 10px;
+    font-weight: 600;
+    font-size: 13.5px;
+    letter-spacing: -0.01em;
+    font-family: var(--wd-mobile-font);
+    color: var(--wd-ink);
+  }
+
+  .dark .wd-mobile-section-title {
+    color: #e8ecf2;
   }
 
   .wd-mobile-tiles {
     display: grid;
     grid-template-columns: repeat(2, 1fr);
-    gap: 10px;
+    gap: 8px;
   }
 
   .wd-mobile-tile {
     background: var(--wd-mobile-card);
     border-radius: var(--wd-mobile-radius);
-    padding: 12px 14px;
-    box-shadow: var(--wd-mobile-shadow);
-    border: 1px solid color-mix(in srgb, var(--wd-mobile-line) 70%, transparent);
+    padding: 12px 13px;
+    box-shadow: none;
+    border: 1px solid var(--wd-mobile-line);
   }
 
   .wd-mobile-tile .v {
-    font-size: 22px;
-    font-weight: 700;
+    font-size: 20px;
+    font-weight: 600;
     font-variant-numeric: tabular-nums;
     letter-spacing: -0.02em;
     color: var(--wd-ink);
+    font-family: var(--wd-mobile-font);
+    line-height: 1.3;
   }
 
   .dark .wd-mobile-tile .v {
@@ -214,15 +246,17 @@
 
   .wd-mobile-tile .k {
     color: var(--wd-mobile-hint);
-    font-size: 12px;
-    margin-top: 2px;
+    font-size: 11.5px;
+    margin-top: 4px;
+    font-weight: 400;
+    font-family: var(--wd-mobile-font);
   }
 
   .wd-mobile-card {
     background: var(--wd-mobile-card);
     border-radius: var(--wd-mobile-radius);
-    box-shadow: var(--wd-mobile-shadow);
-    border: 1px solid color-mix(in srgb, var(--wd-mobile-line) 70%, transparent);
+    box-shadow: none;
+    border: 1px solid var(--wd-mobile-line);
     overflow: hidden;
   }
 
@@ -230,9 +264,10 @@
     display: flex;
     align-items: center;
     gap: 12px;
-    padding: 12px 14px;
+    padding: 11px 13px;
     border-bottom: 1px solid var(--wd-mobile-line);
-    font-size: 13.5px;
+    font-size: 13px;
+    font-family: var(--wd-mobile-font);
   }
 
   .wd-mobile-list-item:last-child {
@@ -243,21 +278,16 @@
     text-align: center;
     padding: 28px 12px;
     color: var(--wd-mobile-hint);
-    font-size: 13.5px;
+    font-size: 13px;
+    font-family: var(--wd-mobile-font);
   }
 
-  /* Soften dense desktop chrome on mobile home */
   .wd-mobile-home .wd-home-hero--desktop {
     display: none;
   }
-
-  .wd-mobile-home [data-slot='tabs-list'],
-  .wd-mobile-home .wd-home-desktop-only {
-    /* keep tabs but restyle slightly */
-  }
 }
 
-/* Bottom tab bar — always mobile-only via md:hidden on the element */
+/* Bottom tab bar */
 .wd-mobile-tabbar {
   position: fixed;
   inset: auto 0 0 0;
@@ -267,7 +297,8 @@
   border-top: 1px solid var(--wd-mobile-line);
   display: flex;
   z-index: 40;
-  box-shadow: 0 -6px 18px rgba(34, 36, 42, 0.05);
+  font-family: var(--wd-mobile-font);
+  box-shadow: none;
 }
 
 .wd-mobile-tab {
@@ -278,32 +309,40 @@
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  gap: 2px;
-  font-size: 11px;
+  gap: 3px;
+  font-size: 10.5px;
+  font-weight: 400;
   color: var(--wd-mobile-hint);
   cursor: pointer;
   text-decoration: none;
   -webkit-tap-highlight-color: transparent;
   min-width: 0;
-  padding: 6px 2px 4px;
+  padding: 8px 2px 6px;
+  font-family: var(--wd-mobile-font);
+  position: relative;
 }
 
 .wd-mobile-tab.on {
   color: var(--wd-brand);
-  font-weight: 700;
+  font-weight: 600;
 }
 
 .wd-mobile-tab-ic {
-  width: 44px;
-  height: 28px;
-  border-radius: 99px;
+  width: 40px;
+  height: 26px;
+  border-radius: 8px;
   display: grid;
   place-items: center;
   transition: background 0.15s ease;
 }
 
+.wd-mobile-tab-ic svg {
+  width: 20px;
+  height: 20px;
+}
+
 .wd-mobile-tab.on .wd-mobile-tab-ic {
-  background: var(--wd-mobile-mint);
+  background: var(--wd-mobile-tint);
 }
 
 .wd-mobile-tab-label {
@@ -322,7 +361,8 @@
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .wd-mobile-action {
+  .wd-mobile-action,
+  .wd-mobile-tab-ic {
     transition: none;
   }
 }

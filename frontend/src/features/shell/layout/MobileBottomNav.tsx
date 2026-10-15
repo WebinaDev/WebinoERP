@@ -2,17 +2,27 @@
 
 import Link from 'next/link';
 import { useLocale, useTranslations } from 'next-intl';
-import { BarChart3, CheckSquare, Home, Menu, Users } from 'lucide-react';
+import {
+  ChartColumn,
+  LayoutDashboard,
+  LayoutGrid,
+  ListTodo,
+  UsersRound,
+  type LucideIcon,
+} from 'lucide-react';
 import { usePathname } from '@/lib/i18n-navigation';
 import { dashboardHref } from '@/lib/route-resolver';
 import { useSidebar } from '@/components/ui/sidebar';
 import { cn } from '@/lib/utils';
 
+/** Single icon family (Lucide) + one stroke for the whole tab bar. */
+const ICON_STROKE = 1.75;
+
 type Tab = {
   id: string;
   href?: string;
   labelKey: 'home' | 'crm' | 'tasks' | 'reports' | 'more';
-  icon: typeof Home;
+  icon: LucideIcon;
   match?: (path: string) => boolean;
   action?: 'menu';
 };
@@ -22,7 +32,7 @@ const TABS: Tab[] = [
     id: 'home',
     href: '',
     labelKey: 'home',
-    icon: Home,
+    icon: LayoutDashboard,
     match: (p) => {
       const bare = p.replace(/\/+$/, '') || '/';
       return bare === '/dashboard' || bare === '/admin' || bare === '/';
@@ -32,27 +42,27 @@ const TABS: Tab[] = [
     id: 'crm',
     href: 'crm/leads',
     labelKey: 'crm',
-    icon: Users,
+    icon: UsersRound,
     match: (p) => p.includes('/crm'),
   },
   {
     id: 'tasks',
     href: 'pm/tasks',
     labelKey: 'tasks',
-    icon: CheckSquare,
+    icon: ListTodo,
     match: (p) => p.includes('/pm'),
   },
   {
     id: 'reports',
     href: 'reports',
     labelKey: 'reports',
-    icon: BarChart3,
+    icon: ChartColumn,
     match: (p) => p.includes('/reports'),
   },
   {
     id: 'more',
     labelKey: 'more',
-    icon: Menu,
+    icon: LayoutGrid,
     action: 'menu',
   },
 ];
@@ -89,7 +99,7 @@ export function MobileBottomNav() {
               aria-label={label}
             >
               <span className="wd-mobile-tab-ic">
-                <Icon className="size-[18px]" strokeWidth={2.1} />
+                <Icon absoluteStrokeWidth strokeWidth={ICON_STROKE} />
               </span>
               <span className="wd-mobile-tab-label">{label}</span>
             </button>
@@ -105,7 +115,7 @@ export function MobileBottomNav() {
             aria-current={active ? 'page' : undefined}
           >
             <span className="wd-mobile-tab-ic">
-              <Icon className="size-[18px]" strokeWidth={active ? 2.4 : 2.1} />
+              <Icon absoluteStrokeWidth strokeWidth={ICON_STROKE} />
             </span>
             <span className="wd-mobile-tab-label">{label}</span>
           </Link>

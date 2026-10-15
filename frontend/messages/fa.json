@@ -5264,7 +5264,7 @@
       "unknown": "نامشخص",
       "customer": "مشتری"
     },
-    "welcomeNamed": "سلام {name}، خوش آمدید"
+    "welcomeNamed": "{name} عزیز، خوش آمدید"
   },
   "profile": {
     "title": "پروفایل",

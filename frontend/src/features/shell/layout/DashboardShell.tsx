@@ -183,7 +183,7 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
               <Separator orientation="vertical" className="me-2 hidden data-[orientation=vertical]:h-4 md:block" />
               {/* Mobile: compact page title */}
               <div className="min-w-0 flex-1 md:hidden">
-                <p className="truncate text-[15px] font-bold tracking-tight text-foreground">{pageTitle}</p>
+                <p className="wd-mobile-page-title truncate text-foreground">{pageTitle}</p>
               </div>
               <Breadcrumb className="hidden md:block">
                 <BreadcrumbList>

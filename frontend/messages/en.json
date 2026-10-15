@@ -5264,7 +5264,7 @@
       "unknown": "Unknown",
       "customer": "Customer"
     },
-    "welcomeNamed": "Hi {name}, welcome"
+    "welcomeNamed": "Welcome, {name}"
   },
   "profile": {
     "title": "Profile",

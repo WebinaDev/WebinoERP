@@ -19,13 +19,16 @@ import { useInitialDashboardStats } from '@/lib/initial-dashboard-context';
 import { dashboardHref } from '@/lib/route-resolver';
 import { useLocale } from '@/hooks/use-locale-next';
 import {
-  BarChart3,
-  Briefcase,
+  BriefcaseBusiness,
+  ChartColumn,
   ClipboardList,
   FolderKanban,
+  ListTodo,
   Settings2,
   Ticket,
-  Users,
+  UserRound,
+  UsersRound,
+  type LucideIcon,
 } from 'lucide-react';
 import { CustomerPortalPanel } from '@/features/modules/portal/CustomerPortalPanel';
 import { CrmPmSnapshot } from '@/features/modules/dashboard/CrmPmSnapshot';
@@ -98,23 +101,26 @@ function roleQuickLinks(role: string): QuickLink[] {
 }
 
 
-const QUICK_LINK_ICONS: Record<string, typeof FolderKanban> = {
+/** Lucide only — same stroke as MobileBottomNav. */
+const ICON_STROKE = 1.75;
+
+const QUICK_LINK_ICONS: Record<string, LucideIcon> = {
   'pm/projects': FolderKanban,
-  'pm/tasks': ClipboardList,
-  'pm/time-tracking': Briefcase,
-  'pm/appointments': Briefcase,
-  reports: BarChart3,
-  'crm/leads': Users,
-  'crm/deals': Briefcase,
-  'crm/customers': Users,
+  'pm/tasks': ListTodo,
+  'pm/time-tracking': BriefcaseBusiness,
+  'pm/appointments': BriefcaseBusiness,
+  reports: ChartColumn,
+  'crm/leads': UsersRound,
+  'crm/deals': BriefcaseBusiness,
+  'crm/customers': UsersRound,
   'crm/tickets': Ticket,
   'admin/settings': Settings2,
-  profile: Users,
-  'hrm/staff': Users,
-  'hrm/payroll': Briefcase,
+  profile: UserRound,
+  'hrm/staff': UsersRound,
+  'hrm/payroll': BriefcaseBusiness,
   'hrm/cartable': ClipboardList,
-  'hrm/me': Users,
-  'hrm/my-payroll': Briefcase,
+  'hrm/me': UserRound,
+  'hrm/my-payroll': BriefcaseBusiness,
   'hrm/leave': ClipboardList,
 };
 
@@ -312,7 +318,7 @@ export function DashboardHomePage() {
           </div>
         </header>
         <div className="wd-mobile-lift">
-          <div className="mb-3 overflow-hidden rounded-2xl bg-card shadow-[var(--wd-mobile-shadow)]">
+          <div className="wd-mobile-search">
             <div className="p-2">
               <GlobalSearchBox />
             </div>
@@ -327,7 +333,7 @@ export function DashboardHomePage() {
                   className="wd-mobile-action"
                 >
                   <span className="wd-mobile-action-ic">
-                    <Icon className="size-5" strokeWidth={2} />
+                    <Icon absoluteStrokeWidth strokeWidth={ICON_STROKE} />
                   </span>
                   <span>{t(link.labelKey as 'quickLinks.projects')}</span>
                 </Link>
