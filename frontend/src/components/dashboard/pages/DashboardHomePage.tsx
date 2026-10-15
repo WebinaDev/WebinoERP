@@ -343,28 +343,43 @@ export function DashboardHomePage() {
         </div>
       </div>
 
-      {/* Desktop hero (unchanged layout) */}
-      <header className="wd-home-hero wd-home-hero--desktop relative z-0 hidden space-y-3 md:block">
-        <div className="flex flex-wrap items-center gap-2">
-          <span className="text-sm text-muted-foreground">{t('roleLabel')}:</span>
-          <Badge variant="secondary">{roleLabel}</Badge>
-          {user?.name ? (
-            <span className="text-sm text-muted-foreground">
-              {user.name} ({user.email})
-            </span>
-          ) : null}
+      {/* Desktop formal home header */}
+      <header className="wd-home-hero wd-home-hero--desktop relative z-0 hidden space-y-4 md:block">
+        <div className="flex flex-wrap items-start justify-between gap-3">
+          <div className="wd-desk-home-greeting min-w-0">
+            <h1>
+              {user?.name ? t('greetingNamed', { name: user.name }) : t('greeting')}
+            </h1>
+            <p className="sub">{t('deskSubtitle')}</p>
+          </div>
+          <div className="flex flex-wrap items-center gap-2">
+            <Badge variant="secondary">{roleLabel}</Badge>
+            {user?.email ? (
+              <span className="text-muted-foreground text-sm" dir="ltr">
+                {user.email}
+              </span>
+            ) : null}
+          </div>
         </div>
         <div>
-          <h1 className="text-xl font-bold tracking-tight sm:text-2xl">{t('heroTitle')}</h1>
-          <p className="text-muted-foreground mt-1 max-w-2xl text-sm">{t('heroSubtitle')}</p>
-        </div>
-        <GlobalSearchBox />
-        <div className="flex flex-wrap gap-2">
-          {quickLinks.map((link) => (
-            <Button key={link.href} asChild size="sm" variant="secondary">
-              <Link href={dashboardHref(locale, link.href)}>{t(link.labelKey as 'quickLinks.projects')}</Link>
-            </Button>
-          ))}
+          <div className="mb-2 text-sm font-semibold tracking-tight">{t('quickAccess')}</div>
+          <div className="wd-desk-quick">
+            {quickLinks.slice(0, 8).map((link) => {
+              const Icon = QUICK_LINK_ICONS[link.href] ?? FolderKanban;
+              return (
+                <Link
+                  key={link.href}
+                  href={dashboardHref(locale, link.href)}
+                  className="wd-desk-quick-item"
+                >
+                  <span className="wd-desk-quick-ic">
+                    <Icon absoluteStrokeWidth strokeWidth={ICON_STROKE} />
+                  </span>
+                  <span>{t(link.labelKey as 'quickLinks.projects')}</span>
+                </Link>
+              );
+            })}
+          </div>
         </div>
       </header>
 
@@ -440,7 +455,7 @@ export function DashboardHomePage() {
                 </div>
               </div>
 
-              <div className="hidden gap-4 sm:grid-cols-2 xl:grid-cols-5 md:grid">
+              <div className="wd-desk-kpi-grid hidden md:grid">
                 {[
                   { label: t('stats.users'), value: merged.leads, key: 'leads' },
                   { label: t('stats.projects'), value: merged.projects, key: 'projects' },

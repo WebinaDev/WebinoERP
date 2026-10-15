@@ -57,7 +57,7 @@ export function GlobalSearchBox() {
   const total = groups.reduce((sum, group) => sum + (hits?.[group.key]?.length ?? 0), 0);
 
   return (
-    <div className="max-w-xl space-y-2">
+    <div className="w-full max-w-xl space-y-2 md:max-w-none">
       <label className="sr-only" htmlFor="global-search">{t('search')}</label>
       <Input
         id="global-search"

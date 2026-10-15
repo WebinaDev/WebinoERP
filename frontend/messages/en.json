@@ -5264,7 +5264,11 @@
       "unknown": "Unknown",
       "customer": "Customer"
     },
-    "welcomeNamed": "Welcome, {name}"
+    "welcomeNamed": "Welcome, {name}",
+    "greetingNamed": "Good morning, {name}",
+    "greeting": "Good morning",
+    "deskSubtitle": "Today’s overview and quick actions",
+    "quickAccess": "Quick access"
   },
   "profile": {
     "title": "Profile",
@@ -8526,7 +8530,7 @@
     "widgets": "Widgets",
     "show": "Show",
     "hide": "Hide",
-    "search": "Search customers, deals, projects, and tasks",
+    "search": "Search commands and records…",
     "searchEmpty": "No matches",
     "dependsOn": "After",
     "portalFiles": "Shared files",
@@ -9306,6 +9310,10 @@
       "tasks": "Tasks",
       "reports": "Reports",
       "more": "More"
+    },
+    "desktop": {
+      "create": "Create",
+      "searchPlaceholder": "Search commands and records…"
     }
   }
 }

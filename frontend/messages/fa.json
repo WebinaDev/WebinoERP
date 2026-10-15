@@ -5264,7 +5264,11 @@
       "unknown": "نامشخص",
       "customer": "مشتری"
     },
-    "welcomeNamed": "{name} عزیز، خوش آمدید"
+    "welcomeNamed": "{name} عزیز، خوش آمدید",
+    "greetingNamed": "{name} عزیز، صبح بخیر",
+    "greeting": "صبح بخیر",
+    "deskSubtitle": "خلاصه وضعیت امروز و میان‌برهای سریع",
+    "quickAccess": "دسترسی سریع"
   },
   "profile": {
     "title": "پروفایل",
@@ -8526,7 +8530,7 @@
     "widgets": "ویجت‌ها",
     "show": "نمایش",
     "hide": "پنهان",
-    "search": "جستجو در مشتری، معامله، پروژه و وظیفه",
+    "search": "جستجوی دستورات و رکوردها…",
     "searchEmpty": "نتیجه‌ای پیدا نشد",
     "dependsOn": "بعد از",
     "portalFiles": "فایل‌های مشترک",
@@ -9306,6 +9310,10 @@
       "tasks": "وظایف",
       "reports": "گزارشات",
       "more": "بیشتر"
+    },
+    "desktop": {
+      "create": "ایجاد",
+      "searchPlaceholder": "جستجوی دستورات و رکوردها…"
     }
   }
 }

@@ -1,6 +1,6 @@
 'use client';
 
-import { ExternalLink, Maximize, Minimize } from 'lucide-react';
+import { ExternalLink, Maximize, Minimize, Plus } from 'lucide-react';
 import { useEffect, useMemo, useState } from 'react';
 import { useLocale, useTranslations } from 'next-intl';
 import { AppSidebar } from '@/components/blocks/sidebar-07/components/app-sidebar';
@@ -31,8 +31,10 @@ import { usePathname, useRouter } from '@/lib/i18n-navigation';
 import { NotificationBell } from '@/features/expansion/NotificationBell';
 import { PwaRegistrar } from '@/features/expansion/PwaRegistrar';
 import { MobileBottomNav } from '@/features/shell/layout/MobileBottomNav';
+import { GlobalSearchBox } from '@/features/modules/dashboard/GlobalSearchBox';
 import { cn } from '@/lib/utils';
 import './mobile-chrome.css';
+import './desktop-chrome.css';
 
 function toDashboardUrl(path: string): string {
   const raw = path.replace(/^\//, '');
@@ -178,21 +180,25 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
             router.replace('/login');
           }}
         />
-        <SidebarInset dir={htmlDir(locale)} className="wd-mobile-chrome">
+        <SidebarInset dir={htmlDir(locale)} className="wd-mobile-chrome wd-desktop-chrome">
           <header
             className={cn(
               'sticky top-0 z-30 flex shrink-0 items-center gap-2 border-b border-border/60 bg-background/80 backdrop-blur-md transition-[width,height] ease-linear supports-[backdrop-filter]:bg-background/70 group-has-[[data-collapsible=icon]]/sidebar-wrapper:h-12',
-              'wd-mobile-topbar h-[52px] sm:h-14 md:h-16',
+              'wd-mobile-topbar wd-desktop-topbar h-[52px] sm:h-14 md:h-14',
             )}
           >
-            <div className="flex w-full min-w-0 items-center gap-2 px-3 sm:px-4">
+            <div className="flex w-full min-w-0 items-center gap-2 px-3 sm:px-4 md:gap-3 md:px-5">
               <SidebarTrigger className="-ms-1 md:inline-flex" />
               <Separator orientation="vertical" className="me-2 hidden data-[orientation=vertical]:h-4 md:block" />
               {/* Mobile: compact page title */}
               <div className="min-w-0 flex-1 md:hidden">
                 <p className="wd-mobile-page-title truncate text-foreground">{pageTitle}</p>
               </div>
-              <Breadcrumb className="hidden md:block">
+              {/* Desktop: command search */}
+              <div className="wd-desktop-search hidden md:block">
+                <GlobalSearchBox />
+              </div>
+              <Breadcrumb className="hidden lg:block">
                 <BreadcrumbList>
                   {crumbs.map((crumb, i) => (
                     <span key={crumb.href ?? crumb.label} className="contents">
@@ -215,16 +221,26 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
                   type="button"
                   variant="outline"
                   size="icon"
-                  className="hidden sm:inline-flex"
+                  className="hidden xl:inline-flex"
                   aria-label={t('nav.fullscreen')}
                   onClick={() => void toggleFs()}
                 >
-                  {fs ? <Minimize className="size-4" /> : <Maximize className="size-4" />}
+                  {fs ? <Minimize className="size-4" strokeWidth={1.75} /> : <Maximize className="size-4" strokeWidth={1.75} />}
                 </Button>
-                <Button variant="outline" size="icon" className="hidden sm:inline-flex" asChild>
-                  <a href="/" target="_blank" rel="noreferrer" aria-label={t('nav.visitSite')}>
-                    <ExternalLink className="size-4" />
+                <Button variant="outline" size="sm" className="hidden md:inline-flex gap-1.5 rounded-[10px]" asChild>
+                  <a href="/" target="_blank" rel="noreferrer">
+                    <ExternalLink className="size-3.5" strokeWidth={1.75} />
+                    <span className="hidden lg:inline">{t('nav.visitSite')}</span>
                   </a>
+                </Button>
+                <Button
+                  type="button"
+                  size="sm"
+                  className="wd-desktop-create hidden md:inline-flex gap-1.5"
+                  onClick={() => router.push(dashboardHref(locale, 'crm/leads'))}
+                >
+                  <Plus className="size-3.5" strokeWidth={1.75} />
+                  <span>{t('shell.desktop.create')}</span>
                 </Button>
                 <div className="hidden md:contents">
                   <LanguageMenu />
@@ -234,7 +250,7 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
               </div>
             </div>
           </header>
-          <div className="@container/main wd-app-atmosphere wd-mobile-main flex min-w-0 flex-1 flex-col gap-3 p-3 sm:gap-4 sm:p-4 md:pb-4">
+          <div className="@container/main wd-app-atmosphere wd-mobile-main wd-desktop-main wd-desktop-chrome flex min-w-0 flex-1 flex-col gap-3 p-3 sm:gap-4 sm:p-4 md:pb-4">
             {children}
           </div>
           <MobileBottomNav />
