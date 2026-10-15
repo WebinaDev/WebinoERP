@@ -1,6 +1,6 @@
 import { cache, Suspense, type ReactNode } from "react"
 
-import { apiServer } from "@/lib/api-server"
+import { apiServer } from "@/lib/public-api-server"
 import { asGlobals, type BuilderGlobals } from "./globals"
 import { DocumentView } from "./render/DocumentView"
 import { themeQueryString, type ThemeQuery } from "./theme/context"
@@ -10,13 +10,17 @@ import type { BuilderDocument, RuntimeContext } from "./types"
 import { storefrontThemeClass } from "@/themes/shared/storefront-skin"
 
 async function readDocument(path: string): Promise<BuilderDocument | null> {
-  const res = await apiServer<{ data?: { document?: unknown } }>(path, { revalidate: 0 })
-  const document = res?.data?.document
-  return isDocument(document) ? document : null
+  try {
+    const res = await apiServer<{ data?: { document?: unknown } }>(path, { revalidate: 0 })
+    const document = res?.data?.document
+    return isDocument(document) ? document : null
+  } catch {
+    return null
+  }
 }
 
 export function loadPublishedPage(slug: string): Promise<BuilderDocument | null> {
-  return readDocument(`/api/v1/public/builder/pages/${encodeURIComponent(slug)}`)
+  return readDocument(`/v1/public/builder/pages/${encodeURIComponent(slug)}`)
 }
 
 export function loadPublishedTemplate(kind: "header" | "footer"): Promise<BuilderDocument | null> {
@@ -24,19 +28,27 @@ export function loadPublishedTemplate(kind: "header" | "footer"): Promise<Builde
 }
 
 export const loadPublishedGlobals = cache(async (): Promise<BuilderGlobals | null> => {
-  const res = await apiServer<{ data?: { settings?: unknown } }>("/api/v1/public/builder/globals", { revalidate: 0 })
-  return res?.data?.settings ? asGlobals(res.data.settings) : null
+  try {
+    const res = await apiServer<{ data?: { settings?: unknown } }>("/v1/public/builder/globals", { revalidate: 0 })
+    return res?.data?.settings ? asGlobals(res.data.settings) : null
+  } catch {
+    return null
+  }
 })
 
 export const loadResolvedTemplate = cache(async (kind: string, query: ThemeQuery): Promise<BuilderDocument | null> => {
-  return readDocument(`/api/v1/public/builder/resolve?${themeQueryString(kind, query)}`)
+  return readDocument(`/v1/public/builder/resolve?${themeQueryString(kind, query)}`)
 })
 
 export async function activeThemeSlug(): Promise<string | null> {
-  const res = await apiServer<{ data?: { active_theme_slug?: string | null } }>("/api/v1/public/tenant", {
-    revalidate: 30,
-  })
-  return res?.data?.active_theme_slug ?? null
+  try {
+    const res = await apiServer<{ data?: { active_theme_slug?: string | null } }>("/v1/public/site", {
+      revalidate: 30,
+    })
+    return res?.data?.active_theme_slug ?? null
+  } catch {
+    return null
+  }
 }
 
 export function PublishedDocument({
@@ -88,9 +100,8 @@ export async function resolveStorefrontDocument(
 ): Promise<BuilderDocument | null> {
   const published = await loadPublishedPage(slug)
   if (published) return published
-  if (!themeFallback) return null
-  const theme = await activeThemeSlug()
-  return theme === "ecommerce-classic" ? themeFallback : null
+  // ERP company site always falls back to the corporate theme until a document is published.
+  return themeFallback
 }
 
 export async function StorefrontBody({

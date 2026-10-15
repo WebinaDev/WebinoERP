@@ -2,7 +2,7 @@ import { headers } from "next/headers"
 import { cache } from "react"
 
 import { canonicalSiteSegments } from "@/builder/lang"
-import { apiServer } from "@/lib/api-server"
+import { apiServer } from "@/lib/public-api-server"
 
 import { dirForLang, pageSlugFromPath, previewTokenFromPath, uiLocaleForLang } from "./lang"
 
@@ -27,7 +27,7 @@ export const requestPageLang = cache(async (): Promise<PageLang | null> => {
   const slug = pageSlugFromPath(path) ?? (root && root[0] === "pages" ? safeDecode(root[1]) : null)
   const token = slug ? null : previewTokenFromPath(path)
   if (!slug && !token) return null
-  const url = slug ? `/api/v1/public/pages/${encodeURIComponent(slug)}` : `/api/v1/public/builder/preview/${token}`
+  const url = slug ? `/v1/public/pages/${encodeURIComponent(slug)}` : `/v1/public/builder/preview/${token}`
   const res = await apiServer<{ data?: { lang?: string | null } }>(url, { revalidate: slug ? 60 : 0 }).catch(() => null)
   const lang = res?.data?.lang
   return typeof lang === "string" && /^[a-z]{2}(-[A-Za-z]{2})?$/.test(lang) ? { lang, dir: dirForLang(lang), uiLocale: uiLocaleForLang(lang) } : null
