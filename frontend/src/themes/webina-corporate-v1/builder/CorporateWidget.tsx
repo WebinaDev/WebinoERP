@@ -4,6 +4,8 @@ import { useLocale, useTranslations } from 'next-intl';
 import { resolveAbout } from '../about-content';
 import { ABOUT_DEFAULTS } from '../about-defaults';
 import { AboutPage } from '../components/about/AboutPage';
+import { ServiceSection } from '../components/service/ServiceSections';
+import type { ServiceType } from '../service-content';
 import { ContactSection } from '../components/contact/ContactSection';
 import { LandingPage, type LandingData } from '../components/landing/LandingPage';
 import { normalizeCompany } from '../site-content';
@@ -53,5 +55,6 @@ function Section({ type, props }: { type: string; props: Record<string, unknown>
   if (page === 'home') return <HomeWidget type={section} props={props} />;
   if (page === 'contact') return <ContactSection id={section} props={props} />;
   if (page === 'about') return <AboutWidget type={section} props={props} />;
+  if (page === 'service') return <ServiceSection type={section as ServiceType} props={props} />;
   return null;
 }

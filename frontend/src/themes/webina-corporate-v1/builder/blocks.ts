@@ -4,6 +4,7 @@
  */
 import type { WidgetDef, WidgetNode } from '@/builder/types';
 import { ABOUT_SECTION_SCHEMAS, type AboutType } from '../about-content';
+import { SERVICE_ORDER, SERVICE_SECTION_SCHEMAS, type ServiceType } from '../service-content';
 import { CONTACT_PAGE_SCHEMA, HOME_BLOCK_ORDER, HOME_BLOCK_SCHEMAS, type FieldSpec } from '../site-content';
 
 export const CORPORATE_PREFIX = 'webina-';
@@ -34,6 +35,7 @@ export const CORPORATE_DEFS: CorporateDef[] = [
   ...CONTACT_WIDGETS.map((w) => ({ type: `webina-contact-${w.id}`, label: w.label, schema: w.schema })),
   { type: 'webina-cta-band', label: 'نوار دعوت به اقدام', schema: CTA_SCHEMA },
   ...ABOUT_ORDER.map((type) => ({ type: `webina-about-${type}`, label: `درباره: ${ABOUT_SECTION_SCHEMAS[type].label}`, schema: ABOUT_SECTION_SCHEMAS[type].fields })),
+  ...SERVICE_ORDER.map((type) => ({ type: `webina-service-${type}`, label: `خدمت: ${SERVICE_SECTION_SCHEMAS[type].label}`, schema: SERVICE_SECTION_SCHEMAS[type].fields })),
 ];
 
 let seq = 0;
