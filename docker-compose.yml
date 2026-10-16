@@ -240,6 +240,20 @@ services:
       webino_erp:
         aliases: [erp-frontend]
 
+  # Edge micro-cache for public pages (docker/edge/nginx.conf). Caddy -> edge -> frontend.
+  edge:
+    image: ${EDGE_IMAGE:-nginx:1.27-alpine}
+    restart: unless-stopped
+    volumes:
+      - ./docker/edge/nginx.conf:/etc/nginx/conf.d/default.conf:ro
+    tmpfs:
+      - /var/cache/nginx:size=600m
+    depends_on:
+      - frontend
+    networks:
+      webino_erp:
+        aliases: [erp-edge]
+
   web:
     image: caddy:2-alpine
     restart: unless-stopped

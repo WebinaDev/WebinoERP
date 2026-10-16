@@ -59,7 +59,9 @@
 		# Harmless product marker cookie; added at the proxy so Next page caching is untouched.
 		@pageReq not path /_next/* /lucide-icon/*
 		header @pageReq +Set-Cookie "webina_site=erp; Path=/; Max-Age=31536000; SameSite=Lax; Secure"
-		reverse_proxy erp-frontend:3000
+		# Public pages go through the edge micro-cache (docker/edge/nginx.conf).
+		# Rollback: change erp-edge:8080 back to erp-frontend:3000 and reload Caddy.
+		reverse_proxy erp-edge:8080
 	}
 }
 

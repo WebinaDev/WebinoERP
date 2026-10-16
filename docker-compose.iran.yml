@@ -48,3 +48,6 @@ services:
     build:
       args:
         NODE_IMAGE: ${NODE_IMAGE:-hub.hamdocker.ir/library/node:22-alpine}
+
+  edge:
+    image: ${EDGE_IMAGE:-hub.hamdocker.ir/library/nginx:1.27-alpine}
