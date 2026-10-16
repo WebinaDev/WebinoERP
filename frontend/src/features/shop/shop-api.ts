@@ -5,7 +5,8 @@
 
 import { useSyncExternalStore } from "react"
 
-const API = process.env.NEXT_PUBLIC_API_URL ?? ""
+// NEXT_PUBLIC_API_URL is usually "/api" (or "https://host/api"); shop paths already start with /api.
+const API = (process.env.NEXT_PUBLIC_API_URL ?? "").trim().replace(/\/+$/, "").replace(/\/api$/, "")
 const TOKEN_KEY = "webino.cart.token"
 
 export type ShopProductLite = {
