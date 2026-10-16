@@ -7,7 +7,7 @@ import { SitePage } from '@/themes/webina-corporate-v1/components/SitePage';
 export const revalidate = 60;
 
 type Course = {
-  title: string; description?: string | null; level?: string | null; duration?: string | null; instructor?: string | null;
+  title: string; description?: string | null; cover_url?: string | null; level?: string | null; duration?: string | null; instructor?: string | null;
   outcomes?: string | null; enroll_url?: string | null; is_free?: boolean;
   lessons?: { title: string; slug: string; summary?: string | null; content?: string | null; chapter_id?: number | null }[];
   chapters?: { id: number; title: string; summary?: string | null }[];
@@ -44,10 +44,17 @@ export default async function AcademyCoursePage({ params }: { params: Promise<{ 
       <JsonLd data={[
         { '@context': 'https://schema.org', '@type': 'Course', name: course.title, description: (course.description ?? course.title).slice(0, 500), inLanguage: 'fa-IR',
           provider: { '@type': 'Organization', name: provider, sameAs: origin }, url: `${origin}/academy/${slug}`,
+          ...(course.cover_url ? { image: course.cover_url } : {}),
           ...(course.level ? { educationalLevel: course.level } : {}), ...(course.is_free ? { isAccessibleForFree: true } : {}),
           hasCourseInstance: { '@type': 'CourseInstance', courseMode: 'online', ...(course.duration ? { courseWorkload: course.duration } : {}) } },
         breadcrumbLd(origin, [{ name: 'خانه', path: '/' }, { name: 'آکادمی', path: '/academy' }, { name: course.title, path: `/academy/${slug}` }]),
       ]} />
+      {course.cover_url ? (
+        <div className="mb-8 overflow-hidden rounded-2xl border border-[var(--wb-border,#dfe4ee)] bg-[var(--wb-surface,#eef2f8)] shadow-sm">
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img src={course.cover_url} alt={course.title} className="aspect-[16/9] w-full object-cover" />
+        </div>
+      ) : null}
       {facts.length ? <dl className="mb-8 flex flex-wrap gap-6 text-sm">{facts.map(([k, v]) => <div key={k}><dt className="opacity-60">{k}</dt><dd className="font-bold">{v}</dd></div>)}</dl> : null}
       {outcomes.length ? (
         <section className="mb-10">

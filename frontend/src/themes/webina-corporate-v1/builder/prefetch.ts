@@ -10,7 +10,7 @@ function widgets(sections: SectionNode[]): WidgetNode[] {
  * public API path. Widgets read it from the builder runtime, so pages render fully on the server.
  */
 export async function prefetchCorporate(document: BuilderDocument): Promise<Record<string, unknown>> {
-  const list = widgets(document.sections).filter((w) => w.type.startsWith('webina-'));
+  const list = widgets(document.sections);
   const paths = new Set<string>(['/v1/public/site']);
   for (const w of list) {
     if (w.type.startsWith('webina-home-')) paths.add('/v1/public/home');
@@ -19,6 +19,14 @@ export async function prefetchCorporate(document: BuilderDocument): Promise<Reco
       const slug = typeof w.props.form_slug === 'string' && w.props.form_slug ? w.props.form_slug : 'contact';
       paths.add(`/v1/public/forms/${encodeURIComponent(slug)}`);
     }
+    // Knowledge-center listings (academy / blog / magazine) — SSR so covers render without a loading flash
+    if (w.type === 'academy-grid') paths.add('/v1/public/academy');
+    if (w.type === 'blog-list') {
+      const limit = Math.max(1, Math.min(50, Number(w.props.limit) || 12));
+      paths.add(`/v1/public/blog?per_page=${limit}`);
+      paths.add('/v1/public/blog-categories');
+    }
+    if (w.type === 'magazine-feature') paths.add('/v1/public/magazine?per_page=30');
   }
   const out: Record<string, unknown> = {};
   await Promise.all(

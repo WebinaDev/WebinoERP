@@ -422,9 +422,9 @@ export function LandingPage({ data }: { data: LandingData }) {
         const p = block.props;
         index += 1;
         const apiCourses = data?.courses ?? [];
-        const courses = apiCourses.length
-          ? apiCourses.slice(0, 5).map((c) => ({ slug: c.slug, title: c.title }))
-          : p.fallback_courses;
+        const courses: { slug: string; title: string; cover_url?: string | null }[] = apiCourses.length
+          ? apiCourses.slice(0, 5).map((c) => ({ slug: c.slug, title: c.title, cover_url: c.cover_url }))
+          : (p.fallback_courses ?? []).map((c) => ({ slug: c.slug, title: c.title, cover_url: (c as { cover_url?: string | null }).cover_url ?? null }));
         return (
           <section key="academy" className="section">
             <div className="webina-shell">
@@ -439,7 +439,13 @@ export function LandingPage({ data }: { data: LandingData }) {
                 {courses.map((course, i) => (
                   <Link key={`${course.slug}-${i}`} href={siteHref(undefined, course.slug ? `academy/${course.slug}` : 'academy')} className="row-item reveal">
                     <span className="row-no">{num(i + 1)}</span>
-                    <div>
+                    <div className="row-main">
+                      {course.cover_url ? (
+                        <span className="row-thumb" aria-hidden>
+                          {/* eslint-disable-next-line @next/next/no-img-element */}
+                          <img src={course.cover_url} alt="" loading="lazy" />
+                        </span>
+                      ) : null}
                       <h3>{course.title}</h3>
                     </div>
                     <Arrow className="row-arrow size-5" />
