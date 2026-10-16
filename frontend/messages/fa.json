@@ -5268,7 +5268,20 @@
     "greetingNamed": "{name} عزیز، صبح بخیر",
     "greeting": "صبح بخیر",
     "deskSubtitle": "خلاصه وضعیت امروز و میان‌برهای سریع",
-    "quickAccess": "دسترسی سریع"
+    "quickAccess": "دسترسی سریع",
+    "home": {
+      "overview": "نمای کلی",
+      "funnel": "قیف فروش",
+      "settled": "تسویه‌شده",
+      "sla": "نقض SLA",
+      "pages": "برگه",
+      "forms": "فرم",
+      "posts": "نوشته",
+      "scheduled": "زمان‌بندی",
+      "notices": "اطلاعیه",
+      "suite": "هشدارها",
+      "sitesShort": "سایت"
+    }
   },
   "profile": {
     "title": "پروفایل",

@@ -7,12 +7,45 @@ import apiClient from '@/lib/api-client';
 import { unwrapData } from '@/lib/api-helpers';
 import { dashboardHref } from '@/lib/route-resolver';
 import { useLocale } from '@/hooks/use-locale';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
-import { Button } from '@/components/ui/button';
-import { LocaleBarChart } from '@/components/charts/LocaleCharts';
+import {
+  AlarmClock,
+  Bell,
+  BellDot,
+  CalendarClock,
+  CalendarDays,
+  CircleAlert,
+  FileText,
+  FolderKanban,
+  Globe,
+  Handshake,
+  LayoutDashboard,
+  ListTodo,
+  Megaphone,
+  MessagesSquare,
+  ShieldAlert,
+  Target,
+  Ticket,
+  TrendingUp,
+  UserPlus,
+  UsersRound,
+  Wallet,
+  X,
+  type LucideIcon,
+} from 'lucide-react';
+import {
+  Columns,
+  Donut,
+  HBars,
+  HomeCard,
+  KpiTile,
+  Ring,
+  Segments,
+  Spark,
+  TrendArea,
+  WD_CHART,
+  compactNumber,
+} from '@/components/charts/HomeCharts';
 import { formatChartAxis } from '@/lib/locale/calendar-date';
-import { localizeReasons, localizeToken } from '@/features/modules/dashboard/localize';
 
 type TodoRow = {
   id: number;
@@ -54,24 +87,9 @@ type Snapshot = {
   };
 };
 
-const CRM_CARDS = [
-  { key: 'customers', label: 'crmCustomers', href: 'crm/customers' },
-  { key: 'deals', label: 'crmDeals', href: 'crm/deals' },
-  { key: 'consultations', label: 'crmConsultations', href: 'crm/consultations' },
-  { key: 'pipelines', label: 'crmPipelines', href: 'crm/pipelines' },
-  { key: 'leads', label: 'crmLeads', href: 'crm/leads' },
-] as const;
-
-const PM_CARDS = [
-  { key: 'projects', label: 'pmProjects', href: 'pm/projects' },
-  { key: 'open_tasks', label: 'pmOpenTasks', href: 'pm/tasks' },
-  { key: 'tickets', label: 'pmTickets', href: 'crm/tickets' },
-  { key: 'contracts', label: 'pmContracts', href: 'docs/contracts' },
-] as const;
-
 export function CrmPmSnapshot() {
   const t = useTranslations('dashboard');
-  const { formatNumber, formatDate, formatDateTime, formatDigits, isRtl, locale } = useLocale();
+  const { formatNumber, formatDate, formatDigits, isRtl, locale } = useLocale();
   const [data, setData] = useState<Snapshot | null>(null);
   const [hidden, setHidden] = useState<Set<string>>(new Set());
   const suiteT = useTranslations('suite');
@@ -149,234 +167,233 @@ export function CrmPmSnapshot() {
   const marketing = ops.marketing ?? {};
   const notes = ops.notifications ?? {};
   const axisLocale = locale === 'fa' ? 'fa' : 'en';
-  const labelOf = (value: string) => localizeToken(value, (key) => t(key as 'badges.open'), formatDigits);
 
-  const groups: { title: string; cards: { key: string; label: string; value: number; href: string }[] }[] = [
-    {
-      title: t('ops.finance'),
-      cards: [
-        { key: 'invoices', label: t('ops.invoices'), value: Number(finance.invoice_count ?? 0), href: 'finance/invoices' },
-        { key: 'invoice_total', label: t('ops.invoiceTotal'), value: Number(finance.invoice_total ?? 0), href: 'finance/reports' },
-        { key: 'open_invoices', label: t('ops.openInvoices'), value: Number(finance.open_invoices ?? 0), href: 'finance/invoices' },
-        { key: 'receipts', label: t('ops.receipts'), value: Number(finance.receipts_count ?? 0), href: 'finance/receipts' },
-      ],
-    },
-    {
-      title: t('ops.tickets'),
-      cards: [
-        { key: 'open', label: t('ops.openTickets'), value: Number(ticketOps.open ?? pm.tickets ?? 0), href: 'crm/tickets' },
-        { key: 'sla', label: t('ops.slaBreaches'), value: Number(ticketOps.sla_breaches ?? 0), href: 'crm/tickets' },
-        { key: 'mine', label: t('ops.myTickets'), value: Number(ticketOps.mine ?? 0), href: 'crm/tickets' },
-      ],
-    },
-    {
-      title: t('ops.sites'),
-      cards: [
-        { key: 'total', label: t('ops.sitesTotal'), value: Number(siteOps.sites_total ?? 0), href: 'admin/platform/sites' },
-        { key: 'ready', label: t('ops.sitesReady'), value: Number(siteOps.sites_ready ?? 0), href: 'admin/platform/sites' },
-        { key: 'failed', label: t('ops.sitesFailed'), value: Number(siteOps.sites_failed ?? 0), href: 'admin/platform/sites' },
-        { key: 'problems', label: t('ops.sitesProblems'), value: Number(siteOps.sites_problems ?? sites.length), href: 'admin/platform/sites' },
-      ],
-    },
-    {
-      title: t('ops.marketing'),
-      cards: [
-        { key: 'pages', label: t('ops.publishedPages'), value: Number(marketing.published_pages ?? 0), href: 'marketing/pages' },
-        { key: 'forms', label: t('ops.formSubmissions'), value: Number(marketing.form_submissions ?? 0), href: 'marketing/forms' },
-        { key: 'posts', label: t('ops.publishedPosts'), value: Number(marketing.published_posts ?? 0), href: 'marketing/blog' },
-        { key: 'content', label: t('ops.scheduledContent'), value: Number(marketing.scheduled_content ?? 0), href: 'crm/content' },
-        { key: 'announcements', label: t('ops.announcements'), value: Number(marketing.announcements ?? 0), href: 'marketing/announcements' },
-      ],
-    },
+  const h = (key: string) => t(`home.${key}` as 'home.overview');
+  const href = (p: string) => dashboardHref(locale, p);
+  const fmt = (n: number) => formatNumber(n);
+  const cmp = (n: number) => compactNumber(n, locale);
+  const trend = (ops.trend ?? []).map((point) => ({
+    label: formatChartAxis(point.date, axisLocale),
+    value: Number(point.total ?? 0),
+  }));
+  const trendVals = trend.map((p) => p.value);
+  const trendSum = trendVals.reduce((a, b) => a + b, 0);
+  const n = (v: unknown) => Number(v ?? 0);
+
+  const kpis: { key: string; icon: LucideIcon; label: string; value: number; href: string; tone: keyof typeof WD_CHART; viz?: 'spark' | 'ring' }[] = [
+    { key: 'customers', icon: UsersRound, label: t('crmCustomers'), value: n(crm.customers), href: 'crm/customers', tone: 'blue', viz: 'spark' },
+    { key: 'leads', icon: UserPlus, label: t('crmLeads'), value: n(crm.leads), href: 'crm/leads', tone: 'violet' },
+    { key: 'deals', icon: Handshake, label: t('crmDeals'), value: n(crm.deals), href: 'crm/deals', tone: 'teal', viz: 'ring' },
+    { key: 'consultations', icon: MessagesSquare, label: t('crmConsultations'), value: n(crm.consultations), href: 'crm/consultations', tone: 'amber' },
+    { key: 'projects', icon: FolderKanban, label: t('pmProjects'), value: n(pm.projects), href: 'pm/projects', tone: 'blue' },
+    { key: 'tasks', icon: ListTodo, label: t('pmOpenTasks'), value: n(pm.open_tasks), href: 'pm/tasks', tone: 'amber', viz: 'spark' },
+    { key: 'tickets', icon: Ticket, label: t('pmTickets'), value: n(pm.tickets), href: 'crm/tickets', tone: 'rose' },
+    { key: 'contracts', icon: FileText, label: t('pmContracts'), value: n(pm.contracts), href: 'docs/contracts', tone: 'ink' },
   ];
 
+  const invoices = n(finance.invoice_count);
+  const openInv = Math.min(invoices, n(finance.open_invoices));
+  const ticketsOpen = n(ticketOps.open ?? pm.tickets);
+  const ticketRings = [
+    { label: t('ops.openTickets'), value: ticketsOpen, color: WD_CHART.blue },
+    { label: t('ops.myTickets'), value: n(ticketOps.mine), color: WD_CHART.teal },
+    { label: h('sla'), value: n(ticketOps.sla_breaches), color: WD_CHART.rose },
+  ];
+  const ticketMax = Math.max(1, ...ticketRings.map((r) => r.value));
+  const sitesTotal = n(siteOps.sites_total);
+  const sitesFailed = n(siteOps.sites_failed);
+  const sitesProblems = n(siteOps.sites_problems ?? sites.length);
+  const sitesReady = n(siteOps.sites_ready);
+  const suiteIcons: Record<string, LucideIcon> = { forecast: Target, reminders: AlarmClock, delays: CalendarClock, sla: ShieldAlert };
+  const bucketIcons: Record<string, LucideIcon> = { overdue: CircleAlert, today: CalendarDays, upcoming: CalendarClock };
+  const bucketTone: Record<string, string> = { overdue: WD_CHART.rose, today: WD_CHART.blue, upcoming: WD_CHART.teal };
+  const topWork = buckets.flatMap((b) => b.rows.slice(0, 2).map((row) => ({ ...row, bucket: b.id }))).slice(0, 5);
+
   return (
-    <div className="space-y-4" dir={isRtl ? 'rtl' : 'ltr'}>
-      <h2 className="text-base font-semibold">{t('crmPmTitle')}</h2>
-      {widgetCards.length > 0 ? (
-        <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
-          {widgetCards.map((card) => (
-            <Card key={card.key}>
-              <CardHeader className="pb-2">
-                <CardTitle className="text-sm font-medium text-muted-foreground">{card.label}</CardTitle>
-              </CardHeader>
-              <CardContent className="flex items-end justify-between gap-2">
-                <p className="text-2xl font-semibold tabular-nums">{formatNumber(Number(card.value))}</p>
-                <div className="flex flex-col items-end">
-                  <Button variant="link" size="sm" className="h-auto px-0" asChild>
-                    <Link href={dashboardHref(locale, card.href)}>{t('viewModule')}</Link>
-                  </Button>
-                  <Button type="button" variant="ghost" size="sm" className="h-auto px-0 text-xs" onClick={() => void toggle(card.key, false)}>
-                    {suiteT('hide')}
-                  </Button>
-                </div>
-              </CardContent>
-            </Card>
-          ))}
-        </div>
-      ) : null}
-      <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-5">
-        {CRM_CARDS.map((card) => (
-          <Card key={card.key}>
-            <CardHeader className="pb-2">
-              <CardTitle className="text-sm font-medium text-muted-foreground">{t(card.label)}</CardTitle>
-            </CardHeader>
-            <CardContent className="flex items-end justify-between gap-2">
-              <p className="text-2xl font-semibold tabular-nums">{formatNumber(Number(crm[card.key] ?? 0))}</p>
-              <Button variant="link" size="sm" className="h-auto px-0" asChild>
-                <Link href={dashboardHref(locale, card.href)}>{t('viewModule')}</Link>
-              </Button>
-            </CardContent>
-          </Card>
+    <div className="wd-home space-y-4" dir={isRtl ? 'rtl' : 'ltr'}>
+      <h2 className="wd-home-h2">
+        <LayoutDashboard className="size-4 text-[#0054ff]" strokeWidth={1.75} />
+        {h('overview')}
+      </h2>
+
+      <div className="wd-kpi-grid">
+        {kpis.map((k) => (
+          <KpiTile
+            key={k.key}
+            icon={k.icon}
+            label={k.label}
+            value={cmp(k.value)}
+            tone={k.tone}
+            href={href(k.href)}
+            viz={
+              k.viz === 'spark' && trendVals.length > 1 ? (
+                <Spark data={trendVals} color={WD_CHART[k.tone]} />
+              ) : k.viz === 'ring' ? (
+                <Ring value={n(crm.deals)} max={Math.max(1, n(crm.leads) + n(crm.deals))} size={40} color={WD_CHART.teal} label=" " />
+              ) : undefined
+            }
+          />
         ))}
       </div>
-      <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
-        {PM_CARDS.map((card) => (
-          <Card key={card.key}>
-            <CardHeader className="pb-2">
-              <CardTitle className="text-sm font-medium text-muted-foreground">{t(card.label)}</CardTitle>
-            </CardHeader>
-            <CardContent className="flex items-end justify-between gap-2">
-              <p className="text-2xl font-semibold tabular-nums">{formatNumber(Number(pm[card.key] ?? 0))}</p>
-              <Button variant="link" size="sm" className="h-auto px-0" asChild>
-                <Link href={dashboardHref(locale, card.href)}>{t('viewModule')}</Link>
-              </Button>
-            </CardContent>
-          </Card>
-        ))}
+
+      <div className="grid gap-4 lg:grid-cols-3">
+        <HomeCard
+          icon={TrendingUp}
+          title={t('trendTitle')}
+          className="lg:col-span-2"
+          isRtl={isRtl}
+          aside={<span className="wd-hc-chip">{cmp(trendSum)}</span>}
+        >
+          {trend.length > 0 ? (
+            <TrendArea data={trend} isRtl={isRtl} format={fmt} height={190} />
+          ) : (
+            <p className="py-10 text-center text-sm text-muted-foreground">{t('empty')}</p>
+          )}
+        </HomeCard>
+        <HomeCard icon={Target} title={h('funnel')} tone="violet" href={href('crm/deals')} isRtl={isRtl}>
+          <HBars
+            format={fmt}
+            data={[
+              { label: t('crmLeads'), value: n(crm.leads), color: WD_CHART.violet },
+              { label: t('crmConsultations'), value: n(crm.consultations), color: WD_CHART.sky },
+              { label: t('crmDeals'), value: n(crm.deals), color: WD_CHART.blue },
+              { label: t('crmCustomers'), value: n(crm.customers), color: WD_CHART.teal },
+            ]}
+          />
+        </HomeCard>
       </div>
-      {groups.map((group) => (
-        <section key={group.title} className="space-y-2">
-          <h3 className="text-sm font-semibold">{group.title}</h3>
-          <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
-            {group.cards.map((card) => (
-              <Card key={card.key}>
-                <CardHeader className="pb-2">
-                  <CardTitle className="text-sm font-medium text-muted-foreground">{card.label}</CardTitle>
-                </CardHeader>
-                <CardContent className="flex items-end justify-between gap-2">
-                  <p className="text-2xl font-semibold tabular-nums">{formatNumber(card.value)}</p>
-                  <Button variant="link" size="sm" className="h-auto px-0" asChild>
-                    <Link href={dashboardHref(locale, card.href)}>{t('viewModule')}</Link>
-                  </Button>
-                </CardContent>
-              </Card>
-            ))}
-          </div>
-        </section>
-      ))}
 
-      {(ops.trend?.length ?? 0) > 0 ? (
-        <Card>
-          <CardHeader className="py-3">
-            <CardTitle className="text-base">{t('trendTitle')}</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <LocaleBarChart
-              data={(ops.trend ?? []).map((point) => ({
-                label: formatChartAxis(point.date, axisLocale),
-                value: Number(point.total ?? 0),
-              }))}
-            />
-          </CardContent>
-        </Card>
-      ) : null}
-
-      <Card>
-        <CardHeader className="flex flex-row items-center justify-between gap-2">
-          <CardTitle className="text-base">{t('todosTitle')}</CardTitle>
-          <Button variant="outline" size="sm" asChild>
-            <Link href={dashboardHref(locale, 'pm/tasks')}>{t('viewModule')}</Link>
-          </Button>
-        </CardHeader>
-        <CardContent>
-          <div className="grid gap-4 lg:grid-cols-4">
-            {buckets.map((bucket) => (
-              <div key={bucket.id} className="space-y-2">
-                <p className="text-sm font-medium">
-                  {bucket.title}{' '}
-                  <span className="tabular-nums text-muted-foreground">({formatNumber(bucket.count)})</span>
-                </p>
-                {bucket.rows.length === 0 ? (
-                  <p className="text-sm text-muted-foreground">{t('todosEmpty')}</p>
-                ) : (
-                  <ul className="space-y-2 text-sm">
-                    {bucket.rows.map((row) => (
-                      <li key={`${bucket.id}-${row.kind}-${row.id}`} className="rounded-md border px-2 py-1.5">
-                        <div className="mb-1 flex flex-wrap items-center gap-1">
-                          <Badge variant="outline">{t(`kinds.${row.kind as 'task'}`)}</Badge>
-                          {row.status ? <Badge variant="secondary">{labelOf(String(row.status))}</Badge> : null}
-                        </div>
-                        <Link href={dashboardHref(locale, row.href || 'pm/tasks')} className="font-medium hover:underline">
-                          {row.title || formatNumber(row.id)}
-                        </Link>
-                        {row.due_at ? (
-                          <p className="text-xs text-muted-foreground">{formatDate(row.due_at)}</p>
-                        ) : null}
-                      </li>
-                    ))}
-                  </ul>
-                )}
+      <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+        <HomeCard icon={Wallet} title={t('ops.finance')} tone="teal" href={href('finance/invoices')} isRtl={isRtl}>
+          <Donut
+            format={fmt}
+            center={cmp(n(finance.invoice_total))}
+            data={[
+              { label: h('settled'), value: invoices - openInv, color: WD_CHART.teal },
+              { label: t('ops.openInvoices'), value: openInv, color: WD_CHART.amber },
+              { label: t('ops.receipts'), value: n(finance.receipts_count), color: WD_CHART.blue },
+            ]}
+          />
+        </HomeCard>
+        <HomeCard icon={Ticket} title={t('ops.tickets')} tone="rose" href={href('crm/tickets')} isRtl={isRtl}>
+          <div className="grid grid-cols-3 gap-2">
+            {ticketRings.map((r) => (
+              <div key={r.label} className="flex flex-col items-center gap-1.5 text-center">
+                <Ring value={r.value} max={ticketMax} color={r.color} size={72} label={cmp(r.value)} />
+                <span className="text-[11px] leading-tight text-muted-foreground">{r.label}</span>
               </div>
             ))}
-            <div className="space-y-2">
-              <p className="text-sm font-medium">
-                {t('sitesProblems')}{' '}
-                <span className="tabular-nums text-muted-foreground">({formatNumber(todos.counts?.problems ?? sites.length)})</span>
-              </p>
-              {sites.length === 0 ? (
-                <p className="text-sm text-muted-foreground">{t('todosEmpty')}</p>
-              ) : (
-                <ul className="space-y-2 text-sm">
-                  {sites.map((site) => (
-                    <li key={`site-${site.id}`} className="rounded-md border px-2 py-1.5">
-                      <div className="mb-1 flex flex-wrap items-center gap-1">
-                        <Badge variant="outline">{t('kinds.site')}</Badge>
-                        {site.status ? <Badge variant="secondary">{labelOf(String(site.status))}</Badge> : null}
-                      </div>
-                      <Link href={dashboardHref(locale, site.href || `admin/platform/sites/${site.id}`)} className="font-medium hover:underline" dir="ltr">
-                        {site.domain || site.title}
-                      </Link>
-                      {site.reasons?.length ? (
-                        <p className="text-xs text-muted-foreground">{localizeReasons(site.reasons, (key) => t(key as 'badges.open'))}</p>
-                      ) : null}
-                      {site.error ? <p className="text-xs text-muted-foreground">{formatDigits(site.error)}</p> : null}
-                    </li>
-                  ))}
-                </ul>
-              )}
-            </div>
           </div>
-        </CardContent>
-      </Card>
+        </HomeCard>
+        <HomeCard icon={Globe} title={t('ops.sites')} tone="blue" href={href('admin/platform/sites')} isRtl={isRtl}
+          aside={<span className="wd-hc-chip">{cmp(sitesTotal)}</span>}>
+          <Segments
+            format={fmt}
+            data={[
+              { label: t('ops.sitesReady'), value: sitesReady, color: WD_CHART.teal },
+              { label: t('ops.sitesProblems'), value: sitesProblems, color: WD_CHART.amber },
+              { label: t('ops.sitesFailed'), value: sitesFailed, color: WD_CHART.rose },
+            ]}
+          />
+        </HomeCard>
+      </div>
 
-      <Card>
-        <CardHeader className="py-3">
-          <CardTitle className="text-base">
-            {t('notificationsRecent')}{' '}
-            <span className="text-sm font-normal text-muted-foreground">
-              ({t('ops.unread')}: {formatNumber(Number(notes.unread ?? 0))})
-            </span>
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
+      <div className="grid gap-4 lg:grid-cols-3">
+        <HomeCard icon={Megaphone} title={t('ops.marketing')} tone="amber" href={href('marketing/pages')} className="lg:col-span-2" isRtl={isRtl}>
+          <Columns
+            isRtl={isRtl}
+            format={fmt}
+            data={[
+              { label: h('pages'), value: n(marketing.published_pages) },
+              { label: h('forms'), value: n(marketing.form_submissions) },
+              { label: h('posts'), value: n(marketing.published_posts) },
+              { label: h('scheduled'), value: n(marketing.scheduled_content) },
+              { label: h('notices'), value: n(marketing.announcements) },
+            ]}
+          />
+        </HomeCard>
+        {widgetCards.length > 0 ? (
+          <HomeCard icon={Target} title={h('suite')} tone="violet" isRtl={isRtl}>
+            <ul className="space-y-2">
+              {widgetCards.map((card) => {
+                const Icon = suiteIcons[card.key] ?? Target;
+                return (
+                  <li key={card.key} className="wd-row">
+                    <span className="wd-row-ic"><Icon strokeWidth={1.75} /></span>
+                    <Link href={href(card.href)} className="min-w-0 flex-1 truncate text-sm">{card.label}</Link>
+                    <span className="text-sm font-semibold tabular-nums">{cmp(Number(card.value))}</span>
+                    <button type="button" className="wd-row-x" aria-label={suiteT('hide')} title={suiteT('hide')} onClick={() => void toggle(card.key, false)}>
+                      <X className="size-3.5" />
+                    </button>
+                  </li>
+                );
+              })}
+            </ul>
+          </HomeCard>
+        ) : null}
+      </div>
+
+      <div className="grid gap-4 lg:grid-cols-2">
+        <HomeCard icon={ListTodo} title={t('todosTitle')} tone="blue" href={href('pm/tasks')} isRtl={isRtl}>
+          <div className="mb-3 grid grid-cols-4 gap-2">
+            {[...buckets.map((b) => ({ id: b.id, title: b.title, count: b.count })), { id: 'sites', title: h('sitesShort'), count: todos.counts?.problems ?? sites.length }].map((b) => {
+              const Icon = bucketIcons[b.id] ?? Globe;
+              const color = bucketTone[b.id] ?? WD_CHART.amber;
+              return (
+                <div key={b.id} className="wd-bucket">
+                  <Icon className="size-4" style={{ color }} strokeWidth={1.75} />
+                  <span className="text-base font-semibold tabular-nums">{fmt(b.count)}</span>
+                  <span className="truncate text-[11px] text-muted-foreground">{b.title}</span>
+                </div>
+              );
+            })}
+          </div>
+          {topWork.length === 0 ? (
+            <p className="text-sm text-muted-foreground">{t('todosEmpty')}</p>
+          ) : (
+            <ul className="space-y-1.5">
+              {topWork.map((row) => {
+                const Icon = bucketIcons[row.bucket] ?? ListTodo;
+                return (
+                  <li key={`${row.bucket}-${row.kind}-${row.id}`} className="wd-row">
+                    <span className="wd-row-ic" style={{ color: bucketTone[row.bucket] }}><Icon strokeWidth={1.75} /></span>
+                    <Link href={href(row.href || 'pm/tasks')} className="min-w-0 flex-1 truncate text-sm">
+                      {row.title || fmt(row.id)}
+                    </Link>
+                    {row.due_at ? <span className="shrink-0 text-[11px] text-muted-foreground">{formatDate(row.due_at)}</span> : null}
+                  </li>
+                );
+              })}
+            </ul>
+          )}
+        </HomeCard>
+        <HomeCard
+          icon={Bell}
+          title={t('ops.notifications')}
+          tone="amber"
+          href={href('notifications')}
+          isRtl={isRtl}
+          aside={n(notes.unread) > 0 ? <span className="wd-hc-chip wd-hc-chip--hot">{fmt(n(notes.unread))}</span> : null}
+        >
           {(notes.recent ?? []).length === 0 ? (
             <p className="text-sm text-muted-foreground">{t('noNotifications')}</p>
           ) : (
-            <ul className="space-y-2 text-sm">
-              {(notes.recent ?? []).map((row, index) => (
-                <li key={`${row.created_at ?? 'note'}-${index}`} className="flex items-start justify-between gap-3 rounded-md border px-2 py-1.5">
-                  <div>
-                    <p className="font-medium">{row.title ? formatDigits(row.title) : t('ops.notifications')}</p>
-                    {row.created_at ? <p className="text-xs text-muted-foreground">{formatDateTime(row.created_at)}</p> : null}
-                  </div>
-                  <Badge variant={row.is_read ? 'outline' : 'secondary'}>{row.is_read ? t('read') : t('unread')}</Badge>
+            <ul className="space-y-1.5">
+              {(notes.recent ?? []).slice(0, 5).map((row, index) => (
+                <li key={`${row.created_at ?? 'note'}-${index}`} className="wd-row">
+                  <span className="wd-row-ic" style={{ color: row.is_read ? WD_CHART.slate : WD_CHART.blue }}>
+                    {row.is_read ? <Bell strokeWidth={1.75} /> : <BellDot strokeWidth={1.75} />}
+                  </span>
+                  <span className={`min-w-0 flex-1 truncate text-sm ${row.is_read ? 'text-muted-foreground' : 'font-medium'}`}>
+                    {row.title ? formatDigits(row.title) : t('ops.notifications')}
+                  </span>
+                  {row.created_at ? <span className="shrink-0 text-[11px] text-muted-foreground">{formatDate(row.created_at)}</span> : null}
                 </li>
               ))}
             </ul>
           )}
-        </CardContent>
-      </Card>
+        </HomeCard>
+      </div>
     </div>
   );
 }

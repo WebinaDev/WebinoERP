@@ -5268,7 +5268,20 @@
     "greetingNamed": "Good morning, {name}",
     "greeting": "Good morning",
     "deskSubtitle": "Today’s overview and quick actions",
-    "quickAccess": "Quick access"
+    "quickAccess": "Quick access",
+    "home": {
+      "overview": "Overview",
+      "funnel": "Sales funnel",
+      "settled": "Settled",
+      "sla": "SLA breach",
+      "pages": "Pages",
+      "forms": "Forms",
+      "posts": "Posts",
+      "scheduled": "Scheduled",
+      "notices": "Notices",
+      "suite": "Alerts",
+      "sitesShort": "Sites"
+    }
   },
   "profile": {
     "title": "Profile",

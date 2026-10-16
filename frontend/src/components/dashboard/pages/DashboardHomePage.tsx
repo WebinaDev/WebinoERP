@@ -8,12 +8,9 @@ import apiClient from '@/lib/api-client';
 import { unwrapData, getAxiosMessage } from '@/lib/api-helpers';
 import { normalizeListPayload } from '@/lib/list-utils';
 import { getCurrentUser, User } from '@/lib/auth';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Progress } from '@/components/ui/progress';
 import { Badge } from '@/components/ui/badge';
-import { Button } from '@/components/ui/button';
-import { LocaleBarChart, LocaleDonutChart } from '@/components/charts/LocaleCharts';
+import { Donut, HomeCard, KpiTile, Ring, WD_CHART, compactNumber } from '@/components/charts/HomeCharts';
 import { localizeToken } from '@/features/modules/dashboard/localize';
 import { useInitialDashboardStats } from '@/lib/initial-dashboard-context';
 import { dashboardHref } from '@/lib/route-resolver';
@@ -26,6 +23,15 @@ import {
   ListTodo,
   Settings2,
   Ticket,
+  ChartPie as PieChartIcon,
+  KeyRound,
+  Eye,
+  Wallet,
+  Receipt,
+  FileText,
+  Handshake,
+  UserPlus,
+  CircleDot,
   UserRound,
   UsersRound,
   type LucideIcon,
@@ -103,6 +109,15 @@ function roleQuickLinks(role: string): QuickLink[] {
 
 /** Lucide only — same stroke as MobileBottomNav. */
 const ICON_STROKE = 1.75;
+
+const WIDGET_ICONS: Record<string, LucideIcon> = {
+  recent_leads: UserPlus,
+  recent_tasks: ListTodo,
+  recent_tickets: Ticket,
+  recent_projects: FolderKanban,
+  recent_deals: Handshake,
+  recent_invoices: FileText,
+};
 
 const QUICK_LINK_ICONS: Record<string, LucideIcon> = {
   'pm/projects': FolderKanban,
@@ -259,22 +274,15 @@ export function DashboardHomePage() {
     return widgets;
   }, [full?.widgets, role]);
 
-  const maxBar = Math.max(
-    merged.leads,
-    merged.projects,
-    merged.tasks,
-    merged.tickets,
-    merged.contracts,
-    1,
-  );
+  const cmp = (n: number) => compactNumber(n, locale);
 
   const donutSegments = useMemo(
     () => [
-      { label: t('stats.users'), value: merged.leads, color: '#3b82f6' },
-      { label: t('stats.projects'), value: merged.projects, color: '#10b981' },
-      { label: t('stats.tasks'), value: merged.tasks, color: '#f59e0b' },
-      { label: t('stats.tickets'), value: merged.tickets, color: '#f43f5e' },
-      { label: t('stats.revenue'), value: merged.contracts, color: '#8b5cf6' },
+      { label: t('stats.users'), value: merged.leads, color: WD_CHART.blue },
+      { label: t('stats.projects'), value: merged.projects, color: WD_CHART.teal },
+      { label: t('stats.tasks'), value: merged.tasks, color: WD_CHART.amber },
+      { label: t('stats.tickets'), value: merged.tickets, color: WD_CHART.rose },
+      { label: t('stats.revenue'), value: merged.contracts, color: WD_CHART.violet },
     ],
     [merged, t],
   );
@@ -384,164 +392,76 @@ export function DashboardHomePage() {
       </header>
 
       {role === 'team_member' && teamMember ? (
-        <div className="grid gap-4 sm:grid-cols-2">
-          <Card variant="stat" className="wd-mini-tint">
-            <CardHeader className="pb-2">
-              <CardDescription>{t('teamMember.tasksAssigned')}</CardDescription>
-              <CardTitle className="text-3xl font-bold tabular-nums">
-                {loading ? '…' : formatNumber(teamMember.tasks_assigned ?? 0)}
-              </CardTitle>
-            </CardHeader>
-          </Card>
-          <Card variant="stat" className="wd-mini-tint">
-            <CardHeader className="pb-2">
-              <CardDescription>{t('teamMember.ticketsAssigned')}</CardDescription>
-              <CardTitle className="text-3xl font-bold tabular-nums">
-                {loading ? '…' : formatNumber(teamMember.tickets_assigned ?? 0)}
-              </CardTitle>
-            </CardHeader>
-          </Card>
+        <div className="wd-kpi-grid wd-kpi-grid--2">
+          <KpiTile icon={ListTodo} tone="blue" label={t('teamMember.tasksAssigned')} value={loading ? '…' : cmp(teamMember.tasks_assigned ?? 0)} href={dashboardHref(locale, 'pm/tasks')} />
+          <KpiTile icon={Ticket} tone="rose" label={t('teamMember.ticketsAssigned')} value={loading ? '…' : cmp(teamMember.tickets_assigned ?? 0)} href={dashboardHref(locale, 'crm/tickets')} />
+        </div>
+      ) : null}
+
+      {role === 'finance_manager' && financeSummary ? (
+        <div className="wd-kpi-grid wd-kpi-grid--3">
+          <KpiTile icon={Wallet} tone="teal" label={t('finance.summary')} value={financeSummary.total_invoices == null ? tCommon('emptyValue') : cmp(Number(financeSummary.total_invoices))} />
+          <KpiTile icon={FileText} tone="blue" label={t('finance.invoices')} value={financeSummary.invoices_count == null ? tCommon('emptyValue') : cmp(Number(financeSummary.invoices_count))} href={dashboardHref(locale, 'finance/invoices')} />
+          <KpiTile icon={Receipt} tone="amber" label={t('finance.receipts')} value={financeSummary.receipts_count == null ? tCommon('emptyValue') : cmp(Number(financeSummary.receipts_count))} href={dashboardHref(locale, 'finance/receipts')} />
+        </div>
+      ) : null}
+
+      {role === 'sales_consultant' && salesSummary ? (
+        <div className="wd-kpi-grid wd-kpi-grid--2">
+          <KpiTile icon={Handshake} tone="teal" label={t('sales.openDeals')} value={cmp(salesSummary.open_deals ?? 0)} href={dashboardHref(locale, 'crm/deals')}
+            viz={<Ring value={salesSummary.open_deals ?? 0} max={Math.max(1, (salesSummary.open_deals ?? 0) + (salesSummary.new_leads ?? 0))} size={40} color={WD_CHART.teal} label=" " />} />
+          <KpiTile icon={UserPlus} tone="violet" label={t('sales.newLeads')} value={cmp(salesSummary.new_leads ?? 0)} href={dashboardHref(locale, 'crm/leads')} />
+        </div>
+      ) : null}
+
+      {role === 'system_manager' && adminSummary ? (
+        <div className="wd-kpi-grid wd-kpi-grid--2">
+          <KpiTile icon={KeyRound} tone="ink" label={t('admin.licenses')} value={cmp(adminSummary.licenses ?? 0)} />
+          <KpiTile icon={Eye} tone="blue" label={t('admin.visitors')} value={cmp(adminSummary.visitors ?? 0)} />
         </div>
       ) : null}
 
       {role === 'client' ? <CustomerPortalPanel /> : <CrmPmSnapshot />}
 
-      {role === 'finance_manager' && financeSummary ? (
-        <div className="grid gap-4 sm:grid-cols-3">
-          <Card><CardHeader className="pb-2"><CardDescription>{t('finance.summary')}</CardDescription><CardTitle className="text-2xl tabular-nums">{financeSummary.total_invoices == null ? tCommon('emptyValue') : formatNumber(Number(financeSummary.total_invoices))}</CardTitle></CardHeader></Card>
-          <Card><CardHeader className="pb-2"><CardDescription>{t('finance.invoices')}</CardDescription><CardTitle className="text-2xl tabular-nums">{financeSummary.invoices_count == null ? tCommon('emptyValue') : formatNumber(Number(financeSummary.invoices_count))}</CardTitle></CardHeader></Card>
-          <Card><CardHeader className="pb-2"><CardDescription>{t('finance.receipts')}</CardDescription><CardTitle className="text-2xl tabular-nums">{financeSummary.receipts_count == null ? tCommon('emptyValue') : formatNumber(Number(financeSummary.receipts_count))}</CardTitle></CardHeader></Card>
-        </div>
-      ) : null}
-
-      {role === 'sales_consultant' && salesSummary ? (
-        <div className="grid gap-4 sm:grid-cols-2">
-          <Card><CardHeader className="pb-2"><CardDescription>{t('sales.openDeals')}</CardDescription><CardTitle className="text-3xl font-bold tabular-nums">{formatNumber(salesSummary.open_deals ?? 0)}</CardTitle></CardHeader></Card>
-          <Card><CardHeader className="pb-2"><CardDescription>{t('sales.newLeads')}</CardDescription><CardTitle className="text-3xl font-bold tabular-nums">{formatNumber(salesSummary.new_leads ?? 0)}</CardTitle></CardHeader></Card>
-        </div>
-      ) : null}
-
-      {role === 'system_manager' && adminSummary ? (
-        <div className="grid gap-4 sm:grid-cols-2">
-          <Card><CardHeader className="pb-2"><CardDescription>{t('admin.licenses')}</CardDescription><CardTitle className="text-3xl font-bold tabular-nums">{formatNumber(adminSummary.licenses ?? 0)}</CardTitle></CardHeader></Card>
-          <Card><CardHeader className="pb-2"><CardDescription>{t('admin.visitors')}</CardDescription><CardTitle className="text-3xl font-bold tabular-nums">{formatNumber(adminSummary.visitors ?? 0)}</CardTitle></CardHeader></Card>
-        </div>
-      ) : null}
-
       <Tabs defaultValue="overview" className="mt-2 md:mt-0">
         <TabsList className="mx-0 w-full justify-start overflow-x-auto rounded-xl bg-muted/70 p-1 md:w-auto">
-          <TabsTrigger value="overview" className="rounded-lg">{t('tabs.overview')}</TabsTrigger>
-          {showTeamTab ? <TabsTrigger value="team" className="rounded-lg">{t('tabs.teamProjects')}</TabsTrigger> : null}
+          <TabsTrigger value="overview" className="gap-1.5 rounded-lg"><PieChartIcon className="size-3.5" strokeWidth={ICON_STROKE} />{t('tabs.overview')}</TabsTrigger>
+          {showTeamTab ? <TabsTrigger value="team" className="gap-1.5 rounded-lg"><UsersRound className="size-3.5" strokeWidth={ICON_STROKE} />{t('tabs.teamProjects')}</TabsTrigger> : null}
         </TabsList>
         <TabsContent value="overview" className="space-y-4">
-          {showFullOverview ? (
-            <>
-              <div className="wd-mobile-section md:hidden !mt-4">
-                <div className="wd-mobile-section-title">
-                  <span>{t('tabs.overview')}</span>
-                </div>
-                <div className="wd-mobile-tiles">
-                  {[
-                    { label: t('stats.users'), value: merged.leads, key: 'leads' },
-                    { label: t('stats.projects'), value: merged.projects, key: 'projects' },
-                    { label: t('stats.tasks'), value: merged.tasks, key: 'tasks' },
-                    { label: t('stats.tickets'), value: merged.tickets, key: 'tickets' },
-                  ].map((card) => (
-                    <div key={card.key} className="wd-mobile-tile">
-                      <div className="v">{loading ? '…' : error ? tCommon('emptyValue') : formatNumber(card.value)}</div>
-                      <div className="k">{card.label}</div>
-                    </div>
-                  ))}
-                </div>
-              </div>
-
-              <div className="wd-desk-kpi-grid hidden md:grid">
-                {[
-                  { label: t('stats.users'), value: merged.leads, key: 'leads' },
-                  { label: t('stats.projects'), value: merged.projects, key: 'projects' },
-                  { label: t('stats.tasks'), value: merged.tasks, key: 'tasks' },
-                  { label: t('stats.tickets'), value: merged.tickets, key: 'tickets' },
-                  { label: t('stats.revenue'), value: merged.contracts, key: 'contracts' },
-                ].map((card) => (
-                  <Card key={card.key} variant="stat" className="wd-mini-tint">
-                    <CardHeader className="pb-2">
-                      <CardDescription>{card.label}</CardDescription>
-                      <CardTitle className="text-3xl font-bold tabular-nums">
-                        {loading ? '…' : error ? tCommon('emptyValue') : formatNumber(card.value)}
-                      </CardTitle>
-                    </CardHeader>
-                    <CardContent>
-                      <Progress value={Math.min(100, (card.value / maxBar) * 100)} />
-                    </CardContent>
-                  </Card>
-                ))}
-              </div>
-            </>
-          ) : null}
-
-          {showFullOverview ? (
-          <Card variant="glass" className="hidden md:block">
-            <CardHeader>
-              <CardTitle className="text-base">{t('charts.monthlyActivity')}</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <LocaleBarChart
-                data={[
-                  { label: t('stats.users'), value: merged.leads },
-                  { label: t('stats.projects'), value: merged.projects },
-                  { label: t('stats.tasks'), value: merged.tasks },
-                  { label: t('stats.tickets'), value: merged.tickets },
-                  { label: t('stats.revenue'), value: merged.contracts },
-                ]}
-              />
-            </CardContent>
-          </Card>
-          ) : null}
-
-          {showFullOverview ? (
-          <Card variant="glass" className="hidden md:block">
-            <CardHeader>
-              <CardTitle className="text-base">{t('charts.statusDistribution')}</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <LocaleDonutChart segments={donutSegments} />
-            </CardContent>
-          </Card>
-          ) : null}
-
-          {visibleWidgets.length > 0 ? (
-            <div className="grid gap-4 lg:grid-cols-3">
-              {visibleWidgets.map((w) => (
-                <Card key={w.id}>
-                  <CardHeader>
-                    <CardTitle className="text-base">{widgetTitle(w)}</CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    <ul className="space-y-2 text-sm">
-                      {(w.items ?? []).slice(0, 8).map((it, idx) => (
-                        <li key={idx} className="wd-mobile-list-item rounded-md border border-border/60 px-2 py-1.5 md:rounded-md">
-                          {summarizeWidgetRow(it)}
-                        </li>
-                      ))}
-                      {!(w.items && w.items.length) ? (
-                        <li className="text-muted-foreground">{tCommon('empty')}</li>
-                      ) : null}
-                    </ul>
-                  </CardContent>
-                </Card>
-              ))}
-            </div>
-          ) : null}
+          <div className="grid gap-4 lg:grid-cols-3">
+            {showFullOverview ? (
+              <HomeCard icon={PieChartIcon} title={t('charts.statusDistribution')} isRtl={isRtl}>
+                <Donut data={donutSegments} format={(n) => formatNumber(n)} />
+              </HomeCard>
+            ) : null}
+            {visibleWidgets.map((w) => {
+              const Icon = WIDGET_ICONS[w.id] ?? CircleDot;
+              return (
+                <HomeCard key={w.id} icon={Icon} title={widgetTitle(w)} tone="ink" isRtl={isRtl}
+                  aside={(w.items?.length ?? 0) > 0 ? <span className="wd-hc-chip">{formatNumber(w.items?.length ?? 0)}</span> : null}>
+                  <ul className="space-y-1.5">
+                    {(w.items ?? []).slice(0, 5).map((it, idx) => (
+                      <li key={idx} className="wd-row">
+                        <span className="wd-row-ic"><Icon strokeWidth={ICON_STROKE} /></span>
+                        <span className="min-w-0 flex-1 truncate text-sm">{summarizeWidgetRow(it)}</span>
+                      </li>
+                    ))}
+                    {!(w.items && w.items.length) ? (
+                      <li className="text-sm text-muted-foreground">{tCommon('empty')}</li>
+                    ) : null}
+                  </ul>
+                </HomeCard>
+              );
+            })}
+          </div>
         </TabsContent>
 
         {showTeamTab ? (
         <TabsContent value="team">
           <div className="grid gap-4 lg:grid-cols-2">
-            <Card>
-              <CardHeader>
-                <CardTitle className="text-base">{t('recentProjects')}</CardTitle>
-              </CardHeader>
-              <CardContent className="overflow-x-auto">
+            <HomeCard icon={FolderKanban} title={t('recentProjects')} href={dashboardHref(locale, 'pm/projects')} isRtl={isRtl}>
+              <div className="overflow-x-auto">
                 <table className="w-full text-sm">
                   <thead>
                     <tr className="border-b text-muted-foreground">
@@ -565,13 +485,10 @@ export function DashboardHomePage() {
                     ) : null}
                   </tbody>
                 </table>
-              </CardContent>
-            </Card>
-            <Card>
-              <CardHeader>
-                <CardTitle className="text-base">{t('recentUsers')}</CardTitle>
-              </CardHeader>
-              <CardContent className="overflow-x-auto">
+              </div>
+            </HomeCard>
+            <HomeCard icon={UsersRound} title={t('recentUsers')} tone="teal" isRtl={isRtl}>
+              <div className="overflow-x-auto">
                 <table className="w-full text-sm">
                   <thead>
                     <tr className="border-b text-muted-foreground">
@@ -597,8 +514,8 @@ export function DashboardHomePage() {
                     ) : null}
                   </tbody>
                 </table>
-              </CardContent>
-            </Card>
+              </div>
+            </HomeCard>
           </div>
         </TabsContent>
         ) : null}
