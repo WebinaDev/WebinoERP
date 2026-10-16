@@ -1,4 +1,4 @@
-import { routeMetadata } from '@/lib/seo';
+import { itemMetadata, type Seo } from '@/lib/seo';
 import { getLocale, getTranslations } from 'next-intl/server';
 import Link from 'next/link';
 import { apiServer, siteHref } from '@/lib/public-api-server';
@@ -6,14 +6,19 @@ import { PRODUCTS, copyFor } from '@/themes/webina-corporate-v1/catalog';
 import { NavIcon } from '@/themes/webina-corporate-v1/components/NavIcon';
 import { SitePage } from '@/themes/webina-corporate-v1/components/SitePage';
 import { getHomeBlock } from '@/themes/webina-corporate-v1/site-content-server';
+import { loadPublishedPage, StorefrontDocument } from '@/builder/public-document';
+import { prefetchCorporate } from '@/themes/webina-corporate-v1/builder/prefetch';
 
 export const revalidate = 60;
 
-export function generateMetadata() {
-  return routeMetadata('/products', { title: 'محصولات' });
+export async function generateMetadata() {
+  return itemMetadata<{ title?: string; seo?: Seo }>('/v1/public/builder/pages/products-store', '/products', (d) => ({ title: d.title || 'محصولات', seo: d.seo }));
 }
 
 export default async function ProductsPage() {
+  // Builder first: published صفحه‌ساز page «products-store» owns the store catalog.
+  const built = await loadPublishedPage('products-store');
+  if (built) return <StorefrontDocument document={built} themeClass="webina-builder" runtime={{ prefetch: await prefetchCorporate(built) }} />;
   const t = await getTranslations();
   const locale = await getLocale();
   const modules = await getHomeBlock('products');
