@@ -11,7 +11,7 @@ class MarketingAcademyLesson extends Model
 
     protected $fillable = ['seo', 'course_id', 'chapter_id', 'summary', 'slug', 'title', 'content', 'video_url', 'sort_order', 'published'];
 
-    protected $casts = ['seo' => 'array', 'published' => 'boolean'];
+    protected $casts = ['seo' => 'array', 'published' => 'boolean', 'quiz' => 'array', 'is_preview' => 'boolean', 'duration_minutes' => 'integer'];
 
     public function course(): BelongsTo
     {
