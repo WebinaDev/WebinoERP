@@ -12,7 +12,6 @@ import {
 } from 'lucide-react';
 import { usePathname } from '@/lib/i18n-navigation';
 import { dashboardHref } from '@/lib/route-resolver';
-import { useSidebar } from '@/components/ui/sidebar';
 import { cn } from '@/lib/utils';
 
 /** Single icon family (Lucide) + one stroke for the whole tab bar. */
@@ -71,12 +70,16 @@ function normalizePath(pathname: string): string {
   return pathname || '/';
 }
 
-export function MobileBottomNav() {
+type Props = {
+  moreOpen?: boolean;
+  onMoreOpenChange?: (open: boolean) => void;
+};
+
+export function MobileBottomNav({ moreOpen = false, onMoreOpenChange }: Props) {
   const t = useTranslations('shell.mobileNav');
   const locale = useLocale();
   const pathname = usePathname() ?? '';
   const path = normalizePath(pathname);
-  const { toggleSidebar } = useSidebar();
 
   return (
     <nav
@@ -86,7 +89,7 @@ export function MobileBottomNav() {
     >
       {TABS.map((tab) => {
         const Icon = tab.icon;
-        const active = tab.action === 'menu' ? false : Boolean(tab.match?.(path));
+        const active = tab.action === 'menu' ? moreOpen : Boolean(tab.match?.(path));
         const label = t(tab.labelKey);
 
         if (tab.action === 'menu') {
@@ -94,9 +97,11 @@ export function MobileBottomNav() {
             <button
               key={tab.id}
               type="button"
-              className="wd-mobile-tab"
-              onClick={() => toggleSidebar()}
+              className={cn('wd-mobile-tab', active && 'on')}
+              onClick={() => onMoreOpenChange?.(!moreOpen)}
               aria-label={label}
+              aria-expanded={moreOpen}
+              aria-haspopup="dialog"
             >
               <span className="wd-mobile-tab-ic">
                 <Icon absoluteStrokeWidth strokeWidth={ICON_STROKE} />
@@ -113,6 +118,9 @@ export function MobileBottomNav() {
             href={href}
             className={cn('wd-mobile-tab', active && 'on')}
             aria-current={active ? 'page' : undefined}
+            onClick={() => {
+              if (moreOpen) onMoreOpenChange?.(false);
+            }}
           >
             <span className="wd-mobile-tab-ic">
               <Icon absoluteStrokeWidth strokeWidth={ICON_STROKE} />

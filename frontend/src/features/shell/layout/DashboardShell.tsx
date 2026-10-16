@@ -1,6 +1,6 @@
 'use client';
 
-import { ExternalLink, Maximize, Minimize, Plus } from 'lucide-react';
+import { ExternalLink, LayoutGrid, Maximize, Minimize, Plus } from 'lucide-react';
 import { useEffect, useMemo, useState } from 'react';
 import { useLocale, useTranslations } from 'next-intl';
 import { AppSidebar } from '@/components/blocks/sidebar-07/components/app-sidebar';
@@ -31,6 +31,7 @@ import { usePathname, useRouter } from '@/lib/i18n-navigation';
 import { NotificationBell } from '@/features/expansion/NotificationBell';
 import { PwaRegistrar } from '@/features/expansion/PwaRegistrar';
 import { MobileBottomNav } from '@/features/shell/layout/MobileBottomNav';
+import { MobileMoreSheet } from '@/features/shell/layout/MobileMoreSheet';
 import { GlobalSearchBox } from '@/features/modules/dashboard/GlobalSearchBox';
 import { cn } from '@/lib/utils';
 import './mobile-chrome.css';
@@ -135,6 +136,7 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
   }, [pathname, locale, t, rtl]);
 
   const [fs, setFs] = useState(false);
+  const [moreOpen, setMoreOpen] = useState(false);
   useEffect(() => {
     const h = () => setFs(Boolean(document.fullscreenElement));
     document.addEventListener('fullscreenchange', h);
@@ -188,7 +190,17 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
             )}
           >
             <div className="flex w-full min-w-0 items-center gap-2 px-3 sm:px-4 md:gap-3 md:px-5">
-              <SidebarTrigger className="-ms-1 md:inline-flex" />
+              <SidebarTrigger className="-ms-1 hidden md:inline-flex" />
+              <Button
+                type="button"
+                variant="ghost"
+                size="icon"
+                className="-ms-1 inline-flex md:hidden"
+                aria-label={t('shell.mobileMore.title')}
+                onClick={() => setMoreOpen(true)}
+              >
+                <LayoutGrid className="size-5" strokeWidth={1.75} absoluteStrokeWidth />
+              </Button>
               <Separator orientation="vertical" className="me-2 hidden data-[orientation=vertical]:h-4 md:block" />
               {/* Mobile: compact page title */}
               <div className="min-w-0 flex-1 md:hidden">
@@ -253,7 +265,19 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
           <div className="@container/main wd-app-atmosphere wd-mobile-main wd-desktop-main wd-desktop-chrome flex min-w-0 flex-1 flex-col gap-3 p-3 sm:gap-4 sm:p-4 md:pb-4">
             {children}
           </div>
-          <MobileBottomNav />
+          <MobileBottomNav moreOpen={moreOpen} onMoreOpenChange={setMoreOpen} />
+          <MobileMoreSheet
+            open={moreOpen}
+            onOpenChange={setMoreOpen}
+            pinnedItems={pinnedItems}
+            moduleSections={moduleSections}
+            user={user}
+            logoutLabel={t('login.logout')}
+            onLogout={async () => {
+              await logout().catch(() => undefined);
+              router.replace('/login');
+            }}
+          />
         </SidebarInset>
       </>
     </SidebarProvider>
