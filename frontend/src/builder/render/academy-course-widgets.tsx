@@ -49,8 +49,8 @@ function usePrefetched<T>(path: string | null): T | null {
     if (!path || seeded !== undefined) return
     let off = false
     fetch(api(path), { headers: { Accept: "application/json" } })
-      .then((r) => (r.ok ? r.json() : {}))
-      .then((j) => !off && setData((j?.data ?? null) as T))
+      .then((r) => (r.ok ? r.json() : Promise.resolve({} as { data?: T })))
+      .then((j: { data?: T }) => !off && setData((j?.data ?? null) as T))
       .catch(() => undefined)
     return () => {
       off = true
