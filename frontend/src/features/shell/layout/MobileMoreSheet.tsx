@@ -259,11 +259,11 @@ function MenuView({
         </span>
         <span className="min-w-0 flex-1 text-start">
           <span className="block truncate text-[14px] font-semibold leading-tight">{userName}</span>
-          <span className="mt-0.5 block truncate text-[12px] text-[var(--wd-mobile-hint,#6b7280)]">
+          <span className="wd-mobile-more-muted mt-0.5 block truncate text-[12px]">
             {userRole || userEmail || t('shell.mobileSettings.title')}
           </span>
         </span>
-        <Settings2 absoluteStrokeWidth strokeWidth={ICON_STROKE} className="size-5 shrink-0 text-[var(--wd-brand,#0054ff)]" />
+        <Settings2 absoluteStrokeWidth strokeWidth={ICON_STROKE} className="size-5 shrink-0 text-[color:var(--wd-brand)]" />
       </button>
 
       {sections.map((section) => (
@@ -389,7 +389,7 @@ function SettingsView() {
 
   return (
     <div className="flex flex-col gap-4">
-      <p className="px-1 text-[12.5px] leading-relaxed text-[var(--wd-mobile-hint,#6b7280)]">
+      <p className="wd-mobile-more-muted px-1 text-[12.5px] leading-relaxed">
         {t('shell.mobileSettings.subtitle')}
       </p>
 
@@ -413,7 +413,7 @@ function SettingsView() {
             </button>
           ))}
         </div>
-        <p className="mt-2 text-[11.5px] text-[var(--wd-mobile-hint,#6b7280)]">
+        <p className="wd-mobile-more-muted mt-2 text-[11.5px]">
           {t('shell.mobileSettings.themeHint', {
             current: resolvedTheme === 'dark' ? t('settings.themeDark') : t('settings.themeLight'),
           })}

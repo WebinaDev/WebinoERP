@@ -438,7 +438,7 @@
   html[data-wd-dashboard] .wd-card-glass,
   html[data-wd-dashboard] .wd-card-hero {
     box-shadow: none;
-    background: var(--wd-mobile-card, #fff);
+    background: var(--wd-mobile-card);
   }
 
   html[data-wd-dashboard] [data-slot='card-header'] {
@@ -737,9 +737,9 @@
 
 /* More sheet — bank-style icon grid */
 .wd-mobile-more-sheet {
-  font-family: var(--wd-mobile-font, var(--font-yekan), "Yekan Bakh", Tahoma, sans-serif);
-  background: var(--wd-mobile-bg, #f5f6f8);
-  color: var(--wd-ink, #22242a);
+  font-family: var(--wd-mobile-font);
+  background: var(--wd-mobile-bg);
+  color: var(--wd-ink);
 }
 
 .dark .wd-mobile-more-sheet {
@@ -748,11 +748,11 @@
 }
 
 .wd-mobile-more-bar {
-  background: var(--wd-mobile-card, #fff);
+  background: var(--wd-mobile-card);
 }
 
 .dark .wd-mobile-more-bar {
-  background: var(--wd-mobile-card, #1a1d25);
+  background: var(--wd-mobile-card);
 }
 
 .wd-mobile-more-icon-btn {
@@ -768,7 +768,7 @@
 }
 
 .wd-mobile-more-icon-btn:active {
-  background: var(--wd-mobile-tint, color-mix(in srgb, #0054ff 9%, #fff));
+  background: var(--wd-mobile-tint);
 }
 
 .wd-mobile-more-profile {
@@ -777,8 +777,8 @@
   gap: 12px;
   width: 100%;
   text-align: start;
-  border: 1px solid var(--wd-mobile-line, #e5e7eb);
-  background: var(--wd-mobile-card, #fff);
+  border: 1px solid var(--wd-mobile-line);
+  background: var(--wd-mobile-card);
   border-radius: 14px;
   padding: 12px 14px;
   font-family: inherit;
@@ -787,18 +787,18 @@
 }
 
 .dark .wd-mobile-more-profile {
-  background: var(--wd-mobile-card, #1a1d25);
+  background: var(--wd-mobile-card);
 }
 
 .wd-mobile-more-profile:active {
-  background: var(--wd-mobile-tint, color-mix(in srgb, #0054ff 9%, #fff));
+  background: var(--wd-mobile-tint);
 }
 
 .wd-mobile-more-avatar {
   width: 44px;
   height: 44px;
   border-radius: 12px;
-  background: var(--wd-brand, #0054ff);
+  background: var(--wd-brand);
   color: #fff;
   display: grid;
   place-items: center;
@@ -812,7 +812,7 @@
   font-size: 13px;
   font-weight: 600;
   letter-spacing: -0.01em;
-  color: var(--wd-ink, #22242a);
+  color: var(--wd-ink);
 }
 
 .dark .wd-mobile-more-section-title {
@@ -834,10 +834,10 @@
   min-width: 0;
   min-height: 88px;
   padding: 12px 6px 10px;
-  border: 1px solid var(--wd-mobile-line, #e5e7eb);
+  border: 1px solid var(--wd-mobile-line);
   border-radius: 12px;
-  background: var(--wd-mobile-card, #fff);
-  color: var(--wd-ink, #22242a);
+  background: var(--wd-mobile-card);
+  color: var(--wd-ink);
   text-decoration: none;
   font-family: inherit;
   font-size: 11.5px;
@@ -848,18 +848,18 @@
 }
 
 .dark .wd-mobile-more-tile {
-  background: var(--wd-mobile-card, #1a1d25);
+  background: var(--wd-mobile-card);
   color: #e8ecf2;
 }
 
 .wd-mobile-more-tile:active,
 .wd-mobile-more-tile.on {
-  background: var(--wd-mobile-tint, color-mix(in srgb, #0054ff 9%, #fff));
-  border-color: color-mix(in srgb, var(--wd-brand, #0054ff) 28%, var(--wd-mobile-line, #e5e7eb));
+  background: var(--wd-mobile-tint);
+  border-color: color-mix(in srgb, var(--wd-brand) 28%, var(--wd-mobile-line));
 }
 
 .wd-mobile-more-tile.on {
-  color: var(--wd-brand, #0054ff);
+  color: var(--wd-brand);
 }
 
 .wd-mobile-more-tile.danger {
@@ -870,8 +870,8 @@
   width: 40px;
   height: 40px;
   border-radius: 10px;
-  background: var(--wd-mobile-tint, color-mix(in srgb, #0054ff 9%, #fff));
-  color: var(--wd-brand, #0054ff);
+  background: var(--wd-mobile-tint);
+  color: var(--wd-brand);
   display: grid;
   place-items: center;
   flex: none;
@@ -903,14 +903,14 @@
 
 /* App-like settings cards */
 .wd-mobile-settings-card {
-  border: 1px solid var(--wd-mobile-line, #e5e7eb);
-  background: var(--wd-mobile-card, #fff);
+  border: 1px solid var(--wd-mobile-line);
+  background: var(--wd-mobile-card);
   border-radius: 14px;
   padding: 14px;
 }
 
 .dark .wd-mobile-settings-card {
-  background: var(--wd-mobile-card, #1a1d25);
+  background: var(--wd-mobile-card);
 }
 
 .wd-mobile-settings-card-title {
@@ -929,7 +929,7 @@
   gap: 6px;
   padding: 4px;
   border-radius: 12px;
-  background: color-mix(in srgb, var(--wd-mobile-line, #e5e7eb) 55%, transparent);
+  background: color-mix(in srgb, var(--wd-mobile-line) 55%, transparent);
 }
 
 .wd-mobile-settings-segment:has(> :nth-child(2):last-child) {
@@ -947,7 +947,7 @@
   border: 0;
   border-radius: 10px;
   background: transparent;
-  color: var(--wd-mobile-hint, #6b7280);
+  color: var(--wd-mobile-hint);
   font-family: inherit;
   font-size: 11.5px;
   font-weight: 500;
@@ -956,8 +956,8 @@
 }
 
 .wd-mobile-settings-segment-btn.on {
-  background: var(--wd-mobile-card, #fff);
-  color: var(--wd-brand, #0054ff);
+  background: var(--wd-mobile-card);
+  color: var(--wd-brand);
   font-weight: 600;
   box-shadow: 0 1px 2px rgba(34, 36, 42, 0.06);
 }
@@ -979,7 +979,7 @@
   gap: 6px;
   min-width: 0;
   padding: 10px 4px;
-  border: 1px solid var(--wd-mobile-line, #e5e7eb);
+  border: 1px solid var(--wd-mobile-line);
   border-radius: 12px;
   background: transparent;
   font-family: inherit;
@@ -989,8 +989,8 @@
 }
 
 .wd-mobile-settings-swatch.on {
-  border-color: var(--wd-brand, #0054ff);
-  background: var(--wd-mobile-tint, color-mix(in srgb, #0054ff 9%, #fff));
+  border-color: var(--wd-brand);
+  background: var(--wd-mobile-tint);
 }
 
 .wd-mobile-settings-swatch-dot {
@@ -1021,7 +1021,7 @@
   justify-content: space-between;
   gap: 10px;
   padding: 12px 4px;
-  border-bottom: 1px solid var(--wd-mobile-line, #e5e7eb);
+  border-bottom: 1px solid var(--wd-mobile-line);
   color: inherit;
   text-decoration: none;
   font-size: 13.5px;
@@ -1036,4 +1036,8 @@
   .wd-mobile-more-sheet {
     display: none !important;
   }
+}
+
+.wd-mobile-more-muted {
+  color: var(--wd-mobile-hint);
 }
