@@ -17,6 +17,7 @@ import {
   type StatItem,
 } from '../../site-content';
 import { NavIcon } from '../NavIcon';
+import { TestimonialSlider } from './TestimonialSlider';
 import { WorkThumb, isDarkThumb, realCover } from '../WorkThumb';
 import { useLandingMotion } from './useLandingMotion';
 
@@ -36,7 +37,7 @@ export type LandingPortfolioItem = {
 export type LandingData = {
   site?: { name?: string; branding?: Record<string, unknown> | null };
   blocks?: RawBlock[];
-  testimonials?: { id: number; author: string; quote: string; company?: string | null; role?: string | null; avatar_url?: string | null }[];
+  testimonials?: { id: number; author: string; quote: string; company?: string | null; role?: string | null; avatar_url?: string | null; rating?: number | null }[];
   portfolio?: LandingPortfolioItem[];
   blog?: { id: number; slug: string; title: string; excerpt?: string | null; cover_url?: string | null; published_at?: string | null }[];
   courses?: { id: number; slug: string; title: string; description?: string | null; cover_url?: string | null }[];
@@ -535,27 +536,7 @@ export function LandingPage({ data }: { data: LandingData }) {
             <div className="webina-shell">
               <SectionHead index={num(index)} title={p.title} />
               {quotes.length ? (
-                <div className="quote-grid">
-                  {quotes.slice(0, Math.max(1, Number(p.limit) || 6)).map((q) => (
-                    <blockquote key={q.id} className="quote reveal">
-                      {q.quote}
-                      <footer className="flex items-center gap-3">
-                        {q.avatar_url ? (
-                          // eslint-disable-next-line @next/next/no-img-element
-                          <img src={q.avatar_url} alt="" className="size-10 rounded-full object-cover" />
-                        ) : null}
-                        <span className="!mt-0 !font-extrabold !text-[var(--ink)]">
-                          {q.author}
-                          {q.role || q.company ? (
-                            <span className="block text-xs font-normal text-[var(--muted)]">
-                              {[q.role, q.company].filter(Boolean).join('، ')}
-                            </span>
-                          ) : null}
-                        </span>
-                      </footer>
-                    </blockquote>
-                  ))}
-                </div>
+                <TestimonialSlider items={quotes.slice(0, Math.max(1, Number(p.limit) || 8))} />
               ) : (
                 <p className="empty-note reveal mt-8">{p.empty}</p>
               )}

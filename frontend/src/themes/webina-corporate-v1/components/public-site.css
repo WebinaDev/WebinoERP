@@ -2237,3 +2237,46 @@ a.panel:hover,
 .svc-quote cite { display: block; margin-top: 12px; color: var(--muted); font-style: normal; font-weight: 600; }
 .svc-dock { position: fixed; inset-inline: 0; bottom: 0; z-index: 40; display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 12px 16px calc(12px + env(safe-area-inset-bottom)); background: rgba(34,36,42,.94); color: #fff; backdrop-filter: blur(10px); }
 .svc-dock .btn-primary { height: 42px; padding: 0 16px; font-size: .9rem; }
+
+/* testimonials slider */
+.tslider { margin-top: 2.5rem; position: relative; }
+.tslider-track {
+  display: flex; gap: 1.5rem; overflow-x: auto; scroll-snap-type: x mandatory;
+  padding: 1rem 0.25rem 1.5rem; scrollbar-width: none; overscroll-behavior-x: contain;
+}
+.tslider-track::-webkit-scrollbar { display: none; }
+.tcard {
+  position: relative; flex: 0 0 88%; scroll-snap-align: center; margin: 0;
+  display: flex; flex-direction: column; gap: 1rem;
+  padding: 2rem 1.75rem 1.6rem; border-radius: 1.5rem;
+  background: linear-gradient(160deg, #fff 0%, var(--brand-tint) 100%);
+  border: 1px solid var(--line); box-shadow: 0 10px 30px -18px rgba(0, 84, 255, 0.35);
+  transition: transform .4s ease, box-shadow .4s ease, border-color .4s ease;
+}
+@media (min-width: 720px) { .tcard { flex-basis: calc(50% - 0.75rem); } }
+@media (min-width: 1100px) { .tcard { flex-basis: calc(33.333% - 1rem); } }
+.tcard.is-active { border-color: rgba(0, 84, 255, 0.35); box-shadow: 0 22px 50px -24px rgba(0, 84, 255, 0.55); transform: translateY(-4px); }
+.tcard-mark { position: absolute; top: 1.4rem; inset-inline-end: 1.5rem; width: 2.6rem; height: 2.6rem; color: var(--brand-primary); opacity: .14; }
+.tcard-stars { display: flex; gap: .2rem; }
+.tcard-stars svg { width: 1.05rem; height: 1.05rem; color: #d5d9e2; fill: currentColor; }
+.tcard-stars svg.on { color: #ffb400; }
+.tcard blockquote { margin: 0; flex: 1; font-size: 1rem; line-height: 2.05; color: var(--ink-soft); }
+.tcard figcaption { display: flex; align-items: center; gap: .9rem; padding-top: 1rem; border-top: 1px dashed var(--line-strong); }
+.tcard-avatar {
+  flex: 0 0 auto; width: 3.6rem; height: 3.6rem; border-radius: 999px; overflow: hidden;
+  padding: 3px; background: linear-gradient(135deg, var(--brand-primary), #7aa2ff);
+  display: grid; place-items: center; color: #fff; font-weight: 800; font-size: 1.3rem;
+}
+.tcard-avatar img { width: 100%; height: 100%; border-radius: 999px; object-fit: cover; background: #fff; }
+.tcard-who strong { display: block; font-weight: 800; color: var(--ink); }
+.tcard-who small { display: block; font-size: .82rem; color: var(--muted); margin-top: .15rem; }
+.tslider-nav { display: flex; align-items: center; justify-content: center; gap: 1rem; margin-top: .5rem; }
+.tslider-btn {
+  width: 2.6rem; height: 2.6rem; border-radius: 999px; display: grid; place-items: center;
+  border: 1px solid var(--line-strong); background: #fff; color: var(--ink); transition: all .2s;
+}
+.tslider-btn:hover { background: var(--brand-primary); border-color: var(--brand-primary); color: #fff; }
+.tslider-btn svg { width: 1.2rem; height: 1.2rem; }
+.tslider-dots { display: flex; gap: .45rem; }
+.tslider-dots button { width: .55rem; height: .55rem; border-radius: 999px; background: var(--line-strong); transition: all .3s; }
+.tslider-dots button.on { width: 1.8rem; background: var(--brand-primary); }
