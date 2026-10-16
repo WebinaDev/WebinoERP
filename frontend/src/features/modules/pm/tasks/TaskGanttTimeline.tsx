@@ -11,7 +11,6 @@ type Props = {
 
 export function TaskGanttTimeline({ tasks, onTaskClick }: Props) {
   const t = useTranslations('pm.tasks');
-  const suite = useTranslations('suite');
   if (tasks.length === 0) return null;
 
   const parseDate = (s: string) => {
@@ -26,8 +25,8 @@ export function TaskGanttTimeline({ tasks, onTaskClick }: Props) {
   const span = Math.max(max - min, 86400000);
 
   return (
-    <div className="space-y-3 overflow-x-auto">
-      <div className="grid min-w-[640px] grid-cols-[200px_1fr_80px_80px] gap-2 px-1 text-xs font-medium text-muted-foreground">
+    <div className="max-w-full space-y-3 overflow-x-auto [scrollbar-width:thin]">
+      <div className="grid min-w-[36rem] grid-cols-[minmax(7rem,12rem)_1fr_4.5rem_4.5rem] gap-2 px-1 text-xs font-medium text-muted-foreground sm:min-w-[40rem]">
         <span>{t('colTitle')}</span>
         <span />
         <span>{t('durationDays')}</span>
@@ -40,18 +39,18 @@ export function TaskGanttTimeline({ tasks, onTaskClick }: Props) {
           <button
             key={task.id}
             type="button"
-            className="grid min-w-[640px] grid-cols-[200px_1fr_80px_80px] items-center gap-2 rounded-md border p-2 text-start transition-colors hover:bg-muted/50"
+            className="grid min-w-[36rem] grid-cols-[minmax(7rem,12rem)_1fr_4.5rem_4.5rem] items-center gap-2 rounded-md border p-2 text-start transition-colors hover:bg-muted/50 sm:min-w-[40rem]"
             onClick={() => onTaskClick(task.id)}
           >
-            <span className="truncate text-sm font-medium">
+            <span className="min-w-0 truncate text-sm font-medium">
               {task.text}
               {task.dependsOn && task.dependsOn.length > 0 ? (
-                <span className="mt-0.5 block text-xs font-normal text-muted-foreground">
-                  {suite('dependsOn')} {task.dependsOn.map((id) => `#${id}`).join(' · ')}
+                <span className="mt-0.5 block truncate text-xs font-normal text-muted-foreground">
+                  {t('dependsOn')} {task.dependsOn.map((id) => `#${id}`).join(' · ')}
                 </span>
               ) : null}
             </span>
-            <div className="relative h-6 overflow-hidden rounded bg-muted">
+            <div className="relative h-6 min-w-0 overflow-hidden rounded bg-muted">
               <div
                 className={cn('absolute top-0 h-full rounded bg-primary/40')}
                 style={{ left: `${left}%`, width: `${width}%` }}
@@ -61,8 +60,8 @@ export function TaskGanttTimeline({ tasks, onTaskClick }: Props) {
                 style={{ left: `${left}%`, width: `${width * Math.min(1, Math.max(0, task.progress))}%` }}
               />
             </div>
-            <span className="text-xs text-muted-foreground">{task.duration}d</span>
-            <span className="text-xs text-muted-foreground">{Math.round(task.progress * 100)}%</span>
+            <span className="text-xs text-muted-foreground">{t('durationDaysShort', { count: task.duration })}</span>
+            <span className="text-xs text-muted-foreground">{t('progressPercent', { value: Math.round(task.progress * 100) })}</span>
           </button>
         );
       })}

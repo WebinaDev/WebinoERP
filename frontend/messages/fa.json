@@ -5500,7 +5500,13 @@
       "weekdayTue": "س",
       "weekdayWed": "چ",
       "weekdayThu": "پ",
-      "weekdayFri": "ج"
+      "weekdayFri": "ج",
+      "pageDescription": "کانبان، لیست، تقویم و گانت وظایف پروژه",
+      "filterLabelPlaceholder": "جستجوی برچسب…",
+      "colAssignee": "مسئول",
+      "durationDaysShort": "{count} روز",
+      "progressPercent": "{value}٪",
+      "clearFilters": "پاک کردن فیلترها"
     },
     "timeTracking": {
       "active": "تایمر فعال",

@@ -30,18 +30,20 @@ export function PmPageHeader({ title, description, actions }: Props) {
 export function PmFilterBar({
   children,
   onApply,
-  applyLabel = 'Apply',
+  applyLabel,
 }: {
   children: ReactNode;
   onApply?: () => void;
   applyLabel?: string;
 }) {
+  const tCommon = useTranslations('common');
+  const label = applyLabel ?? tCommon('apply');
   return (
-    <div className="wd-filter-bar flex flex-col gap-3 rounded-[12px] border bg-card p-3 sm:flex-row sm:flex-wrap sm:items-end sm:p-4">
-      <div className="flex flex-1 flex-col gap-3 sm:flex-row sm:flex-wrap">{children}</div>
+    <div className="wd-filter-bar flex min-w-0 flex-col gap-3 rounded-[12px] border bg-card p-3 sm:flex-row sm:flex-wrap sm:items-end sm:p-4">
+      <div className="grid min-w-0 flex-1 grid-cols-1 gap-3 sm:flex sm:flex-row sm:flex-wrap sm:items-end">{children}</div>
       {onApply ? (
-        <Button type="button" variant="secondary" onClick={onApply}>
-          {applyLabel}
+        <Button type="button" variant="secondary" className="h-9 w-full shrink-0 sm:w-auto" onClick={onApply}>
+          {label}
         </Button>
       ) : null}
     </div>
@@ -84,16 +86,17 @@ export function PmViewToggle({
   onChange: (id: string) => void;
 }) {
   return (
-    <div className="wd-view-toggle inline-flex rounded-[10px] border p-1">
+    <div className="wd-view-toggle flex w-full max-w-full flex-wrap gap-1 rounded-[10px] border p-1 sm:inline-flex sm:w-auto">
       {options.map((o) => (
         <Button
           key={o.id}
           type="button"
           size="sm"
+          className="min-w-0 flex-1 px-2 sm:flex-none"
           variant={value === o.id ? 'default' : 'ghost'}
           onClick={() => onChange(o.id)}
         >
-          {o.label}
+          <span className="truncate">{o.label}</span>
         </Button>
       ))}
     </div>

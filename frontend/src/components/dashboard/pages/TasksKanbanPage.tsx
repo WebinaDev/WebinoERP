@@ -75,7 +75,7 @@ function DraggableTask({
       ref={setNodeRef}
       style={style}
       className={cn(
-        'rounded-md border bg-background p-2 text-sm shadow-sm',
+        'min-w-0 rounded-md border bg-background p-2 text-sm shadow-sm',
         isDragging && 'opacity-60'
       )}
     >
@@ -124,7 +124,7 @@ function ColumnDrop({
     <div
       ref={setNodeRef}
       className={cn(
-        'flex min-h-[280px] min-w-[220px] flex-1 flex-col gap-2 rounded-lg border bg-muted/30 p-2',
+        'flex min-h-[240px] w-[min(100%,18rem)] shrink-0 flex-col gap-2 rounded-lg border bg-muted/30 p-2 sm:min-h-[280px] sm:w-auto sm:min-w-[13.5rem] sm:max-w-[20rem] sm:flex-1',
         isOver && 'ring-2 ring-primary/40'
       )}
       style={color ? { borderTopColor: color, borderTopWidth: 3 } : undefined}
@@ -462,10 +462,13 @@ export function TasksKanbanPage() {
   }, [listRows, cards]);
 
   return (
-    <div className="space-y-3" dir={isRtl ? 'rtl' : 'ltr'}>
+    <div
+      className="wd-page-shell wd-tasks min-w-0 max-w-full space-y-3 overflow-x-hidden text-start sm:space-y-4"
+      dir={isRtl ? 'rtl' : 'ltr'}
+    >
       <PmPageHeader
         title={t('title')}
-        description={t('description')}
+        description={t('pageDescription')}
         actions={
           <PmViewToggle
             value={view}
@@ -475,9 +478,9 @@ export function TasksKanbanPage() {
         }
       />
 
-      <Card variant="glass">
-        <CardHeader>
-          <CardTitle className="mb-2 text-base">{t('filters')}</CardTitle>
+      <Card variant="glass" className="min-w-0 overflow-hidden">
+        <CardHeader className="space-y-3 p-3 sm:p-6">
+          <CardTitle className="text-base">{t('filters')}</CardTitle>
           <PmFilterBar
             applyLabel={t('applyFilters')}
             onApply={() => {
@@ -487,77 +490,89 @@ export function TasksKanbanPage() {
               if (view === 'gantt') void loadGantt();
             }}
           >
-            <Select
-              value={filterProject || '__all__'}
-              onValueChange={(v) => setFilterProject(v === '__all__' ? '' : v)}
-            >
-              <SelectTrigger className="w-[160px]">
-                <SelectValue placeholder={t('filterProject')} />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="__all__">{t('allProjects')}</SelectItem>
-                {projectOpts.map((p) => (
-                  <SelectItem key={p.id} value={String(p.id)}>
-                    {p.name}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-            <Select
-              value={filterAssignee || '__all__'}
-              onValueChange={(v) => setFilterAssignee(v === '__all__' ? '' : v)}
-            >
-              <SelectTrigger className="w-[160px]">
-                <SelectValue placeholder={t('filterAssignee')} />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="__all__">{t('allAssignees')}</SelectItem>
-                {userOpts.map((u) => (
-                  <SelectItem key={u.id} value={String(u.id)}>
-                    {u.name}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-            <Select
-              value={filterPriority || '__all__'}
-              onValueChange={(v) => setFilterPriority(v === '__all__' ? '' : v)}
-            >
-              <SelectTrigger className="w-[140px]">
-                <SelectValue placeholder={t('filterPriority')} />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="__all__">{t('allPriorities')}</SelectItem>
-                <SelectItem value="low">{t('priorityLow')}</SelectItem>
-                <SelectItem value="normal">{t('priorityNormal')}</SelectItem>
-                <SelectItem value="high">{t('priorityHigh')}</SelectItem>
-                <SelectItem value="urgent">{t('priorityUrgent')}</SelectItem>
-              </SelectContent>
-            </Select>
-            <Input
-              placeholder={t('filterLabel')}
-              className="w-32"
-              value={filterLabel}
-              onChange={(e) => setFilterLabel(e.target.value)}
-            />
+            <label className="flex min-w-0 w-full flex-col gap-1 sm:w-[11rem] sm:max-w-[14rem]">
+              <span className="text-xs font-medium text-muted-foreground">{t('filterProject')}</span>
+              <Select
+                value={filterProject || '__all__'}
+                onValueChange={(v) => setFilterProject(v === '__all__' ? '' : v)}
+              >
+                <SelectTrigger className="h-9 w-full min-w-0">
+                  <SelectValue placeholder={t('filterProject')} />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="__all__">{t('allProjects')}</SelectItem>
+                  {projectOpts.map((p) => (
+                    <SelectItem key={p.id} value={String(p.id)}>
+                      {p.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </label>
+            <label className="flex min-w-0 w-full flex-col gap-1 sm:w-[11rem] sm:max-w-[14rem]">
+              <span className="text-xs font-medium text-muted-foreground">{t('filterAssignee')}</span>
+              <Select
+                value={filterAssignee || '__all__'}
+                onValueChange={(v) => setFilterAssignee(v === '__all__' ? '' : v)}
+              >
+                <SelectTrigger className="h-9 w-full min-w-0">
+                  <SelectValue placeholder={t('filterAssignee')} />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="__all__">{t('allAssignees')}</SelectItem>
+                  {userOpts.map((u) => (
+                    <SelectItem key={u.id} value={String(u.id)}>
+                      {u.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </label>
+            <label className="flex min-w-0 w-full flex-col gap-1 sm:w-[10rem] sm:max-w-[12rem]">
+              <span className="text-xs font-medium text-muted-foreground">{t('filterPriority')}</span>
+              <Select
+                value={filterPriority || '__all__'}
+                onValueChange={(v) => setFilterPriority(v === '__all__' ? '' : v)}
+              >
+                <SelectTrigger className="h-9 w-full min-w-0">
+                  <SelectValue placeholder={t('filterPriority')} />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="__all__">{t('allPriorities')}</SelectItem>
+                  <SelectItem value="low">{t('priorityLow')}</SelectItem>
+                  <SelectItem value="normal">{t('priorityNormal')}</SelectItem>
+                  <SelectItem value="high">{t('priorityHigh')}</SelectItem>
+                  <SelectItem value="urgent">{t('priorityUrgent')}</SelectItem>
+                </SelectContent>
+              </Select>
+            </label>
+            <label className="flex min-w-0 w-full flex-col gap-1 sm:w-[9rem] sm:max-w-[12rem]">
+              <span className="text-xs font-medium text-muted-foreground">{t('filterLabel')}</span>
+              <Input
+                placeholder={t('filterLabelPlaceholder')}
+                className="h-9 w-full min-w-0"
+                value={filterLabel}
+                onChange={(e) => setFilterLabel(e.target.value)}
+              />
+            </label>
           </PmFilterBar>
-          <p className="mt-2 text-xs text-muted-foreground">
-            {t('tasksPerColumn', { count: formatDigits(stats.total) })}{' '}
+          <div className="flex flex-wrap gap-x-3 gap-y-1 text-xs text-muted-foreground">
+            <span>{t('tasksPerColumn', { count: formatDigits(stats.total) })}</span>
             {columns.map((c) => (
-              <span key={c.id} className="ms-2">
+              <span key={c.id} className="rounded-md bg-muted/60 px-1.5 py-0.5">
                 {t('columnCount', { name: c.name, count: formatDigits(stats.byCol.get(c.id) ?? 0) })}
               </span>
             ))}
-          </p>
+          </div>
         </CardHeader>
       </Card>
 
       {selectedIds.length > 0 && view === 'list' ? (
-        <Card>
-          <CardContent className="flex flex-wrap items-center gap-3 pt-6">
+        <Card className="min-w-0 overflow-hidden">
+          <CardContent className="flex flex-col gap-3 pt-6 sm:flex-row sm:flex-wrap sm:items-center">
             <span className="text-sm">{t('bulkSelected', { count: formatDigits(selectedIds.length) })}</span>
             <Select value={bulkStatus} onValueChange={setBulkStatus}>
-              <SelectTrigger className="w-[160px]">
+              <SelectTrigger className="h-9 w-full min-w-0 sm:w-[160px]">
                 <SelectValue placeholder={t('bulkStatus')} />
               </SelectTrigger>
               <SelectContent>
@@ -581,34 +596,37 @@ export function TasksKanbanPage() {
       <PmAlerts error={error} onDismiss={() => setError(null)} />
 
       {view === 'kanban' ? (
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between gap-2 space-y-0">
+        <Card className="min-w-0 overflow-hidden">
+          <CardHeader className="flex flex-col gap-3 space-y-0 p-3 sm:flex-row sm:items-center sm:justify-between sm:p-6">
             <CardTitle className="text-base">{t('viewKanban')}</CardTitle>
-            <div className="flex gap-2">
+            <div className="flex w-full min-w-0 flex-col gap-2 sm:w-auto sm:flex-row sm:items-center">
               <Input
                 placeholder={t('quickTitle')}
                 value={quickTitle}
                 onChange={(e) => setQuickTitle(e.target.value)}
-                className="w-56"
+                className="h-9 w-full min-w-0 sm:w-56"
               />
-              <Button
-                type="button"
-                size="sm"
-                variant="secondary"
-                onClick={() => columns[0] && void quickAdd(columns[0].id)}
-                disabled={!columns.length}
-              >
-                {t('quickAdd')}
-              </Button>
-              <Button type="button" size="sm" variant="outline" onClick={() => void loadKanban()}>
-                {t('refresh')}
-              </Button>
+              <div className="grid grid-cols-2 gap-2 sm:flex">
+                <Button
+                  type="button"
+                  size="sm"
+                  variant="secondary"
+                  className="h-9"
+                  onClick={() => columns[0] && void quickAdd(columns[0].id)}
+                  disabled={!columns.length}
+                >
+                  {t('quickAdd')}
+                </Button>
+                <Button type="button" size="sm" variant="outline" className="h-9" onClick={() => void loadKanban()}>
+                  {t('refresh')}
+                </Button>
+              </div>
             </div>
           </CardHeader>
-          <CardContent>
+          <CardContent className="min-w-0 p-3 sm:p-6">
             {loading ? <p className="text-sm text-muted-foreground">{tc('loading')}</p> : null}
             <DndContext sensors={sensors} collisionDetection={closestCorners} onDragEnd={onDragEnd}>
-              <div className="flex gap-3 overflow-x-auto pb-2">
+              <div className="-mx-1 flex max-w-full gap-3 overflow-x-auto px-1 pb-2 [scrollbar-width:thin]">
                 {columns.map((col) => {
                   const colCards = cardsByCol.get(col.id) ?? [];
                   const lanes = new Map<string, typeof colCards>();
@@ -646,59 +664,107 @@ export function TasksKanbanPage() {
       ) : null}
 
       {view === 'list' ? (
-        <Card>
-          <CardContent className="pt-6">
+        <Card className="min-w-0 overflow-hidden">
+          <CardContent className="min-w-0 p-3 pt-6 sm:p-6">
             {listRows.length === 0 ? (
               <p className="py-8 text-center text-muted-foreground">{t('noTasks')}</p>
             ) : (
-              <Table dir={isRtl ? 'rtl' : 'ltr'}>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead className="w-10" />
-                    <TableHead>{t('colTitle')}</TableHead>
-                    <TableHead>{t('colStatus')}</TableHead>
-                    <TableHead>{t('colPriority')}</TableHead>
-                    <TableHead>{t('colLabel')}</TableHead>
-                    <TableHead>{t('filterAssignee')}</TableHead>
-                    <TableHead>{t('colDue')}</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
+              <>
+                {/* Mobile cards */}
+                <ul className="space-y-2 md:hidden">
                   {listRows.map((row) => {
                     const id = Number(row.id);
                     const uid = Number(row.assignee_id);
                     const u = userOpts.find((o) => o.id === uid);
                     return (
-                      <TableRow key={id}>
-                        <TableCell>
+                      <li key={id} className="rounded-xl border bg-card p-3">
+                        <div className="flex items-start gap-2">
                           <Checkbox
                             checked={selectedIds.includes(id)}
                             onCheckedChange={() => toggleSelect(id)}
+                            className="mt-1"
                           />
-                        </TableCell>
-                        <TableCell>
-                          <button
-                            type="button"
-                            className="font-medium text-start hover:underline"
-                            onClick={() => setDetailTaskId(id)}
-                          >
-                            {String(row.title ?? `#${formatDigits(id)}`)}
-                          </button>
-                        </TableCell>
-                        <TableCell>
-                          {row.status ? statusLabel(String(row.status)) : none}
-                        </TableCell>
-                        <TableCell>{row.priority ? priorityLabel(String(row.priority)) : none}</TableCell>
-                        <TableCell>{String(row.label ?? none)}</TableCell>
-                        <TableCell>{u?.name ?? (row.assignee_id ? formatDigits(row.assignee_id) : none)}</TableCell>
-                        <TableCell>
-                          {row.due_at ? formatDate(String(row.due_at)) || none : none}
-                        </TableCell>
-                      </TableRow>
+                          <div className="min-w-0 flex-1 space-y-1.5">
+                            <button
+                              type="button"
+                              className="block w-full truncate text-start text-sm font-medium hover:underline"
+                              onClick={() => setDetailTaskId(id)}
+                            >
+                              {String(row.title ?? `#${formatDigits(id)}`)}
+                            </button>
+                            <div className="flex flex-wrap gap-1.5 text-[11px] text-muted-foreground">
+                              <span className="rounded-md bg-muted px-1.5 py-0.5">
+                                {row.status ? statusLabel(String(row.status)) : none}
+                              </span>
+                              <span className="rounded-md bg-muted px-1.5 py-0.5">
+                                {row.priority ? priorityLabel(String(row.priority)) : none}
+                              </span>
+                              {row.label ? (
+                                <span className="rounded-md bg-muted px-1.5 py-0.5">{String(row.label)}</span>
+                              ) : null}
+                            </div>
+                            <div className="flex flex-wrap justify-between gap-2 text-xs text-muted-foreground">
+                              <span className="truncate">{u?.name ?? (row.assignee_id ? formatDigits(row.assignee_id) : none)}</span>
+                              <span className="shrink-0">{row.due_at ? formatDate(String(row.due_at)) || none : none}</span>
+                            </div>
+                          </div>
+                        </div>
+                      </li>
                     );
                   })}
-                </TableBody>
-              </Table>
+                </ul>
+                {/* Desktop table */}
+                <div className="hidden max-w-full overflow-x-auto md:block">
+                  <Table dir={isRtl ? 'rtl' : 'ltr'} className="min-w-[640px]">
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead className="w-10" />
+                        <TableHead>{t('colTitle')}</TableHead>
+                        <TableHead>{t('colStatus')}</TableHead>
+                        <TableHead>{t('colPriority')}</TableHead>
+                        <TableHead>{t('colLabel')}</TableHead>
+                        <TableHead>{t('colAssignee')}</TableHead>
+                        <TableHead>{t('colDue')}</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {listRows.map((row) => {
+                        const id = Number(row.id);
+                        const uid = Number(row.assignee_id);
+                        const u = userOpts.find((o) => o.id === uid);
+                        return (
+                          <TableRow key={id}>
+                            <TableCell>
+                              <Checkbox
+                                checked={selectedIds.includes(id)}
+                                onCheckedChange={() => toggleSelect(id)}
+                              />
+                            </TableCell>
+                            <TableCell className="max-w-[16rem]">
+                              <button
+                                type="button"
+                                className="block max-w-full truncate font-medium text-start hover:underline"
+                                onClick={() => setDetailTaskId(id)}
+                              >
+                                {String(row.title ?? `#${formatDigits(id)}`)}
+                              </button>
+                            </TableCell>
+                            <TableCell>
+                              {row.status ? statusLabel(String(row.status)) : none}
+                            </TableCell>
+                            <TableCell>{row.priority ? priorityLabel(String(row.priority)) : none}</TableCell>
+                            <TableCell className="max-w-[8rem] truncate">{String(row.label ?? none)}</TableCell>
+                            <TableCell className="max-w-[8rem] truncate">{u?.name ?? (row.assignee_id ? formatDigits(row.assignee_id) : none)}</TableCell>
+                            <TableCell className="whitespace-nowrap">
+                              {row.due_at ? formatDate(String(row.due_at)) || none : none}
+                            </TableCell>
+                          </TableRow>
+                        );
+                      })}
+                    </TableBody>
+                  </Table>
+                </div>
+              </>
             )}
           </CardContent>
         </Card>
@@ -718,8 +784,8 @@ export function TasksKanbanPage() {
       ) : null}
 
       {view === 'gantt' ? (
-        <Card>
-          <CardContent className="pt-6">
+        <Card className="min-w-0 overflow-hidden">
+          <CardContent className="min-w-0 p-3 pt-6 sm:p-6">
             {viewsLoading ? (
               <p className="text-sm text-muted-foreground">{tc('loading')}</p>
             ) : ganttTasks.length === 0 ? (

@@ -50,10 +50,10 @@ export function TaskCalendarPanel({ events, month, onMonthChange, onSelectTask }
       : [t('weekdayMon'), t('weekdayTue'), t('weekdayWed'), t('weekdayThu'), t('weekdayFri'), t('weekdaySat'), t('weekdaySun')];
 
   return (
-    <div className="grid gap-4 lg:grid-cols-[1fr_280px]">
+    <div className="grid min-w-0 max-w-full gap-4 lg:grid-cols-[minmax(0,1fr)_minmax(0,17.5rem)]">
       <Card>
         <CardContent className="space-y-3 pt-6">
-          <div className="flex items-center justify-between gap-2">
+          <div className="flex min-w-0 flex-wrap items-center justify-between gap-2">
             <Button type="button" variant="outline" size="sm" onClick={() => onMonthChange(shiftMonth(month, -1, locale))}>
               {t('prevMonth')}
             </Button>

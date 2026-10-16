@@ -5500,7 +5500,13 @@
       "weekdayTue": "Tue",
       "weekdayWed": "Wed",
       "weekdayThu": "Thu",
-      "weekdayFri": "Fri"
+      "weekdayFri": "Fri",
+      "pageDescription": "Kanban, list, calendar and Gantt for project tasks",
+      "filterLabelPlaceholder": "Search label…",
+      "colAssignee": "Assignee",
+      "durationDaysShort": "{count}d",
+      "progressPercent": "{value}%",
+      "clearFilters": "Clear filters"
     },
     "timeTracking": {
       "active": "Active timer",
