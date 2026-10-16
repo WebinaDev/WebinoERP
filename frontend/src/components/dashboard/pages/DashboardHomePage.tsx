@@ -423,7 +423,7 @@ export function DashboardHomePage() {
 
       {role === 'client' ? <CustomerPortalPanel /> : <CrmPmSnapshot />}
 
-      <Tabs defaultValue="overview" className="mt-2 md:mt-0">
+      <Tabs defaultValue="overview" dir={isRtl ? 'rtl' : 'ltr'} className="mt-2 text-start md:mt-0">
         <TabsList className="mx-0 w-full justify-start overflow-x-auto rounded-xl bg-muted/70 p-1 md:w-auto">
           <TabsTrigger value="overview" className="gap-1.5 rounded-lg"><PieChartIcon className="size-3.5" strokeWidth={ICON_STROKE} />{t('tabs.overview')}</TabsTrigger>
           {showTeamTab ? <TabsTrigger value="team" className="gap-1.5 rounded-lg"><UsersRound className="size-3.5" strokeWidth={ICON_STROKE} />{t('tabs.teamProjects')}</TabsTrigger> : null}
