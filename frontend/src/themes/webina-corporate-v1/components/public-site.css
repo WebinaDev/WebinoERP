@@ -919,6 +919,29 @@ a.panel:hover,
   font-weight: 800;
 }
 
+.row-item .row-main {
+  display: flex;
+  align-items: center;
+  gap: 0.85rem;
+  min-width: 0;
+}
+
+.row-item .row-thumb {
+  flex: 0 0 4.75rem;
+  width: 4.75rem;
+  aspect-ratio: 16 / 10;
+  overflow: hidden;
+  border-radius: 0.55rem;
+  background: #eef2f8;
+}
+
+.row-item .row-thumb img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
 .row-item p {
   margin-top: 0.2rem;
   font-size: 0.88rem;

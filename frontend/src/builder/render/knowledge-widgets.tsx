@@ -8,6 +8,7 @@ import { useEffect, useMemo, useState } from "react"
 
 import { propStr } from "../props"
 import type { WidgetNode } from "../types"
+import { useBuilderRuntime } from "./runtime"
 import "./portfolio-widget.css"
 import "./knowledge-widgets.css"
 
@@ -15,9 +16,14 @@ const api = (path: string) => `${process.env.NEXT_PUBLIC_API_URL?.trim() || "/ap
 const fa = (n: number | string) => String(n).replace(/\d/g, (d) => "۰۱۲۳۴۵۶۷۸۹"[Number(d)])
 
 function useJson<T>(path: string | null, pick: (j: Record<string, unknown>) => T, fallback: T): T | null {
-  const [data, setData] = useState<T | null>(null)
+  const pre = useBuilderRuntime().prefetch
+  const key = path ? `/v1/public/${path}` : null
+  const seeded = key && pre && key in pre ? pick({ data: pre[key], meta: pre[`${key}::meta`] as unknown }) : undefined
+  const [data, setData] = useState<T | null>(() => seeded ?? null)
   useEffect(() => {
     if (!path) return
+    // Prefer SSR prefetch so academy/blog covers paint without a loading flash
+    if (seeded !== undefined) return
     let cancelled = false
     setData(null)
     fetch(api(path), { headers: { Accept: "application/json" } })
@@ -29,7 +35,7 @@ function useJson<T>(path: string | null, pick: (j: Record<string, unknown>) => T
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [path])
-  return data
+  return seeded !== undefined ? seeded : data
 }
 const arr = <T,>(v: unknown): T[] => (Array.isArray(v) ? (v as T[]) : [])
 
