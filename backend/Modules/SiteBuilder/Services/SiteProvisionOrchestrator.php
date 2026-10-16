@@ -3,6 +3,7 @@
 namespace Modules\SiteBuilder\Services;
 
 use Illuminate\Contracts\Encryption\DecryptException;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Http;
 use Modules\Core\Entities\CoreHostingSetting;
 use Modules\Platform\Entities\PlatformServer;
@@ -357,17 +358,27 @@ class SiteProvisionOrchestrator
     public function poll(WebinoSiteProvision $provision): WebinoSiteProvision
     {
         if ($provision->status === WebinoSiteProvision::STATUS_SSL_PENDING) {
-            if ($this->waitForHealthy($provision->domain, attempts: 1)) {
-                $payload = $provision->wizard_payload ?? [];
-                $seed = $this->buildSeedJson($provision, $payload);
-                try {
-                    $this->bootstrapRemoteSite($provision->domain, (string) $provision->provision_token, $seed);
-                    $provision->update([
-                        'status' => WebinoSiteProvision::STATUS_READY,
-                        'ready_at' => now(),
-                    ]);
-                } catch (Throwable $e) {
-                    $provision->update(['error_log' => $e->getMessage()]);
+            // UI polls /status every ~3s while ssl_pending. Prod still runs single-threaded
+            // `php artisan serve`, so a multi-second HTTPS probe + sleep starved the whole site
+            // (webina.dev hung ~05:15–05:30 Asia/Tehran 2026-10-16 until backend restart).
+            $skipKey = 'site_builder:ssl_probe_skip:'.$provision->id;
+            if (! Cache::has($skipKey)) {
+                // Short timeout, no inter-attempt sleep (attempts=1): keep the request under ~2s.
+                if ($this->waitForHealthy($provision->domain, attempts: 1, timeoutSeconds: 2)) {
+                    $payload = $provision->wizard_payload ?? [];
+                    $seed = $this->buildSeedJson($provision, $payload);
+                    try {
+                        $this->bootstrapRemoteSite($provision->domain, (string) $provision->provision_token, $seed);
+                        $provision->update([
+                            'status' => WebinoSiteProvision::STATUS_READY,
+                            'ready_at' => now(),
+                        ]);
+                    } catch (Throwable $e) {
+                        $provision->update(['error_log' => $e->getMessage()]);
+                    }
+                } else {
+                    // Negative cache so overlapping polls do not re-hit a dead/unreachable domain.
+                    Cache::put($skipKey, 1, now()->addSeconds(15));
                 }
             }
         }
@@ -538,20 +549,24 @@ class SiteProvisionOrchestrator
         ];
     }
 
-    protected function waitForHealthy(string $domain, int $attempts = 12): bool
+    protected function waitForHealthy(string $domain, int $attempts = 12, int $timeoutSeconds = 8): bool
     {
         // Must hit /api/* so Caddy routes to the Laravel backend.
         // Plain /up is handled by Next (or 404 on older images) and never reaches Octane.
         $url = 'https://'.$domain.'/api/v1/health/metrics';
+        $timeoutSeconds = max(1, $timeoutSeconds);
         for ($i = 0; $i < $attempts; $i++) {
             try {
-                $res = Http::timeout(8)->get($url);
+                $res = Http::timeout($timeoutSeconds)->connectTimeout(min(2, $timeoutSeconds))->get($url);
                 if ($res->successful()) {
                     return true;
                 }
             } catch (Throwable) {
             }
-            sleep(5);
+            // Sleep only BETWEEN attempts — never after the last one (status poll uses attempts=1).
+            if ($i < $attempts - 1) {
+                sleep(5);
+            }
         }
 
         return false;

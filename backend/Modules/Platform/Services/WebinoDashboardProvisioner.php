@@ -1108,12 +1108,14 @@ class WebinoDashboardProvisioner
         $url = 'https://'.$domain.'/api/v1/health/metrics';
         for ($i = 0; $i < $attempts; $i++) {
             try {
-                if (Http::timeout(8)->get($url)->successful()) {
+                if (Http::timeout(8)->connectTimeout(2)->get($url)->successful()) {
                     return true;
                 }
             } catch (Throwable) {
             }
-            sleep(5);
+            if ($i < $attempts - 1) {
+                sleep(5);
+            }
         }
 
         return false;

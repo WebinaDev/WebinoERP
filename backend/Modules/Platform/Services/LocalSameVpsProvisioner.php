@@ -2534,7 +2534,9 @@ class LocalSameVpsProvisioner
                 return true;
             }
 
-            sleep(5);
+            if ($i < $attempts - 1) {
+                sleep(5);
+            }
         }
 
         return false;
