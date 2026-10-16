@@ -251,6 +251,11 @@ for i in $(seq 1 90); do
 done
 # shellcheck source=scripts/apply-erp-migrations.sh
 source "${ERP_DIR}/scripts/apply-erp-migrations.sh"
+log "Backing up Postgres before migrations (keeps last 7)"
+DB_SNAP=/var/lib/webino/backups/db
+mkdir -p "${DB_SNAP}"
+compose_cli exec -T db pg_dump -U "${PG_USER}" -d "${PG_DB}" -Fc > "${DB_SNAP}/$(date +%Y%m%d-%H%M%S).dump" || echo "WARN: pg_dump failed" >&2
+ls -1t "${DB_SNAP}"/*.dump 2>/dev/null | tail -n +8 | xargs -r rm -f
 log "Applying migrations only (no seed, no fresh)"
 apply_erp_migrations
 compose_cli exec -T backend php artisan db:seed --class='Modules\SiteBuilder\Database\Seeders\SiteBuilderSeeder' --force || true

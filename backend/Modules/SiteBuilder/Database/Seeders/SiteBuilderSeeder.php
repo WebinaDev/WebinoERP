@@ -28,13 +28,13 @@ class SiteBuilderSeeder extends Seeder
         ];
 
         foreach ($features as $f) {
-            WebinoDashboardFeature::query()->updateOrCreate(
+            WebinoDashboardFeature::query()->firstOrCreate(
                 ['slug' => $f['slug']],
                 array_merge(['default_enabled' => true, 'is_addon' => false], $f)
             );
         }
 
-        $category = WebinoBusinessCategory::query()->updateOrCreate(
+        $category = WebinoBusinessCategory::query()->firstOrCreate(
             ['slug' => 'site_types'],
             ['name_fa' => 'انواع سایت', 'name_en' => 'Site types', 'icon' => 'ri-global-line', 'sort_order' => 1]
         );
@@ -50,7 +50,7 @@ class SiteBuilderSeeder extends Seeder
         $featureMap = WebinoDashboardFeature::query()->pluck('id', 'slug');
 
         foreach ($types as [$slug, $fa, $en, $theme, $mods]) {
-            $type = WebinoBusinessType::query()->updateOrCreate(
+            $type = WebinoBusinessType::query()->firstOrCreate(
                 ['category_id' => $category->id, 'slug' => $slug],
                 [
                     'name_fa' => $fa,
@@ -63,9 +63,10 @@ class SiteBuilderSeeder extends Seeder
             );
 
             $ids = collect($mods)->map(fn ($s) => $featureMap[$s] ?? null)->filter()->values();
-            $type->features()->sync($ids->mapWithKeys(fn ($id) => [$id => ['is_required' => false, 'default_selected' => true]])->all());
+            if ($type->wasRecentlyCreated) $type->features()->sync($ids->mapWithKeys(fn ($id) => [$id => ['is_required' => false, 'default_selected' => true]])->all());
 
-            WebinoPackage::query()->updateOrCreate(
+            // Create-only: never overwrite admin-edited prices/names/features on update.
+            $pkg = WebinoPackage::query()->firstOrCreate(
                 ['sku' => 'pkg-'.$slug.'-starter'],
                 [
                     'name_fa' => 'بسته پایه '.$fa,
@@ -74,7 +75,10 @@ class SiteBuilderSeeder extends Seeder
                     'price' => 0,
                     'billing_period' => 'yearly',
                 ]
-            )->features()->sync($ids->all());
+            );
+            if ($pkg->wasRecentlyCreated) {
+                $pkg->features()->sync($ids->all());
+            }
         }
     }
 }
