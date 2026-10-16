@@ -9314,6 +9314,20 @@
     "desktop": {
       "create": "Create",
       "searchPlaceholder": "Search commands and records…"
+    },
+    "mobileMore": {
+      "title": "Menu",
+      "description": "Quick access to all dashboard sections",
+      "close": "Close",
+      "account": "Account & settings"
+    },
+    "mobileSettings": {
+      "title": "App settings",
+      "subtitle": "Appearance, language, and personal mobile preferences",
+      "back": "Back",
+      "themeHint": "Current: {current}",
+      "more": "More",
+      "openAdmin": "Full admin settings"
     }
   }
 }

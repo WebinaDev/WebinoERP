@@ -9314,6 +9314,20 @@
     "desktop": {
       "create": "ایجاد",
       "searchPlaceholder": "جستجوی دستورات و رکوردها…"
+    },
+    "mobileMore": {
+      "title": "منو",
+      "description": "دسترسی سریع به همه بخش‌های داشبورد",
+      "close": "بستن",
+      "account": "حساب و تنظیمات"
+    },
+    "mobileSettings": {
+      "title": "تنظیمات اپ",
+      "subtitle": "ظاهر، زبان و ترجیحات شخصی داشبورد موبایل",
+      "back": "بازگشت",
+      "themeHint": "حالت فعلی: {current}",
+      "more": "بیشتر",
+      "openAdmin": "تنظیمات کامل مدیریت"
     }
   }
 }
