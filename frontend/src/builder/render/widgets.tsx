@@ -43,6 +43,7 @@ import { fillDocumentTokens } from "../theme/tokens"
 import { propBool, propNum, propStr, parseLinks, linkAttrs } from "../props"
 import { FormWidget } from "./form-widget"
 import { PortfolioGridWidget } from "./portfolio-widget"
+import { SaleCartWidget, SaleProductGridWidget, SaleProductHeroWidget, SaleProductTabsWidget } from "./sale-product-widgets"
 import { InfoTableWidget, PortfolioGalleryWidget, StoryCardWidget } from "./portfolio-detail-widgets"
 import { AcademyGridWidget, AnnouncementsListWidget, BlogListWidget, DownloadsListWidget, FaqCategorizedWidget, MagazineFeatureWidget } from "./knowledge-widgets"
 import { RahnEstimateWidget } from "./rahn-widget"
@@ -391,6 +392,14 @@ export function WidgetBody({ widget, editor }: { widget: WidgetNode; editor?: Ed
       return <RahnEstimateWidget widget={widget} editing={editing} />
     case "portfolio-grid":
       return <PortfolioGridWidget widget={widget} />
+    case "sale-product-hero":
+      return <SaleProductHeroWidget widget={widget} />
+    case "sale-product-tabs":
+      return <SaleProductTabsWidget widget={widget} />
+    case "sale-product-grid":
+      return <SaleProductGridWidget widget={widget} />
+    case "sale-cart":
+      return <SaleCartWidget widget={widget} />
     case "portfolio-gallery":
       return <PortfolioGalleryWidget widget={widget} />
     case "info-table":
