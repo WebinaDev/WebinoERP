@@ -93,6 +93,10 @@ class StorefrontCatalog
             'variants' => [],
             'rating_avg' => round((float) (clone $rating)->avg('rating'), 1),
             'reviews_count' => (clone $rating)->count(),
+            'kind' => (string) ($meta['kind'] ?? 'product'),
+            'course_slug' => isset($meta['course_slug']) ? (string) $meta['course_slug'] : null,
+            'url' => isset($meta['url']) ? (string) $meta['url'] : null,
+            'digital' => ! empty($meta['digital']) || in_array($meta['kind'] ?? '', ['course', 'digital', 'license', 'service'], true),
         ];
     }
 
@@ -113,12 +117,20 @@ class StorefrontCatalog
     {
         $subtotal = 0;
         $count = 0;
+        $physical = false;
         foreach ($lines as $line) {
             $subtotal += $this->unitPrice($line['item']) * $line['quantity'];
             $count += $line['quantity'];
+            $meta = (array) ($line['item']->meta ?? []);
+            if (empty($meta['digital']) && ! in_array($meta['kind'] ?? '', ['course', 'digital', 'license', 'service'], true)) {
+                $physical = true;
+            }
         }
         [$discount, $coupon, $couponError] = $this->couponDiscount($couponCode, $subtotal);
-        $shipping = $count === 0 || ($subtotal - $discount) >= self::FREE_SHIPPING_OVER ? 0 : self::FLAT_SHIPPING;
+        $settings = app(StorefrontSettings::class);
+        $flat = (int) $settings->get('shipping_flat_minor');
+        $freeOver = (int) $settings->get('free_shipping_over_minor');
+        $shipping = $count === 0 || ! $physical || ($freeOver > 0 && ($subtotal - $discount) >= $freeOver) ? 0 : $flat;
 
         return [
             'items_count' => $count,
@@ -128,7 +140,8 @@ class StorefrontCatalog
             'total_minor' => max(0, $subtotal - $discount) + $shipping,
             'coupon' => $coupon,
             'coupon_error' => $couponError,
-            'free_shipping_over_minor' => self::FREE_SHIPPING_OVER,
+            'free_shipping_over_minor' => $freeOver,
+            'requires_shipping' => $physical,
             'currency' => 'IRR',
         ];
     }

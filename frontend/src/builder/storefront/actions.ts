@@ -101,20 +101,7 @@ export async function setServerQty(productId: number, quantity: number) {
   return res
 }
 
+/** Guest carts live on the server now (X-Cart-Token) and are merged on sign-in; nothing to sync. */
 export async function syncGuestCart() {
-  const { cartSnapshot, clearCart } = await import("../cart")
-  const lines = cartSnapshot().filter((line) => line.productId)
-  if (!lines.length) return
-  let synced = 0
-  for (const line of lines) {
-    const res = await quietApi("/api/v1/cart/items", {
-      method: "POST",
-      json: { product_id: line.productId, quantity: line.qty },
-    })
-    if (res.ok) synced += 1
-  }
-  if (synced > 0) {
-    clearCart()
-    notifyCart()
-  }
+  return
 }

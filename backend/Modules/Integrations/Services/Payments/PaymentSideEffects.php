@@ -51,6 +51,10 @@ class PaymentSideEffects
             'status' => 'paid',
             'payment_method' => $intent->mode.':'.$intent->gateway,
         ]);
+        if (\Illuminate\Support\Facades\Schema::hasTable('sales_storefront_orders')) {
+            \Modules\Sales\Entities\SalesStorefrontOrder::query()->where('invoice_id', $invoice->id)->where('status', 'pending_payment')
+                ->update(['status' => 'paid', 'payment_method' => (string) $intent->gateway, 'payment_mode' => (string) $intent->mode, 'paid_at' => now()]);
+        }
     }
 
     private function accountingInvoice(PaymentIntent $intent): void

@@ -142,6 +142,7 @@ const EXACT: Record<string, DashboardRouteMeta> = {
   'scm/audit': { titleFa: 'انبارگردانی', titleEn: 'Audit', group: 'scm', apiHint: '/v1/scm/audit' },
   'sales/invoices': { titleFa: 'فاکتور فروش', titleEn: 'Sales invoices', group: 'sales', apiHint: '/v1/sales/invoices' },
   'sales/catalog': { titleFa: 'کاتالوگ', titleEn: 'Catalog', group: 'sales', apiHint: '/v1/sales/catalog' },
+  'sales/storefront': { titleFa: 'فروشگاه آنلاین', titleEn: 'Online store', group: 'sales', apiHint: '/v1/sales/storefront/orders' },
   'sales/campaigns': { titleFa: 'کمپین‌ها', titleEn: 'Campaigns', group: 'sales', apiHint: '/v1/sales/campaigns' },
   'sales/rahn-percent': { titleFa: 'نرخ‌نامه', titleEn: 'Nerkhnameh', group: 'sales', apiHint: '/v1/sales/rahn' },
   'docs/contracts': { titleFa: 'قراردادها', titleEn: 'Contracts', group: 'docs', apiHint: '/v1/docs/contracts' },

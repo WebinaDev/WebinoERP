@@ -1,3 +1,10 @@
+"use client"
+
+/* Builder-facing cart API. Backed by the real Shop (Sales storefront) cart on the server, via AJAX.
+ * Kept the old function names so product, course and theme widgets keep working. `price` is in toman. */
+
+import { addToShopCart, cartState, refreshCart, removeShopItem, setShopQty, subscribeShopCart, type ShopCart } from "@/features/shop/shop-api"
+
 export type CartLine = {
   slug: string
   name: string
@@ -8,59 +15,48 @@ export type CartLine = {
   productId?: number
 }
 
-const KEY = "webino.storefront.cart"
-const listeners = new Set<() => void>()
+let lastCart: ShopCart | null | undefined
+let lastLines: CartLine[] = []
 
-function read(): CartLine[] {
-  if (typeof window === "undefined") return []
-  try {
-    const raw = window.localStorage.getItem(KEY)
-    if (!raw) return []
-    const parsed = JSON.parse(raw) as unknown
-    if (!Array.isArray(parsed)) return []
-    return parsed.filter((line): line is CartLine => {
-      if (!line || typeof line !== "object") return false
-      const row = line as Partial<CartLine>
-      return typeof row.slug === "string" && typeof row.name === "string" && typeof row.price === "number" && typeof row.qty === "number"
-    })
-  } catch {
-    return []
-  }
-}
-
-function write(lines: CartLine[]) {
-  window.localStorage.setItem(KEY, JSON.stringify(lines))
-  listeners.forEach((listener) => listener())
+function lines(): CartLine[] {
+  const cart = cartState().cart
+  if (cart === lastCart) return lastLines
+  lastCart = cart
+  lastLines = (cart?.items ?? []).map((l) => ({
+    slug: l.product.slug,
+    name: l.product.name,
+    price: Math.round(l.unit_price_minor / 10),
+    qty: l.quantity,
+    tone: "#0054ff",
+    image: l.product.cover_image_url || l.product.image_url || null,
+    productId: l.product_id,
+  }))
+  return lastLines
 }
 
 export function cartSnapshot(): CartLine[] {
-  return read()
+  return lines()
 }
 
 export function cartCount(): number {
-  return read().reduce((sum, line) => sum + line.qty, 0)
+  return lines().reduce((sum, line) => sum + line.qty, 0)
 }
 
 export function subscribeCart(listener: () => void): () => void {
-  listeners.add(listener)
-  return () => listeners.delete(listener)
+  return subscribeShopCart(listener)
 }
 
+/** AJAX add: the server resolves the shop product by slug (or id) and owns the price. */
 export function addToCart(line: Omit<CartLine, "qty">, qty = 1) {
-  const lines = read()
-  const found = lines.find((item) => item.slug === line.slug)
-  if (found) found.qty += qty
-  else lines.push({ ...line, qty })
-  write(lines)
+  void addToShopCart({ slug: line.slug, productId: line.productId, name: line.name }, qty)
 }
 
 export function setQty(slug: string, qty: number) {
-  const lines = read()
-    .map((line) => (line.slug === slug ? { ...line, qty } : line))
-    .filter((line) => line.qty > 0)
-  write(lines)
+  const found = lines().find((l) => l.slug === slug)
+  if (!found?.productId) return
+  void (qty > 0 ? setShopQty(found.productId, qty) : removeShopItem(found.productId))
 }
 
 export function clearCart() {
-  write([])
+  void Promise.all(lines().map((l) => (l.productId ? removeShopItem(l.productId) : null))).then(() => refreshCart())
 }

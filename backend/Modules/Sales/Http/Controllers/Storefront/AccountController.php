@@ -23,6 +23,54 @@ class AccountController extends Controller
         return response()->json(['data' => $rows->map(fn ($o) => self::orderPayload($o))->values()]);
     }
 
+    /** Courses the customer bought (paid orders with course items). */
+    public function courses(Request $request): JsonResponse
+    {
+        $slugs = [];
+        $orders = SalesStorefrontOrder::query()->where('user_id', $request->user()->id)->whereIn('status', ['paid', 'processing', 'shipped', 'delivered'])->orderByDesc('id')->get();
+        foreach ($orders as $order) {
+            foreach ((array) $order->items as $item) {
+                if (($item['kind'] ?? '') === 'course' && ! empty($item['course_slug'])) {
+                    $slugs[$item['course_slug']] ??= ['order_number' => $order->number, 'purchased_at' => ($order->paid_at ?? $order->created_at)?->toIso8601String()];
+                }
+            }
+        }
+        $courses = $slugs === [] ? collect() : \Modules\Marketing\Entities\MarketingAcademyCourse::query()->whereIn('slug', array_keys($slugs))->get();
+
+        return response()->json(['data' => $courses->map(fn ($c) => [
+            'id' => $c->id, 'slug' => $c->slug, 'title' => $c->title, 'cover_url' => $c->cover_url, 'level' => $c->level,
+            'duration' => $c->duration, 'instructor' => $c->instructor, 'url' => '/academy/'.$c->slug,
+            'lessons_count' => $c->lessons()->count(),
+        ] + $slugs[$c->slug])->values()]);
+    }
+
+    public function profile(Request $request): JsonResponse
+    {
+        $u = $request->user();
+        $orders = SalesStorefrontOrder::query()->where('user_id', $u->id);
+
+        return response()->json(['data' => [
+            'id' => $u->id, 'name' => $u->name, 'email' => $u->email, 'mobile' => $u->mobile ?? $u->phone ?? null,
+            'orders_count' => (clone $orders)->count(),
+            'paid_total_minor' => (int) (clone $orders)->whereIn('status', ['paid', 'processing', 'shipped', 'delivered'])->sum('total'),
+            'is_staff' => method_exists($u, 'hasAnyRole') ? $u->hasAnyRole(['admin', 'super-admin', 'super_admin', 'staff', 'team_member', 'manager']) : false,
+        ]]);
+    }
+
+    public function updateProfile(Request $request): JsonResponse
+    {
+        $u = $request->user();
+        $data = $request->validate(['name' => 'required|string|max:191', 'current_password' => 'nullable|string', 'password' => 'nullable|string|min:8|confirmed']);
+        $u->name = strip_tags($data['name']);
+        if (! empty($data['password'])) {
+            abort_unless(\Illuminate\Support\Facades\Hash::check((string) ($data['current_password'] ?? ''), (string) $u->password), 422, 'رمز عبور فعلی درست نیست.');
+            $u->password = \Illuminate\Support\Facades\Hash::make($data['password']);
+        }
+        $u->save();
+
+        return $this->profile($request);
+    }
+
     public function favorites(Request $request): JsonResponse
     {
         $rows = SalesProductFavorite::query()->with('product')->where('user_id', $request->user()->id)->orderByDesc('id')->get();
@@ -81,6 +129,12 @@ class AccountController extends Controller
             'shipping_minor' => (int) $order->shipping,
             'total_minor' => (int) $order->total,
             'tracking_code' => $order->tracking_code,
+            'customer_name' => $order->customer_name,
+            'customer_email' => $order->customer_email,
+            'phone' => $order->phone,
+            'payment_mode' => $order->payment_mode,
+            'paid_at' => $order->paid_at?->toIso8601String(),
+            'is_guest' => $order->user_id === null,
             'invoice_id' => $order->invoice_id,
             'created_at' => $order->created_at?->toIso8601String(),
         ];

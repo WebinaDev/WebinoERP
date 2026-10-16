@@ -9,7 +9,10 @@ use Modules\Sales\Entities\SalesCartItem;
 use Modules\Sales\Http\Controllers\Controller;
 use Modules\Sales\Services\Storefront\StorefrontCatalog;
 
-/** Signed-in customer's cart (one per user). */
+/**
+ * Shop cart: one per signed-in user, or a guest cart addressed by the `X-Cart-Token` header.
+ * When a guest signs in, the guest cart is merged into the user cart.
+ */
 class CartController extends Controller
 {
     private const MAX_QTY = 99;
@@ -18,17 +21,43 @@ class CartController extends Controller
 
     public function show(Request $request): JsonResponse
     {
-        return $this->respond($this->cartFor($request));
+        return $this->respond($this->cartFor($request, false));
+    }
+
+    public function applyCoupon(Request $request): JsonResponse
+    {
+        $data = $request->validate(['coupon_code' => 'nullable|string|max:64']);
+        $cart = $this->cartFor($request);
+        $code = trim((string) ($data['coupon_code'] ?? ''));
+        if ($code !== '') {
+            $quote = $this->catalog->quote($this->activeLines($cart), $code);
+            if ($quote['coupon_error']) {
+                return response()->json(['message' => $quote['coupon_error'], 'errors' => ['coupon_code' => [$quote['coupon_error']]]], 422);
+            }
+        }
+        $cart->update(['coupon_code' => $code !== '' ? mb_strtoupper($code) : null]);
+
+        return $this->respond($cart);
+    }
+
+    public function clear(Request $request): JsonResponse
+    {
+        $cart = $this->cartFor($request);
+        SalesCartItem::query()->where('cart_id', $cart->id)->where('saved_for_later', false)->delete();
+        $cart->update(['coupon_code' => null]);
+
+        return $this->respond($cart);
     }
 
     public function addItem(Request $request): JsonResponse
     {
-        $data = $request->validate(['product_id' => 'required|integer', 'quantity' => 'nullable|integer|min:1|max:'.self::MAX_QTY]);
-        $product = (clone $this->catalog->query())->findOrFail($data['product_id']);
+        $data = $request->validate(['product_id' => 'required_without:slug|nullable|integer', 'slug' => 'required_without:product_id|nullable|string|max:191', 'quantity' => 'nullable|integer|min:1|max:'.self::MAX_QTY]);
+        $product = ! empty($data['product_id']) ? (clone $this->catalog->query())->findOrFail($data['product_id']) : $this->catalog->findBySlug((string) $data['slug']);
         abort_unless($this->catalog->available($product), 422, 'این کالا موجود نیست.');
         $cart = $this->cartFor($request);
         $line = SalesCartItem::query()->firstOrNew(['cart_id' => $cart->id, 'product_id' => $product->id]);
-        $line->quantity = min(self::MAX_QTY, ($line->exists && ! $line->saved_for_later ? $line->quantity : 0) + ($data['quantity'] ?? 1));
+        $single = in_array(($product->meta['kind'] ?? ''), ['course', 'license', 'digital'], true) || ! empty($product->meta['single']);
+        $line->quantity = $single ? 1 : min(self::MAX_QTY, ($line->exists && ! $line->saved_for_later ? $line->quantity : 0) + ($data['quantity'] ?? 1));
         $line->saved_for_later = false;
         $line->save();
         $cart->touch();
@@ -78,9 +107,53 @@ class CartController extends Controller
         return $this->respond($cart);
     }
 
-    public function cartFor(Request $request): SalesCart
+    public static function user(Request $request): ?\App\Models\User
     {
-        return SalesCart::query()->firstOrCreate(['user_id' => $request->user()->id]);
+        $user = $request->user() ?? auth('sanctum')->user();
+
+        return $user instanceof \App\Models\User ? $user : null;
+    }
+
+    public static function token(Request $request): ?string
+    {
+        $token = (string) $request->header('X-Cart-Token', '');
+
+        return preg_match('/^[A-Za-z0-9]{32,64}$/', $token) ? $token : null;
+    }
+
+    public function cartFor(Request $request, bool $create = true): SalesCart
+    {
+        $user = self::user($request);
+        $token = self::token($request);
+        if ($user) {
+            $cart = SalesCart::query()->firstOrCreate(['user_id' => $user->id]);
+            if ($token) {
+                // Orders placed as a guest in this browser move to the account that just signed in.
+                \Modules\Sales\Entities\SalesStorefrontOrder::query()->whereNull('user_id')->where('guest_token', $token)->update(['user_id' => $user->id]);
+            }
+            if ($token && ($guest = SalesCart::query()->whereNull('user_id')->where('token', $token)->first())) {
+                foreach (SalesCartItem::query()->where('cart_id', $guest->id)->get() as $line) {
+                    $own = SalesCartItem::query()->firstOrNew(['cart_id' => $cart->id, 'product_id' => $line->product_id]);
+                    $own->quantity = min(self::MAX_QTY, max((int) $own->quantity, (int) $line->quantity));
+                    $own->saved_for_later = false;
+                    $own->save();
+                }
+                $cart->coupon_code ??= $guest->coupon_code;
+                $cart->save();
+                $guest->delete();
+            }
+
+            return $cart;
+        }
+        if ($token) {
+            return SalesCart::query()->firstOrCreate(['token' => $token, 'user_id' => null]);
+        }
+        $cart = new SalesCart(['token' => \Illuminate\Support\Str::random(40)]);
+        if ($create) {
+            $cart->save();
+        }
+
+        return $cart;
     }
 
     /** @return list<array{item: \Modules\Sales\Entities\SalesCatalogItem, quantity: int}> */
@@ -93,10 +166,12 @@ class CartController extends Controller
 
     private function respond(SalesCart $cart): JsonResponse
     {
-        $lines = $this->activeLines($cart);
+        $lines = $cart->exists ? $this->activeLines($cart) : [];
 
         return response()->json(['data' => [
             'id' => $cart->id,
+            'token' => $cart->user_id ? null : $cart->token,
+            'authenticated' => $cart->user_id !== null,
             'coupon_code' => $cart->coupon_code,
             'items' => array_map(fn ($l) => $this->line($l['line']), $lines),
             'pricing' => $this->catalog->quote($lines, $cart->coupon_code),

@@ -314,19 +314,22 @@ class AuthParityController extends Controller
         ]);
         $user->assignRole(RolesAndPermissionsSeeder::ROLE_CLIENT);
 
-        return response()->json([
+        $tokenObj = $user->createToken('register');
+        $tokenObj->accessToken->forceFill([
+            'device_name' => substr((string) $request->header('X-Device-Name', 'register'), 0, 120),
+            'ip' => $request->ip(),
+            'user_agent' => substr((string) $request->userAgent(), 0, 2000),
+            'last_activity_at' => now(),
+        ])->save();
+        $response = response()->json([
             'data' => [
                 'user_id' => $user->id,
-                'token' => tap($user->createToken('register'), function ($tokenObj) use ($request) {
-                    $tokenObj->accessToken->forceFill([
-                        'device_name' => substr((string) $request->header('X-Device-Name', 'register'), 0, 120),
-                        'ip' => $request->ip(),
-                        'user_agent' => substr((string) $request->userAgent(), 0, 2000),
-                        'last_activity_at' => now(),
-                    ])->save();
-                })->plainTextToken,
+                'token' => $tokenObj->plainTextToken,
                 'user' => $user,
             ],
         ], 201);
+
+        // Storefront customers sign in right away (same httpOnly cookie as /auth/login).
+        return AuthCookie::attach($response, $tokenObj->plainTextToken, $request);
     }
 }

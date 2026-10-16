@@ -15,7 +15,9 @@ class StorefrontAdminController extends Controller
 {
     public function orders(Request $request): JsonResponse
     {
-        $rows = SalesStorefrontOrder::query()->when($request->query('status'), fn ($q, $s) => $q->where('status', $s))->orderByDesc('id')->paginate(30);
+        $rows = SalesStorefrontOrder::query()->when($request->query('status'), fn ($q, $s) => $q->where('status', $s))
+            ->when($request->query('q'), fn ($q, $term) => $q->where(fn ($w) => $w->where('number', 'like', '%'.$term.'%')->orWhere('customer_name', 'like', '%'.$term.'%')->orWhere('phone', 'like', '%'.$term.'%')))
+            ->orderByDesc('id')->paginate(30);
         $rows->getCollection()->transform(fn ($o) => AccountController::orderPayload($o));
 
         return response()->json($rows);
@@ -23,7 +25,7 @@ class StorefrontAdminController extends Controller
 
     public function updateOrder(Request $request, int $order): JsonResponse
     {
-        $data = $request->validate(['status' => 'sometimes|in:pending_payment,processing,shipped,delivered,cancelled', 'tracking_code' => 'nullable|string|max:60']);
+        $data = $request->validate(['status' => 'sometimes|in:pending_payment,paid,processing,shipped,delivered,cancelled', 'tracking_code' => 'nullable|string|max:60']);
         $row = SalesStorefrontOrder::query()->findOrFail($order);
         $row->update($data);
 
@@ -87,5 +89,27 @@ class StorefrontAdminController extends Controller
         SalesCoupon::query()->findOrFail($coupon)->delete();
 
         return response()->json(['data' => ['deleted' => true]]);
+    }
+
+    public function settings(\Modules\Sales\Services\Storefront\StorefrontSettings $settings): JsonResponse
+    {
+        return response()->json(['data' => $settings->all()]);
+    }
+
+    public function saveSettings(Request $request, \Modules\Sales\Services\Storefront\StorefrontSettings $settings): JsonResponse
+    {
+        return response()->json(['data' => $settings->save((array) $request->input('settings', $request->all()))]);
+    }
+
+    public function stats(): JsonResponse
+    {
+        $q = SalesStorefrontOrder::query();
+
+        return response()->json(['data' => [
+            'orders' => (clone $q)->count(),
+            'pending' => (clone $q)->where('status', 'pending_payment')->count(),
+            'paid' => (clone $q)->whereIn('status', ['paid', 'processing', 'shipped', 'delivered'])->count(),
+            'revenue_minor' => (int) (clone $q)->whereIn('status', ['paid', 'processing', 'shipped', 'delivered'])->sum('total'),
+        ]]);
     }
 }

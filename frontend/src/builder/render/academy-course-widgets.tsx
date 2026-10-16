@@ -377,10 +377,27 @@ function CourseCartButton({ slug, name, price, image, label, cartHref, light }: 
 }
 const toman = (n: number) => `${faNum(n)} تومان`
 
+/** Shop catalog price (toman) for a product slug; 0 while loading or when not sold. */
+function useShopPrice(slug: string) {
+  const [price, setPrice] = useState(0)
+  useEffect(() => {
+    if (!slug) return
+    let alive = true
+    void fetch(`/api/v1/public/catalog/items/${encodeURIComponent(slug)}`, { headers: { Accept: "application/json", "X-Requested-With": "XMLHttpRequest" } })
+      .then((r) => (r.ok ? r.json() : null))
+      .then((j) => { const d = j?.data ?? j; if (alive && d?.is_available !== false) setPrice(Math.round(Number(d?.discounted_price_minor ?? d?.price_minor ?? 0) / 10)) })
+      .catch(() => undefined)
+    return () => { alive = false }
+  }, [slug])
+  return price
+}
+
 /* ---------------- enrollment CTA (box or banner) + Course schema ---------------- */
 export function AcademyCourseEnrollWidget({ widget }: { widget: WidgetNode }) {
   const p = widget.props
   const c = useCourse(widget)
+  const shopSlug = propStr(p, "cartSlug", "") || (c?.slug ? `course-${c.slug}` : "")
+  const shopPrice = useShopPrice(c && !c.is_free ? shopSlug : "")
   if (!c) return missing(widget)
   const { lms, total, quizzes, projects, videos } = stats(c)
   const enroll = propStr(p, "href", "") || c.enroll_url || "/consultation"
@@ -395,7 +412,8 @@ export function AcademyCourseEnrollWidget({ widget }: { widget: WidgetNode }) {
   ].filter(Boolean) as string[]
   const ins = lms.instructor
   const outcomes = lines(c.outcomes ?? "")
-  const price = Number(String(p.price ?? "").replace(/[^0-9]/g, "")) || 0
+  // Price is managed in the Shop catalog (product «course-{slug}»); a builder price prop still overrides for display.
+  const price = Number(String(p.price ?? "").replace(/[^0-9]/g, "")) || shopPrice || 0
   const cart = price > 0 && propBool(p, "cart", true)
     ? <CourseCartButton slug={propStr(p, "cartSlug", "") || `course-${c.slug ?? ""}`} name={c.title} price={price} image={c.cover_url} label={propStr(p, "cartLabel", "افزودن دوره به سبد خرید")} cartHref={propStr(p, "cartHref", "/pages/cart")} light={propStr(p, "variant", "box") === "banner"} />
     : null

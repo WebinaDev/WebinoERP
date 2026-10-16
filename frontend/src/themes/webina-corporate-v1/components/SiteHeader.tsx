@@ -6,6 +6,7 @@ import { createPortal } from 'react-dom';
 import { useLocale, useTranslations } from 'next-intl';
 import { ArrowUpLeft, ChevronDown, Menu, X } from 'lucide-react';
 import { LanguageMenu } from '@/components/LanguageMenu';
+import { HeaderAccount, HeaderCart } from '@/features/shop/ShopHeader';
 import { siteHref } from '@/lib/public-api-server';
 import { cn } from '@/lib/utils';
 import { headerDefaults, isExternalHref, mergeContent, type HeaderData, type NavItemData } from '../site-content';
@@ -108,6 +109,8 @@ export function SiteHeader({
           <div className="lang-slot">
             <LanguageMenu />
           </div>
+          {(data as { show_account?: boolean }).show_account !== false ? <HeaderAccount /> : null}
+          {(data as { show_cart?: boolean }).show_cart !== false ? <HeaderCart /> : null}
           {data.cta_label ? (
             <Link href={go(data.cta_href)} className="nav-cta">
               {data.cta_label}

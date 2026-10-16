@@ -136,6 +136,7 @@ import { OutboundPage } from '@/features/modules/scm/outbound_page';
 import { AuditPage } from '@/features/modules/scm/audit_page';
 import { InvoicesPage as SalesInvoicesPage } from '@/features/modules/sales/invoices_page';
 import { CatalogPage } from '@/features/modules/sales/catalog_page';
+import { StorefrontAdminPage } from '@/features/modules/sales/storefront_page';
 import { CampaignsPage } from '@/features/modules/sales/campaigns_page';
 import { RahnPercentPage } from '@/features/modules/sales/rahn_percent_page';
 import { ContractsPage } from '@/features/modules/docs/contracts_page';
@@ -294,6 +295,7 @@ const EXACT: Record<string, ReactNode> = {
   'sales/invoices': <SalesInvoicesPage />,
   invoices: <InvoicesListPage />,
   'sales/catalog': <CatalogPage />,
+  'sales/storefront': <StorefrontAdminPage />,
   services: <ServicesListPage />,
   'sales/campaigns': <CampaignsPage />,
   campaigns: <CampaignsPage />,

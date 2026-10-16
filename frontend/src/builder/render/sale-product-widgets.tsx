@@ -7,10 +7,11 @@ import Link from "next/link"
 import { useEffect, useMemo, useState, useSyncExternalStore, type ReactNode } from "react"
 import {
   BadgeCheck, CalendarClock, CheckCircle2, ChevronLeft, Download, Headphones, History, Layers, MessageSquareText,
-  Minus, Plus, RefreshCw, ShieldCheck, ShoppingCart, Sparkles, Star, Tag, Trash2, Users,
+  RefreshCw, ShieldCheck, ShoppingCart, Sparkles, Star, Tag, Users,
 } from "lucide-react"
 
-import { addToCart, cartSnapshot, setQty, subscribeCart, type CartLine } from "../cart"
+import { addToCart, cartSnapshot, subscribeCart, type CartLine } from "../cart"
+import { CartView } from "@/features/shop/CartView"
 import { propStr } from "../props"
 import type { WidgetNode } from "../types"
 
@@ -50,6 +51,7 @@ function AddButton({ slug, name, price, image, label, cartHref, big }: { slug: s
       <button
         type="button"
         onClick={() => { addToCart({ slug, name, price, tone: "#0054ff", image: image || null }); setFlash(true) }}
+        aria-live="polite"
         className={`inline-flex items-center justify-center gap-2 rounded-2xl bg-[#0054ff] font-bold text-white shadow-[0_10px_30px_-12px_#0054ff] transition hover:bg-[#0045d1] ${big ? "h-14 text-base" : "h-11 px-4 text-sm"}`}
       >
         <ShoppingCart className="h-5 w-5" />{flash ? "به سبد اضافه شد" : label}
@@ -293,46 +295,8 @@ export function SaleProductGridWidget({ widget }: { widget: WidgetNode }) {
   )
 }
 
-/** Cart: localStorage lines, quantity, total and checkout CTA (goes to the order/proposal form with product names). */
+/** Cart: the real Shop cart (AJAX), editable qty, coupon, totals, then /checkout. */
 export function SaleCartWidget({ widget }: { widget: WidgetNode }) {
   const p = widget.props
-  const cart = useCart()
-  const total = cart.reduce((s, l) => s + l.price * l.qty, 0)
-  const checkout = safe(propStr(p, "checkoutHref", "/proposal"))
-  const q = encodeURIComponent(cart.map((l) => `${l.name} × ${l.qty}`).join("، "))
-  return (
-    <div className="mx-auto max-w-5xl px-4 py-10">
-      <h1 className="text-2xl font-black text-[#22242a]">{propStr(p, "title", "سبد خرید")}</h1>
-      {!cart.length ? (
-        <div className="mt-6 rounded-3xl border border-dashed border-[#d8deeb] p-10 text-center">
-          <ShoppingCart className="mx-auto h-10 w-10 text-[#9aa0ad]" />
-          <p className="mt-3 text-[#4a4e5a]">{propStr(p, "emptyText", "سبد خرید شما خالی است.")}</p>
-          <Link href="/products" className="mt-4 inline-flex rounded-2xl bg-[#0054ff] px-5 py-3 text-sm font-bold text-white">مشاهده محصولات</Link>
-        </div>
-      ) : (
-        <div className="mt-6 grid gap-6 lg:grid-cols-[1fr_320px]">
-          <ul className="grid gap-3">
-            {cart.map((l) => (
-              <li key={l.slug} className="flex items-center gap-4 rounded-2xl border border-[#e6e9f2] bg-white p-3">
-                {/* eslint-disable-next-line @next/next/no-img-element */}
-                {l.image ? <img src={l.image} alt="" className="h-16 w-24 rounded-xl object-cover" /> : null}
-                <div className="min-w-0 flex-1"><p className="truncate font-bold text-[#22242a]">{l.name}</p><p className="text-sm text-[#6b7080]">{toman(l.price)}</p></div>
-                <div className="flex items-center gap-1 rounded-xl border border-[#e6e9f2] p-1">
-                  <button type="button" aria-label="افزایش" onClick={() => setQty(l.slug, l.qty + 1)} className="p-1"><Plus className="h-4 w-4" /></button>
-                  <span className="w-6 text-center font-bold">{l.qty}</span>
-                  <button type="button" aria-label="کاهش" onClick={() => setQty(l.slug, l.qty - 1)} className="p-1"><Minus className="h-4 w-4" /></button>
-                </div>
-                <button type="button" aria-label="حذف" onClick={() => setQty(l.slug, 0)} className="p-2 text-[#ff4d4f]"><Trash2 className="h-4 w-4" /></button>
-              </li>
-            ))}
-          </ul>
-          <aside className="h-fit rounded-3xl border border-[#e6e9f2] bg-white p-5">
-            <div className="flex justify-between text-sm text-[#6b7080]"><span>جمع کل</span><span className="text-lg font-black text-[#22242a]">{toman(total)}</span></div>
-            {propStr(p, "note", "") ? <p className="mt-3 text-xs leading-6 text-[#6b7080]">{propStr(p, "note", "")}</p> : null}
-            <Link href={`${checkout}${checkout.includes("?") ? "&" : "?"}products=${q}`} className="mt-4 flex h-12 items-center justify-center rounded-2xl bg-[#0054ff] font-bold text-white">{propStr(p, "checkoutLabel", "ثبت سفارش")}</Link>
-          </aside>
-        </div>
-      )}
-    </div>
-  )
+  return <CartView title={propStr(p, "title", "سبد خرید")} emptyText={propStr(p, "emptyText", "سبد خرید شما خالی است.")} note={propStr(p, "note", "") || undefined} />
 }
