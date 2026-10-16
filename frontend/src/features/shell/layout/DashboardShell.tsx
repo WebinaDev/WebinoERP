@@ -1,6 +1,6 @@
 'use client';
 
-import { ExternalLink, LayoutGrid, Maximize, Minimize, Plus } from 'lucide-react';
+import { ExternalLink, LayoutGrid, Maximize, Minimize } from 'lucide-react';
 import { useEffect, useMemo, useState } from 'react';
 import { useLocale, useTranslations } from 'next-intl';
 import { AppSidebar } from '@/components/blocks/sidebar-07/components/app-sidebar';
@@ -189,7 +189,7 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
               'wd-mobile-topbar wd-desktop-topbar h-[52px] sm:h-14 md:h-14',
             )}
           >
-            <div className="flex w-full min-w-0 items-center gap-2 px-3 sm:px-4 md:gap-3 md:px-5">
+            <div className="relative flex w-full min-w-0 items-center gap-2 px-3 sm:px-4 md:gap-3 md:px-5">
               <SidebarTrigger className="-ms-1 hidden md:inline-flex" />
               <Button
                 type="button"
@@ -206,11 +206,8 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
               <div className="min-w-0 flex-1 md:hidden">
                 <p className="wd-mobile-page-title truncate text-foreground">{pageTitle}</p>
               </div>
-              {/* Desktop: command search */}
-              <div className="wd-desktop-search hidden md:block">
-                <GlobalSearchBox />
-              </div>
-              <Breadcrumb className="hidden lg:block">
+              {/* Desktop: page path sits where search used to (start / right of centered search in RTL) */}
+              <Breadcrumb className="wd-desktop-path hidden min-w-0 md:block">
                 <BreadcrumbList>
                   {crumbs.map((crumb, i) => (
                     <span key={crumb.href ?? crumb.label} className="contents">
@@ -226,6 +223,10 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
                   ))}
                 </BreadcrumbList>
               </Breadcrumb>
+              {/* Desktop: command search centered in the header */}
+              <div className="wd-desktop-search hidden md:block">
+                <GlobalSearchBox />
+              </div>
               <div className="ms-auto flex items-center gap-1.5 sm:gap-2">
                 <PwaRegistrar />
                 <NotificationBell />
@@ -239,23 +240,18 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
                 >
                   {fs ? <Minimize className="size-4" strokeWidth={1.75} /> : <Maximize className="size-4" strokeWidth={1.75} />}
                 </Button>
-                <Button variant="outline" size="sm" className="hidden md:inline-flex gap-1.5 rounded-[10px]" asChild>
-                  <a href="/" target="_blank" rel="noreferrer">
+                <Button
+                  variant="outline"
+                  size="icon"
+                  className="hidden md:inline-flex rounded-[10px]"
+                  asChild
+                >
+                  <a href="/" target="_blank" rel="noreferrer" aria-label={t('nav.visitSite')}>
                     <ExternalLink className="size-3.5" strokeWidth={1.75} />
-                    <span className="hidden lg:inline">{t('nav.visitSite')}</span>
                   </a>
                 </Button>
-                <Button
-                  type="button"
-                  size="sm"
-                  className="wd-desktop-create hidden md:inline-flex gap-1.5"
-                  onClick={() => router.push(dashboardHref(locale, 'crm/leads'))}
-                >
-                  <Plus className="size-3.5" strokeWidth={1.75} />
-                  <span>{t('shell.desktop.create')}</span>
-                </Button>
                 <div className="hidden md:contents">
-                  <LanguageMenu />
+                  <LanguageMenu iconOnly />
                   <AccentMenu />
                   <ThemeMenu />
                 </div>

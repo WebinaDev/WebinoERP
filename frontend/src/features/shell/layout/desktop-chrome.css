@@ -49,8 +49,35 @@
     -webkit-backdrop-filter: none !important;
   }
 
+  /* Page path (breadcrumb) — old search slot at the start / right of centered search in RTL */
+  html[data-wd-dashboard] .wd-desktop-path {
+    position: relative;
+    z-index: 1;
+    max-width: min(22rem, 28vw);
+    min-width: 0;
+    overflow: hidden;
+  }
+
+  html[data-wd-dashboard] .wd-desktop-path [data-slot='breadcrumb-list'] {
+    flex-wrap: nowrap;
+  }
+
+  html[data-wd-dashboard] .wd-desktop-path [data-slot='breadcrumb-page'],
+  html[data-wd-dashboard] .wd-desktop-path [data-slot='breadcrumb-link'] {
+    max-width: 10rem;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  /* Search — centered in the desktop top bar */
   html[data-wd-dashboard] .wd-desktop-search {
-    flex: 1;
+    position: absolute;
+    left: 50%;
+    top: 50%;
+    transform: translate(-50%, -50%);
+    z-index: 0;
+    width: min(28rem, 42vw);
     max-width: 28rem;
     min-width: 12rem;
   }
@@ -63,20 +90,6 @@
     box-shadow: none;
     height: 2.375rem;
     font-size: 0.8125rem;
-  }
-
-  html[data-wd-dashboard] .wd-desktop-create {
-    border-radius: 10px !important;
-    background: var(--wd-brand) !important;
-    color: #fff !important;
-    font-weight: 600;
-    box-shadow: none !important;
-    height: 2.375rem;
-    padding-inline: 0.875rem;
-  }
-
-  html[data-wd-dashboard] .wd-desktop-create:hover {
-    background: var(--wd-brand-dark) !important;
   }
 
   /* Sidebar formal */

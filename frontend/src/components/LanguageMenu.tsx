@@ -18,7 +18,7 @@ const LANGS = [
   { code: 'en' as const, labelKey: 'settings.langEn', flag: '🇬🇧' },
 ];
 
-export function LanguageMenu() {
+export function LanguageMenu({ iconOnly = false }: { iconOnly?: boolean }) {
   const t = useTranslations();
   const locale = useLocale();
   const router = useRouter();
@@ -38,13 +38,17 @@ export function LanguageMenu() {
         <Button
           type="button"
           variant="outline"
-          size="sm"
-          className="h-8 gap-1.5 px-2 text-xs"
+          size={iconOnly ? 'icon' : 'sm'}
+          className={iconOnly ? 'rounded-[10px]' : 'h-8 gap-1.5 px-2 text-xs'}
           aria-label={t('settings.language')}
         >
           <span aria-hidden>{current.flag}</span>
-          <span className="uppercase">{current.code}</span>
-          <ChevronDown className="size-3 opacity-60" aria-hidden />
+          {iconOnly ? null : (
+            <>
+              <span className="uppercase">{current.code}</span>
+              <ChevronDown className="size-3 opacity-60" aria-hidden />
+            </>
+          )}
         </Button>
       </DropdownMenuTrigger>
       <DropdownMenuContent align="end">
