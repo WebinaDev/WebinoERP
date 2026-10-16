@@ -20,7 +20,7 @@ export function renderDashboardPage(path: string, _meta: DashboardRouteMeta) {
   return resolveDashboardPage(path);
 }
 
-export function DashboardPageContent({ path, meta: _meta, initialStats = null }: Props) {
+export function DashboardPageContent({ path, meta, initialStats = null }: Props) {
   const normalized = normalizeDashboardPath(path);
 
   return (
