@@ -20,7 +20,8 @@ export async function prefetchCorporate(document: BuilderDocument): Promise<Reco
       paths.add(`/v1/public/forms/${encodeURIComponent(slug)}`);
     }
     // Knowledge-center listings (academy / blog / magazine) — SSR so covers render without a loading flash
-    if (w.type === 'academy-grid') paths.add('/v1/public/academy');
+    if (w.type === 'academy-grid' || w.type === 'academy-related-courses') paths.add('/v1/public/academy');
+    if (w.type.startsWith('academy-course-') && typeof w.props.course === 'string' && w.props.course.trim()) paths.add(`/v1/public/academy/${encodeURIComponent(w.props.course.trim())}`);
     if (w.type === 'blog-list') {
       const limit = Math.max(1, Math.min(50, Number(w.props.limit) || 12));
       paths.add(`/v1/public/blog?per_page=${limit}`);

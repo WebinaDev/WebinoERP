@@ -45,6 +45,7 @@ import { FormWidget } from "./form-widget"
 import { PortfolioGridWidget } from "./portfolio-widget"
 import { SaleCartWidget, SaleProductGridWidget, SaleProductHeroWidget, SaleProductTabsWidget } from "./sale-product-widgets"
 import { InfoTableWidget, PortfolioGalleryWidget, StoryCardWidget } from "./portfolio-detail-widgets"
+import { AcademyCourseAboutWidget, AcademyCourseEnrollWidget, AcademyCourseHeroWidget, AcademyCourseInstructorWidget, AcademyCourseQuizzesWidget, AcademyCourseReviewsWidget, AcademyCourseSyllabusWidget, AcademyRelatedCoursesWidget } from "./academy-course-widgets"
 import { AcademyGridWidget, AnnouncementsListWidget, BlogListWidget, DownloadsListWidget, FaqCategorizedWidget, MagazineFeatureWidget } from "./knowledge-widgets"
 import { RahnEstimateWidget } from "./rahn-widget"
 import { BadgesWidget, ComparisonTableWidget, CtaBannerWidget, IconCardsWidget, SectionHeadingWidget, StepsWidget } from "./content-widgets"
@@ -410,6 +411,22 @@ export function WidgetBody({ widget, editor }: { widget: WidgetNode; editor?: Ed
       return <BlogListWidget widget={widget} />
     case "academy-grid":
       return <AcademyGridWidget widget={widget} />
+    case "academy-course-hero":
+      return <AcademyCourseHeroWidget widget={widget} />
+    case "academy-course-about":
+      return <AcademyCourseAboutWidget widget={widget} />
+    case "academy-course-syllabus":
+      return <AcademyCourseSyllabusWidget widget={widget} />
+    case "academy-course-instructor":
+      return <AcademyCourseInstructorWidget widget={widget} />
+    case "academy-course-quizzes":
+      return <AcademyCourseQuizzesWidget widget={widget} />
+    case "academy-course-reviews":
+      return <AcademyCourseReviewsWidget widget={widget} />
+    case "academy-course-enroll":
+      return <AcademyCourseEnrollWidget widget={widget} />
+    case "academy-related-courses":
+      return <AcademyRelatedCoursesWidget widget={widget} />
     case "magazine-feature":
       return <MagazineFeatureWidget widget={widget} />
     case "downloads-list":
