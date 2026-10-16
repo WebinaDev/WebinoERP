@@ -6,10 +6,12 @@ import { Briefcase, Building2, CheckCircle2, ExternalLink, Globe, Layers, Lightb
 import { apiServer } from '@/lib/public-api-server';
 import { SitePage } from '@/themes/webina-corporate-v1/components/SitePage';
 import { PortfolioGallery } from './PortfolioGallery';
+import { loadPublishedPage, StorefrontDocument } from '@/builder/public-document';
+import { prefetchCorporate } from '@/themes/webina-corporate-v1/builder/prefetch';
 
 export const revalidate = 60;
 
-/** Single portfolio item template (data from داشبورد ← بازاریابی ← نمونه‌کار; no content in code).
+/** Fallback single portfolio item template (used only when no builder page «portfolio-{slug}» is published) (data from داشبورد ← بازاریابی ← نمونه‌کار; no content in code).
  * Desktop: gallery + story on the main column, sticky info table on the side. Mobile stacks. */
 type PortfolioItem = {
   title: string;
@@ -71,6 +73,9 @@ export async function generateMetadata({ params }: { params: Promise<{ slug: str
 
 export default async function PortfolioDetailPage({ params }: { params: Promise<{ slug: string }> }) {
   const { slug } = await params;
+  // Page-builder first: a published builder page «portfolio-{slug}» (صفحه‌ساز) owns layout and content.
+  const built = await loadPublishedPage(`portfolio-${slug}`);
+  if (built) return <StorefrontDocument document={built} themeClass="webina-builder" runtime={{ prefetch: await prefetchCorporate(built) }} />;
   let item: PortfolioItem | null = null;
   try {
     item = (await apiServer<{ data: PortfolioItem }>(`/v1/public/portfolio/${encodeURIComponent(slug)}`)).data;

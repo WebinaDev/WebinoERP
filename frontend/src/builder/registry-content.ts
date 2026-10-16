@@ -4,6 +4,7 @@
 import { uid } from "./ids"
 import { sharedContentWidgets, sharedFormWidget } from "@webina/ui/builder"
 import { ICON_OPTIONS } from "./render/icon-options"
+import { DETAIL_ICON_OPTIONS } from "./render/portfolio-detail-icons"
 import type { WidgetDef, WidgetNode } from "./types"
 
 function node(type: string, props: Record<string, unknown>): WidgetNode {
@@ -44,6 +45,47 @@ export const CONTENT_WIDGETS: WidgetDef[] = [
       { kind: "link", key: "emptySecondaryHref", label: "پیوند دکمه دوم" },
     ],
     create: () => node("portfolio-grid", { allLabel: "همه", showSort: true, limit: 50, detailLabel: "مشاهده جزئیات", emptyTitle: "به‌زودی", emptyText: "", emptyPrimaryLabel: "", emptyPrimaryHref: "", emptySecondaryLabel: "", emptySecondaryHref: "" }),
+  },
+  {
+    type: "portfolio-gallery",
+    label: "گالری نمونه‌کار (تصویر اصلی + بندانگشتی + بزرگ‌نمایی)",
+    category: "content",
+    fields: [
+      { kind: "textarea", key: "images", label: "آدرس تصویر|متن جایگزین در هر خط" },
+      { kind: "text", key: "alt", label: "متن جایگزین پیش‌فرض" },
+    ],
+    create: () => node("portfolio-gallery", { images: "", alt: "" }),
+  },
+  {
+    type: "info-table",
+    label: "جدول اطلاعات آیکن‌دار",
+    category: "content",
+    fields: [
+      { kind: "text", key: "title", label: "عنوان" },
+      { kind: "textarea", key: "rows", label: "در هر خط: آیکن|عنوان|مقدار|پیوند (مقدار با chips: و جداکننده ، به‌صورت برچسب)؛ آیکن‌ها: client globe layers briefcase tag trend check target idea trophy calendar users wrench palette rocket badge" },
+      { kind: "text", key: "buttonLabel", label: "متن دکمه" },
+      { kind: "link", key: "buttonHref", label: "پیوند دکمه" },
+    ],
+    create: () => node("info-table", { title: "اطلاعات پروژه", rows: "client|کارفرما|\nglobe|وب‌سایت||", buttonLabel: "", buttonHref: "" }),
+  },
+  {
+    type: "story-card",
+    label: "کارت روایت (چالش / راه‌حل / نتیجه)",
+    category: "content",
+    fields: [
+      { kind: "select", key: "icon", label: "آیکن", options: DETAIL_ICON_OPTIONS },
+      { kind: "text", key: "title", label: "عنوان" },
+      { kind: "textarea", key: "text", label: "متن (هر خط یک پاراگراف یا آیتم)" },
+      { kind: "select", key: "tone", label: "رنگ آیکن", options: [{ value: "blue", label: "آبی" }, { value: "orange", label: "نارنجی" }, { value: "green", label: "سبز" }, { value: "dark", label: "تیره" }] },
+      { kind: "select", key: "variant", label: "نوع", options: [{ value: "card", label: "کارت" }, { value: "highlight", label: "بنر نتیجه" }, { value: "checklist", label: "فهرست تیک‌دار" }, { value: "cta", label: "باکس دعوت به اقدام" }] },
+      { kind: "text", key: "primaryLabel", label: "دکمه اول (باکس دعوت)" },
+      { kind: "link", key: "primaryHref", label: "پیوند دکمه اول" },
+      { kind: "text", key: "secondaryLabel", label: "دکمه دوم" },
+      { kind: "link", key: "secondaryHref", label: "پیوند دکمه دوم" },
+      { kind: "text", key: "tertiaryLabel", label: "دکمه سوم" },
+      { kind: "link", key: "tertiaryHref", label: "پیوند دکمه سوم" },
+    ],
+    create: () => node("story-card", { icon: "target", title: "چالش", text: "", tone: "blue", variant: "card" }),
   },
   {
     type: "blog-list",

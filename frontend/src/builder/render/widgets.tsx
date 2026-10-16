@@ -43,6 +43,7 @@ import { fillDocumentTokens } from "../theme/tokens"
 import { propBool, propNum, propStr, parseLinks, linkAttrs } from "../props"
 import { FormWidget } from "./form-widget"
 import { PortfolioGridWidget } from "./portfolio-widget"
+import { InfoTableWidget, PortfolioGalleryWidget, StoryCardWidget } from "./portfolio-detail-widgets"
 import { AcademyGridWidget, AnnouncementsListWidget, BlogListWidget, DownloadsListWidget, FaqCategorizedWidget, MagazineFeatureWidget } from "./knowledge-widgets"
 import { RahnEstimateWidget } from "./rahn-widget"
 import { BadgesWidget, ComparisonTableWidget, CtaBannerWidget, IconCardsWidget, SectionHeadingWidget, StepsWidget } from "./content-widgets"
@@ -390,6 +391,12 @@ export function WidgetBody({ widget, editor }: { widget: WidgetNode; editor?: Ed
       return <RahnEstimateWidget widget={widget} editing={editing} />
     case "portfolio-grid":
       return <PortfolioGridWidget widget={widget} />
+    case "portfolio-gallery":
+      return <PortfolioGalleryWidget widget={widget} />
+    case "info-table":
+      return <InfoTableWidget widget={widget} />
+    case "story-card":
+      return <StoryCardWidget widget={widget} />
     case "blog-list":
       return <BlogListWidget widget={widget} />
     case "academy-grid":
