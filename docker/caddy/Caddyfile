@@ -27,6 +27,9 @@
 	@api path /api/*
 	header @api Cache-Control "no-store"
 
+	@publicMedia path /marketing/* /currency/*
+	header @publicMedia Cache-Control "public, max-age=604800"
+
 	@storage path /storage/*
 	header @storage Cache-Control "public, max-age=86400"
 
