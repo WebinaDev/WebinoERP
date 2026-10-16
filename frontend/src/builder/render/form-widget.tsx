@@ -2,7 +2,13 @@
 
 import { useEffect, useRef, useState } from "react"
 
-import { LocaleDatePicker } from "@/components/ui/locale-date-picker"
+import dynamic from "next/dynamic"
+
+// Heavy (react-day-picker + jalali picker): load only when a form actually has a date field.
+const LocaleDatePicker = dynamic(() => import("@/components/ui/locale-date-picker").then((m) => m.LocaleDatePicker), {
+  ssr: false,
+  loading: () => <input className="wb-field" disabled aria-busy="true" />,
+})
 
 import { FORM_UPLOAD_ACCEPT, FORM_UPLOAD_MAX_BYTES, publicFormEndpoints } from "@webina/ui/builder"
 import { fieldsFromDefinition, isVisible, missingOnStep, parseFormFields, stepCount, visiblePayload, type FormField } from "../forms"

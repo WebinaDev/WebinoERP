@@ -7,11 +7,15 @@ import { themeQueryString, type ThemeQuery } from "./theme/context"
 import { requestThemeContext } from "./theme/request"
 import { isDocument } from "./tree"
 import type { BuilderDocument, RuntimeContext } from "./types"
+
+// Published builder output is cached for a few seconds so each page view does not
+// trigger several backend round-trips. Edits still show up within this window.
+const PUBLIC_DOC_TTL = 10
 import { storefrontThemeClass } from "@/themes/shared/storefront-skin"
 
 async function readDocument(path: string): Promise<BuilderDocument | null> {
   try {
-    const res = await apiServer<{ data?: { document?: unknown } }>(path, { revalidate: 0 })
+    const res = await apiServer<{ data?: { document?: unknown } }>(path, { revalidate: PUBLIC_DOC_TTL })
     const document = res?.data?.document
     return isDocument(document) ? document : null
   } catch {
@@ -29,7 +33,7 @@ export function loadPublishedTemplate(kind: "header" | "footer"): Promise<Builde
 
 export const loadPublishedGlobals = cache(async (): Promise<BuilderGlobals | null> => {
   try {
-    const res = await apiServer<{ data?: { settings?: unknown } }>("/v1/public/builder/globals", { revalidate: 0 })
+    const res = await apiServer<{ data?: { settings?: unknown } }>("/v1/public/builder/globals", { revalidate: PUBLIC_DOC_TTL })
     return res?.data?.settings ? asGlobals(res.data.settings) : null
   } catch {
     return null

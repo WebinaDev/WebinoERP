@@ -1,5 +1,5 @@
 import type { Locale } from '@/i18n';
-import { isRtlLocale, toLocaleDigits } from '@webina/ui';
+import { isRtlLocale, toLocaleDigits } from "@/lib/webina-ui-core";
 import { formatCalendarDate, type AppDateLocale } from './calendar-date';
 
 export function formatDate(
@@ -30,4 +30,4 @@ export function getCalendarConfig(locale: Locale) {
     : { calendar: 'gregorian' as const, locale: 'en' };
 }
 
-export { isRtlLocale, toLocaleDigits, toLatinDigits } from '@webina/ui';
+export { isRtlLocale, toLocaleDigits, toLatinDigits } from "@/lib/webina-ui-core";

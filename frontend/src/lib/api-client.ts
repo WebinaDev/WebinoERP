@@ -1,5 +1,5 @@
 import axios, { AxiosInstance, AxiosError } from 'axios';
-import { unwrapApiResponse } from '@webina/ui';
+import { unwrapApiResponse } from "@/lib/webina-ui-core";
 import { resolveApiBase } from '@/lib/api-base';
 
 /**

@@ -270,11 +270,11 @@ export function SaleProductGridWidget({ widget }: { widget: WidgetNode }) {
         </div>
       ) : null}
       <div className="mt-6 grid gap-5 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-        {list.map((it) => (
+        {list.map((it, i) => (
           <article key={it.slug} className="group flex flex-col overflow-hidden rounded-3xl border border-[#e6e9f2] bg-white shadow-sm transition hover:-translate-y-1 hover:shadow-xl">
             <Link href={it.href || "#"} className="block overflow-hidden bg-[#f5f7fc]">
               {/* eslint-disable-next-line @next/next/no-img-element */}
-              {it.image ? <img src={it.image} alt={it.title} loading="lazy" className="aspect-[16/10] w-full object-cover transition group-hover:scale-105" /> : <div className="aspect-[16/10]" />}
+              {it.image ? <img src={it.image} alt={it.title} loading={i < 2 ? "eager" : "lazy"} decoding="async" className="aspect-[16/10] w-full object-cover transition group-hover:scale-105" /> : <div className="aspect-[16/10]" />}
             </Link>
             <div className="flex flex-1 flex-col p-4">
               {it.category ? <span className="text-xs font-bold text-[#0054ff]">{it.category}</span> : null}

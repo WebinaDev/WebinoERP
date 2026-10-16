@@ -8,7 +8,7 @@ import { toPersianDigits } from '@/lib/locale/calendar-date';
 import { cn } from '@/lib/utils';
 import type { ServiceProps, ServiceType } from '../../service-content';
 import { isExternalHref, type ButtonItem } from '../../site-content';
-import { NavIcon } from '../NavIcon';
+import { NavIcon } from '../NavIconClient';
 
 function go(path: string) {
   if (!path) return '#';

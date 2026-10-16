@@ -2,7 +2,7 @@ import {
   formatCurrency as formatCurrencyShared,
   formatNumber as formatNumberShared,
   type UiLocale,
-} from '@webina/ui';
+} from "@/lib/webina-ui-core";
 import type { Locale } from '@/i18n';
 
 export function formatNumber(value: number, locale: Locale): string {

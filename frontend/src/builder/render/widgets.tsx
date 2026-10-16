@@ -1,5 +1,7 @@
 "use client"
 
+import dynamic from "next/dynamic"
+
 import DOMPurify from "dompurify"
 import { Heart, ShieldCheck, Sparkles, Star, Truck } from "lucide-react"
 import Link from "next/link"
@@ -41,23 +43,11 @@ import {
 } from "../storefront/ui"
 import { fillDocumentTokens } from "../theme/tokens"
 import { propBool, propNum, propStr, parseLinks, linkAttrs } from "../props"
-import { FormWidget } from "./form-widget"
-import { PortfolioGridWidget } from "./portfolio-widget"
-import { SaleCartWidget, SaleProductGridWidget, SaleProductHeroWidget, SaleProductTabsWidget } from "./sale-product-widgets"
-import { InfoTableWidget, PortfolioGalleryWidget, StoryCardWidget } from "./portfolio-detail-widgets"
-import { AcademyCourseAboutWidget, AcademyCourseEnrollWidget, AcademyCourseHeroWidget, AcademyCourseInstructorWidget, AcademyCourseQuizzesWidget, AcademyCourseReviewsWidget, AcademyCourseSyllabusWidget, AcademyRelatedCoursesWidget } from "./academy-course-widgets"
-import { AcademyGridWidget, AnnouncementsListWidget, BlogListWidget, DownloadsListWidget, FaqCategorizedWidget, MagazineFeatureWidget } from "./knowledge-widgets"
-import { RahnEstimateWidget } from "./rahn-widget"
 import { BadgesWidget, ComparisonTableWidget, CtaBannerWidget, IconCardsWidget, SectionHeadingWidget, StepsWidget } from "./content-widgets"
 import { CorporateWidget } from "@/themes/webina-corporate-v1/builder/CorporateWidget"
 import { isCorporateType } from "@/themes/webina-corporate-v1/builder/blocks"
-import { PopupWidget } from "./popup-widget"
-import { FlipBoxWidget, HotspotWidget, ImageBoxWidget, LinkedProductsWidget, LoopGridWidget, MenuCartWidget, NavDropdownWidget, PurchaseSummaryWidget, StateBoxWidget, TocWidget } from "./pro-widgets"
-import { LoopFilterWidget } from "./loop-filter"
 import type { BuilderDocument, EditorApi, WidgetNode } from "../types"
 import { BuilderRuntimeProvider, useBuilderGlobals, useBuilderRuntime } from "./runtime"
-import { ClassicArchiveGrid } from "@/themes/ecommerce-classic/components/ClassicArchive"
-import { ClassicNotFound, ClassicOrderTrack, ClassicComparePage, ClassicWishlist } from "@/themes/ecommerce-classic/components/ClassicPages"
 import {
   AccordionWidget,
   AnnouncementWidget,
@@ -96,23 +86,65 @@ import {
   ProductPartWidget,
   RelatedProductsWidget,
 } from "./part-widgets"
-import {
-  ClassicBestSellers,
-  ClassicBrandGrid,
-  ClassicCategoryTiles,
-  ClassicCustomerGuide,
-  ClassicHero,
-  ClassicIconCategories,
-  ClassicProductRow,
-  ClassicPromoTrio,
-  ClassicRecentlyViewed,
-  ClassicSpecialBanners,
-  ClassicStoryStrip,
-  ClassicTasteBox,
-} from "@/themes/ecommerce-classic/components/ClassicHome"
 
-import { ClassicTrustStrip } from "@/themes/ecommerce-classic/components/ClassicProduct"
 import { Img } from "./img"
+
+// Widget groups are code-split: a page only downloads the widgets it renders
+// (still server-rendered, so no layout shift).
+const FormWidget = dynamic(() => import("./form-widget").then((m) => m.FormWidget))
+const PortfolioGridWidget = dynamic(() => import("./portfolio-widget").then((m) => m.PortfolioGridWidget))
+const SaleCartWidget = dynamic(() => import("./sale-product-widgets").then((m) => m.SaleCartWidget))
+const SaleProductGridWidget = dynamic(() => import("./sale-product-widgets").then((m) => m.SaleProductGridWidget))
+const SaleProductHeroWidget = dynamic(() => import("./sale-product-widgets").then((m) => m.SaleProductHeroWidget))
+const SaleProductTabsWidget = dynamic(() => import("./sale-product-widgets").then((m) => m.SaleProductTabsWidget))
+const InfoTableWidget = dynamic(() => import("./portfolio-detail-widgets").then((m) => m.InfoTableWidget))
+const PortfolioGalleryWidget = dynamic(() => import("./portfolio-detail-widgets").then((m) => m.PortfolioGalleryWidget))
+const StoryCardWidget = dynamic(() => import("./portfolio-detail-widgets").then((m) => m.StoryCardWidget))
+const AcademyCourseAboutWidget = dynamic(() => import("./academy-course-widgets").then((m) => m.AcademyCourseAboutWidget))
+const AcademyCourseEnrollWidget = dynamic(() => import("./academy-course-widgets").then((m) => m.AcademyCourseEnrollWidget))
+const AcademyCourseHeroWidget = dynamic(() => import("./academy-course-widgets").then((m) => m.AcademyCourseHeroWidget))
+const AcademyCourseInstructorWidget = dynamic(() => import("./academy-course-widgets").then((m) => m.AcademyCourseInstructorWidget))
+const AcademyCourseQuizzesWidget = dynamic(() => import("./academy-course-widgets").then((m) => m.AcademyCourseQuizzesWidget))
+const AcademyCourseReviewsWidget = dynamic(() => import("./academy-course-widgets").then((m) => m.AcademyCourseReviewsWidget))
+const AcademyCourseSyllabusWidget = dynamic(() => import("./academy-course-widgets").then((m) => m.AcademyCourseSyllabusWidget))
+const AcademyRelatedCoursesWidget = dynamic(() => import("./academy-course-widgets").then((m) => m.AcademyRelatedCoursesWidget))
+const AcademyGridWidget = dynamic(() => import("./knowledge-widgets").then((m) => m.AcademyGridWidget))
+const AnnouncementsListWidget = dynamic(() => import("./knowledge-widgets").then((m) => m.AnnouncementsListWidget))
+const BlogListWidget = dynamic(() => import("./knowledge-widgets").then((m) => m.BlogListWidget))
+const DownloadsListWidget = dynamic(() => import("./knowledge-widgets").then((m) => m.DownloadsListWidget))
+const FaqCategorizedWidget = dynamic(() => import("./knowledge-widgets").then((m) => m.FaqCategorizedWidget))
+const MagazineFeatureWidget = dynamic(() => import("./knowledge-widgets").then((m) => m.MagazineFeatureWidget))
+const RahnEstimateWidget = dynamic(() => import("./rahn-widget").then((m) => m.RahnEstimateWidget))
+const PopupWidget = dynamic(() => import("./popup-widget").then((m) => m.PopupWidget))
+const FlipBoxWidget = dynamic(() => import("./pro-widgets").then((m) => m.FlipBoxWidget))
+const HotspotWidget = dynamic(() => import("./pro-widgets").then((m) => m.HotspotWidget))
+const ImageBoxWidget = dynamic(() => import("./pro-widgets").then((m) => m.ImageBoxWidget))
+const LinkedProductsWidget = dynamic(() => import("./pro-widgets").then((m) => m.LinkedProductsWidget))
+const LoopGridWidget = dynamic(() => import("./pro-widgets").then((m) => m.LoopGridWidget))
+const MenuCartWidget = dynamic(() => import("./pro-widgets").then((m) => m.MenuCartWidget))
+const NavDropdownWidget = dynamic(() => import("./pro-widgets").then((m) => m.NavDropdownWidget))
+const PurchaseSummaryWidget = dynamic(() => import("./pro-widgets").then((m) => m.PurchaseSummaryWidget))
+const StateBoxWidget = dynamic(() => import("./pro-widgets").then((m) => m.StateBoxWidget))
+const TocWidget = dynamic(() => import("./pro-widgets").then((m) => m.TocWidget))
+const LoopFilterWidget = dynamic(() => import("./loop-filter").then((m) => m.LoopFilterWidget))
+const ClassicArchiveGrid = dynamic(() => import("@/themes/ecommerce-classic/components/ClassicArchive").then((m) => m.ClassicArchiveGrid))
+const ClassicNotFound = dynamic(() => import("@/themes/ecommerce-classic/components/ClassicPages").then((m) => m.ClassicNotFound))
+const ClassicOrderTrack = dynamic(() => import("@/themes/ecommerce-classic/components/ClassicPages").then((m) => m.ClassicOrderTrack))
+const ClassicComparePage = dynamic(() => import("@/themes/ecommerce-classic/components/ClassicPages").then((m) => m.ClassicComparePage))
+const ClassicWishlist = dynamic(() => import("@/themes/ecommerce-classic/components/ClassicPages").then((m) => m.ClassicWishlist))
+const ClassicBestSellers = dynamic(() => import("@/themes/ecommerce-classic/components/ClassicHome").then((m) => m.ClassicBestSellers))
+const ClassicBrandGrid = dynamic(() => import("@/themes/ecommerce-classic/components/ClassicHome").then((m) => m.ClassicBrandGrid))
+const ClassicCategoryTiles = dynamic(() => import("@/themes/ecommerce-classic/components/ClassicHome").then((m) => m.ClassicCategoryTiles))
+const ClassicCustomerGuide = dynamic(() => import("@/themes/ecommerce-classic/components/ClassicHome").then((m) => m.ClassicCustomerGuide))
+const ClassicHero = dynamic(() => import("@/themes/ecommerce-classic/components/ClassicHome").then((m) => m.ClassicHero))
+const ClassicIconCategories = dynamic(() => import("@/themes/ecommerce-classic/components/ClassicHome").then((m) => m.ClassicIconCategories))
+const ClassicProductRow = dynamic(() => import("@/themes/ecommerce-classic/components/ClassicHome").then((m) => m.ClassicProductRow))
+const ClassicPromoTrio = dynamic(() => import("@/themes/ecommerce-classic/components/ClassicHome").then((m) => m.ClassicPromoTrio))
+const ClassicRecentlyViewed = dynamic(() => import("@/themes/ecommerce-classic/components/ClassicHome").then((m) => m.ClassicRecentlyViewed))
+const ClassicSpecialBanners = dynamic(() => import("@/themes/ecommerce-classic/components/ClassicHome").then((m) => m.ClassicSpecialBanners))
+const ClassicStoryStrip = dynamic(() => import("@/themes/ecommerce-classic/components/ClassicHome").then((m) => m.ClassicStoryStrip))
+const ClassicTasteBox = dynamic(() => import("@/themes/ecommerce-classic/components/ClassicHome").then((m) => m.ClassicTasteBox))
+const ClassicTrustStrip = dynamic(() => import("@/themes/ecommerce-classic/components/ClassicProduct").then((m) => m.ClassicTrustStrip))
 
 const NAV = [
   { label: "خانه", href: "/" },

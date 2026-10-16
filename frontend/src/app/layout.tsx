@@ -1,6 +1,7 @@
 import type { Metadata, Viewport } from "next"
 import { NextIntlClientProvider } from "next-intl"
 import { getLocale, getMessages, getTimeZone } from "next-intl/server"
+import { headers } from "next/headers"
 
 import { yekanBakh } from "@/lib/fonts/yekan-bakh"
 import { htmlDir } from "@/lib/locale"
@@ -11,6 +12,18 @@ import { QueryProvider } from "@/providers/QueryProvider"
 import type { Locale } from "../../i18n"
 
 import "./globals.css"
+
+// Admin-only translation namespaces. Public pages never render these client
+// components, so they are not shipped in the public HTML (about half of fa.json).
+const ADMIN_ONLY_NAMESPACES = [
+  "hrm", "aiContent", "marketplace", "modirpayamak", "platform", "pm", "expansion", "crm",
+  "bots", "wfcp", "hosting", "siteBuilder", "theme_builder", "builder_collections", "builder_globals",
+  "bale", "mfg", "scm", "analytics", "finance", "licenses", "license", "marketing",
+]
+
+function isAdminPath(path: string): boolean {
+  return path.startsWith("/dashboard") || path.startsWith("/login") || path.startsWith("/admin")
+}
 
 export const metadata: Metadata = {
   title: "Webino ERP",
@@ -38,7 +51,12 @@ export default async function RootLayout({
   children: React.ReactNode
 }>) {
   const locale = (await getLocale()) as Locale
-  const messages = await getMessages()
+  const allMessages = await getMessages()
+  const requestPath = (await headers()).get("x-webino-path") ?? ""
+  const messages =
+    requestPath && !isAdminPath(requestPath)
+      ? Object.fromEntries(Object.entries(allMessages).filter(([ns]) => !ADMIN_ONLY_NAMESPACES.includes(ns)))
+      : allMessages
   const timeZone = await getTimeZone()
   const dir = htmlDir(locale)
   const apiOrigin = getApiOrigin()

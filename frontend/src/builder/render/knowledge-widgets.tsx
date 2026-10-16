@@ -68,8 +68,9 @@ function Chips({ items, active, onPick }: { items: { key: string; label: string 
 function Empty({ text }: { text: string }) {
   return <p className="wbx-pf-note">{text}</p>
 }
-function Cover({ src, alt }: { src?: string | null; alt: string }) {
-  return <div className="wbx-pf-cover">{src ? <img src={src} alt={alt} loading="lazy" /> : <span className="wbx-pf-placeholder" />}</div>
+// First cards are usually above the fold: load them eagerly (LCP), the rest lazily.
+function Cover({ src, alt, eager }: { src?: string | null; alt: string; eager?: boolean }) {
+  return <div className="wbx-pf-cover">{src ? <img src={src} alt={alt} loading={eager ? "eager" : "lazy"} decoding="async" {...(eager ? { fetchPriority: "high" as const } : {})} /> : <span className="wbx-pf-placeholder" />}</div>
 }
 
 /* ---------------- blog ---------------- */
@@ -87,10 +88,10 @@ export function BlogListWidget({ widget }: { widget: WidgetNode }) {
       {chips.length > 1 ? <div className="wbx-pf-bar"><Chips items={chips} active={active} onPick={setActive} /></div> : null}
       {posts === null ? <Empty text="در حال بارگذاری…" /> : posts.length === 0 ? <Empty text={propStr(p, "emptyText", "هنوز مطلبی منتشر نشده است.")} /> : (
         <ul className="wbx-pf-grid">
-          {posts.map((it) => (
+          {posts.map((it, i) => (
             <li key={it.id} className="wbx-pf-card">
               <Link href={`/blog/${it.slug}`} className="wbx-pf-link">
-                <Cover src={it.cover_url} alt={it.title} />
+                <Cover src={it.cover_url} alt={it.title} eager={i < 2} />
                 <div className="wbx-pf-body">
                   {it.category ? <span className="wbx-pf-tag">{it.category.name}</span> : null}
                   <h3>{it.title}</h3>
@@ -116,10 +117,10 @@ export function AcademyGridWidget({ widget }: { widget: WidgetNode }) {
   if (courses.length === 0) return <Empty text={propStr(p, "emptyText", "دوره‌ها به‌زودی منتشر می‌شوند.")} />
   return (
     <ul className="wbx-pf-grid">
-      {courses.map((c) => (
+      {courses.map((c, i) => (
         <li key={c.id} className="wbx-pf-card">
           <Link href={`/academy/${c.slug}`} className="wbx-pf-link">
-            <Cover src={c.cover_url} alt={c.title} />
+            <Cover src={c.cover_url} alt={c.title} eager={i < 2} />
             <div className="wbx-pf-body">
               <div className="wbx-kn-badges">
                 {c.level ? <span className="wbx-pf-tag">{c.level}</span> : null}
@@ -157,7 +158,7 @@ export function MagazineFeatureWidget({ widget }: { widget: WidgetNode }) {
       {!lead ? <Empty text={propStr(p, "emptyText", "نخستین شماره مجله به‌زودی منتشر می‌شود.")} /> : (
         <>
           <Link href={`/magazine/${lead.slug}`} className="wbx-kn-feature">
-            <Cover src={lead.cover_url} alt={lead.title} />
+            <Cover src={lead.cover_url} alt={lead.title} eager />
             <div className="wbx-kn-feature-body">
               <span className="wbx-pf-tag">{lead.featured ? propStr(p, "featuredLabel", "ویژه") : lead.issue || propStr(p, "featuredLabel", "ویژه")}</span>
               <h2>{lead.title}</h2>

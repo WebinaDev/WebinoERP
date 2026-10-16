@@ -25,7 +25,7 @@ const nextConfig = {
     unoptimized: true,
   },
   experimental: {
-    optimizePackageImports: ["lucide-react"],
+    optimizePackageImports: ["lucide-react", "radix-ui", "date-fns", "react-day-picker"],
   },
   async redirects() {
     return [

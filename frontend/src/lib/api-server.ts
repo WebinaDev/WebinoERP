@@ -1,6 +1,6 @@
 import { cookies } from 'next/headers';
 
-import { unwrapApiData } from '@webina/ui';
+import { unwrapApiData } from "@/lib/webina-ui-core";
 
 const API_BASE = process.env.NEXT_PUBLIC_API_URL ?? '';
 

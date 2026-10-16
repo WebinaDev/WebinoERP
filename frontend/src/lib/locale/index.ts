@@ -2,7 +2,7 @@ export * from './format-number';
 export * from './format-date';
 
 import type { Locale } from '../../../i18n';
-import { isRtlLocale, normalizeUiLocale, type UiLocale } from '@webina/ui';
+import { isRtlLocale, normalizeUiLocale, type UiLocale } from "@/lib/webina-ui-core";
 
 export type AppLocale = Locale;
 
@@ -24,7 +24,7 @@ export {
   normalizeUiLocale,
   toLatinDigits,
   toLocaleDigits,
-} from '@webina/ui';
+} from "@/lib/webina-ui-core";
 
 /** Document direction for the locale (`fa` → RTL). */
 export function htmlDir(locale?: string | null): "rtl" | "ltr" {

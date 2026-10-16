@@ -11,7 +11,7 @@ import { siteHref } from '@/lib/public-api-server';
 import { cn } from '@/lib/utils';
 import { headerDefaults, isExternalHref, mergeContent, type HeaderData, type NavItemData } from '../site-content';
 import { LogoLockup } from './LogoLockup';
-import { NavIcon } from './NavIcon';
+import { NavIcon } from './NavIconClient';
 
 function go(path?: string) {
   if (!path) return siteHref();

@@ -5,7 +5,7 @@ import { useLocale, useTranslations } from 'next-intl';
 import { ArrowUpLeft, Clock, MapPin, Navigation } from 'lucide-react';
 import { siteHref } from '@/lib/public-api-server';
 import { usePublicData } from '../../builder/usePublicData';
-import { NavIcon } from '../NavIcon';
+import { NavIcon } from '../NavIconClient';
 import {
   channelIcon,
   contactPageDefaults,

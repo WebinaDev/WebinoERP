@@ -16,7 +16,7 @@ import {
   type RawBlock,
   type StatItem,
 } from '../../site-content';
-import { NavIcon } from '../NavIcon';
+import { NavIcon } from '../NavIconClient';
 import { TestimonialSlider } from './TestimonialSlider';
 import { WorkThumb, isDarkThumb, realCover } from '../WorkThumb';
 import { useLandingMotion } from './useLandingMotion';
