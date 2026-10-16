@@ -1,6 +1,5 @@
 'use client';
 
-import { useParams } from 'next/navigation';
 import { resolveDashboardPage } from '@/lib/dashboard-page-map';
 import type { DashboardRouteMeta } from '@/lib/dashboard-routes';
 import { normalizeDashboardPath } from '@/lib/route-resolver';
@@ -21,18 +20,12 @@ export function renderDashboardPage(path: string, _meta: DashboardRouteMeta) {
   return resolveDashboardPage(path);
 }
 
-export function DashboardPageContent({ path, meta, initialStats = null }: Props) {
-  const params = useParams();
-  const locale = (params?.locale as string) || 'fa';
+export function DashboardPageContent({ path, meta: _meta, initialStats = null }: Props) {
   const normalized = normalizeDashboardPath(path);
-  const title = locale === 'fa' ? meta.titleFa : meta.titleEn;
 
   return (
     <InitialDashboardStatsProvider value={initialStats}>
-      <div className="space-y-6 text-start">
-        <div className="space-y-1">
-          <h1 className="text-2xl font-bold tracking-tight">{title}</h1>
-        </div>
+      <div className="wd-dash-page min-w-0 max-w-full space-y-4 overflow-x-hidden text-start sm:space-y-5">
         <ModuleRouteGuard permission={resolveRoutePermission(normalized)}>
           {renderDashboardPage(normalized, meta)}
         </ModuleRouteGuard>

@@ -132,8 +132,7 @@ export function ReportsPage() {
             <BarChart3 className="size-5" />
           </span>
           <div className="min-w-0">
-            <h1 className="text-lg font-bold text-[#22242a] dark:text-foreground sm:text-xl">{t('title')}</h1>
-            <p className="mt-1 text-xs leading-6 text-muted-foreground sm:text-sm">
+            <p className="text-xs leading-6 text-muted-foreground sm:text-sm">
               {t('description', {
                 from: range?.from ? formatDate(range.from) : tCommon('none'),
                 to: range?.to ? formatDate(range.to) : tCommon('none'),

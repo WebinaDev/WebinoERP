@@ -258,7 +258,7 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
               </div>
             </div>
           </header>
-          <div className="@container/main wd-app-atmosphere wd-mobile-main wd-desktop-main wd-desktop-chrome flex min-w-0 flex-1 flex-col gap-3 p-3 sm:gap-4 sm:p-4 md:pb-4">
+          <div className="@container/main wd-app-atmosphere wd-mobile-main wd-desktop-main wd-desktop-chrome flex min-w-0 max-w-full flex-1 flex-col gap-3 overflow-x-hidden p-3 sm:gap-4 sm:p-4 md:pb-4">
             {children}
           </div>
           <MobileBottomNav moreOpen={moreOpen} onMoreOpenChange={setMoreOpen} />
