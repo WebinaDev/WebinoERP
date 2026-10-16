@@ -1,6 +1,7 @@
 # PHP_IMAGE / COMPOSER_IMAGE / DOCKER_CLI_IMAGE:
 # override for Iranian mirrors, e.g. hub.hamdocker.ir/library/php:8.3-cli-bookworm
-ARG PHP_IMAGE=php:8.3-cli-bookworm
+# Backend uses the -fpm image (php-fpm + nginx); it also ships the php CLI for workers.
+ARG PHP_IMAGE=php:8.3-fpm-bookworm
 ARG COMPOSER_IMAGE=composer:2
 ARG DOCKER_CLI_IMAGE=docker:27-cli
 
@@ -21,7 +22,7 @@ RUN apt-get update \
     && apt-get install -y --no-install-recommends \
         $PHPIZE_DEPS \
         git unzip libzip-dev libpq-dev libpng-dev libonig-dev libxml2-dev libsqlite3-dev \
-        libbrotli-dev curl ca-certificates \
+        libbrotli-dev curl ca-certificates nginx-light \
     && docker-php-ext-install dom xml zip pdo_sqlite pdo_pgsql pgsql mbstring pcntl bcmath gd opcache \
     && chmod +x /tmp/install-redis.sh \
     && REDIS_PECL_VERSION="$REDIS_PECL_VERSION" /tmp/install-redis.sh \

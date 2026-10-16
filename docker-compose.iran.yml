@@ -19,7 +19,7 @@ services:
   backend:
     build:
       args:
-        PHP_IMAGE: ${PHP_IMAGE:-hub.hamdocker.ir/library/php:8.3-cli-bookworm}
+        PHP_IMAGE: ${BACKEND_PHP_IMAGE:-hub.hamdocker.ir/library/php:8.3-fpm-bookworm}
         COMPOSER_IMAGE: ${COMPOSER_IMAGE:-hub.hamdocker.ir/library/composer:2}
         DOCKER_CLI_IMAGE: ${DOCKER_CLI_IMAGE:-hub.hamdocker.ir/library/docker:27-cli}
 
