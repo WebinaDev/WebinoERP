@@ -15,14 +15,19 @@ type Props = {
   actions?: ReactNode;
 };
 
-export function PmPageHeader({ title, description, actions }: Props) {
+export function PmPageHeader({ title: _title, description, actions }: Props) {
+  // Page title lives in dashboard chrome; keep description + actions only.
+  if (!description && !actions) return null
   return (
-    <div className="wd-pm-header flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-      <div className="min-w-0 space-y-1">
-        <h2 className="text-lg font-semibold tracking-tight">{title}</h2>
-        {description ? <p className="text-muted-foreground text-sm leading-relaxed">{description}</p> : null}
-      </div>
-      {actions ? <div className="flex flex-wrap items-center gap-2">{actions}</div> : null}
+    <div className="wd-pm-header flex min-w-0 flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+      {description ? (
+        <div className="min-w-0 space-y-1">
+          <p className="text-muted-foreground text-sm leading-relaxed">{description}</p>
+        </div>
+      ) : (
+        <div className="min-w-0" />
+      )}
+      {actions ? <div className="flex min-w-0 flex-wrap items-center gap-2">{actions}</div> : null}
     </div>
   );
 }

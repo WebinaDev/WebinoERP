@@ -1065,3 +1065,30 @@ a.wd-kpi:hover { border-color:rgba(0,84,255,.35); box-shadow:0 4px 16px rgba(0,8
 .wd-bucket { display:flex; flex-direction:column; align-items:center; gap:2px; min-width:0; padding:8px 4px; border-radius:12px; background:hsl(var(--muted)/.45); text-align:center; }
 .wd-home .recharts-wrapper, .wd-home .recharts-surface { overflow:visible; }
 @media (max-width:767px){ .wd-hc { padding:12px; border-radius:var(--wd-mobile-radius,14px); } }
+
+
+/* Dashboard page body — prevent horizontal scroll on small screens */
+html[data-wd-dashboard] .wd-mobile-main,
+html[data-wd-dashboard] .wd-dash-page,
+html[data-wd-dashboard] .wd-page-shell {
+  min-width: 0;
+  max-width: 100%;
+  overflow-x: hidden;
+}
+
+html[data-wd-dashboard] .wd-mobile-main .wd-filter-bar,
+html[data-wd-dashboard] .wd-mobile-main [data-slot='card'] {
+  max-width: 100%;
+}
+
+html[data-wd-dashboard] .wd-mobile-main [data-slot='card'],
+html[data-wd-dashboard] .wd-mobile-main .overflow-x-auto {
+  -webkit-overflow-scrolling: touch;
+}
+
+@media (max-width: 767px) {
+  html[data-wd-dashboard] .wd-mobile-main table {
+    max-width: 100%;
+  }
+}
+

@@ -45,18 +45,16 @@ export function HostingInfraPageView() {
 
   if (!hasRole('system_manager')) {
     return (
-      <div className="space-y-2 max-w-5xl">
-        <h1 className="text-xl font-semibold tracking-tight">{t('pageTitle')}</h1>
+      <div className="max-w-5xl space-y-2">
         <p className="text-sm text-destructive">{t('forbidden')}</p>
       </div>
     );
   }
 
   return (
-    <div className="space-y-8 max-w-5xl">
+    <div className="max-w-5xl min-w-0 space-y-8 overflow-x-hidden">
       <div>
-        <h1 className="text-xl font-semibold tracking-tight">{t('pageTitle')}</h1>
-        <p className="text-sm text-muted-foreground mt-1">{t('pageDescription')}</p>
+        <p className="text-sm text-muted-foreground">{t('pageDescription')}</p>
       </div>
 
       <HostingInfrastructureTab />

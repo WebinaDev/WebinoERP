@@ -252,4 +252,38 @@
     font-weight: 600;
     letter-spacing: -0.02em;
   }
+
+  /* Page body: no horizontal spill; inherit locale direction */
+  html[data-wd-dashboard] .wd-desktop-main,
+  html[data-wd-dashboard] .wd-dash-page,
+  html[data-wd-dashboard] .wd-page-shell {
+    min-width: 0;
+    max-width: 100%;
+    overflow-x: hidden;
+  }
+
+  html[data-wd-dashboard] .wd-desktop-main table {
+    width: 100%;
+  }
+
+  html[data-wd-dashboard] .wd-desktop-main .overflow-x-auto,
+  html[data-wd-dashboard] .wd-desktop-main [data-slot='table-container'] {
+    max-width: 100%;
+  }
+
+  /* Prefer logical alignment; avoid forced LTR blocks inside RTL chrome */
+  html[data-wd-dashboard][dir='rtl'] .wd-desktop-main .text-left:not([dir='ltr']) {
+    text-align: start;
+  }
+
+  html[data-wd-dashboard][dir='rtl'] .wd-desktop-main .ml-auto:not([dir='ltr']) {
+    margin-inline-start: auto;
+    margin-left: unset;
+  }
+
+  html[data-wd-dashboard][dir='rtl'] .wd-desktop-main .mr-auto:not([dir='ltr']) {
+    margin-inline-end: auto;
+    margin-right: unset;
+  }
+
 }
