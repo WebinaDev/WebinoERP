@@ -176,7 +176,7 @@ export default function AccChecks() {
     <div className="space-y-4">
       <div className="flex flex-wrap items-center gap-2">
         <Select value={filterType || 'all'} onValueChange={v => setFilterType(v === 'all' ? '' : v)}>
-          <SelectTrigger className="w-36"><SelectValue placeholder={t('auto.accounting_AccChecks.s_d2e35a1f')} /></SelectTrigger>
+          <SelectTrigger className="w-full sm:w-36"><SelectValue placeholder={t('auto.accounting_AccChecks.s_d2e35a1f')} /></SelectTrigger>
           <SelectContent>
             <SelectItem value="all">{t('auto.accounting_AccChecks.s_9e3d846e')}</SelectItem>
             <SelectItem value="receivable">{t('auto.accounting_AccChecks.s_ad2af77b')}</SelectItem>
@@ -184,7 +184,7 @@ export default function AccChecks() {
           </SelectContent>
         </Select>
         <Select value={filterStatus || 'all'} onValueChange={v => setFilterStatus(v === 'all' ? '' : v)}>
-          <SelectTrigger className="w-36"><SelectValue placeholder={t('auto.accounting_AccChecks.s_55518965')} /></SelectTrigger>
+          <SelectTrigger className="w-full sm:w-36"><SelectValue placeholder={t('auto.accounting_AccChecks.s_55518965')} /></SelectTrigger>
           <SelectContent>
             <SelectItem value="all">{t('auto.accounting_AccChecks.s_7552ab35')}</SelectItem>
             <SelectItem value="pending">{t('auto.accounting_AccChecks.s_c6fa28c3')}</SelectItem>

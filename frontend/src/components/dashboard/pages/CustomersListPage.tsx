@@ -304,13 +304,13 @@ export function CustomersListPage() {
         <div className="mb-4 flex flex-wrap gap-2">
           <Input
             placeholder={t('searchPlaceholder')}
-            className="max-w-xs"
+            className="w-full sm:max-w-xs"
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             onKeyDown={(e) => e.key === 'Enter' && void load()}
           />
           <Select value={typeFilter || 'all'} onValueChange={(v) => setTypeFilter(v === 'all' ? '' : v)}>
-            <SelectTrigger className="w-[160px]">
+            <SelectTrigger className="w-full sm:w-[160px]">
               <SelectValue placeholder={t('type')} />
             </SelectTrigger>
             <SelectContent>

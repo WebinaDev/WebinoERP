@@ -131,7 +131,7 @@ export default function AccSettings() {
           <div>
             <label className="mb-1 block text-sm font-medium">{t('auto.accounting_AccSettings.s_432be630')}</label>
             <Select value={fyId} onValueChange={setFyId}>
-              <SelectTrigger className="max-w-xs">
+              <SelectTrigger className="w-full sm:max-w-xs">
                 <SelectValue placeholder={t('auto.accounting_AccSettings.s_3edc0e6d')} />
               </SelectTrigger>
               <SelectContent>

@@ -65,7 +65,7 @@ export default function AccChartOfAccounts() {
         <h2 className="text-lg font-semibold">{t('auto.accounting_AccChartOfAccounts.s_a14f1ab2')}</h2>
         <div className="flex items-center gap-2">
           <Select value={fyId} onValueChange={setFyId}>
-            <SelectTrigger className="w-48">
+            <SelectTrigger className="w-full sm:w-48">
               <SelectValue placeholder={t('auto.accounting_AccChartOfAccounts.s_79432b0c')} />
             </SelectTrigger>
             <SelectContent>

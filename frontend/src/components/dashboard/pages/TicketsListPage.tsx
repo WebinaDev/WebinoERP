@@ -275,7 +275,7 @@ export function TicketsListPage() {
                   value={String(detail.status ?? 'open')}
                   onValueChange={(v) => void updateTicket({ status: v })}
                 >
-                  <SelectTrigger className="w-[140px]">
+                  <SelectTrigger className="w-full sm:w-[140px]">
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
@@ -288,7 +288,7 @@ export function TicketsListPage() {
                   value={String(detail.department ?? '') || '__none'}
                   onValueChange={(v) => void updateTicket({ department: v === '__none' ? '' : v })}
                 >
-                  <SelectTrigger className="w-[160px]">
+                  <SelectTrigger className="w-full sm:w-[160px]">
                     <SelectValue placeholder={t('department')} />
                   </SelectTrigger>
                   <SelectContent>
@@ -384,7 +384,7 @@ export function TicketsListPage() {
           {error ? <p className="text-sm text-destructive">{error}</p> : null}
           <div className="flex flex-wrap gap-2">
             <Select value={filterStatus || 'all'} onValueChange={(v) => setFilterStatus(v === 'all' ? '' : v)}>
-              <SelectTrigger className="w-[140px]">
+              <SelectTrigger className="w-full sm:w-[140px]">
                 <SelectValue placeholder={t('status')} />
               </SelectTrigger>
               <SelectContent>
@@ -395,7 +395,7 @@ export function TicketsListPage() {
               </SelectContent>
             </Select>
             <Select value={filterDept || 'all'} onValueChange={(v) => setFilterDept(v === 'all' ? '' : v)}>
-              <SelectTrigger className="w-[160px]">
+              <SelectTrigger className="w-full sm:w-[160px]">
                 <SelectValue placeholder={t('department')} />
               </SelectTrigger>
               <SelectContent>
@@ -407,7 +407,7 @@ export function TicketsListPage() {
             </Select>
             <Input
               placeholder={t('searchPlaceholder')}
-              className="max-w-xs"
+              className="w-full sm:max-w-xs"
               value={search}
               onChange={(e) => setSearch(e.target.value)}
               onKeyDown={(e) => e.key === 'Enter' && void load()}

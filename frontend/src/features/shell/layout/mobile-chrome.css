@@ -1092,3 +1092,130 @@ html[data-wd-dashboard] .wd-mobile-main .overflow-x-auto {
   }
 }
 
+
+/* --------------------------------------------------------------------------
+   Dashboard page chrome: responsive filters / toolbars / KPI grids / tabs
+   Scoped to dashboard main content; storefront untouched.
+   -------------------------------------------------------------------------- */
+html[data-wd-dashboard] .wd-mobile-main > * {
+  min-width: 0;
+  max-width: 100%;
+}
+
+@media (max-width: 767px) {
+  /* Toolbar / filter / header rows wrap instead of clipping */
+  html[data-wd-dashboard] .wd-mobile-main div.flex:not(.flex-col):not(.flex-nowrap):not([role='tablist']):not(table *):not([role='tablist'] *):not(button *):not(a *):not(label > *) {
+    flex-wrap: wrap;
+  }
+  html[data-wd-dashboard] .wd-mobile-main .flex-wrap > * {
+    max-width: 100%;
+  }
+  html[data-wd-dashboard] .wd-mobile-main .justify-between > div.flex:not(.flex-col) {
+    flex-wrap: wrap;
+  }
+
+  /* Filter bars: every control full width, stacked */
+  html[data-wd-dashboard] .wd-filter-bar,
+  html[data-wd-dashboard] .wd-filter-bar > div {
+    display: flex;
+    flex-direction: column;
+    align-items: stretch;
+    width: 100%;
+  }
+  html[data-wd-dashboard] .wd-filter-bar > div > *,
+  html[data-wd-dashboard] .wd-filter-bar input,
+  html[data-wd-dashboard] .wd-filter-bar button[role='combobox'],
+  html[data-wd-dashboard] .wd-filter-bar [data-slot='select-trigger'] {
+    width: 100% !important;
+    max-width: 100% !important;
+  }
+
+  /* Bare controls sitting in toolbar rows grow to full width */
+  html[data-wd-dashboard] .wd-mobile-main .flex-wrap > [data-slot='select-trigger'],
+  html[data-wd-dashboard] .wd-mobile-main .flex-wrap > button[role='combobox'],
+  html[data-wd-dashboard] .wd-mobile-main .flex-wrap > input:not([type='checkbox']):not([type='radio']),
+  html[data-wd-dashboard] .wd-mobile-main .flex-wrap > [data-slot='input'],
+  html[data-wd-dashboard] .wd-mobile-main .flex-wrap > .relative:has(> input) {
+    flex: 1 1 100%;
+    width: 100% !important;
+    max-width: 100% !important;
+  }
+  html[data-wd-dashboard] .wd-mobile-main input.max-w-xs,
+  html[data-wd-dashboard] .wd-mobile-main input.max-w-sm,
+  html[data-wd-dashboard] .wd-mobile-main [data-slot='select-trigger'][class*='w-'] {
+    width: 100% !important;
+    max-width: 100% !important;
+  }
+
+  /* Action button groups: wrap, buttons share row */
+  html[data-wd-dashboard] .wd-mobile-main .wd-pm-header > div:last-child > * {
+    flex: 1 1 auto;
+  }
+
+  /* Unprefixed multi-column grids (KPI rows) -> 2 cols / 1 col */
+  html[data-wd-dashboard] .wd-mobile-main .grid.grid-cols-3,
+  html[data-wd-dashboard] .wd-mobile-main .grid.grid-cols-4,
+  html[data-wd-dashboard] .wd-mobile-main .grid.grid-cols-5,
+  html[data-wd-dashboard] .wd-mobile-main .grid.grid-cols-6 {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  /* Tabs scroll inside their own track, never the page */
+  html[data-wd-dashboard] .wd-mobile-main [role='tablist'] {
+    display: flex;
+    flex-wrap: nowrap;
+    justify-content: flex-start;
+    max-width: 100%;
+    width: 100%;
+    overflow-x: auto;
+    scrollbar-width: none;
+  }
+  html[data-wd-dashboard] .wd-mobile-main [role='tablist'] > [role='tab'] {
+    flex: 0 0 auto;
+  }
+
+  /* Tables scroll horizontally inside their wrapper */
+  html[data-wd-dashboard] .wd-mobile-main table {
+    min-width: max-content;
+  }
+  html[data-wd-dashboard] .wd-mobile-main :not(.overflow-x-auto):not(.overflow-auto) > table {
+    display: block;
+    overflow-x: auto;
+    min-width: 0;
+    max-width: 100%;
+  }
+  html[data-wd-dashboard] .wd-mobile-main .overflow-x-auto,
+  html[data-wd-dashboard] .wd-mobile-main .overflow-auto {
+    max-width: 100%;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  /* Cards/images never exceed viewport */
+  html[data-wd-dashboard] .wd-mobile-main img,
+  html[data-wd-dashboard] .wd-mobile-main [data-slot='card'] {
+    max-width: 100%;
+  }
+}
+
+@media (max-width: 420px) {
+  html[data-wd-dashboard] .wd-mobile-main .grid.grid-cols-3:not(.wd-keep-cols) {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+/* Dialog/sheet footers stack on mobile */
+@media (max-width: 639px) {
+  html[data-wd-dashboard] [role='dialog'] [data-slot='dialog-footer'],
+  html[data-wd-dashboard] [role='dialog'] [data-slot='sheet-footer'] {
+    display: flex;
+    flex-direction: column-reverse;
+    gap: 0.5rem;
+  }
+  html[data-wd-dashboard] [role='dialog'] [data-slot='dialog-footer'] > *,
+  html[data-wd-dashboard] [role='dialog'] [data-slot='sheet-footer'] > * {
+    width: 100%;
+  }
+  html[data-wd-dashboard] [role='dialog'] {
+    overflow-y: auto;
+  }
+}

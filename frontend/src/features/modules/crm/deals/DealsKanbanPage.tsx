@@ -268,7 +268,7 @@ export function DealsKanbanPage() {
       <div dir={isRtl ? 'rtl' : 'ltr'} className="space-y-4">
       <div className="flex flex-wrap items-center gap-3">
         <Select value={pipelineId} onValueChange={setPipelineId}>
-          <SelectTrigger className="w-[220px]"><SelectValue placeholder={t('pipeline')} /></SelectTrigger>
+          <SelectTrigger className="w-full sm:w-[220px]"><SelectValue placeholder={t('pipeline')} /></SelectTrigger>
           <SelectContent>
             {pipelines.map((p) => (
               <SelectItem key={String(p.id)} value={String(p.id)}>{String(p.name ?? p.id)}</SelectItem>

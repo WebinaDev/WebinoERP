@@ -85,7 +85,7 @@ export function StockPage() {
     <CrmPageLayout title={tNav('nav.erp.scm.stock')} {...layoutProps}>
       <div className="mb-4 flex flex-wrap items-center gap-3">
         <Select value={warehouseId} onValueChange={setWarehouseId}>
-          <SelectTrigger className="w-48">
+          <SelectTrigger className="w-full sm:w-48">
             <SelectValue placeholder={t('warehouse')} />
           </SelectTrigger>
           <SelectContent>

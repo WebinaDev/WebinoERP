@@ -176,7 +176,7 @@ export function InvoicesListPage() {
       <CardContent className="space-y-4">
         <div className="flex flex-wrap gap-2">
           <Select value={filterStatus || 'all'} onValueChange={(v) => setFilterStatus(v === 'all' ? '' : v)}>
-            <SelectTrigger className="w-[140px]">
+            <SelectTrigger className="w-full sm:w-[140px]">
               <SelectValue placeholder={t('auto.InvoicesListPage.s_55518965')} />
             </SelectTrigger>
             <SelectContent>
@@ -188,7 +188,7 @@ export function InvoicesListPage() {
             </SelectContent>
           </Select>
           <Select value={customerUserId || 'all'} onValueChange={(v) => setCustomerUserId(v === 'all' ? '' : v)}>
-            <SelectTrigger className="w-[200px]">
+            <SelectTrigger className="w-full sm:w-[200px]">
               <SelectValue placeholder={t('auto.InvoicesListPage.s_3fda58af')} />
             </SelectTrigger>
             <SelectContent>
@@ -201,7 +201,7 @@ export function InvoicesListPage() {
             </SelectContent>
           </Select>
           <Select value={projectId || 'all'} onValueChange={(v) => setProjectId(v === 'all' ? '' : v)}>
-            <SelectTrigger className="w-[200px]">
+            <SelectTrigger className="w-full sm:w-[200px]">
               <SelectValue placeholder={t('auto.InvoicesListPage.s_55da48c5')} />
             </SelectTrigger>
             <SelectContent>

@@ -385,7 +385,7 @@ export function LeadsListPage() {
               onKeyDown={(e) => e.key === 'Enter' && void load()}
             />
             <Select value={filterStatus || 'all'} onValueChange={(v) => setFilterStatus(v === 'all' ? '' : v)}>
-              <SelectTrigger className="w-[180px]">
+              <SelectTrigger className="w-full sm:w-[180px]">
                 <SelectValue placeholder={t('status')} />
               </SelectTrigger>
               <SelectContent>

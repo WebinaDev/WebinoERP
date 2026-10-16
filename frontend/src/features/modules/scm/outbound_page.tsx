@@ -124,7 +124,7 @@ export function OutboundPage() {
     >
       <div className="mb-4 flex flex-wrap gap-3">
         <Select value={filterStatus} onValueChange={setFilterStatus}>
-          <SelectTrigger className="w-40"><SelectValue placeholder={t('status')} /></SelectTrigger>
+          <SelectTrigger className="w-full sm:w-40"><SelectValue placeholder={t('status')} /></SelectTrigger>
           <SelectContent>
             <SelectItem value="all">{t('allStatuses')}</SelectItem>
             <SelectItem value="draft">{t('draft')}</SelectItem>
@@ -132,7 +132,7 @@ export function OutboundPage() {
           </SelectContent>
         </Select>
         <Select value={filterWarehouse} onValueChange={setFilterWarehouse}>
-          <SelectTrigger className="w-48"><SelectValue placeholder={t('warehouse')} /></SelectTrigger>
+          <SelectTrigger className="w-full sm:w-48"><SelectValue placeholder={t('warehouse')} /></SelectTrigger>
           <SelectContent>
             <SelectItem value="all">{t('allWarehouses')}</SelectItem>
             {warehouses.map((w) => (

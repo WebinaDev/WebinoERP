@@ -166,7 +166,7 @@ export default function AccWarehouseOutbound() {
 
       <div className="flex flex-wrap gap-3">
         <Select value={filterStatus} onValueChange={(v) => setFilterStatus(v as 'all' | 'draft' | 'posted')}>
-          <SelectTrigger className="w-40">
+          <SelectTrigger className="w-full sm:w-40">
             <SelectValue placeholder={t('auto.accounting_AccWarehouseOutbound.s_55518965')} />
           </SelectTrigger>
           <SelectContent>
@@ -176,7 +176,7 @@ export default function AccWarehouseOutbound() {
           </SelectContent>
         </Select>
         <Select value={filterWarehouseId} onValueChange={setFilterWarehouseId}>
-          <SelectTrigger className="w-56">
+          <SelectTrigger className="w-full sm:w-56">
             <SelectValue placeholder={t('auto.accounting_AccWarehouseOutbound.s_3aeb36b5')} />
           </SelectTrigger>
           <SelectContent>

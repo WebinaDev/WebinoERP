@@ -190,7 +190,7 @@ export function ConsultationsListPage() {
         <div className="flex flex-wrap items-center gap-2">
           <label className="text-sm font-medium">{t('status')}</label>
           <Select value={statusFilter || '__all'} onValueChange={(value) => setStatusFilter(value === '__all' ? '' : value)}>
-            <SelectTrigger className="w-[220px]">
+            <SelectTrigger className="w-full sm:w-[220px]">
               <SelectValue placeholder={t('allStatuses')} />
             </SelectTrigger>
             <SelectContent>

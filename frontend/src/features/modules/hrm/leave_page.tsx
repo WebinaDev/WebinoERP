@@ -217,7 +217,7 @@ export function LeavePage() {
           <Card>
             <CardContent className="space-y-4 pt-6">
               <div className="flex flex-wrap gap-2">
-                <Input className="max-w-xs" placeholder={t('leaveTypeName')} value={typeForm.name} onChange={(e) => setTypeForm((f) => ({ ...f, name: e.target.value }))} />
+                <Input className="w-full sm:max-w-xs" placeholder={t('leaveTypeName')} value={typeForm.name} onChange={(e) => setTypeForm((f) => ({ ...f, name: e.target.value }))} />
                 <Input className="max-w-[8rem]" type="number" placeholder={t('defaultDays')} value={typeForm.default_days} onChange={(e) => setTypeForm((f) => ({ ...f, default_days: e.target.value }))} />
                 <Button onClick={() => void handleSaveType()} disabled={submitting}>{tNav('common.add')}</Button>
               </div>

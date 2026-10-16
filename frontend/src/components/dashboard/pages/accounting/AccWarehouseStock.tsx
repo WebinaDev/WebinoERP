@@ -91,7 +91,7 @@ export default function AccWarehouseStock() {
 
       <div className="flex flex-wrap items-center gap-3">
         <Select value={filterWarehouse} onValueChange={setFilterWarehouse}>
-          <SelectTrigger className="w-48"><SelectValue placeholder={t('auto.accounting_AccWarehouseStock.s_3aeb36b5')} /></SelectTrigger>
+          <SelectTrigger className="w-full sm:w-48"><SelectValue placeholder={t('auto.accounting_AccWarehouseStock.s_3aeb36b5')} /></SelectTrigger>
           <SelectContent>
             <SelectItem value="all">{t('auto.accounting_AccWarehouseStock.s_0a7f24b0')}</SelectItem>
             {warehouses.map((w) => (

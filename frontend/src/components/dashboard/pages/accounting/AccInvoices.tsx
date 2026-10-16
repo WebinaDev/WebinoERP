@@ -274,7 +274,7 @@ export default function AccInvoices() {
 
       <div className="flex flex-wrap gap-3">
         <Select value={filterType} onValueChange={setFilterType}>
-          <SelectTrigger className="w-36"><SelectValue placeholder={t('auto.accounting_AccInvoices.s_d2e35a1f')} /></SelectTrigger>
+          <SelectTrigger className="w-full sm:w-36"><SelectValue placeholder={t('auto.accounting_AccInvoices.s_d2e35a1f')} /></SelectTrigger>
           <SelectContent>
             <SelectItem value="all">{t('auto.accounting_AccInvoices.s_bf742c5a')}</SelectItem>
             <SelectItem value="sale">{t('auto.accounting_AccInvoices.s_2d4aba45')}</SelectItem>
@@ -283,7 +283,7 @@ export default function AccInvoices() {
         </Select>
 
         <Select value={filterStatus} onValueChange={setFilterStatus}>
-          <SelectTrigger className="w-36"><SelectValue placeholder={t('auto.accounting_AccInvoices.s_55518965')} /></SelectTrigger>
+          <SelectTrigger className="w-full sm:w-36"><SelectValue placeholder={t('auto.accounting_AccInvoices.s_55518965')} /></SelectTrigger>
           <SelectContent>
             <SelectItem value="all">{t('auto.accounting_AccInvoices.s_bf742c5a')}</SelectItem>
             <SelectItem value="draft">{t('auto.accounting_AccInvoices.s_7d739ea1')}</SelectItem>
@@ -292,7 +292,7 @@ export default function AccInvoices() {
         </Select>
 
         <Select value={filterFiscalYear} onValueChange={setFilterFiscalYear}>
-          <SelectTrigger className="w-44"><SelectValue placeholder={t('auto.accounting_AccInvoices.s_79432b0c')} /></SelectTrigger>
+          <SelectTrigger className="w-full sm:w-44"><SelectValue placeholder={t('auto.accounting_AccInvoices.s_79432b0c')} /></SelectTrigger>
           <SelectContent>
             <SelectItem value="all">{t('auto.accounting_AccInvoices.s_55bf7b08')}</SelectItem>
             {fiscalYears.map((fy) => (

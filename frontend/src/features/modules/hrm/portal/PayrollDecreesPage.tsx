@@ -76,7 +76,7 @@ export function PayrollDecreesPage() {
             placeholder={t('loans.employeeId')}
           />
           <Select value={engagement} onValueChange={setEngagement}>
-            <SelectTrigger className="max-w-[10rem]"><SelectValue /></SelectTrigger>
+            <SelectTrigger className="w-full sm:max-w-[10rem]"><SelectValue /></SelectTrigger>
             <SelectContent>
               {(['full_time','part_time','contractor','freelance','project','remote'] as const).map((k) => (
                 <SelectItem key={k} value={k}>{t(`engagement.types.${k}`)}</SelectItem>
@@ -84,7 +84,7 @@ export function PayrollDecreesPage() {
             </SelectContent>
           </Select>
           <Select value={basis} onValueChange={setBasis}>
-            <SelectTrigger className="max-w-[10rem]"><SelectValue /></SelectTrigger>
+            <SelectTrigger className="w-full sm:max-w-[10rem]"><SelectValue /></SelectTrigger>
             <SelectContent>
               {(['monthly','daily','hourly','project_fee'] as const).map((k) => (
                 <SelectItem key={k} value={k}>{t(`engagement.bases.${k}`)}</SelectItem>

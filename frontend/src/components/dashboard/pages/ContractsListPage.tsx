@@ -149,7 +149,7 @@ export function ContractsListPage() {
           <CardTitle className="text-base">{t('auto.ContractsListPage.s_1fb3fcaa')}</CardTitle>
           <div className="flex flex-wrap items-center gap-2">
             <Select value={statusFilter || 'all'} onValueChange={(v) => setStatusFilter(v === 'all' ? '' : v)}>
-              <SelectTrigger className="w-[160px]">
+              <SelectTrigger className="w-full sm:w-[160px]">
                 <SelectValue placeholder={t('auto.ContractsListPage.s_55518965')} />
               </SelectTrigger>
               <SelectContent>

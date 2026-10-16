@@ -262,7 +262,7 @@ function CasesTab({ templates, onError, onSuccess }: Common & { templates: HrmRo
       <div className="flex items-end gap-3">
         <HrmField label={t('status')}>
           <Select value={status} onValueChange={setStatus}>
-            <SelectTrigger className="w-48"><SelectValue /></SelectTrigger>
+            <SelectTrigger className="w-full sm:w-48"><SelectValue /></SelectTrigger>
             <SelectContent>
               <SelectItem value={ALL}>{tNav('common.all')}</SelectItem>
               {(['in_progress', 'completed', 'cancelled'] as const).map((s) => <SelectItem key={s} value={s}>{t(`offboarding.caseStatus.${s}`)}</SelectItem>)}
@@ -309,7 +309,7 @@ function CasesTab({ templates, onError, onSuccess }: Common & { templates: HrmRo
                       <TableCell>
                         {caseStatus === 'cancelled' ? null : (
                           <Select value={String(task.status ?? 'pending')} onValueChange={(v) => setTask(task.id as number, v)}>
-                            <SelectTrigger className="w-36"><SelectValue /></SelectTrigger>
+                            <SelectTrigger className="w-full sm:w-36"><SelectValue /></SelectTrigger>
                             <SelectContent>{TASK_STATUSES.map((s) => <SelectItem key={s} value={s}>{t(`offboarding.taskStatus.${s}`)}</SelectItem>)}</SelectContent>
                           </Select>
                         )}

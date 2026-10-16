@@ -131,8 +131,8 @@ export function StaffPage() {
           <Card>
             <CardContent className="space-y-4 pt-6">
               <div className="flex flex-wrap gap-2">
-                <Input className="max-w-xs" placeholder={t('position')} value={orgTitle} onChange={(e) => setOrgTitle(e.target.value)} />
-                <Input className="max-w-xs" placeholder={t('department')} value={orgDept} onChange={(e) => setOrgDept(e.target.value)} />
+                <Input className="w-full sm:max-w-xs" placeholder={t('position')} value={orgTitle} onChange={(e) => setOrgTitle(e.target.value)} />
+                <Input className="w-full sm:max-w-xs" placeholder={t('department')} value={orgDept} onChange={(e) => setOrgDept(e.target.value)} />
                 <Button onClick={() => void handleOrgSave()}>{tNav('common.add')}</Button>
               </div>
               <Table>

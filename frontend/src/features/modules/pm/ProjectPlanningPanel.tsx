@@ -315,7 +315,7 @@ function MilestoneRow({
         <LocaleDatePicker value={due} onChange={setDue} />
       </div>
       <Select value={status} onValueChange={setStatus}>
-        <SelectTrigger className="w-[140px]">
+        <SelectTrigger className="w-full sm:w-[140px]">
           <SelectValue />
         </SelectTrigger>
         <SelectContent>
@@ -368,7 +368,7 @@ function SprintRow({
           <LocaleDatePicker value={ends} onChange={setEnds} />
         </div>
         <Select value={status || 'planned'} onValueChange={setStatus}>
-          <SelectTrigger className="w-[140px]">
+          <SelectTrigger className="w-full sm:w-[140px]">
             <SelectValue />
           </SelectTrigger>
           <SelectContent>
@@ -431,7 +431,7 @@ function EpicRow({
           <LocaleDatePicker value={end} onChange={setEnd} />
         </div>
         <Select value={state || 'open'} onValueChange={setState}>
-          <SelectTrigger className="w-[140px]">
+          <SelectTrigger className="w-full sm:w-[140px]">
             <SelectValue />
           </SelectTrigger>
           <SelectContent>

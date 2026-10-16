@@ -209,7 +209,7 @@ export function CampaignsPage() {
           onChange={(e) => setSearch(e.target.value)}
         />
         <Select value={statusFilter || 'all'} onValueChange={(v) => setStatusFilter(v === 'all' ? '' : v)}>
-          <SelectTrigger className="w-[140px]">
+          <SelectTrigger className="w-full sm:w-[140px]">
             <SelectValue placeholder={t('status')} />
           </SelectTrigger>
           <SelectContent>
@@ -222,7 +222,7 @@ export function CampaignsPage() {
           </SelectContent>
         </Select>
         <Select value={channelFilter || 'all'} onValueChange={(v) => setChannelFilter(v === 'all' ? '' : v)}>
-          <SelectTrigger className="w-[140px]">
+          <SelectTrigger className="w-full sm:w-[140px]">
             <SelectValue placeholder={t('channel')} />
           </SelectTrigger>
           <SelectContent>

@@ -165,7 +165,7 @@ export default function AccReceipts() {
     <div className="space-y-4">
       <div className="flex flex-wrap items-center gap-2">
         <Select value={filterType || 'all'} onValueChange={v => setFilterType(v === 'all' ? '' : v)}>
-          <SelectTrigger className="w-36"><SelectValue placeholder={t('auto.accounting_AccReceipts.s_d2e35a1f')} /></SelectTrigger>
+          <SelectTrigger className="w-full sm:w-36"><SelectValue placeholder={t('auto.accounting_AccReceipts.s_d2e35a1f')} /></SelectTrigger>
           <SelectContent>
             <SelectItem value="all">{t('auto.accounting_AccReceipts.s_9e3d846e')}</SelectItem>
             <SelectItem value="receipt">{t('auto.accounting_AccReceipts.s_6afda7e1')}</SelectItem>
@@ -173,7 +173,7 @@ export default function AccReceipts() {
           </SelectContent>
         </Select>
         <Select value={filterStatus || 'all'} onValueChange={v => setFilterStatus(v === 'all' ? '' : v)}>
-          <SelectTrigger className="w-36"><SelectValue placeholder={t('auto.accounting_AccReceipts.s_55518965')} /></SelectTrigger>
+          <SelectTrigger className="w-full sm:w-36"><SelectValue placeholder={t('auto.accounting_AccReceipts.s_55518965')} /></SelectTrigger>
           <SelectContent>
             <SelectItem value="all">{t('auto.accounting_AccReceipts.s_7552ab35')}</SelectItem>
             <SelectItem value="draft">{t('auto.accounting_AccReceipts.s_7d739ea1')}</SelectItem>

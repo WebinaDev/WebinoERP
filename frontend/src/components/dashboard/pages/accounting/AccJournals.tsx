@@ -198,7 +198,7 @@ export default function AccJournals() {
             value={fyId}
             onValueChange={(v) => { setFyId(v); setPage(1); }}
           >
-            <SelectTrigger className="w-48">
+            <SelectTrigger className="w-full sm:w-48">
               <SelectValue placeholder={t('auto.accounting_AccJournals.s_79432b0c')} />
             </SelectTrigger>
             <SelectContent>

@@ -61,7 +61,7 @@ export function CannedResponsePicker({ onSelect }: Props) {
           }
         }}
       >
-        <SelectTrigger className="max-w-xs">
+        <SelectTrigger className="w-full sm:max-w-xs">
           <SelectValue placeholder={t('pickCanned')} />
         </SelectTrigger>
         <SelectContent>
