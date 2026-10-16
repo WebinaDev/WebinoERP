@@ -94,7 +94,8 @@ class StorefrontSellables
                 }
                 $toman = (int) preg_replace('/\D/', '', (string) ($p['price'] ?? '0'));
                 $old = (int) preg_replace('/\D/', '', (string) ($p['oldPrice'] ?? '0'));
-                $images = array_values(array_filter(array_map('trim', preg_split('/\R/', (string) ($p['images'] ?? '')) ?: [])));
+                // Builder gallery lines are «url|alt».
+                $images = array_values(array_filter(array_map(fn ($l) => trim(explode('|', $l)[0]), preg_split('/\R/u', (string) ($p['images'] ?? '')) ?: [])));
                 $isPackage = str_starts_with((string) $page->slug, 'package-');
                 $rows[] = [
                     'slug' => $slug,
