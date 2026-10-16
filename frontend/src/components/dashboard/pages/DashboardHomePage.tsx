@@ -298,7 +298,7 @@ export function DashboardHomePage() {
   return (
     <div className="wd-mobile-home space-y-6 text-start md:space-y-6" dir={isRtl ? 'rtl' : 'ltr'}>
       {/* Mobile chrome: Bale-style hero + lifted quick actions */}
-      <div className="md:hidden -mx-3 -mt-3">
+      <div className="md:hidden">
         <header className="wd-mobile-hero">
           <div className="wd-mobile-hero-top">
             <div className="min-w-0">
@@ -436,7 +436,7 @@ export function DashboardHomePage() {
         <TabsContent value="overview" className="space-y-4">
           {showFullOverview ? (
             <>
-              <div className="wd-mobile-section md:hidden !mt-4 !px-0">
+              <div className="wd-mobile-section md:hidden !mt-4">
                 <div className="wd-mobile-section-title">
                   <span>{t('tabs.overview')}</span>
                 </div>
