@@ -536,7 +536,13 @@ export function LandingPage({ data }: { data: LandingData }) {
             <div className="webina-shell">
               <SectionHead index={num(index)} title={p.title} />
               {quotes.length ? (
-                <TestimonialSlider items={quotes.slice(0, Math.max(1, Number(p.limit) || 8))} />
+                <TestimonialSlider
+                  items={quotes.slice(0, Math.max(1, Number(p.limit) || 8))}
+                  autoplay={p.autoplay !== false}
+                  interval={Number(p.interval) || 6}
+                  showStars={p.show_stars !== false}
+                  showArrows={p.show_arrows !== false}
+                />
               ) : (
                 <p className="empty-note reveal mt-8">{p.empty}</p>
               )}

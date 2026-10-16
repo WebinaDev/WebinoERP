@@ -13,7 +13,19 @@ export type TestimonialItem = {
   rating?: number | null;
 };
 
-export function TestimonialSlider({ items }: { items: TestimonialItem[] }) {
+export function TestimonialSlider({
+  items,
+  autoplay = true,
+  interval = 6,
+  showStars = true,
+  showArrows = true,
+}: {
+  items: TestimonialItem[];
+  autoplay?: boolean;
+  interval?: number;
+  showStars?: boolean;
+  showArrows?: boolean;
+}) {
   const track = useRef<HTMLDivElement>(null);
   const [active, setActive] = useState(0);
   const [paused, setPaused] = useState(false);
@@ -51,12 +63,12 @@ export function TestimonialSlider({ items }: { items: TestimonialItem[] }) {
   }, []);
 
   useEffect(() => {
-    if (paused || items.length < 2) return;
+    if (!autoplay || paused || items.length < 2) return;
     const reduce = typeof window !== 'undefined' && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
     if (reduce) return;
-    const t = window.setInterval(() => goTo(active + 1), 6500);
+    const t = window.setInterval(() => goTo(active + 1), Math.max(2, interval) * 1000);
     return () => window.clearInterval(t);
-  }, [active, paused, goTo, items.length]);
+  }, [active, paused, goTo, items.length, autoplay, interval]);
 
   return (
     <div
@@ -70,11 +82,11 @@ export function TestimonialSlider({ items }: { items: TestimonialItem[] }) {
         {items.map((q, i) => (
           <figure key={q.id} className={i === active ? 'tcard is-active' : 'tcard'} aria-roledescription="slide">
             <Quote className="tcard-mark" aria-hidden />
-            <div className="tcard-stars" aria-label={`${q.rating ?? 5} از ۵`}>
+            {showStars ? (<div className="tcard-stars" aria-label={`${q.rating ?? 5} از ۵`}>
               {Array.from({ length: 5 }).map((_, s) => (
                 <Star key={s} className={s < (q.rating ?? 5) ? 'on' : ''} aria-hidden />
               ))}
-            </div>
+            </div>) : null}
             <blockquote>{q.quote}</blockquote>
             <figcaption>
               <span className="tcard-avatar">
@@ -95,9 +107,9 @@ export function TestimonialSlider({ items }: { items: TestimonialItem[] }) {
       </div>
       {items.length > 1 ? (
         <div className="tslider-nav">
-          <button type="button" className="tslider-btn" aria-label="قبلی" onClick={() => goTo(active - 1)}>
+          {showArrows ? <button type="button" className="tslider-btn" aria-label="قبلی" onClick={() => goTo(active - 1)}>
             <ChevronRight aria-hidden />
-          </button>
+          </button> : null}
           <div className="tslider-dots">
             {items.map((q, i) => (
               <button
@@ -109,9 +121,9 @@ export function TestimonialSlider({ items }: { items: TestimonialItem[] }) {
               />
             ))}
           </div>
-          <button type="button" className="tslider-btn" aria-label="بعدی" onClick={() => goTo(active + 1)}>
+          {showArrows ? <button type="button" className="tslider-btn" aria-label="بعدی" onClick={() => goTo(active + 1)}>
             <ChevronLeft aria-hidden />
-          </button>
+          </button> : null}
         </div>
       ) : null}
     </div>

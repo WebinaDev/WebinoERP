@@ -63,7 +63,7 @@ export type HomeProps = {
   academy: { title: string; subtitle: string; text: string; cta_label: string; cta_href: string; fallback_courses: { title: string; slug: string }[] };
   blog: { title: string; subtitle: string; read_more: string; cta_label: string; cta_href: string; limit: number; empty: string };
   why: { title: string; items: { text: string }[] };
-  testimonials: { title: string; empty: string; limit: number };
+  testimonials: { title: string; empty: string; limit: number; autoplay: boolean; interval: number; show_stars: boolean; show_arrows: boolean };
   consultation_cta: { title: string; text_1: string; text_2: string; buttons: ButtonItem[] };
 };
 
@@ -204,7 +204,7 @@ export function homeDefaults(t: T): HomeProps {
       empty: v('magazineEmpty'),
     },
     why: { title: v('whyTitle'), items: HOME_WHY.map((k) => ({ text: v(`why.${k}`) })) },
-    testimonials: { title: v('testimonialsTitle'), empty: v('testimonialsEmpty'), limit: 6 },
+    testimonials: { title: v('testimonialsTitle'), empty: v('testimonialsEmpty'), limit: 8, autoplay: true, interval: 6, show_stars: true, show_arrows: true },
     consultation_cta: {
       title: v('ctaTitle'),
       text_1: v('ctaText1'),
@@ -545,10 +545,14 @@ export const HOME_BLOCK_SCHEMAS: Record<HomeBlockType, { label: string; hint?: s
   },
   testimonials: {
     label: 'نظرات مشتریان',
-    hint: 'نظرها از بخش «نظرات مشتریان» داشبورد خوانده می‌شوند.',
+    hint: 'اسلایدر نظرات با عکس؛ نظرها و تصویرها از بخش «نظرات مشتریان» داشبورد خوانده می‌شوند.',
     fields: [
       { key: 'title', label: 'عنوان', kind: 'text' },
       { key: 'limit', label: 'تعداد', kind: 'number' },
+      { key: 'autoplay', label: 'پخش خودکار اسلایدر', kind: 'switch' },
+      { key: 'interval', label: 'فاصله اسلاید (ثانیه)', kind: 'number' },
+      { key: 'show_stars', label: 'نمایش ستاره‌ها', kind: 'switch' },
+      { key: 'show_arrows', label: 'نمایش فلش‌ها', kind: 'switch' },
       { key: 'empty', label: 'متن خالی', kind: 'text' },
     ],
   },
