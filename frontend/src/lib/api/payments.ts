@@ -26,6 +26,12 @@ export type PaymentGatewaySettings = {
   callback_base_url: string;
   base_url: string;
   local_simulation: boolean;
+  live_ready?: boolean;
+  required_live?: string[];
+  default_urls?: { sandbox: string; production: string };
+  callback_url?: string;
+  ticket_type_cash?: number;
+  ticket_type_installment?: number;
   notes_fa: string;
   modes?: string[];
   fields?: PaymentField[];

@@ -187,6 +187,13 @@ class GatewayConfigStore
             'ticket_type_cash' => (int) ($config['ticket_type_cash'] ?? 0),
             'ticket_type_installment' => (int) ($config['ticket_type_installment'] ?? 13),
             'local_simulation' => (bool) $config['local_simulation'],
+            'live_ready' => ! $this->missingLiveCredentials($code, $config),
+            'required_live' => array_values($spec['required_live'] ?? []),
+            'default_urls' => [
+                'sandbox' => (string) (($spec['urls'] ?? [])['sandbox'] ?? ''),
+                'production' => (string) (($spec['urls'] ?? [])['production'] ?? ''),
+            ],
+            'callback_url' => $this->callbackUrlFor($code, (string) ($config['callback_base_url'] ?? '')),
             'notes_fa' => (string) ($spec['notes_fa'] ?? ''),
             'fields' => $fields,
         ];
@@ -345,6 +352,14 @@ class GatewayConfigStore
         }
 
         return $out;
+    }
+
+    /** Public callback endpoint the gateway calls back (signed query is appended per payment). */
+    public function callbackUrlFor(string $code, string $override = ''): string
+    {
+        $base = rtrim($override !== '' ? $override : ((string) config('payment_gateways.callback_base_url') ?: url('')), '/');
+
+        return $base.'/api/v1/integrations/payments/callback/'.$code;
     }
 
     public function mask(string $value): string
