@@ -1,6 +1,10 @@
 'use client';
 
 import { useTranslations } from 'next-intl';
+import {
+  Activity, BadgeDollarSign, Bell, CheckCircle2, Clock, FileText, FolderKanban, Globe, ListChecks,
+  Megaphone, Percent, Receipt, Ticket, TrendingUp, Users, Wallet, type LucideIcon,
+} from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { LocaleBarChart } from '@/components/charts/LocaleCharts';
 import { useLocale } from '@/hooks/use-locale-next';
@@ -22,6 +26,29 @@ function isDateKey(key: string): boolean {
   const k = key.toLowerCase();
   return k.includes('date') || k.endsWith('_at') || k === 'month';
 }
+
+const STAT_ICONS: { match: RegExp; icon: LucideIcon; tone: string }[] = [
+  { match: /rate|retention/, icon: Percent, tone: 'bg-violet-500/10 text-violet-600' },
+  { match: /revenue|value|invoice_total/, icon: BadgeDollarSign, tone: 'bg-emerald-500/10 text-emerald-600' },
+  { match: /invoice|receipt/, icon: Receipt, tone: 'bg-amber-500/10 text-amber-600' },
+  { match: /contract/, icon: FileText, tone: 'bg-sky-500/10 text-sky-600' },
+  { match: /lead|customer/, icon: Users, tone: 'bg-[#0054ff]/10 text-[#0054ff]' },
+  { match: /completed|closed|ready/, icon: CheckCircle2, tone: 'bg-emerald-500/10 text-emerald-600' },
+  { match: /task/, icon: ListChecks, tone: 'bg-[#0054ff]/10 text-[#0054ff]' },
+  { match: /hour|minute|time|response/, icon: Clock, tone: 'bg-orange-500/10 text-orange-600' },
+  { match: /ticket/, icon: Ticket, tone: 'bg-rose-500/10 text-rose-600' },
+  { match: /project|sprint/, icon: FolderKanban, tone: 'bg-indigo-500/10 text-indigo-600' },
+  { match: /site/, icon: Globe, tone: 'bg-cyan-500/10 text-cyan-600' },
+  { match: /notification|unread/, icon: Bell, tone: 'bg-yellow-500/10 text-yellow-600' },
+  { match: /page|post|form|announce|content/, icon: Megaphone, tone: 'bg-pink-500/10 text-pink-600' },
+  { match: /wallet|balance/, icon: Wallet, tone: 'bg-emerald-500/10 text-emerald-600' },
+  { match: /trend|growth/, icon: TrendingUp, tone: 'bg-[#0054ff]/10 text-[#0054ff]' },
+];
+
+function statIcon(key: string) {
+  return STAT_ICONS.find((s) => s.match.test(key)) ?? { icon: Activity, tone: 'bg-slate-500/10 text-slate-600', match: /./ };
+}
+
 
 function StatGrid({ stats, keys }: { stats: Record<string, unknown>; keys: { key: string; label: string }[] }) {
   const { formatNumber, formatDate, formatDigits, locale } = useLocale();
@@ -45,19 +72,24 @@ function StatGrid({ stats, keys }: { stats: Record<string, unknown>; keys: { key
   };
 
   return (
-    <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-      {keys.map(({ key, label }) =>
-        key in stats ? (
-          <Card key={key}>
-            <CardHeader className="py-3">
-              <CardTitle className="text-sm text-muted-foreground">{label}</CardTitle>
-            </CardHeader>
-            <CardContent className="text-2xl font-semibold tabular-nums">
-              {formatStat(key, stats[key])}
-            </CardContent>
-          </Card>
-        ) : null,
-      )}
+    <div className="grid grid-cols-2 gap-2 sm:gap-3 lg:grid-cols-3 xl:grid-cols-4">
+      {keys.map(({ key, label }) => {
+        if (!(key in stats)) return null;
+        const { icon: Icon, tone } = statIcon(key);
+        return (
+          <div key={key} className="flex min-w-0 items-center gap-3 rounded-xl border bg-card p-3 sm:p-4">
+            <span className={`grid size-9 shrink-0 place-items-center rounded-lg sm:size-10 ${tone}`}>
+              <Icon className="size-4 sm:size-5" />
+            </span>
+            <div className="min-w-0">
+              <p className="truncate text-[11px] text-muted-foreground sm:text-xs">{label}</p>
+              <p className="truncate text-base font-bold tabular-nums text-[#22242a] dark:text-foreground sm:text-xl">
+                {formatStat(key, stats[key])}
+              </p>
+            </div>
+          </div>
+        );
+      })}
     </div>
   );
 }
@@ -96,16 +128,16 @@ function DataTable({
   };
 
   return (
-    <Card>
+    <Card className="min-w-0 overflow-hidden rounded-xl">
       <CardHeader className="py-3">
-        <CardTitle className="text-base">{title}</CardTitle>
+        <CardTitle className="text-sm font-bold sm:text-base">{title}</CardTitle>
       </CardHeader>
-      <CardContent className="overflow-x-auto">
-        <table className="w-full text-sm">
+      <CardContent className="max-w-full overflow-x-auto p-0 sm:px-4 sm:pb-4">
+        <table className="w-full min-w-[20rem] text-xs sm:text-sm">
           <thead>
-            <tr className="border-b text-muted-foreground">
+            <tr className="border-b bg-muted/40 text-muted-foreground">
               {columns.map((c) => (
-                <th key={c.key} className="px-2 py-2 text-start">
+                <th key={c.key} className="whitespace-nowrap px-3 py-2 text-start font-medium">
                   {c.label}
                 </th>
               ))}
@@ -122,7 +154,7 @@ function DataTable({
               rows.map((row, i) => (
                 <tr key={i} className="border-b border-border/60">
                   {columns.map((c) => (
-                    <td key={c.key} className="px-2 py-2 tabular-nums" dir={c.key === 'domain' ? 'ltr' : undefined}>
+                    <td key={c.key} className="px-3 py-2 tabular-nums" dir={c.key === 'domain' ? 'ltr' : undefined}>
                       {formatCell(c.key, row[c.key])}
                     </td>
                   ))}
