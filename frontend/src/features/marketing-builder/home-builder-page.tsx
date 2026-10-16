@@ -16,6 +16,7 @@ import {
   SOCIAL_FIELDS,
 } from "@/themes/webina-corporate-v1/site-content"
 import { isObj, ListField, SchemaForm, type Json } from "./schema-form"
+import { PAGE_BUILDER_NEW_TAB_PROPS } from "@/lib/page-builder-nav"
 
 type Settings = { branding?: Json | null; social_links?: unknown }
 
@@ -85,7 +86,7 @@ export function HomeBuilderPage() {
             <Link href="/" target="_blank">مشاهده سایت</Link>
           </Button>
           <Button variant="outline" asChild>
-            <Link href="/dashboard/builder">صفحه‌ساز</Link>
+            <Link href="/dashboard/builder" {...PAGE_BUILDER_NEW_TAB_PROPS}>صفحه‌ساز</Link>
           </Button>
           <Button disabled={busy || !loaded} onClick={() => void save()}>
             ذخیره و انتشار
@@ -100,7 +101,7 @@ export function HomeBuilderPage() {
             const row = pages.find((r) => r.slug === p.slug)
             return (
               <Button key={p.slug} variant="outline" size="sm" asChild disabled={!row}>
-                <Link href={row ? `/dashboard/builder/${row.id}` : "/dashboard/builder"}>{p.label}</Link>
+                <Link href={row ? `/dashboard/builder/${row.id}` : "/dashboard/builder"} {...PAGE_BUILDER_NEW_TAB_PROPS}>{p.label}</Link>
               </Button>
             )
           })}

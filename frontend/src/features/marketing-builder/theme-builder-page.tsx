@@ -12,6 +12,7 @@ import { api } from "@/lib/builder-api"
 import { THEME_KIND_ICONS } from "@/builder/theme/icons"
 import type { ThemeKind } from "@/builder/theme/context"
 import { Library, Plus, Settings2, Star, Trash2 } from "lucide-react"
+import { PAGE_BUILDER_NEW_TAB_PROPS, openPageBuilderInNewTab } from "@/lib/page-builder-nav"
 
 type Rule = { type: string; value?: string }
 type Conditions = { include?: Rule[]; exclude?: Rule[] }
@@ -62,9 +63,10 @@ export function ThemeBuilderPage() {
         method: "POST",
         json: { kind: active, title: t("new_title") },
       })
-      router.push(`/dashboard/theme-builder/${active}/${row.id}`)
+      openPageBuilderInNewTab(`/dashboard/theme-builder/${active}/${row.id}`)
     } catch {
       toast.error(t("save_failed"))
+    } finally {
       setBusy(false)
     }
   }
@@ -93,7 +95,7 @@ export function ThemeBuilderPage() {
             <Link href="/dashboard/builder/settings"><Settings2 className="size-4" aria-hidden />{t("globals")}</Link>
           </Button>
           <Button variant="outline" asChild>
-            <Link href="/dashboard/builder">{t("pages")}</Link>
+            <Link href="/dashboard/builder" {...PAGE_BUILDER_NEW_TAB_PROPS}>{t("pages")}</Link>
           </Button>
         </>
       }
@@ -213,7 +215,7 @@ function TemplateCard({ row, onChange }: { row: TemplateRow; onChange: () => Pro
         <span className="text-muted-foreground text-xs">{row.has_published ? t("published") : t("draft")}</span>
       </div>
       <div className="mt-3 flex flex-wrap gap-2">
-        <Button size="sm" asChild><Link href={`/dashboard/theme-builder/${row.kind}/${row.id}`}>{t("edit")}</Link></Button>
+        <Button size="sm" asChild><Link href={`/dashboard/theme-builder/${row.kind}/${row.id}`} {...PAGE_BUILDER_NEW_TAB_PROPS}>{t("edit")}</Link></Button>
         <Button size="sm" variant="outline" disabled={busy || !row.has_draft} onClick={() => void run(`/api/v1/theme-builder/templates/${row.id}/publish`)}>{t("publish")}</Button>
         <Button size="sm" variant="outline" disabled={busy || row.is_default} onClick={() => void run(`/api/v1/theme-builder/templates/${row.id}/default`)}>{t("set_default")}</Button>
         <Button size="sm" variant="outline" disabled={busy} onClick={() => void run(`/api/v1/theme-builder/templates/${row.id}`, "DELETE")}><Trash2 className="size-3.5" aria-hidden />{t("delete")}</Button>

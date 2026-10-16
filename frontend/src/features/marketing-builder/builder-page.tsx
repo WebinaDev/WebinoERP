@@ -10,6 +10,7 @@ import { PageShell } from "@/components/PageShell"
 import { Button } from "@/components/ui/button"
 import { api } from "@/lib/builder-api"
 import { ISHOP_PAGE_TEMPLATES, ishopFooterDocument, ishopHeaderDocument } from "@/builder/templates/ishop"
+import { PAGE_BUILDER_NEW_TAB_PROPS } from "@/lib/page-builder-nav"
 
 type PageRow = {
   id: number
@@ -90,12 +91,12 @@ export function BuilderListPage() {
   return (
     <PageShell title={t("list_title")} description={t("list_subtitle")}>
       <div className="mb-4 flex flex-wrap gap-2">
-        <Button asChild><Link href="/dashboard/builder/new"><FilePlus2 className="size-4" aria-hidden />{t("create")}</Link></Button>
+        <Button asChild><Link href="/dashboard/builder/new" {...PAGE_BUILDER_NEW_TAB_PROPS}><FilePlus2 className="size-4" aria-hidden />{t("create")}</Link></Button>
         <Button variant="outline" asChild><Link href="/dashboard/theme-builder"><Palette className="size-4" aria-hidden />{t("theme_builder")}</Link></Button>
-        <Button variant="outline" asChild><Link href="/dashboard/builder/site"><Home className="size-4" aria-hidden />تنظیمات سراسری سایت</Link></Button>
+        <Button variant="outline" asChild><Link href="/dashboard/builder/site" {...PAGE_BUILDER_NEW_TAB_PROPS}><Home className="size-4" aria-hidden />تنظیمات سراسری سایت</Link></Button>
         <Button variant="outline" asChild><Link href="/dashboard/builder/settings"><Settings2 className="size-4" aria-hidden />{t("globals")}</Link></Button>
-        <Button variant="outline" asChild><Link href="/dashboard/builder/chrome/header"><PanelTop className="size-4" aria-hidden />{t("header")}</Link></Button>
-        <Button variant="outline" asChild><Link href="/dashboard/builder/chrome/footer"><PanelBottom className="size-4" aria-hidden />{t("footer")}</Link></Button>
+        <Button variant="outline" asChild><Link href="/dashboard/builder/chrome/header" {...PAGE_BUILDER_NEW_TAB_PROPS}><PanelTop className="size-4" aria-hidden />{t("header")}</Link></Button>
+        <Button variant="outline" asChild><Link href="/dashboard/builder/chrome/footer" {...PAGE_BUILDER_NEW_TAB_PROPS}><PanelBottom className="size-4" aria-hidden />{t("footer")}</Link></Button>
         <Button variant="outline" disabled={busy} onClick={() => void seed()}>{t("seed")}</Button>
         <Button variant="outline" disabled={busy || theme === "webina-corporate-v1"} onClick={() => void activate()}>{t("activate")}</Button>
         <Button variant="outline" asChild><Link href="/dashboard/marketing/pages">{t("import_link")}</Link></Button>
@@ -118,7 +119,7 @@ export function BuilderListPage() {
                 <td className="p-3">{row.slug}</td>
                 <td className="p-3">{row.has_published ? t("status_published") : t("status_draft")}</td>
                 <td className="p-3 text-end">
-                  <Link className="text-primary underline-offset-4 hover:underline" href={`/dashboard/builder/${row.id}`}>{t("open")}</Link>
+                  <Link className="text-primary underline-offset-4 hover:underline" href={`/dashboard/builder/${row.id}`} {...PAGE_BUILDER_NEW_TAB_PROPS}>{t("open")}</Link>
                 </td>
               </tr>
             ))}

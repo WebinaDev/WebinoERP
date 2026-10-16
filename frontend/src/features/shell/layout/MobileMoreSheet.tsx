@@ -37,7 +37,8 @@ import { useBootstrapQuery } from '@/hooks/useBootstrapQuery';
 import { apiFetch } from '@/lib/api';
 import { patchBootstrapQuery } from '@/lib/bootstrapQuery';
 import { normalizeUiLocale } from '@/lib/locale';
-import { cn } from '@/lib/utils';
+import { cn } from '@/lib/utils'
+import { isPageBuilderNewTabPath, openPageBuilderInNewTab } from '@/lib/page-builder-nav';
 
 const ICON_STROKE = 1.75;
 
@@ -162,7 +163,12 @@ export function MobileMoreSheet({
 
   function go(url: string) {
     close();
-    if (url && url !== '#') router.push(url);
+    if (!url || url === '#') return;
+    if (isPageBuilderNewTabPath(url)) {
+      openPageBuilderInNewTab(url);
+      return;
+    }
+    router.push(url);
   }
 
   const BackIcon = rtl ? ChevronRight : ChevronLeft;

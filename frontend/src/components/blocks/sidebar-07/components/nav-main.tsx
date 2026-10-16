@@ -103,7 +103,12 @@ function NavSubMenu({
         return (
           <SidebarMenuSubItem key={subItem.id}>
             <SidebarMenuSubButton asChild isActive={subActive} size="md">
-              <Link href={subItem.url}>
+              <Link
+                href={subItem.url}
+                {...(subItem.openInNewTab
+                  ? { target: '_blank', rel: 'noopener noreferrer' }
+                  : {})}
+              >
                 <span>{subItem.title}</span>
               </Link>
             </SidebarMenuSubButton>
@@ -146,7 +151,12 @@ function NavMainComponent({
             return (
               <SidebarMenuItem key={item.id}>
                 <SidebarMenuButton asChild isActive={active} tooltip={item.title}>
-                  <Link href={item.url}>
+                  <Link
+                    href={item.url}
+                    {...(item.openInNewTab
+                      ? { target: '_blank', rel: 'noopener noreferrer' }
+                      : {})}
+                  >
                     {itemIcon}
                     <span>{item.title}</span>
                   </Link>

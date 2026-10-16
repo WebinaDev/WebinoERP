@@ -34,6 +34,11 @@ import { MobileBottomNav } from '@/features/shell/layout/MobileBottomNav';
 import { MobileMoreSheet } from '@/features/shell/layout/MobileMoreSheet';
 import { GlobalSearchBox } from '@/features/modules/dashboard/GlobalSearchBox';
 import { cn } from '@/lib/utils';
+import {
+  isPageBuilderFullscreenPath,
+  isPageBuilderNewTabPath,
+  openPageBuilderInNewTab,
+} from '@/lib/page-builder-nav';
 import './mobile-chrome.css';
 import './desktop-chrome.css';
 
@@ -87,10 +92,14 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
 
   const pinnedItems = useMemo(
     () =>
-      navSectionsToSidebar08MainItems(pinned, pathname).map((item) => ({
-        ...item,
-        url: toDashboardUrl(item.url.replace(/^\//, '')),
-      })),
+      navSectionsToSidebar08MainItems(pinned, pathname).map((item) => {
+        const url = toDashboardUrl(item.url.replace(/^\//, ''))
+        return {
+          ...item,
+          url,
+          openInNewTab: item.openInNewTab || isPageBuilderNewTabPath(url),
+        }
+      }),
     [pinned, pathname],
   );
 
@@ -99,18 +108,30 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
       sections.map((section) => ({
         id: section.id,
         label: section.label,
-        items: navSectionsToSidebar08MainItems(section.items, pathname).map((item) => ({
-          ...item,
-          url: item.url === '#' ? '#' : toDashboardUrl(item.url.replace(/^\//, '')),
-          items: item.items?.map((sub) => ({
-            ...sub,
-            url: toDashboardUrl(sub.url.replace(/^\//, '')),
-            items: sub.items?.map((nested) => ({
-              ...nested,
-              url: toDashboardUrl(nested.url.replace(/^\//, '')),
-            })),
-          })),
-        })),
+        items: navSectionsToSidebar08MainItems(section.items, pathname).map((item) => {
+          const url = item.url === '#' ? '#' : toDashboardUrl(item.url.replace(/^\//, ''))
+          return {
+            ...item,
+            url,
+            openInNewTab: item.openInNewTab || (url !== '#' && isPageBuilderNewTabPath(url)),
+            items: item.items?.map((sub) => {
+              const subUrl = toDashboardUrl(sub.url.replace(/^\//, ''))
+              return {
+                ...sub,
+                url: subUrl,
+                openInNewTab: sub.openInNewTab || isPageBuilderNewTabPath(subUrl),
+                items: sub.items?.map((nested) => {
+                  const nestedUrl = toDashboardUrl(nested.url.replace(/^\//, ''))
+                  return {
+                    ...nested,
+                    url: nestedUrl,
+                    openInNewTab: nested.openInNewTab || isPageBuilderNewTabPath(nestedUrl),
+                  }
+                }),
+              }
+            }),
+          }
+        }),
       })),
     [sections, pathname],
   );
@@ -163,6 +184,32 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
   }
 
   const pageTitle = crumbs[crumbs.length - 1]?.label ?? t('nav.erp.dashboard');
+
+  // Safety net: any in-app <a> to صفحه‌ساز opens a new tab instead of replacing the dashboard.
+  useEffect(() => {
+    function onClick(event: MouseEvent) {
+      const target = event.target
+      if (!(target instanceof Element)) return
+      const anchor = target.closest('a[href]')
+      if (!(anchor instanceof HTMLAnchorElement)) return
+      if (anchor.target === '_blank') return
+      if (event.defaultPrevented || event.button !== 0) return
+      if (event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return
+      const href = anchor.getAttribute('href')
+      if (!href || href.startsWith('#') || href.startsWith('mailto:') || href.startsWith('tel:')) return
+      if (!isPageBuilderNewTabPath(href)) return
+      event.preventDefault()
+      event.stopPropagation()
+      openPageBuilderInNewTab(href)
+    }
+    document.addEventListener('click', onClick, true)
+    return () => document.removeEventListener('click', onClick, true)
+  }, [])
+
+  // Editor surfaces are full-viewport; skip dashboard chrome when opened (incl. new tab).
+  if (isPageBuilderFullscreenPath(pathname)) {
+    return <>{children}</>
+  }
 
   return (
     <SidebarProvider>

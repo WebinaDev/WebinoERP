@@ -1,10 +1,12 @@
-type TranslateFn = (key: string, values?: { defaultValue?: string }) => string
 import { LayoutDashboard, type LucideIcon } from 'lucide-react'
 
 import { resolveLayoutNavKey } from '@/i18n/merge-locales'
 import { moduleIcon } from '@/lib/module-icons'
+import { isPageBuilderNewTabPath } from '@/lib/page-builder-nav'
 import type { DashboardModule } from '@/types/modules'
 import type { NavMainChild, NavMainSection, NavSidebarSection } from '@/types/nav'
+
+type TranslateFn = (key: string, values?: { defaultValue?: string }) => string
 
 export function routeFromModulePath(path: string): string {
   const raw = (path || '').trim()
@@ -174,6 +176,7 @@ export type Sidebar08NavSubItem = {
   id: string
   title: string
   url: string
+  openInNewTab?: boolean
   items?: Sidebar08NavSubItem[]
 }
 
@@ -183,6 +186,7 @@ export type Sidebar08MainNavItem = {
   url: string
   icon: LucideIcon
   isActive?: boolean
+  openInNewTab?: boolean
   items?: Sidebar08NavSubItem[]
 }
 
@@ -211,6 +215,7 @@ function navChildToSidebar08SubItem(child: NavMainChild, pathname: string): Side
     id: child.id,
     title: child.title,
     url: child.to,
+    openInNewTab: isPageBuilderNewTabPath(child.to) || isPageBuilderNewTabPath(`/dashboard/${child.to.replace(/^\//, '')}`),
   }
 }
 
@@ -235,6 +240,7 @@ export function navSectionsToSidebar08MainItems(
         url: section.to,
         icon: Icon,
         isActive: pathIsActive(pathname, section.to),
+        openInNewTab: isPageBuilderNewTabPath(section.to) || isPageBuilderNewTabPath(`/dashboard/${section.to.replace(/^\//, '')}`),
       }
     }
     const childActive = section.children.some((c) => navChildIsActive(c, pathname))
