@@ -18,6 +18,21 @@ const POLICIES = ['no-referrer', 'no-referrer-when-downgrade', 'origin', 'origin
 type Policy = (typeof POLICIES)[number];
 const policy = (v?: string | null): Policy | undefined => (POLICIES as readonly string[]).includes(v ?? '') ? (v as Policy) : undefined;
 
+// Third-party seals (e.g. trustseal.enamad.ir) are often slow or unreachable from outside
+// Iran and used to hold the page "loading" for minutes (GTmetrix timeouts). Request them
+// only after the page has finished loading.
+function useAfterLoad(): boolean {
+  const [ready, setReady] = useState(false);
+  useEffect(() => {
+    const go = () => window.setTimeout(() => setReady(true), 300);
+    if (document.readyState === 'complete') go();
+    else window.addEventListener('load', go, { once: true });
+    return () => window.removeEventListener('load', go);
+  }, []);
+  return ready;
+}
+const isExternal = (src: string) => /^https?:\/\//i.test(src) && !src.includes('webina.dev');
+
 function Seal({ id }: { id: string }) {
   const glyph = id === 'ssl' ? 'SSL' : id === 'hosting' ? 'SRV' : id === 'samandehi' ? 'IR' : 'نماد';
   return (
@@ -49,6 +64,7 @@ export function TrustBadgeRail({
 }) {
   const [index, setIndex] = useState(0);
   const [paused, setPaused] = useState(false);
+  const afterLoad = useAfterLoad();
   const [perView, setPerView] = useState(1);
   const [rtl, setRtl] = useState(true);
 
@@ -101,13 +117,15 @@ export function TrustBadgeRail({
             {visible.map((badge) => {
               const inner = (
                 <>
-                  {badge.image ? (
+                  {badge.image && (afterLoad || !isExternal(badge.image)) ? (
                     // eslint-disable-next-line @next/next/no-img-element
                     <img
                       src={badge.image}
                       alt={badge.alt ?? ''}
                       className="seal object-contain"
                       referrerPolicy={policy(badge.referrerpolicy)}
+                      loading="lazy"
+                      decoding="async"
                       style={{ cursor: 'pointer' }}
                       {...(badge.code ? { code: badge.code } : {})}
                     />

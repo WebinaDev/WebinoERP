@@ -33,6 +33,7 @@ export const metadata: Metadata = {
     apple: "/brand/apple-touch-icon.png",
   },
   manifest: "/manifest.webmanifest",
+  generator: "Webina ERP",
   appleWebApp: { capable: true, title: "Webino ERP" },
 }
 
@@ -64,6 +65,7 @@ export default async function RootLayout({
   return (
     <html lang={locale} dir={dir} className={yekanBakh.variable} suppressHydrationWarning>
       <head>
+        <script dangerouslySetInnerHTML={{ __html: 'window.__WEBINA__={product:"erp"};window.Webina=window.__WEBINA__' }} />
         {apiOrigin ? (
           <>
             <link rel="preconnect" href={apiOrigin} />

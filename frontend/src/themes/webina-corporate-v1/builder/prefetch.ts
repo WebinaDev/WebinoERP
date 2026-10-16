@@ -28,13 +28,18 @@ export async function prefetchCorporate(document: BuilderDocument): Promise<Reco
       paths.add('/v1/public/blog-categories');
     }
     if (w.type === 'magazine-feature') paths.add('/v1/public/magazine?per_page=30');
+    if (w.type === 'downloads-list') paths.add('/v1/public/downloads');
+    if (w.type === 'faq-categorized') paths.add('/v1/public/faq');
+    if (w.type === 'announcements-list') paths.add('/v1/public/announcements?archive=1');
   }
   const out: Record<string, unknown> = {};
   await Promise.all(
     [...paths].map(async (path) => {
       try {
-        const res = await apiServer<{ data?: unknown }>(path);
+        const res = await apiServer<{ data?: unknown; meta?: unknown }>(path);
         if (res?.data !== undefined) out[path] = res.data;
+        // Listing widgets also read meta (magazine issues, FAQ groups).
+        if (res?.meta !== undefined) out[`${path}::meta`] = res.meta;
       } catch {
         /* the widget falls back to a client fetch */
       }

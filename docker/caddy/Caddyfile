@@ -11,6 +11,8 @@
 		X-Frame-Options "SAMEORIGIN"
 		Referrer-Policy "strict-origin-when-cross-origin"
 		Strict-Transport-Security "max-age=31536000; includeSubDomains"
+		# Product fingerprint (replaces any PHP/Next X-Powered-By)
+		X-Powered-By "Webina ERP"
 		-Server
 	}
 }
@@ -54,6 +56,9 @@
 	}
 
 	handle {
+		# Harmless product marker cookie; added at the proxy so Next page caching is untouched.
+		@pageReq not path /_next/* /lucide-icon/*
+		header @pageReq +Set-Cookie "webina_site=erp; Path=/; Max-Age=31536000; SameSite=Lax; Secure"
 		reverse_proxy erp-frontend:3000
 	}
 }
