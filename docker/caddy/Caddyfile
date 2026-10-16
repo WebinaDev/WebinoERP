@@ -27,6 +27,15 @@
 	@api path /api/*
 	header @api Cache-Control "no-store"
 
+	@storage path /storage/*
+	header @storage Cache-Control "public, max-age=86400"
+
+	# Laravel public disk (durable host dir /var/lib/webino/storage-public).
+	handle_path /storage/* {
+		root * /srv/storage
+		file_server
+	}
+
 	handle /api/* {
 		reverse_proxy erp-backend:8080 {
 			header_up Host {host}

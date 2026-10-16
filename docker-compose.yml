@@ -41,6 +41,9 @@ services:
     volumes:
       - ./backend:/var/www/html
       - ./docker/php/entrypoint.sh:/entrypoint.sh:ro
+      # Durable public uploads (marketing covers, media). Lives outside the git tree so
+      # git clean / reset --hard / rebuild can never delete it.
+      - ${WEBINO_STORAGE_PUBLIC:-/var/lib/webino/storage-public}:/var/www/html/storage/app/public
       - /var/run/docker.sock:/var/run/docker.sock
       - /var/lib/webino:/var/lib/webino
       - ./docker/caddy/sites:/opt/webinoerp/docker/caddy/sites
@@ -106,6 +109,9 @@ services:
     volumes:
       - ./backend:/var/www/html
       - ./docker/php/entrypoint.sh:/entrypoint.sh:ro
+      # Durable public uploads (marketing covers, media). Lives outside the git tree so
+      # git clean / reset --hard / rebuild can never delete it.
+      - ${WEBINO_STORAGE_PUBLIC:-/var/lib/webino/storage-public}:/var/www/html/storage/app/public
       - /var/run/docker.sock:/var/run/docker.sock
       - /var/lib/webino:/var/lib/webino
       - ./docker/caddy/sites:/opt/webinoerp/docker/caddy/sites
@@ -150,6 +156,9 @@ services:
     volumes:
       - ./backend:/var/www/html
       - ./docker/php/entrypoint.sh:/entrypoint.sh:ro
+      # Durable public uploads (marketing covers, media). Lives outside the git tree so
+      # git clean / reset --hard / rebuild can never delete it.
+      - ${WEBINO_STORAGE_PUBLIC:-/var/lib/webino/storage-public}:/var/www/html/storage/app/public
     env_file:
       - ./backend/.env
     environment:
@@ -185,6 +194,9 @@ services:
     volumes:
       - ./backend:/var/www/html
       - ./docker/php/entrypoint.sh:/entrypoint.sh:ro
+      # Durable public uploads (marketing covers, media). Lives outside the git tree so
+      # git clean / reset --hard / rebuild can never delete it.
+      - ${WEBINO_STORAGE_PUBLIC:-/var/lib/webino/storage-public}:/var/www/html/storage/app/public
     env_file:
       - ./backend/.env
     environment:
@@ -240,6 +252,8 @@ services:
       - ./docker/caddy/Caddyfile:/etc/caddy/Caddyfile:ro
       # Durable tenant snippets (survive git clean / update.sh). Backend writes here too.
       - /var/lib/webino/caddy.d:/etc/caddy/sites
+      # Serve Laravel public disk directly at /storage/* (read-only).
+      - ${WEBINO_STORAGE_PUBLIC:-/var/lib/webino/storage-public}:/srv/storage:ro
       # Persist Let's Encrypt certs across recreate/update — never delete this volume.
       - caddy_data:/data
       - caddy_config:/config

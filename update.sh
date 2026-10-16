@@ -134,6 +134,20 @@ mkdir -p "${BACKUP_DIR}/backend" "${BACKUP_DIR}/frontend"
 [ -f "${ERP_DIR}/frontend/.env" ] && cp -a "${ERP_DIR}/frontend/.env" "${BACKUP_DIR}/frontend/.env"
 [ -f "${ERP_DIR}/frontend/.env.local" ] && cp -a "${ERP_DIR}/frontend/.env.local" "${BACKUP_DIR}/frontend/.env.local"
 
+log "Ensuring durable public storage (uploads survive git clean / rebuild)"
+STORAGE_PUBLIC="${WEBINO_STORAGE_PUBLIC:-/var/lib/webino/storage-public}"
+run_cmd mkdir -p "${STORAGE_PUBLIC}"
+# One-time migration: move anything still inside the repo tree into the durable dir.
+if [ -d "${ERP_DIR}/backend/storage/app/public" ] && [ ! -L "${ERP_DIR}/backend/storage/app/public" ]; then
+  run_cmd cp -an "${ERP_DIR}/backend/storage/app/public/." "${STORAGE_PUBLIC}/" 2>/dev/null || true
+fi
+run_cmd chmod -R a+rX "${STORAGE_PUBLIC}" || true
+# Snapshot uploads before touching the tree (keeps last 5).
+SNAP_DIR=/var/lib/webino/backups/storage-public
+run_cmd mkdir -p "${SNAP_DIR}"
+run_cmd tar -czf "${SNAP_DIR}/$(date +%Y%m%d-%H%M%S).tgz" -C "${STORAGE_PUBLIC}" . 2>/dev/null || true
+ls -1t "${SNAP_DIR}"/*.tgz 2>/dev/null | tail -n +6 | xargs -r rm -f
+
 cd "${ERP_DIR}"
 run_cmd git -C "${ERP_DIR}" remote set-url origin "${ERP_REPO}" || true
 log "Fetching ${ERP_REF}…"
@@ -147,7 +161,11 @@ run_cmd git -C "${ERP_DIR}" clean -fd \
   -e frontend/.env \
   -e frontend/.env.local \
   -e docker/caddy/sites \
-  -e 'docker/caddy/sites/**'
+  -e 'docker/caddy/sites/**' \
+  -e backend/storage \
+  -e 'backend/storage/**' \
+  -e frontend/public/marketing \
+  -e 'frontend/public/marketing/**'
 
 log "Restoring env files"
 [ -f "${BACKUP_DIR}/.env" ] && cp -a "${BACKUP_DIR}/.env" "${ERP_DIR}/.env"

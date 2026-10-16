@@ -18,6 +18,7 @@ backend/storage/*.key
 backend/storage/app/*
 !backend/storage/app/.gitkeep
 !backend/storage/app/public/
+backend/storage/app/public/*
 !backend/storage/app/public/.gitkeep
 backend/storage/framework/cache/*
 !backend/storage/framework/cache/.gitkeep
