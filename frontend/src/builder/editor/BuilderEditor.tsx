@@ -1,5 +1,6 @@
 "use client"
 
+import { SectionExtrasFields } from "./section-extras-fields"
 import {
   Blocks,
   Image as ImageIcon,
@@ -1063,6 +1064,12 @@ export function BuilderEditor({ mode }: { mode: Mode }) {
                     {t("upgrade_section")}
                   </Button>
                 </div>
+              ) : null}
+              {tab === "style" ? (
+                <SectionExtrasFields
+                  section={selection.section}
+                  onChange={(patch) => commit(updateSection(doc, selection.id, (node) => ({ ...node, ...patch })))}
+                />
               ) : null}
               {tab === "style" ? (
                 <DesignSystemFields
