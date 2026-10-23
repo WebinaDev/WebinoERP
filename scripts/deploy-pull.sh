@@ -71,3 +71,9 @@ if [[ "${SKIP_MIGRATE:-0}" != 1 ]]; then
 fi
 compose_cli ps
 log "done"
+
+# Warm tenant caches (homepage + /_next/image, desktop+mobile, avif/webp) after deploy.
+if [ "${WARM_TENANTS:-1}" = 1 ] && [ -d /var/lib/webino/sites ]; then
+  doms=$(for f in /var/lib/webino/caddy.d/*.caddy docker/caddy/sites/*.caddy; do [ -f "$f" ] && grep -m1 -oE '^[a-z0-9.-]+\.[a-z]+' "$f"; done 2>/dev/null | sort -u)
+  [ -n "$doms" ] && bash "$(dirname "$0")/warm-tenant-cache.sh" $doms || true
+fi

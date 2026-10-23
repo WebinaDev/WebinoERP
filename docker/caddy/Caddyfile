@@ -88,13 +88,12 @@ webinaagency.ir, www.webinaagency.ir {
 	encode zstd gzip
 	@tNextStatic path /_next/static/*
 	header @tNextStatic >Cache-Control "public, max-age=31536000, immutable"
+	# /_next/image + storage images: long Cache-Control is set by edge nginx (:8081) on 200 only,
+	# so a 400/404 is never cached by browsers for 30 days.
 	@tNextImage path /_next/image*
-	header @tNextImage >Cache-Control "public, max-age=2592000, immutable"
 	header @tNextImage >Vary Accept
 	@tFonts path /fonts/* *.woff2 *.woff *.ttf
 	header @tFonts >Cache-Control "public, max-age=31536000, immutable"
-	@tStorage path /storage/*
-	header @tStorage >Cache-Control "public, max-age=2592000"
 	@tInline path /inline-media/*
 	header @tInline >Cache-Control "public, max-age=31536000, immutable"
 }
