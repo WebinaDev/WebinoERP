@@ -10,7 +10,7 @@ const LocaleDatePicker = dynamic(() => import("@/components/ui/locale-date-picke
   loading: () => <input className="wb-field" disabled aria-busy="true" />,
 })
 
-import { FORM_UPLOAD_ACCEPT, FORM_UPLOAD_MAX_BYTES, publicFormEndpoints } from "@webina/ui/builder"
+import { checkFormUpload, FORM_UPLOAD_ACCEPT, publicFormEndpoints } from "@webina/ui/builder"
 import { fieldsFromDefinition, isVisible, missingOnStep, parseFormFields, stepCount, visiblePayload, type FormField } from "../forms"
 import { parseRows, propStr } from "../props"
 import type { WidgetNode } from "../types"
@@ -18,7 +18,6 @@ import type { WidgetNode } from "../types"
 const API_BASE = process.env.NEXT_PUBLIC_API_URL?.trim() || "/api"
 
 const FILE_ACCEPT = FORM_UPLOAD_ACCEPT
-const FILE_MAX = FORM_UPLOAD_MAX_BYTES
 const FORM_API = publicFormEndpoints(API_BASE)
 
 /** File field: uploads to private storage right away and keeps only the opaque token as the value. */
@@ -37,7 +36,9 @@ function FileField({ field, formKey, onChange }: { field: FormField; formKey: st
           const file = event.target.files?.[0]
           onChange("", "")
           if (!file) return setState({ name: "", status: "idle" })
-          if (file.size > FILE_MAX) return setState({ name: file.name, status: "error", message: "حداکثر حجم فایل ۱۰ مگابایت است" })
+          const problem = checkFormUpload(file)
+          if (problem === "size") return setState({ name: file.name, status: "error", message: "حداکثر حجم فایل ۱۰ مگابایت است" })
+          if (problem === "type") return setState({ name: file.name, status: "error", message: "نوع فایل مجاز نیست (jpg، png، webp، pdf، doc، zip)" })
           setState({ name: file.name, status: "uploading" })
           const body = new FormData()
           body.append("file", file)

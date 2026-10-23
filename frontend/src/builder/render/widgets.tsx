@@ -305,7 +305,7 @@ export function WidgetBody({ widget, editor }: { widget: WidgetNode; editor?: Ed
     case "mega-menu":
       return <MegaMenuWidget widget={widget} />
     case "product-reviews":
-      return <ProductReviewsWidget widget={widget} productSlug={runtime.productSlug} />
+      return <ProductReviewsWidget widget={widget} productSlug={runtime.productSlug} editing={editing} />
     case "product-questions":
       return <ProductQuestionsWidget widget={widget} productSlug={runtime.productSlug} />
     case "account-dashboard":
