@@ -6,6 +6,7 @@ use Modules\Crm\Http\Controllers\CustomerHubController as H;
 // Prefix: api/v1/crm/customers — middleware: api, auth:sanctum, module:crm (RBAC per section in controller)
 Route::whereNumber('id')->group(function () {
     Route::get('/{id}/hub', [H::class, 'hub']);
+    Route::get('/{id}/hub/export.csv', [H::class, 'exportCsv']);
     Route::get('/{id}/hub/{section}', [H::class, 'section'])->where('section', '[a-z_]+');
 
     Route::patch('/{id}/hub/profile', [H::class, 'updateProfile']);
@@ -13,6 +14,7 @@ Route::whereNumber('id')->group(function () {
     Route::patch('/{id}/hub/contacts/{contactId}', [H::class, 'saveContact'])->whereNumber('contactId');
     Route::delete('/{id}/hub/contacts/{contactId}', [H::class, 'deleteContact'])->whereNumber('contactId');
     Route::post('/{id}/hub/documents', [H::class, 'storeDocument']);
+    Route::post('/{id}/hub/documents/{docId}/download-link', [H::class, 'documentLink'])->whereNumber('docId');
     Route::patch('/{id}/hub/documents/{docId}', [H::class, 'updateDocument'])->whereNumber('docId');
     Route::delete('/{id}/hub/documents/{docId}', [H::class, 'deleteDocument'])->whereNumber('docId');
     Route::post('/{id}/hub/domains', [H::class, 'storeDomain']);
@@ -25,6 +27,7 @@ Route::whereNumber('id')->group(function () {
     Route::post('/{id}/hub/alerts/{alertId}/resolve', [H::class, 'resolveAlert'])->whereNumber('alertId');
     Route::post('/{id}/hub/onboarding', [H::class, 'storeOnboarding']);
     Route::post('/{id}/hub/onboarding/{itemId}/toggle', [H::class, 'toggleOnboarding'])->whereNumber('itemId');
+    Route::post('/{id}/hub/usage-metrics/sync', [H::class, 'syncUsage']);
     Route::post('/{id}/hub/usage-metrics', [H::class, 'storeUsageMetric']);
 
     // Action bar

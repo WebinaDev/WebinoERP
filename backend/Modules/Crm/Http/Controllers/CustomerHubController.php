@@ -10,7 +10,13 @@ use Illuminate\Http\Request;
 use Illuminate\Pagination\LengthAwarePaginator;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Facades\URL;
 use Illuminate\Support\Str;
+use Modules\Crm\Services\Hub\CustomerSiteSync;
+use Modules\Crm\Services\Hub\CustomerSuspension;
+use Modules\Crm\Services\Hub\SiteLinkClient;
+use Symfony\Component\HttpFoundation\StreamedResponse;
 use Modules\Crm\Entities\CrmAccount;
 use Modules\Crm\Entities\CrmContact;
 use Modules\Crm\Services\CrmOutboundMessenger;
@@ -46,6 +52,13 @@ class CustomerHubController extends Controller
             'changes' => json_encode($changes, JSON_UNESCAPED_UNICODE), 'ip' => $r->ip(), 'created_at' => now(),
         ]);
         MutationAudit::record($r->user()?->id, 'crm', 'customer_hub.'.$action, CrmAccount::class, $a->id, $changes);
+        if (! in_array($action, ['hub.export', 'document.download'], true)) {
+            try {
+                event(new \Modules\Crm\Events\CustomerHubUpdated($a->id, $action, $r->user()?->id));
+            } catch (\Throwable) {
+                // broadcasting is best-effort; clients also poll
+            }
+        }
     }
 
     private function roles(User $u): array
@@ -116,7 +129,13 @@ class CustomerHubController extends Controller
             'communications' => ['support', fn () => $this->paginate($r, $this->hub->communications($a))],
             'timeline' => ['timeline', fn () => $this->paginate($r, $this->filterKind($r, $this->timelineFor($r, $a)))],
             'usage' => ['usage', fn () => $this->hub->usage($a)],
-            'documents' => ['documents', fn () => $this->paginate($r, $this->hub->documents($a, $this->roles($r->user()), $this->access->isAdmin($r->user())))],
+            'site_panel' => ['site_panel', fn () => app(SiteLinkClient::class)->customerPanels($a, $r->boolean('fresh'))],
+            'documents' => ['documents', fn () => $this->paginate($r, $this->hub->documents($a, $this->roles($r->user()), $this->access->isAdmin($r->user()))
+                ->map(function ($d) {
+                    unset($d['file_path']);
+
+                    return $d;
+                }))],
             'access' => ['access', fn () => $this->hub->access($a)],
             'relations' => ['relations', fn () => $this->hub->relations($a)],
             'notes' => ['notes', fn () => $this->hub->notes($a)],
@@ -229,24 +248,78 @@ class CustomerHubController extends Controller
 
     // ───────────── documents ─────────────
 
+    public const DOC_MAX_KB = 10240;
+
+    public const DOC_MIMES = 'pdf,jpg,jpeg,png,webp,doc,docx,xls,xlsx,zip';
+
     public function storeDocument(Request $r, int $id): JsonResponse
     {
         $this->gateManage($r, 'documents');
         $a = $this->account($id);
+        if (is_string($r->input('visible_to_roles'))) { // multipart sends a JSON/CSV string
+            $raw = (string) $r->input('visible_to_roles');
+            $r->merge(['visible_to_roles' => json_decode($raw, true) ?? array_values(array_filter(array_map('trim', explode(',', $raw))))]);
+        }
         $data = $r->validate([
             'category' => 'required|in:national_card,gazette,enamad,permit,contract,proposal,invoice,brief,deliverable,other',
             'title' => 'required|string|max:255', 'url' => 'nullable|string|max:1000', 'core_document_id' => 'nullable|integer',
+            'file' => 'nullable|file|max:'.self::DOC_MAX_KB.'|mimes:'.self::DOC_MIMES,
             'expires_at' => 'nullable|date', 'visible_to_roles' => 'nullable|array', 'visible_to_roles.*' => 'string|max:64',
         ]);
+        $file = null;
+        if ($r->hasFile('file')) {
+            $up = $r->file('file');
+            $ext = strtolower($up->guessExtension() ?: $up->getClientOriginalExtension() ?: 'bin');
+            $path = $up->storeAs('crm/customer-docs/'.$a->id, Str::uuid()->toString().'.'.$ext, 'local'); // private disk
+            $file = ['file_path' => $path, 'file_name' => mb_substr($up->getClientOriginalName(), 0, 255), 'file_mime' => $up->getMimeType(), 'file_size' => $up->getSize()];
+        }
         $docId = DB::table('crm_customer_documents')->insertGetId([
             'account_id' => $a->id, 'category' => $data['category'], 'title' => $data['title'], 'url' => $data['url'] ?? null,
             'core_document_id' => $data['core_document_id'] ?? null, 'expires_at' => $data['expires_at'] ?? null,
             'visible_to_roles' => isset($data['visible_to_roles']) ? json_encode(array_values($data['visible_to_roles'])) : null,
             'review_status' => 'pending', 'created_by' => $r->user()->id, 'created_at' => now(), 'updated_at' => now(),
-        ]);
-        $this->audit($r, $a, 'document.create', ['document_id' => $docId, 'category' => $data['category']]);
+        ] + ($file ?? []));
+        $this->audit($r, $a, 'document.create', ['document_id' => $docId, 'category' => $data['category'], 'file' => $file['file_name'] ?? null]);
 
-        return response()->json(['data' => DB::table('crm_customer_documents')->find($docId)], 201);
+        return response()->json(['data' => $this->publicDoc(DB::table('crm_customer_documents')->find($docId))], 201);
+    }
+
+    private function publicDoc(?object $d): ?array
+    {
+        if (! $d) {
+            return null;
+        }
+        $arr = (array) $d;
+        $arr['has_file'] = ! empty($d->file_path);
+        unset($arr['file_path']);
+
+        return $arr;
+    }
+
+    /** Issue a 5-minute signed link — only if the caller can see this document (role visibility). */
+    public function documentLink(Request $r, int $id, int $docId): JsonResponse
+    {
+        $this->gate($r, 'documents');
+        $a = $this->account($id);
+        $visible = $this->hub->documents($a, $this->roles($r->user()), $this->access->isAdmin($r->user()))
+            ->first(fn ($d) => (string) ($d['id'] ?? '') === (string) $docId);
+        abort_unless($visible && ! empty($visible['file_path']), 404);
+        $this->audit($r, $a, 'document.download', ['document_id' => $docId]);
+
+        return response()->json(['data' => [
+            'url' => URL::temporarySignedRoute('crm.hub.document.file', now()->addMinutes(5), ['id' => $a->id, 'docId' => $docId, 'u' => $r->user()->id]),
+            'expires_in' => 300,
+        ]]);
+    }
+
+    public function downloadDocument(Request $r, int $id, int $docId): StreamedResponse
+    {
+        $d = DB::table('crm_customer_documents')->where('account_id', $id)->where('id', $docId)->first();
+        abort_unless($d && $d->file_path && Storage::disk('local')->exists($d->file_path), 404);
+
+        return Storage::disk('local')->download($d->file_path, $d->file_name ?: basename($d->file_path), [
+            'Content-Type' => $d->file_mime ?: 'application/octet-stream', 'X-Content-Type-Options' => 'nosniff', 'Cache-Control' => 'private, no-store',
+        ]);
     }
 
     public function updateDocument(Request $r, int $id, int $docId): JsonResponse
@@ -272,14 +345,18 @@ class CustomerHubController extends Controller
                 'kyc_verified_at' => $data['review_status'] === 'approved' ? now() : null]);
         }
 
-        return response()->json(['data' => DB::table('crm_customer_documents')->find($docId)]);
+        return response()->json(['data' => $this->publicDoc(DB::table('crm_customer_documents')->find($docId))]);
     }
 
     public function deleteDocument(Request $r, int $id, int $docId): JsonResponse
     {
         $this->gateManage($r, 'documents');
         $a = $this->account($id);
+        $path = DB::table('crm_customer_documents')->where('account_id', $a->id)->where('id', $docId)->value('file_path');
         abort_if(DB::table('crm_customer_documents')->where('account_id', $a->id)->where('id', $docId)->delete() === 0, 404);
+        if ($path) {
+            Storage::disk('local')->delete($path);
+        }
         $this->audit($r, $a, 'document.delete', ['document_id' => $docId]);
 
         return response()->json(['ok' => true]);
@@ -597,24 +674,91 @@ class CustomerHubController extends Controller
         return response()->json(['data' => $this->hub->header($a->fresh())]);
     }
 
-    public function suspend(Request $r, int $id): JsonResponse
+    public function suspend(Request $r, int $id, CustomerSuspension $svc): JsonResponse
     {
         $this->gateManage($r, 'suspend');
         $a = $this->account($id);
-        $data = $r->validate(['reason' => 'required|string|max:1000']);
-        $a->update(['suspended_at' => now(), 'hub_status' => 'blocked']);
-        $this->audit($r, $a, 'account.suspend', $data);
+        $data = $r->validate(['reason' => 'required|string|max:1000', 'confirm' => 'accepted']);
+        $result = $svc->suspend($a, $data['reason'], $r->user()?->id);
+        $this->audit($r, $a, 'account.suspend', ['reason' => $data['reason']] + $result);
 
-        return response()->json(['data' => $this->hub->header($a->fresh())]);
+        return response()->json(['data' => $this->hub->header($a->fresh()) + ['action_result' => $result]]);
     }
 
-    public function activate(Request $r, int $id): JsonResponse
+    public function activate(Request $r, int $id, CustomerSuspension $svc): JsonResponse
     {
         $this->gateManage($r, 'suspend');
         $a = $this->account($id);
-        $a->update(['suspended_at' => null, 'hub_status' => 'active']);
-        $this->audit($r, $a, 'account.activate');
+        $r->validate(['confirm' => 'accepted']);
+        $result = $svc->activate($a);
+        $this->audit($r, $a, 'account.activate', $result);
 
-        return response()->json(['data' => $this->hub->header($a->fresh())]);
+        return response()->json(['data' => $this->hub->header($a->fresh()) + ['action_result' => $result]]);
+    }
+
+    /** Pull usage from the customer's sites now (same path as the scheduled crm:hub-sync-sites). */
+    public function syncUsage(Request $r, int $id, CustomerSiteSync $sync): JsonResponse
+    {
+        $this->gateManage($r, 'assets');
+        $a = $this->account($id);
+        $stats = $sync->run($a->id, true);
+        $this->audit($r, $a, 'usage.sync', $stats);
+
+        return response()->json(['data' => $this->hub->usage($a) + ['sync_result' => $stats]]);
+    }
+
+    /** CSV export of the sections the caller may view (UTF-8 BOM so Excel renders Persian). */
+    public function exportCsv(Request $r, int $id): StreamedResponse
+    {
+        $a = $this->account($id);
+        $sections = $this->access->sections($r->user());
+        abort_if($sections === [], 403, __('Forbidden'));
+        $this->audit($r, $a, 'hub.export', ['format' => 'csv']);
+        $h = $this->hub;
+        $rows = [];
+        $add = function (string $section, iterable $items) use (&$rows) {
+            foreach ($items as $it) {
+                $it = (array) $it;
+                $flat = [];
+                foreach ($it as $k => $v) {
+                    if (is_scalar($v) || $v === null) {
+                        $flat[$k] = $v;
+                    }
+                }
+                $rows[] = [$section, json_encode($flat, JSON_UNESCAPED_UNICODE)];
+            }
+        };
+        $add('header', [$h->header($a)]);
+        if (in_array('identity', $sections, true)) {
+            $add('identity', [$h->identity($a)]);
+        }
+        if (in_array('licenses', $sections, true)) {
+            $add('licenses', $h->licenses($a));
+        }
+        if (in_array('billing', $sections, true)) {
+            $add('invoices', $h->invoices($a));
+            $add('payments', $h->payments($a));
+        }
+        if (in_array('support', $sections, true)) {
+            $add('tickets', $h->tickets($a));
+        }
+        if (in_array('documents', $sections, true)) {
+            $add('documents', $h->documents($a, $this->roles($r->user()), $this->access->isAdmin($r->user()))->map(function ($d) {
+                unset($d['file_path']);
+
+                return $d;
+            }));
+        }
+        $name = 'customer-'.$a->id.'-'.now()->format('Ymd-His').'.csv';
+
+        return response()->streamDownload(function () use ($rows) {
+            $out = fopen('php://output', 'w');
+            fwrite($out, "\xEF\xBB\xBF");
+            fputcsv($out, ['section', 'data']);
+            foreach ($rows as $row) {
+                fputcsv($out, $row);
+            }
+            fclose($out);
+        }, $name, ['Content-Type' => 'text/csv; charset=UTF-8']);
     }
 }

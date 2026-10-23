@@ -28,6 +28,7 @@ class CrmServiceProvider extends ServiceProvider
                 DispatchContentRemindersCommand::class,
                 PublishDueContentCommand::class,
                 RetryMoadianCommand::class,
+                \Modules\Crm\Console\SyncCustomerSitesCommand::class,
             ]);
         }
 
@@ -49,6 +50,11 @@ class CrmServiceProvider extends ServiceProvider
 
         // Customer 360 Hub: section-level RBAC is enforced in CustomerHubAccess so finance /
         // support roles without crm.accounts.view can still open their own sections.
+        // Signed (temporary) download of private hub documents — visibility checked when the link is issued.
+        Route::prefix('api/v1/crm/customers')->middleware(['api', 'signed', 'throttle:60,1'])
+            ->get('/{id}/hub/documents/{docId}/file', [\Modules\Crm\Http\Controllers\CustomerHubController::class, 'downloadDocument'])
+            ->whereNumber(['id', 'docId'])->name('crm.hub.document.file');
+
         Route::prefix('api/v1/crm/customers')
             ->middleware(['api', 'auth:sanctum', 'module:crm'])
             ->group(module_path($this->moduleName, 'Routes/hub.php'));

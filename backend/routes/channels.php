@@ -13,3 +13,9 @@ Broadcast::channel('chat.{channelId}', function ($user, int|string $channelId) {
         ? ['id' => $user->id, 'name' => $user->name]
         : false;
 });
+
+// Customer 360 Hub live updates — any user who can open at least one hub section.
+Broadcast::channel('crm.customer.{accountId}', function ($user, int|string $accountId) {
+    return app(\Modules\Crm\Services\Hub\CustomerHubAccess::class)->sections($user) !== []
+        && \Modules\Crm\Entities\CrmAccount::query()->whereKey((int) $accountId)->exists();
+});
