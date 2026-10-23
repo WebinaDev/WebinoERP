@@ -170,6 +170,13 @@ Route::middleware(['auth:sanctum', 'module.permission:core'])->group(function ()
 
     Route::middleware('role:system_manager')->group(function () {
         Route::get('/licenses', [LicenseParityController::class, 'index']);
+        Route::get('/license-renewal/prices', [\Modules\Core\Http\Controllers\LicenseRenewalAdminController::class, 'index']);
+        Route::post('/license-renewal/prices', [\Modules\Core\Http\Controllers\LicenseRenewalAdminController::class, 'store']);
+        Route::patch('/license-renewal/prices/{id}', [\Modules\Core\Http\Controllers\LicenseRenewalAdminController::class, 'update'])->whereNumber('id');
+        Route::delete('/license-renewal/prices/{id}', [\Modules\Core\Http\Controllers\LicenseRenewalAdminController::class, 'destroy'])->whereNumber('id');
+        Route::get('/license-renewal/settings', [\Modules\Core\Http\Controllers\LicenseRenewalAdminController::class, 'settings']);
+        Route::put('/license-renewal/settings', [\Modules\Core\Http\Controllers\LicenseRenewalAdminController::class, 'updateSettings']);
+        Route::get('/licenses/{id}/renewal-link', [\Modules\Core\Http\Controllers\LicenseRenewalAdminController::class, 'link'])->whereNumber('id');
         Route::post('/licenses', [LicenseParityController::class, 'store']);
         Route::patch('/licenses/{id}', [LicenseParityController::class, 'update'])->whereNumber('id');
         Route::post('/licenses/{id}/renew', [LicenseParityController::class, 'renew'])->whereNumber('id');

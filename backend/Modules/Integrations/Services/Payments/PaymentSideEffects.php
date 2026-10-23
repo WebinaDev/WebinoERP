@@ -33,6 +33,7 @@ class PaymentSideEffects
             'marketplace_order' => $this->marketplace($intent),
             'sms_order' => $this->smsCredit($intent),
             'license' => $this->license($intent),
+            'license_renewal' => app(\Modules\Core\Services\LicenseRenewal\LicenseRenewalService::class)->markPaid((int) $intent->payable_id, $intent),
             'subscription' => $this->subscription($intent),
             'wallet_topup' => $this->wallet($intent),
             default => null,

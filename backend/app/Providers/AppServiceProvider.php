@@ -87,6 +87,10 @@ class AppServiceProvider extends ServiceProvider
                 : Limit::perMinute(30)->by('marketing-public:'.$request->ip());
         });
 
+        RateLimiter::for('license-renewal-public', function (Request $request) {
+            return Limit::perMinute(30)->by($request->ip().'|'.strtolower((string) $request->query('domain')));
+        });
+
         RateLimiter::for('auth-public', function (Request $request) {
             return Limit::perMinute(20)->by($request->ip());
         });

@@ -37,6 +37,7 @@ class BillableResolver
             'sms_credit' => $this->smsPackage($id, $domain),
             'sms_order' => $this->smsOrder($id),
             'license' => $this->license($id),
+            'license_renewal' => $this->licenseRenewal($id),
             'subscription' => $this->subscription($id, $domain),
             'wallet_topup' => $this->wallet($id, $domain, $input['amount'] ?? null),
             'generic' => $this->generic($id, $input['amount'] ?? null, $input['description'] ?? null, $domain),
@@ -259,6 +260,25 @@ class BillableResolver
         $amount = (int) ($meta['balance_due'] ?? $meta['renewal_amount'] ?? 0);
 
         return $this->bill('license', (string) $license->id, (string) $license->domain, $amount, 'تمدید لایسنس '.$license->domain, $amount < 1000 && ! empty($meta['last_payment_id']));
+    }
+
+    /**
+     * Self-service renewal order (core_license_renewals), priced from the ERP renewal price list.
+     *
+     * @return array{type:string,id:string,domain:?string,base_amount:int,description:string,title:string,already_paid:bool,meta:array<string,mixed>}
+     */
+    private function licenseRenewal(string $id): array
+    {
+        $order = \Modules\Core\Entities\CoreLicenseRenewal::query()->with('license')->find($id);
+        if (! $order || ! $order->license) {
+            throw new PaymentException('سفارش تمدید پیدا نشد.', 'not_found', 404);
+        }
+        $domain = (string) $order->license->domain;
+
+        return $this->bill('license_renewal', (string) $order->id, $domain, (int) $order->amount_irr, 'تمدید لایسنس '.$domain.' ('.$order->months.' ماه)', $order->status === 'paid', [
+            'license_id' => $order->license_id,
+            'months' => $order->months,
+        ]);
     }
 
     /**

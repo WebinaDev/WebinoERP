@@ -31,6 +31,7 @@ return Application::configure(basePath: dirname(__DIR__))
         // Hourly covers the daily run too; the 00:05 run is the explicit daily pass right after licenses roll over.
         $schedule->command('site-builder:enforce-license-status')->hourly()->withoutOverlapping(30);
         $schedule->command('site-builder:enforce-license-status')->dailyAt('00:05')->withoutOverlapping(30);
+        $schedule->command('core:license-renewal-reminders')->dailyAt('10:00')->withoutOverlapping(30);
         $schedule->command('webino:moadian:retry')->everyFiveMinutes();
         $schedule->command('webino:content:publish')->everyFiveMinutes();
         $schedule->command('webino:reports:send')->hourly();

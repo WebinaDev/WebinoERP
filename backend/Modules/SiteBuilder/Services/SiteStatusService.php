@@ -35,7 +35,7 @@ class SiteStatusService
             'reason' => $status === WebinoSiteProvision::SITE_ACTIVE ? null : $reason,
             'launch_at' => $status === WebinoSiteProvision::SITE_COMING_SOON ? $launchAt?->toIso8601String() : null,
             'expires_at' => $license?->expires_at?->toIso8601String(),
-            'renew_url' => config('site_builder.site_status_renew_url') ?: null,
+            'renew_url' => $this->renewUrl($provision, $license),
             'support_url' => config('site_builder.site_status_support_url') ?: null,
         ];
         $previous = $provision->site_status;
@@ -127,5 +127,21 @@ class SiteStatusService
         } catch (Throwable) {
             return null;
         }
+    }
+
+    private function renewUrl(WebinoSiteProvision $provision, mixed $license): ?string
+    {
+        if ($license instanceof \Modules\Core\Entities\CoreLicense) {
+            try {
+                $host = (string) ($provision->domain ?: $provision->subdomain ?: $license->domain);
+
+                return app(\Modules\Core\Services\LicenseRenewal\LicenseRenewalService::class)
+                    ->renewUrl($license, $host !== '' ? 'https://'.$host.'/' : null);
+            } catch (\Throwable) {
+                // fall through to the static configured link
+            }
+        }
+
+        return config('site_builder.site_status_renew_url') ?: null;
     }
 }
