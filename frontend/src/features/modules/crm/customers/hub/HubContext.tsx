@@ -29,6 +29,9 @@ type Ctx = {
   setNotice: (msg: string | null) => void;
 };
 
+export const DOC_MAX_BYTES = 10 * 1024 * 1024;
+export const DOC_ACCEPT = '.pdf,.jpg,.jpeg,.png,.webp,.doc,.docx,.xls,.xlsx,.zip';
+
 const HubCtx = createContext<Ctx | null>(null);
 
 export function useHub(): Ctx {
@@ -37,7 +40,7 @@ export function useHub(): Ctx {
   return c;
 }
 
-export function HubProvider({ id, summary, onRefresh, setNotice, children }: { id: string; summary: HubSummary; onRefresh: () => void; setNotice: (m: string | null) => void; children: ReactNode }) {
+export function HubProvider({ id, summary, onRefresh, setNotice, externalVersion = 0, children }: { id: string; summary: HubSummary; onRefresh: () => void; setNotice: (m: string | null) => void; externalVersion?: number; children: ReactNode }) {
   const t = useTranslations('crm.hub');
   const [version, setVersion] = useState(0);
   const [active, setActive] = useState<{ name: ActionName; initial?: FormValues & { _id?: string } } | null>(null);
@@ -171,10 +174,17 @@ export function HubProvider({ id, summary, onRefresh, setNotice, children }: { i
       suspend: {
         title: t('act.suspend'),
         danger: true,
-        fields: [{ name: 'reason', label: t('a.reason'), type: 'textarea', required: true }],
-        submit: (v) => apiClient.post(`${base}/actions/suspend`, clean(v)),
+        fields: [
+          { name: 'reason', label: t('a.reason'), type: 'textarea', required: true },
+          { name: 'confirm', label: t('sus.confirmSuspend'), type: 'checkbox', required: true, full: true },
+        ],
+        submit: (v) => apiClient.post(`${base}/actions/suspend`, { reason: v.reason, confirm: true }),
       },
-      activate: { title: t('act.activate'), fields: [], submit: () => apiClient.post(`${base}/actions/activate`, {}) },
+      activate: {
+        title: t('act.activate'),
+        fields: [{ name: 'confirm', label: t('sus.confirmActivate'), type: 'checkbox', required: true, full: true }],
+        submit: () => apiClient.post(`${base}/actions/activate`, { confirm: true }),
+      },
       contact: {
         title: t('act.contact'),
         fields: [
@@ -195,15 +205,23 @@ export function HubProvider({ id, summary, onRefresh, setNotice, children }: { i
         fields: [
           { name: 'category', label: t('doc.category'), type: 'select', required: true, options: opt('dc', ['national_card', 'gazette', 'enamad', 'permit', 'contract', 'proposal', 'invoice', 'brief', 'deliverable', 'other']) },
           { name: 'title', label: t('doc.title'), required: true },
+          { name: 'file', label: t('doc.file'), type: 'file', full: true, accept: DOC_ACCEPT, hint: t('doc.fileHint') },
           { name: 'url', label: t('doc.url'), full: true },
           { name: 'expires_at', label: t('doc.expires'), type: 'date' },
           { name: 'visible_to_roles', label: t('doc.visibility'), placeholder: 'accountant, crm_specialist' },
         ],
-        submit: (v) =>
-          apiClient.post(`${base}/documents`, {
-            ...clean(v),
-            visible_to_roles: v.visible_to_roles ? String(v.visible_to_roles).split(/[,\s]+/).filter(Boolean) : undefined,
-          }),
+        submit: (v) => {
+          const roles = v.visible_to_roles ? String(v.visible_to_roles).split(/[,\s]+/).filter(Boolean) : undefined;
+          if (v.file instanceof File) {
+            if (v.file.size > DOC_MAX_BYTES) return Promise.reject(new Error(t('doc.tooLarge')));
+            const fd = new FormData();
+            Object.entries(clean(v)).forEach(([k, val]) => k !== 'visible_to_roles' && fd.append(k, String(val)));
+            fd.append('file', v.file);
+            if (roles) fd.append('visible_to_roles', JSON.stringify(roles));
+            return apiClient.post(`${base}/documents`, fd, { headers: { 'Content-Type': 'multipart/form-data' } });
+          }
+          return apiClient.post(`${base}/documents`, { ...clean(v), visible_to_roles: roles });
+        },
       },
       relation: {
         title: t('act.relation'),
@@ -280,7 +298,7 @@ export function HubProvider({ id, summary, onRefresh, setNotice, children }: { i
   const ctx: Ctx = {
     id,
     summary,
-    version,
+    version: version + externalVersion,
     refresh,
     canView: (s) => summary.sections.includes(s),
     canDo: (a) => Boolean(summary.actions?.[ACTION_PERMISSION[a]]),

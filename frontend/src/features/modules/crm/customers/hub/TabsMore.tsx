@@ -2,14 +2,14 @@
 
 import { useState } from 'react';
 import { useTranslations } from 'next-intl';
-import { Check, Pin, Plus, Trash2 } from 'lucide-react';
+import { Check, Download, ExternalLink, Pin, Plus, RefreshCw, Trash2 } from 'lucide-react';
 import { Bar, BarChart, CartesianGrid, Line, LineChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts';
 import apiClient from '@/lib/api-client';
 import { getApiErrorMessage } from '@/lib/api-helpers';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Progress } from '@/components/ui/progress';
-import { hubBase, useHubList, useHubSection, type Row } from './hub-api';
+import { hubBase, openDocument, useHubList, useHubSection, type Row } from './hub-api';
 import { useHub } from './HubContext';
 import { useRemove } from './TabsCore';
 import { DataTable, Empty, HubCard, KV, Loading, Pager, StatusBadge, useFmt } from './ui';
@@ -161,18 +161,29 @@ export function UsageTab() {
   const t = useTranslations('crm.hub');
   const f = useFmt();
   const { id, version, canDo, open } = useHub();
+  const post = usePost();
   const { data } = useHubSection<Row>(id, 'usage', true, version);
   if (!data) return <Loading />;
   return (
     <div className="space-y-4">
-      <HubCard title={t('tab.usage')} actions={canDo('usage') ? <Button size="sm" variant="outline" onClick={() => open('usage')}><Plus className="me-1 h-4 w-4" />{t('add')}</Button> : null}>
+      <HubCard title={t('tab.usage')} actions={canDo('usage') ? (
+        <div className="flex gap-1">
+          <Button size="sm" variant="outline" data-testid="usage-sync" onClick={() => void post('usage-metrics/sync')}><RefreshCw className="me-1 h-4 w-4" />{t('u.syncNow')}</Button>
+          <Button size="sm" variant="outline" onClick={() => open('usage')}><Plus className="me-1 h-4 w-4" />{t('add')}</Button>
+        </div>
+      ) : null}>
         {!data.server_metrics_connected ? <p className="mb-3 rounded-md bg-muted px-3 py-2 text-xs text-muted-foreground">{t('u.notConnected')}</p> : null}
         <KV items={[
           [t('u.smsSent'), f.num(data.sms?.sent)], [t('u.smsCredit'), f.money(data.sms?.remaining_credit)], [t('u.orders'), f.num(data.orders)],
           [t('u.traffic'), f.num(data.traffic_mb)], [t('u.storage'), f.num(data.storage_mb)], [t('u.bandwidth'), f.num(data.bandwidth_mb)],
           [t('u.cpu'), data.cpu_pct ?? null], [t('u.ram'), f.num(data.ram_mb)], [t('u.panelUsers'), f.num(data.panel_users)],
           [t('u.lastLogin'), f.dateTime(data.last_login_at)],
+          [t('u.siteOrders30d'), f.num(data.site_orders_30d)], [t('u.siteCustomers'), f.num(data.site_customers)],
+          [t('u.siteOpenTickets'), f.num(data.site_open_tickets)], [t('u.collectedAt'), f.dateTime(data.collected_at)],
         ]} />
+        {(data.sync as Row[] | undefined)?.some((x) => x.usage_error) ? (
+          <p className="mt-3 rounded-md bg-amber-50 px-3 py-2 text-xs text-amber-800">{t('u.syncError')}</p>
+        ) : null}
       </HubCard>
       <HubCard title={t('u.modules')}>
         {(data.modules ?? []).length === 0 ? <Empty /> : (data.modules as Row[]).map((s) => (
@@ -191,7 +202,7 @@ export function UsageTab() {
 export function DocumentsTab() {
   const t = useTranslations('crm.hub');
   const f = useFmt();
-  const { id, version, canDo, open } = useHub();
+  const { id, version, canDo, open, setNotice } = useHub();
   const list = useHubList(id, 'documents', {}, true, version);
   const remove = useRemove();
   const post = usePost();
@@ -199,7 +210,15 @@ export function DocumentsTab() {
     <HubCard title={t('tab.documents')} actions={canDo('document') ? <Button size="sm" variant="outline" onClick={() => open('document')}><Plus className="me-1 h-4 w-4" />{t('act.document')}</Button> : null}>
       <DataTable rows={list.rows} cols={[
         { key: 'category', label: t('doc.category'), render: (r) => t(`dc.${['national_card', 'gazette', 'enamad', 'permit', 'contract', 'proposal', 'invoice', 'brief', 'deliverable'].includes(r.category) ? r.category : 'other'}` as never) },
-        { key: 'title', label: t('doc.title'), render: (r) => (r.url ? <a className="text-primary underline" href={r.url} target="_blank" rel="noreferrer">{r.title}</a> : r.title) },
+        { key: 'title', label: t('doc.title'), render: (r) => (
+          <span className="inline-flex items-center gap-1">
+            {r.url ? <a className="text-primary underline" href={r.url} target="_blank" rel="noreferrer">{r.title}</a> : r.title}
+            {r.has_file ? (
+              <Button size="icon" variant="ghost" aria-label={t('doc.download')} title={r.file_name ?? t('doc.download')}
+                onClick={() => void openDocument(id, r.id).catch((e) => setNotice(getApiErrorMessage(e)))}><Download className="h-4 w-4" /></Button>
+            ) : null}
+          </span>
+        ) },
         { key: 'expires_at', label: t('doc.expires'), render: (r) => <span>{f.date(r.expires_at)}{r.expired ? <Badge className="ms-1" variant="destructive">{t('doc.expired')}</Badge> : null}</span> },
         { key: 'review_status', label: t('doc.review'), render: (r) => <StatusBadge value={r.review_status} /> },
         { key: 'visible_to_roles', label: t('c.role'), render: (r) => (Array.isArray(r.visible_to_roles) && r.visible_to_roles.length ? r.visible_to_roles.join('، ') : '—') },
@@ -404,6 +423,58 @@ export function AnalyticsTab() {
           ) : <Empty text={t('kpi.hidden')} />}
         </HubCard>
       </div>
+    </div>
+  );
+}
+
+/* ───────────── Site panel (orders / tickets / KYC on the customer's own sites) ───────────── */
+export function SitePanelTab() {
+  const t = useTranslations('crm.hub');
+  const f = useFmt();
+  const { id, version } = useHub();
+  const [fresh, setFresh] = useState(0);
+  const { data, loading } = useHubSection<Row>(id, fresh ? 'site_panel?fresh=1' : 'site_panel', true, version + fresh);
+  if (!data) return <Loading />;
+  const sites = (data.sites ?? []) as Row[];
+  return (
+    <div className="space-y-4">
+      <div className="flex items-center justify-between text-xs text-muted-foreground">
+        <span>{t('sp.fetchedAt')}: {f.dateTime(data.fetched_at)}</span>
+        <Button size="sm" variant="outline" disabled={loading} onClick={() => setFresh((x) => x + 1)}><RefreshCw className="me-1 h-4 w-4" />{t('sp.refresh')}</Button>
+      </div>
+      {sites.length === 0 ? <HubCard title={t('tab.sitePanel')}><Empty text={t('sp.noSites')} /></HubCard> : null}
+      {sites.map((s) => (
+        <HubCard key={s.provision_id} title={<span dir="ltr">{s.domain}</span>} actions={s.panel_url ? (
+          <Button size="sm" variant="outline" asChild><a href={s.panel_url} target="_blank" rel="noreferrer"><ExternalLink className="me-1 h-4 w-4" />{t('sp.openPanel')}</a></Button>
+        ) : null}>
+          {!s.ok ? <p className="rounded-md bg-destructive/10 px-3 py-2 text-xs text-destructive" data-testid="site-error">{t('sp.unreachable')}</p> : (
+            <div className="space-y-4">
+              {s.site ? <KV items={[[t('sp.siteOrders'), f.num(s.site.orders)], [t('sp.siteRevenue'), f.money(s.site.revenue)], [t('sp.siteOpenTickets'), f.num(s.site.open_tickets)], [t('sp.owner'), s.is_owner_site ? t('yes') : t('no')]]} /> : null}
+              {((s.matches ?? []) as Row[]).length === 0 ? <Empty text={t('sp.noMatch')} /> : ((s.matches ?? []) as Row[]).map((m) => (
+                <div key={m.user?.id} className="space-y-2 rounded-md border p-3">
+                  <div className="flex flex-wrap items-center gap-2 text-sm">
+                    <span className="font-medium">{m.user?.name ?? m.user?.email}</span>
+                    <span className="text-muted-foreground" dir="ltr">{m.user?.email}</span>
+                    <Badge variant={m.kyc?.status === 'verified' ? 'default' : 'outline'}>{t('kyc.title')}: {String(m.kyc?.status ?? '—')}</Badge>
+                    {m.panel_url ? <a className="ms-auto text-xs text-primary underline" href={m.panel_url} target="_blank" rel="noreferrer">{t('sp.openCustomer')}</a> : null}
+                  </div>
+                  <DataTable rows={(m.orders ?? []) as Row[]} empty={t('sp.noOrders')} cols={[
+                    { key: 'id', label: '#', render: (o) => <span dir="ltr">{o.number ?? o.id}</span> },
+                    { key: 'status', label: t('b.status'), render: (o) => <StatusBadge value={o.status} /> },
+                    { key: 'total', label: t('b.amount'), render: (o) => f.money(o.total) },
+                    { key: 'created_at', label: t('b.date'), render: (o) => f.date(o.created_at) },
+                  ]} />
+                  <DataTable rows={(m.tickets ?? []) as Row[]} empty={t('sp.noTickets')} cols={[
+                    { key: 'subject', label: t('a.subject'), render: (o) => o.subject ?? o.title },
+                    { key: 'status', label: t('b.status'), render: (o) => <StatusBadge value={o.status} /> },
+                    { key: 'created_at', label: t('b.date'), render: (o) => f.date(o.created_at) },
+                  ]} />
+                </div>
+              ))}
+            </div>
+          )}
+        </HubCard>
+      ))}
     </div>
   );
 }

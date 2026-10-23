@@ -12,14 +12,16 @@ import { getApiErrorMessage } from '@/lib/api-helpers';
 export type Field = {
   name: string;
   label: ReactNode;
-  type?: 'text' | 'number' | 'textarea' | 'select' | 'date' | 'checkbox' | 'password';
+  type?: 'text' | 'number' | 'textarea' | 'select' | 'date' | 'checkbox' | 'password' | 'file';
+  accept?: string;
+  hint?: ReactNode;
   options?: [string, string][];
   required?: boolean;
   placeholder?: string;
   full?: boolean;
 };
 
-export type FormValues = Record<string, string | boolean>;
+export type FormValues = Record<string, string | boolean | File | null>;
 
 type Props = {
   open: boolean;
@@ -46,7 +48,7 @@ export function FormDialog({ open, onOpenChange, title, fields, initial, onSubmi
     if (open) {
       const base: FormValues = {};
       fields.forEach((f) => {
-        base[f.name] = f.type === 'checkbox' ? false : f.type === 'select' && f.options?.length && f.required ? f.options[0][0] : '';
+        base[f.name] = f.type === 'checkbox' ? false : f.type === 'file' ? null : f.type === 'select' && f.options?.length && f.required ? f.options[0][0] : '';
       });
       setValues({ ...base, ...(initial ?? {}) });
       setError(null);
@@ -54,10 +56,12 @@ export function FormDialog({ open, onOpenChange, title, fields, initial, onSubmi
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open]);
 
-  const set = (k: string, v: string | boolean) => setValues((p) => ({ ...p, [k]: v }));
+  const set = (k: string, v: string | boolean | File | null) => setValues((p) => ({ ...p, [k]: v }));
 
   async function submit() {
-    const missing = fields.find((f) => f.required && f.type !== 'checkbox' && !String(values[f.name] ?? '').trim());
+    const missing = fields.find((f) =>
+      f.required && (f.type === 'checkbox' ? values[f.name] !== true : f.type === 'file' ? !(values[f.name] instanceof File) : !String(values[f.name] ?? '').trim()),
+    );
     if (missing) {
       setError(`${typeof missing.label === 'string' ? missing.label : missing.name} *`);
       return;
@@ -86,9 +90,19 @@ export function FormDialog({ open, onOpenChange, title, fields, initial, onSubmi
             <div key={f.name} className={f.full || f.type === 'textarea' ? 'space-y-1 sm:col-span-2' : 'space-y-1'}>
               {f.type === 'checkbox' ? (
                 <label className="flex items-center gap-2 text-sm">
-                  <input type="checkbox" checked={Boolean(values[f.name])} onChange={(e) => set(f.name, e.target.checked)} />
+                  <input type="checkbox" name={f.name} checked={Boolean(values[f.name])} onChange={(e) => set(f.name, e.target.checked)} />
                   {f.label}
+                  {f.required ? ' *' : ''}
                 </label>
+              ) : f.type === 'file' ? (
+                <>
+                  <Label htmlFor={`fd-${f.name}`}>
+                    {f.label}
+                    {f.required ? ' *' : ''}
+                  </Label>
+                  <Input id={`fd-${f.name}`} name={f.name} type="file" accept={f.accept} onChange={(e) => set(f.name, e.target.files?.[0] ?? null)} />
+                  {f.hint ? <p className="text-xs text-muted-foreground">{f.hint}</p> : null}
+                </>
               ) : (
                 <>
                   <Label>
@@ -134,7 +148,7 @@ export function FormDialog({ open, onOpenChange, title, fields, initial, onSubmi
 export function clean(values: FormValues, numeric: string[] = []): Record<string, unknown> {
   const out: Record<string, unknown> = {};
   Object.entries(values).forEach(([k, v]) => {
-    if (v === '') return;
+    if (v === '' || v === null || v instanceof File) return;
     out[k] = numeric.includes(k) && typeof v === 'string' ? Number(v) : v;
   });
   return out;

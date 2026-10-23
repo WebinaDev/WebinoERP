@@ -3043,7 +3043,8 @@
         "relations": "Relations",
         "notes": "Notes & alerts",
         "analytics": "Analytics",
-        "timeline": "Timeline"
+        "timeline": "Timeline",
+        "sitePanel": "Site panel"
       },
       "f": {
         "name": "Name / company",
@@ -3222,7 +3223,13 @@
         "ram": "RAM (MB)",
         "panelUsers": "Panel users",
         "lastLogin": "Last login",
-        "notConnected": "Server metrics not connected yet"
+        "notConnected": "Server metrics not connected yet",
+        "syncNow": "Collect from sites",
+        "siteOrders30d": "Site orders (30d)",
+        "siteCustomers": "Site customers",
+        "siteOpenTickets": "Site open tickets",
+        "collectedAt": "Last collected",
+        "syncError": "Automatic collection from a site failed; retrying with backoff."
       },
       "doc": {
         "category": "Category",
@@ -3233,7 +3240,11 @@
         "review": "Review",
         "approve": "Approve",
         "reject": "Reject",
-        "expired": "Expired"
+        "expired": "Expired",
+        "file": "File",
+        "fileHint": "Max 10 MB — PDF, image, Word, Excel or ZIP",
+        "tooLarge": "File is larger than 10 MB.",
+        "download": "Secure download"
       },
       "dc": {
         "national_card": "National card",
@@ -3382,6 +3393,33 @@
         "critical_tickets": "Critical open tickets",
         "domain_expiring": "Domain expiring",
         "document_expiring": "Document expiring"
+      },
+      "yes": "Yes",
+      "no": "No",
+      "sp": {
+        "fetchedAt": "Fetched at",
+        "refresh": "Refresh",
+        "noSites": "This customer has no live site.",
+        "openPanel": "Open site panel",
+        "unreachable": "Could not reach this site panel; try again later.",
+        "siteOrders": "Site orders",
+        "siteRevenue": "Site revenue",
+        "siteOpenTickets": "Site open tickets",
+        "owner": "Owned by this customer",
+        "noMatch": "No user with this customer email/phone on this site.",
+        "openCustomer": "View in site panel",
+        "noOrders": "No orders",
+        "noTickets": "No tickets"
+      },
+      "sus": {
+        "confirmSuspend": "I confirm suspending this customer's licenses, services and sites (reversible).",
+        "confirmActivate": "I confirm restoring licenses, services and sites to their previous state."
+      },
+      "ex": {
+        "csv": "Export CSV",
+        "print": "Print / PDF",
+        "live": "Live updates",
+        "printedAt": "Printed at"
       }
     }
   },
