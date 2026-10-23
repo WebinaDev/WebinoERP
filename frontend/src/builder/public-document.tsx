@@ -6,18 +6,38 @@ import { DocumentView } from "./render/DocumentView"
 import { themeQueryString, type ThemeQuery } from "./theme/context"
 import { requestThemeContext } from "./theme/request"
 import { isDocument } from "./tree"
-import type { BuilderDocument, RuntimeContext } from "./types"
+import type { BuilderDocument, RuntimeContext, SectionNode } from "./types"
 
 // Published builder output is cached for a few seconds so each page view does not
 // trigger several backend round-trips. Edits still show up within this window.
 const PUBLIC_DOC_TTL = 10
 import { storefrontThemeClass } from "@/themes/shared/storefront-skin"
 
+/** Drop hidden nodes and editor-only metadata so they are not serialized into the RSC payload of public pages. */
+function pruneForView(doc: BuilderDocument): BuilderDocument {
+  const strip = <T extends { hidden?: boolean; label?: string; locked?: boolean }>(n: T): T => {
+    const { label: _l, locked: _k, ...rest } = n
+    void _l; void _k
+    return rest as T
+  }
+  const sections = (list: SectionNode[]): SectionNode[] =>
+    list.filter((s) => !s.hidden).map((s) => ({
+      ...strip(s),
+      columns: s.columns.filter((c) => !c.hidden).map((c) => ({
+        ...strip(c),
+        widgets: c.widgets.filter((w) => !w.hidden).map((w) => ({ ...strip(w), ...(w.children ? { children: sections(w.children) } : {}) })),
+      })),
+    }))
+  const { source: _src, ...rest } = doc
+  void _src
+  return { ...rest, sections: sections(doc.sections ?? []) }
+}
+
 async function readDocument(path: string): Promise<BuilderDocument | null> {
   try {
     const res = await apiServer<{ data?: { document?: unknown } }>(path, { revalidate: PUBLIC_DOC_TTL })
     const document = res?.data?.document
-    return isDocument(document) ? document : null
+    return isDocument(document) ? pruneForView(document) : null
   } catch {
     return null
   }
@@ -84,10 +104,12 @@ export async function StorefrontDocument({
   context?: ThemeQuery
   themeClass?: string
 }) {
-  const globals = await loadPublishedGlobals()
-  const query = context ?? (await requestThemeContext())
-  const loop = runtime?.loopDocument ?? (await loadResolvedTemplate("loop_item", query))
-  const themeSlug = runtime?.themeSlug ?? (await activeThemeSlug())
+  // Parallel instead of four sequential round-trips.
+  const [globals, query] = await Promise.all([loadPublishedGlobals(), context ?? requestThemeContext()])
+  const [loop, themeSlug] = await Promise.all([
+    runtime?.loopDocument ?? loadResolvedTemplate("loop_item", query),
+    runtime?.themeSlug ?? activeThemeSlug(),
+  ])
   return (
     <PublishedDocument
       document={document}
