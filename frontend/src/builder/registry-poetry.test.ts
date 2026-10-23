@@ -15,4 +15,15 @@ describe("poetry widgets", () => {
     expect(formatToman("1250000")).toContain("تومان")
     expect(safeHref("javascript:alert(1)")).not.toContain("javascript")
   })
+  it("exposes section background + occasion/shop layout fields", () => {
+    const keys = (t: string) => POETRY_WIDGETS.find((w) => w.type === t)!.fields.map((f) => f.key)
+    for (const t of ["poetry-hero", "poem-list", "occasion-cards", "shop-showcase", "quote-block"]) {
+      for (const k of ["bgImage", "bgOverlay", "bgOverlayOpacity"]) expect(keys(t)).toContain(k)
+    }
+    for (const k of ["layout", "cardRatio"]) expect(keys("occasion-cards")).toContain(k)
+    for (const k of ["source", "count", "category", "imageRatio", "moreHref"]) expect(keys("shop-showcase")).toContain(k)
+    const shop = POETRY_WIDGETS.find((w) => w.type === "shop-showcase")!.create()
+    expect(shop.props.count).toBe(6)
+    expect(shop.props.source).toBe("catalog")
+  })
 })
