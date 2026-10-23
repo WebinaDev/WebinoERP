@@ -100,6 +100,7 @@ body:has(.sf-classic) {
 .wb-anim-flip { animation-name: wb-anim-flip; }
 .wb-anim-bounce { animation-name: wb-anim-bounce; }
 .wb-motion .wb-anim:not(.wb-in) { opacity: 0; animation-name: none; }
+.wb-motion section[data-wb-live] .wb-anim:not(.wb-in) { opacity: 1; }
 
 /* Hover animations */
 .wb-hover-grow, .wb-hover-shrink, .wb-hover-float, .wb-hover-rotate { transition: transform .25s ease; }

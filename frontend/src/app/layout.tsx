@@ -13,13 +13,30 @@ import type { Locale } from "../../i18n"
 
 import "./globals.css"
 
-// Admin-only translation namespaces. Public pages never render these client
-// components, so they are not shipped in the public HTML (about half of fa.json).
-const ADMIN_ONLY_NAMESPACES = [
-  "hrm", "aiContent", "marketplace", "modirpayamak", "platform", "pm", "expansion", "crm",
-  "bots", "wfcp", "hosting", "siteBuilder", "theme_builder", "builder_collections", "builder_globals",
-  "bale", "mfg", "scm", "analytics", "finance", "licenses", "license", "marketing",
+// Public pages only ship the namespaces their client components use (found by
+// walking the import graph of app/(site)); the dashboard and login layouts
+// re-provide the full catalogue. Cuts ~100 KB from every public page's HTML.
+const PUBLIC_NAMESPACES = [
+  "auto", "builder", "cart", "checkout", "date", "enums", "settings", "site", "storefront",
+  "storefront_badges", "common", "ui", "errors", "app",
 ]
+
+// "auto" holds per-file strings; public client code only needs these files' strings.
+const PUBLIC_AUTO = ["app_error", "date_picker_jalali", "_industry___slug__page", "_site___slug__page", "magazine__slug__page", "services__slug__page", "solutions__industry__page"]
+
+function publicMessages(all: Record<string, unknown>): Record<string, unknown> {
+  const out: Record<string, unknown> = {}
+  for (const ns of PUBLIC_NAMESPACES) {
+    if (!(ns in all)) continue
+    if (ns === "auto" && all.auto && typeof all.auto === "object") {
+      const auto = all.auto as Record<string, unknown>
+      out.auto = Object.fromEntries(PUBLIC_AUTO.filter((k) => k in auto).map((k) => [k, auto[k]]))
+    } else {
+      out[ns] = all[ns]
+    }
+  }
+  return out
+}
 
 function isAdminPath(path: string): boolean {
   return path.startsWith("/dashboard") || path.startsWith("/login") || path.startsWith("/admin")
@@ -56,7 +73,7 @@ export default async function RootLayout({
   const requestPath = (await headers()).get("x-webino-path") ?? ""
   const messages =
     requestPath && !isAdminPath(requestPath)
-      ? Object.fromEntries(Object.entries(allMessages).filter(([ns]) => !ADMIN_ONLY_NAMESPACES.includes(ns)))
+      ? (publicMessages(allMessages as Record<string, unknown>) as typeof allMessages)
       : allMessages
   const timeZone = await getTimeZone()
   const dir = htmlDir(locale)
