@@ -5,6 +5,7 @@ use Modules\Crm\Http\Controllers\CustomerHubController as H;
 
 // Prefix: api/v1/crm/customers — middleware: api, auth:sanctum, module:crm (RBAC per section in controller)
 Route::whereNumber('id')->group(function () {
+    require __DIR__.'/hub_tabs_index.php'; // Customer 360 phase 1 lists (must precede the {section} catch-all)
     Route::get('/{id}/hub', [H::class, 'hub']);
     Route::get('/{id}/hub/export.csv', [H::class, 'exportCsv']);
     Route::get('/{id}/hub/{section}', [H::class, 'section'])->where('section', '[a-z_]+');
@@ -42,4 +43,5 @@ Route::whereNumber('id')->group(function () {
     Route::post('/{id}/hub/actions/owner', [H::class, 'changeOwner']);
     Route::post('/{id}/hub/actions/suspend', [H::class, 'suspend']);
     Route::post('/{id}/hub/actions/activate', [H::class, 'activate']);
+    require __DIR__.'/hub_tabs.php'; // Customer 360 phase 1 writes (must stay last)
 });

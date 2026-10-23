@@ -14,8 +14,11 @@ import { downloadHubCsv, useHubLive, useHubSummary } from './hub/hub-api';
 import { HubProvider } from './hub/HubContext';
 import { HubActionBar, HubAlerts, HubHeader, HubKpis } from './hub/HubHeader';
 import { AssetsTab, BillingTab, IdentityTab, LicensesTab } from './hub/TabsCore';
-import { AccessTab, AnalyticsTab, DocumentsTab, NotesTab, RelationsTab, SalesTab, SitePanelTab, SupportTab, TimelineTab, UsageTab } from './hub/TabsMore';
+import { AccessTab, AnalyticsTab, NotesTab, RelationsTab, SalesTab, SitePanelTab, SupportTab, TimelineTab, UsageTab } from './hub/TabsMore';
 import { CustomerClassicPanel } from './CustomerClassicPanel';
+import { ContractsTab } from './hub/tabs360/ContractsTab';
+import { DocumentsTab360 } from './hub/tabs360/DocumentsTab360';
+import { ProjectsTab } from './hub/tabs360/ProjectsTab';
 
 type Props = { id: string };
 
@@ -39,7 +42,9 @@ export const TABS: { key: string; section: string; label: string; render: () => 
   { key: 'timeline', section: 'timeline', label: 'tab.timeline', render: () => <TimelineTab /> },
   { key: 'usage', section: 'usage', label: 'tab.usage', render: () => <UsageTab /> },
   { key: 'site_panel', section: 'site_panel', label: 'tab.sitePanel', render: () => <SitePanelTab /> },
-  { key: 'documents', section: 'documents', label: 'tab.documents', render: () => <DocumentsTab /> },
+  { key: 'contracts', section: 'contracts', label: 'tab.contracts', render: () => <ContractsTab /> },
+  { key: 'projects', section: 'projects', label: 'tab.projects', render: () => <ProjectsTab /> },
+  { key: 'documents', section: 'documents', label: 'tab.documents', render: () => <DocumentsTab360 /> },
   { key: 'access', section: 'access', label: 'tab.access', render: () => <AccessTab /> },
   { key: 'relations', section: 'relations', label: 'tab.relations', render: () => <RelationsTab /> },
   { key: 'notes', section: 'notes', label: 'tab.notes', render: () => <NotesTab /> },

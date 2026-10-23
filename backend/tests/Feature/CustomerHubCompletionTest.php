@@ -113,7 +113,8 @@ class CustomerHubCompletionTest extends TestCase
         $this->post("/api/v1/crm/customers/{$this->acc->id}/hub/documents", ['category' => 'other', 'title' => 'x',
             'file' => UploadedFile::fake()->create('a.exe', 20, 'application/x-msdownload')], ['Accept' => 'application/json'])->assertStatus(422);
         $this->post("/api/v1/crm/customers/{$this->acc->id}/hub/documents", ['category' => 'other', 'title' => 'x',
-            'file' => UploadedFile::fake()->create('big.pdf', 11000, 'application/pdf')], ['Accept' => 'application/json'])->assertStatus(422);
+            // limit is 20MB since Customer 360 phase 1 (PLAN §5.1)
+            'file' => UploadedFile::fake()->create('big.pdf', 20481, 'application/pdf')], ['Accept' => 'application/json'])->assertStatus(422);
 
         // a role outside visible_to_roles cannot obtain a link
         Sanctum::actingAs($this->actingAsRole(R::ROLE_CRM_SPECIALIST));
@@ -123,7 +124,7 @@ class CustomerHubCompletionTest extends TestCase
         }
 
         $this->admin();
-        $this->deleteJson("/api/v1/crm/customers/{$this->acc->id}/hub/documents/{$docId}")->assertOk();
+        $this->deleteJson("/api/v1/crm/customers/{$this->acc->id}/hub/documents/{$docId}")->assertNoContent(); // 204 per PLAN §5.1
         Storage::disk('local')->assertMissing($path);
     }
 
