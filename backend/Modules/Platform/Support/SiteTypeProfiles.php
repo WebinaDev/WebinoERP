@@ -7,7 +7,7 @@ namespace Modules\Platform\Support;
  */
 final class SiteTypeProfiles
 {
-    public const TYPES = ['ecommerce', 'magazine', 'cafe', 'resume', 'corporate'];
+    public const TYPES = ['ecommerce', 'magazine', 'cafe', 'resume', 'blog', 'corporate'];
 
     /** @return array<string, array{name_fa: string, name_en: string, theme: string, modules: array<string, list<string>>}> */
     public static function all(): array
@@ -63,8 +63,20 @@ final class SiteTypeProfiles
                 'name_en' => 'Resume',
                 'theme' => 'resume-default',
                 'modules' => array_merge(self::coreModules(), [
-                    'resume' => ['profile', 'experience', 'education', 'skills', 'projects', 'contact'],
+                    'resume' => ['profile', 'experience', 'education', 'skills', 'projects', 'portfolio', 'contact'],
                     'cms' => ['pages', 'menus', 'seo'],
+                ]),
+            ],
+            'blog' => [
+                'name_fa' => 'وبلاگ',
+                'name_en' => 'Blog',
+                'theme' => 'blog-default',
+                'modules' => array_merge(self::coreModules(), [
+                    'blog' => ['posts', 'categories', 'tags', 'comments', 'authors', 'rss'],
+                    'cms' => ['pages', 'menus', 'seo'],
+                    'users' => ['subscribers', 'rbac'],
+                    'marketing' => ['newsletter'],
+                    'analytics' => ['overview', 'reports'],
                 ]),
             ],
             'corporate' => [

@@ -239,7 +239,7 @@ export function AddResourceWizardPage() {
               <div className="grid gap-2">
                 <Label>{t('siteTypeSlug')}</Label>
                 <select className="border rounded-md h-10 px-3 bg-background" value={siteTypeSlug} onChange={(e) => setSiteTypeSlug(e.target.value)}>
-                  {['ecommerce', 'magazine', 'cafe', 'resume', 'corporate'].map((st) => (
+                  {['ecommerce', 'magazine', 'cafe', 'resume', 'blog', 'corporate'].map((st) => (
                     <option key={st} value={st}>{st}</option>
                   ))}
                 </select>

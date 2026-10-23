@@ -9,6 +9,7 @@ import {
   ExternalLink,
   Globe2,
   LayoutGrid,
+  Newspaper,
   Plus,
   Power,
   PowerOff,
@@ -17,6 +18,7 @@ import {
   Sparkles,
   Store,
   Trash2,
+  UserRound,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -39,6 +41,10 @@ function siteTypeIcon(type?: string) {
     case 'ecommerce':
     case 'shop':
       return Store;
+    case 'blog':
+      return Newspaper;
+    case 'resume':
+      return UserRound;
     default:
       return LayoutGrid;
   }

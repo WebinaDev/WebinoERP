@@ -18,6 +18,7 @@ const SITE_TYPE_LABELS: Record<string, string> = {
   magazine: 'مجله آموزشی',
   cafe: 'کافه و رستوران',
   resume: 'رزومه',
+  blog: 'وبلاگ',
   corporate: 'شرکتی',
 };
 
@@ -119,13 +120,13 @@ export function StepSiteInfo(props: Props) {
               onChange={(e) => onChange({ siteTypeSlug: e.target.value })}
               data-testid="site-type-select"
             >
-              {['ecommerce', 'magazine', 'cafe', 'resume', 'corporate'].map((st) => (
+              {['ecommerce', 'magazine', 'cafe', 'resume', 'blog', 'corporate'].map((st) => (
                 <option key={st} value={st}>
                   {SITE_TYPE_LABELS[st] ?? st}
                 </option>
               ))}
               {siteTypeSlug &&
-              !['ecommerce', 'magazine', 'cafe', 'resume', 'corporate'].includes(siteTypeSlug) ? (
+              !['ecommerce', 'magazine', 'cafe', 'resume', 'blog', 'corporate'].includes(siteTypeSlug) ? (
                 <option value={siteTypeSlug}>{siteTypeSlug}</option>
               ) : null}
             </select>

@@ -7,6 +7,7 @@ import {
   Globe2,
   KeyRound,
   LayoutTemplate,
+  Newspaper,
   Package,
   Rocket,
   ShoppingBag,
@@ -41,7 +42,9 @@ export function SiteTypeIllustration({
         ? ShoppingBag
         : key.includes('resume') || key.includes('cv')
           ? UserRound
-          : key.includes('magazine') || key.includes('blog')
+          : key.includes('blog')
+            ? Newspaper
+            : key.includes('magazine')
             ? LayoutTemplate
             : Building2;
 
