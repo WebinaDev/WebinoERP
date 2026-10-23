@@ -6,6 +6,7 @@ use Modules\SiteBuilder\Http\Controllers\BusinessTypeController;
 use Modules\SiteBuilder\Http\Controllers\DashboardFeatureController;
 use Modules\SiteBuilder\Http\Controllers\PackageController;
 use Modules\SiteBuilder\Http\Controllers\SiteAnnouncementController;
+use Modules\SiteBuilder\Http\Controllers\SiteCustomerHubController;
 use Modules\SiteBuilder\Http\Controllers\SiteProvisionController;
 
 Route::get('/catalog', [BusinessCategoryController::class, 'index']);
@@ -76,4 +77,6 @@ Route::post('/provisions/{siteProvision}/ssl/renew', [SiteProvisionController::c
 Route::post('/provisions/{siteProvision}/alias', [SiteProvisionController::class, 'syncAlias'])->middleware('throttle:20,1');
 Route::get('/provisions/{siteProvision}/site-status', [SiteProvisionController::class, 'siteStatus']);
 Route::put('/provisions/{siteProvision}/site-status', [SiteProvisionController::class, 'updateSiteStatus'])->middleware('throttle:20,1');
+Route::get('/provisions/{siteProvision}/customer-hub', [SiteCustomerHubController::class, 'show']);
+Route::put('/provisions/{siteProvision}/customer-hub/link', [SiteCustomerHubController::class, 'link'])->middleware('throttle:20,1');
 Route::delete('/provisions/{siteProvision}', [SiteProvisionController::class, 'destroy']);

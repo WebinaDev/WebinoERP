@@ -53,7 +53,10 @@ export function CustomerDetailPage({ id }: Props) {
   const locale = (params?.locale as string) || 'fa';
   const { data, error, loading, reload } = useHubSummary(id);
   const [notice, setNotice] = useState<string | null>(null);
-  const [tab, setTab] = useState<string | null>(null);
+  const [tab, setTab] = useState<string | null>(() => {
+    if (typeof window === 'undefined') return null;
+    return new URLSearchParams(window.location.search).get('tab');
+  });
   const onRefresh = useCallback(() => void reload(), [reload]);
   const [liveTick, setLiveTick] = useState(0);
   const [printing, setPrinting] = useState(false);
@@ -76,7 +79,7 @@ export function CustomerDetailPage({ id }: Props) {
 
   const visible = data ? TABS.filter((x) => data.sections.includes(x.section)) : [];
   const showClassic = data ? data.sections.includes('identity') : false;
-  const current = tab ?? visible[0]?.key ?? 'classic';
+  const current = (tab && (tab === 'classic' || visible.some((v) => v.key === tab)) ? tab : null) ?? visible[0]?.key ?? 'classic';
   const status = (error as { response?: { status?: number } } | null)?.response?.status;
 
   return (

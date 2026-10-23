@@ -62,6 +62,7 @@ import {
 } from '@/lib/api/site-builder';
 import { stackProbeState } from '@/features/site-builder/control-panel/stack-probe';
 import { SiteStatusCard } from '@/features/site-builder/control-panel/SiteStatusCard';
+import { SiteCustomerHubCard } from '@/features/site-builder/control-panel/SiteCustomerHubCard';
 
 function Section({
   icon: Icon,
@@ -1028,19 +1029,7 @@ export function SiteControlPanelPage({ id }: { id: string }) {
             </pre>
           </Section>
 
-          {data.customer ? (
-            <Section icon={UserRound} title={t('controlCustomer')}>
-              <p className="text-sm">
-                <Link
-                  href={dashboardHref(locale, `crm/customers/${data.customer.id}`)}
-                  className="text-primary hover:underline"
-                >
-                  {data.customer.name}
-                </Link>
-                {data.customer.email ? ` · ${data.customer.email}` : ''}
-              </p>
-            </Section>
-          ) : null}
+          <SiteCustomerHubCard provisionId={provisionId} />
         </div>
       )}
     </div>
