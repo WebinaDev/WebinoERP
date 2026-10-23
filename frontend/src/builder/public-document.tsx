@@ -1,6 +1,8 @@
 import { cache, Suspense, type ReactNode } from "react"
 
 import { apiServer } from "@/lib/public-api-server"
+import { hoistDataUrls } from "@/lib/inline-media"
+import { prefetchForDocuments } from "./server-prefetch"
 import { asGlobals, type BuilderGlobals } from "./globals"
 import { DocumentView } from "./render/DocumentView"
 import { themeQueryString, type ThemeQuery } from "./theme/context"
@@ -35,9 +37,9 @@ function pruneForView(doc: BuilderDocument): BuilderDocument {
 
 async function readDocument(path: string): Promise<BuilderDocument | null> {
   try {
-    const res = await apiServer<{ data?: { document?: unknown } }>(path, { revalidate: PUBLIC_DOC_TTL })
+    const res = await apiServer<{ data?: { document?: unknown } }>(path, { revalidate: PUBLIC_DOC_TTL, tags: ["builder"] })
     const document = res?.data?.document
-    return isDocument(document) ? pruneForView(document) : null
+    return isDocument(document) ? hoistDataUrls(pruneForView(document)) : null
   } catch {
     return null
   }
@@ -53,8 +55,8 @@ export function loadPublishedTemplate(kind: "header" | "footer"): Promise<Builde
 
 export const loadPublishedGlobals = cache(async (): Promise<BuilderGlobals | null> => {
   try {
-    const res = await apiServer<{ data?: { settings?: unknown } }>("/v1/public/builder/globals", { revalidate: PUBLIC_DOC_TTL })
-    return res?.data?.settings ? asGlobals(res.data.settings) : null
+    const res = await apiServer<{ data?: { settings?: unknown } }>("/v1/public/builder/globals", { revalidate: PUBLIC_DOC_TTL, tags: ["builder"] })
+    return res?.data?.settings ? asGlobals(hoistDataUrls(res.data.settings)) : null
   } catch {
     return null
   }
@@ -106,16 +108,17 @@ export async function StorefrontDocument({
 }) {
   // Parallel instead of four sequential round-trips.
   const [globals, query] = await Promise.all([loadPublishedGlobals(), context ?? requestThemeContext()])
-  const [loop, themeSlug] = await Promise.all([
+  const [loop, themeSlug, prefetch] = await Promise.all([
     runtime?.loopDocument ?? loadResolvedTemplate("loop_item", query),
     runtime?.themeSlug ?? activeThemeSlug(),
+    prefetchForDocuments([document]),
   ])
   return (
     <PublishedDocument
       document={document}
       globals={globals}
       themeClass={themeClass}
-      runtime={{ ...runtime, themeSlug, loopDocument: loop ?? undefined }}
+      runtime={{ ...runtime, themeSlug, loopDocument: loop ?? undefined, ...(prefetch ? { prefetch: { ...runtime?.prefetch, ...prefetch } } : {}) }}
     />
   )
 }

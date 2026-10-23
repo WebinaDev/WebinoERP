@@ -22,7 +22,17 @@ const nextConfig = {
   reactStrictMode: true,
   transpilePackages: ["@webina/ui"],
   images: {
-    unoptimized: true,
+    // Central optimizer fallback for src/lib/image-url.ts (used when NEXT_PUBLIC_IMG_PROXY_BASE is unset).
+    formats: ["image/avif", "image/webp"],
+    deviceSizes: [400, 800, 1200, 1600],
+    imageSizes: [64, 128, 256],
+    minimumCacheTTL: 31536000,
+    dangerouslyAllowSVG: false,
+    remotePatterns: [
+      { protocol: "https", hostname: "**", pathname: "/storage/**" },
+      { protocol: "https", hostname: "**", pathname: "/uploads/**" },
+      { protocol: "http", hostname: "**", pathname: "/storage/**" },
+    ],
   },
   experimental: {
     optimizePackageImports: ["lucide-react", "radix-ui", "date-fns", "react-day-picker"],

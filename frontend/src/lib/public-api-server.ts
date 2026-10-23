@@ -14,6 +14,8 @@ export type ApiServerOptions = {
   revalidate?: number | false;
   json?: unknown;
   method?: string;
+  /** Next data-cache tags (purged by /webino-revalidate). */
+  tags?: string[];
 };
 
 export async function apiServer<T>(path: string, opts: ApiServerOptions = {}): Promise<T> {
@@ -29,9 +31,9 @@ export async function apiServer<T>(path: string, opts: ApiServerOptions = {}): P
   if (opts.revalidate === false) {
     init.cache = 'no-store';
   } else if (typeof opts.revalidate === 'number') {
-    init.next = { revalidate: opts.revalidate };
+    init.next = { revalidate: opts.revalidate, ...(opts.tags ? { tags: opts.tags } : {}) };
   } else {
-    init.next = { revalidate: 60 };
+    init.next = { revalidate: 60, ...(opts.tags ? { tags: opts.tags } : {}) };
   }
 
   const url = `${apiRoot()}${path.startsWith('/') ? path : `/${path}`}`;

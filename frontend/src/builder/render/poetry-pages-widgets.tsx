@@ -15,10 +15,11 @@ import type { CSSProperties, ReactNode } from "react"
 import { addToCart } from "../cart"
 import type { ShopProduct } from "../catalog"
 import { parseRows, propBool, propNum, propStr } from "../props"
-import { fetchCatalogPayload } from "../storefront/use-catalog"
+import { fetchCatalogPayload, mapCatalogJson } from "../storefront/use-catalog"
 import type { WidgetNode } from "../types"
 import { useBuilderRuntime } from "./runtime"
 import "./poetry-pages-widgets.css"
+import { optImg } from "@/lib/image-url"
 
 type P = Record<string, unknown>
 type Term = { id: number; kind: string; slug: string; name: string; count?: number }
@@ -125,7 +126,7 @@ export function PhotoSlot({ mode, src, logo, alt = "", className = "", fallback 
   return (
     <div className={`akx-slot akx-slot-${m} ${className}`} data-mode={m}>
       {m === "photo" ? <img src={src} alt={alt} loading="lazy" /> : <Arabesque />}
-      {m === "logo" && logoSrc ? <img className="akx-slot-logoimg" src={logoSrc} alt={alt || rt.siteName || ""} /> : null}
+      {m === "logo" && logoSrc ? <img loading="lazy" decoding="async" className="akx-slot-logoimg" src={logoSrc} alt={alt || rt.siteName || ""} /> : null}
       {m === "logo" && !logoSrc ? <span className="akx-slot-mono">{(alt || rt.siteName || "✦").slice(0, 1)}</span> : null}
       {m === "arabesque" ? <span className="akx-slot-star" aria-hidden>✦</span> : null}
       {children}
@@ -212,7 +213,7 @@ export function PoetryNavWidget({ widget }: { widget: WidgetNode }) {
   const logo = propStr(p, "logo") || rt.logoUrl || ""
   const logoOnly = propBool(p, "logoOnly", false)
   const px = (k: string, d: number) => `${Math.max(24, Math.min(160, propNum(p, k, d)))}px`
-  const navVars = { ...akxVars(p, { navBg: "--akx-nav", searchBg: "--akx-sbg" }), ["--akx-logo-h" as string]: px("logoHeight", 64), ["--akx-logo-hm" as string]: px("logoHeightMobile", 48) } as CSSProperties
+  const navVars = { ...akxVars({ ...p, ...(propStr(p, "capsuleBg") ? { navBg: propStr(p, "capsuleBg") } : {}) }, { navBg: "--akx-nav", searchBg: "--akx-sbg" }), ["--akx-logo-h" as string]: px("logoHeight", 64), ["--akx-logo-hm" as string]: px("logoHeightMobile", 48) } as CSSProperties
   const drawerVars = akxVars(p, { drawerBg: "--akx-drawer", drawerText: "--akx-drawer-tx" })
   const active = (href: string) => {
     if (!path || !href) return false
@@ -221,9 +222,9 @@ export function PoetryNavWidget({ widget }: { widget: WidgetNode }) {
   }
   return (
     <header className={`akx akx-navwrap ${akxMfw(p)} ${logoOnly && logo ? "akx-logo-only" : ""}`} dir="rtl" style={navVars}>
-      <div className="akx-nav">
+      <div className={`akx-nav ${propBool(p, "capsuleShadow", true) ? "" : "akx-nav-flat"} ${propBool(p, "capsuleBorder", false) ? "akx-nav-bordered" : ""}`}>
         <Link href="/" className="akx-brand">
-          {logo ? <img src={logo} alt={logoOnly ? propStr(p, "brand", rt.siteName ?? "") : ""} /> : null}
+          {logo ? <img loading="eager" fetchPriority="high" decoding="async" {...optImg(logo)} alt={logoOnly ? propStr(p, "brand", rt.siteName ?? "") : ""} /> : null}
           {logoOnly && logo ? null : <b>{propStr(p, "brand", rt.siteName ?? "")}</b>}
         </Link>
         <nav className="akx-links" aria-label="منوی اصلی">
@@ -553,14 +554,21 @@ function manualItems(p: P): Item[] {
 }
 
 export function useCatalog(enabled: boolean, query: string): { items: ShopProduct[] | null; cats: { slug: string; name: string }[] } {
-  const [s, setS] = useState<{ items: ShopProduct[] | null; cats: { slug: string; name: string }[] }>({ items: null, cats: [] })
+  // SSR seed (server-prefetch.ts) so products are in the HTML; client fetch only when the query changes.
+  const pre = (useBuilderRuntime() as { prefetch?: Record<string, unknown> }).prefetch
+  const raw = enabled && pre ? pre[`catalog::${query}`] : undefined
+  const seeded = raw ? mapCatalogJson(raw as Parameters<typeof mapCatalogJson>[0]) : null
+  const seed = seeded ? { items: seeded.items, cats: seeded.categories.map((c) => ({ slug: c.slug, name: c.name })) } : null
+  const [s, setS] = useState<{ items: ShopProduct[] | null; cats: { slug: string; name: string }[] }>(() => seed ?? { items: null, cats: [] })
   useEffect(() => {
     if (!enabled) { setS({ items: [], cats: [] }); return }
+    if (seed) return
     let off = false
     fetchCatalogPayload(query).then((r) => { if (!off) setS({ items: r?.items ?? [], cats: (r?.categories ?? []).map((c) => ({ slug: c.slug, name: c.name })) }) }).catch(() => !off && setS({ items: [], cats: [] }))
     return () => { off = true }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [enabled, query])
-  return s
+  return seed ?? s
 }
 
 function PriceLine({ p, it }: { p: P; it: Item }) {
@@ -696,7 +704,7 @@ export function PoetryProductWidget({ widget }: { widget: WidgetNode }) {
       <div className="akx-pd">
         <div className="akx-gal">
           <div className="akx-gal-main"><PhotoSlot mode={it.images[img] ? "photo" : mode} src={it.images[img]} logo={propStr(p, "logo")} alt={it.title} />{it.demo && propStr(p, "demoLabel") ? <span className="akx-demo">{propStr(p, "demoLabel")}</span> : null}</div>
-          {it.images.length > 1 ? <div className="akx-thumbs">{it.images.slice(0, 5).map((s, i) => <button type="button" key={i} className={i === img ? "is-on" : ""} onClick={() => setImg(i)} aria-label={`تصویر ${fa(i + 1)}`}><img src={s} alt="" /></button>)}</div> : null}
+          {it.images.length > 1 ? <div className="akx-thumbs">{it.images.slice(0, 5).map((s, i) => <button type="button" key={i} className={i === img ? "is-on" : ""} onClick={() => setImg(i)} aria-label={`تصویر ${fa(i + 1)}`}><img loading="lazy" decoding="async" {...optImg(s)} alt="" /></button>)}</div> : null}
         </div>
         <div className="akx-pd-info">
           {it.category ? <span className="akx-tag">{it.category}</span> : null}
@@ -762,7 +770,7 @@ export function PoetrySiteFooterWidget({ widget }: { widget: WidgetNode }) {
   return (
     <footer className={`akx akx-foot ${akxMfw(p)}`} dir="rtl" style={akxVars(p, { bg: "--akx-fbg", text: "--akx-ftx" })}>
       <div className="akx-foot-in">
-        <Link href="/" className="akx-foot-brand">{logo ? <img src={logo} alt="" /> : null}<b>{propStr(p, "brand", rt.siteName ?? "")}</b></Link>
+        <Link href="/" className="akx-foot-brand">{logo ? <img loading="lazy" decoding="async" {...optImg(logo)} alt="" /> : null}<b>{propStr(p, "brand", rt.siteName ?? "")}</b></Link>
         <nav aria-label="پیوندهای پاورقی">{links.map((l, i) => <Link key={i} href={safeLink(l.href, "/")}>{l.label}</Link>)}</nav>
         <div className="akx-foot-soc">{socials.map((s, i) => <a key={i} href={safeLink(s.href)} target="_blank" rel="noopener noreferrer" aria-label={SOCIAL_LABELS[s.network] ?? s.network}>{s.label || SOCIAL_SHORT[s.network] || s.network}</a>)}</div>
       </div>

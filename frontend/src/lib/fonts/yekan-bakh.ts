@@ -41,6 +41,6 @@ export const yekanBakh = localFont({
   ],
   variable: "--font-yekan",
   display: "swap",
-  preload: true,
+  preload: false,
   fallback: ["system-ui", "Segoe UI", "Tahoma", "sans-serif"],
 })

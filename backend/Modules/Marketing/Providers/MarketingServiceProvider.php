@@ -15,6 +15,9 @@ class MarketingServiceProvider extends ServiceProvider
 
     public function boot(): void
     {
+        foreach ([\Modules\Marketing\Entities\MarketingPage::class, \Modules\Marketing\Entities\BuilderGlobal::class, \Modules\Marketing\Entities\BuilderTemplate::class] as $m) {
+            $m::observe(\Modules\Marketing\Observers\FrontendRevalidateObserver::class);
+        }
         if ($this->app->runningInConsole()) {
             $this->commands([ImportWordPressCommand::class]);
         }

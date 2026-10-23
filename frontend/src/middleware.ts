@@ -83,7 +83,7 @@ export async function middleware(request: NextRequest) {
     cookie && LOCALES.includes(cookie as (typeof LOCALES)[number])
       ? cookie
       : "fa"
-  if (!request.cookies.get("NEXT_LOCALE")) {
+  if (!request.cookies.get("NEXT_LOCALE") && locale !== "fa") { // default locale needs no cookie (keeps anonymous responses cacheable)
     res.cookies.set("NEXT_LOCALE", locale, {
       path: "/",
       maxAge: 60 * 60 * 24 * 365,

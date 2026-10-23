@@ -17,4 +17,9 @@ return [
         'provision_hmac_secret' => env('WEBINO_PROVISION_HMAC_SECRET', ''),
     ],
 
+    'frontend_revalidate' => [
+        'url' => env('FRONTEND_REVALIDATE_URL'),
+        'secret' => env('REVALIDATE_SECRET'),
+    ],
+
 ];

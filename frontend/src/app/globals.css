@@ -3,6 +3,18 @@
 
 @import "../styles/themes.css";
 
+/* Self-hosted Yekan Bakh (display: swap); only 400/700 are preloaded in the root layout. */
+html:root { --font-yekan: "Yekan Bakh"; }
+@font-face { font-family: "Yekan Bakh"; src: url("/fonts/yekan-bakh/woff2/YekanBakh-Thin.woff2") format("woff2"); font-weight: 100; font-style: normal; font-display: swap; }
+@font-face { font-family: "Yekan Bakh"; src: url("/fonts/yekan-bakh/woff2/YekanBakh-Light.woff2") format("woff2"); font-weight: 300; font-style: normal; font-display: swap; }
+@font-face { font-family: "Yekan Bakh"; src: url("/fonts/yekan-bakh/woff2/YekanBakh-Regular.woff2") format("woff2"); font-weight: 400; font-style: normal; font-display: swap; }
+@font-face { font-family: "Yekan Bakh"; src: url("/fonts/yekan-bakh/woff2/YekanBakh-SemiBold.woff2") format("woff2"); font-weight: 600; font-style: normal; font-display: swap; }
+@font-face { font-family: "Yekan Bakh"; src: url("/fonts/yekan-bakh/woff2/YekanBakh-Bold.woff2") format("woff2"); font-weight: 700; font-style: normal; font-display: swap; }
+@font-face { font-family: "Yekan Bakh"; src: url("/fonts/yekan-bakh/woff2/YekanBakh-ExtraBold.woff2") format("woff2"); font-weight: 800; font-style: normal; font-display: swap; }
+@font-face { font-family: "Yekan Bakh"; src: url("/fonts/yekan-bakh/woff2/YekanBakh-Black.woff2") format("woff2"); font-weight: 900; font-style: normal; font-display: swap; }
+@font-face { font-family: "Yekan Bakh"; src: url("/fonts/yekan-bakh/woff2/YekanBakh-ExtraBlack.woff2") format("woff2"); font-weight: 950; font-style: normal; font-display: swap; }
+
+
 @custom-variant dark (&:is(.dark *));
 
 /* Fonts only — colors come from local themes.css @theme OKLCH (--color-*). */

@@ -1,4 +1,5 @@
 import type { Metadata } from 'next';
+import { hoistDataUrl, hoistDataUrls } from "@/lib/inline-media";
 import type { ReactNode } from 'react';
 import { headers } from 'next/headers';
 import { requestPageLang } from '@/builder/page-lang';
@@ -44,8 +45,8 @@ export default async function SiteLayout({ children }: { children: ReactNode }) 
   try {
     const res = await getPublicSite();
     siteName = res.data.name ?? siteName;
-    logoUrl = res.data.logo_url ?? logoUrl;
-    const branding = res.data.branding;
+    logoUrl = (res.data.logo_url ? hoistDataUrl(res.data.logo_url) : null) ?? logoUrl;
+    const branding = res.data.branding ? hoistDataUrls(res.data.branding) : res.data.branding;
     if (branding && Array.isArray(branding.trust_badges)) {
       badges = branding.trust_badges as TrustBadge[];
     }

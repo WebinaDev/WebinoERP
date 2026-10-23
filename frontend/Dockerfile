@@ -20,6 +20,9 @@ COPY . .
 # Uncomment the following line in case you want to disable telemetry during the build.
 ENV NEXT_TELEMETRY_DISABLED 1
 
+# Optional imgproxy base (e.g. /img); empty = built-in Next/sharp optimizer. Inlined at build time.
+ARG NEXT_PUBLIC_IMG_PROXY_BASE=
+ENV NEXT_PUBLIC_IMG_PROXY_BASE=${NEXT_PUBLIC_IMG_PROXY_BASE}
 RUN npm run build
 
 # Production image, copy all the files and run next
