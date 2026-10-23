@@ -104,6 +104,8 @@ class RolesAndPermissionsSeeder extends Seeder
                 'crm.leads.manage',
                 'crm.accounts.view',
                 'crm.accounts.manage',
+                'crm.hub.profile.sensitive',
+                'crm.hub.merge',
                 'crm.contacts.view',
                 'crm.contacts.manage',
                 'crm.deals.view',

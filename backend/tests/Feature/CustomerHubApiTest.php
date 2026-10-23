@@ -114,7 +114,7 @@ class CustomerHubApiTest extends TestCase
         Sanctum::actingAs($admin);
         $id = $this->acc->id;
 
-        $this->patchJson("/api/v1/crm/customers/$id/hub/profile", ['customer_kind' => 'legal', 'national_id' => '10101010', 'allowed_ips' => ['1.2.3.4']])->assertOk()
+        $this->patchJson("/api/v1/crm/customers/$id/hub/profile", ['customer_kind' => 'legal', 'national_id' => '10380284790', 'allowed_ips' => ['1.2.3.4']])->assertOk()
             ->assertJsonPath('data.profile.customer_kind', 'legal');
         $this->postJson("/api/v1/crm/customers/$id/hub/contacts", ['first_name' => 'Ali', 'contact_role' => 'finance', 'is_primary' => true])->assertCreated();
 

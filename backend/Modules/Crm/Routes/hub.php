@@ -6,11 +6,11 @@ use Modules\Crm\Http\Controllers\CustomerHubController as H;
 // Prefix: api/v1/crm/customers — middleware: api, auth:sanctum, module:crm (RBAC per section in controller)
 Route::whereNumber('id')->group(function () {
     require __DIR__.'/hub_tabs_index.php'; // Customer 360 phase 1 lists (must precede the {section} catch-all)
+    require __DIR__.'/hub_profile.php';
     Route::get('/{id}/hub', [H::class, 'hub']);
     Route::get('/{id}/hub/export.csv', [H::class, 'exportCsv']);
     Route::get('/{id}/hub/{section}', [H::class, 'section'])->where('section', '[a-z_]+');
 
-    Route::patch('/{id}/hub/profile', [H::class, 'updateProfile']);
     Route::post('/{id}/hub/contacts', [H::class, 'saveContact']);
     Route::patch('/{id}/hub/contacts/{contactId}', [H::class, 'saveContact'])->whereNumber('contactId');
     Route::delete('/{id}/hub/contacts/{contactId}', [H::class, 'deleteContact'])->whereNumber('contactId');

@@ -34,6 +34,8 @@ class CustomerHubAccess
     /** action => [manage permissions (any of)] */
     public const MANAGE = [
         'profile' => ['crm.accounts.manage'],
+        'profile_sensitive' => ['crm.hub.profile.sensitive'],
+        'merge' => ['crm.hub.merge'],
         'contacts' => ['crm.accounts.manage', 'crm.contacts.manage'],
         'documents' => ['crm.accounts.manage', 'crm.hub.documents.manage'],
         'contracts' => ['crm.hub.contracts.manage', 'projects.projects.manage'],
@@ -96,6 +98,7 @@ class CustomerHubAccess
         if ($this->isPortalCustomer($user)) {
             return [];
         }
+
         return array_values(array_filter(array_keys(self::VIEW), fn ($s) => $this->any($user, self::VIEW[$s])));
     }
 
