@@ -73,6 +73,10 @@ class PoetryModuleTest extends TestCase
         $this->getJson('/api/v1/public/poetry/poems?style=noheh&occasion=muharram')->assertJsonPath('meta.total', 1);
         $this->getJson('/api/v1/public/poetry/poems')->assertJsonPath('meta.total', 2); // draft hidden
         $this->getJson('/api/v1/public/poetry/figures/imam-hossein')->assertOk()->assertJsonPath('data.figure.name', 'امام حسین')->assertJsonPath('meta.total', 2);
+        $this->getJson('/api/v1/public/poetry/poems?has_media=1')->assertJsonPath('meta.total', 1);
+        $terms = collect($this->getJson('/api/v1/public/poetry/terms')->json('data'))->keyBy(fn ($t) => $t['kind'].':'.$t['slug']);
+        $this->assertSame(2, $terms['figure:imam-hossein']['count']);
+        $this->assertSame(1, $terms['occasion:muharram']['count']);
         $this->getJson('/api/v1/public/poetry/popular')->assertOk()->assertJsonPath('data.0.slug', $slug);
 
         $text = $this->get("/api/v1/public/poetry/poems/{$slug}/text")->assertOk();

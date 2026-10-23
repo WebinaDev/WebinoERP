@@ -21,7 +21,16 @@ class PublicPoetryController extends Controller
             $q->where('kind', $request->query('kind'));
         }
 
-        return response()->json(['data' => $q->get()->map(fn ($t) => PoetryPresenter::term($t))->all()]);
+        // Facet counts: figure/style via the pivot, occasion/meter via their foreign keys (published poems only).
+        $q->withCount(['poems as poems_count' => fn ($w) => $w->published()]);
+        $byFk = fn (string $col) => PoetryPoem::query()->published()->whereNotNull($col)
+            ->selectRaw($col.' as k, count(*) as c')->groupBy($col)->pluck('c', 'k');
+        $occ = $byFk('occasion_id');
+        $met = $byFk('meter_id');
+
+        return response()->json(['data' => $q->get()->map(fn ($t) => PoetryPresenter::term($t) + [
+            'count' => (int) match ($t->kind) { 'occasion' => $occ[$t->id] ?? 0, 'meter' => $met[$t->id] ?? 0, default => $t->poems_count ?? 0 },
+        ])->all()]);
     }
 
     public function index(Request $request): JsonResponse
@@ -91,6 +100,14 @@ class PublicPoetryController extends Controller
         }
         if ($meter = $request->query('meter')) {
             $q->whereHas('meter', fn ($w) => $w->where('slug', $meter));
+        }
+        if ($request->boolean('has_media')) {
+            $txt = fn (string $c) => DB::connection()->getDriverName() === 'mysql' ? "CAST($c AS CHAR)" : "CAST($c AS TEXT)";
+            $q->where(fn ($w) => $w->whereRaw($txt('media_ids')." NOT IN ('[]','null')")
+                ->orWhereRaw($txt('external_links')." NOT IN ('[]','null')"));
+        }
+        if (in_array($flag = $request->query('flag'), ['is_new', 'not_performed', 'rewritten'], true)) {
+            $q->where('flags->'.$flag, true);
         }
         foreach (['figure', 'style'] as $kind) {
             if ($slug = $request->query($kind)) {

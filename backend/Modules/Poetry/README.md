@@ -22,3 +22,27 @@ Stanza: `type` title|stanza|refrain, `layout` couplet (2 lines = 1 beyt) | singl
 
 ## Builder widgets
 `poem-detail`, `poetry-figure`, `poem-search` (pages read `?poem=` / `?figure=` when slug prop is empty).
+
+## Page widgets (alikhabari mockups)
+
+`frontend/src/builder/registry-poetry-pages.ts` adds nine full-page widgets. Every colour, text, link and image is a builder field.
+
+| type | page |
+|---|---|
+| `poetry-nav` | top bar: logo, links, search |
+| `poetry-page-hero` | inner-page hero: breadcrumbs, title, photo/logo/arabesque |
+| `poem-archive` | poem list with facet sidebar and counts (`/public/poetry/terms`) |
+| `poem-single` | one poem: couplets, tools (copy, print, share, favourite, A+), media player, specs, related |
+| `media-archive` | audio/video archive (repeater items) |
+| `poetry-shop` | shop grid: `source=catalog|manual`, `checkoutMode=inquiry|cart|none` (default inquiry), `priceMode=auto|text` |
+| `poetry-product` | product page with the same price/checkout options |
+| `poet-profile` | about the poet: `photoMode` defaults to `logo`, so no portrait is shown |
+| `poetry-site-footer` | footer: links, socials, copyright |
+
+The shared colour fields are `accent` (default `#B4101E`), `ink`, `cream`, `gold`, `card` and `sectionBg`.
+
+**No-photo mode.** Every photo slot has `photoMode = photo | logo | arabesque`. An empty logo field falls back to the site logo. `poetry-hero`, `book-banner` and `poet-about` also have this option; `poet-about` defaults to `logo`.
+
+**Checkout off and demo products.** With `checkoutMode=inquiry` the buy button becomes a link to `inquiryHref` (Eitaa by default). With `priceMode=text`, prices show `priceText`. A product counts as demo if its slug starts with `demo-` or ends with `-demo`, or its name contains `(نمونه)`, `[demo]` or `«نمونه»`. Demo products get a «نمونه» badge, and cart mode never adds them. `shop-showcase` gained `priceLabel` for items without a price.
+
+**New API filters.** `GET /public/poetry/poems` accepts `has_media=1` and `flag=is_new|not_performed|rewritten`. `GET /public/poetry/terms` now returns a `count` (published poems) for each term.

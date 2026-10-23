@@ -7,6 +7,7 @@ import { CORPORATE_WIDGETS } from "@/themes/webina-corporate-v1/builder/blocks"
 import { ARCHIVE_FILTERS_WIDGET, CONTENT_WIDGETS, FORM_WIDGET, GAP_WIDGETS } from "./registry-content"
 import { POETRY_WIDGETS } from "./registry-poetry"
 import { POETRY_MODULE_WIDGETS } from "./registry-poetry-module"
+import { POETRY_PAGE_WIDGETS } from "./registry-poetry-pages"
 
 const FORM_TYPE_LABELS: Record<FormFieldType, string> = { text: "متن", email: "ایمیل", tel: "تلفن", number: "عدد", textarea: "متن بلند", select: "فهرست کشویی", radio: "تک‌انتخابی", checkbox: "چندانتخابی", date: "تاریخ", file: "فایل (پیوست)" , heading: "عنوان گروه"}
 
@@ -1223,7 +1224,7 @@ export const WIDGETS: WidgetDef[] = [
   },
 ]
 
-WIDGETS.push(ARCHIVE_FILTERS_WIDGET, ...CONTENT_WIDGETS, ...GAP_WIDGETS, ...CORPORATE_WIDGETS, ...POETRY_WIDGETS, ...POETRY_MODULE_WIDGETS)
+WIDGETS.push(ARCHIVE_FILTERS_WIDGET, ...CONTENT_WIDGETS, ...GAP_WIDGETS, ...CORPORATE_WIDGETS, ...POETRY_WIDGETS, ...POETRY_MODULE_WIDGETS, ...POETRY_PAGE_WIDGETS)
 
 const byType = new Map(WIDGETS.map((widget) => [widget.type, widget]))
 
