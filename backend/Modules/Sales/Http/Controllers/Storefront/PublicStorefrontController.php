@@ -39,16 +39,26 @@ class PublicStorefrontController extends Controller
         if ($ids !== []) {
             $query->whereIn('id', array_slice($ids, 0, 48));
         }
-        match ((string) $request->query('sort', 'newest')) {
-            'price_asc' => $query->orderBy('price'),
-            'price_desc' => $query->orderByDesc('price'),
-            'name' => $query->orderBy('name'),
-            default => $query->orderByDesc('id'),
-        };
+        $sort = (string) $request->query('sort', 'newest');
         $perPage = max(1, min(96, (int) $request->query('per_page', 12)));
         $page = max(1, (int) $request->query('page', 1));
-        $total = (clone $query)->count();
-        $items = $query->skip(($page - 1) * $perPage)->take($perPage)->get()->map(fn ($i) => $this->catalog->serialize($i))->values();
+        // Builder `archive-filters` / Loop Grid: price, sale and stock live on the effective (sale-aware) price
+        // and JSON meta, so these filters run on the matched collection (storefront catalogs are small).
+        $archive = $request->hasAny(['min_price', 'max_price', 'on_sale', 'in_stock', 'tag', 'attr']) || in_array($sort, ['popular', 'best_selling'], true);
+        if ($archive) {
+            $rows = $this->archiveFilter($query->get(), $request, $sort);
+            $total = $rows->count();
+            $items = $rows->slice(($page - 1) * $perPage, $perPage)->map(fn ($i) => $this->catalog->serialize($i))->values();
+        } else {
+            match ($sort) {
+                'price_asc', 'price' => $query->orderBy('price'),
+                'price_desc' => $query->orderByDesc('price'),
+                'name' => $query->orderBy('name'),
+                default => $query->orderByDesc('id'),
+            };
+            $total = (clone $query)->count();
+            $items = $query->skip(($page - 1) * $perPage)->take($perPage)->get()->map(fn ($i) => $this->catalog->serialize($i))->values();
+        }
 
         return response()->json(['data' => [
             'categories' => $this->catalog->categories($all),
@@ -216,5 +226,91 @@ class PublicStorefrontController extends Controller
         $user = $request->user('sanctum');
 
         return 'sf:compare:'.($user ? 'u'.$user->id : 'ip'.sha1((string) $request->ip().'|'.$request->userAgent()));
+    }
+
+    /**
+     * Archive filters (same query keys as WebinoDashboard): min_price/max_price (minor units, effective price),
+     * on_sale, in_stock, tag (comma slugs from meta.tags), attr ("attr:term" pairs from meta.attributes), sort.
+     *
+     * @param  \Illuminate\Support\Collection<int, SalesCatalogItem>  $rows
+     * @return \Illuminate\Support\Collection<int, SalesCatalogItem>
+     */
+    private function archiveFilter($rows, Request $request, string $sort)
+    {
+        $min = $request->filled('min_price') ? max(0, (int) $request->query('min_price')) : null;
+        $max = $request->filled('max_price') ? max(0, (int) $request->query('max_price')) : null;
+        if ($min !== null && $max !== null && $max > 0 && $min > $max) {
+            [$min, $max] = [$max, $min];
+        }
+        $list = fn (string $key) => array_slice(array_values(array_filter(array_map(fn ($v) => mb_strtolower(trim($v)), explode(',', (string) $request->query($key, ''))))), 0, 10);
+        $tags = $list('tag');
+        $pairs = array_values(array_filter(array_map(fn ($p) => explode(':', $p, 2), $list('attr')), fn ($p) => count($p) === 2 && $p[0] !== '' && $p[1] !== ''));
+        $onSale = $request->boolean('on_sale');
+        $inStock = $request->boolean('in_stock');
+
+        $rows = $rows->filter(function (SalesCatalogItem $item) use ($min, $max, $tags, $pairs, $onSale, $inStock) {
+            $meta = (array) ($item->meta ?? []);
+            $price = $this->catalog->unitPrice($item);
+            if ($min !== null && $min > 0 && $price < $min) {
+                return false;
+            }
+            if ($max !== null && $max > 0 && $price > $max) {
+                return false;
+            }
+            if ($onSale && $price >= (int) round((float) $item->price)) {
+                return false;
+            }
+            if ($inStock && ! $this->catalog->available($item)) {
+                return false;
+            }
+            if ($tags !== []) {
+                $have = array_map(fn ($t) => mb_strtolower(is_array($t) ? (string) ($t['slug'] ?? $t['name'] ?? '') : (string) $t), (array) ($meta['tags'] ?? []));
+                if (array_intersect($tags, $have) === []) {
+                    return false;
+                }
+            }
+            foreach ($pairs as [$attr, $term]) {
+                if (! $this->hasAttributeTerm((array) ($meta['attributes'] ?? []), $attr, $term)) {
+                    return false;
+                }
+            }
+
+            return true;
+        });
+
+        $sorted = match ($sort) {
+            'price_asc', 'price' => $rows->sortBy(fn ($i) => $this->catalog->unitPrice($i)),
+            'price_desc' => $rows->sortByDesc(fn ($i) => $this->catalog->unitPrice($i)),
+            'name' => $rows->sortBy('name'),
+            'popular' => $rows->sortByDesc(fn ($i) => (int) (((array) $i->meta)['views_count'] ?? 0)),
+            'best_selling' => $rows->sortByDesc(fn ($i) => (int) (((array) $i->meta)['sales_count'] ?? 0)),
+            default => $rows->sortByDesc('id'),
+        };
+
+        return $sorted->values();
+    }
+
+    /** meta.attributes accepts {slug|name, value|values|terms} rows or a {name: value(s)} map. */
+    private function hasAttributeTerm(array $attributes, string $attr, string $term): bool
+    {
+        $norm = fn ($v) => mb_strtolower(trim(is_array($v) ? (string) ($v['slug'] ?? $v['name'] ?? $v['value'] ?? '') : (string) $v));
+        foreach ($attributes as $key => $row) {
+            if (is_array($row) && ! array_is_list($row) && (isset($row['slug']) || isset($row['name']))) {
+                $name = $norm($row['slug'] ?? $row['name']);
+                $values = $row['values'] ?? $row['terms'] ?? $row['value'] ?? [];
+            } else {
+                $name = $norm((string) $key);
+                $values = $row;
+            }
+            if ($name !== $attr) {
+                continue;
+            }
+            $values = is_array($values) ? $values : explode(',', (string) $values);
+            if (in_array($term, array_map($norm, $values), true)) {
+                return true;
+            }
+        }
+
+        return false;
     }
 }

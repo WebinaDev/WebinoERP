@@ -42,6 +42,25 @@ class SalesStorefrontTest extends TestCase
         $this->assertSame($a->id, $this->getJson('/api/v1/public/catalog?sort=price_asc')->json('data.items.0.id'));
     }
 
+    public function test_public_catalog_archive_filters(): void
+    {
+        $sale = $this->product(['slug' => 'sale', 'sale_price' => 500000, 'tags' => ['gift'], 'attributes' => [['name' => 'color', 'values' => ['red', 'blue']]], 'sales_count' => 9]);
+        $cheap = $this->product(['slug' => 'cheap', 'stock' => 0, 'tags' => ['basic'], 'attributes' => ['color' => 'green']], 300000);
+        $dear = $this->product(['slug' => 'dear', 'tags' => ['gift'], 'sales_count' => 2], 2000000);
+
+        $ids = fn (string $q) => array_column($this->getJson('/api/v1/public/catalog?'.$q)->assertOk()->json('data.items'), 'id');
+        $this->assertSame([$sale->id], $ids('on_sale=1&builder=1'));
+        $this->assertSame([$sale->id, $dear->id], $ids('min_price=400000&sort=price_asc'));
+        $this->assertSame([$cheap->id, $sale->id], $ids('max_price=1000000&sort=price_asc'));
+        $this->assertSame([$sale->id, $dear->id], $ids('in_stock=1&sort=price_asc'));
+        $this->assertSame([$dear->id, $sale->id], $ids('tag=gift&sort=price_desc'));
+        $this->assertSame([$sale->id], $ids('attr=color:blue'));
+        $this->assertSame([$cheap->id], $ids('attr=color:green'));
+        $this->assertSame([$sale->id, $dear->id, $cheap->id], $ids('sort=best_selling'));
+        $this->assertSame([$sale->id], $ids('tag=gift&sort=price_asc&per_page=1&page=1'));
+        $this->assertSame(2, $this->getJson('/api/v1/public/catalog?tag=gift&per_page=1')->json('data.pagination.total'));
+    }
+
     public function test_cart_checkout_coupon_and_payment_flow(): void
     {
         $p = $this->product(['slug' => 'cream', 'stock' => 5]);
