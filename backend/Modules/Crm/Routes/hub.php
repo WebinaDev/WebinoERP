@@ -8,6 +8,7 @@ Route::whereNumber('id')->group(function () {
     require __DIR__.'/hub_tabs_index.php'; // Customer 360 phase 1 lists (must precede the {section} catch-all)
     require __DIR__.'/hub_profile.php';
     require __DIR__.'/hub_timeline.php';
+    require __DIR__.'/hub_360.php'; // Customer 360 phase 3 (orders / accounting / sms)
     Route::get('/{id}/hub', [H::class, 'hub']);
     Route::get('/{id}/hub/export.csv', [H::class, 'exportCsv']);
     Route::get('/{id}/hub/{section}', [H::class, 'section'])->where('section', '[a-z_]+');
