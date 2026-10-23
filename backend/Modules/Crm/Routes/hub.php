@@ -7,6 +7,7 @@ use Modules\Crm\Http\Controllers\CustomerHubController as H;
 Route::whereNumber('id')->group(function () {
     require __DIR__.'/hub_tabs_index.php'; // Customer 360 phase 1 lists (must precede the {section} catch-all)
     require __DIR__.'/hub_profile.php';
+    require __DIR__.'/hub_timeline.php';
     Route::get('/{id}/hub', [H::class, 'hub']);
     Route::get('/{id}/hub/export.csv', [H::class, 'exportCsv']);
     Route::get('/{id}/hub/{section}', [H::class, 'section'])->where('section', '[a-z_]+');

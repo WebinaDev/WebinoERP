@@ -6,6 +6,7 @@ use App\Support\MutationAudit;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
 use Modules\Crm\Entities\CrmAccount;
+use Modules\Crm\Events\Customer\CustomerMerged;
 use Modules\Crm\Services\CrmMergeService;
 
 /**
@@ -123,6 +124,11 @@ class CustomerMergeService
             // Contacts, deals, consultations, projects, tickets, appointments, portal users, CRM activities; soft-deletes source.
             $account = $this->base->mergeAccounts($target->id, $source->id, $userId);
         });
+
+        if (Schema::hasColumn('crm_accounts', 'activities_backfilled_at')) {
+            DB::table('crm_accounts')->where('id', $target->id)->update(['activities_backfilled_at' => null]); // rebuild with moved records (idempotent)
+        }
+        CustomerMerged::dispatch($target->id, $source->id, ['source_name' => $source->name, 'moved' => $moved], $userId, null, 'ادغام مشتری: '.$source->name);
 
         return ['account' => $account, 'moved' => $moved];
     }

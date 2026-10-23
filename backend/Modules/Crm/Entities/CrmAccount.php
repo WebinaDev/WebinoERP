@@ -206,4 +206,10 @@ class CrmAccount extends Model
     {
         return $this->hasMany(PlatformResource::class, 'crm_account_id');
     }
+
+    /** Unified Customer 360 timeline (crm_customer_activities). */
+    public function activities(): HasMany
+    {
+        return $this->hasMany(CustomerActivity::class, 'account_id')->orderByDesc('occurred_at')->orderByDesc('id');
+    }
 }

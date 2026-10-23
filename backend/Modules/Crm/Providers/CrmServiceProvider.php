@@ -2,17 +2,25 @@
 
 namespace Modules\Crm\Providers;
 
+use Illuminate\Support\Facades\Event;
 use Illuminate\Support\Facades\Route;
 use Illuminate\Support\ServiceProvider;
-use Modules\Crm\Console\DispatchRemindersCommand;
-use Modules\Crm\Console\RecomputeLeadScoresCommand;
-use Modules\Crm\Console\RunSequencesCommand;
+use Modules\Crm\Console\BackfillCustomerActivitiesCommand;
 use Modules\Crm\Console\DispatchContentRemindersCommand;
+use Modules\Crm\Console\DispatchRemindersCommand;
 use Modules\Crm\Console\PublishDueContentCommand;
+use Modules\Crm\Console\RecomputeLeadScoresCommand;
 use Modules\Crm\Console\RetryMoadianCommand;
+use Modules\Crm\Console\RunSequencesCommand;
+use Modules\Crm\Console\SyncCustomerSitesCommand;
+use Modules\Crm\Events\Customer\ContractSigned;
+use Modules\Crm\Events\CustomerHubUpdated;
 use Modules\Crm\Http\Controllers\ConsultationIngestController;
+use Modules\Crm\Http\Controllers\CustomerHubController;
 use Modules\Crm\Http\Controllers\ElementorLeadController;
 use Modules\Crm\Http\Controllers\PublicLeadFormController;
+use Modules\Crm\Listeners\RecordCustomerActivity;
+use Modules\Crm\Observers\CustomerSyncObserver;
 
 class CrmServiceProvider extends ServiceProvider
 {
@@ -28,11 +36,24 @@ class CrmServiceProvider extends ServiceProvider
                 DispatchContentRemindersCommand::class,
                 PublishDueContentCommand::class,
                 RetryMoadianCommand::class,
-                \Modules\Crm\Console\SyncCustomerSitesCommand::class,
+                SyncCustomerSitesCommand::class,
+                BackfillCustomerActivitiesCommand::class,
             ]);
         }
 
         $this->loadMigrationsFrom(module_path($this->moduleName, 'Database/Migrations'));
+
+        // Customer 360 unified timeline: cross-module sync events -> crm_customer_activities.
+        $l = RecordCustomerActivity::class;
+        foreach ([
+            'DealWon', 'DealLost', 'InvoiceIssued', 'InvoicePaid', 'InvoiceOverdue', 'PaymentRecorded', 'ContractCancelled',
+            'ProjectCreated', 'ProjectStatusChanged', 'TicketOpened', 'TicketClosed', 'OrderPlaced', 'SiteProvisioned', 'CustomerMerged',
+        ] as $ev) {
+            Event::listen('Modules\\Crm\\Events\\Customer\\'.$ev, $l);
+        }
+        Event::listen(ContractSigned::class, [$l, 'contractSigned']);
+        Event::listen(CustomerHubUpdated::class, [$l, 'hubUpdated']);
+        CustomerSyncObserver::register();
 
         Route::prefix('api/v1/crm')
             ->middleware(['api', 'throttle:60,1'])
@@ -52,7 +73,7 @@ class CrmServiceProvider extends ServiceProvider
         // support roles without crm.accounts.view can still open their own sections.
         // Signed (temporary) download of private hub documents — visibility checked when the link is issued.
         Route::prefix('api/v1/crm/customers')->middleware(['api', 'signed', 'throttle:60,1'])
-            ->get('/{id}/hub/documents/{docId}/file', [\Modules\Crm\Http\Controllers\CustomerHubController::class, 'downloadDocument'])
+            ->get('/{id}/hub/documents/{docId}/file', [CustomerHubController::class, 'downloadDocument'])
             ->whereNumber(['id', 'docId'])->name('crm.hub.document.file');
 
         Route::prefix('api/v1/crm/customers')
