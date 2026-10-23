@@ -23,11 +23,12 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          # Mirrors docker-compose.aapanel.yml: backend context is the repo,
-          # frontend context is the parent dir (Dockerfile COPYs WebinoERP/frontend).
+          # Mirrors the real stack (docker-compose.yml + prod + iran, project webinoerm):
+          # backend/worker/scheduler/ws all build docker/php/Dockerfile (PHP runtime only;
+          # code is bind-mounted from ./backend). Frontend context is the parent dir.
           - name: webino-erp-backend
             context: WebinoERP
-            dockerfile: WebinoERP/docker/php/Dockerfile.platform
+            dockerfile: WebinoERP/docker/php/Dockerfile
           - name: webino-erp-frontend
             context: .
             dockerfile: WebinoERP/docker/next/Dockerfile

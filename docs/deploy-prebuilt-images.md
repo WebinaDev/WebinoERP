@@ -1,57 +1,68 @@
 # Deploying prebuilt images (no builds on the server)
 
-The production server has 8 GB RAM; building Next.js there can OOM the box. GitHub Actions
-(`.github/workflows/images.yml`) now builds the production images on every push to `main`
-and pushes them to GHCR. The old build-on-server path is unchanged and still works.
+The production server has 8 GB RAM; `next build` there can OOM the box. `.github/workflows/images.yml`
+builds the images on every push to `main` and pushes them to GHCR. The existing path
+(`update.sh`, `up -d --build`) is unchanged.
 
-## Images
+## Real stack
 
-| Image | Dockerfile | Tags |
+Project `webinoerm`, files `docker-compose.yml` + `docker-compose.prod.yml` + `docker-compose.iran.yml`.
+
+| Service | Source today | With prebuilt images |
 |---|---|---|
-| `ghcr.io/webinadev/webino-erp-backend` | `docker/php/Dockerfile.platform` | `latest`, full sha, short sha |
-| `ghcr.io/webinadev/webino-erp-frontend` | `docker/next/Dockerfile` | `latest`, full sha, short sha |
+| backend, worker, scheduler, ws (Reverb) | build `docker/php/Dockerfile` | `ghcr.io/webinadev/webino-erp-backend:<sha>` |
+| frontend | build `WebinoERP/docker/next/Dockerfile` (context `..`) | `ghcr.io/webinadev/webino-erp-frontend:<sha>` |
+| db, redis, web (Caddy), edge (nginx) | upstream images | unchanged |
 
-Layer cache: `type=gha` (per image scope). Auth: `GITHUB_TOKEN` with `packages: write`.
-Base images come from Docker Hub in CI (no Iran mirror needed there).
+Tags: full sha, short sha, `latest` (main). Cache `type=gha`. Auth `GITHUB_TOKEN` (`packages: write`).
+CI uses Docker Hub base images; the Iran mirror overlay only affects build args, which are ignored with `--no-build`.
+
+**Important:** backend/worker/scheduler/ws bind-mount `./backend` — the PHP code comes from the host
+checkout, the image is only the PHP runtime. So the checkout must be at the same sha (the script enforces it).
+There is no `migrate` service; migrations run like `update.sh`: pg_dump backup →
+`php artisan migrate --force` → `site-builder:assert-schema` (`scripts/apply-erp-migrations.sh`).
 
 ## Build-time env (Next.js)
 
-`NEXT_PUBLIC_*` values are inlined at `next build`. The current Dockerfiles do **not** pass any
-per-tenant/per-site value at build time (API calls use relative `/api` via the server-side proxy
-`API_PROXY_TARGET/INTERNAL_API_URL=http://backend:8080`, which are read at runtime), so one image
-serves every site and the CI image is byte-for-byte equivalent to what the server builds today.
-Setting a `NEXT_PUBLIC_*` in compose `environment:` has no effect on client code (true before too).
-If a per-site public value is ever needed, prefer runtime injection (server component / `/api/config`
-read from env) over a per-site build matrix (N images, N× CI time).
+No per-tenant `NEXT_PUBLIC_*` is passed at build time; API calls go to relative `/api`, proxied
+server-side via runtime `INTERNAL_API_URL`/`API_PROXY_TARGET`. One image serves all. Note:
+`NEXT_PUBLIC_REVERB_*` in compose `environment:` never reached client code (inlined at build); same
+as before. If needed, inject at runtime instead of a per-site build matrix.
 
 ## One-time server setup
 
-1. Create a GitHub token that can read packages (classic PAT with `read:packages`, or fine-grained
-   with Packages: read on WebinaDev). Then on the server:
-   ```
-   echo "<TOKEN>" | docker login ghcr.io -u <github-username> --password-stdin
-   ```
-   (Or make the GHCR packages public and skip login.)
-2. Check the server can reach `ghcr.io` (`docker pull ghcr.io/webinadev/webino-erp-frontend:latest`).
-   If ghcr.io is blocked/slow from the server's network, a mirror/proxy is needed.
+```
+echo "<token with read:packages>" | docker login ghcr.io -u <github-user> --password-stdin
+docker pull ghcr.io/webinadev/webino-erp-frontend:latest   # checks ghcr.io is reachable from IR
+```
 
 ## Deploy
 
 ```
-scripts/deploy-pull.sh                         # latest, base docker-compose.aapanel.yml
-IMAGE_TAG=<git sha> scripts/deploy-pull.sh     # pin / roll back
-COMPOSE_BASE=docker-compose.prod.yml scripts/deploy-pull.sh
+cd /opt/webinoerp            # the ERP checkout
+git fetch origin && git checkout --detach <SHA>
+IMAGE_TAG=<SHA> GITHUB_TOKEN=<read token, optional> scripts/deploy-pull.sh
 ```
-It runs `docker compose -f <base> -f docker-compose.prod-images.yml pull` then `up -d --no-build`.
-Wait for the Actions run of the commit to be green before deploying it.
-Migrations still run as before (container entrypoint / `php artisan migrate --force`).
+
+`scripts/deploy-pull.sh`:
+- requires `IMAGE_TAG` = full 40-char sha (`latest` only with `ALLOW_LATEST=1`);
+- if `GITHUB_TOKEN`/`GH_TOKEN` is set, refuses unless the `images.yml` run for that sha succeeded;
+- refuses if `git rev-parse HEAD` != `IMAGE_TAG` (`ALLOW_SHA_MISMATCH=1` to override);
+- `COMPOSE_FILES` (default `docker-compose.yml:docker-compose.prod.yml:docker-compose.iran.yml`),
+  `COMPOSE_PROJECT` (default `webinoerm`); `docker-compose.prod-images.yml` appended last;
+- `config -q`, `pull`, `up -d --no-build` (no `--remove-orphans`), then backup + migrations
+  (`SKIP_MIGRATE=1` to skip), `ps`.
+
+Rollback: same command with the previous sha (and checkout).
 
 ## Tenant site images (webino-backend / webino-next)
 
-`scripts/build-webino-dashboard-images.sh` builds the tenant images from WebinoDashboard on the server.
-Those same Dockerfiles are now built by WebinoDashboard CI as `ghcr.io/webinadev/webino-dashboard-backend`
-and `ghcr.io/webinadev/webino-dashboard-frontend`. `scripts/pull-webino-dashboard-images.sh` pulls them
-and retags them to `webino-backend:latest` / `webino-next:latest`, so tenant stacks keep working unchanged.
-Pin with `WEBINO_DASHBOARD_IMAGE_TAG=<WebinoDashboard sha>`. Point the ERP provisioning/update code at the
-pull script instead of the build script when you are ready to switch.
+Built today by `scripts/build-webino-dashboard-images.sh`. WebinoDashboard CI builds the same
+Dockerfiles as `ghcr.io/webinadev/webino-dashboard-{backend,frontend}`.
 
+```
+WEBINO_DASHBOARD_IMAGE_TAG=<Dashboard SHA> [WEBINO_IMAGE_TAG=beta] scripts/pull-webino-dashboard-images.sh
+```
+Pulls and retags to `webino-backend:latest` / `webino-next:latest` (+ channel). Same sha/CI rules.
+It does not recreate tenant containers: recreate + migrate each site from the ERP panel, one at a time.
+The provisioner (`LocalSameVpsProvisioner::forceBuildImages`) still calls the build script; switching it is a separate change.
