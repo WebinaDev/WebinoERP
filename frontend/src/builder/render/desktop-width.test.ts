@@ -2,7 +2,7 @@ import { test } from "vitest"
 import assert from "node:assert/strict"
 import { readFileSync } from "node:fs"
 import { resolve } from "node:path"
-import { dwAttr, dwClass, dwRowClass, sectionDesktopWidth, widgetDesktopWidth } from "./desktop-width"
+import { dwAttr, dwClass, dwRowClass, packDesktopWidths, packVisible, sectionDesktopWidth, widgetDesktopWidth } from "./desktop-width"
 import type { SectionNode, WidgetNode } from "../types"
 
 const w = (desktopWidth: string, type = "poem-list") => ({ id: "w" + desktopWidth, type, props: { desktopWidth } }) as unknown as WidgetNode
@@ -31,5 +31,16 @@ test("shipped CSS lays rows out horizontally (overrides Tailwind flex-col) with 
   assert.match(css, /> \.wb-dw-narrow \{ flex-basis: calc\(40% - 12px\)/)
   const view = readFileSync(resolve(process.cwd(), "src/builder/render/DocumentView.tsx"), "utf8")
   assert.match(view, /import "\.\/desktop-width\.css"/)
-  assert.match(view, /dwAttr\(widgetDesktopWidth\(widget\)\)/)
+  assert.match(view, /dwAttr\(dw\)/)
+})
+
+test("packDesktopWidths: stray halves go full, pairs kept (alikhabari layout)", () => {
+  assert.deepEqual(packDesktopWidths(["half", "half", "half", "full", "half", "full", "half", "half"]), ["half", "half", "full", "full", "full", "full", "half", "half"])
+  assert.deepEqual(packDesktopWidths(["wide", "narrow", "wide", "half"]), ["wide", "narrow", "full", "full"])
+  assert.deepEqual(packDesktopWidths(["narrow", "narrow", "half"]), ["narrow", "narrow", "full"])
+  assert.deepEqual(packDesktopWidths(["half", "half", "half", "half"]), ["half", "half", "half", "half"])
+})
+test("packVisible skips hidden items", () => {
+  const xs = [{ w: "half", h: false }, { w: "half", h: true }, { w: "half", h: false }] as const
+  assert.deepEqual(packVisible([...xs], (x) => x.w, (x) => x.h), ["half", "full", "half"])
 })
