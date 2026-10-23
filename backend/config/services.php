@@ -22,4 +22,7 @@ return [
         'secret' => env('REVALIDATE_SECRET'),
     ],
 
+    'public_api_cache' => env('PUBLIC_API_CACHE', true),
+    'sentry_dsn' => env('SENTRY_LARAVEL_DSN'),
+    'api_rate_limit_per_minute' => env('API_RATE_LIMIT_PER_MINUTE', 120),
 ];

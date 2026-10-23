@@ -55,6 +55,7 @@ return Application::configure(basePath: dirname(__DIR__))
             'fieldsec' => \Modules\Core\Http\Middleware\ApplyFieldPermissions::class,
             'require.2fa' => \App\Http\Middleware\RequireTwoFactor::class,
             'user.active' => \App\Http\Middleware\EnsureUserIsActive::class,
+            'public.cache' => \App\Http\Middleware\CachePublicResponse::class,
         ]);
 
         // Caddy (and any reverse proxy) sits in front — trust X-Forwarded-* so

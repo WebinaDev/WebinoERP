@@ -57,6 +57,8 @@ class AppServiceProvider extends ServiceProvider
 
     public function boot(): void
     {
+        \App\Support\PublicCache\PublicResponseCache::register();
+
         // Site provision builds can run ~40 minutes. The framework default
         // redis retry_after (90s) releases the job while the first worker is
         // still cloning/building, so the site sits queued or starts twice.
@@ -103,8 +105,8 @@ class AppServiceProvider extends ServiceProvider
 
         User::observe(UserObserver::class);
 
-        if (env('SENTRY_LARAVEL_DSN') && class_exists(SentrySdk::class)) {
-            \Sentry\init(['dsn' => env('SENTRY_LARAVEL_DSN'), 'environment' => config('app.env')]);
+        if (config('services.sentry_dsn') && class_exists(SentrySdk::class)) {
+            \Sentry\init(['dsn' => config('services.sentry_dsn'), 'environment' => config('app.env')]);
         }
 
         Gate::policy(CrmLead::class, LeadPolicy::class);

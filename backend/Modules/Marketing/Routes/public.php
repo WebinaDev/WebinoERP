@@ -9,7 +9,7 @@ use Modules\Marketing\Http\Controllers\Public\PublicFormsController;
 use Modules\Marketing\Http\Controllers\Public\PublicSiteController;
 
 Route::middleware('throttle:marketing-public')->group(function () {
-    Route::get('/site', [PublicSiteController::class, 'site']);
+    Route::get('/site', [PublicSiteController::class, 'site'])->middleware('public.cache');
     Route::get('/sitemap', [\Modules\Marketing\Http\Controllers\Public\PublicSitemapController::class, 'index']);
     Route::get('/home', [PublicSiteController::class, 'home']);
     Route::get('/services', [PublicSiteController::class, 'services']);
@@ -27,15 +27,15 @@ Route::middleware('throttle:marketing-public')->group(function () {
     Route::get('/academy', [PublicContentController::class, 'academy']);
     Route::get('/academy/{slug}', [PublicContentController::class, 'academyShow']);
 
-    Route::get('/builder/pages/{slug}', [PublicBuilderController::class, 'page']);
+    Route::get('/builder/pages/{slug}', [PublicBuilderController::class, 'page'])->middleware('public.cache');
     Route::get('/builder/preview/{token}', [PublicBuilderController::class, 'preview'])->middleware('throttle:60,1');
     Route::post('/builder/ab/{test}/event', [\Modules\Marketing\Http\Controllers\Builder\BuilderAbController::class, 'event'])->whereNumber('test')->middleware('throttle:120,1');
     Route::get('/builder/collections/{slug}/items', [\Modules\Marketing\Http\Controllers\Builder\BuilderCollectionsController::class, 'publicItems']);
     Route::get('/builder/collections/{slug}/items/{collectionItem}', [\Modules\Marketing\Http\Controllers\Builder\BuilderCollectionsController::class, 'publicItem']);
-    Route::get('/builder/templates/{kind}', [PublicBuilderController::class, 'template']);
-    Route::get('/builder/resolve', [PublicBuilderController::class, 'resolve']);
-    Route::get('/builder/globals', [BuilderGlobalsController::class, 'publicShow']);
-    Route::get('/menus/{location}', [PublicFormsController::class, 'menu']);
+    Route::get('/builder/templates/{kind}', [PublicBuilderController::class, 'template'])->middleware('public.cache');
+    Route::get('/builder/resolve', [PublicBuilderController::class, 'resolve'])->middleware('public.cache');
+    Route::get('/builder/globals', [BuilderGlobalsController::class, 'publicShow'])->middleware('public.cache');
+    Route::get('/menus/{location}', [PublicFormsController::class, 'menu'])->middleware('public.cache');
     Route::get('/forms/{slug}', [PublicFormsController::class, 'show']);
 
     Route::get('/portfolio', [PublicContentController::class, 'portfolio']);

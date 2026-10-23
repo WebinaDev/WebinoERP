@@ -66,7 +66,7 @@ class ThrottleApiToken
             return max(1, (int) $configured);
         }
 
-        return max(1, (int) env('API_RATE_LIMIT_PER_MINUTE', 120));
+        return max(1, (int) config('services.api_rate_limit_per_minute', 120));
     }
 
     private function isSiteBuilderWizardRequest(Request $request): bool

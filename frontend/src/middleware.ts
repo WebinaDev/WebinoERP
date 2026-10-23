@@ -48,8 +48,20 @@ async function fetchGate(request: NextRequest): Promise<GateData | null> {
   return null
 }
 
+/** /_next/image can't fetch relative /storage|/uploads srcs: point it at the backend origin. */
+function rewriteImageOptimizerSource(request: NextRequest): NextResponse | null {
+  const src = request.nextUrl.searchParams.get("url") || ""
+  if (!/^\/(storage|uploads)\//.test(src)) return null
+  const base = getServerApiBase().replace(/\/+$/, "").replace(/\/api(\/v1)?$/, "")
+  if (!/^https?:\/\//.test(base)) return null
+  const next = request.nextUrl.clone()
+  next.searchParams.set("url", `${base}${src}`)
+  return NextResponse.rewrite(next)
+}
+
 export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl
+  if (pathname === "/_next/image") return rewriteImageOptimizerSource(request) ?? NextResponse.next()
   const host = (request.headers.get("host") ?? "").split(":")[0].toLowerCase()
 
   // contact.webina.dev → contact hub (same ERP frontend)
@@ -131,5 +143,5 @@ export async function middleware(request: NextRequest) {
 }
 
 export const config = {
-  matcher: ["/((?!api|_next|_vercel|.*\\..*).*)"],
+  matcher: ["/((?!api|_next|_vercel|.*\\..*).*)", "/_next/image"],
 }

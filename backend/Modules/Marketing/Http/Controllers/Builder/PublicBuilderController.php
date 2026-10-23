@@ -50,6 +50,7 @@ class PublicBuilderController extends Controller
 
     public function resolve(Request $request): JsonResponse
     {
+        abort_unless($request->filled('kind'), 404);
         $data = $request->validate([
             'kind' => 'required|string|max:32',
             'path' => 'nullable|string|max:500',
