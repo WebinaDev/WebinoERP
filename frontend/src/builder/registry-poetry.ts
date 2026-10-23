@@ -9,6 +9,10 @@ function node(type: string, props: Record<string, unknown>): WidgetNode {
 const tone: FieldDef = { kind: "select", key: "tone", label: "زمینه", options: [{ value: "light", label: "کرم روشن" }, { value: "dark", label: "زرشکی تیره" }] }
 const frame: FieldDef = { kind: "select", key: "frame", label: "قاب تصویر", options: [{ value: "arch", label: "محرابی (طاق)" }, { value: "rounded", label: "گرد" }, { value: "square", label: "ساده" }] }
 const pattern: FieldDef = { kind: "switch", key: "pattern", label: "پس‌زمینه نقش اسلیمی" }
+const SOCIALS: FieldDef = { kind: "repeater", key: "socials", label: "شبکه‌های اجتماعی", fields: [
+  { key: "network", label: "شبکه", kind: "select", options: [{ value: "eitaa", label: "ایتا" }, { value: "telegram", label: "تلگرام" }, { value: "instagram", label: "اینستاگرام" }, { value: "bale", label: "بله" }, { value: "youtube", label: "یوتیوب" }, { value: "aparat", label: "آپارات" }] },
+  { key: "href", label: "نشانی", kind: "url" },
+] }
 const ICONS = [{ value: "flame", label: "شعله" }, { value: "moon", label: "ماه" }, { value: "star", label: "ستاره" }, { value: "book", label: "کتاب" }, { value: "music", label: "صوت" }, { value: "video", label: "ویدیو" }]
 
 export const POETRY_WIDGET_TYPES = [
@@ -97,7 +101,7 @@ export const POETRY_WIDGETS: WidgetDef[] = [
     fields: [
       { kind: "media", key: "image", label: "تصویر", accept: "image" },
       { kind: "text", key: "eyebrow", label: "برچسب" }, { kind: "text", key: "title", label: "عنوان" }, { kind: "textarea", key: "text", label: "متن" },
-      { kind: "text", key: "linkLabel", label: "متن «بیشتر بخوانید»" }, { kind: "link", key: "linkHref", label: "پیوند" },
+      SOCIALS, { kind: "text", key: "linkLabel", label: "متن «بیشتر بخوانید»" }, { kind: "link", key: "linkHref", label: "پیوند" },
       tone, frame, pattern,
     ],
     create: () => node("poet-about", { eyebrow: "درباره شاعر", title: "", text: "", linkLabel: "بیشتر بخوانید", linkHref: "/about", tone: "light", frame: "arch" }),

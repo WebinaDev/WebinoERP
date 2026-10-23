@@ -246,6 +246,7 @@ export function PoetAboutWidget({ widget }: { widget: WidgetNode }) {
         {propStr(p, "eyebrow") ? <span className="wpz-eyebrow">{propStr(p, "eyebrow")}</span> : null}
         <h2 className="wpz-h2">{propStr(p, "title")}</h2>
         {propStr(p, "text").split(/\n{2,}/).filter(Boolean).map((t, i) => <p key={i} className="wpz-text">{t}</p>)}
+        <SocialRow value={p.socials} />
         {propStr(p, "linkLabel") ? <Link className="wpz-more" href={safeHref(propStr(p, "linkHref"), "/about")}>{propStr(p, "linkLabel")} <ArrowLeft className="h-4 w-4" /></Link> : null}
       </div>
     </section>
@@ -266,6 +267,25 @@ export function QuoteBlockWidget({ widget }: { widget: WidgetNode }) {
 
 const SOCIAL_LABELS: Record<string, string> = { instagram: "اینستاگرام", telegram: "تلگرام", bale: "بله", eitaa: "ایتا", youtube: "یوتیوب", aparat: "آپارات", x: "ایکس" }
 
+const SOCIAL_IMG: Record<string, string> = { eitaa: "/brand/connect/eitaa.png", bale: "/brand/connect/bale.png", instagram: "/brand/connect/instagram.svg", telegram: "/brand/connect/telegram.svg", rubika: "/brand/connect/rubika.png" }
+
+export function SocialGlyph({ network }: { network: string }) {
+  if (SOCIAL_IMG[network]) return <img src={SOCIAL_IMG[network]} alt="" className="h-5 w-5 rounded-full" />
+  return <span aria-hidden>{(SOCIAL_LABELS[network] ?? network).slice(0, 1)}</span>
+}
+
+export function SocialRow({ value }: { value: unknown }) {
+  const socials = parseRows(value, ["network", "href"]).filter((r) => r.href)
+  if (!socials.length) return null
+  return (
+    <div className="wpz-socials">
+      {socials.map((s, i) => (
+        <a key={i} href={safeHref(s.href)} target="_blank" rel="noopener noreferrer" aria-label={SOCIAL_LABELS[s.network] ?? s.network} className="wpz-social"><SocialGlyph network={s.network} /></a>
+      ))}
+    </div>
+  )
+}
+
 /** 9) dark crimson footer: logo, link columns, social icons. */
 export function PoetryFooterWidget({ widget }: { widget: WidgetNode }) {
   const p = widget.props
@@ -284,7 +304,7 @@ export function PoetryFooterWidget({ widget }: { widget: WidgetNode }) {
       <div className="wpz-socials">
         {socials.map((s, i) => (
           <a key={i} href={safeHref(s.href)} target="_blank" rel="noopener noreferrer" aria-label={SOCIAL_LABELS[s.network] ?? s.network} className="wpz-social">
-            {(SOCIAL_LABELS[s.network] ?? s.network).slice(0, 1)}
+            <SocialGlyph network={s.network} />
           </a>
         ))}
       </div>
