@@ -22,6 +22,11 @@ class CrmAccount extends Model
         'name', 'account_code', 'website', 'parent_id', 'type', 'tax_id', 'industry',
         'employees_count', 'annual_revenue', 'billing_address', 'shipping_address',
         'owner_id', 'description', 'created_by',
+        // Customer 360 Hub
+        'customer_kind', 'hub_status', 'brand_name', 'national_id', 'economic_code', 'registration_no',
+        'postal_code', 'address_line', 'city', 'province', 'country', 'logo_url', 'kyc_status', 'kyc_note',
+        'kyc_verified_at', 'preferred_language', 'preferred_channel', 'timezone', 'marketing_sms_opt_out',
+        'referrer_account_id', 'partner_account_id', 'credit_limit', 'allowed_ips', 'suspended_at',
     ];
 
     protected function casts(): array
@@ -30,6 +35,10 @@ class CrmAccount extends Model
             'billing_address' => 'array',
             'shipping_address' => 'array',
             'annual_revenue' => 'decimal:2',
+            'allowed_ips' => 'array',
+            'marketing_sms_opt_out' => 'boolean',
+            'kyc_verified_at' => 'datetime',
+            'suspended_at' => 'datetime',
         ];
     }
 

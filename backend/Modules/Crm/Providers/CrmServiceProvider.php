@@ -47,6 +47,12 @@ class CrmServiceProvider extends ServiceProvider
                 Route::post('/consultations/ingest', [ConsultationIngestController::class, 'store']);
             });
 
+        // Customer 360 Hub: section-level RBAC is enforced in CustomerHubAccess so finance /
+        // support roles without crm.accounts.view can still open their own sections.
+        Route::prefix('api/v1/crm/customers')
+            ->middleware(['api', 'auth:sanctum', 'module:crm'])
+            ->group(module_path($this->moduleName, 'Routes/hub.php'));
+
         Route::prefix('api/v1/crm')
             ->middleware(['api', 'auth:sanctum', 'module:crm', 'module.permission:crm'])
             ->group(module_path($this->moduleName, 'Routes/api.php'));

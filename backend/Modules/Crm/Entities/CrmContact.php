@@ -15,7 +15,7 @@ class CrmContact extends Model
     protected $fillable = [
         'account_id', 'first_name', 'last_name', 'email', 'mobile', 'phone',
         'job_title', 'reports_to', 'decision_role', 'is_primary', 'social_profiles',
-        'assigned_to', 'description', 'created_by',
+        'assigned_to', 'description', 'created_by', 'whatsapp', 'contact_role',
     ];
 
     protected $casts = [
