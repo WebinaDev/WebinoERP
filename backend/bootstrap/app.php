@@ -26,6 +26,7 @@ return Application::configure(basePath: dirname(__DIR__))
         $schedule->command('webino:content:remind')->everyFifteenMinutes();
         $schedule->command('webino:oauth:refresh')->everyFiveMinutes();
         $schedule->command('webino:webhooks:retry')->everyMinute();
+        $schedule->command('site-builder:advance-provisions')->everyMinute()->withoutOverlapping(10);
         $schedule->command('webino:moadian:retry')->everyFiveMinutes();
         $schedule->command('webino:content:publish')->everyFiveMinutes();
         $schedule->command('webino:reports:send')->hourly();

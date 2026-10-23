@@ -177,6 +177,60 @@ class SiteProvisionOrchestrator
         }
     }
 
+    /**
+     * Advance one ssl_pending provision without relying on the status page poll:
+     * health probe -> signed bootstrap -> ready. Failures go to error_log and
+     * back off exponentially (1, 2, 4 … max 30 minutes) per provision.
+     *
+     * @return string one of: not_pending, backoff, unhealthy, ready, failed
+     */
+    public function advanceSslPending(WebinoSiteProvision $provision): string
+    {
+        if ($provision->status !== WebinoSiteProvision::STATUS_SSL_PENDING) {
+            return 'not_pending';
+        }
+        $attemptKey = 'site_builder:auto_bootstrap:attempts:'.$provision->id;
+        $nextKey = 'site_builder:auto_bootstrap:next:'.$provision->id;
+        $next = Cache::get($nextKey);
+        if ($next !== null && (int) $next > now()->getTimestamp()) {
+            return 'backoff';
+        }
+        $attempts = (int) Cache::get($attemptKey, 0);
+        $backoff = function (string $message) use ($provision, $attempts, $attemptKey, $nextKey): void {
+            $n = $attempts + 1;
+            $minutes = min(30, 2 ** min($attempts, 5));
+            Cache::put($attemptKey, $n, now()->addDay());
+            Cache::put($nextKey, now()->addMinutes($minutes)->getTimestamp(), now()->addDay());
+            $provision->update(['error_log' => '['.now()->toIso8601String().'] auto-bootstrap attempt '.$n.': '.mb_substr($message, 0, 1000)]);
+        };
+
+        if (! $this->waitForHealthy((string) $provision->domain, attempts: 1, timeoutSeconds: 5)) {
+            $backoff('health check failed for https://'.$provision->domain.'/api/v1/health/metrics');
+
+            return 'unhealthy';
+        }
+
+        try {
+            $seed = $this->buildSeedJson($provision, $provision->wizard_payload ?? []);
+            $this->bootstrapRemoteSite((string) $provision->domain, (string) $provision->provision_token, $seed);
+        } catch (Throwable $e) {
+            $backoff($e->getMessage());
+
+            return 'failed';
+        }
+
+        Cache::forget($attemptKey);
+        Cache::forget($nextKey);
+        $provision->update([
+            'status' => WebinoSiteProvision::STATUS_READY,
+            'ready_at' => $provision->ready_at ?? now(),
+            'error_log' => null,
+            'progress' => ProvisionProgress::make(ProvisionProgress::PHASE_DONE),
+        ]);
+
+        return 'ready';
+    }
+
     public function logs(WebinoSiteProvision $provision, int $tail = 200): string
     {
         if ($this->shouldUseLocal($provision)) {
