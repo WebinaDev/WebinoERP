@@ -52,6 +52,15 @@ const CtaBannerWidget = dynamic(() => import("./content-widgets").then((m) => m.
 const IconCardsWidget = dynamic(() => import("./content-widgets").then((m) => m.IconCardsWidget))
 const SectionHeadingWidget = dynamic(() => import("./content-widgets").then((m) => m.SectionHeadingWidget))
 const StepsWidget = dynamic(() => import("./content-widgets").then((m) => m.StepsWidget))
+const PoetryHeroWidget = dynamic(() => import("./poetry-widgets").then((m) => m.PoetryHeroWidget))
+const PoemListWidget = dynamic(() => import("./poetry-widgets").then((m) => m.PoemListWidget))
+const BookBannerWidget = dynamic(() => import("./poetry-widgets").then((m) => m.BookBannerWidget))
+const OccasionCardsWidget = dynamic(() => import("./poetry-widgets").then((m) => m.OccasionCardsWidget))
+const MediaCardsWidget = dynamic(() => import("./poetry-widgets").then((m) => m.MediaCardsWidget))
+const ShopShowcaseWidget = dynamic(() => import("./poetry-widgets").then((m) => m.ShopShowcaseWidget))
+const PoetAboutWidget = dynamic(() => import("./poetry-widgets").then((m) => m.PoetAboutWidget))
+const QuoteBlockWidget = dynamic(() => import("./poetry-widgets").then((m) => m.QuoteBlockWidget))
+const PoetryFooterWidget = dynamic(() => import("./poetry-widgets").then((m) => m.PoetryFooterWidget))
 const CorporateWidget = dynamic(() => import("@/themes/webina-corporate-v1/builder/CorporateWidget").then((m) => m.CorporateWidget))
 const AccordionWidget = dynamic(() => import("./extra-widgets").then((m) => m.AccordionWidget))
 const AnnouncementWidget = dynamic(() => import("./extra-widgets").then((m) => m.AnnouncementWidget))
@@ -425,6 +434,24 @@ export function WidgetBody({ widget, editor }: { widget: WidgetNode; editor?: Ed
       return <IconCardsWidget widget={widget} />
     case "badges":
       return <BadgesWidget widget={widget} />
+    case "poetry-hero":
+      return <PoetryHeroWidget widget={widget} />
+    case "poem-list":
+      return <PoemListWidget widget={widget} />
+    case "book-banner":
+      return <BookBannerWidget widget={widget} />
+    case "occasion-cards":
+      return <OccasionCardsWidget widget={widget} />
+    case "media-cards":
+      return <MediaCardsWidget widget={widget} />
+    case "shop-showcase":
+      return <ShopShowcaseWidget widget={widget} />
+    case "poet-about":
+      return <PoetAboutWidget widget={widget} />
+    case "quote-block":
+      return <QuoteBlockWidget widget={widget} />
+    case "poetry-footer":
+      return <PoetryFooterWidget widget={widget} />
     case "cta-banner":
       return <CtaBannerWidget widget={widget} />
     case "rahn-estimate":
