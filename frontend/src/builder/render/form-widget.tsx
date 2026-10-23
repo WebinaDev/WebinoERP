@@ -143,6 +143,9 @@ export function FormWidget({ widget }: { widget: WidgetNode }) {
   const [pending, setPending] = useState(false)
   const [error, setError] = useState("")
   const [hp, setHp] = useState("")
+  const [human, setHuman] = useState(false)
+  // Captcha is enforced server-side from the published widget; CRM action + webhook run only on the server.
+  const captcha = widget.props.captcha === true
   const started = useRef<number | null>(null)
   const success = propStr(widget.props, "success", "پیام شما ثبت شد. به‌زودی پاسخ می‌دهیم.")
   const formKey = propStr(widget.props, "formKey", "") || "contact"
@@ -223,6 +226,8 @@ export function FormWidget({ widget }: { widget: WidgetNode }) {
           body: JSON.stringify({
             payload: visiblePayload(fields, values),
             page_uri: typeof window !== "undefined" ? window.location.pathname : "",
+            widget_id: widget.id,
+            _captcha: captcha && human ? "1" : undefined,
             _hp: hp,
             _t: started.current ? Date.now() - started.current : 0,
           }),
@@ -314,6 +319,12 @@ export function FormWidget({ widget }: { widget: WidgetNode }) {
       {error ? <p className="wb-form-error" role="alert">{error}</p> : null}
       <div className="flex gap-2">
         {step > 1 ? <button type="button" className="wb-btn wb-btn-outline" onClick={() => { setError(""); setStep(step - 1) }}>قبلی</button> : null}
+        {captcha && last ? (
+          <label className="flex items-center gap-2 rounded-2xl border border-border bg-muted/40 px-3 py-2 text-sm">
+            <input type="checkbox" name="_captcha" checked={human} onChange={(e) => setHuman(e.target.checked)} required />
+            <span>من ربات نیستم</span>
+          </label>
+        ) : null}
         <button type="submit" className="wb-btn wb-btn-primary flex-1" disabled={pending}>
           {pending ? "…" : last ? propStr(widget.props, "submit", "ارسال") : "بعدی"}
         </button>

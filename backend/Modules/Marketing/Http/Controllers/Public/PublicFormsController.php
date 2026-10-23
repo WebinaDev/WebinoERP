@@ -9,6 +9,7 @@ use Modules\Marketing\Entities\MarketingForm;
 use Modules\Marketing\Entities\MarketingFormSubmission;
 use Modules\Marketing\Entities\MarketingMenu;
 use Modules\Marketing\Http\Controllers\Controller;
+use Modules\Marketing\Services\Builder\FormWidgetActions;
 use Modules\Marketing\Services\FormSubmissionHooks;
 use Modules\Marketing\Services\FormUploads;
 
@@ -67,7 +68,12 @@ class PublicFormsController extends Controller
         if (filled($request->input('_hp')) || ($request->has('_t') && (int) $request->input('_t') < 1500)) {
             return response()->json(['data' => ['id' => null, 'message' => $form->success_message ?: 'دریافت شد']], 201);
         }
-        $data = $request->validate($rules + ['payload' => 'required|array', 'page_uri' => 'nullable|string|max:255']);
+        $data = $request->validate($rules + ['payload' => 'required|array', 'page_uri' => 'nullable|string|max:255', 'widget_id' => 'nullable|string|max:64']);
+        // Widget-level captcha / CRM action / webhook come from the published builder document, never the request.
+        $widget = FormWidgetActions::props($data['widget_id'] ?? null, $form->slug);
+        if ($widget && $widget['captcha'] && $request->input('_captcha') !== '1') {
+            return response()->json(['message' => 'لطفاً تأیید کنید که ربات نیستید.', 'errors' => ['_captcha' => ['required']]], 422);
+        }
         $row = MarketingFormSubmission::query()->create([
             'form_id' => $form->id,
             'payload' => $data['payload'],
@@ -75,6 +81,9 @@ class PublicFormsController extends Controller
         ]);
 
         FormSubmissionHooks::dispatch($form, $data['payload'], $data['page_uri'] ?? null);
+        if ($widget) {
+            FormWidgetActions::run($widget, $form->slug, $data['payload'], FormSubmissionHooks::notes($form, $data['payload'], $data['page_uri'] ?? null));
+        }
 
         return response()->json([
             'data' => ['id' => $row->id, 'message' => $form->success_message ?: 'دریافت شد'],
