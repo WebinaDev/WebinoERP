@@ -30,3 +30,10 @@ describe('Customer 360 phase 5 skeleton', () => {
     expect(mergeUrl(5)).toBe('/v1/crm/customers/5/hub/merge');
   });
 });
+
+describe('Customer 360 phase 5 gating', () => {
+  it('phase 5 routes are disabled', async () => {
+    const { CUSTOMER360_PHASE5_ENABLED } = await import('./flags');
+    expect(CUSTOMER360_PHASE5_ENABLED).toBe(false);
+  });
+});
