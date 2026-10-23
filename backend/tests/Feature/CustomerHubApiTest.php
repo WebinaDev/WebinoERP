@@ -137,8 +137,8 @@ class CustomerHubApiTest extends TestCase
         $this->postJson("/api/v1/crm/customers/$id/hub/actions/note", ['body' => 'Called client'])->assertCreated();
         $this->postJson("/api/v1/crm/customers/$id/hub/actions/project", ['name' => 'Redesign'])->assertCreated();
         $this->postJson("/api/v1/crm/customers/$id/hub/actions/owner", ['owner_id' => $admin->id])->assertOk()->assertJsonPath('data.owner.id', $admin->id);
-        $this->postJson("/api/v1/crm/customers/$id/hub/actions/suspend", ['reason' => 'debt'])->assertOk()->assertJsonPath('data.status', 'blocked');
-        $this->postJson("/api/v1/crm/customers/$id/hub/actions/activate")->assertOk()->assertJsonPath('data.status', 'active');
+        $this->postJson("/api/v1/crm/customers/$id/hub/actions/suspend", ['reason' => 'debt', 'confirm' => true])->assertOk()->assertJsonPath('data.status', 'blocked');
+        $this->postJson("/api/v1/crm/customers/$id/hub/actions/activate", ['confirm' => true])->assertOk()->assertJsonPath('data.status', 'active');
 
         $this->assertGreaterThanOrEqual(8, DB::table('crm_customer_audit')->where('account_id', $id)->count());
         $hub = $this->getJson("/api/v1/crm/customers/$id/hub")->assertOk();
