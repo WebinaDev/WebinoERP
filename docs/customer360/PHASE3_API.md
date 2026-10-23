@@ -21,6 +21,14 @@ Base: `/api/v1/crm/customers/{id}/hub` (frontend client: `/v1/crm/customers/{id}
 Manage actions (`CustomerHubAccess::MANAGE`): `sms` → `crm.hub.sms.send`; `basalam` (link stores) → `crm.accounts.manage`;
 `payment` → `sales.invoices.manage|accounting.receipt.manage`; `invoice` → `sales.invoices.manage`.
 
+## Nullable fields (summary)
+- **Money (null without `billing` view):** orders `total`, `paid_amount`; order kpis amounts; accounting `balance`, `outstanding`,
+  `overdue`, aging buckets, ledger `debit`/`credit`/`balance`/`opening_balance`/`closing_balance`; invoice `total`, `remaining`; payment `amount`.
+- **Always nullable:** dates (`placed_at`, `paid_at`, `issue_date`, `due_date`, `sent_at`, `delivered_at`), order `customer_name`/`mobile`,
+  Basalam `store_name`/`domain`, accounting `acc_person` (no matching accounting person), invoice `overdue_days` (when not overdue),
+  SMS `template_id`, `subject`, `user_id`, `error`, recipients `name`.
+- **Never null:** `id`/`ref`, `source`, `status`, `currency`, `meta.total`, `meta.can.*` (booleans), `opt_out` (bool), list arrays (empty `[]`).
+
 ---
 ## 1. Orders — `GET /hub/orders`
 Query: `source=all|marketplace|basalam` (default all), `status`, `q` (order number / buyer), `paid=1|0`.
