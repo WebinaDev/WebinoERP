@@ -710,7 +710,12 @@ class CustomerHubService
     public function usage(CrmAccount $a): array
     {
         $metrics = $this->rows('crm_customer_usage_metrics', fn ($q) => $q->where('account_id', $a->id)->orderByDesc('period'), 2000);
-        $latest = $metrics->groupBy('metric')->map(fn ($g) => (float) $g->first()->value);
+        // Latest period per metric, summed across the customer's sites (one row per site/metric/day from crm:hub-sync-sites).
+        $latest = $metrics->groupBy('metric')->map(function ($g) {
+            $p = $g->first()->period;
+
+            return (float) $g->where('period', $p)->unique(fn ($m) => (string) ($m->site_provision_id ?? 'm'.$m->id))->sum('value');
+        });
         $domains = $this->domains($a);
         $smsSent = $domains ? ($this->has('modirpayamak_messages') ? DB::table('modirpayamak_messages')->whereIn('domain', $domains)->count() : 0) : 0;
         $orders = $this->has('marketplace_orders') ? DB::table('marketplace_orders')->where('crm_account_id', $a->id)->count() : 0;
@@ -727,6 +732,13 @@ class CustomerHubService
             'panel_users' => count($this->portalUserIds($a)),
             'last_login_at' => $this->lastLoginAt($a),
             'server_metrics_connected' => $metrics->whereIn('metric', ['cpu_pct', 'ram_mb', 'storage_mb', 'traffic_mb'])->isNotEmpty(),
+            'site_orders' => isset($latest['orders']) ? (int) $latest['orders'] : null,
+            'site_orders_30d' => isset($latest['orders_30d']) ? (int) $latest['orders_30d'] : null,
+            'site_customers' => isset($latest['customers']) ? (int) $latest['customers'] : null,
+            'site_open_tickets' => isset($latest['open_tickets']) ? (int) $latest['open_tickets'] : null,
+            'collected_at' => $metrics->max('updated_at') ?? $metrics->max('created_at'),
+            'sync' => $this->has('crm_customer_site_links') ? DB::table('crm_customer_site_links')->where('account_id', $a->id)
+                ->get(['site_provision_id', 'usage_synced_at', 'usage_attempts', 'usage_next_at', 'usage_error', 'suspension_desired', 'suspension_error']) : [],
         ];
     }
 
@@ -737,7 +749,7 @@ class CustomerHubService
                 $vis = $this->json($d->visible_to_roles);
 
                 return $admin || ! $vis || array_intersect($vis, $roles);
-            })->map(fn ($d) => (array) $d + ['visible_to_roles' => $this->json($d->visible_to_roles), 'expired' => $d->expires_at && CarbonImmutable::parse($d->expires_at)->isPast(), 'source' => 'hub']);
+            })->map(fn ($d) => array_merge((array) $d, ['has_file' => ! empty($d->file_path ?? null), 'visible_to_roles' => $this->json($d->visible_to_roles)]) + ['expired' => $d->expires_at && CarbonImmutable::parse($d->expires_at)->isPast(), 'source' => 'hub']);
         // contracts from Projects appear as documents too
         foreach ($this->rows('prj_contracts', fn ($q) => $q->where('customer_account_id', $a->id)) as $c) {
             $docs->push(['id' => 'contract-'.$c->id, 'category' => 'contract', 'title' => $c->title, 'url' => null, 'review_status' => $c->status, 'source' => 'projects']);

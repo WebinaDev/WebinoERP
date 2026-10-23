@@ -20,6 +20,7 @@ class CustomerHubAccess
         'sales' => ['crm.deals.view', 'projects.projects.view'],
         'support' => ['projects.tickets.view', 'crm.tickets.view'],
         'usage' => ['crm.accounts.view', 'platform.view'],
+        'site_panel' => ['crm.accounts.view', 'projects.tickets.view', 'sales.invoices.view'],
         'documents' => ['crm.accounts.view', 'accounting.view'],
         'access' => ['core.users.view', 'crm.accounts.manage'],
         'relations' => ['crm.accounts.view'],
