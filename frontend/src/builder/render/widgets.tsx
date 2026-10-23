@@ -2,6 +2,8 @@
 
 import dynamic from "next/dynamic"
 
+import { ArchiveFiltersWidget } from "./archive-filters"
+import { AudioBlockWidget, BeforeAfterWidget, LoginFormWidget, LottieWidget, OffCanvasWidget, RegisterFormWidget, SiteFooterWidget, SiteHeaderWidget, TeamGridWidget, VideoEmbedWidget } from "./gap-widgets"
 import DOMPurify from "dompurify"
 import { Heart, ShieldCheck, Sparkles, Star, Truck } from "lucide-react"
 import Link from "next/link"
@@ -511,7 +513,33 @@ export function WidgetBody({ widget, editor }: { widget: WidgetNode; editor?: Ed
       return <AnnouncementsListWidget widget={widget} />
     case "comparison-table":
       return <ComparisonTableWidget widget={widget} />
+    case "archive-filters":
+      return <ArchiveFiltersWidget widget={widget} editing={editing} />
+    case "team-grid":
+      return <TeamGridWidget widget={widget} />
+    case "video-embed":
+      return <VideoEmbedWidget widget={widget} />
+    case "audio-block":
+      return <AudioBlockWidget widget={widget} />
+    case "before-after":
+      return <BeforeAfterWidget widget={widget} />
+    case "lottie":
+      return <LottieWidget widget={widget} />
+    case "login-form":
+      return <LoginFormWidget widget={widget} editing={editing} />
+    case "register-form":
+      return <RegisterFormWidget widget={widget} editing={editing} />
+    case "off-canvas":
+      return <OffCanvasWidget widget={widget} editing={editing} />
+    case "site-header":
+      return <SiteHeaderWidget widget={widget} siteName={runtime.siteName} logoUrl={runtime.logoUrl} />
+    case "site-footer":
+      return <SiteFooterWidget widget={widget} siteName={runtime.siteName} />
     case "container":
+    case "section":
+    case "columns":
+    case "flex-container":
+    case "grid-container":
       return null
     default:
       return <p className="text-sm text-muted-foreground">ویجت {widget.type}</p>

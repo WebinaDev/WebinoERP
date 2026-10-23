@@ -6,6 +6,8 @@ export default defineConfig({
     environment: 'jsdom',
     globals: true,
     setupFiles: ['./vitest.setup.ts'],
+    // @webina/ui ships extensionless ESM imports; let Vite resolve them.
+    server: { deps: { inline: ['@webina/ui'] } },
     include: ['**/*.{test,spec}.{ts,tsx}'],
     coverage: {
       provider: 'v8',

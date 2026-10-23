@@ -2,9 +2,10 @@
  * CONTENT_WIDGETS: landing-page widgets (section heading, steps, icon cards, badges, CTA, comparison, rahn). */
 
 import { uid } from "./ids"
-import { sharedContentWidgets, sharedFormWidget } from "@webina/ui/builder"
+import { sharedContentWidgets, sharedFormWidget, sharedGapWidgets } from "@webina/ui/builder"
 import { ICON_OPTIONS } from "./render/icon-options"
 import { DETAIL_ICON_OPTIONS } from "./render/portfolio-detail-icons"
+import { createSection } from "./tree"
 import type { WidgetDef, WidgetNode } from "./types"
 
 function node(type: string, props: Record<string, unknown>): WidgetNode {
@@ -297,3 +298,43 @@ export const CONTENT_WIDGETS: WidgetDef[] = [
     create: () => node("announcements-list", {"allLabel": "همه", "archiveLabel": "آرشیو ماهانه / سالانه", "emptyText": "اطلاعیه‌ای منتشر نشده است."}),
   },
 ]
+
+/** Advanced product archive filters (shared with WebinoDashboard); feeds product Loop Grids of the same filter group. */
+export const ARCHIVE_FILTERS_WIDGET: WidgetDef = {
+  type: "archive-filters",
+  label: "فیلتر پیشرفته آرشیو",
+  category: "commerce",
+  fields: [
+    { kind: "text", key: "filterGroup", label: "گروه فیلتر (همان مقدار در ویجت لوپ محصولات)" },
+    { kind: "text", key: "title", label: "عنوان" },
+    { kind: "switch", key: "syncUrl", label: "همگام با نشانی صفحه (قابل اشتراک)" },
+    { kind: "switch", key: "showSearch", label: "جستجو" },
+    { kind: "switch", key: "showSort", label: "مرتب‌سازی" },
+    { kind: "switch", key: "showCategory", label: "دسته‌بندی" },
+    { kind: "switch", key: "showPrice", label: "بازه قیمت" },
+    { kind: "text", key: "currencyLabel", label: "واحد قیمت" },
+    { kind: "switch", key: "showStock", label: "فقط موجود" },
+    { kind: "switch", key: "showOnSale", label: "فقط تخفیف‌دار" },
+    { kind: "textarea", key: "tags", label: "برچسب‌ها (نامک|عنوان در هر خط)" },
+    { kind: "textarea", key: "attributes", label: "ویژگی‌ها (ویژگی:مقدار|عنوان، مثل color:red|قرمز)" },
+  ],
+  create: () => node("archive-filters", { filterGroup: "shop", title: "فیلترها", syncUrl: true, showSearch: true, showSort: true, showCategory: true, showPrice: true, currencyLabel: "تومان", showStock: true, showOnSale: true, tags: "", attributes: "" }),
+}
+
+const SECTION_PRESETS: Record<string, number[]> = { "12": [12], "6-6": [6, 6], "4-4-4": [4, 4, 4], "3-3-3-3": [3, 3, 3, 3], "8-4": [8, 4], "4-8": [4, 8] }
+/**
+ * @webina/ui v0.2 gap pack (team, media, auth forms, layout containers, general header/footer), shared with
+ * WebinoDashboard. Layout types get nested sections here, as the shared package only ships schemas/defaults.
+ */
+export const GAP_WIDGETS: WidgetDef[] = sharedGapWidgets(ICON_OPTIONS).map((def) => {
+  const base = def as unknown as WidgetDef
+  if (!["section", "columns", "flex-container", "grid-container"].includes(def.type)) return base
+  return {
+    ...base,
+    create: () => {
+      const created = base.create()
+      const preset = typeof created.props.columnPreset === "string" ? SECTION_PRESETS[created.props.columnPreset] : undefined
+      return { ...created, children: [createSection(preset ?? [12])] }
+    },
+  }
+})

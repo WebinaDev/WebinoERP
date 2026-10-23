@@ -2,6 +2,7 @@
 
 import { useRef } from "react"
 
+import { LAYOUT_CONTAINER_TYPES, layoutContainerStyle } from "./gap-widgets"
 import { DEFAULT_GLOBALS, globalsCss, type BuilderGlobals } from "../globals"
 import { safeClass } from "../ids"
 import { advancedAttrs, advancedClass, advancedId, hasCustomLayout, layoutToCss, mergeStyle, spanFor, styleToCss } from "../style"
@@ -218,9 +219,15 @@ function WidgetBlock({ widget: own, device, editor, depth = 0 }: { widget: Widge
       ) : (
         <WidgetBody widget={resolved} editor={editor} />
       )}
-      {widget.type === "container" && widget.children
-        ? widget.children.map((section) => <SectionBlock key={section.id} section={section} device={device} editor={editor} depth={depth} />)
-        : null}
+      {LAYOUT_CONTAINER_TYPES.has(widget.type) && widget.children ? (
+        widget.type === "container" ? (
+          widget.children.map((section) => <SectionBlock key={section.id} section={section} device={device} editor={editor} depth={depth} />)
+        ) : (
+          <div className={`wb-layout wb-layout-${widget.type}`} style={layoutContainerStyle(widget)}>
+            {widget.children.map((section) => <SectionBlock key={section.id} section={section} device={device} editor={editor} depth={depth} />)}
+          </div>
+        )
+      ) : null}
     </div>
   )
 }
