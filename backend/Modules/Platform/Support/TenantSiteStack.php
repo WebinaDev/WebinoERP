@@ -167,7 +167,8 @@ YAML;
         // Backend must be on webino_sites or Caddy returns 502 while HTML still loads.
         return <<<CADDY
 {$site} {
-  encode gzip
+  import tenant_perf
+  import tenant_img {$project}
   handle /api/* {
     reverse_proxy {$project}-backend:8080 {
       header_up Host {host}

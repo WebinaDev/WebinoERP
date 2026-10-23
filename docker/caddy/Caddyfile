@@ -83,5 +83,37 @@ webinaagency.ir, www.webinaagency.ir {
 	redir https://webina.dev{uri} permanent
 }
 
+# Tenant performance defaults (imported by every tenant snippet from TenantSiteStack).
+(tenant_perf) {
+	encode zstd gzip
+	@tNextStatic path /_next/static/*
+	header @tNextStatic Cache-Control "public, max-age=31536000, immutable"
+	@tNextImage path /_next/image*
+	header @tNextImage Cache-Control "public, max-age=2592000, immutable"
+	header @tNextImage Vary Accept
+	@tFonts path /fonts/* *.woff2 *.woff *.ttf
+	header @tFonts Cache-Control "public, max-age=31536000, immutable"
+	@tStorage path /storage/*
+	header @tStorage Cache-Control "public, max-age=2592000"
+}
+
+# Tenant image cache: /_next/image + storage images via edge nginx (docker/edge/nginx.conf :8081).
+# Usage: import tenant_img ws-<slug>
+(tenant_img) {
+	handle /_next/image* {
+		reverse_proxy erp-edge:8081 {
+			header_up Host {host}
+			header_up X-Webina-Tenant {args[0]}
+		}
+	}
+	@tImgFile path_regexp tImgFile (?i)^/(storage|uploads|media)/.+\.(webp|avif|jpe?g|png|gif|svg)$
+	handle @tImgFile {
+		reverse_proxy erp-edge:8081 {
+			header_up Host {host}
+			header_up X-Webina-Tenant {args[0]}
+		}
+	}
+}
+
 # Per-tenant site snippets written by LocalSameVpsProvisioner
 import /etc/caddy/sites/*.caddy

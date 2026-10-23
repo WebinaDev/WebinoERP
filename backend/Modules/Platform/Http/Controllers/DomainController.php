@@ -127,7 +127,7 @@ class DomainController extends Controller
             $force = $domain->force_https ? '' : '# http allowed';
             $snippet = <<<CADDY
 {$domain->domain} {
-  encode gzip{$hstsLine}{$redirectBlock}
+  import tenant_perf{$hstsLine}{$redirectBlock}
   {$force}
   reverse_proxy {$upstream}
 }
