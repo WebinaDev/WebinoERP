@@ -28,6 +28,9 @@ class CustomerHubAccess
         'relations' => ['crm.accounts.view'],
         'notes' => ['crm.accounts.view', 'projects.tickets.view', 'sales.invoices.view'],
         'analytics' => ['crm.accounts.view', 'accounting.reports.view'],
+        'orders' => ['crm.accounts.view', 'sales.invoices.view'],
+        'accounting' => ['sales.invoices.view', 'accounting.view'],
+        'sms' => ['crm.messages.view', 'crm.accounts.view'],
         'timeline' => ['crm.accounts.view', 'crm.activities.view', 'projects.tickets.view', 'sales.invoices.view'],
     ];
 
@@ -50,6 +53,11 @@ class CustomerHubAccess
         'project' => ['projects.projects.manage'],
         'owner' => ['crm.accounts.manage'],
         'suspend' => ['crm.accounts.manage'],
+        'sms' => ['crm.hub.sms.send'],
+        'basalam' => ['crm.accounts.manage'],
+        'automations' => ['crm.hub.automations.manage'],
+        'import_export' => ['crm.hub.import_export'],
+        'bi' => ['crm.hub.bi.view'],
     ];
 
     public function isAdmin(User $user): bool

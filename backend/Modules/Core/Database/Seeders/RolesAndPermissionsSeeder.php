@@ -5,6 +5,7 @@ namespace Modules\Core\Database\Seeders;
 use Illuminate\Database\Seeder;
 use Spatie\Permission\Models\Permission;
 use Spatie\Permission\Models\Role;
+use Spatie\Permission\PermissionRegistrar;
 
 /**
  * WebinoCRM parity: roles align with WordPress dashboard (see webinocrm sidebar + router).
@@ -41,7 +42,7 @@ class RolesAndPermissionsSeeder extends Seeder
 
     public function run(): void
     {
-        app()[\Spatie\Permission\PermissionRegistrar::class]->forgetCachedPermissions();
+        app()[PermissionRegistrar::class]->forgetCachedPermissions();
 
         $guard = 'web';
 
@@ -106,6 +107,10 @@ class RolesAndPermissionsSeeder extends Seeder
                 'crm.accounts.manage',
                 'crm.hub.profile.sensitive',
                 'crm.hub.merge',
+                'crm.hub.sms.send',
+                'crm.hub.automations.manage',
+                'crm.hub.import_export',
+                'crm.hub.bi.view',
                 'crm.contacts.view',
                 'crm.contacts.manage',
                 'crm.deals.view',

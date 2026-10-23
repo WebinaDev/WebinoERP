@@ -10,6 +10,6 @@ class CrmMessage extends Model
 
     protected $fillable = [
         'channel', 'template_id', 'related_type', 'related_id', 'to_address',
-        'subject', 'body', 'status', 'provider', 'error', 'created_by',
+        'subject', 'body', 'status', 'provider', 'error', 'created_by', 'crm_account_id',
     ];
 }

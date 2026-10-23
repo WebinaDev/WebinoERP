@@ -16,6 +16,7 @@ use Modules\Crm\Console\SyncCustomerSitesCommand;
 use Modules\Crm\Events\Customer\ContractSigned;
 use Modules\Crm\Events\CustomerHubUpdated;
 use Modules\Crm\Http\Controllers\ConsultationIngestController;
+use Modules\Crm\Http\Controllers\Customer360\BasalamOrderIngestController;
 use Modules\Crm\Http\Controllers\CustomerHubController;
 use Modules\Crm\Http\Controllers\ElementorLeadController;
 use Modules\Crm\Http\Controllers\PublicLeadFormController;
@@ -47,7 +48,7 @@ class CrmServiceProvider extends ServiceProvider
         $l = RecordCustomerActivity::class;
         foreach ([
             'DealWon', 'DealLost', 'InvoiceIssued', 'InvoicePaid', 'InvoiceOverdue', 'PaymentRecorded', 'ContractCancelled',
-            'ProjectCreated', 'ProjectStatusChanged', 'TicketOpened', 'TicketClosed', 'OrderPlaced', 'SiteProvisioned', 'CustomerMerged',
+            'ProjectCreated', 'ProjectStatusChanged', 'TicketOpened', 'TicketClosed', 'OrderPlaced', 'SiteProvisioned', 'CustomerMerged', 'SmsSent', 'BasalamOrderSynced',
         ] as $ev) {
             Event::listen('Modules\\Crm\\Events\\Customer\\'.$ev, $l);
         }
@@ -67,6 +68,7 @@ class CrmServiceProvider extends ServiceProvider
             ->middleware(['api', 'throttle:60,1'])
             ->group(function () {
                 Route::post('/consultations/ingest', [ConsultationIngestController::class, 'store']);
+                Route::post('/crm/basalam/orders', [BasalamOrderIngestController::class, 'store'])->middleware('webino.site');
             });
 
         // Customer 360 Hub: section-level RBAC is enforced in CustomerHubAccess so finance /

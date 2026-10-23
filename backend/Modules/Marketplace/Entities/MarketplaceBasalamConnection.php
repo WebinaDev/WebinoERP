@@ -10,6 +10,7 @@ class MarketplaceBasalamConnection extends Model
 
     protected $fillable = [
         'site_url',
+        'crm_account_id',
         'vendor_id',
         'status',
         'tokens',

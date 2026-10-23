@@ -32,8 +32,8 @@ abstract class CustomerActivityEvent
     public function activity(): array
     {
         return [
-            'account_id' => $this->accountId, 'module' => static::MODULE, 'type' => static::TYPE,
-            'subject_type' => static::SUBJECT, 'subject_id' => $this->subjectId,
+            'account_id' => $this->accountId, 'module' => $this->meta['module'] ?? static::MODULE, 'type' => static::TYPE,
+            'subject_type' => $this->meta['subject_type'] ?? static::SUBJECT, 'subject_id' => $this->subjectId,
             'title' => $this->title ?: static::TITLE, 'meta' => $this->meta, 'actor_id' => $this->actorId,
             'occurred_at' => $this->occurredAt,
         ];
