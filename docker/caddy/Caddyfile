@@ -95,6 +95,8 @@ webinaagency.ir, www.webinaagency.ir {
 	header @tFonts Cache-Control "public, max-age=31536000, immutable"
 	@tStorage path /storage/*
 	header @tStorage Cache-Control "public, max-age=2592000"
+	@tInline path /inline-media/*
+	header @tInline Cache-Control "public, max-age=31536000, immutable"
 }
 
 # Tenant image cache: /_next/image + storage images via edge nginx (docker/edge/nginx.conf :8081).
@@ -111,6 +113,22 @@ webinaagency.ir, www.webinaagency.ir {
 		reverse_proxy erp-edge:8081 {
 			header_up Host {host}
 			header_up X-Webina-Tenant {args[0]}
+		}
+	}
+	# Anonymous HTML microcache (edge nginx :8082, key host+URL). Requests with any
+	# cookie or Authorization header, non-GET, API/Next/file paths go straight to the tenant.
+	@tHtml {
+		method GET HEAD
+		not path /api/* /_next/* /storage/* /uploads/* /inline-media/* /fonts/* /webino-revalidate*
+		not path_regexp \.[A-Za-z0-9]{1,5}$
+		not header Cookie *
+		not header Authorization *
+	}
+	handle @tHtml {
+		reverse_proxy erp-edge:8082 {
+			header_up Host {host}
+			header_up X-Webina-Tenant {args[0]}
+			header_up X-Forwarded-Proto {scheme}
 		}
 	}
 }
