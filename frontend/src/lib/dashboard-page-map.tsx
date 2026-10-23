@@ -129,6 +129,7 @@ import { PmWorkloadPage } from '@/features/modules/pm/PmWorkloadPage';
 import { PmConnectorsPage } from '@/features/modules/pm/PmConnectorsPage';
 import { PipelinesPage } from '@/features/modules/crm/pipelines/PipelinesPage';
 import { CustomerDetailPage } from '@/features/modules/crm/customers/CustomerDetailPage';
+import { Customer360DataPage, Customer360PortalPage, Customer360ReportsPage } from '@/features/modules/crm/customer360/Customer360Pages';
 import { WarehousesPage } from '@/features/modules/scm/warehouses_page';
 import { StockPage } from '@/features/modules/scm/stock_page';
 import { InboundPage } from '@/features/modules/scm/inbound_page';
@@ -248,6 +249,9 @@ const EXACT: Record<string, ReactNode> = {
   'crm/leads': <LeadsListPage />,
   leads: <LeadsListPage />,
   'crm/customers': <CustomersListPage />,
+  'crm/customer360/reports': <Customer360ReportsPage />,
+  'crm/customer360/data': <Customer360DataPage />,
+  'crm/customer360/portal': <Customer360PortalPage />,
   customers: <CustomersListPage />,
   'crm/deals': <DealsKanbanPage />,
   'crm/pipelines': <PipelinesPage />,

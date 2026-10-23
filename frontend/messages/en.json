@@ -3582,7 +3582,8 @@
         "debt": "Debt",
         "churn": "Churn",
         "cohorts": "Cohorts",
-        "top": "Top customers"
+        "top": "Top customers",
+        "import": "Import CSV"
       }
     }
   },
