@@ -11,8 +11,10 @@ use Modules\Crm\Console\DispatchRemindersCommand;
 use Modules\Crm\Console\PublishDueContentCommand;
 use Modules\Crm\Console\RecomputeLeadScoresCommand;
 use Modules\Crm\Console\RetryMoadianCommand;
+use Modules\Crm\Console\RunCustomerAutomationsCommand;
 use Modules\Crm\Console\RunSequencesCommand;
 use Modules\Crm\Console\SyncCustomerSitesCommand;
+use Modules\Crm\Entities\CrmAccount;
 use Modules\Crm\Events\Customer\ContractSigned;
 use Modules\Crm\Events\CustomerHubUpdated;
 use Modules\Crm\Http\Controllers\ConsultationIngestController;
@@ -22,6 +24,7 @@ use Modules\Crm\Http\Controllers\ElementorLeadController;
 use Modules\Crm\Http\Controllers\PublicLeadFormController;
 use Modules\Crm\Listeners\RecordCustomerActivity;
 use Modules\Crm\Observers\CustomerSyncObserver;
+use Modules\Crm\Services\Automations\AutomationRunner;
 
 class CrmServiceProvider extends ServiceProvider
 {
@@ -39,6 +42,7 @@ class CrmServiceProvider extends ServiceProvider
                 RetryMoadianCommand::class,
                 SyncCustomerSitesCommand::class,
                 BackfillCustomerActivitiesCommand::class,
+                RunCustomerAutomationsCommand::class,
             ]);
         }
 
@@ -55,6 +59,9 @@ class CrmServiceProvider extends ServiceProvider
         Event::listen(ContractSigned::class, [$l, 'contractSigned']);
         Event::listen(CustomerHubUpdated::class, [$l, 'hubUpdated']);
         CustomerSyncObserver::register();
+        // Customer 360 phase 4 event-driven automations (toggles in core_workflows; no-ops when disabled).
+        Event::listen(ContractSigned::class, fn (ContractSigned $e) => rescue(fn () => app(AutomationRunner::class)->onboarding($e->accountId, $e->contractId)));
+        CrmAccount::created(fn ($a) => rescue(fn () => app(AutomationRunner::class)->welcome($a)));
 
         Route::prefix('api/v1/crm')
             ->middleware(['api', 'throttle:60,1'])

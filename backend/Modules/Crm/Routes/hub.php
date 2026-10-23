@@ -4,6 +4,8 @@ use Illuminate\Support\Facades\Route;
 use Modules\Crm\Http\Controllers\CustomerHubController as H;
 
 // Prefix: api/v1/crm/customers — middleware: api, auth:sanctum, module:crm (RBAC per section in controller)
+require __DIR__.'/customers_360.php'; // automations, duplicates, import/export, reports
+
 Route::whereNumber('id')->group(function () {
     require __DIR__.'/hub_tabs_index.php'; // Customer 360 phase 1 lists (must precede the {section} catch-all)
     require __DIR__.'/hub_profile.php';

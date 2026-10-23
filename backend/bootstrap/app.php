@@ -22,6 +22,7 @@ return Application::configure(basePath: dirname(__DIR__))
         $schedule->command('crm:recompute-lead-scores')->dailyAt('04:00');
         $schedule->command('crm:dispatch-reminders')->everyFiveMinutes();
         $schedule->command('crm:run-sequences')->everyFifteenMinutes();
+        $schedule->command('crm:automations-run')->dailyAt('08:30')->withoutOverlapping(60);
         $schedule->command('crm:hub-sync-sites')->everyTenMinutes()->withoutOverlapping(30);
         $schedule->command('webino:calendars:sync')->everyFifteenMinutes();
         $schedule->command('webino:content:remind')->everyFifteenMinutes();
