@@ -23,12 +23,23 @@ class WebinoSiteProvision extends Model
 
     public const STATUS_CANCELLED = 'cancelled';
 
+    public const SITE_ACTIVE = 'active';
+
+    public const SITE_COMING_SOON = 'coming_soon';
+
+    public const SITE_SUSPENDED = 'suspended';
+
+    public const SITE_STATUSES = [self::SITE_ACTIVE, self::SITE_COMING_SOON, self::SITE_SUSPENDED];
+
+    public const REASON_LICENSE_EXPIRED = 'license_expired';
+
     protected $table = 'webino_site_provisions';
 
     protected $fillable = [
         'crm_account_id', 'package_id', 'license_id', 'slug', 'domain', 'subdomain',
         'alias_subdomain', 'uses_custom_domain', 'status', 'wizard_payload', 'error_log', 'progress',
         'server_host_id', 'provision_token', 'created_by', 'launched_at', 'ready_at',
+        'site_status', 'site_status_reason', 'site_launch_at', 'site_status_updated_by', 'site_status_synced_at', 'site_status_sync_error',
     ];
 
     protected function casts(): array
@@ -39,6 +50,8 @@ class WebinoSiteProvision extends Model
             'uses_custom_domain' => 'boolean',
             'launched_at' => 'datetime',
             'ready_at' => 'datetime',
+            'site_launch_at' => 'datetime',
+            'site_status_synced_at' => 'datetime',
         ];
     }
 

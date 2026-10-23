@@ -24,6 +24,7 @@ use Modules\SiteBuilder\Services\ModuleInstallOrchestrator;
 use Modules\SiteBuilder\Services\SiteImpersonationService;
 use Modules\SiteBuilder\Services\SiteProvisionAuditLogger;
 use Modules\SiteBuilder\Services\SiteProvisionOrchestrator;
+use Modules\SiteBuilder\Services\SiteStatusService;
 use Modules\SiteBuilder\Support\ImpersonationNextPath;
 use Modules\SiteBuilder\Support\LaunchSchema;
 use Modules\SiteBuilder\Support\ProvisionProgress;
@@ -1121,6 +1122,53 @@ class SiteProvisionController extends Controller
         return response()->json([
             'data' => $siteProvision->fresh(['license']),
             'message' => __('messages.update_queued'),
+        ]);
+    }
+
+    /** Local mirror + live tenant state (GET on the tenant contract). */
+    public function siteStatus(WebinoSiteProvision $siteProvision, SiteStatusService $service): JsonResponse
+    {
+        $remote = null;
+        $error = null;
+        try {
+            $remote = $service->refresh($siteProvision);
+        } catch (Throwable $e) {
+            $error = $e->getMessage();
+        }
+
+        return response()->json([
+            'data' => array_merge($service->snapshot($siteProvision->fresh()), [
+                'remote' => $remote,
+                'remote_error' => $error,
+            ]),
+        ]);
+    }
+
+    public function updateSiteStatus(Request $request, WebinoSiteProvision $siteProvision, SiteStatusService $service): JsonResponse
+    {
+        $data = $request->validate([
+            'status' => ['required', 'in:'.implode(',', WebinoSiteProvision::SITE_STATUSES)],
+            'reason' => ['nullable', 'string', 'max:191', 'required_if:status,suspended'],
+            'launch_at' => ['nullable', 'date'],
+        ]);
+        if ($siteProvision->status !== WebinoSiteProvision::STATUS_READY) {
+            return response()->json(['message' => 'سایت هنوز آماده نیست؛ تغییر وضعیت فقط برای سایت‌های آماده ممکن است.'], 422);
+        }
+        try {
+            $remote = $service->set(
+                $siteProvision,
+                $data['status'],
+                $data['reason'] ?? null,
+                ! empty($data['launch_at']) ? \Illuminate\Support\Carbon::parse($data['launch_at']) : null,
+                $request->user()?->id,
+            );
+        } catch (Throwable $e) {
+            return response()->json(['message' => 'ارتباط با سایت ناموفق بود: '.$e->getMessage()], 502);
+        }
+
+        return response()->json([
+            'data' => array_merge($service->snapshot($siteProvision->fresh()), ['remote' => $remote]),
+            'message' => 'وضعیت سایت به‌روزرسانی شد',
         ]);
     }
 

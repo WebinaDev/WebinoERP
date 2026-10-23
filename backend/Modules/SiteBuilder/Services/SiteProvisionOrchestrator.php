@@ -55,6 +55,9 @@ class SiteProvisionOrchestrator
                 $this->local->provisionFromSiteBuilder($provision, $server, $siteType);
             }
             $this->audit->log($provision->created_by, 'provision.launched', $provision->fresh());
+            if ($provision->fresh()?->status === WebinoSiteProvision::STATUS_READY) {
+                $this->markComingSoon($provision);
+            }
         } catch (Throwable $e) {
             if (str_contains($e->getMessage(), 'platform.provision_cancelled')) {
                 ProvisionProgress::report($provision, ProvisionProgress::PHASE_CANCELLED);
@@ -155,6 +158,7 @@ class SiteProvisionOrchestrator
                 'error_log' => null,
             ]);
             $log[] = 'bootstrap: ok';
+            $this->markComingSoon($provision);
             $this->audit->log($provision->created_by, 'provision.bootstrap', $provision->fresh());
 
             return [
@@ -227,6 +231,7 @@ class SiteProvisionOrchestrator
             'error_log' => null,
             'progress' => ProvisionProgress::make(ProvisionProgress::PHASE_DONE),
         ]);
+        $this->markComingSoon($provision);
 
         return 'ready';
     }
@@ -427,6 +432,8 @@ class SiteProvisionOrchestrator
                             'status' => WebinoSiteProvision::STATUS_READY,
                             'ready_at' => now(),
                         ]);
+                        // Run after the poll response is sent so the status request stays fast.
+                        app()->terminating(fn () => $this->markComingSoon($provision));
                     } catch (Throwable $e) {
                         $provision->update(['error_log' => $e->getMessage()]);
                     }
@@ -645,6 +652,16 @@ class SiteProvisionOrchestrator
             ->timeout(60)
             ->post('https://'.$domain.'/api/v1/provision/bootstrap')
             ->throw();
+    }
+
+    /** New sites open as "coming soon" once the tenant is bootstrapped (no-op if a status was already set). */
+    protected function markComingSoon(WebinoSiteProvision $provision): void
+    {
+        try {
+            app(SiteStatusService::class)->markNewSiteComingSoon($provision->fresh() ?? $provision);
+        } catch (Throwable $e) {
+            report($e);
+        }
     }
 
     protected function fail(WebinoSiteProvision $provision, string $message): WebinoSiteProvision

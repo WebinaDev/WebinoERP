@@ -76,6 +76,7 @@ class SiteBuilderServiceProvider extends ServiceProvider
             ResyncTenantStacksCommand::class,
             PushSiteAnnouncementsCommand::class,
             \Modules\SiteBuilder\Console\AdvanceSslPendingCommand::class,
+            \Modules\SiteBuilder\Console\EnforceLicenseSiteStatusCommand::class,
         ]);
     }
 }

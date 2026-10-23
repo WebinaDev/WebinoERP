@@ -61,6 +61,7 @@ import {
   type StackCheckState,
 } from '@/lib/api/site-builder';
 import { stackProbeState } from '@/features/site-builder/control-panel/stack-probe';
+import { SiteStatusCard } from '@/features/site-builder/control-panel/SiteStatusCard';
 
 function Section({
   icon: Icon,
@@ -432,6 +433,7 @@ export function SiteControlPanelPage({ id }: { id: string }) {
         <p className="text-muted-foreground text-sm">{t('loadError')}</p>
       ) : (
         <div className="grid gap-4 xl:grid-cols-2">
+          <SiteStatusCard provisionId={provisionId} ready={(data?.provision?.status ?? '') === 'ready'} />
           <Section icon={Power} title={t('controlPower')} description={t('controlPowerHint')} testId="control-power">
             <div className="flex flex-wrap gap-2">
               {power !== 'running' ? (

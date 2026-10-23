@@ -74,4 +74,6 @@ Route::post('/provisions/{siteProvision}/channel', [SiteProvisionController::cla
 Route::post('/provisions/{siteProvision}/update', [SiteProvisionController::class, 'queueUpdate'])->middleware('throttle:10,1');
 Route::post('/provisions/{siteProvision}/ssl/renew', [SiteProvisionController::class, 'renewSsl'])->middleware('throttle:10,1');
 Route::post('/provisions/{siteProvision}/alias', [SiteProvisionController::class, 'syncAlias'])->middleware('throttle:20,1');
+Route::get('/provisions/{siteProvision}/site-status', [SiteProvisionController::class, 'siteStatus']);
+Route::put('/provisions/{siteProvision}/site-status', [SiteProvisionController::class, 'updateSiteStatus'])->middleware('throttle:20,1');
 Route::delete('/provisions/{siteProvision}', [SiteProvisionController::class, 'destroy']);

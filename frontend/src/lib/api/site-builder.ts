@@ -558,3 +558,39 @@ export async function savePackage(body: Partial<PackageRow> & { id?: number; fea
     : await apiClient.post(`${BASE}/packages`, body);
   return unwrapData<PackageRow>(res);
 }
+
+// ── Public site status (active / coming_soon / suspended) ─────────────────
+export type SiteLiveStatus = 'active' | 'coming_soon' | 'suspended';
+
+export type SiteStatusRemote = {
+  status: SiteLiveStatus | null;
+  reason: string | null;
+  expires_at: string | null;
+  launch_at: string | null;
+  updated_at: string | null;
+  updated_by: 'platform' | 'admin' | null;
+};
+
+export type SiteStatusPayload = {
+  status: SiteLiveStatus | null;
+  reason: string | null;
+  launch_at: string | null;
+  updated_by: 'platform' | 'admin' | null;
+  synced_at: string | null;
+  sync_error: string | null;
+  remote?: SiteStatusRemote | null;
+  remote_error?: string | null;
+};
+
+export async function fetchSiteStatus(id: number) {
+  const res = await apiClient.get(`${BASE}/provisions/${id}/site-status`, { timeout: 45_000 });
+  return unwrapData<SiteStatusPayload>(res);
+}
+
+export async function updateSiteStatus(
+  id: number,
+  body: { status: SiteLiveStatus; reason?: string | null; launch_at?: string | null },
+) {
+  const res = await apiClient.put(`${BASE}/provisions/${id}/site-status`, body, { timeout: 45_000 });
+  return unwrapData<SiteStatusPayload>(res);
+}

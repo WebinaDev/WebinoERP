@@ -27,6 +27,9 @@ return Application::configure(basePath: dirname(__DIR__))
         $schedule->command('webino:oauth:refresh')->everyFiveMinutes();
         $schedule->command('webino:webhooks:retry')->everyMinute();
         $schedule->command('site-builder:advance-provisions')->everyMinute()->withoutOverlapping(10);
+        // Hourly covers the daily run too; the 00:05 run is the explicit daily pass right after licenses roll over.
+        $schedule->command('site-builder:enforce-license-status')->hourly()->withoutOverlapping(30);
+        $schedule->command('site-builder:enforce-license-status')->dailyAt('00:05')->withoutOverlapping(30);
         $schedule->command('webino:moadian:retry')->everyFiveMinutes();
         $schedule->command('webino:content:publish')->everyFiveMinutes();
         $schedule->command('webino:reports:send')->hourly();
