@@ -6,6 +6,7 @@ import { ICON_OPTIONS } from "./render/icon-options"
 import { CORPORATE_WIDGETS } from "@/themes/webina-corporate-v1/builder/blocks"
 import { CONTENT_WIDGETS, FORM_WIDGET } from "./registry-content"
 import { POETRY_WIDGETS } from "./registry-poetry"
+import { POETRY_MODULE_WIDGETS } from "./registry-poetry-module"
 
 const FORM_TYPE_LABELS: Record<FormFieldType, string> = { text: "متن", email: "ایمیل", tel: "تلفن", number: "عدد", textarea: "متن بلند", select: "فهرست کشویی", radio: "تک‌انتخابی", checkbox: "چندانتخابی", date: "تاریخ", file: "فایل (پیوست)" , heading: "عنوان گروه"}
 
@@ -1213,7 +1214,7 @@ export const WIDGETS: WidgetDef[] = [
   },
 ]
 
-WIDGETS.push(...CONTENT_WIDGETS, ...CORPORATE_WIDGETS, ...POETRY_WIDGETS)
+WIDGETS.push(...CONTENT_WIDGETS, ...CORPORATE_WIDGETS, ...POETRY_WIDGETS, ...POETRY_MODULE_WIDGETS)
 
 const byType = new Map(WIDGETS.map((widget) => [widget.type, widget]))
 

@@ -1,0 +1,9 @@
+{
+  "slug": "poetry",
+  "name_fa": "شعر و ادبیات",
+  "name_en": "Poetry & Literature",
+  "submodules": ["poems", "taxonomies", "import"],
+  "admin_nav": { "section": "marketing", "order": 92 },
+  "site_types": ["blog"],
+  "public_routes": ["poems", "poems/:slug", "figures/:slug"]
+}

@@ -434,6 +434,7 @@ export const ERP_MODULES: ErpModuleDef[] = [
           { id: 'marketing-magazine', path: 'marketing/magazine', titleKey: 'nav.erp.marketing.magazine', icon: 'ri-newspaper-line', requiredPermission: 'marketing.blog.view' },
           { id: 'marketing-media', path: 'marketing/media', titleKey: 'nav.erp.marketing.media', icon: 'ri-image-line', requiredPermission: 'marketing.media.view' },
           { id: 'marketing-blog', path: 'marketing/blog', titleKey: 'nav.erp.marketing.blog', icon: 'ri-article-line', requiredPermission: 'marketing.blog.view' },
+          { id: 'marketing-poetry', path: 'marketing/poetry', titleKey: 'nav.erp.marketing.poetry', icon: 'ri-quill-pen-line', requiredPermission: 'marketing.blog.view' },
           { id: 'marketing-academy', path: 'marketing/academy', titleKey: 'nav.erp.marketing.academy', icon: 'ri-graduation-cap-line', requiredPermission: 'marketing.blog.view' },
           { id: 'marketing-portfolio', path: 'marketing/portfolio', titleKey: 'nav.erp.marketing.portfolio', icon: 'ri-gallery-line', requiredPermission: 'marketing.pages.view' },
           { id: 'marketing-portfolio-categories', path: 'marketing/portfolio-categories', titleKey: 'nav.erp.marketing.portfolioCategories', icon: 'ri-price-tag-3-line', requiredPermission: 'marketing.pages.view' },

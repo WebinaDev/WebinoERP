@@ -61,6 +61,9 @@ const ShopShowcaseWidget = dynamic(() => import("./poetry-widgets").then((m) => 
 const PoetAboutWidget = dynamic(() => import("./poetry-widgets").then((m) => m.PoetAboutWidget))
 const QuoteBlockWidget = dynamic(() => import("./poetry-widgets").then((m) => m.QuoteBlockWidget))
 const PoetryFooterWidget = dynamic(() => import("./poetry-widgets").then((m) => m.PoetryFooterWidget))
+const PoemDetailWidget = dynamic(() => import("./poetry-module-widgets").then((m) => m.PoemDetailWidget))
+const PoetryFigureWidget = dynamic(() => import("./poetry-module-widgets").then((m) => m.PoetryFigureWidget))
+const PoemSearchWidget = dynamic(() => import("./poetry-module-widgets").then((m) => m.PoemSearchWidget))
 const CorporateWidget = dynamic(() => import("@/themes/webina-corporate-v1/builder/CorporateWidget").then((m) => m.CorporateWidget))
 const AccordionWidget = dynamic(() => import("./extra-widgets").then((m) => m.AccordionWidget))
 const AnnouncementWidget = dynamic(() => import("./extra-widgets").then((m) => m.AnnouncementWidget))
@@ -452,6 +455,12 @@ export function WidgetBody({ widget, editor }: { widget: WidgetNode; editor?: Ed
       return <QuoteBlockWidget widget={widget} />
     case "poetry-footer":
       return <PoetryFooterWidget widget={widget} />
+    case "poem-detail":
+      return <PoemDetailWidget widget={widget} />
+    case "poetry-figure":
+      return <PoetryFigureWidget widget={widget} />
+    case "poem-search":
+      return <PoemSearchWidget widget={widget} />
     case "cta-banner":
       return <CtaBannerWidget widget={widget} />
     case "rahn-estimate":

@@ -73,6 +73,7 @@ final class SiteTypeProfiles
                 'theme' => 'blog-default',
                 'modules' => array_merge(self::coreModules(), [
                     'blog' => ['posts', 'categories', 'tags', 'comments', 'authors', 'rss'],
+                    'poetry' => ['poems', 'taxonomies', 'import'],
                     'cms' => ['pages', 'menus', 'seo'],
                     'users' => ['subscribers', 'rbac'],
                     'marketing' => ['newsletter'],

@@ -13,5 +13,6 @@
     "Sales": true,
     "Scm": true,
     "SiteBuilder": true,
-    "Platform": true
+    "Platform": true,
+    "Poetry": true
 }

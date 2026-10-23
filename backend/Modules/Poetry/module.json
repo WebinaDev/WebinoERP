@@ -1,0 +1,11 @@
+{
+    "name": "Poetry",
+    "alias": "poetry",
+    "description": "Poetry & Literature: poems (stanzas/lines), meters, figures, occasions, recitation styles",
+    "keywords": [],
+    "priority": 30,
+    "providers": ["Modules\\Poetry\\Providers\\PoetryServiceProvider"],
+    "aliases": {},
+    "files": [],
+    "requires": []
+}

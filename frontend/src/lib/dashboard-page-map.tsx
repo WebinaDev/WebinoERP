@@ -223,6 +223,7 @@ import { EsignPage } from '@/features/expansion/EsignPage';
 import { ContentCalendarPage } from '@/features/expansion/ContentCalendarPage';
 import { PlanningPage } from '@/features/expansion/PlanningPage';
 import { StudioPage } from '@/features/expansion/StudioPage';
+import { PoetryAdminPage } from '@/features/poetry/PoetryAdminPage';
 
 const FINANCE_PAGES: Record<string, ReactNode> = {
   finance: <AccountingDashboardPage />,
@@ -426,6 +427,7 @@ const EXACT: Record<string, ReactNode> = {
   'marketing/magazine': <MarketingMagazinePage />,
   'marketing/media': <MarketingMediaPage />,
   'marketing/blog': <MarketingBlogPage />,
+  'marketing/poetry': <PoetryAdminPage />,
   'marketing/academy': <MarketingAcademyPage />,
   'marketing/portfolio': <MarketingPortfolioPage />,
   'marketing/portfolio-categories': <MarketingPortfolioCategoriesPage />,

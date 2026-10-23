@@ -255,6 +255,7 @@ const EXACT: Record<string, DashboardRouteMeta> = {
   'marketing/magazine': { titleFa: 'مجله', titleEn: 'Magazine', group: 'core' },
   'marketing/media': { titleFa: 'رسانه', titleEn: 'Media', group: 'core' },
   'marketing/blog': { titleFa: 'بلاگ', titleEn: 'Blog', group: 'core' },
+  'marketing/poetry': { titleFa: 'شعر و ادبیات', titleEn: 'Poetry & Literature', group: 'core' },
   'marketing/academy': { titleFa: 'آکادمی', titleEn: 'Academy', group: 'core' },
   'marketing/portfolio': { titleFa: 'نمونه کار', titleEn: 'Portfolio', group: 'core' },
   'marketing/portfolio-categories': { titleFa: 'دسته‌های نمونه‌کار', titleEn: 'Portfolio categories', group: 'core' },
