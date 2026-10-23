@@ -19,6 +19,7 @@ import { CustomerClassicPanel } from './CustomerClassicPanel';
 import { ContractsTab } from './hub/tabs360/ContractsTab';
 import { DocumentsTab360 } from './hub/tabs360/DocumentsTab360';
 import { ProjectsTab } from './hub/tabs360/ProjectsTab';
+import { AccountingTab, OrdersTab, SmsTab } from './hub/tabs360/Phase3Tabs';
 
 type Props = { id: string };
 
@@ -45,6 +46,9 @@ export const TABS: { key: string; section: string; label: string; render: () => 
   { key: 'contracts', section: 'contracts', label: 'tab.contracts', render: () => <ContractsTab /> },
   { key: 'projects', section: 'projects', label: 'tab.projects', render: () => <ProjectsTab /> },
   { key: 'documents', section: 'documents', label: 'tab.documents', render: () => <DocumentsTab360 /> },
+  { key: 'orders', section: 'orders', label: 'tab.orders', render: () => <OrdersTab /> },
+  { key: 'accounting', section: 'accounting', label: 'tab.accounting', render: () => <AccountingTab /> },
+  { key: 'sms', section: 'sms', label: 'tab.sms', render: () => <SmsTab /> },
   { key: 'access', section: 'access', label: 'tab.access', render: () => <AccessTab /> },
   { key: 'relations', section: 'relations', label: 'tab.relations', render: () => <RelationsTab /> },
   { key: 'notes', section: 'notes', label: 'tab.notes', render: () => <NotesTab /> },

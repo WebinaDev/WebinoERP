@@ -3046,7 +3046,10 @@
         "timeline": "Timeline",
         "sitePanel": "Site panel",
         "contracts": "Contracts",
-        "projects": "Projects"
+        "projects": "Projects",
+        "orders": "Orders",
+        "accounting": "Customer accounting",
+        "sms": "SMS"
       },
       "f": {
         "name": "Name / company",
@@ -3559,6 +3562,27 @@
           "high": "High",
           "urgent": "Urgent"
         }
+      },
+      "c360": {
+        "pending": "Waiting for the backend API contract; this section will be enabled soon.",
+        "orders": "Orders",
+        "accounting": "Customer accounting",
+        "sms": "SMS",
+        "portal": "Customer portal",
+        "reports": "Customer reports",
+        "duplicates": "Duplicate customers",
+        "exportImport": "Import / export",
+        "profile": "Profile",
+        "contracts": "Contracts",
+        "invoices": "Invoices",
+        "services": "Services",
+        "documents": "Documents",
+        "tickets": "Tickets",
+        "ltv": "Lifetime value",
+        "debt": "Debt",
+        "churn": "Churn",
+        "cohorts": "Cohorts",
+        "top": "Top customers"
       }
     }
   },
