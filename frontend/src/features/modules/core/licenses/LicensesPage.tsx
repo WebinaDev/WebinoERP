@@ -32,7 +32,7 @@ import { CrmPageLayout } from '@/features/shared/layout/CrmPageLayout';
 import { useCrmFeedback } from '@/features/shared/hooks/useCrmFeedback';
 import { LicenseCard, type LicenseCardRow } from './components/LicenseCard';
 
-const SITE_TYPES = ['ecommerce', 'magazine', 'cafe', 'resume', 'corporate'] as const;
+const SITE_TYPES = ['ecommerce', 'magazine', 'cafe', 'resume', 'blog', 'corporate'] as const;
 
 export function LicensesPageView() {
   const t = useTranslations();

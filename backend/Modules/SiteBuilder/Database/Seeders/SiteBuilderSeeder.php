@@ -44,6 +44,7 @@ class SiteBuilderSeeder extends Seeder
             ['magazine', 'مجله آموزشی', 'Educational Magazine', 'magazine-default', ['magazine', 'academy', 'cms', 'blog', 'users', 'marketing', 'analytics']],
             ['cafe', 'کافه و رستوران', 'Cafe & Restaurant', 'cafe-default', ['cafe', 'commerce', 'cms', 'marketing', 'blog', 'analytics']],
             ['resume', 'رزومه', 'Resume', 'resume-default', ['resume', 'cms']],
+            ['blog', 'وبلاگ', 'Blog', 'blog-default', ['blog', 'cms', 'users', 'marketing', 'analytics']],
             ['corporate', 'شرکتی', 'Corporate', 'corporate-default', ['corporate', 'academy', 'cms', 'blog', 'users', 'marketing', 'analytics']],
         ];
 

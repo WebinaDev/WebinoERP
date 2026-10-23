@@ -1060,4 +1060,24 @@ class SiteBuilderApiTest extends TestCase
             'queue.connections.redis.driver' => 'failing-redis',
         ]);
     }
+
+    public function test_blog_site_type_package_and_license_meta(): void
+    {
+        $type = \Modules\SiteBuilder\Entities\WebinoBusinessType::query()->where('slug', 'blog')->first();
+        $this->assertNotNull($type);
+        $this->assertSame('وبلاگ', $type->name_fa);
+        $this->assertContains('blog', $type->default_module_slugs);
+        $pkg = WebinoPackage::query()->where('sku', 'pkg-blog-starter')->first();
+        $this->assertNotNull($pkg);
+        $this->assertSame($type->id, $pkg->business_type_id);
+        $this->assertContains('blog', $pkg->features()->pluck('slug')->all());
+
+        $license = app(\Modules\SiteBuilder\Services\LicenseProvisionerService::class)
+            ->createForProvision('blogtest.example.ir', $pkg, ['site_type_slug' => 'blog', 'site_name' => 'وبلاگ تست']);
+        $meta = $license->fresh()->meta;
+        $this->assertSame('blog', $meta['site_type']);
+        $this->assertSame('blog-default', $meta['theme_preset']);
+        $this->assertContains('rss', $meta['module_matrix']['blog']);
+        $this->assertContains('blog', $meta['modules']);
+    }
 }
