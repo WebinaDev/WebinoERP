@@ -102,6 +102,18 @@ class MarketingThemeBuilderTest extends TestCase
             ->assertJsonFragment(['kind' => 'not_found', 'label' => 'صفحه ۴۰۴']);
     }
 
+    public function test_delete_template_promotes_next_default(): void
+    {
+        $doc = ['version' => 1, 'sections' => [['id' => 'sec_a', 'columns' => []]]];
+        $first = $this->postJson('/api/v1/theme-builder/templates', ['kind' => 'footer', 'title' => 'A', 'document' => $doc])->assertCreated()->json('data');
+        $second = $this->postJson('/api/v1/theme-builder/templates', ['kind' => 'footer', 'title' => 'B', 'document' => $doc])->assertCreated()->json('data');
+        $this->assertTrue($first['is_default']);
+
+        $this->deleteJson('/api/v1/theme-builder/templates/'.$first['id'])->assertOk()->assertJsonPath('data.deleted', true);
+        $this->getJson('/api/v1/theme-builder/templates/'.$first['id'])->assertNotFound();
+        $this->getJson('/api/v1/theme-builder/templates/'.$second['id'])->assertOk()->assertJsonPath('data.is_default', true);
+    }
+
     public function test_global_settings_publish_and_tokens(): void
     {
         $this->getJson('/api/v1/public/builder/globals')->assertNotFound();

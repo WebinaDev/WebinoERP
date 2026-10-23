@@ -105,6 +105,7 @@ class MarketingServiceProvider extends ServiceProvider
                 Route::patch('/theme-builder/templates/{template}', [ThemeBuilderController::class, 'update'])->whereNumber('template');
                 Route::post('/theme-builder/templates/{template}/publish', [ThemeBuilderController::class, 'publish'])->whereNumber('template');
                 Route::post('/theme-builder/templates/{template}/default', [ThemeBuilderController::class, 'makeDefault'])->whereNumber('template');
+                Route::delete('/theme-builder/templates/{template}', [ThemeBuilderController::class, 'destroy'])->whereNumber('template');
             });
     }
 
