@@ -7,6 +7,7 @@ import { ArrowUpLeft, Check } from 'lucide-react';
 import { siteHref } from '@/lib/public-api-server';
 import { formatCalendarDate, toPersianDigits } from '@/lib/locale/calendar-date';
 import { cn } from '@/lib/utils';
+import { optImg } from '@/lib/image-url';
 import { INDUSTRY_COUNT, SERVICE_COUNT } from '../../site-nav';
 import {
   isExternalHref,
@@ -371,7 +372,7 @@ export function LandingPage({ data }: { data: LandingData }) {
                           <div className={cn('work-thumb', !cover && isDarkThumb(i) && 'is-dark')}>
                             {cover ? (
                               // eslint-disable-next-line @next/next/no-img-element
-                              <img src={cover} alt={item.title} className="absolute inset-0 size-full object-cover" loading="lazy" />
+                              <img {...optImg(cover, '(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 400px')} alt={item.title} decoding="async" className="absolute inset-0 size-full object-cover" loading="lazy" />
                             ) : (
                               <WorkThumb index={i} />
                             )}
@@ -479,7 +480,7 @@ export function LandingPage({ data }: { data: LandingData }) {
                         <div className={cn('work-thumb post-thumb', !post.cover_url && isDarkThumb(i + 3) && 'is-dark')}>
                           {post.cover_url ? (
                             // eslint-disable-next-line @next/next/no-img-element
-                            <img src={post.cover_url} alt={post.title} className="absolute inset-0 size-full object-cover" loading="lazy" />
+                            <img {...optImg(post.cover_url, '(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 400px')} alt={post.title} decoding="async" className="absolute inset-0 size-full object-cover" loading="lazy" />
                           ) : (
                             <WorkThumb index={i + 3} />
                           )}

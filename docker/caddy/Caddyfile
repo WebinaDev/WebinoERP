@@ -22,20 +22,22 @@
 (app_routes) {
 	encode zstd gzip
 
+	# ">" = deferred: replaces the upstream header (Next sends max-age=0 for /public files) instead of
+	# emitting two conflicting Cache-Control headers.
 	@nextStatic path /_next/static/*
-	header @nextStatic Cache-Control "public, max-age=31536000, immutable"
+	header @nextStatic >Cache-Control "public, max-age=31536000, immutable"
 
 	@publicStatic path /fonts/* /brand/*
-	header @publicStatic Cache-Control "public, max-age=31536000, immutable"
+	header @publicStatic >Cache-Control "public, max-age=31536000, immutable"
 
 	@api path /api/*
 	header @api Cache-Control "no-store"
 
 	@publicMedia path /marketing/* /currency/*
-	header @publicMedia Cache-Control "public, max-age=604800"
+	header @publicMedia >Cache-Control "public, max-age=2592000"
 
 	@storage path /storage/*
-	header @storage Cache-Control "public, max-age=86400"
+	header @storage >Cache-Control "public, max-age=2592000"
 
 	# Laravel public disk (durable host dir /var/lib/webino/storage-public).
 	handle_path /storage/* {

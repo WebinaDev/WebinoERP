@@ -6,7 +6,7 @@ import { cn } from '@/lib/utils';
 import type { AboutSection } from '../../about-content';
 import { isExternalHref, type ButtonItem, type CompanyData } from '../../site-content';
 import { LogoLockup } from '../LogoLockup';
-import { NavIcon } from '../NavIcon';
+import { NavIcon } from '../NavIconClient';
 
 function go(path: string) {
   return isExternalHref(path) ? path : siteHref(undefined, path.replace(/^\//, ''));

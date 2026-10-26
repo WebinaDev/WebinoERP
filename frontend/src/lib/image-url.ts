@@ -32,7 +32,8 @@ function ownPath(src: string): string | null {
   return null
 }
 
-const BYPASS_EXT = /\.(webp|avif|svg|gif)(\?|#|$)/i
+// .webp is still resized (uploads are often 2000px+ for a 400px card); only avif/svg/gif pass through.
+const BYPASS_EXT = /\.(avif|svg|gif)(\?|#|$)/i
 
 /** Backend origin (no /api suffix) for relative /storage|/uploads paths, when known. */
 function backendOrigin(): string {
