@@ -1,4 +1,4 @@
-import { widgetCatalogEntry } from "@webina/ui/builder"
+import { catalogEntry } from "@webina/ui/builder"
 import { CATALOG_ICONS } from "./catalog-icons"
 import {
   ListFilter,
@@ -104,7 +104,7 @@ export const SETTINGS_SECTION_ICONS = {
 } as const
 
 export function widgetIcon(type: string): LucideIcon {
-  return CATALOG_ICONS[widgetCatalogEntry(type).icon] ?? WIDGET_ICONS[type] ?? Blocks
+  return CATALOG_ICONS[catalogEntry(type).icon] ?? WIDGET_ICONS[type] ?? Blocks
 }
 
 export function catalogIcon(name: string): LucideIcon {
