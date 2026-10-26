@@ -212,7 +212,7 @@ function DefaultStorefrontProduct({ slug, editing }: { slug?: string; editing: b
       return
     }
     let cancel = false
-    const base = process.env.NEXT_PUBLIC_API_URL ?? ""
+    const base = (process.env.NEXT_PUBLIC_API_URL ?? "").trim().replace(/\/+$/, "").replace(/\/api$/, "")
     fetch(`${base}/api/v1/public/catalog/items/${encodeURIComponent(slug)}`, { credentials: "include" })
       .then((res) => (res.ok ? res.json() : null))
       .then((json: { data?: Record<string, unknown> } | null) => {

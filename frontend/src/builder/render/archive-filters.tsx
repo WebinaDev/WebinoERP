@@ -52,7 +52,7 @@ export function ArchiveFiltersWidget({ widget, editing }: { widget: WidgetNode; 
   useEffect(() => {
     if (!showCategory) return
     let cancel = false
-    const base = process.env.NEXT_PUBLIC_API_URL ?? ""
+    const base = (process.env.NEXT_PUBLIC_API_URL ?? "").trim().replace(/\/+$/, "").replace(/\/api$/, "")
     void fetch(`${base}/api/v1/public/catalog?per_page=1`, { credentials: "include", headers: { Accept: "application/json" } })
       .then((res) => (res.ok ? res.json() : null))
       .then((json) => {

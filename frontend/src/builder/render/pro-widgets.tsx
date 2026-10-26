@@ -98,7 +98,7 @@ export function LoopGridWidget({ widget, editing }: { widget: WidgetNode; editin
     let cancel = false
     const params = new URLSearchParams(query)
     params.set("page", String(page))
-    const base = process.env.NEXT_PUBLIC_API_URL ?? ""
+    const base = (process.env.NEXT_PUBLIC_API_URL ?? "").trim().replace(/\/+$/, "").replace(/\/api$/, "")
     const collection = propStr(props, "collection", "").trim()
     const collectionSort = { newest: "newest", title: "title" }[params.get("sort") ?? ""] ?? "sort"
     const job: Promise<{ rows: LoopItem[]; total: number }> =
@@ -505,7 +505,7 @@ export function LinkedProductsWidget({ widget, editing }: { widget: WidgetNode; 
   useEffect(() => {
     if (!slug) return
     let cancel = false
-    const base = process.env.NEXT_PUBLIC_API_URL ?? ""
+    const base = (process.env.NEXT_PUBLIC_API_URL ?? "").trim().replace(/\/+$/, "").replace(/\/api$/, "")
     fetch(`${base}/api/v1/public/catalog/items/${encodeURIComponent(slug)}/linked?type=${encodeURIComponent(type)}`, { credentials: "include" })
       .then((res) => (res.ok ? res.json() : null))
       .then((json: { data?: { items?: Record<string, unknown>[] } } | null) => {
@@ -534,7 +534,7 @@ export function PurchaseSummaryWidget({ editing }: { editing: boolean }) {
   const money = useMoney()
   useEffect(() => {
     let cancel = false
-    const base = process.env.NEXT_PUBLIC_API_URL ?? ""
+    const base = (process.env.NEXT_PUBLIC_API_URL ?? "").trim().replace(/\/+$/, "").replace(/\/api$/, "")
     const id = new URLSearchParams(window.location.search).get("order")
     const url = id && /^\d+$/.test(id) ? `${base}/api/v1/account/orders/${id}` : `${base}/api/v1/account/orders?per_page=1`
     fetch(url, { credentials: "include", headers: { Accept: "application/json" } })

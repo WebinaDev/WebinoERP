@@ -1055,7 +1055,7 @@ function NewsletterWidget({ widget }: { widget: WidgetNode }) {
         }
         setState("sending")
         setError("")
-        const base = process.env.NEXT_PUBLIC_API_URL ?? ""
+        const base = (process.env.NEXT_PUBLIC_API_URL ?? "").trim().replace(/\/+$/, "").replace(/\/api$/, "")
         fetch(`${base}/api/v1/public/newsletter/subscribe`, {
           method: "POST",
           credentials: "include",

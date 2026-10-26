@@ -1218,7 +1218,7 @@ export function BuilderEditor({ mode }: { mode: Mode }) {
             </>
           )}
         </aside>
-        <main className="min-w-0 flex-1 overflow-auto overflow-x-hidden bg-[#d7e0ea] p-2 pb-20 sm:p-6 lg:pb-6" onClick={() => setSelectedId(null)}>
+        <main className="min-w-0 flex-1 overflow-auto overflow-x-hidden bg-[#d7e0ea] p-2 pb-20 sm:p-6 lg:pb-6" onClick={() => setSelectedId(null)} onClickCapture={(event) => { if ((event.target as HTMLElement | null)?.closest?.("a[href]")) event.preventDefault() }} onSubmitCapture={(event) => event.preventDefault()}>
           <div className="mx-auto min-h-full overflow-hidden rounded-2xl bg-[#f5f8fb] shadow-xl" style={{ width: DEVICE_WIDTH[device], maxWidth: "100%", zoom: zoom / 100 }}>
             {doc.sections.length === 0 ? (
               <div className="grid min-h-80 place-items-center gap-2 text-sm">

@@ -242,7 +242,7 @@ export function BookBannerWidget({ widget }: { widget: WidgetNode }) {
     const v = value.trim()
     if (!v) return
     setState("sending")
-    const base = process.env.NEXT_PUBLIC_API_URL ?? ""
+    const base = (process.env.NEXT_PUBLIC_API_URL ?? "").trim().replace(/\/+$/, "").replace(/\/api$/, "")
     const isEmail = v.includes("@")
     fetch(`${base}/api/v1/public/newsletter/subscribe`, {
       method: "POST", credentials: "include",

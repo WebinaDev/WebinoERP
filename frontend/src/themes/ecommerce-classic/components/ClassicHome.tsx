@@ -259,7 +259,7 @@ export function ClassicStoryStrip({ title, limit }: { title?: string; limit?: nu
 
   useEffect(() => {
     setSeen(readSeen())
-    const base = process.env.NEXT_PUBLIC_API_URL ?? ""
+    const base = (process.env.NEXT_PUBLIC_API_URL ?? "").trim().replace(/\/+$/, "").replace(/\/api$/, "")
     let cancel = false
     fetch(`${base}/api/v1/public/product-stories`, { credentials: "include" })
       .then((res) => (res.ok ? res.json() : null))
@@ -715,7 +715,7 @@ export function ClassicBlogBlock({ title }: { title?: string }) {
   const tx = useClassicText()
   const [posts, setPosts] = useState<Post[]>([])
   useEffect(() => {
-    const base = process.env.NEXT_PUBLIC_API_URL ?? ""
+    const base = (process.env.NEXT_PUBLIC_API_URL ?? "").trim().replace(/\/+$/, "").replace(/\/api$/, "")
     fetch(`${base}/api/v1/public/blog`, { credentials: "include" })
       .then((res) => (res.ok ? res.json() : null))
       .then((json) => {

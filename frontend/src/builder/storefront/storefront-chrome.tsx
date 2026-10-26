@@ -229,7 +229,7 @@ export function ProductReviewsPanel({ slug, options = {} }: { slug: string; opti
   const limit = Math.max(0, options.limit ?? 0)
 
   useEffect(() => {
-    const base = process.env.NEXT_PUBLIC_API_URL ?? ""
+    const base = (process.env.NEXT_PUBLIC_API_URL ?? "").trim().replace(/\/+$/, "").replace(/\/api$/, "")
     fetch(`${base}/api/v1/public/catalog/items/${encodeURIComponent(slug)}/reviews`, { credentials: "include" })
       .then((res) => (res.ok ? res.json() : null))
       .then((json) => {

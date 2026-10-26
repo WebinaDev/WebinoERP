@@ -181,7 +181,7 @@ function DefaultBlogSlider({ widget }: { widget: WidgetNode }) {
   const title = propStr(widget.props, "title", "از مجله ویبینو")
   const [posts, setPosts] = useState<Array<{ slug: string; title: string; excerpt?: string; cover_url?: string }>>([])
   useEffect(() => {
-    const base = process.env.NEXT_PUBLIC_API_URL ?? ""
+    const base = (process.env.NEXT_PUBLIC_API_URL ?? "").trim().replace(/\/+$/, "").replace(/\/api$/, "")
     fetch(`${base}/api/v1/public/blog`, { credentials: "include" })
       .then((res) => (res.ok ? res.json() : null))
       .then((json) => {

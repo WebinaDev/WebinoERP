@@ -17,7 +17,7 @@ function useAutoOptions(source: string, target: string, collection: string, fiel
       return
     }
     let cancel = false
-    const base = process.env.NEXT_PUBLIC_API_URL ?? ""
+    const base = (process.env.NEXT_PUBLIC_API_URL ?? "").trim().replace(/\/+$/, "").replace(/\/api$/, "")
     const headers = { Accept: "application/json" }
     const done = (rows: Option[]) => {
       if (!cancel) setOptions(rows.slice(0, 60))

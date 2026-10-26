@@ -8,7 +8,7 @@ import { evaluateConditions, hasConditions, needsSession, type DisplayConditions
 let sessionJob: Promise<{ loggedIn: boolean; cartCount: number }> | null = null
 function loadSession() {
   if (!sessionJob) {
-    const base = process.env.NEXT_PUBLIC_API_URL ?? ""
+    const base = (process.env.NEXT_PUBLIC_API_URL ?? "").trim().replace(/\/+$/, "").replace(/\/api$/, "")
     sessionJob = fetch(`${base}/api/v1/cart`, { credentials: "include", headers: { Accept: "application/json" } })
       .then(async (res) => {
         // Guests keep their cart in localStorage.

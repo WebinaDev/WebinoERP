@@ -16,7 +16,7 @@ export function StorefrontCompareTable({
   onRemove: (id: number) => void
 }) {
   const t = useTranslations("storefront")
-  const base = process.env.NEXT_PUBLIC_API_URL ?? ""
+  const base = (process.env.NEXT_PUBLIC_API_URL ?? "").trim().replace(/\/+$/, "").replace(/\/api$/, "")
 
   return (
     <div className="overflow-x-auto sf-card">
@@ -79,7 +79,7 @@ export function ProductPriceHistory({ slug }: { slug: string }) {
   const [updatedAt, setUpdatedAt] = useState<string | null>(null)
 
   useEffect(() => {
-    const base = process.env.NEXT_PUBLIC_API_URL ?? ""
+    const base = (process.env.NEXT_PUBLIC_API_URL ?? "").trim().replace(/\/+$/, "").replace(/\/api$/, "")
     fetch(`${base}/api/v1/public/catalog/items/${encodeURIComponent(slug)}/price-history`, { credentials: "include" })
       .then((res) => (res.ok ? res.json() : null))
       .then((json) => {
@@ -130,7 +130,7 @@ export function ProductStoriesStrip() {
   const [items, setItems] = useState<Array<{ id: number; title: string; media_url: string; link_url?: string | null; product_id?: number | null }>>([])
 
   useEffect(() => {
-    const base = process.env.NEXT_PUBLIC_API_URL ?? ""
+    const base = (process.env.NEXT_PUBLIC_API_URL ?? "").trim().replace(/\/+$/, "").replace(/\/api$/, "")
     fetch(`${base}/api/v1/public/product-stories`, { credentials: "include" })
       .then((res) => (res.ok ? res.json() : null))
       .then((json) => setItems(Array.isArray(json?.data?.items) ? json.data.items : []))

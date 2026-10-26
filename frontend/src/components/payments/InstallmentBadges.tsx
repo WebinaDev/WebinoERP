@@ -25,7 +25,7 @@ export function InstallmentBadges({ productId, amountMinor, className }: Props) 
   const [badges, setBadges] = useState<Badge[]>([])
 
   useEffect(() => {
-    const base = process.env.NEXT_PUBLIC_API_URL ?? ""
+    const base = (process.env.NEXT_PUBLIC_API_URL ?? "").trim().replace(/\/+$/, "").replace(/\/api$/, "")
     const params = new URLSearchParams()
     if (productId) params.set("product_id", String(productId))
     if (amountMinor != null) params.set("amount_minor", String(amountMinor))

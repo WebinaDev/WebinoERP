@@ -38,7 +38,7 @@ const productCache = new Map<string, Promise<ShopProduct | null>>()
 export function fetchProduct(slug: string): Promise<ShopProduct | null> {
   const hit = productCache.get(slug)
   if (hit) return hit
-  const base = process.env.NEXT_PUBLIC_API_URL ?? ""
+  const base = (process.env.NEXT_PUBLIC_API_URL ?? "").trim().replace(/\/+$/, "").replace(/\/api$/, "")
   const job = fetch(`${base}/api/v1/public/catalog/items/${encodeURIComponent(slug)}`, { credentials: "include" })
     .then((res) => (res.ok ? res.json() : null))
     .then((json: { data?: Record<string, unknown> } | null) => (json?.data && typeof json.data === "object" ? mapApiProduct(json.data, 0) : null))
@@ -530,7 +530,7 @@ function usePost(): PostData | null | undefined {
     }
     let job = postCache.get(slug)
     if (!job) {
-      const base = process.env.NEXT_PUBLIC_API_URL ?? ""
+      const base = (process.env.NEXT_PUBLIC_API_URL ?? "").trim().replace(/\/+$/, "").replace(/\/api$/, "")
       job = fetch(`${base}/api/v1/public/blog/${encodeURIComponent(slug)}`, { credentials: "include" })
         .then((res) => (res.ok ? res.json() : null))
         .then((json: { data?: PostData } | null) => json?.data ?? null)

@@ -5,7 +5,7 @@ import { useEffect, useState, type ReactNode } from "react"
 import { pickVariant, storedVariant, type AbVariant } from "../ab"
 
 function send(testId: number, variant: AbVariant, type: "view" | "conversion") {
-  const base = process.env.NEXT_PUBLIC_API_URL ?? ""
+  const base = (process.env.NEXT_PUBLIC_API_URL ?? "").trim().replace(/\/+$/, "").replace(/\/api$/, "")
   void fetch(`${base}/api/v1/public/builder/ab/${testId}/event`, {
     method: "POST",
     keepalive: true,

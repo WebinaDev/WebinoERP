@@ -76,7 +76,7 @@ const catalogInflight = new Map<string, Promise<CatalogPayload | null>>()
 export function fetchCatalogPayload(query: string): Promise<CatalogPayload | null> {
   const existing = catalogInflight.get(query)
   if (existing) return existing
-  const base = process.env.NEXT_PUBLIC_API_URL ?? ""
+  const base = (process.env.NEXT_PUBLIC_API_URL ?? "").trim().replace(/\/+$/, "").replace(/\/api$/, "")
   const promise = fetch(`${base}/api/v1/public/catalog?${query}`, { credentials: "include" })
     .then((res) => (res.ok ? res.json() : null))
     .then((json) => mapCatalogJson(json))

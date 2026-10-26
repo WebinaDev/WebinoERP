@@ -392,7 +392,7 @@ export function ClassicComparePage() {
 
   useEffect(() => {
     if (!enabled) return
-    const base = process.env.NEXT_PUBLIC_API_URL ?? ""
+    const base = (process.env.NEXT_PUBLIC_API_URL ?? "").trim().replace(/\/+$/, "").replace(/\/api$/, "")
     const url = `${base}/api/v1/public/compare${query.trim() ? `?q=${encodeURIComponent(query.trim())}` : ""}`
     fetch(url, { credentials: "include" })
       .then((res) => (res.ok ? res.json() : null))

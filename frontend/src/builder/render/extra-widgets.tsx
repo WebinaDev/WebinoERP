@@ -663,7 +663,7 @@ export function BlogPostsWidget({ widget }: { widget: WidgetNode }) {
   const [posts, setPosts] = useState<PostRow[] | null>(null)
   useEffect(() => {
     let cancel = false
-    const base = process.env.NEXT_PUBLIC_API_URL ?? ""
+    const base = (process.env.NEXT_PUBLIC_API_URL ?? "").trim().replace(/\/+$/, "").replace(/\/api$/, "")
     const params = new URLSearchParams({ per_page: String(limit) })
     if (category) params.set("category", category)
     fetch(`${base}/api/v1/public/blog?${params}`, { credentials: "include" })

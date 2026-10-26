@@ -70,7 +70,7 @@ export function loadAnalyticsConfig(): Promise<TrackerConfig | null> {
   configPromise = (async () => {
     try {
       const host = window.location.host
-      const apiBase = process.env.NEXT_PUBLIC_API_URL ?? ""
+      const apiBase = (process.env.NEXT_PUBLIC_API_URL ?? "").trim().replace(/\/+$/, "").replace(/\/api$/, "")
       const res = await fetch(`${apiBase}/api/v1/public/analytics/bootstrap`, {
         headers: host ? { "X-Tenant-Domain": host } : {},
         credentials: "include",

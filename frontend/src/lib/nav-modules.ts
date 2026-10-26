@@ -6,7 +6,7 @@ import { isPageBuilderNewTabPath } from '@/lib/page-builder-nav'
 import type { DashboardModule } from '@/types/modules'
 import type { NavMainChild, NavMainSection, NavSidebarSection } from '@/types/nav'
 
-type TranslateFn = (key: string, values?: { defaultValue?: string }) => string
+type TranslateFn = ((key: string, values?: { defaultValue?: string }) => string) & { has?: (key: string) => boolean }
 
 export function routeFromModulePath(path: string): string {
   const raw = (path || '').trim()
@@ -35,6 +35,8 @@ export function moduleNavTitle(t: TranslateFn, id: string, fallback: string): st
   const layoutKey = resolveLayoutNavKey(id)
   const candidates = [`layout.${layoutKey}`, `nav.module.${layoutKey}`, `nav.module.${id}`]
   for (const key of candidates) {
+    // next-intl logs MISSING_MESSAGE for every miss; probe with t.has first.
+    if (typeof t.has === 'function' && !t.has(key)) continue
     const val = t(key)
     if (val && val !== key) {
       return val

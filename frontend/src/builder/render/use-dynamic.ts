@@ -13,7 +13,7 @@ const rawCache = new Map<string, Promise<RawProduct | null>>()
 function fetchRawProduct(slug: string): Promise<RawProduct | null> {
   const hit = rawCache.get(slug)
   if (hit) return hit
-  const base = process.env.NEXT_PUBLIC_API_URL ?? ""
+  const base = (process.env.NEXT_PUBLIC_API_URL ?? "").trim().replace(/\/+$/, "").replace(/\/api$/, "")
   const job = fetch(`${base}/api/v1/public/catalog/items/${encodeURIComponent(slug)}`, { credentials: "include" })
     .then((res) => (res.ok ? res.json() : null))
     .then((json: { data?: RawProduct } | null) => (json?.data && typeof json.data === "object" ? json.data : null))
@@ -26,7 +26,7 @@ type UserInfo = { name: string; email: string }
 let userJob: Promise<UserInfo> | null = null
 function fetchUser(): Promise<UserInfo> {
   if (!userJob) {
-    const base = process.env.NEXT_PUBLIC_API_URL ?? ""
+    const base = (process.env.NEXT_PUBLIC_API_URL ?? "").trim().replace(/\/+$/, "").replace(/\/api$/, "")
     userJob = fetch(`${base}/api/v1/auth/user`, { credentials: "include", headers: { Accept: "application/json" } })
       .then((res) => (res.ok ? res.json() : null))
       .then((json: { data?: { name?: unknown; email?: unknown } } | null) => ({ name: str(json?.data?.name), email: str(json?.data?.email) }))
@@ -39,7 +39,7 @@ const postCache = new Map<string, Promise<DynamicPost | null>>()
 function fetchPost(slug: string): Promise<DynamicPost | null> {
   const hit = postCache.get(slug)
   if (hit) return hit
-  const base = process.env.NEXT_PUBLIC_API_URL ?? ""
+  const base = (process.env.NEXT_PUBLIC_API_URL ?? "").trim().replace(/\/+$/, "").replace(/\/api$/, "")
   const job = fetch(`${base}/api/v1/public/blog/${encodeURIComponent(slug)}`, { credentials: "include" })
     .then((res) => (res.ok ? res.json() : null))
     .then((json: { data?: Record<string, unknown> } | null) => {
