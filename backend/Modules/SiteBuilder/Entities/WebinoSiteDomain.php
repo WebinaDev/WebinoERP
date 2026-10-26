@@ -55,7 +55,7 @@ class WebinoSiteDomain extends Model
         }
 
         return static::query()->create([
-            'provision_id' => $provision->id, 'domain' => $primary, 'role' => self::ROLE_PRIMARY, 'include_www' => true,
+            'provision_id' => $provision->id, 'domain' => $primary, 'role' => self::ROLE_PRIMARY, 'include_www' => false,
         ]);
     }
 }

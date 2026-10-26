@@ -30,4 +30,11 @@ class SiteDomainCaddyTest extends TestCase
         $this->assertSame('/fa', SiteDomainCaddy::normalizePath('/f a"}'));
         $this->assertSame(301, SiteDomainCaddy::status(200));
     }
+
+    public function test_primary_only_matches_legacy_snippet(): void
+    {
+        $legacy = \Modules\Platform\Support\TenantSiteStack::caddySnippet('a.ir', 'a', ['contact.a.ir']);
+        $out = SiteDomainCaddy::render('a.ir', 'a', [['domain' => 'a.ir', 'role' => 'primary', 'include_www' => false]], ['contact.a.ir']);
+        $this->assertSame($legacy."\n", $out);
+    }
 }

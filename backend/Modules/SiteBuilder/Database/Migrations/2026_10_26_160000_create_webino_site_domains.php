@@ -39,7 +39,8 @@ return new class extends Migration
             }
             DB::table('webino_site_domains')->insert([
                 'provision_id' => $row->id, 'domain' => $primary, 'role' => 'primary',
-                'include_www' => true, 'redirect_status' => 301, 'preserve_path' => true,
+                // false keeps existing snippets byte-identical; enable www per site from the UI
+                'include_www' => false, 'redirect_status' => 301, 'preserve_path' => true,
                 'created_at' => $now, 'updated_at' => $now,
             ]);
             $taken[$primary] = true;
