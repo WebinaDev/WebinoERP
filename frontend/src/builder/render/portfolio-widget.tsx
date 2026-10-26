@@ -7,6 +7,7 @@
 import Link from "next/link"
 import { useEffect, useMemo, useState } from "react"
 
+import { optImg } from "@/lib/image-url"
 import { propStr } from "../props"
 import type { WidgetNode } from "../types"
 import "./portfolio-widget.css"
@@ -106,7 +107,7 @@ export function PortfolioGridWidget({ widget }: { widget: WidgetNode }) {
                 <div className="wbx-pf-cover">
                   {item.cover_url ? (
                     // eslint-disable-next-line @next/next/no-img-element
-                    <img src={item.cover_url} alt={item.title} loading="lazy" />
+                    <img {...optImg(item.cover_url, "(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 400px")} alt={item.title} loading="lazy" decoding="async" />
                   ) : (
                     <span className="wbx-pf-placeholder" aria-hidden />
                   )}

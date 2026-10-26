@@ -6,6 +6,7 @@
 import Link from "next/link"
 import { useEffect, useMemo, useState } from "react"
 
+import { optImg } from "@/lib/image-url"
 import { propStr } from "../props"
 import type { WidgetNode } from "../types"
 import { useBuilderRuntime } from "./runtime"
@@ -70,7 +71,7 @@ function Empty({ text }: { text: string }) {
 }
 // First cards are usually above the fold: load them eagerly (LCP), the rest lazily.
 function Cover({ src, alt, eager }: { src?: string | null; alt: string; eager?: boolean }) {
-  return <div className="wbx-pf-cover">{src ? <img src={src} alt={alt} loading={eager ? "eager" : "lazy"} decoding="async" {...(eager ? { fetchPriority: "high" as const } : {})} /> : <span className="wbx-pf-placeholder" />}</div>
+  return <div className="wbx-pf-cover">{src ? <img {...optImg(src, "(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 400px")} alt={alt} width={1200} height={675} loading={eager ? "eager" : "lazy"} decoding="async" {...(eager ? { fetchPriority: "high" as const } : {})} /> : <span className="wbx-pf-placeholder" />}</div>
 }
 
 /* ---------------- blog ---------------- */

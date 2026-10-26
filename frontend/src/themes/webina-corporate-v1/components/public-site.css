@@ -2280,3 +2280,19 @@ a.panel:hover,
 .tslider-dots { display: flex; gap: .45rem; }
 .tslider-dots button { width: .55rem; height: .55rem; border-radius: 999px; background: var(--line-strong); transition: all .3s; }
 .tslider-dots button.on { width: 1.8rem; background: var(--brand-primary); }
+
+/* landing motion (CSS, replaces GSAP) */
+@keyframes webina-rise { from { opacity: 0; transform: translateY(40px); } to { opacity: 1; transform: none; } }
+.webina-public :is(.hero-kicker, .hero-title .line, .hero-lead, .hero-cta, .hero-count) {
+  animation: webina-rise 0.9s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+.webina-public .hero-title .line:nth-child(2) { animation-delay: 0.06s; }
+.webina-public .hero-title .line:nth-child(3) { animation-delay: 0.12s; }
+.webina-public .hero-lead { animation-delay: 0.18s; }
+.webina-public .hero-cta { animation-delay: 0.24s; }
+.webina-public .hero-count { animation-delay: 0.3s; }
+.webina-public .reveal.reveal-pending { opacity: 0; transform: translateY(28px); transition: opacity 0.8s cubic-bezier(0.22, 1, 0.36, 1), transform 0.8s cubic-bezier(0.22, 1, 0.36, 1); }
+.webina-public .reveal.reveal-pending.is-in { opacity: 1; transform: none; }
+@media (prefers-reduced-motion: reduce) {
+  .webina-public :is(.hero-kicker, .hero-title .line, .hero-lead, .hero-cta, .hero-count) { animation: none !important; }
+}

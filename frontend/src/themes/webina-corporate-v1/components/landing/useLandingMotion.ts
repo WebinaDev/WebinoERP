@@ -1,58 +1,58 @@
 'use client';
 
-import { useLayoutEffect, type RefObject } from 'react';
-import gsap from 'gsap';
-import { ScrollTrigger } from 'gsap/ScrollTrigger';
+import { useEffect, type RefObject } from 'react';
 
-let registered = false;
-
+/**
+ * Lightweight landing motion (no GSAP): CSS-driven hero intro, IntersectionObserver
+ * reveals and rAF counters. Work is scheduled after first paint to keep TBT low.
+ */
 export function useLandingMotion(root: RefObject<HTMLElement | null>, locale = 'fa') {
-  useLayoutEffect(() => {
-    if (!root.current) return;
+  useEffect(() => {
+    const el = root.current;
+    if (!el || typeof IntersectionObserver === 'undefined') return;
     if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
-    if (!registered) {
-      gsap.registerPlugin(ScrollTrigger);
-      registered = true;
-    }
+    const fmt = new Intl.NumberFormat(locale === 'fa' ? 'fa-IR' : 'en-US');
+    const raf: number[] = [];
 
-    const ctx = gsap.context(() => {
-      gsap.from('.hero-kicker, .hero-title .line, .hero-lead, .hero-cta, .hero-count', {
-        y: 40,
-        opacity: 0,
-        duration: 0.9,
-        stagger: 0.06,
-        ease: 'power3.out',
+    const count = (node: HTMLElement) => {
+      const target = Number(node.dataset.count || 0);
+      const start = performance.now();
+      const step = (now: number) => {
+        const p = Math.min(1, (now - start) / 1600);
+        node.textContent = fmt.format(Math.round(target * (1 - (1 - p) * (1 - p))));
+        if (p < 1) raf.push(requestAnimationFrame(step));
+      };
+      raf.push(requestAnimationFrame(step));
+    };
+
+    const io = new IntersectionObserver(
+      (entries) => {
+        for (const e of entries) {
+          if (!e.isIntersecting) continue;
+          const t = e.target as HTMLElement;
+          io.unobserve(t);
+          if (t.dataset.count !== undefined) count(t);
+          else t.classList.add('is-in');
+        }
+      },
+      { rootMargin: '0px 0px -12% 0px' },
+    );
+
+    const below = (n: HTMLElement) => n.getBoundingClientRect().top > window.innerHeight;
+    const idle = (window as unknown as { requestIdleCallback?: (cb: () => void) => number }).requestIdleCallback ?? ((cb: () => void) => window.setTimeout(cb, 1));
+    idle(() => {
+      el.querySelectorAll<HTMLElement>('.reveal').forEach((n) => {
+        if (below(n)) {
+          n.classList.add('reveal-pending');
+          io.observe(n);
+        }
       });
+      el.querySelectorAll<HTMLElement>('[data-count]').forEach((n) => io.observe(n));
+    });
 
-      gsap.utils.toArray<HTMLElement>('.reveal').forEach((el) => {
-        gsap.fromTo(
-          el,
-          { y: 28, opacity: 0 },
-          {
-            y: 0,
-            opacity: 1,
-            duration: 0.8,
-            ease: 'power3.out',
-            scrollTrigger: { trigger: el, start: 'top 86%' },
-          },
-        );
-      });
-
-      gsap.utils.toArray<HTMLElement>('[data-count]').forEach((el) => {
-        const target = Number(el.dataset.count || 0);
-        const obj = { n: 0 };
-        gsap.to(obj, {
-          n: target,
-          duration: 1.6,
-          ease: 'power2.out',
-          scrollTrigger: { trigger: el, start: 'top 88%' },
-          onUpdate: () => {
-            el.textContent = Math.round(obj.n).toLocaleString(locale === 'fa' ? 'fa-IR' : 'en-US');
-          },
-        });
-      });
-    }, root);
-
-    return () => ctx.revert();
+    return () => {
+      io.disconnect();
+      raf.forEach((id) => cancelAnimationFrame(id));
+    };
   }, [root, locale]);
 }
