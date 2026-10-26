@@ -31,16 +31,18 @@ class SiteBuilderSeeder extends Seeder
             ['slug' => 'magazine', 'name_fa' => 'مجله', 'name_en' => 'Magazine', 'module_slug' => 'magazine', 'sort_order' => 7],
             ['slug' => 'academy', 'name_fa' => 'آکادمی', 'name_en' => 'Academy', 'module_slug' => 'academy', 'sort_order' => 8],
             ['slug' => 'cafe', 'name_fa' => 'کافه', 'name_en' => 'Cafe', 'module_slug' => 'cafe', 'sort_order' => 9],
-            ['slug' => 'resume', 'name_fa' => 'رزومه', 'name_en' => 'Resume', 'module_slug' => 'resume', 'sort_order' => 10],
+            ['slug' => 'resume', 'name_fa' => 'رزومه', 'name_en' => 'Resume', 'module_slug' => 'resume', 'sort_order' => 10, 'is_addon' => true, 'is_builtin' => true, 'default_enabled' => false],
             ['slug' => 'corporate', 'name_fa' => 'شرکتی', 'name_en' => 'Corporate', 'module_slug' => 'corporate', 'sort_order' => 11],
             ['slug' => 'accounting', 'name_fa' => 'حسابداری', 'name_en' => 'Accounting', 'module_slug' => 'accounting', 'sort_order' => 12, 'is_addon' => true],
             // WebinoDashboard built-in module (route /dashboard/link-hub, e.g. contact.cafebluedez.ir).
-            ['slug' => 'link-hub', 'name_fa' => 'لینک‌هاب', 'name_en' => 'Link Hub', 'module_slug' => 'link-hub', 'icon' => 'ri-links-line', 'sort_order' => 13, 'is_addon' => true],
+            ['slug' => 'link-hub', 'name_fa' => 'لینک‌هاب', 'name_en' => 'Link Hub', 'module_slug' => 'link-hub', 'icon' => 'ri-links-line', 'sort_order' => 13, 'is_addon' => false, 'is_builtin' => true],
         ];
 
         $hasIcon = Schema::hasColumn('webino_dashboard_features', 'icon');
+        $hasBuiltin = Schema::hasColumn('webino_dashboard_features', 'is_builtin');
         foreach ($features as $f) {
             if (! $hasIcon) unset($f['icon']);
+            if (! $hasBuiltin) unset($f['is_builtin']);
             WebinoDashboardFeature::query()->firstOrCreate(
                 ['slug' => $f['slug']],
                 array_merge(['default_enabled' => true, 'is_addon' => false], $f)
@@ -69,6 +71,7 @@ class SiteBuilderSeeder extends Seeder
         $featureMap = WebinoDashboardFeature::query()->pluck('id', 'slug');
 
         foreach ($types as [$slug, $fa, $en, $theme, $mods]) {
+            $mods[] = 'link-hub'; // built-in on every site type
             $type = WebinoBusinessType::query()->firstOrCreate(
                 ['category_id' => $category->id, 'slug' => $slug],
                 [

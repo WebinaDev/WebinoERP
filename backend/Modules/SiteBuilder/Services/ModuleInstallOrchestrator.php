@@ -16,6 +16,23 @@ use Throwable;
 
 class ModuleInstallOrchestrator
 {
+    /** WebinoDashboard built-in modules: activate-only on the site, no repo clone, no marketplace license. */
+    public const BUILTIN_MODULES = ['link-hub', 'resume'];
+
+    public static function isBuiltin(string $moduleSlug): bool
+    {
+        if (in_array($moduleSlug, self::BUILTIN_MODULES, true)) {
+            return true;
+        }
+        try {
+            return \Illuminate\Support\Facades\Schema::hasColumn('webino_dashboard_features', 'is_builtin')
+                && \Modules\SiteBuilder\Entities\WebinoDashboardFeature::query()
+                    ->where('module_slug', $moduleSlug)->where('is_builtin', true)->exists();
+        } catch (Throwable) {
+            return false;
+        }
+    }
+
     public function __construct(
         private readonly SiteProvisionOrchestrator $sites,
         private readonly MarketplaceLicenseService $licenses,
@@ -33,8 +50,10 @@ class ModuleInstallOrchestrator
             throw new RuntimeException(__('messages.site_has_no_license_purchase_or_prepare_a_license_first'));
         }
 
-        $this->ensureEntitled($site, $moduleSlug);
-        $this->ensureGitSource($moduleSlug);
+        if (! self::isBuiltin($moduleSlug)) {
+            $this->ensureEntitled($site, $moduleSlug);
+            $this->ensureGitSource($moduleSlug);
+        }
 
         $row = SiteModuleInstall::query()->updateOrCreate(
             [
@@ -70,6 +89,10 @@ class ModuleInstallOrchestrator
             ],
             ['status' => SiteModuleInstall::STATUS_PENDING]
         );
+
+        if (self::isBuiltin($moduleSlug)) {
+            return $this->activateBuiltin($site, $row, $moduleSlug);
+        }
 
         try {
             $this->ensureEntitled($site, $moduleSlug);
@@ -112,6 +135,37 @@ class ModuleInstallOrchestrator
                 'meta' => ['tenant_status' => $payload],
                 'finished_at' => now(),
                 'error_message' => $ready ? null : 'Tenant reported module not installed',
+            ]);
+        } catch (Throwable $e) {
+            $row->update([
+                'status' => SiteModuleInstall::STATUS_FAILED,
+                'error_message' => $e->getMessage(),
+                'finished_at' => now(),
+            ]);
+            throw $e;
+        }
+
+        return $row->fresh();
+    }
+
+    /** Built-in: add slug to the site license and let the tenant sync enable it. No clone, no tenant git install. */
+    protected function activateBuiltin(WebinoSiteProvision $site, SiteModuleInstall $row, string $moduleSlug): SiteModuleInstall
+    {
+        try {
+            $this->licenses->grantModuleToSite($site, $moduleSlug);
+            $synced = true;
+            try {
+                $this->sites->callTenantApi($site, 'provision/license-sync', []);
+            } catch (Throwable $e) {
+                report($e);
+                $synced = false;
+            }
+            $row->update([
+                'status' => SiteModuleInstall::STATUS_READY,
+                'meta' => ['builtin' => true, 'tenant_synced' => $synced],
+                'started_at' => $row->started_at ?? now(),
+                'finished_at' => now(),
+                'error_message' => null,
             ]);
         } catch (Throwable $e) {
             $row->update([
