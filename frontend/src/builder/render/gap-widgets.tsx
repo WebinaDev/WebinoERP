@@ -6,6 +6,7 @@ import Link from "next/link"
 import { useEffect, useRef, useState, type CSSProperties } from "react"
 
 import { shopLogin, shopRegister } from "@/features/shop/shop-api"
+import { HeaderAccount, HeaderCart } from "@/features/shop/ShopHeader"
 
 import { parseLinks, parseRows, propBool, propNum, propStr } from "../props"
 import type { WidgetNode } from "../types"
@@ -259,6 +260,10 @@ export function OffCanvasWidget({ widget, editing }: { widget: WidgetNode; editi
   )
 }
 
+/** Per-breakpoint visibility: "" always, "mobile" hides at 767px and below, "tablet" at 1024px and below. */
+const hideCls = (v: string) => (v === "mobile" ? "wbx-hide-m" : v === "tablet" ? "wbx-hide-t" : "")
+const HIDE_CSS = "@media (max-width:1024px){.wbx-hide-t{display:none!important}}@media (max-width:767px){.wbx-hide-m{display:none!important}}"
+
 export function SiteHeaderWidget({ widget, siteName, logoUrl }: { widget: WidgetNode; siteName?: string; logoUrl?: string | null }) {
   const p = widget.props
   const tone = propStr(p, "tone", "light")
@@ -277,8 +282,11 @@ export function SiteHeaderWidget({ widget, siteName, logoUrl }: { widget: Widget
         <nav className="ms-auto hidden gap-4 text-sm md:flex">
           {links.map((l, i) => <a key={i} href={safeHref(l.href)}>{l.label}</a>)}
         </nav>
+        {propBool(p, "showCart", false) ? <span className={`wbx-cart ${hideCls(propStr(p, "cartHideOn"))}`}><HeaderCart /></span> : null}
+        {propBool(p, "showAccount", false) ? <span className={`wbx-account ${hideCls(propStr(p, "accountHideOn"))}`}><HeaderAccount /></span> : null}
         {propStr(p, "ctaLabel") ? <a href={safeHref(propStr(p, "ctaHref"))} className="rounded-full bg-primary px-4 py-2 text-sm font-bold text-primary-foreground">{propStr(p, "ctaLabel")}</a> : null}
       </div>
+      {propStr(p, "cartHideOn") || propStr(p, "accountHideOn") ? <style>{HIDE_CSS}</style> : null}
     </header>
   )
 }
@@ -304,6 +312,13 @@ export function SiteFooterWidget({ widget, siteName }: { widget: WidgetNode; sit
           {logo ? <img loading="lazy" decoding="async" {...optImg(logo, undefined, true)} alt={siteName ?? ""} className="mb-3 h-10 w-auto" /> : <div className="mb-3 font-bold">{siteName}</div>}
           {propStr(p, "blurb") ? <p className="text-sm opacity-80">{propStr(p, "blurb")}</p> : null}
         </div>
+        {propStr(p, "footerAbout").trim() ? (
+          <div className="wbx-about">
+            <div className="mb-2 font-bold">{propStr(p, "footerAboutTitle", "درباره ما")}</div>
+            {propStr(p, "footerAbout").trim().split(/\n\s*\n|\n/).map((t, i) => <p key={i} className="mb-1.5 text-sm leading-7 opacity-80">{t}</p>)}
+            {propStr(p, "footerAboutLinkLabel") ? <Link href={safeHref(propStr(p, "footerAboutLinkHref", "/about"))} className="wbx-about-more mt-1 inline-block text-sm font-bold">{propStr(p, "footerAboutLinkLabel")}</Link> : null}
+          </div>
+        ) : null}
         {[...grouped.entries()].map(([title, links]) => (
           <div key={title}>
             <div className="mb-2 font-bold">{title}</div>

@@ -326,8 +326,27 @@ const SECTION_PRESETS: Record<string, number[]> = { "12": [12], "6-6": [6, 6], "
  * @webina/ui v0.2 gap pack (team, media, auth forms, layout containers, general header/footer), shared with
  * WebinoDashboard. Layout types get nested sections here, as the shared package only ships schemas/defaults.
  */
+const HIDE_ON_OPTIONS = [{ value: "", label: "همه دستگاه‌ها" }, { value: "mobile", label: "پنهان در موبایل" }, { value: "tablet", label: "پنهان در تبلت و موبایل" }]
+/** Synced with WebinoDashboard 828c227: header cart/account per-breakpoint visibility, footer about column. */
+const CHROME_EXTRA_FIELDS: Record<string, WidgetDef["fields"]> = {
+  "site-header": [
+    { kind: "switch", key: "showCart", label: "نمایش آیکن سبد خرید با تعداد" },
+    { kind: "select", key: "cartHideOn", label: "نمایش سبد خرید در دستگاه‌ها", options: HIDE_ON_OPTIONS },
+    { kind: "switch", key: "showAccount", label: "نمایش دکمه ورود یا منوی حساب" },
+    { kind: "select", key: "accountHideOn", label: "نمایش ورود و حساب در دستگاه‌ها", options: HIDE_ON_OPTIONS },
+  ],
+  "site-footer": [
+    { kind: "text", key: "footerAboutTitle", label: "عنوان ستون درباره" },
+    { kind: "textarea", key: "footerAbout", label: "متن ستون درباره" },
+    { kind: "text", key: "footerAboutLinkLabel", label: "متن پیوند ستون درباره" },
+    { kind: "link", key: "footerAboutLinkHref", label: "پیوند ستون درباره" },
+  ],
+}
+
 export const GAP_WIDGETS: WidgetDef[] = sharedGapWidgets(ICON_OPTIONS).map((def) => {
-  const base = def as unknown as WidgetDef
+  const shared = def as unknown as WidgetDef
+  const extra = CHROME_EXTRA_FIELDS[def.type]
+  const base = extra ? { ...shared, fields: [...shared.fields, ...extra] } : shared
   if (!["section", "columns", "flex-container", "grid-container"].includes(def.type)) return base
   return {
     ...base,
