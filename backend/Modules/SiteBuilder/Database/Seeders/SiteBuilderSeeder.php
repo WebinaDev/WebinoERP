@@ -3,6 +3,7 @@
 namespace Modules\SiteBuilder\Database\Seeders;
 
 use Illuminate\Database\Seeder;
+use Illuminate\Support\Facades\Schema;
 use Modules\SiteBuilder\Entities\WebinoBusinessCategory;
 use Modules\SiteBuilder\Entities\WebinoBusinessType;
 use Modules\SiteBuilder\Entities\WebinoDashboardFeature;
@@ -10,6 +11,14 @@ use Modules\SiteBuilder\Entities\WebinoPackage;
 
 class SiteBuilderSeeder extends Seeder
 {
+    public const ICONS = [
+        'commerce' => 'ri-shopping-bag-3-line', 'users' => 'ri-user-3-line', 'cms' => 'ri-file-text-line',
+        'blog' => 'ri-article-line', 'marketing' => 'ri-megaphone-line', 'analytics' => 'ri-bar-chart-2-line',
+        'magazine' => 'ri-newspaper-line', 'academy' => 'ri-graduation-cap-line', 'cafe' => 'ri-cup-line',
+        'resume' => 'ri-profile-line', 'corporate' => 'ri-building-line', 'accounting' => 'ri-calculator-line',
+        'link-hub' => 'ri-links-line',
+    ];
+
     public function run(): void
     {
         $features = [
@@ -25,13 +34,22 @@ class SiteBuilderSeeder extends Seeder
             ['slug' => 'resume', 'name_fa' => 'رزومه', 'name_en' => 'Resume', 'module_slug' => 'resume', 'sort_order' => 10],
             ['slug' => 'corporate', 'name_fa' => 'شرکتی', 'name_en' => 'Corporate', 'module_slug' => 'corporate', 'sort_order' => 11],
             ['slug' => 'accounting', 'name_fa' => 'حسابداری', 'name_en' => 'Accounting', 'module_slug' => 'accounting', 'sort_order' => 12, 'is_addon' => true],
+            // WebinoDashboard built-in module (route /dashboard/link-hub, e.g. contact.cafebluedez.ir).
+            ['slug' => 'link-hub', 'name_fa' => 'لینک‌هاب', 'name_en' => 'Link Hub', 'module_slug' => 'link-hub', 'icon' => 'ri-links-line', 'sort_order' => 13, 'is_addon' => true],
         ];
 
+        $hasIcon = Schema::hasColumn('webino_dashboard_features', 'icon');
         foreach ($features as $f) {
+            if (! $hasIcon) unset($f['icon']);
             WebinoDashboardFeature::query()->firstOrCreate(
                 ['slug' => $f['slug']],
                 array_merge(['default_enabled' => true, 'is_addon' => false], $f)
             );
+        }
+
+        // Backfill icons only where empty (keeps admin edits).
+        foreach ($hasIcon ? self::ICONS : [] as $slug => $icon) {
+            WebinoDashboardFeature::query()->where('slug', $slug)->whereNull('icon')->update(['icon' => $icon]);
         }
 
         $category = WebinoBusinessCategory::query()->firstOrCreate(

@@ -10,7 +10,7 @@ class WebinoDashboardFeature extends Model
     protected $table = 'webino_dashboard_features';
 
     protected $fillable = [
-        'slug', 'name_fa', 'name_en', 'module_slug', 'is_addon', 'default_enabled', 'sort_order', 'is_active',
+        'slug', 'name_fa', 'name_en', 'module_slug', 'icon', 'is_addon', 'default_enabled', 'sort_order', 'is_active',
     ];
 
     protected function casts(): array
