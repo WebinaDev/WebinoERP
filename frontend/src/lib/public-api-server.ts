@@ -18,6 +18,29 @@ export type ApiServerOptions = {
   tags?: string[];
 };
 
+/** HTTP error from the public API. `status` lets callers tell a real 404 from a transient failure. */
+export class PublicApiError extends Error {
+  constructor(message: string, readonly status: number) {
+    super(message);
+    this.name = 'PublicApiError';
+  }
+}
+
+/**
+ * Only a real HTTP 404 from the API means "this route does not exist". Network errors (backend
+ * restarting, ECONNREFUSED), 5xx and bad JSON must not become notFound(): Next would cache that 404
+ * for the ISR window and the edge would serve it. Rethrowing keeps the last good page (ISR stale).
+ */
+export function isApiNotFound(err: unknown): boolean {
+  return err instanceof PublicApiError && err.status === 404;
+}
+
+/** catch helper: null for a real 404, rethrow anything else. */
+export function nullIfNotFound(err: unknown): null {
+  if (isApiNotFound(err)) return null;
+  throw err;
+}
+
 export async function apiServer<T>(path: string, opts: ApiServerOptions = {}): Promise<T> {
   const init: RequestInit = {
     method: opts.method ?? (opts.json !== undefined ? 'POST' : 'GET'),
@@ -44,7 +67,7 @@ export async function apiServer<T>(path: string, opts: ApiServerOptions = {}): P
     try {
       data = JSON.parse(text);
     } catch {
-      throw new Error(`Non-JSON response from ${url} (HTTP ${res.status})`);
+      throw new PublicApiError(`Non-JSON response from ${url} (HTTP ${res.status})`, res.status);
     }
   }
 
@@ -53,7 +76,7 @@ export async function apiServer<T>(path: string, opts: ApiServerOptions = {}): P
       data && typeof data === 'object' && 'message' in data && typeof (data as { message: unknown }).message === 'string'
         ? (data as { message: string }).message
         : `HTTP ${res.status}`;
-    throw new Error(msg);
+    throw new PublicApiError(msg, res.status);
   }
 
   return data as T;

@@ -85,6 +85,8 @@ export default async function RootLayout({
         {/* Only the two weights used above the fold; the rest load on demand via @font-face (display: swap). */}
         <link rel="preload" href="/fonts/yekan-bakh/woff2/YekanBakh-Regular.woff2" as="font" type="font/woff2" crossOrigin="anonymous" />
         <link rel="preload" href="/fonts/yekan-bakh/woff2/YekanBakh-Bold.woff2" as="font" type="font/woff2" crossOrigin="anonymous" />
+        {/* Hero H1 (the mobile LCP element) is weight 800; without this it was found only after CSS parse and its swap repaint set LCP. */}
+        <link rel="preload" href="/fonts/yekan-bakh/woff2/YekanBakh-ExtraBold.woff2" as="font" type="font/woff2" crossOrigin="anonymous" />
         <script dangerouslySetInnerHTML={{ __html: 'window.__WEBINA__={product:"erp"};window.Webina=window.__WEBINA__' }} />
         {apiOrigin ? (
           <>

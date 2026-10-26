@@ -1,6 +1,6 @@
 import { cache, Suspense, type ReactNode } from "react"
 
-import { apiServer } from "@/lib/public-api-server"
+import { apiServer, nullIfNotFound } from "@/lib/public-api-server"
 import { hoistDataUrls } from "@/lib/inline-media"
 import { prefetchForDocuments } from "./server-prefetch"
 import { asGlobals, type BuilderGlobals } from "./globals"
@@ -40,8 +40,10 @@ async function readDocument(path: string): Promise<BuilderDocument | null> {
     const res = await apiServer<{ data?: { document?: unknown } }>(path, { revalidate: PUBLIC_DOC_TTL, tags: ["builder"] })
     const document = res?.data?.document
     return isDocument(document) ? hoistDataUrls(pruneForView(document)) : null
-  } catch {
-    return null
+  } catch (err) {
+    // Real 404 = no published document. Anything else (backend restarting) rethrows so a valid
+    // route never renders/caches a 404; ISR keeps serving the last good page instead.
+    return nullIfNotFound(err)
   }
 }
 

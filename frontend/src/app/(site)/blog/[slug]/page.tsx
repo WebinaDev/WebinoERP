@@ -1,7 +1,7 @@
 import { articleLd, breadcrumbLd, itemMetadata, JsonLd, siteName, siteOrigin } from '@/lib/seo';
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
-import { apiServer } from '@/lib/public-api-server';
+import { apiServer, nullIfNotFound } from '@/lib/public-api-server';
 import { FormWidget } from '@/builder/render/form-widget';
 import { SitePage } from '@/themes/webina-corporate-v1/components/SitePage';
 
@@ -15,8 +15,8 @@ const fa = (n: number) => String(n).replace(/\d/g, (d) => '۰۱۲۳۴۵۶۷۸۹'
 async function load(slug: string): Promise<BlogPost | null> {
   try {
     return (await apiServer<{ data: BlogPost }>(`/v1/public/blog/${encodeURIComponent(slug)}`)).data;
-  } catch {
-    return null;
+  } catch (err) {
+    return nullIfNotFound(err);
   }
 }
 

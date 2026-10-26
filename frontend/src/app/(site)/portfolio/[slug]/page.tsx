@@ -3,7 +3,7 @@ import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import type { ReactNode } from 'react';
 import { Briefcase, Building2, CheckCircle2, ExternalLink, Globe, Layers, Lightbulb, Tag, Target, TrendingUp, Trophy } from 'lucide-react';
-import { apiServer } from '@/lib/public-api-server';
+import { apiServer, nullIfNotFound } from '@/lib/public-api-server';
 import { SitePage } from '@/themes/webina-corporate-v1/components/SitePage';
 import { PortfolioGallery } from './PortfolioGallery';
 import { loadPublishedPage, StorefrontDocument } from '@/builder/public-document';
@@ -79,8 +79,8 @@ export default async function PortfolioDetailPage({ params }: { params: Promise<
   let item: PortfolioItem | null = null;
   try {
     item = (await apiServer<{ data: PortfolioItem }>(`/v1/public/portfolio/${encodeURIComponent(slug)}`)).data;
-  } catch {
-    item = null;
+  } catch (err) {
+    item = nullIfNotFound(err);
   }
   if (!item) notFound();
 

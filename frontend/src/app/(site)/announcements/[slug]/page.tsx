@@ -1,7 +1,7 @@
 import { breadcrumbLd, itemMetadata, JsonLd, siteOrigin } from '@/lib/seo';
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
-import { apiServer } from '@/lib/public-api-server';
+import { apiServer, nullIfNotFound } from '@/lib/public-api-server';
 import { SitePage } from '@/themes/webina-corporate-v1/components/SitePage';
 
 export const revalidate = 60;
@@ -12,8 +12,8 @@ const TYPES: Record<string, string> = { event: 'رویداد', update: 'به‌�
 async function load(slug: string): Promise<Ann | null> {
   try {
     return (await apiServer<{ data: Ann }>(`/v1/public/announcements/${encodeURIComponent(slug)}`)).data;
-  } catch {
-    return null;
+  } catch (err) {
+    return nullIfNotFound(err);
   }
 }
 
