@@ -918,72 +918,219 @@ class ModirPayamakAdminController extends Controller
             ], 503);
         }
 
-        $scope = (string) $request->input('scope', 'order_customer');
-        if (! in_array($scope, ModirPayamakManager::PATTERN_SCOPES, true)) {
-            $scope = 'order_customer';
-        }
-
-        $registry = collect($this->manager->listPatternRegistry($domain))
-            ->first(fn ($r) => is_array($r) && ($r['scope'] ?? '') === $scope && ($r['event_key'] ?? '') === $eventKey);
-
-        $code = is_array($registry) ? trim((string) ($registry['ippanel_code'] ?? '')) : '';
-        if ($code === '') {
-            return response()->json([
-                'ok' => false,
-                'event_key' => $eventKey,
-                'results' => [],
-                'reason' => 'pattern_not_bound',
-                'message' => __('messages.no_pattern_bound_for_event').$eventKey,
-            ], 422);
-        }
-
-        $phone = (string) ($request->input('phone') ?? '');
-        $recipients = $request->input('recipients');
-        if (! is_array($recipients)) {
-            $recipients = $phone !== '' ? [$phone] : [];
-        }
-        $recipients = array_values(array_filter(array_map(fn ($v) => is_scalar($v) ? trim((string) $v) : '', $recipients)));
-        if ($recipients === []) {
-            return response()->json([
-                'ok' => false,
-                'event_key' => $eventKey,
-                'results' => [],
-                'reason' => 'no_recipients',
-                'message' => 'phone or recipients required',
-            ], 422);
-        }
-
+        $order = is_array($request->input('order')) ? $request->input('order') : [];
         $params = $request->input('params');
         if (! is_array($params)) {
-            $params = is_array($request->input('order')) ? $request->input('order') : [];
+            $params = $order;
         }
         $params = array_merge(['event' => $eventKey, 'test' => $test ? '1' : '0'], $params);
-
         $from = (string) ($request->input('from_number') ?? $this->edge->defaultFrom());
-        $results = [];
-        $allOk = true;
-        foreach ($recipients as $to) {
-            $send = $this->edge->sendPattern($from, $code, [$to], $params);
-            $ok = (bool) ($send['ok'] ?? false);
-            $allOk = $allOk && $ok;
-            $results[] = [
-                'phone' => $to,
-                'ok' => $ok,
-                'pattern_code' => $code,
-                'message' => $ok ? null : (string) ($send['message'] ?? 'send_failed'),
-                'edge' => $send['data'] ?? null,
-            ];
+        $registry = $this->manager->listPatternRegistry($domain);
+
+        $rawRecipients = $request->input('recipients');
+        $explicitScope = $request->input('scope');
+        $isLegacyList = is_array($rawRecipients) && array_is_list($rawRecipients);
+        $isRoutedObject = is_array($rawRecipients) && ! $isLegacyList;
+
+        // Legacy / manual path: explicit phone list or explicit scope (test sends from the dashboard).
+        if ($isLegacyList || (! $isRoutedObject && ($test || is_string($explicitScope) && $explicitScope !== ''))) {
+            $scope = is_string($explicitScope) && in_array($explicitScope, ModirPayamakManager::PATTERN_SCOPES, true)
+                ? $explicitScope : 'order_customer';
+            $phones = $isLegacyList ? $rawRecipients : [(string) ($request->input('phone') ?? '')];
+            $phones = array_values(array_filter(array_map(fn ($v) => is_scalar($v) ? $this->normalizeMobile((string) $v) : '', $phones)));
+            if ($phones === []) {
+                return response()->json(['ok' => false, 'event_key' => $eventKey, 'results' => [], 'reason' => 'no_recipients', 'message' => 'phone or recipients required'], 422);
+            }
+            $code = $this->patternFor($registry, $domain, $scope, $eventKey);
+            if ($code === '') {
+                return response()->json(['ok' => false, 'event_key' => $eventKey, 'results' => [], 'reason' => 'pattern_not_bound', 'message' => __('messages.no_pattern_bound_for_event').$eventKey], 422);
+            }
+            $results = [];
+            $allOk = true;
+            foreach ($phones as $to) {
+                $r = $this->sendOne($from, $code, $to, $params);
+                $allOk = $allOk && $r['ok'];
+                $results[] = $r;
+            }
+
+            return response()->json(['data' => [
+                'ok' => $allOk, 'event_key' => $eventKey, 'test' => $test, 'scope' => $scope,
+                'results' => $results, 'reason' => $allOk ? null : 'send_failed',
+            ]], $allOk ? 200 : 422);
         }
 
-        return response()->json([
-            'data' => [
-                'ok' => $allOk,
-                'event_key' => $eventKey,
-                'test' => $test,
-                'results' => $results,
-                'reason' => $allOk ? null : 'send_failed',
-            ],
-        ], $allOk ? 200 : 422);
+        // Automatic order-status path: route per the shop's per-event customer/admin toggles.
+        $shop = app(\Modules\Integrations\Services\ModirPayamakSiteSmsService::class)->getShopSettings($domain);
+        if (array_key_exists('enabled', $shop) && ! $shop['enabled']) {
+            return response()->json(['data' => ['ok' => false, 'event_key' => $eventKey, 'results' => ['customer' => null, 'admin' => []], 'reason' => 'shop_sms_disabled']]);
+        }
+        [$wantCustomer, $wantAdmin] = $this->resolveRoles($shop, $eventKey, $isRoutedObject ? $rawRecipients : null);
+
+        $customerPhone = '';
+        foreach ([
+            $isRoutedObject ? ($rawRecipients['customer_phone'] ?? '') : '',
+            $order['customer_phone'] ?? '', $order['mobile'] ?? '', $order['billing_phone'] ?? '',
+            $request->input('phone') ?? '',
+        ] as $cand) {
+            $n = is_scalar($cand) ? $this->normalizeMobile((string) $cand) : '';
+            if ($n !== '') {
+                $customerPhone = $n;
+                break;
+            }
+        }
+
+        $out = ['customer' => null, 'admin' => []];
+        $anySent = false;
+        $allOk = true;
+        if ($wantCustomer) {
+            if ($customerPhone === '') {
+                // Never fall back to the admin number when the customer has no phone.
+                $out['customer'] = ['ok' => false, 'skipped' => true, 'reason' => 'no_customer_phone'];
+            } else {
+                $code = $this->patternFor($registry, $domain, 'order_customer', $eventKey);
+                if ($code === '') {
+                    $out['customer'] = ['ok' => false, 'phone' => $customerPhone, 'reason' => 'pattern_not_bound'];
+                    $allOk = false;
+                } else {
+                    $out['customer'] = $this->sendOne($from, $code, $customerPhone, $params);
+                    $anySent = true;
+                    $allOk = $allOk && $out['customer']['ok'];
+                }
+            }
+        }
+        if ($wantAdmin) {
+            $admins = $this->adminPhones($shop);
+            $code = $admins !== [] ? $this->patternFor($registry, $domain, 'order_admin', $eventKey) : '';
+            if ($admins === []) {
+                $out['admin'][] = ['ok' => false, 'skipped' => true, 'reason' => 'no_admin_phones'];
+            } elseif ($code === '') {
+                $out['admin'][] = ['ok' => false, 'reason' => 'pattern_not_bound'];
+                $allOk = false;
+            } else {
+                foreach ($admins as $to) {
+                    $r = $this->sendOne($from, $code, $to, $params);
+                    $out['admin'][] = $r;
+                    $anySent = true;
+                    $allOk = $allOk && $r['ok'];
+                }
+            }
+        }
+
+        $reason = null;
+        if (! $wantCustomer && ! $wantAdmin) {
+            $reason = 'event_off';
+        } elseif (! $anySent) {
+            $reason = $allOk ? 'no_recipients' : 'pattern_not_bound';
+        } elseif (! $allOk) {
+            $reason = 'send_failed';
+        }
+
+        return response()->json(['data' => [
+            'ok' => $anySent && $allOk,
+            'event_key' => $eventKey,
+            'test' => $test,
+            'routing' => ['customer' => $wantCustomer, 'admin' => $wantAdmin],
+            'results' => $out,
+            'reason' => $reason,
+        ]], ($anySent && ! $allOk) ? 422 : 200);
+    }
+
+    /**
+     * ERP shop settings are authoritative; the plugin's `recipients` object is used only
+     * when the ERP has no row for this event (older ERP state / plugin-only cache).
+     *
+     * @param  array<string, mixed>  $shop
+     * @param  array<string, mixed>|null  $hint
+     * @return array{0: bool, 1: bool}
+     */
+    protected function resolveRoles(array $shop, string $eventKey, ?array $hint): array
+    {
+        $events = is_array($shop['events'] ?? null) ? $shop['events'] : [];
+        $row = $events[$eventKey] ?? null;
+        if (is_array($row) && (array_key_exists('customer', $row) || array_key_exists('admin', $row))) {
+            $c = filter_var($row['customer'] ?? false, FILTER_VALIDATE_BOOLEAN);
+            $a = filter_var($row['admin'] ?? false, FILTER_VALIDATE_BOOLEAN);
+        } elseif ($hint !== null) {
+            $c = filter_var($hint['customer'] ?? false, FILTER_VALIDATE_BOOLEAN);
+            $a = filter_var($hint['admin'] ?? false, FILTER_VALIDATE_BOOLEAN);
+        } else {
+            // Backward compatible default for old plugins with no settings: customer only.
+            $c = true;
+            $a = false;
+        }
+        if (str_starts_with($eventKey, 'stock_') || in_array($eventKey, ['low_stock', 'out_of_stock'], true)) {
+            $c = false;
+        }
+
+        return [$c, $a];
+    }
+
+    /** @return list<string> */
+    protected function adminPhones(array $shop): array
+    {
+        $raw = $shop['admin_phones'] ?? ($shop['admin_phone'] ?? []);
+        if (is_string($raw)) {
+            $raw = preg_split('/[\s,،;]+/u', $raw) ?: [];
+        }
+        $out = [];
+        foreach ((array) $raw as $p) {
+            $n = is_scalar($p) ? $this->normalizeMobile((string) $p) : '';
+            if ($n !== '' && ! in_array($n, $out, true)) {
+                $out[] = $n;
+            }
+        }
+
+        return $out;
+    }
+
+    /** @param  list<array<string, mixed>>  $registry */
+    protected function patternFor(array $registry, string $domain, string $scope, string $eventKey): string
+    {
+        foreach ($registry as $r) {
+            if (is_array($r) && ($r['scope'] ?? '') === $scope && ($r['event_key'] ?? '') === $eventKey) {
+                $code = trim((string) ($r['ippanel_code'] ?? ''));
+                if ($code !== '') {
+                    return $code;
+                }
+            }
+        }
+        $tpl = app(\Modules\Integrations\Services\ModirPayamakSiteSmsService::class)->listTemplates($domain, $scope, $eventKey);
+        foreach ($tpl as $t) {
+            if (($t['enabled'] ?? true) && ! empty($t['pattern_code'])) {
+                return (string) $t['pattern_code'];
+            }
+        }
+
+        return '';
+    }
+
+    /** @return array<string, mixed> */
+    protected function sendOne(string $from, string $code, string $to, array $params): array
+    {
+        $send = $this->edge->sendPattern($from, $code, [$to], $params);
+        $ok = (bool) ($send['ok'] ?? false);
+
+        return [
+            'phone' => $to, 'ok' => $ok, 'pattern_code' => $code,
+            'message' => $ok ? null : (string) ($send['message'] ?? 'send_failed'),
+            'edge' => $send['data'] ?? null,
+        ];
+    }
+
+    protected function normalizeMobile(string $phone): string
+    {
+        $phone = strtr($phone, ['۰' => '0', '۱' => '1', '۲' => '2', '۳' => '3', '۴' => '4', '۵' => '5', '۶' => '6', '۷' => '7', '۸' => '8', '۹' => '9']);
+        $d = preg_replace('/\D+/', '', $phone) ?? '';
+        if (str_starts_with($d, '0098')) {
+            $d = substr($d, 4);
+        } elseif (str_starts_with($d, '98') && strlen($d) === 12) {
+            $d = substr($d, 2);
+        }
+        if (strlen($d) === 10 && str_starts_with($d, '9')) {
+            $d = '0'.$d;
+        }
+
+        return preg_match('/^09\d{9}$/', $d) ? $d : '';
     }
 
     protected function secretaryMatches(string $keywords, string $text): bool
