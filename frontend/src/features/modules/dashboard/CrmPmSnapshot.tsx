@@ -212,7 +212,7 @@ export function CrmPmSnapshot() {
   return (
     <div className="wd-home space-y-4" dir={isRtl ? 'rtl' : 'ltr'}>
       <h2 className="wd-home-h2">
-        <LayoutDashboard className="size-4 text-[#0054ff]" strokeWidth={1.75} />
+        <LayoutDashboard className="size-4 text-primary" strokeWidth={1.75} />
         {h('overview')}
       </h2>
 

@@ -3,25 +3,25 @@
 
 @media (min-width: 768px) {
   html[data-wd-dashboard] {
-    --wd-brand: #0054ff;
-    --wd-brand-dark: #0041d4;
-    --wd-ink: #22242a;
-    --wd-desk-bg: #f5f6f8;
-    --wd-desk-card: #ffffff;
-    --wd-desk-line: #e5e7eb;
-    --wd-desk-hint: #6b7280;
-    --wd-desk-tint: color-mix(in srgb, #0054ff 9%, #ffffff);
+    --wd-brand: var(--color-primary);
+    --wd-brand-dark: color-mix(in oklch, var(--color-primary) 82%, black);
+    --wd-ink: var(--color-foreground);
+    --wd-desk-bg: var(--color-background);
+    --wd-desk-card: var(--color-card);
+    --wd-desk-line: var(--color-border);
+    --wd-desk-hint: var(--color-muted-foreground);
+    --wd-desk-tint: color-mix(in srgb, var(--wd-brand) 9%, var(--color-card));
     --wd-desk-radius: 12px;
     --wd-desk-shadow: 0 1px 2px rgba(34, 36, 42, 0.04), 0 2px 8px rgba(34, 36, 42, 0.04);
     --wd-desk-font: var(--font-yekan), var(--wd-font-ui), "Yekan Bakh", Tahoma, sans-serif;
   }
 
   html[data-wd-dashboard].dark {
-    --wd-desk-bg: #12141a;
-    --wd-desk-card: #1a1d25;
-    --wd-desk-line: #2a2f3a;
-    --wd-desk-hint: #94a3b8;
-    --wd-desk-tint: color-mix(in srgb, #0054ff 22%, #1a1d25);
+    --wd-desk-bg: var(--color-background);
+    --wd-desk-card: var(--color-card);
+    --wd-desk-line: var(--color-border);
+    --wd-desk-hint: var(--color-muted-foreground);
+    --wd-desk-tint: color-mix(in srgb, var(--wd-brand) 22%, var(--color-card));
   }
 
   html[data-wd-dashboard] .wd-desktop-chrome,
@@ -95,14 +95,14 @@
   /* Sidebar formal */
   html[data-wd-dashboard] [data-slot='sidebar'],
   html[data-wd-dashboard] [data-sidebar='sidebar'] {
-    background: #f8f9fb !important;
+    background: var(--color-sidebar) !important;
     border-color: var(--wd-desk-line) !important;
     font-family: var(--wd-desk-font);
   }
 
   html[data-wd-dashboard].dark [data-slot='sidebar'],
   html[data-wd-dashboard].dark [data-sidebar='sidebar'] {
-    background: #161922 !important;
+    background: var(--color-sidebar) !important;
   }
 
   html[data-wd-dashboard] [data-sidebar='menu-button'] {

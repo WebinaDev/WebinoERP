@@ -185,7 +185,7 @@ export function MobileMoreSheet({
           <SheetDescription>{t('shell.mobileMore.description')}</SheetDescription>
         </SheetHeader>
 
-        <div className="wd-mobile-more-bar flex shrink-0 items-center gap-2 border-b border-[var(--wd-mobile-line,#e5e7eb)] px-3 py-3">
+        <div className="wd-mobile-more-bar flex shrink-0 items-center gap-2 border-b border-[var(--wd-mobile-line)] px-3 py-3">
           {view === 'settings' ? (
             <button
               type="button"

@@ -24,15 +24,15 @@ import {
 
 /** Brand palette — formal blue-first, muted accents. */
 export const WD_CHART = {
-  blue: '#0054ff',
-  ink: '#22242a',
-  sky: '#5b8cff',
-  teal: '#10a37f',
-  amber: '#f2a516',
-  rose: '#e5484d',
-  violet: '#7c5cff',
-  slate: '#94a3b8',
-  grid: 'rgba(148,163,184,0.18)',
+  blue: 'var(--wd-chart-1)',
+  ink: 'var(--wd-chart-ink)',
+  sky: 'var(--wd-chart-6)',
+  teal: 'var(--wd-chart-2)',
+  amber: 'var(--wd-chart-3)',
+  rose: 'var(--wd-chart-4)',
+  violet: 'var(--wd-chart-5)',
+  slate: 'var(--wd-chart-axis)',
+  grid: 'var(--wd-chart-grid)',
 };
 export const WD_SERIES = [WD_CHART.blue, WD_CHART.teal, WD_CHART.amber, WD_CHART.violet, WD_CHART.rose, WD_CHART.sky];
 
@@ -73,7 +73,7 @@ export function HomeCard({
   return (
     <section className={`wd-hc ${className}`}>
       <header className="wd-hc-head">
-        <span className="wd-hc-ic" style={{ color: WD_CHART[tone], background: `${WD_CHART[tone]}14` }}>
+        <span className="wd-hc-ic" style={{ color: WD_CHART[tone], background: `color-mix(in oklch, ${WD_CHART[tone]} 14%, transparent)` }}>
           <Icon absoluteStrokeWidth strokeWidth={ICON_STROKE} />
         </span>
         <h3 className="wd-hc-title">{title}</h3>
@@ -110,7 +110,7 @@ export function KpiTile({
   const body = (
     <>
       <div className="flex items-start justify-between gap-2">
-        <span className="wd-kpi-ic" style={{ color: WD_CHART[tone], background: `${WD_CHART[tone]}14` }}>
+        <span className="wd-kpi-ic" style={{ color: WD_CHART[tone], background: `color-mix(in oklch, ${WD_CHART[tone]} 14%, transparent)` }}>
           <Icon absoluteStrokeWidth strokeWidth={ICON_STROKE} />
         </span>
         {viz ? <div className="wd-kpi-viz">{viz}</div> : null}
@@ -130,8 +130,10 @@ export function KpiTile({
 
 const tooltipStyle = {
   borderRadius: 10,
-  border: '1px solid rgba(148,163,184,0.25)',
-  boxShadow: '0 6px 20px rgba(15,23,42,0.08)',
+  border: '1px solid var(--color-border)',
+  background: 'var(--color-popover)',
+  color: 'var(--color-popover-foreground)',
+  boxShadow: '0 6px 20px color-mix(in oklch, var(--color-foreground) 10%, transparent)',
   fontSize: 12,
   padding: '6px 10px',
 };
@@ -268,7 +270,7 @@ export function Columns({
             interval={0}
           />
           <YAxis hide />
-          <Tooltip cursor={{ fill: 'rgba(0,84,255,0.05)' }} contentStyle={tooltipStyle} formatter={(v: number) => [format(v), '']} separator="" />
+          <Tooltip cursor={{ fill: 'color-mix(in oklch, var(--wd-chart-1) 8%, transparent)' }} contentStyle={tooltipStyle} formatter={(v: number) => [format(v), '']} separator="" />
           <Bar dataKey="value" radius={[8, 8, 3, 3]} isAnimationActive={false}>
             {data.map((_, i) => (
               <Cell key={i} fill={WD_SERIES[i % WD_SERIES.length]} />
@@ -293,7 +295,7 @@ export function Donut({
   size?: number;
 }) {
   const total = data.reduce((s, d) => s + d.value, 0);
-  const pieData = total > 0 ? data : [{ label: '-', value: 1, color: 'rgba(148,163,184,0.25)' }];
+  const pieData = total > 0 ? data : [{ label: '-', value: 1, color: 'var(--wd-chart-track)' }];
   return (
     <div className="flex items-center gap-4">
       <div className="relative shrink-0" style={{ width: size, height: size }} dir="ltr">
@@ -355,7 +357,7 @@ export function Ring({
       <ResponsiveContainer width="100%" height="100%">
         <RadialBarChart innerRadius="78%" outerRadius="100%" data={[{ v: pct }]} startAngle={90} endAngle={-270}>
           <PolarAngleAxis type="number" domain={[0, 100]} tick={false} />
-          <RadialBar dataKey="v" cornerRadius={10} fill={color} background={{ fill: 'rgba(148,163,184,0.18)' }} isAnimationActive={false} />
+          <RadialBar dataKey="v" cornerRadius={10} fill={color} background={{ fill: 'var(--wd-chart-track)' }} isAnimationActive={false} />
         </RadialBarChart>
       </ResponsiveContainer>
       <div className="pointer-events-none absolute inset-0 flex items-center justify-center text-xs font-semibold tabular-nums">
