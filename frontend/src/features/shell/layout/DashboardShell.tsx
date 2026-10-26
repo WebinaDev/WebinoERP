@@ -146,7 +146,8 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
     for (const part of parts) {
       acc = acc ? `${acc}/${part}` : part;
       const layoutKey = `layout.${resolveLayoutNavKey(part)}`;
-      const fromLayout = t(layoutKey);
+      // Probe first: dynamic segments (page ids) have no message and next-intl logs MISSING_MESSAGE for each.
+      const fromLayout = t.has(layoutKey) ? t(layoutKey) : layoutKey;
       const meta = resolveDashboardRoute(acc);
       out.push({
         label: fromLayout !== layoutKey ? fromLayout : rtl ? meta.titleFa : meta.titleEn,
