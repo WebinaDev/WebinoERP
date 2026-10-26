@@ -1,3 +1,5 @@
+import { visitorHeaders } from "./visitor"
+
 const API_BASE = (process.env.NEXT_PUBLIC_API_URL ?? "").trim().replace(/\/+$/, "").replace(/\/api$/, "")
 
 export type QuietResult<T> = { ok: true; data: T } | { ok: false; status: number; message: string }
@@ -14,6 +16,7 @@ export async function quietApi<T>(
       headers: {
         Accept: "application/json",
         "X-Requested-With": "XMLHttpRequest",
+        ...visitorHeaders(),
         ...(opts.json !== undefined ? { "Content-Type": "application/json" } : {}),
       },
       body: opts.json !== undefined ? JSON.stringify(opts.json) : undefined,

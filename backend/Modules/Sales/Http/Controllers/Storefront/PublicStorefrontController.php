@@ -159,7 +159,7 @@ class PublicStorefrontController extends Controller
     public function compare(Request $request): JsonResponse
     {
         $ids = $this->compareIds($request);
-        $items = $ids === [] ? collect() : (clone $this->catalog->query())->whereIn('id', $ids)->get()->map(fn ($i) => $this->catalog->serialize($i))->values();
+        $items = $ids === [] ? collect() : (clone $this->catalog->query())->whereIn('id', $ids)->get()->sortBy(fn ($i) => array_search($i->id, $ids, true))->values()->map(fn ($i) => $this->catalog->serialize($i))->values();
 
         return response()->json(['data' => ['items' => $items, 'ids' => $ids]]);
     }
@@ -169,7 +169,7 @@ class PublicStorefrontController extends Controller
         (clone $this->catalog->query())->findOrFail($productId);
         $ids = array_values(array_unique(array_merge($this->compareIds($request), [$productId])));
         $ids = array_slice($ids, -4);
-        Cache::put($this->compareKey($request), $ids, now()->addDays(7));
+        Cache::put($this->compareKey($request), $ids, now()->addDays(30));
 
         return response()->json(['data' => ['ids' => $ids]]);
     }
@@ -177,7 +177,7 @@ class PublicStorefrontController extends Controller
     public function compareRemove(Request $request, int $productId): JsonResponse
     {
         $ids = array_values(array_filter($this->compareIds($request), fn ($id) => $id !== $productId));
-        Cache::put($this->compareKey($request), $ids, now()->addDays(7));
+        Cache::put($this->compareKey($request), $ids, now()->addDays(30));
 
         return response()->json(['data' => ['ids' => $ids]]);
     }
@@ -225,7 +225,16 @@ class PublicStorefrontController extends Controller
     {
         $user = $request->user('sanctum');
 
-        return 'sf:compare:'.($user ? 'u'.$user->id : 'ip'.sha1((string) $request->ip().'|'.$request->userAgent()));
+        if ($user) {
+            return 'sf:compare:u'.$user->id;
+        }
+        // Per-visitor list: the storefront sends a random id it keeps in localStorage; fall back to ip+UA.
+        $visitor = (string) $request->header('X-Visitor-Id', '');
+        if (preg_match('/^[A-Za-z0-9_-]{16,64}$/', $visitor)) {
+            return 'sf:compare:v'.$visitor;
+        }
+
+        return 'sf:compare:ip'.sha1((string) $request->ip().'|'.$request->userAgent());
     }
 
     /**

@@ -12,6 +12,7 @@ import {
 
 import { addToCart, cartSnapshot, subscribeCart, type CartLine } from "../cart"
 import { CartView } from "@/features/shop/CartView"
+import { CompareBySlug } from "./shop-pages-widgets"
 import { propStr } from "../props"
 import type { WidgetNode } from "../types"
 
@@ -137,6 +138,7 @@ export function SaleProductHeroWidget({ widget }: { widget: WidgetNode }) {
           </div>
           {propStr(p, "priceNote", "") ? <p className="mt-2 text-xs leading-6 text-[#6b7080]">{propStr(p, "priceNote", "")}</p> : null}
           <div className="mt-5"><AddButton big slug={slug} name={title} price={price} image={images[0]} label={propStr(p, "buttonLabel", "افزودن به سبد خرید")} cartHref={cartHref} /></div>
+          <div className="mt-3 flex justify-center"><CompareBySlug slug={slug} /></div>
           {demoHref ? <Link href={demoHref} className="mt-3 flex h-12 items-center justify-center rounded-2xl border border-[#d8deeb] text-sm font-bold text-[#22242a] hover:border-[#0054ff] hover:text-[#0054ff]">{propStr(p, "demoLabel", "درخواست دمو")}</Link> : null}
           {meta.length ? (
             <dl className="mt-5 divide-y divide-[#eef0f5] text-sm">
@@ -285,7 +287,10 @@ export function SaleProductGridWidget({ widget }: { widget: WidgetNode }) {
                   {it.old > it.price ? <p className="text-xs text-[#9aa0ad] line-through">{toman(it.old)}</p> : null}
                   <p className="font-black text-[#22242a]">{it.price ? toman(it.price) : "استعلام"}</p>
                 </div>
-                <AddButton slug={it.slug} name={it.title} price={it.price} image={it.image} label="خرید" cartHref={cartHref} />
+                <div className="flex items-start gap-2">
+                  <CompareBySlug slug={it.slug} compact />
+                  <AddButton slug={it.slug} name={it.title} price={it.price} image={it.image} label="خرید" cartHref={cartHref} />
+                </div>
               </div>
             </div>
           </article>

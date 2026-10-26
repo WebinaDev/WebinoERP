@@ -1,5 +1,6 @@
 "use client"
 
+import { CompareTableWidget, OffersGridWidget, ShopCatalogWidget } from "./shop-pages-widgets"
 import dynamic from "next/dynamic"
 
 import { ArchiveFiltersWidget } from "./archive-filters"
@@ -501,6 +502,12 @@ export function WidgetBody({ widget, editor }: { widget: WidgetNode; editor?: Ed
       return <SaleProductTabsWidget widget={widget} />
     case "sale-product-grid":
       return <SaleProductGridWidget widget={widget} />
+    case "shop-catalog":
+      return <ShopCatalogWidget widget={widget} />
+    case "offers-grid":
+      return <OffersGridWidget widget={widget} />
+    case "compare-table":
+      return <CompareTableWidget widget={widget} />
     case "sale-cart":
       return <SaleCartWidget widget={widget} />
     case "portfolio-gallery":

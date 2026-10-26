@@ -47,8 +47,23 @@ class StorefrontCatalog
         $meta = (array) ($item->meta ?? []);
         $regular = (int) round((float) $item->price);
         $sale = isset($meta['sale_price']) && is_numeric($meta['sale_price']) ? (int) round((float) $meta['sale_price']) : null;
+        if ($sale !== null && $this->saleExpired($meta)) {
+            $sale = null;
+        }
 
         return $sale !== null && $sale > 0 && $sale < $regular ? $sale : $regular;
+    }
+
+    /** A sale with meta.sale_ends_at in the past no longer applies (regular price comes back automatically). */
+    public function saleExpired(array $meta): bool
+    {
+        $end = $meta['sale_ends_at'] ?? null;
+        if (! is_string($end) || trim($end) === '') {
+            return false;
+        }
+        $ts = strtotime($end);
+
+        return $ts !== false && $ts <= time();
     }
 
     public function available(SalesCatalogItem $item): bool
@@ -80,6 +95,7 @@ class StorefrontCatalog
             'price_minor' => $regular,
             'sale_price_minor' => $price < $regular ? $price : null,
             'discounted_price_minor' => $price,
+            'sale_ends_at' => $price < $regular && ! empty($meta['sale_ends_at']) && strtotime((string) $meta['sale_ends_at']) ? date(DATE_ATOM, strtotime((string) $meta['sale_ends_at'])) : null,
             'discount_percent' => $price < $regular && $regular > 0 ? (int) round(100 - $price * 100 / $regular) : null,
             'currency' => 'IRR',
             'is_available' => $this->available($item),

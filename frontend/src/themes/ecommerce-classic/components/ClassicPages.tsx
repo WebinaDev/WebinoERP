@@ -1,5 +1,6 @@
 "use client"
 
+import { visitorHeaders } from "@/builder/storefront/visitor"
 import Link from "next/link"
 import { useEffect, useState, type ReactNode } from "react"
 import { useLocale, useTranslations } from "next-intl"
@@ -394,7 +395,7 @@ export function ClassicComparePage() {
     if (!enabled) return
     const base = (process.env.NEXT_PUBLIC_API_URL ?? "").trim().replace(/\/+$/, "").replace(/\/api$/, "")
     const url = `${base}/api/v1/public/compare${query.trim() ? `?q=${encodeURIComponent(query.trim())}` : ""}`
-    fetch(url, { credentials: "include" })
+    fetch(url, { credentials: "include", headers: visitorHeaders() })
       .then((res) => (res.ok ? res.json() : null))
       .then((json) => setItems(Array.isArray(json?.data?.items) ? json.data.items : []))
       .finally(() => setLoading(false))

@@ -1,5 +1,6 @@
 "use client"
 
+import { visitorHeaders } from "@/builder/storefront/visitor"
 import { useEffect, useState } from "react"
 import Link from "next/link"
 import { useLocale, useTranslations } from "next-intl"
@@ -68,7 +69,7 @@ export function StorefrontCompareTable({
 }
 
 async function removeCompare(base: string, id: number, onRemove: (id: number) => void) {
-  await fetch(`${base}/api/v1/public/compare/products/${id}`, { method: "DELETE", credentials: "include" })
+  await fetch(`${base}/api/v1/public/compare/products/${id}`, { method: "DELETE", credentials: "include", headers: visitorHeaders() })
   onRemove(id)
 }
 

@@ -102,6 +102,47 @@ export const CONTENT_WIDGETS: WidgetDef[] = [
     ],
     create: () => node("sale-product-grid", { title: "محصولات", items: "", showFilter: "true", cartHref: "/pages/cart" }),
   },
+  // ERP-local shop page widgets (live catalog). Not in @webina/ui yet; promote when Dashboard needs them.
+  {
+    type: "shop-catalog",
+    label: "فروشگاه زنده (فیلتر دسته، تخفیف‌دار، موجود، مرتب‌سازی)",
+    category: "commerce",
+    fields: [
+      { kind: "text", key: "title", label: "عنوان" },
+      { kind: "textarea", key: "intro", label: "توضیح" },
+      { kind: "text", key: "saleTitle", label: "عنوان در حالت فقط تخفیف‌دار" },
+      { kind: "textarea", key: "saleIntro", label: "توضیح در حالت فقط تخفیف‌دار" },
+      { kind: "text", key: "searchPlaceholder", label: "متن جستجو" },
+      { kind: "number", key: "limit", label: "تعداد در هر صفحه", min: 4, max: 48 },
+    ],
+    create: () => node("shop-catalog", { title: "فروشگاه", limit: 12 }),
+  },
+  {
+    type: "offers-grid",
+    label: "پیشنهادهای شگفت‌انگیز (محصولات تخفیف‌دار + شمارش معکوس)",
+    category: "commerce",
+    fields: [
+      { kind: "text", key: "kicker", label: "برچسب بالا" },
+      { kind: "text", key: "title", label: "عنوان" },
+      { kind: "textarea", key: "intro", label: "توضیح" },
+      { kind: "text", key: "timerTitle", label: "عنوان شمارش معکوس" },
+      { kind: "text", key: "emptyText", label: "متن نبود پیشنهاد" },
+      { kind: "text", key: "moreLabel", label: "متن دکمه همه تخفیف‌ها" },
+      { kind: "number", key: "limit", label: "حداکثر تعداد", min: 1, max: 60 },
+    ],
+    create: () => node("offers-grid", { title: "پیشنهادهای شگفت‌انگیز", limit: 24 }),
+  },
+  {
+    type: "compare-table",
+    label: "جدول مقایسه محصولات (لیست هر بازدیدکننده)",
+    category: "commerce",
+    fields: [
+      { kind: "text", key: "title", label: "عنوان" },
+      { kind: "textarea", key: "intro", label: "توضیح" },
+      { kind: "text", key: "emptyText", label: "متن لیست خالی" },
+    ],
+    create: () => node("compare-table", { title: "مقایسه محصولات" }),
+  },
   {
     type: "sale-cart",
     label: "سبد خرید محصولات فروشی",

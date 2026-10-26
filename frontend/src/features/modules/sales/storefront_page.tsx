@@ -59,7 +59,22 @@ export function StorefrontAdminPage() {
 }
 
 /* ---------------- products ---------------- */
-const emptyForm = { name: '', slug: '', kind: 'license', price: '', sale_price: '', image_url: '', url: '', category_name: '', course_slug: '', description: '', stock: '', status: 'active', storefront: true };
+function toLocalInput(v: unknown): string {
+  if (typeof v !== 'string' || !v) return '';
+  const d = new Date(v);
+  if (Number.isNaN(d.getTime())) return '';
+  const p = (n: number) => String(n).padStart(2, '0');
+  return `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())}T${p(d.getHours())}:${p(d.getMinutes())}`;
+}
+function specsToText(v: unknown): string {
+  if (Array.isArray(v)) return v.map((r) => (r && typeof r === 'object' ? `${(r as { name?: string }).name ?? ''}: ${String((r as { value?: unknown }).value ?? '')}` : '')).filter((l) => l.trim() !== ':').join('\n');
+  if (v && typeof v === 'object') return Object.entries(v as Record<string, unknown>).map(([k, val]) => `${k}: ${Array.isArray(val) ? val.join('، ') : String(val)}`).join('\n');
+  return '';
+}
+function textToSpecs(t: string): Array<{ name: string; value: string }> {
+  return t.split('\n').map((l) => l.trim()).filter(Boolean).map((l) => { const i = l.indexOf(':'); return i > 0 ? { name: l.slice(0, i).trim(), value: l.slice(i + 1).trim() } : { name: l, value: '' }; });
+}
+const emptyForm = { name: '', slug: '', kind: 'license', price: '', sale_price: '', sale_ends_at: '', specs: '', image_url: '', url: '', category_name: '', course_slug: '', description: '', stock: '', status: 'active', storefront: true };
 function Products() {
   const [items, setItems] = useState<Item[] | null>(null);
   const [edit, setEdit] = useState<Item | 'new' | null>(null);
@@ -77,6 +92,7 @@ function Products() {
     setForm({
       name: i.name, slug: String(m.slug ?? i.sku ?? ''), kind: String(m.kind ?? 'product'),
       price: String(Math.round(Number(i.price) / 10)), sale_price: m.sale_price ? String(Math.round(Number(m.sale_price) / 10)) : '',
+      sale_ends_at: toLocalInput(m.sale_ends_at), specs: specsToText(m.attributes),
       image_url: String(m.image_url ?? ''), url: String(m.url ?? ''), category_name: String(m.category_name ?? ''), course_slug: String(m.course_slug ?? ''),
       description: i.description ?? '', stock: m.stock === undefined || m.stock === null ? '' : String(m.stock), status: i.status, storefront: m.storefront !== false,
     });
@@ -86,7 +102,9 @@ function Products() {
     const digital = form.kind !== 'product';
     const meta = {
       ...prev, storefront: form.storefront, slug: form.slug.trim(), kind: form.kind, digital, single: digital,
-      sale_price: form.sale_price ? Number(form.sale_price) * 10 : null, image_url: form.image_url || null, url: form.url || null,
+      sale_price: form.sale_price ? Number(form.sale_price) * 10 : null,
+      sale_ends_at: form.sale_price && form.sale_ends_at ? new Date(form.sale_ends_at).toISOString() : null,
+      attributes: textToSpecs(form.specs), image_url: form.image_url || null, url: form.url || null,
       category_name: form.category_name || null, category_slug: form.category_name ? form.kind : null,
       course_slug: form.kind === 'course' ? form.course_slug || null : null, stock: form.stock === '' ? null : Number(form.stock),
     };
@@ -107,6 +125,7 @@ function Products() {
           <label className="grid gap-1 text-sm">نوع<select className={input} value={form.kind} onChange={f('kind')}>{Object.entries(KINDS).map(([k, v]) => <option key={k} value={k}>{v}</option>)}</select></label>
           <label className="grid gap-1 text-sm">قیمت (تومان)<input className={input} dir="ltr" inputMode="numeric" value={form.price} onChange={f('price')} /></label>
           <label className="grid gap-1 text-sm">قیمت با تخفیف (اختیاری)<input className={input} dir="ltr" inputMode="numeric" value={form.sale_price} onChange={f('sale_price')} /></label>
+          <label className="grid gap-1 text-sm">پایان تخفیف (اختیاری، برای شمارش معکوس)<input type="datetime-local" className={input} dir="ltr" value={form.sale_ends_at} onChange={f('sale_ends_at')} /></label>
           {form.kind === 'course' ? <label className="grid gap-1 text-sm">نامک دوره در آکادمی<input className={input} dir="ltr" value={form.course_slug} onChange={f('course_slug')} /></label> : null}
           <label className="grid gap-1 text-sm">دسته<input className={input} value={form.category_name} onChange={f('category_name')} /></label>
           <label className="grid gap-1 text-sm">آدرس صفحه<input className={input} dir="ltr" placeholder="/products/..." value={form.url} onChange={f('url')} /></label>
@@ -114,6 +133,7 @@ function Products() {
           <label className="grid gap-1 text-sm">موجودی (خالی = نامحدود)<input className={input} dir="ltr" value={form.stock} onChange={f('stock')} /></label>
           <label className="grid gap-1 text-sm">وضعیت<select className={input} value={form.status} onChange={f('status')}><option value="active">فعال</option><option value="inactive">غیرفعال</option></select></label>
           <label className="flex items-center gap-2 text-sm"><input type="checkbox" checked={form.storefront} onChange={(e) => setForm({ ...form, storefront: e.target.checked })} />نمایش و فروش در سایت</label>
+          <label className="grid gap-1 text-sm md:col-span-3">مشخصات برای جدول مقایسه (هر خط: عنوان: مقدار)<textarea className={`${input} h-24 py-2`} placeholder={'نوع لایسنس: یک دامنه\nپشتیبانی: ۱۲ ماه'} value={form.specs} onChange={f('specs')} /></label>
           <label className="grid gap-1 text-sm md:col-span-3">توضیح کوتاه<textarea className={`${input} h-20 py-2`} value={form.description} onChange={f('description')} /></label>
           {msg ? <p className="text-sm text-destructive md:col-span-3">{msg}</p> : null}
           <div className="flex gap-2 md:col-span-3"><button type="button" className={btn} onClick={() => void save()}>ذخیره</button><button type="button" className={ghost} onClick={() => setEdit(null)}>انصراف</button></div>
