@@ -90,11 +90,10 @@ export function PublishedDocument({
   globals?: BuilderGlobals | null
   themeClass?: string
 }) {
-  return (
-    <Suspense fallback={null}>
-      <DocumentView document={document} mode="view" device="desktop" runtime={runtime} globals={globals ?? undefined} themeClass={themeClass ?? (storefrontThemeClass(runtime?.themeSlug) || "sf-classic")} />
-    </Suspense>
-  )
+  // No Suspense boundary here: with one, React streams the page body as a late-revealed
+  // chunk, so the first paint shows header + footer and the footer then jumps below the
+  // fold (CLS ~1-2 on desktop). Public site routes are dynamic, so nothing needs it.
+  return <DocumentView document={document} mode="view" device="desktop" runtime={runtime} globals={globals ?? undefined} themeClass={themeClass ?? (storefrontThemeClass(runtime?.themeSlug) || "sf-classic")} />
 }
 
 export async function StorefrontDocument({
