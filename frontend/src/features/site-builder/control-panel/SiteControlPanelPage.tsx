@@ -63,6 +63,7 @@ import {
 import { stackProbeState } from '@/features/site-builder/control-panel/stack-probe';
 import { SiteStatusCard } from '@/features/site-builder/control-panel/SiteStatusCard';
 import { SiteCustomerHubCard } from '@/features/site-builder/control-panel/SiteCustomerHubCard';
+import { SiteDomainsCard } from '@/features/site-builder/control-panel/SiteDomainsCard';
 
 function Section({
   icon: Icon,
@@ -1028,6 +1029,8 @@ export function SiteControlPanelPage({ id }: { id: string }) {
               {composeLogs || t('controlLogsEmpty')}
             </pre>
           </Section>
+
+          <SiteDomainsCard provisionId={provisionId} />
 
           <SiteCustomerHubCard provisionId={provisionId} />
         </div>

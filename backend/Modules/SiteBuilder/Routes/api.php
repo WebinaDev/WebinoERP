@@ -75,6 +75,10 @@ Route::post('/provisions/{siteProvision}/channel', [SiteProvisionController::cla
 Route::post('/provisions/{siteProvision}/update', [SiteProvisionController::class, 'queueUpdate'])->middleware('throttle:10,1');
 Route::post('/provisions/{siteProvision}/ssl/renew', [SiteProvisionController::class, 'renewSsl'])->middleware('throttle:10,1');
 Route::post('/provisions/{siteProvision}/alias', [SiteProvisionController::class, 'syncAlias'])->middleware('throttle:20,1');
+Route::get('/provisions/{siteProvision}/domains', [\Modules\SiteBuilder\Http\Controllers\SiteDomainController::class, 'index']);
+Route::post('/provisions/{siteProvision}/domains', [\Modules\SiteBuilder\Http\Controllers\SiteDomainController::class, 'store'])->middleware('throttle:30,1');
+Route::patch('/provisions/{siteProvision}/domains/{domain}', [\Modules\SiteBuilder\Http\Controllers\SiteDomainController::class, 'update'])->middleware('throttle:30,1');
+Route::delete('/provisions/{siteProvision}/domains/{domain}', [\Modules\SiteBuilder\Http\Controllers\SiteDomainController::class, 'destroy'])->middleware('throttle:30,1');
 Route::get('/provisions/{siteProvision}/site-status', [SiteProvisionController::class, 'siteStatus']);
 Route::put('/provisions/{siteProvision}/site-status', [SiteProvisionController::class, 'updateSiteStatus'])->middleware('throttle:20,1');
 Route::get('/provisions/{siteProvision}/customer-hub', [SiteCustomerHubController::class, 'show']);

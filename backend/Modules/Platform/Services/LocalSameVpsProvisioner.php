@@ -2202,7 +2202,7 @@ class LocalSameVpsProvisioner
      */
     protected function writeCaddySnippet(string $domain, string $slug, array $aliases = []): string
     {
-        $snippet = TenantSiteStack::caddySnippet($domain, $slug, $aliases);
+        $snippet = $this->snippetFor($domain, $slug, $aliases);
         $paths = [];
 
         // Primary: durable host dir mounted into Caddy as /etc/caddy/sites
@@ -2232,6 +2232,75 @@ class LocalSameVpsProvisioner
         }
 
         return 'wrote '.implode(', ', $paths);
+    }
+
+    /**
+     * Use webino_site_domains (primary/alias/redirect) when the site has rows; else legacy snippet.
+     *
+     * @param  list<string>  $aliases
+     */
+    protected function snippetFor(string $domain, string $slug, array $aliases): string
+    {
+        try {
+            $provision = WebinoSiteProvision::query()->where('slug', $slug)->first();
+            if ($provision && \Illuminate\Support\Facades\Schema::hasTable('webino_site_domains')) {
+                $rows = \Modules\SiteBuilder\Entities\WebinoSiteDomain::query()
+                    ->where('provision_id', $provision->id)->orderBy('id')->get()->toArray();
+                if ($rows !== []) {
+                    return \Modules\SiteBuilder\Support\SiteDomainCaddy::render($domain, $slug, $rows, $aliases);
+                }
+            }
+        } catch (Throwable) {
+            // fall back to legacy snippet
+        }
+
+        return TenantSiteStack::caddySnippet($domain, $slug, $aliases);
+    }
+
+    /**
+     * Rewrite this site's snippet from site_domains, validate the whole Caddy config,
+     * roll back on failure, then graceful reload. Other sites' snippets are untouched.
+     *
+     * @return array{ok:bool,log:string}
+     */
+    public function applySiteDomains(WebinoSiteProvision $provision): array
+    {
+        $file = $this->caddySnippetPath($provision->slug);
+        $backup = is_file($file) ? (string) file_get_contents($file) : null;
+        if ($backup !== null) {
+            $this->ensureDir('/var/lib/webino/caddy.d/.bak');
+            $this->writeFile('/var/lib/webino/caddy.d/.bak/'.$provision->slug.'.'.date('Ymd-His').'.caddy', $backup);
+        }
+        $log = [$this->ensureCaddySnippet($provision)];
+        $web = $this->findErpWebContainer();
+        if ($web !== null) {
+            $v = $this->run(['docker', 'exec', $web, 'caddy', 'validate', '--config', '/etc/caddy/Caddyfile', '--adapter', 'caddyfile'], 60);
+            if ($v['exit_code'] !== 0) {
+                if ($backup !== null) {
+                    $this->writeCaddySnippetRaw($provision->slug, $backup);
+                } else {
+                    $this->removeCaddySnippet($provision->slug);
+                }
+                $err = trim($v['stderr'] ?: $v['stdout']);
+
+                return ['ok' => false, 'log' => 'validate failed, rolled back: '.mb_substr($err, -600)];
+            }
+            $log[] = 'caddy validate ok';
+        }
+        $r = $this->reloadCaddyResult();
+        $log[] = 'caddy reload exit='.$r['exit_code'];
+
+        return ['ok' => $r['exit_code'] === 0, 'log' => implode("\n", $log)];
+    }
+
+    protected function writeCaddySnippetRaw(string $slug, string $contents): void
+    {
+        $this->writeFile($this->caddySnippetPath($slug), $contents);
+        $repoSites = (string) (env('WEBINO_SITES_CADDY_DIR') ?: ($this->erpRoot().'/docker/caddy/sites'));
+        try {
+            $this->writeFile(rtrim($repoSites, '/').'/'.$slug.'.caddy', $contents);
+        } catch (Throwable) {
+        }
     }
 
     protected function caddySnippetPath(string $slug): string

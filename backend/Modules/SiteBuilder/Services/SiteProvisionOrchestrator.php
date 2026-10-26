@@ -322,6 +322,20 @@ class SiteProvisionOrchestrator
         $this->audit->log($provision->created_by, 'provision.alias_sync', $provision->fresh());
     }
 
+    /**
+     * @return array{ok:bool,applied:bool,log:string}
+     */
+    public function applySiteDomains(WebinoSiteProvision $provision): array
+    {
+        if (! $this->shouldUseLocal($provision)) {
+            return ['ok' => true, 'applied' => false, 'log' => 'remote server: Caddy not managed from ERP'];
+        }
+        $r = $this->local->applySiteDomains($provision);
+        $this->audit->log($provision->created_by, 'provision.domains_apply', $provision->fresh());
+
+        return $r + ['applied' => true];
+    }
+
     public function reloadCaddyProxy(): void
     {
         $this->local->reloadCaddyPublic();
