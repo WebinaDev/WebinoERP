@@ -2,7 +2,7 @@
  * CONTENT_WIDGETS: landing-page widgets (section heading, steps, icon cards, badges, CTA, comparison, rahn). */
 
 import { uid } from "./ids"
-import { sharedContentWidgets, sharedFormWidget, sharedGapWidgets } from "@webina/ui/builder"
+import { FOOTER_EXTRA_FIELDS, NAV_EXTRA_FIELDS, sharedContentWidgets, sharedFormWidget, sharedGapWidgets } from "@webina/ui/builder"
 import { ICON_OPTIONS } from "./render/icon-options"
 import { DETAIL_ICON_OPTIONS } from "./render/portfolio-detail-icons"
 import { createSection } from "./tree"
@@ -326,21 +326,12 @@ const SECTION_PRESETS: Record<string, number[]> = { "12": [12], "6-6": [6, 6], "
  * @webina/ui v0.2 gap pack (team, media, auth forms, layout containers, general header/footer), shared with
  * WebinoDashboard. Layout types get nested sections here, as the shared package only ships schemas/defaults.
  */
-const HIDE_ON_OPTIONS = [{ value: "", label: "همه دستگاه‌ها" }, { value: "mobile", label: "پنهان در موبایل" }, { value: "tablet", label: "پنهان در تبلت و موبایل" }]
-/** Synced with WebinoDashboard 828c227: header cart/account per-breakpoint visibility, footer about column. */
+/** Header/footer chrome settings come from @webina/ui (shared with WebinoDashboard). ERP's site-header and
+ * site-footer renderers implement these keys; the rest of the shared list waits for ERP renderer support. */
+const ERP_CHROME_KEYS = new Set(["showCart", "cartHideOn", "showAccount", "accountHideOn", "footerAboutTitle", "footerAbout", "footerAboutLinkLabel", "footerAboutLinkHref"])
 const CHROME_EXTRA_FIELDS: Record<string, WidgetDef["fields"]> = {
-  "site-header": [
-    { kind: "switch", key: "showCart", label: "نمایش آیکن سبد خرید با تعداد" },
-    { kind: "select", key: "cartHideOn", label: "نمایش سبد خرید در دستگاه‌ها", options: HIDE_ON_OPTIONS },
-    { kind: "switch", key: "showAccount", label: "نمایش دکمه ورود یا منوی حساب" },
-    { kind: "select", key: "accountHideOn", label: "نمایش ورود و حساب در دستگاه‌ها", options: HIDE_ON_OPTIONS },
-  ],
-  "site-footer": [
-    { kind: "text", key: "footerAboutTitle", label: "عنوان ستون درباره" },
-    { kind: "textarea", key: "footerAbout", label: "متن ستون درباره" },
-    { kind: "text", key: "footerAboutLinkLabel", label: "متن پیوند ستون درباره" },
-    { kind: "link", key: "footerAboutLinkHref", label: "پیوند ستون درباره" },
-  ],
+  "site-header": NAV_EXTRA_FIELDS.filter((f) => ERP_CHROME_KEYS.has(f.key)) as WidgetDef["fields"],
+  "site-footer": FOOTER_EXTRA_FIELDS.filter((f) => ERP_CHROME_KEYS.has(f.key)) as WidgetDef["fields"],
 }
 
 export const GAP_WIDGETS: WidgetDef[] = sharedGapWidgets(ICON_OPTIONS).map((def) => {

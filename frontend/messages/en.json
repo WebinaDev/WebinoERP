@@ -424,7 +424,10 @@
     "accounting": "Accounting",
     "integrations": "Integrations",
     "site_builder": "Site builder",
-    "marketplace": "Marketplace"
+    "marketplace": "Marketplace",
+    "builder": "Page builder",
+    "new": "New",
+    "header": "Header"
   },
   "login": {
     "title": "Sign in",

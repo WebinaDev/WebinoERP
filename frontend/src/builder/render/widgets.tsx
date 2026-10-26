@@ -21,6 +21,7 @@ import { useCatalog } from "../storefront/use-catalog"
 import { fillDocumentTokens } from "../theme/tokens"
 import { propBool, propNum, propStr, parseLinks, linkAttrs } from "../props"
 import { isCorporateType } from "@/themes/webina-corporate-v1/builder/blocks"
+import { resolveWidgetAlias } from "@webina/ui/builder"
 import type { BuilderDocument, EditorApi, WidgetNode } from "../types"
 import { BuilderRuntimeProvider, useBuilderGlobals, useBuilderRuntime } from "./runtime"
 
@@ -206,7 +207,7 @@ export function WidgetBody({ widget, editor }: { widget: WidgetNode; editor?: Ed
   const classic = runtime.themeSlug === "ecommerce-classic"
   const runtimeLocale = locale
   if (isCorporateType(widget.type)) return <CorporateWidget type={widget.type} props={widget.props} />
-  switch (widget.type) {
+  switch (resolveWidgetAlias(widget.type)) {
     case "heading":
       return <HeadingWidget widget={widget} editor={editor} />
     case "text":
@@ -284,10 +285,8 @@ export function WidgetBody({ widget, editor }: { widget: WidgetNode; editor?: Ed
     case "cart-lines":
       return <WidgetIntro widget={widget}><CartWidget /></WidgetIntro>
     case "checkout":
-    case "checkout-stub": // legacy alias
       return <WidgetIntro widget={widget}><CheckoutWidget /></WidgetIntro>
     case "account":
-    case "account-stub": // legacy alias
       return <WidgetIntro widget={widget}><AccountWidget /></WidgetIntro>
     case "amazing-offers":
       return <AmazingOffersBlockWidget widget={widget} />

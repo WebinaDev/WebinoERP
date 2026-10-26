@@ -12,6 +12,7 @@ import { QueryProvider } from "@/providers/QueryProvider"
 import type { Locale } from "../../i18n"
 
 import "./globals.css"
+import "@webina/ui/styles/hide-on.css"
 
 // Public pages only ship the namespaces their client components use (found by
 // walking the import graph of app/(site)); the dashboard and login layouts

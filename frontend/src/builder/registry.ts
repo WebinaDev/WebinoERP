@@ -1,4 +1,5 @@
 import { uid } from "./ids"
+import { resolveWidgetAlias } from "@webina/ui/builder"
 import { createSection } from "./tree"
 import type { WidgetDef, WidgetNode } from "./types"
 import { FORM_FIELD_TYPES, type FormFieldType } from "./forms"
@@ -1229,11 +1230,11 @@ WIDGETS.push(ARCHIVE_FILTERS_WIDGET, ...CONTENT_WIDGETS, ...GAP_WIDGETS, ...CORP
 const byType = new Map(WIDGETS.map((widget) => [widget.type, widget]))
 
 export function widgetDef(type: string): WidgetDef | undefined {
-  return byType.get(type)
+  return byType.get(type) ?? byType.get(resolveWidgetAlias(type))
 }
 
 export function createWidget(type: string): WidgetNode | null {
-  const def = byType.get(type)
+  const def = widgetDef(type)
   return def ? def.create() : null
 }
 

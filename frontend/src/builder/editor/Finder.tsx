@@ -5,6 +5,7 @@ import { useTranslations } from "next-intl"
 import { useMemo, useState } from "react"
 
 import { WIDGETS } from "../registry"
+import { isLibraryWidget } from "../widget-groups"
 import { widgetLabel } from "../render/widgets"
 import type { BuilderDocument, SectionNode } from "../types"
 
@@ -47,7 +48,7 @@ export function Finder({
     collect(doc.sections, elements)
     return [
       ...actions.filter((a) => match(a.label)).map((a) => ({ key: `a-${a.id}`, group: "action" as const, label: a.label, run: a.run })),
-      ...WIDGETS.filter((w) => match(`${w.label} ${w.type}`)).map((w) => ({ key: `w-${w.type}`, group: "widget" as const, label: w.label, run: () => onAdd(w.type) })),
+      ...WIDGETS.filter((w) => isLibraryWidget(w.type) && match(`${w.label} ${w.type}`)).map((w) => ({ key: `w-${w.type}`, group: "widget" as const, label: w.label, run: () => onAdd(w.type) })),
       ...elements.filter((e) => match(e.label)).map((e) => ({ key: `e-${e.id}`, group: "element" as const, label: e.label, run: () => onSelect(e.id) })),
     ].slice(0, 40)
   }, [actions, doc.sections, onAdd, onSelect, query])

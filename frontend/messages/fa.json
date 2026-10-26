@@ -424,7 +424,10 @@
     "accounting": "حسابداری",
     "integrations": "یکپارچگی‌ها",
     "site_builder": "سازنده سایت",
-    "marketplace": "بازارچه"
+    "marketplace": "بازارچه",
+    "builder": "صفحه‌ساز",
+    "new": "جدید",
+    "header": "سربرگ"
   },
   "login": {
     "title": "ورود به حساب",

@@ -45,6 +45,7 @@ import { Button } from "@/components/ui/button"
 import { api } from "@/lib/api"
 import { asGlobals, COLOR_TOKENS, DEFAULT_GLOBALS, type BuilderGlobals } from "../globals"
 import { createWidget, WIDGETS, widgetDef } from "../registry"
+import { isLibraryWidget, switchGroupMember, widgetGroup } from "../widget-groups"
 import { groupWidgetsByCatalog } from "@webina/ui/builder"
 import { compileDocument } from "../compile"
 import { documentCss, mergeStyle } from "../style"
@@ -70,7 +71,7 @@ import {
   updateSection,
   updateWidget,
 } from "../tree"
-import type { FieldDef, AdvancedProps, ShapeName, BoxEdges, BuilderDocument, DeviceMode, EditorApi, StyleProps } from "../types"
+import type { FieldDef, AdvancedProps, ShapeName, BoxEdges, BuilderDocument, DeviceMode, EditorApi, StyleProps, WidgetNode } from "../types"
 import { DND_WIDGET } from "../types"
 import { DocumentView } from "../render/DocumentView"
 import { migrateDocument } from "../migrate"
@@ -1100,11 +1101,17 @@ export function BuilderEditor({ mode }: { mode: Mode }) {
                   onProps={(patch) => commit(updateWidget(doc, selection.id, (widget) => ({ ...widget, props: { ...widget.props, ...patch } })))}
                 />
               ) : tab === "content" ? (
+                <>
+                <GroupStylePicker
+                  widget={selection.widget}
+                  onSwitch={(nextType) => commit(updateWidget(doc, selection.id, (widget) => switchGroupMember(widget, nextType, createWidget)))}
+                />
                 <WidgetFields
                   type={selection.widget.type}
                   props={selection.widget.props}
                   onChange={(key, value) => commit(updateWidget(doc, selection.id, (widget) => ({ ...widget, props: { ...widget.props, [key]: value } })))}
                 />
+                </>
               ) : tab === "advanced" ? (
                 <AdvancedFields
                   value={selection.widget.advanced ?? {}}
@@ -1172,7 +1179,7 @@ export function BuilderEditor({ mode }: { mode: Mode }) {
                   </div>
                 </div>
               ) : null}
-              {groupWidgetsByCatalog(WIDGETS.filter((widget) => !needle || widget.label.includes(needle) || widget.type.includes(needle.toLowerCase()))).map(({ category, widgets: items }) => {
+              {groupWidgetsByCatalog(WIDGETS.filter((widget) => isLibraryWidget(widget.type)).filter((widget) => !needle || widget.label.includes(needle) || widget.type.includes(needle.toLowerCase()))).map(({ category, widgets: items }) => {
                 const CatIcon = catalogIcon(category.icon)
                 const open = Boolean(needle) || !collapsed[category.id]
                 return (
@@ -1261,6 +1268,19 @@ function IconButton({ children, label, onClick, active }: { children: React.Reac
 function FieldMark({ name }: { name: string }) {
   const Icon = FIELD_ICONS[name] ?? Settings2
   return <Icon className="size-3.5 shrink-0 text-[#0C2D63]/45" aria-hidden />
+}
+
+function GroupStylePicker({ widget, onSwitch }: { widget: WidgetNode; onSwitch: (type: string) => void }) {
+  const group = widgetGroup(widget.type)
+  if (!group) return null
+  return (
+    <label className="mb-3 grid gap-1 text-xs">
+      <span className="font-bold text-[#0C2D63]/80">سبک نمایش {group.label}</span>
+      <select className="rounded-lg border border-[#e6eef6] bg-white px-2 py-1.5" value={widget.type} onChange={(e) => onSwitch(e.target.value)}>
+        {group.members.filter((m) => widgetDef(m.type)).map((m) => <option key={m.type} value={m.type}>{m.label}</option>)}
+      </select>
+    </label>
+  )
 }
 
 function WidgetFields({ type, props, onChange }: { type: string; props: Record<string, unknown>; onChange: (key: string, value: unknown) => void }) {

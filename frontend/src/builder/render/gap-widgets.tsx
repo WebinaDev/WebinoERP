@@ -7,6 +7,7 @@ import { useEffect, useRef, useState, type CSSProperties } from "react"
 
 import { shopLogin, shopRegister } from "@/features/shop/shop-api"
 import { HeaderAccount, HeaderCart } from "@/features/shop/ShopHeader"
+import { hideOnClass } from "@webina/ui/builder"
 
 import { parseLinks, parseRows, propBool, propNum, propStr } from "../props"
 import type { WidgetNode } from "../types"
@@ -260,10 +261,6 @@ export function OffCanvasWidget({ widget, editing }: { widget: WidgetNode; editi
   )
 }
 
-/** Per-breakpoint visibility: "" always, "mobile" hides at 767px and below, "tablet" at 1024px and below. */
-const hideCls = (v: string) => (v === "mobile" ? "wbx-hide-m" : v === "tablet" ? "wbx-hide-t" : "")
-const HIDE_CSS = "@media (max-width:1024px){.wbx-hide-t{display:none!important}}@media (max-width:767px){.wbx-hide-m{display:none!important}}"
-
 export function SiteHeaderWidget({ widget, siteName, logoUrl }: { widget: WidgetNode; siteName?: string; logoUrl?: string | null }) {
   const p = widget.props
   const tone = propStr(p, "tone", "light")
@@ -282,11 +279,10 @@ export function SiteHeaderWidget({ widget, siteName, logoUrl }: { widget: Widget
         <nav className="ms-auto hidden gap-4 text-sm md:flex">
           {links.map((l, i) => <a key={i} href={safeHref(l.href)}>{l.label}</a>)}
         </nav>
-        {propBool(p, "showCart", false) ? <span className={`wbx-cart ${hideCls(propStr(p, "cartHideOn"))}`}><HeaderCart /></span> : null}
-        {propBool(p, "showAccount", false) ? <span className={`wbx-account ${hideCls(propStr(p, "accountHideOn"))}`}><HeaderAccount /></span> : null}
+        {propBool(p, "showCart", false) ? <span className={`wbx-cart ${hideOnClass(propStr(p, "cartHideOn"))}`}><HeaderCart /></span> : null}
+        {propBool(p, "showAccount", false) ? <span className={`wbx-account ${hideOnClass(propStr(p, "accountHideOn"))}`}><HeaderAccount /></span> : null}
         {propStr(p, "ctaLabel") ? <a href={safeHref(propStr(p, "ctaHref"))} className="rounded-full bg-primary px-4 py-2 text-sm font-bold text-primary-foreground">{propStr(p, "ctaLabel")}</a> : null}
       </div>
-      {propStr(p, "cartHideOn") || propStr(p, "accountHideOn") ? <style>{HIDE_CSS}</style> : null}
     </header>
   )
 }
