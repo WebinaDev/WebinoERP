@@ -221,7 +221,7 @@ class ReportsController extends Controller
         if (Schema::hasTable('prj_contracts')) {
             $topCustomers = Contract::query()
                 ->whereBetween('created_at', [$from, $to])
-                ->selectRaw('COALESCE(customer_account_id, owner_user_id, 0) as customer_key, COUNT(*) as contract_count, COALESCE(SUM(amount),0) as total_value')
+                ->selectRaw('COALESCE(customer_account_id, customer_user_id, 0) as customer_key, COUNT(*) as contract_count, COALESCE(SUM(amount),0) as total_value')
                 ->groupBy('customer_key')
                 ->orderByDesc('total_value')
                 ->limit(10)
@@ -313,7 +313,7 @@ class ReportsController extends Controller
         if (Schema::hasTable('prj_contracts')) {
             $ltv = Contract::query()
                 ->whereBetween('created_at', [$from, $to])
-                ->selectRaw('COALESCE(customer_account_id, owner_user_id, created_by, 0) as customer_key, COUNT(*) as total_contracts, COALESCE(SUM(amount),0) as lifetime_value')
+                ->selectRaw('COALESCE(customer_account_id, customer_user_id, created_by, 0) as customer_key, COUNT(*) as total_contracts, COALESCE(SUM(amount),0) as lifetime_value')
                 ->groupBy('customer_key')
                 ->orderByDesc('lifetime_value')
                 ->limit(15)
@@ -446,7 +446,7 @@ class ReportsController extends Controller
         return TimeEntry::query()
             ->leftJoin('users', 'users.id', '=', 'prj_time_entries.user_id')
             ->whereBetween('prj_time_entries.started_at', [$from, $to])
-            ->selectRaw('COALESCE(users.name, ?) as user_name, COALESCE(SUM(duration_seconds),0)/60 as total_minutes, COALESCE(SUM(CASE WHEN is_billable = 1 THEN duration_seconds ELSE 0 END),0)/60 as billable_minutes, COUNT(*) as entry_count', ['__unknown__'])
+            ->selectRaw('COALESCE(users.name, ?) as user_name, COALESCE(SUM(duration_seconds),0)/60 as total_minutes, COALESCE(SUM(CASE WHEN is_billable = true THEN duration_seconds ELSE 0 END),0)/60 as billable_minutes, COUNT(*) as entry_count', ['__unknown__'])
             ->groupBy('user_name')
             ->orderByDesc('total_minutes')
             ->limit(20)
