@@ -858,18 +858,18 @@ class LocalSameVpsProvisioner
         $selfProbe = ['status' => 0, 'body' => ''];
         if ($selfSlice === null) {
             $checks['backend_self'] = 'skipped';
-            $lines[] = 'backend_self (127.0.0.1:8080/api/v1/health/metrics): skipped (budget)';
+            $lines[] = 'backend_self (127.0.0.1:8080/api/v1/health/readiness): skipped (budget)';
         } else {
             $selfProbe = $this->probeHttp(
                 $backend,
-                'http://127.0.0.1:8080/api/v1/health/metrics',
+                'http://127.0.0.1:8080/api/v1/health/readiness',
                 min(8, $selfSlice)
             );
             $backendSelf = $selfProbe['status'] >= 200
                 && $selfProbe['status'] < 300
                 && str_contains($selfProbe['body'], 'data');
             $checks['backend_self'] = $backendSelf ? 'ok' : 'fail';
-            $lines[] = 'backend_self (127.0.0.1:8080/api/v1/health/metrics): '
+            $lines[] = 'backend_self (127.0.0.1:8080/api/v1/health/readiness): '
                 .($backendSelf ? 'ok' : 'FAIL')
                 .' '.$this->formatProbeSummary($selfProbe);
         }
@@ -916,7 +916,7 @@ class LocalSameVpsProvisioner
                 .($caddyConfigHasUpstream ? 'yes' : 'no');
         }
 
-        $healthUrl = 'http://'.$backend.':8080/api/v1/health/metrics';
+        $healthUrl = 'http://'.$backend.':8080/api/v1/health/readiness';
         $execSlice = $this->budgetLeft($deadline, 3);
         if ($execSlice === null) {
             $lines[] = 'caddy_exec_to_backend: skipped (budget)';
@@ -933,11 +933,11 @@ class LocalSameVpsProvisioner
         $proxySlice = $this->budgetLeft($deadline, 3);
         if ($proxySlice === null) {
             $checks['caddy_to_backend'] = 'skipped';
-            $lines[] = 'caddy→'.$backend.'/api/v1/health/metrics: skipped (budget)';
+            $lines[] = 'caddy→'.$backend.'/api/v1/health/readiness: skipped (budget)';
         } else {
             $caddyToBackend = $this->probeOnProxyNetwork($healthUrl, min(8, $proxySlice));
             $checks['caddy_to_backend'] = $caddyToBackend ? 'ok' : 'fail';
-            $lines[] = 'caddy→'.$backend.'/api/v1/health/metrics: '.($caddyToBackend ? 'ok' : 'FAIL');
+            $lines[] = 'caddy→'.$backend.'/api/v1/health/readiness: '.($caddyToBackend ? 'ok' : 'FAIL');
         }
 
         $feProbe = $this->probeFrontendToBackend($frontend, $provision->slug, $deadline);
@@ -1238,12 +1238,12 @@ class LocalSameVpsProvisioner
         }
 
         $verified = $this->probeDatabaseAuth($provision);
-        $selfProbe = $this->probeHttp($backend, 'http://127.0.0.1:8080/api/v1/health/metrics');
+        $selfProbe = $this->probeHttp($backend, 'http://127.0.0.1:8080/api/v1/health/readiness');
         $appHealth = $selfProbe['status'] >= 200
             && $selfProbe['status'] < 300
             && str_contains($selfProbe['body'], 'data');
         $caddyToBackend = $this->probeOnProxyNetwork(
-            'http://'.$backend.':8080/api/v1/health/metrics'
+            'http://'.$backend.':8080/api/v1/health/readiness'
         );
 
         $caddyReloadOk = $caddyWrite === '' || ($caddyReload['exit_code'] ?? 1) === 0;
@@ -1296,7 +1296,7 @@ class LocalSameVpsProvisioner
     }
 
     /**
-     * Poll until Octane serves /api/v1/health/metrics inside the backend container.
+     * Poll until Octane serves /api/v1/health/readiness inside the backend container.
      * Migrations on first boot can take ~60–90s.
      */
     protected function waitUntilBackendReady(string $backendContainer, int $attempts = 30): string
@@ -1477,7 +1477,7 @@ class LocalSameVpsProvisioner
      */
     protected function probeBackendSelf(string $backendContainer, int $timeout = 8): bool
     {
-        $probe = $this->probeHttp($backendContainer, 'http://127.0.0.1:8080/api/v1/health/metrics', $timeout);
+        $probe = $this->probeHttp($backendContainer, 'http://127.0.0.1:8080/api/v1/health/readiness', $timeout);
 
         return $probe['status'] >= 200
             && $probe['status'] < 300
@@ -2593,7 +2593,7 @@ class LocalSameVpsProvisioner
         $project = TenantSiteStack::projectName($slug);
         // Probe Next at / (always served). Prefer /up when the image has that route.
         $frontendUrl = 'http://'.$project.'-frontend:3000/';
-        $backendUrl = 'http://'.$project.'-backend:8080/api/v1/health/metrics';
+        $backendUrl = 'http://'.$project.'-backend:8080/api/v1/health/readiness';
 
         for ($i = 0; $i < $attempts; $i++) {
             $feOk = $this->probeOnProxyNetwork($frontendUrl)

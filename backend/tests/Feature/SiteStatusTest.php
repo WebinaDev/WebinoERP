@@ -126,7 +126,7 @@ class SiteStatusTest extends TestCase
     {
         $p = $this->site(['status' => WebinoSiteProvision::STATUS_SSL_PENDING]);
         Http::fake([
-            'https://s1.example.test/api/v1/health/metrics' => Http::response(['ok' => true]),
+            'https://s1.example.test/api/v1/health/readiness' => Http::response(['ok' => true]),
             'https://s1.example.test/api/v1/provision/bootstrap' => Http::response(['data' => ['ok' => true]]),
             self::URL => Http::response(['status' => 'coming_soon', 'updated_by' => 'platform']),
         ]);

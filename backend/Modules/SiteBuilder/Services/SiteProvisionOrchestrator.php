@@ -209,7 +209,7 @@ class SiteProvisionOrchestrator
         };
 
         if (! $this->waitForHealthy((string) $provision->domain, attempts: 1, timeoutSeconds: 5)) {
-            $backoff('health check failed for https://'.$provision->domain.'/api/v1/health/metrics');
+            $backoff('health check failed for https://'.$provision->domain.'/api/v1/health/readiness');
 
             return 'unhealthy';
         }
@@ -628,7 +628,9 @@ class SiteProvisionOrchestrator
     {
         // Must hit /api/* so Caddy routes to the Laravel backend.
         // Plain /up is handled by Next (or 404 on older images) and never reaches Octane.
-        $url = 'https://'.$domain.'/api/v1/health/metrics';
+        // Tenant (WebinoDashboard) /health/metrics is token-gated and 404s without
+        // X-Health-Token; /health/readiness is public and checks db/redis/queue.
+        $url = 'https://'.$domain.'/api/v1/health/readiness';
         $timeoutSeconds = max(1, $timeoutSeconds);
         for ($i = 0; $i < $attempts; $i++) {
             try {

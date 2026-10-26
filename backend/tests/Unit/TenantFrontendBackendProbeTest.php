@@ -13,8 +13,8 @@ class TenantFrontendBackendProbeTest extends TestCase
     {
         $this->assertSame('ws-bluecafe-backend', TenantSiteStack::backendService('bluecafe'));
         $this->assertSame([
-            'http://ws-bluecafe-backend:8080/api/v1/health/metrics',
-            'http://backend:8080/api/v1/health/metrics',
+            'http://ws-bluecafe-backend:8080/api/v1/health/readiness',
+            'http://backend:8080/api/v1/health/readiness',
         ], TenantSiteStack::frontendBackendProbeUrls('bluecafe'));
     }
 
@@ -62,9 +62,9 @@ class TenantFrontendBackendProbeTest extends TestCase
         $this->assertTrue($result['ok']);
         $this->assertTrue($result['attempted']);
         $this->assertSame([
-            'http://ws-bluecafe-backend:8080/api/v1/health/metrics',
+            'http://ws-bluecafe-backend:8080/api/v1/health/readiness',
         ], $probe->urls);
-        $this->assertStringContainsString('http://ws-bluecafe-backend:8080/api/v1/health/metrics: ok ', $result['lines'][0]);
+        $this->assertStringContainsString('http://ws-bluecafe-backend:8080/api/v1/health/readiness: ok ', $result['lines'][0]);
         $this->assertStringNotContainsString('internal alias fallback', implode("\n", $result['lines']));
     }
 
@@ -81,8 +81,8 @@ class TenantFrontendBackendProbeTest extends TestCase
         $this->assertTrue($result['ok']);
         $this->assertTrue($result['attempted']);
         $this->assertSame([
-            'http://ws-bluecafe-backend:8080/api/v1/health/metrics',
-            'http://backend:8080/api/v1/health/metrics',
+            'http://ws-bluecafe-backend:8080/api/v1/health/readiness',
+            'http://backend:8080/api/v1/health/readiness',
         ], $probe->urls);
         $this->assertStringContainsString('FAIL', $result['lines'][0]);
         $this->assertStringContainsString('internal alias fallback', $result['lines'][1]);
@@ -119,10 +119,10 @@ class TenantFrontendBackendProbeTest extends TestCase
         $this->assertFalse($result['ok']);
         $this->assertTrue($result['attempted']);
         $this->assertSame([
-            'http://ws-bluecafe-backend:8080/api/v1/health/metrics',
+            'http://ws-bluecafe-backend:8080/api/v1/health/readiness',
         ], $probe->urls);
         $this->assertStringContainsString('FAIL', $result['lines'][0]);
-        $this->assertStringContainsString('http://backend:8080/api/v1/health/metrics (internal alias fallback): skipped (budget)', $result['lines'][1]);
+        $this->assertStringContainsString('http://backend:8080/api/v1/health/readiness (internal alias fallback): skipped (budget)', $result['lines'][1]);
     }
 
     public function test_no_attempt_when_budget_is_exhausted(): void
@@ -134,7 +134,7 @@ class TenantFrontendBackendProbeTest extends TestCase
         $this->assertFalse($result['attempted']);
         $this->assertSame([], $probe->urls);
         $this->assertStringContainsString(
-            'frontend→http://ws-bluecafe-backend:8080/api/v1/health/metrics: skipped (budget)',
+            'frontend→http://ws-bluecafe-backend:8080/api/v1/health/readiness: skipped (budget)',
             $result['lines'][0],
         );
     }

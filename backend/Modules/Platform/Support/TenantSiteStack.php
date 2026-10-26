@@ -47,8 +47,8 @@ final class TenantSiteStack
         $service = self::backendService($slug);
 
         return array_values(array_unique([
-            'http://'.$service.':8080/api/v1/health/metrics',
-            'http://backend:8080/api/v1/health/metrics',
+            'http://'.$service.':8080/api/v1/health/readiness',
+            'http://backend:8080/api/v1/health/readiness',
         ]));
     }
 

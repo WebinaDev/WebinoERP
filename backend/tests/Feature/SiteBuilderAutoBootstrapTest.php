@@ -42,7 +42,7 @@ class SiteBuilderAutoBootstrapTest extends TestCase
     {
         $p = $this->pending();
         Http::fake([
-            'https://auto-site.example.test/api/v1/health/metrics' => Http::response(['ok' => true]),
+            'https://auto-site.example.test/api/v1/health/readiness' => Http::response(['ok' => true]),
             'https://auto-site.example.test/api/v1/provision/bootstrap' => Http::response(['data' => ['ok' => true]]),
         ]);
 

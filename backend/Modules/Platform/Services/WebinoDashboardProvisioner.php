@@ -485,7 +485,7 @@ class WebinoDashboardProvisioner
             $caddyProbe = $this->docker->sshRun(
                 $server,
                 $this->caddyExecPrefix($server)
-                .'wget -q -O - --timeout=5 http://'.$backend.':8080/api/v1/health/metrics 2>/dev/null | head -c 80 || true',
+                .'wget -q -O - --timeout=5 http://'.$backend.':8080/api/v1/health/readiness 2>/dev/null | head -c 80 || true',
                 max(5, min(12, (int) floor($deadline - microtime(true))))
             );
             $caddyToBackend = trim($caddyProbe['stdout']) !== '';
@@ -648,7 +648,7 @@ class WebinoDashboardProvisioner
             $probe = $this->docker->sshRun(
                 $server,
                 'docker exec '.escapeshellarg($backend)
-                .' wget -q -O - --timeout=4 http://127.0.0.1:8080/api/v1/health/metrics 2>/dev/null || true',
+                .' wget -q -O - --timeout=4 http://127.0.0.1:8080/api/v1/health/readiness 2>/dev/null || true',
                 12
             );
             if (str_contains((string) ($probe['stdout'] ?? ''), 'data')) {
@@ -1105,7 +1105,7 @@ class WebinoDashboardProvisioner
 
     protected function waitForHealthy(string $domain, int $attempts = 12): bool
     {
-        $url = 'https://'.$domain.'/api/v1/health/metrics';
+        $url = 'https://'.$domain.'/api/v1/health/readiness';
         for ($i = 0; $i < $attempts; $i++) {
             try {
                 if (Http::timeout(8)->connectTimeout(2)->get($url)->successful()) {
