@@ -1,3 +1,5 @@
+import { widgetCatalogEntry } from "@webina/ui/builder"
+import { CATALOG_ICONS } from "./catalog-icons"
 import {
   ListFilter,
   ShieldCheck as ShieldIcon,
@@ -102,7 +104,11 @@ export const SETTINGS_SECTION_ICONS = {
 } as const
 
 export function widgetIcon(type: string): LucideIcon {
-  return WIDGET_ICONS[type] ?? Blocks
+  return CATALOG_ICONS[widgetCatalogEntry(type).icon] ?? WIDGET_ICONS[type] ?? Blocks
+}
+
+export function catalogIcon(name: string): LucideIcon {
+  return CATALOG_ICONS[name] ?? Blocks
 }
 
 export function WidgetGlyph({ type, className = "size-4" }: { type: string; className?: string }) {
