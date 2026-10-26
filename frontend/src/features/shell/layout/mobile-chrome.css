@@ -1048,7 +1048,7 @@ a.wd-kpi:hover { border-color:color-mix(in oklch, var(--wd-brand) 35%, transpare
 .wd-hc-ic { width:30px; height:30px; border-radius:9px; }
 .wd-hc-ic svg { width:16px; height:16px; }
 .wd-kpi-viz { flex-shrink:0; }
-.wd-kpi-v { margin-top:10px; font-size:21px; font-weight:650; letter-spacing:-.02em; font-variant-numeric:tabular-nums; line-height:1.2; }
+.wd-kpi-v { color:var(--wd-ink); margin-top:10px; font-size:21px; font-weight:650; letter-spacing:-.02em; font-variant-numeric:tabular-nums; line-height:1.2; }
 .wd-kpi-k { margin-top:2px; font-size:11.5px; color:var(--color-muted-foreground); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
 .wd-hc { min-width:0; border-radius:16px; background:var(--color-card); border:1px solid color-mix(in oklch, var(--color-border) 70%, transparent); padding:14px; }
 .wd-hc-head { display:flex; align-items:center; gap:10px; margin-bottom:12px; }
@@ -1220,16 +1220,11 @@ html[data-wd-dashboard] .wd-mobile-main > * {
   }
 }
 
-/* Webina accent-driven chart + tone tokens (shared with WebinoDashboard) */
+/* Accent-driven chart palette (Webina dashboard) */
 :root {
-  --wd-chart-1: var(--color-primary);
-  --wd-chart-2: oklch(from var(--color-primary) l max(c, 0.1) calc(h + 150));
-  --wd-chart-3: oklch(from var(--color-primary) l max(c, 0.1) calc(h + 75));
-  --wd-chart-4: oklch(from var(--color-primary) l max(c, 0.1) calc(h + 225));
-  --wd-chart-5: oklch(from var(--color-primary) l max(c, 0.1) calc(h + 300));
-  --wd-chart-6: color-mix(in oklch, var(--color-primary) 55%, var(--color-card));
-  --wd-chart-ink: var(--color-foreground);
-  --wd-chart-grid: color-mix(in oklch, var(--color-border) 75%, transparent);
-  --wd-chart-axis: var(--color-muted-foreground);
-  --wd-chart-track: color-mix(in oklch, var(--color-muted-foreground) 18%, transparent);
+  --color-chart-1: var(--color-primary);
+  --color-chart-2: oklch(from var(--color-primary) l max(c, 0.1) calc(h + 150));
+  --color-chart-3: oklch(from var(--color-primary) l max(c, 0.1) calc(h + 75));
+  --color-chart-4: oklch(from var(--color-primary) l max(c, 0.1) calc(h + 225));
+  --color-chart-5: oklch(from var(--color-primary) l max(c, 0.1) calc(h + 300));
 }
