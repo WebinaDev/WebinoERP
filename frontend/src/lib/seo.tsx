@@ -97,13 +97,28 @@ export async function routeMetadata(path: string, fallback: { title?: string; de
 }
 
 /** Metadata for a content item fetched from the public API (deduped with the page's own fetch). */
+/** Builder pages store SEO as seo_title/seo_description/seo_image; map them onto Seo so the page's own SEO
+ * description wins and the hero text (firstText) is only a fallback. */
+function normalizeSeo(raw: unknown): Seo | null {
+  if (!raw || typeof raw !== 'object' || Array.isArray(raw)) return null;
+  const r = raw as Record<string, unknown>;
+  const str = (v: unknown) => (typeof v === 'string' && v.trim() ? v : null);
+  return {
+    title: str(r.title) ?? str(r.seo_title),
+    description: str(r.description) ?? str(r.seo_description),
+    og_image: str(r.og_image) ?? str(r.seo_image),
+    canonical: str(r.canonical),
+    noindex: Boolean(r.noindex),
+  };
+}
+
 export async function itemMetadata<T extends Record<string, unknown>>(apiPath: string, path: string, map: (d: T) => { title?: string | null; description?: string | null; image?: string | null; type?: 'website' | 'article'; publishedTime?: string | null; seo?: Seo | null }): Promise<Metadata> {
   try {
     const res = await apiServer<{ data: T }>(apiPath);
     if (!res?.data) return buildMetadata({ path });
     const m = map(res.data);
-    const seo = m.seo ?? (res.data.seo as Seo | undefined) ?? null;
-    return buildMetadata({ path, ...m, seo: Array.isArray(seo) ? null : seo, description: plain(m.description) || firstText(res.data) || undefined });
+    const seo = normalizeSeo(m.seo ?? (res.data.seo as Seo | undefined) ?? null);
+    return buildMetadata({ path, ...m, seo, description: plain(m.description) || firstText(res.data) || undefined });
   } catch {
     return buildMetadata({ path });
   }
