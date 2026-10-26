@@ -3,6 +3,8 @@
 		protocols h1 h2
 	}
 	email {$CADDY_ACME_EMAIL:admin@webina.dev}
+	# Let's Encrypt only (no implicit ZeroSSL fallback issuer)
+	cert_issuer acme
 }
 
 (security_headers) {
