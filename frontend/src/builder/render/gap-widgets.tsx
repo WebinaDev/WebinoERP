@@ -2,12 +2,11 @@
 
 /* Renderers for the @webina/ui v0.2 gap widgets (schemas live in the shared package; renderers stay per platform). */
 
+import { FooterExtras, NavExtras, footerExtraClass, footerExtraStyle } from "./chrome-extras"
 import Link from "next/link"
 import { useEffect, useRef, useState, type CSSProperties } from "react"
 
 import { shopLogin, shopRegister } from "@/features/shop/shop-api"
-import { HeaderAccount, HeaderCart } from "@/features/shop/ShopHeader"
-import { hideOnClass } from "@webina/ui/builder"
 
 import { parseLinks, parseRows, propBool, propNum, propStr } from "../props"
 import type { WidgetNode } from "../types"
@@ -279,8 +278,7 @@ export function SiteHeaderWidget({ widget, siteName, logoUrl }: { widget: Widget
         <nav className="ms-auto hidden gap-4 text-sm md:flex">
           {links.map((l, i) => <a key={i} href={safeHref(l.href)}>{l.label}</a>)}
         </nav>
-        {propBool(p, "showCart", false) ? <span className={`wbx-cart ${hideOnClass(propStr(p, "cartHideOn"))}`}><HeaderCart /></span> : null}
-        {propBool(p, "showAccount", false) ? <span className={`wbx-account ${hideOnClass(propStr(p, "accountHideOn"))}`}><HeaderAccount /></span> : null}
+        <NavExtras p={p} />
         {propStr(p, "ctaLabel") ? <a href={safeHref(propStr(p, "ctaHref"))} className="rounded-full bg-primary px-4 py-2 text-sm font-bold text-primary-foreground">{propStr(p, "ctaLabel")}</a> : null}
       </div>
     </header>
@@ -301,20 +299,13 @@ export function SiteFooterWidget({ widget, siteName }: { widget: WidgetNode; sit
   }
   const socials = parseRows(p.socials, ["network", "href"]).filter((s) => s.href)
   return (
-    <footer className={tone === "dark" ? "bg-foreground text-background" : "bg-card"}>
+    <footer className={`${tone === "dark" ? "bg-foreground text-background" : "bg-card"} ${footerExtraClass(p)}`} style={footerExtraStyle(p)}>
       <div className="mx-auto grid max-w-6xl gap-6 px-4 py-10 md:grid-cols-4">
         <div>
           {/* eslint-disable-next-line @next/next/no-img-element */}
           {logo ? <img loading="lazy" decoding="async" {...optImg(logo, undefined, true)} alt={siteName ?? ""} className="mb-3 h-10 w-auto" /> : <div className="mb-3 font-bold">{siteName}</div>}
           {propStr(p, "blurb") ? <p className="text-sm opacity-80">{propStr(p, "blurb")}</p> : null}
         </div>
-        {propStr(p, "footerAbout").trim() ? (
-          <div className="wbx-about">
-            <div className="mb-2 font-bold">{propStr(p, "footerAboutTitle", "درباره ما")}</div>
-            {propStr(p, "footerAbout").trim().split(/\n\s*\n|\n/).map((t, i) => <p key={i} className="mb-1.5 text-sm leading-7 opacity-80">{t}</p>)}
-            {propStr(p, "footerAboutLinkLabel") ? <Link href={safeHref(propStr(p, "footerAboutLinkHref", "/about"))} className="wbx-about-more mt-1 inline-block text-sm font-bold">{propStr(p, "footerAboutLinkLabel")}</Link> : null}
-          </div>
-        ) : null}
         {[...grouped.entries()].map(([title, links]) => (
           <div key={title}>
             <div className="mb-2 font-bold">{title}</div>
@@ -322,6 +313,7 @@ export function SiteFooterWidget({ widget, siteName }: { widget: WidgetNode; sit
           </div>
         ))}
       </div>
+      <FooterExtras p={p} />
       <div className="mx-auto flex max-w-6xl items-center justify-between gap-4 border-t border-current/10 px-4 py-4 text-xs opacity-80">
         <span>{propStr(p, "copyright")}</span>
         <span className="flex gap-3">{socials.map((s, i) => <a key={i} href={safeHref(s.href)} target="_blank" rel="noreferrer">{s.network}</a>)}</span>

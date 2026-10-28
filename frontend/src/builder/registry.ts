@@ -1,3 +1,4 @@
+import { applyChromeExtras } from "./registry-chrome-extras"
 import { uid } from "./ids"
 import { resolveWidgetAlias } from "@webina/ui/builder"
 import { createSection } from "./tree"
@@ -1248,3 +1249,5 @@ export const WIDGET_CATEGORIES: { id: WidgetDef["category"]; label: string }[] =
   { id: "parts", label: "قطعات قالب" },
   { id: "corporate", label: "وبینا" },
 ]
+
+applyChromeExtras(WIDGETS)

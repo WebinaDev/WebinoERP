@@ -2,7 +2,7 @@
  * CONTENT_WIDGETS: landing-page widgets (section heading, steps, icon cards, badges, CTA, comparison, rahn). */
 
 import { uid } from "./ids"
-import { FOOTER_EXTRA_FIELDS, NAV_EXTRA_FIELDS, sharedContentWidgets, sharedFormWidget, sharedGapWidgets } from "@webina/ui/builder"
+import { sharedContentWidgets, sharedFormWidget, sharedGapWidgets } from "@webina/ui/builder"
 import { ICON_OPTIONS } from "./render/icon-options"
 import { DETAIL_ICON_OPTIONS } from "./render/portfolio-detail-icons"
 import { createSection } from "./tree"
@@ -367,18 +367,10 @@ const SECTION_PRESETS: Record<string, number[]> = { "12": [12], "6-6": [6, 6], "
  * @webina/ui v0.2 gap pack (team, media, auth forms, layout containers, general header/footer), shared with
  * WebinoDashboard. Layout types get nested sections here, as the shared package only ships schemas/defaults.
  */
-/** Header/footer chrome settings come from @webina/ui (shared with WebinoDashboard). ERP's site-header and
- * site-footer renderers implement these keys; the rest of the shared list waits for ERP renderer support. */
-const ERP_CHROME_KEYS = new Set(["showCart", "cartHideOn", "showAccount", "accountHideOn", "footerAboutTitle", "footerAbout", "footerAboutLinkLabel", "footerAboutLinkHref"])
-const CHROME_EXTRA_FIELDS: Record<string, WidgetDef["fields"]> = {
-  "site-header": NAV_EXTRA_FIELDS.filter((f) => ERP_CHROME_KEYS.has(f.key)) as WidgetDef["fields"],
-  "site-footer": FOOTER_EXTRA_FIELDS.filter((f) => ERP_CHROME_KEYS.has(f.key)) as WidgetDef["fields"],
-}
-
+/** Header/footer chrome settings are added to every nav/footer widget by applyChromeExtras (registry.ts). */
 export const GAP_WIDGETS: WidgetDef[] = sharedGapWidgets(ICON_OPTIONS).map((def) => {
   const shared = def as unknown as WidgetDef
-  const extra = CHROME_EXTRA_FIELDS[def.type]
-  const base = extra ? { ...shared, fields: [...shared.fields, ...extra] } : shared
+  const base = shared
   if (!["section", "columns", "flex-container", "grid-container"].includes(def.type)) return base
   return {
     ...base,

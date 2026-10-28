@@ -76,7 +76,7 @@ export default async function SiteLayout({ children }: { children: ReactNode }) 
       <ThemeSlot kind="header">
         <SiteHeader siteName={siteName} logoUrl={logoUrl} header={header} />
       </ThemeSlot>
-      <main className="flex-1">{children}</main>
+      <main className="sf-main flex-1">{children}</main>
       <ThemeSlot kind="footer">
         <SiteFooter siteName={siteName} logoUrl={logoUrl} badges={badges} socials={socials} contact={contact} footer={footer} company={company} />
       </ThemeSlot>

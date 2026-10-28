@@ -5,6 +5,7 @@
  * `frame` (arch|rounded|square) and `pattern` (bool) where relevant. Repeaters use the shared
  * `a|b|c` per-line format so they edit with the same RepeaterInput as other widgets. */
 
+import { FooterExtras, footerExtraClass, footerExtraStyle } from "./chrome-extras"
 import { ArrowLeft, BookOpen, Flame, Moon, MoreVertical, Music, Pause, Play, Quote, ShoppingBag, Star, Video } from "lucide-react"
 import Link from "next/link"
 import { useEffect, useRef, useState } from "react"
@@ -466,7 +467,7 @@ export function PoetryFooterWidget({ widget }: { widget: WidgetNode }) {
   const links = parseRows(p.links, ["label", "href"]).filter((r) => r.label)
   const socials = parseRows(p.socials, ["network", "href"]).filter((r) => r.href)
   return (
-    <footer className={shell({ ...p, tone: "dark" }, "wpz-footer", "dark")} style={sectionBg(p)} dir="rtl">
+    <footer className={`${shell({ ...p, tone: "dark" }, "wpz-footer", "dark")} ${footerExtraClass(p)}`} style={{ ...sectionBg(p), ...footerExtraStyle(p) }} dir="rtl">
       <div className="wpz-footer-brand">
         {propStr(p, "logo") ? <img loading="eager" fetchPriority="high" decoding="async" {...optImg(propStr(p, "logo"), undefined, true)} alt={propStr(p, "brand")} className="wpz-logo" /> : null}
         {propStr(p, "brand") ? <strong>{propStr(p, "brand")}</strong> : null}
@@ -482,6 +483,7 @@ export function PoetryFooterWidget({ widget }: { widget: WidgetNode }) {
           </a>
         ))}
       </div>
+      <FooterExtras p={p} />
       {propStr(p, "copyright") ? <p className="wpz-copy">{propStr(p, "copyright")}</p> : null}
     </footer>
   )
