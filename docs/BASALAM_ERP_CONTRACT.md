@@ -71,5 +71,12 @@ ERP does not sync products/stock/price with Basalam; that is entirely plugin ↔
 ## 5. Site-Auth secret rollout (every site must have its own secret)
 - Secrets are created **only** by `POST /api/webinocrm/v1/site-auth/enroll` (site sends a one-time `pending` + `receive_url`; ERP POSTs the new secret to that URL on the claimed domain). Re-enroll of an enrolled domain needs a valid signature or `php artisan site-auth reset <domain>`. ERP never pushes a secret on its own.
 - `php artisan site-auth:provision [--nudge] [--domain=x.ir]` — idempotent: lists every known site (Basalam connections + active licenses) as `enrolled|missing`; `--nudge` POSTs `{"domain"}` to `https://{domain}/wp-json/webino-dashboard/v1/site-auth/enroll-now` for missing ones. Prints no secrets.
-- **Plugin must add** `POST webino-dashboard/v1/site-auth/enroll-now` (public, rate-limited, no body trust): if no secret, schedule/run `maybe_enroll()`; return `{"ok":true,"enrolled":bool}`. It cannot leak anything: the secret still only arrives via `/site-auth/receive` with the site's own pending token.
+- **Plugin must add** `POST webino-dashboard/v1/site-auth/enroll-now` (public, rate-limited, no body trust): if no secret, schedule/run `maybe_enroll()`; return `{"ok":true,"enrolled":bool}` (implemented — see §5.1). It cannot leak anything: the secret still only arrives via `/site-auth/receive` with the site's own pending token.
 - Enforcement plan: (1) deploy plugin with enroll-now; (2) run `site-auth:provision --nudge` until `missing: 0`; (3) set `WEBINO_BASALAM_REQUIRE_SIGNED=true` (order mirror rejects unsigned, 401 `signature_required`) — default **off**; (4) later `WEBINO_SITE_AUTH_MODE=enforce` for all Edge routes. Plugin then treats a missing `webino_sig2` as fatal for all sites.
+
+### 5.1 Plugin `POST /wp-json/webino-dashboard/v1/site-auth/enroll-now` (WebinaDashboard PR #6, `670d20d`)
+- Public; the request body is **ignored** (ERP's `{"domain"}` is informational only). Never returns or accepts a secret.
+- `200 {"ok":true,"enrolled":true}` — the site already has a secret.
+- `200 {"ok":true,"enrolled":false,"scheduled":true}` — no secret yet; `maybe_enroll()` was scheduled via wp-cron (enroll waits up to 30s for ERP's callback to `/site-auth/receive`, so it is not run inline). Treat as **success**; re-run `provision` later to confirm `enrolled`.
+- `429 {"ok":false,"enrolled":false,"code":"rate_limited"}` — at most 1 request / 60s per site **and** per IP. Treat as **retry later**, not failure.
+- `site-auth:provision --nudge` prints per site `nudge=enrolled|scheduled|ok|retry_later|failed(<status>)|error` and always exits 0.

@@ -2,7 +2,7 @@
 
 Envelope and money rules as in PHASE3_API.md (`{data, meta}`; money `null` without billing visibility).
 
-## 1. Duplicates (staff; `auth:sanctum`, `module:crm`, needs `crm.accounts.view`)
+## 1. Duplicates (staff; `auth:sanctum`, `module:crm`; list gated by `CustomerHubAccess::canView('identity')`, which currently maps to `crm.accounts.view`; per-customer list uses the same `identity` section on that account)
 ### `GET /api/v1/crm/customers/duplicates?min_score=50&page=&per_page=`
 Row: `{ key: "12-40", score: 0..100, reasons: ["national_id","mobile","email","domain","name"],
   a: Brief, b: Brief, suggested_target_id }` — Brief = `{ id, name, mobile, email, national_id, website, created_at, invoices_count }`.
@@ -13,7 +13,7 @@ Suggested target = older account, or the one with more invoices.
 ### `POST /api/v1/crm/customers/duplicates/dismiss` `{ a_id, b_id }` → 204 (needs `crm.hub.merge`).
 Merge itself: existing `POST /api/v1/crm/customers/{target}/hub/merge {source_id}`.
 
-## 2. Import / Export (permission `crm.hub.import_export`)
+## 2. Import / Export (permission `crm.hub.import_export` — `canManage('import_export')` — required for **export, template download and import**; 403 otherwise)
 ### Export — `GET /api/v1/crm/customers/export?entity=customers|addresses|contacts&format=csv|xlsx&ids[]=&q=`
 File download (`Content-Disposition: attachment`). No `ids` = all customers (merged ones excluded). CSV is UTF‑8 with BOM.
 Columns:
@@ -35,10 +35,10 @@ Existing endpoints stay: `GET /portal/summary`, tickets (`POST /portal/tickets`,
 | section | endpoint |
 |---|---|
 | profile | `GET /portal/profile` → `{ data: { account: {id,name,brand_name,national_id,economic_code,mobile,email,website,address_line,city,province,postal_code,hub_status}, accounts: [{id,name,is_primary}] } }` |
-| contracts | `GET /portal/contracts` → rows `{ id, title, status, amount, starts_at, ends_at, signed_at, can_sign, document_id }` ; `GET /portal/contracts/{id}` → `+ { body, installments: [{ id, amount, due_date, paid_at }] }` |
+| contracts | `GET /portal/contracts` → **not paginated** (`{ data: [...] }`, no `meta`, all of the account's contracts) rows `{ id, title, status, amount, starts_at, ends_at, signed_at, can_sign, document_id }` ; `GET /portal/contracts/{id}` → `+ { body, installments: [{ id, amount, due_date, paid_at }] }` |
 | invoices | `GET /portal/invoices?status=open|paid|all` → rows `{ id, number, status, issue_date, due_date, total, remaining, payable: bool }`; `meta.kpis = { outstanding, overdue }` |
 | services | `GET /portal/services` → rows `{ id, kind, name, plan, status, site_domain, renews_at }` + `meta.domains: [{ domain, expires_at, auto_renew }]` |
-| documents | `GET /portal/documents` → rows `{ id, title, category, expires_at, created_at, download_url (signed, 10 min) }` — only documents whose `visible_to_roles` contains `client`, plus signed contract files |
+| documents | `GET /portal/documents` → **not paginated** (`{ data: [...] }`, no `meta`) rows `{ id, title, category, expires_at, created_at, download_url (signed, 10 min) }` — only documents whose `visible_to_roles` contains `client`, plus signed contract files |
 | tickets | existing `GET /portal/summary` (`open_tickets`) + ticket endpoints |
 
 ### Contract signing with SMS OTP
@@ -65,7 +65,11 @@ Base `/api/v1/crm/customers/reports/{section}`; query `from`, `to`, `segment`, `
 - `churn` → `{ data: { active, churned, at_risk, churn_rate, by_month: [{ month: "2026-09", churned, new }], at_risk_list: [{ id, name, health }] } }` (churned = hub_status churned/suspended/inactive or no paid activity 180 d; at risk = health < 40)
 - `cohorts` → `{ data: [{ cohort: "2026-05", size, months: [retention % m0..m11] }] }` (by first paid invoice month)
 - `top` → `{ data: [{ id, name, revenue, invoices, last_paid_at }] }`
-- `segments` → `{ data: [{ segment, customers, revenue, avg_ltv, outstanding }] }`
+- `segments` → `{ data: [{ segment, customers, revenue, avg_ltv, outstanding }] }` — one row per `crm_accounts.segment`
+  (empty → `"none"`), merged/deleted accounts excluded, sorted by `revenue` desc. `revenue` = paid invoices in `from`/`to`,
+  `avg_ltv = revenue / customers`, `outstanding` = open invoices total. `segment` filter limits to one segment; `limit` is ignored.
+  `revenue`, `avg_ltv`, `outstanding` are `null` without billing visibility.
+- Every section: 404 for an unknown section; `meta = { section, filters }`.
 
 ## 5. Automations (phase 4, staff; `crm.hub.automations.manage`)
 - `GET /api/v1/crm/customers/automations` → `{ data: [{ id, key, name, trigger_key, enabled, sends_sms, suspends, config, last_run_at }] }`

@@ -101,4 +101,23 @@ class BasalamPluginAlignmentTest extends TestCase
         // idempotent, no secret created by the command
         $this->assertFalse(SiteAuth::isEnrolled('a.ir'));
     }
+
+    public function test_provision_nudge_treats_scheduled_as_success_and_429_as_retry_later(): void
+    {
+        Http::fake([
+            'https://s.ir/*' => Http::response(['ok' => true, 'enrolled' => false, 'scheduled' => true]),
+            'https://r.ir/*' => Http::response(['ok' => false, 'enrolled' => false, 'code' => 'rate_limited'], 429),
+            'https://e.ir/*' => Http::response(['ok' => true, 'enrolled' => true]),
+        ]);
+        foreach (['s.ir', 'r.ir', 'e.ir'] as $i => $d) {
+            MarketplaceBasalamConnection::query()->create(['site_url' => 'https://'.$d, 'vendor_id' => 10 + $i, 'status' => 'connected']);
+        }
+
+        $this->artisan('site-auth:provision', ['--nudge' => true])
+            ->expectsOutputToContain('nudge=scheduled')
+            ->expectsOutputToContain('nudge=retry_later')
+            ->expectsOutputToContain('nudge=enrolled')
+            ->assertSuccessful();
+        $this->assertSame('failed(500)', \Modules\Core\Console\SiteAuthProvisionCommand::classifyNudge(500, []));
+    }
 }

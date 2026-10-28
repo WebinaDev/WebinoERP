@@ -50,7 +50,7 @@ class SiteAuthProvisionCommand extends Command
                 try {
                     $res = Http::timeout(15)->connectTimeout(8)->acceptJson()->withOptions(['allow_redirects' => false])
                         ->post('https://'.$d.self::NUDGE_PATH, ['domain' => $d]);
-                    $state .= ' nudge='.$res->status();
+                    $state .= ' nudge='.self::classifyNudge($res->status(), (array) $res->json());
                 } catch (\Throwable $e) {
                     $state .= ' nudge=error';
                 }
@@ -61,5 +61,29 @@ class SiteAuthProvisionCommand extends Command
             .' basalam_require_signed: '.(config('integrations.basalam.require_signed') ? 'on' : 'off'));
 
         return self::SUCCESS;
+    }
+
+    /**
+     * Interpret the plugin's enroll-now reply (WebinaDashboard PR #6, 670d20d):
+     * 200 {ok,enrolled:true} → enrolled; 200 {ok,enrolled:false,scheduled:true} → scheduled (success,
+     * enrollment runs via wp-cron); 429 {code:rate_limited} → retry_later; anything else → failed(<status>).
+     */
+    public static function classifyNudge(int $status, array $body): string
+    {
+        if ($status === 429) {
+            return 'retry_later';
+        }
+        if ($status >= 200 && $status < 300 && ($body['ok'] ?? false) === true) {
+            if (($body['enrolled'] ?? false) === true) {
+                return 'enrolled';
+            }
+            if (($body['scheduled'] ?? false) === true) {
+                return 'scheduled';
+            }
+
+            return 'ok';
+        }
+
+        return 'failed('.$status.')';
     }
 }
