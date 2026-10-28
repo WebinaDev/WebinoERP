@@ -6,8 +6,8 @@ use Illuminate\Support\Facades\Http;
 
 /**
  * After a builder page / global / template save or delete, purge the Next.js data cache via the
- * frontend's secret-protected /webino-revalidate route. No-op unless FRONTEND_REVALIDATE_URL and
- * REVALIDATE_SECRET are configured.
+ * frontend's secret-protected /webino-revalidate route. On by default (URL defaults to the
+ * in-network frontend container; secret optional). Opt out with WEBINO_PAGE_CACHE=off.
  */
 class FrontendRevalidateObserver
 {
@@ -26,11 +26,12 @@ class FrontendRevalidateObserver
     {
         $url = (string) config('services.frontend_revalidate.url', '');
         $secret = (string) config('services.frontend_revalidate.secret', '');
-        if ($url === '' || $secret === '') {
+        if ($url === '' || strtolower((string) config('services.frontend_revalidate.page_cache', 'on')) === 'off'
+            || app()->runningUnitTests()) {
             return false;
         }
         try {
-            return Http::timeout(3)->withHeaders(['x-revalidate-secret' => $secret])
+            return Http::timeout(3)->withHeaders($secret !== '' ? ['x-revalidate-secret' => $secret] : [])
                 ->post($url, ['tags' => $tags])->successful();
         } catch (\Throwable) {
             return false;
