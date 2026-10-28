@@ -23,7 +23,8 @@ The claimed domain is the `domain` body field, else host of `site_url`; it must 
 Registered Basalam redirect_uri: `https://webinaagency.ir/api/basalam/oauth/callback` (ERP default now equals this; fixed — was webina.dev, which would mismatch at token exchange).
 
 ### start
-Request: `{"site_url":"https://shop.ir","return_url":"https://shop.ir/...(same host or dropped)","handoff_path":"/dashboard/settings/shop/basalam/ (optional)"}`
+Request: `{"site_url":"https://shop.ir","return_url":"https://shop.ir/...(same host or dropped)","handoff_path":"(optional)"}`
+`handoff_path` is optional; omitted/invalid → `/dashboard/settings/shop/basalam/` (the plugin dashboard SPA route that verifies the handoff). The plugin (PR #6) does not send it — that is fine.
 200: `{"url":"https://basalam.com/accounts/sso?...","state":"48ch","redirect_uri":"...","client_id":"2357","expires_in":600,"handoff_key":"32ch"}`
 503: `{"message":"..."}` when client_secret not configured on ERP. **Prod currently returns 503 — secret not set (see report).** 422: Laravel validation `{"message","errors":{...}}`.
 
@@ -49,19 +50,26 @@ Request: `{"refresh_token":"...","site_url":"https://shop.ir","vendor_id":123}` 
 POST `/api/webinocrm/v1/crm/basalam/orders`, Site-Auth (`webino.site`), throttle 60/min. **Enveloped**: `{"success":true,"data":{...}}`.
 ```
 {"site_url":"https://shop.ir","domain":"shop.ir (optional, must equal site_url host)",
- "orders":[{"id":"<Basalam vendor order/parcel id>","status_id":3237,"status":"(alt: id or text)","total":1250000,"currency":"IRR|IRT (default IRR)",
+ "orders":[{"invoice_id":"<Basalam invoice id>","id":"(legacy alias of invoice_id)","status_id":3237,"status":"(alt: id or text)","total":1250000,"fee":null,"currency":"IRR|IRT (default IRR)",
             "buyer_name":"","buyer_mobile":"","items":[{"title":"","qty":1,"price":0,"product_id":0,"woo_product_id":0}],
             "ordered_at":"ISO8601","paid_at":"ISO8601"}]}   // 1..200 orders
 ```
 200: `{"success":true,"data":{"ok":true,"saved":<rows changed>,"linked":<bool customer found>}}`. 422 validation / `{"ok":false,"code":"domain_mismatch"}` if site_url host ≠ authenticated domain. 401 site-auth.
-- ERP receives **no Basalam webhooks and calls no Basalam order API**. Basalam webhooks go to the site: `{site}/wp-json/wnc-basalam/v1/order-manager`; ERP does not proxy them. Source of truth for status = Basalam (via the plugin); ERP is a read-only mirror.
-- Dedup/idempotency: unique `(site_domain, external_id)`; `external_id` = the Basalam vendor-order (parcel) id the plugin uses as its order key — use one consistently (do not switch to invoice_id later or rows duplicate). Resending is safe; only changed rows count in `saved`. Omitted fields keep previous values.
+- ERP receives **no Basalam webhooks and calls no Basalam order API**. Basalam webhooks go to the site: `{site}/wp-json/webino-basalam/v1/order-manager` (legacy route still registered by the plugin: `{site}/wp-json/sync-basalam/v1/order-manager`); ERP does not proxy them. ERP config: `integrations.basalam.webhook_path` / `legacy_webhook_path`; the admin connections registry returns `webhook_url`, `legacy_webhook_url`, `site_auth_enrolled` per store. Source of truth for status = Basalam (via the plugin); ERP is a read-only mirror.
+- Dedup/idempotency: unique `(site_domain, external_id)`; `external_id` = `invoice_id` ?? `id` = the **Basalam invoice id** (plugin key: order meta `_basalam_invoice_id`, fallback `webino_basalam_payments.invoice_id`; orders without one are never sent). `invoice_id` and `id` are the same field — send either, never two different ids for one order. Resending is safe; only changed rows count in `saved`. Omitted fields keep previous values.
 - Push on: webhook received / status change / initial backfill (batches ≤200).
-- Status mapping (`status_id` or numeric `status`): 3739→`wait_vendor`, 3237→`preparation`, 3238→`shipping`, 3195→`completed`, 3067→`rejected`, 3233→`canceled`, other→`basalam_<id>`. Non-numeric strings stored as-is (≤40 chars).
-- Amounts: ERP stores **IRR**. Send Basalam amounts as-is (Basalam API is rial) or set `currency:"IRT"` and ERP ×10. Commission: ERP does **not** compute it; the plugin/Basalam figure is authoritative (not stored yet — send in items if needed later).
+- Status mapping (`status_id` wins over `status`): 3739→`wait_vendor`, 3237→`preparation`, 3238→`shipping`, 3195→`completed`, 3067→`rejected`, 3233→`canceled`, other→`basalam_<id>`.
+- Text status (`woocommerce_statuses` mode), `wc-`/`bslm-` prefix stripped: `wait-vendor|pending|on-hold`→`wait_vendor`, `preparation|processing`→`preparation`, `shipping|shipped`→`shipping`, `completed|delivered`→`completed`, `rejected|failed`→`rejected`, `canceled|cancelled|refunded`→`canceled`; anything else stored as-is (≤40 chars).
+- Amounts: ERP stores **IRR**. Send Basalam amounts as-is (Basalam API is rial) or set `currency:"IRT"` and ERP ×10. `fee` (Basalam commission) is optional/nullable, same currency rule; ERP never computes it. Omit it if the plugin doesn't know it.
 
 ## 3. Product mapping (WooCommerce ⇄ Basalam)
 ERP does not sync products/stock/price with Basalam; that is entirely plugin ↔ Basalam openapi. ERP has no product mapping endpoint and does not need one now; optionally include `woo_product_id`/`product_id` in order `items`.
 
 ## 4. Admin (ERP UI, Sanctum) — not for the plugin
 `GET/POST /api/v1/marketplace/basalam/oauth/{status,config}`, `GET /api/v1/marketplace/basalam/connections`, `POST .../connections/disconnect`, Customer 360 `GET/POST/DELETE /api/v1/crm/customers/{id}/hub/basalam/stores[/{connectionId}]` (409 if linked elsewhere; `force:true` relinks and moves that store's mirrored orders).
+
+## 5. Site-Auth secret rollout (every site must have its own secret)
+- Secrets are created **only** by `POST /api/webinocrm/v1/site-auth/enroll` (site sends a one-time `pending` + `receive_url`; ERP POSTs the new secret to that URL on the claimed domain). Re-enroll of an enrolled domain needs a valid signature or `php artisan site-auth reset <domain>`. ERP never pushes a secret on its own.
+- `php artisan site-auth:provision [--nudge] [--domain=x.ir]` — idempotent: lists every known site (Basalam connections + active licenses) as `enrolled|missing`; `--nudge` POSTs `{"domain"}` to `https://{domain}/wp-json/webino-dashboard/v1/site-auth/enroll-now` for missing ones. Prints no secrets.
+- **Plugin must add** `POST webino-dashboard/v1/site-auth/enroll-now` (public, rate-limited, no body trust): if no secret, schedule/run `maybe_enroll()`; return `{"ok":true,"enrolled":bool}`. It cannot leak anything: the secret still only arrives via `/site-auth/receive` with the site's own pending token.
+- Enforcement plan: (1) deploy plugin with enroll-now; (2) run `site-auth:provision --nudge` until `missing: 0`; (3) set `WEBINO_BASALAM_REQUIRE_SIGNED=true` (order mirror rejects unsigned, 401 `signature_required`) — default **off**; (4) later `WEBINO_SITE_AUTH_MODE=enforce` for all Edge routes. Plugin then treats a missing `webino_sig2` as fatal for all sites.

@@ -27,6 +27,7 @@ class CoreServiceProvider extends ServiceProvider
         if ($this->app->runningInConsole()) {
             $this->commands([
                 \Modules\Core\Console\SiteAuthCommand::class,
+                \Modules\Core\Console\SiteAuthProvisionCommand::class,
                 \Modules\Core\Console\LicenseRenewalRemindersCommand::class,
                 \Modules\Core\Console\SendScheduledReportsCommand::class,
             ]);

@@ -94,4 +94,13 @@ return [
         'mode' => env('WEBINO_SITE_AUTH_MODE', 'grace'),
         'allow_http' => filter_var(env('WEBINO_SITE_AUTH_ALLOW_HTTP', false), FILTER_VALIDATE_BOOLEAN),
     ],
+
+    // Basalam (site plugin <-> Basalam; ERP = OAuth broker + order mirror).
+    'basalam' => [
+        // Where Basalam webhooks land on the site (plugin route). Legacy route still registered by the plugin.
+        'webhook_path' => env('WEBINO_BASALAM_WEBHOOK_PATH', '/wp-json/webino-basalam/v1/order-manager'),
+        'legacy_webhook_path' => '/wp-json/sync-basalam/v1/order-manager',
+        // Rollout flag: require Site-Auth signature on the order mirror (turn on after site-auth:provision shows 0 missing).
+        'require_signed' => filter_var(env('WEBINO_BASALAM_REQUIRE_SIGNED', false), FILTER_VALIDATE_BOOLEAN),
+    ],
 ];

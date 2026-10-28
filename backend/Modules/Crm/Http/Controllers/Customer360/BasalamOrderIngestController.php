@@ -22,7 +22,10 @@ class BasalamOrderIngestController extends Controller
         $data = $r->validate([
             'site_url' => 'required|url|max:500',
             'orders' => 'required|array|min:1|max:200',
-            'orders.*.id' => 'required|max:100',
+            // invoice_id = Basalam invoice id (what the plugin keys on: order meta _basalam_invoice_id). `id` is the legacy alias.
+            'orders.*.id' => 'required_without:orders.*.invoice_id|nullable|max:100',
+            'orders.*.invoice_id' => 'required_without:orders.*.id|nullable|max:100',
+            'orders.*.fee' => 'nullable|numeric|min:0',
             'orders.*.status' => 'nullable|max:40',
             'orders.*.status_id' => 'nullable|integer',
             'orders.*.currency' => 'nullable|in:IRR,IRT',
@@ -34,6 +37,10 @@ class BasalamOrderIngestController extends Controller
             'orders.*.paid_at' => 'nullable|date',
         ]);
         $domain = CoreLicenseResolver::normalizeDomain((string) parse_url($data['site_url'], PHP_URL_HOST));
+        // Rollout flag: once every site has a secret, require a valid Site-Auth signature here even in grace mode.
+        if ((bool) config('integrations.basalam.require_signed', false) && $r->attributes->get('webino_site_domain') === null) {
+            return response()->json(['ok' => false, 'unavailable' => true, 'code' => 'signature_required', 'message' => __('messages.site_auth_failed')], 401);
+        }
         // The middleware authenticates `domain` (or the site_url host); site_url must be that same site.
         $authed = CoreLicenseResolver::normalizeDomain((string) ($r->attributes->get('webino_site_domain') ?? $r->input('domain', '')));
         if ($domain === '' || ($authed !== '' && $authed !== $domain)) {
@@ -46,12 +53,23 @@ class BasalamOrderIngestController extends Controller
             ?? CustomerResolver::byDomain($domain);
 
         $saved = 0;
+        $hasFee = Schema::hasColumn('crm_basalam_orders', 'fee');
         foreach ($data['orders'] as $o) {
             $o['status'] = self::normalizeStatus($o['status_id'] ?? $o['status'] ?? null);
-            if (isset($o['total']) && ($o['currency'] ?? 'IRR') === 'IRT') {
-                $o['total'] = (float) $o['total'] * 10; // stored in IRR
+            $irt = ($o['currency'] ?? 'IRR') === 'IRT';
+            foreach (['total', 'fee'] as $money) {
+                if (isset($o[$money]) && $irt) {
+                    $o[$money] = (float) $o[$money] * 10; // stored in IRR
+                }
             }
-            $row = CrmBasalamOrder::query()->firstOrNew(['site_domain' => $domain, 'external_id' => (string) $o['id']]);
+            $externalId = (string) ($o['invoice_id'] ?? $o['id'] ?? '');
+            if ($externalId === '') {
+                continue;
+            }
+            $row = CrmBasalamOrder::query()->firstOrNew(['site_domain' => $domain, 'external_id' => $externalId]);
+            if ($hasFee && array_key_exists('fee', $o) && $o['fee'] !== null) {
+                $row->fee = $o['fee'];
+            }
             $row->fill([
                 'connection_id' => $conn?->id, 'crm_account_id' => $row->crm_account_id ?: $account,
                 'status' => $o['status'] ?? $row->status, 'total' => $o['total'] ?? $row->total ?? 0,
@@ -74,6 +92,19 @@ class BasalamOrderIngestController extends Controller
         3067 => 'rejected', 3233 => 'canceled',
     ];
 
+    /**
+     * WooCommerce / plugin status slugs (woocommerce_statuses mode) -> ERP canonical status.
+     * Plugin custom slugs: bslm-wait-vendor, bslm-preparation, bslm-shipping, bslm-completed, bslm-rejected (+canceled).
+     */
+    public const TEXT_STATUS_MAP = [
+        'wait-vendor' => 'wait_vendor', 'pending' => 'wait_vendor', 'on-hold' => 'wait_vendor',
+        'preparation' => 'preparation', 'processing' => 'preparation',
+        'shipping' => 'shipping', 'shipped' => 'shipping',
+        'completed' => 'completed', 'delivered' => 'completed',
+        'rejected' => 'rejected', 'failed' => 'rejected',
+        'canceled' => 'canceled', 'cancelled' => 'canceled', 'refunded' => 'canceled',
+    ];
+
     public static function normalizeStatus(mixed $s): ?string
     {
         if ($s === null || $s === '') {
@@ -82,7 +113,10 @@ class BasalamOrderIngestController extends Controller
         if (is_numeric($s)) {
             return self::STATUS_MAP[(int) $s] ?? 'basalam_'.(int) $s;
         }
+        $key = strtolower(trim((string) $s));
+        $key = preg_replace('/^(wc-|bslm-)/', '', $key);
+        $key = str_replace('_', '-', (string) $key);
 
-        return mb_substr((string) $s, 0, 40);
+        return self::TEXT_STATUS_MAP[$key] ?? mb_substr((string) $s, 0, 40);
     }
 }

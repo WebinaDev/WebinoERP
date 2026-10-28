@@ -350,6 +350,9 @@ class BasalamOAuthService
                 'connected_at' => optional($row->connected_at)?->toIso8601String(),
                 'last_seen_at' => optional($row->last_seen_at)?->toIso8601String(),
                 'disconnected_at' => optional($row->disconnected_at)?->toIso8601String(),
+                'webhook_url' => self::webhookUrl((string) $row->site_url),
+                'legacy_webhook_url' => self::webhookUrl((string) $row->site_url, true),
+                'site_auth_enrolled' => \Modules\Core\Services\SiteAuth::isEnrolled((string) parse_url((string) $row->site_url, PHP_URL_HOST)),
             ])
             ->all();
     }
@@ -405,6 +408,16 @@ class BasalamOAuthService
         }
 
         return 0;
+    }
+
+    /** Site endpoint Basalam webhooks are registered to (by the plugin, not ERP). */
+    public static function webhookUrl(string $siteUrl, bool $legacy = false): string
+    {
+        $path = $legacy
+            ? (string) config('integrations.basalam.legacy_webhook_path', '/wp-json/sync-basalam/v1/order-manager')
+            : (string) config('integrations.basalam.webhook_path', '/wp-json/webino-basalam/v1/order-manager');
+
+        return rtrim($siteUrl, '/').'/'.ltrim($path, '/');
     }
 
     public static function expiresAt(mixed $expiresIn): ?int
