@@ -14,7 +14,6 @@ import {
   type PublicNavMenus,
 } from "@webina/ui/nav-menus"
 import { quietApi } from "@/builder/storefront/session"
-import { categoryHref } from "@/kernel/store-slug-href"
 
 /** «منوها» — shared core lives in @webina/ui/nav-menus; this file binds the store's permalinks and the public cache. */
 export {
@@ -32,7 +31,11 @@ export {
   type PublicNavMenus,
 } from "@webina/ui/nav-menus"
 
-export const NAV_HREF_OPTIONS: NavHrefOptions = { category: categoryHref }
+/** ERP shop: catalog categories filter the builder shop page; products keep their own /products/{slug} pages. */
+export const NAV_HREF_OPTIONS: NavHrefOptions = {
+  category: (slug) => `/shop?category=${encodeURIComponent(slug)}`,
+  product: (slug) => `/products/${encodeURIComponent(slug)}`,
+}
 
 /** Storefront URL for a menu item — root permalinks, never /pages/. */
 export function navItemHref(it: Pick<NavMenuItem, "type" | "ref" | "url">): string {

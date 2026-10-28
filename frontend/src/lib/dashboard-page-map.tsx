@@ -3,6 +3,7 @@
 import MarketingPopupLeadsPage from "../../modules/marketing/admin/popup-leads-page-client"
 import MarketingPopupsPage from "../../modules/marketing/admin/popups-page-client"
 import MarketingNavMenusPage from "../../modules/marketing/admin/menus-page-client"
+import LegacyMenusRedirect from "../../modules/marketing/admin/legacy-menus-redirect"
 import type { ReactNode } from 'react';
 import { normalizeDashboardPath } from '@/lib/route-resolver';
 import { DashboardHomePage } from '@/components/dashboard/pages/DashboardHomePage';
@@ -210,7 +211,6 @@ import {
   MarketingSolutionsPage,
   MarketingTeamPage,
   MarketingTestimonialsPage,
-  MarketingMenusPage,
   MarketingFormsPage,
 } from '@/features/modules/marketing/marketing_pages';
 import { BuilderEditorPage } from '@/features/marketing-builder/builder-editor-page';
@@ -457,7 +457,7 @@ const EXACT: Record<string, ReactNode> = {
   'marketing/announcements': <MarketingAnnouncementsPage />,
   'marketing/testimonials': <MarketingTestimonialsPage />,
   'marketing/downloads': <MarketingDownloadsPage />,
-  'marketing/menus': <MarketingMenusPage />,
+  'marketing/menus': <LegacyMenusRedirect />,
   'marketing/forms': <MarketingFormsPage />,
   'theme-builder': <ThemeBuilderPage />,
   builder: <BuilderListPage />,

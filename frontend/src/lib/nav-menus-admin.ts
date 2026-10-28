@@ -27,3 +27,5 @@ export async function navItemsFromCategories(): Promise<NavMenuItem[]> {
   const r = await api<{ data: NavMenuItem[] }>("/api/v1/marketing/nav-menus/from-categories")
   return r.data ?? []
 }
+
+export const NAV_FROM_CATEGORIES_KEY = ["marketing", "nav-menus", "from-categories"] as const

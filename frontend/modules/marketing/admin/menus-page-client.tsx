@@ -15,7 +15,7 @@ import { Label } from "@/components/ui/label"
 import type { ResolvedAdminRoute } from "@/kernel/types"
 import { getApiErrorMessage } from "@/lib/api-helpers"
 import { NAV_LOCATIONS, type NavMenu } from "@/lib/nav-menus"
-import { deleteNavMenu, fetchNavMenus, NAV_MENUS_KEY, navItemsFromCategories, saveNavMenu } from "@/lib/nav-menus-admin"
+import { deleteNavMenu, fetchNavMenus, NAV_MENUS_KEY, NAV_FROM_CATEGORIES_KEY, navItemsFromCategories, saveNavMenu } from "@/lib/nav-menus-admin"
 
 type Draft = Partial<NavMenu> & { name: string }
 
@@ -23,6 +23,8 @@ export default function MenusPageClient({ route: _route }: { route: ResolvedAdmi
   const qc = useQueryClient()
   const { confirm, dialog } = useConfirm()
   const list = useQuery({ queryKey: NAV_MENUS_KEY, queryFn: fetchNavMenus })
+  // Hide «from categories» when the shop catalog has no categories (nothing to build a mega menu from).
+  const catItems = useQuery({ queryKey: NAV_FROM_CATEGORIES_KEY, queryFn: navItemsFromCategories, staleTime: 60_000 })
   const [selected, setSelected] = useState<number | "new" | null>(null)
   const [draft, setDraft] = useState<Draft | null>(null)
   const [dirty, setDirty] = useState(false)
@@ -76,7 +78,7 @@ export default function MenusPageClient({ route: _route }: { route: ResolvedAdmi
 
   const fillFromCategories = async () => {
     try {
-      const items = await navItemsFromCategories()
+      const items = catItems.data ?? (await navItemsFromCategories())
       if (!items.length) return void toast.info("دسته‌بندی‌ای یافت نشد")
       const apply = () => patch({ items: items.map((i) => ({ ...i, mega: true })) })
       if (draft?.items?.length) confirm({ title: "جایگزینی آیتم‌ها", description: "آیتم‌های فعلی با درخت دسته‌بندی محصولات جایگزین شوند؟", intent: "action", onConfirm: apply })
@@ -141,9 +143,11 @@ export default function MenusPageClient({ route: _route }: { route: ResolvedAdmi
                   <Label>نامک</Label>
                   <Input dir="ltr" value={draft.slug ?? ""} placeholder="خودکار" onChange={(e) => patch({ slug: e.target.value })} />
                 </div>
-                <Button variant="outline" size="sm" onClick={fillFromCategories}>
-                  <FolderTree className="size-4" /> پرکردن از دسته‌بندی‌ها (مگامنو)
-                </Button>
+                {catItems.data?.length ? (
+                  <Button variant="outline" size="sm" onClick={fillFromCategories}>
+                    <FolderTree className="size-4" /> پرکردن از دسته‌بندی‌ها (مگامنو)
+                  </Button>
+                ) : null}
               </CardHeader>
               <CardContent>
                 <MenuTreeEditor items={draft.items ?? []} onChange={(items) => patch({ items })} />

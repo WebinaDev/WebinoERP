@@ -5,11 +5,13 @@ namespace Modules\Marketing\Http\Controllers;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Cache;
+use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Str;
 use Illuminate\Validation\Rule;
 use Modules\Marketing\Entities\MarketingBlogPost;
 use Modules\Marketing\Entities\MarketingNavMenu as NavMenu;
 use Modules\Marketing\Entities\MarketingPage;
+use Modules\Sales\Services\Storefront\StorefrontCatalog;
 
 /**
  * «منوها» — WordPress-style navigation menus. Admin CRUD (also used inline by the page-builder nav widget)
@@ -68,26 +70,50 @@ class MarketingNavMenuController extends Controller
         return response()->json(['data' => ['deleted' => true]]);
     }
 
-    /** Link picker: pages, product categories, brands, products, blog posts (id, label, slug). */
+    /** Link picker: pages, blog posts, and the shop catalog (storefront products + their categories). */
     public function sources(Request $request): JsonResponse
     {
         $type = (string) $request->query('type', 'page');
         $q = trim((string) $request->query('q', ''));
-        $like = fn ($query, string $col) => $q === '' ? $query : $query->where($col, 'like', '%'.str_replace(['%', '_'], ['\%', '\_'], $q).'%');
-        // ERP: marketing pages + blog posts. Shop categories/brands/products live in the tenant dashboards.
+        $esc = str_replace(['\\', '%', '_'], ['\\\\', '\\%', '\\_'], $q);
+        $like = fn ($query, string $col) => $q === '' ? $query : $query->where($col, 'like', '%'.$esc.'%');
         $rows = match ($type) {
             'post' => $like(MarketingBlogPost::query(), 'title')->latest('id')->limit(30)->get(['id', 'title as label', 'slug']),
             'page' => $like(MarketingPage::query(), 'title_fa')->latest('id')->limit(50)->get(['id', 'title_fa as label', 'slug']),
+            'product' => $this->catalog()
+                ? $like($this->catalog()->query(), 'name')->latest('id')->limit(30)->get()
+                    ->map(fn ($i) => ['id' => $i->id, 'label' => $i->name, 'slug' => $this->catalog()->slugOf($i)])->values()
+                : collect(),
+            'category' => collect($this->shopCategories())
+                ->filter(fn ($c) => $q === '' || mb_stripos($c['name'], $q) !== false || mb_stripos($c['slug'], $q) !== false)
+                ->values()->map(fn ($c, $i) => ['id' => $i + 1, 'label' => $c['name'], 'slug' => $c['slug']])->take(50)->values(),
             default => collect(),
         };
 
         return response()->json(['data' => $rows]);
     }
 
-    /** Mega-menu auto-fill needs shop categories, which the ERP marketing site does not have. */
+    /** Mega-menu auto-fill from the shop catalog categories; meta.available=false lets the admin hide the button. */
     public function fromCategories(Request $request): JsonResponse
     {
-        return response()->json(['data' => []]);
+        $items = array_map(fn ($c) => [
+            'id' => Str::random(8), 'label' => $c['name'], 'type' => 'category', 'ref' => $c['slug'], 'children' => [],
+        ], $this->shopCategories());
+
+        return response()->json(['data' => $items, 'meta' => ['available' => $items !== []]]);
+    }
+
+    private function catalog(): ?StorefrontCatalog
+    {
+        return class_exists(StorefrontCatalog::class) && Schema::hasTable('sales_catalog_items') ? app(StorefrontCatalog::class) : null;
+    }
+
+    /** @return list<array{slug: string, name: string}> */
+    private function shopCategories(): array
+    {
+        $c = $this->catalog();
+
+        return $c ? $c->categories($c->query()->get(['id', 'meta'])) : [];
     }
 
     /** Public: { menus: {slug: items}, locations: {location: items} } — hidden items stripped server-side. */
