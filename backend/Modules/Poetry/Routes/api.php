@@ -13,3 +13,7 @@ Route::get('/terms', [C::class, 'terms']);
 Route::post('/terms', [C::class, 'storeTerm']);
 Route::put('/terms/{term}', [C::class, 'updateTerm'])->whereNumber('term');
 Route::delete('/terms/{term}', [C::class, 'destroyTerm'])->whereNumber('term');
+Route::get('/media', [\Modules\Poetry\Http\Controllers\PoetryMediaAdminController::class, 'index']);
+Route::post('/media', [\Modules\Poetry\Http\Controllers\PoetryMediaAdminController::class, 'store']);
+Route::put('/media/{media}', [\Modules\Poetry\Http\Controllers\PoetryMediaAdminController::class, 'update'])->whereNumber('media');
+Route::delete('/media/{media}', [\Modules\Poetry\Http\Controllers\PoetryMediaAdminController::class, 'destroy'])->whereNumber('media');
