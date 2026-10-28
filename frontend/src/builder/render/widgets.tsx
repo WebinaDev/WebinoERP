@@ -1,10 +1,7 @@
 "use client"
 
-import { CompareTableWidget, OffersGridWidget, ShopCatalogWidget } from "./shop-pages-widgets"
 import dynamic from "next/dynamic"
 
-import { ArchiveFiltersWidget } from "./archive-filters"
-import { AudioBlockWidget, BeforeAfterWidget, LoginFormWidget, LottieWidget, OffCanvasWidget, RegisterFormWidget, SiteFooterWidget, SiteHeaderWidget, TeamGridWidget, VideoEmbedWidget } from "./gap-widgets"
 import DOMPurify from "dompurify"
 import { Heart, ShieldCheck, Sparkles, Star, Truck } from "lucide-react"
 import Link from "next/link"
@@ -28,6 +25,20 @@ import { BuilderRuntimeProvider, useBuilderGlobals, useBuilderRuntime } from "./
 
 import { Img } from "./img"
 
+const CompareTableWidget = dynamic(() => import("./shop-pages-widgets").then((m) => m.CompareTableWidget))
+const OffersGridWidget = dynamic(() => import("./shop-pages-widgets").then((m) => m.OffersGridWidget))
+const ShopCatalogWidget = dynamic(() => import("./shop-pages-widgets").then((m) => m.ShopCatalogWidget))
+const ArchiveFiltersWidget = dynamic(() => import("./archive-filters").then((m) => m.ArchiveFiltersWidget))
+const AudioBlockWidget = dynamic(() => import("./gap-widgets").then((m) => m.AudioBlockWidget))
+const BeforeAfterWidget = dynamic(() => import("./gap-widgets").then((m) => m.BeforeAfterWidget))
+const LoginFormWidget = dynamic(() => import("./gap-widgets").then((m) => m.LoginFormWidget))
+const LottieWidget = dynamic(() => import("./gap-widgets").then((m) => m.LottieWidget))
+const OffCanvasWidget = dynamic(() => import("./gap-widgets").then((m) => m.OffCanvasWidget))
+const RegisterFormWidget = dynamic(() => import("./gap-widgets").then((m) => m.RegisterFormWidget))
+const SiteFooterWidget = dynamic(() => import("./gap-widgets").then((m) => m.SiteFooterWidget))
+const SiteHeaderWidget = dynamic(() => import("./gap-widgets").then((m) => m.SiteHeaderWidget))
+const TeamGridWidget = dynamic(() => import("./gap-widgets").then((m) => m.TeamGridWidget))
+const VideoEmbedWidget = dynamic(() => import("./gap-widgets").then((m) => m.VideoEmbedWidget))
 const AccountDashboardWidget = dynamic(() => import("./classic-widgets").then((m) => m.AccountDashboardWidget))
 const AddToCartBoxWidget = dynamic(() => import("./classic-widgets").then((m) => m.AddToCartBoxWidget))
 const AmazingHeaderWidget = dynamic(() => import("./classic-widgets").then((m) => m.AmazingHeaderWidget))
