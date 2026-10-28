@@ -98,6 +98,23 @@ class MarketingPopupController extends Controller
         return response()->json(['data' => $out]);
     }
 
+    /** All popup leads (newest first), optional ?popup_id= and ?kind= filters. */
+    public function allLeads(Request $request): JsonResponse
+    {
+        $q = DB::table('marketing_popup_leads as l')
+            ->join('marketing_popups as p', 'p.id', '=', 'l.popup_id')
+            ->select(['l.id', 'l.popup_id', 'p.name as popup_name', 'l.kind', 'l.value', 'l.created_at'])
+            ->orderByDesc('l.id');
+        if ($request->filled('popup_id')) {
+            $q->where('l.popup_id', (int) $request->query('popup_id'));
+        }
+        if (in_array($request->query('kind'), ['phone', 'email'], true)) {
+            $q->where('l.kind', $request->query('kind'));
+        }
+
+        return response()->json($q->paginate(min(200, max(10, (int) $request->query('per_page', 50)))));
+    }
+
     public function leads(int $popup): JsonResponse
     {
         MarketingPopup::query()->findOrFail($popup);

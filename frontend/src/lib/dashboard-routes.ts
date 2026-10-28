@@ -264,6 +264,7 @@ const EXACT: Record<string, DashboardRouteMeta> = {
   'marketing/academy-lessons': { titleFa: 'سرفصل‌های آکادمی', titleEn: 'Academy lessons', group: 'core' },
   'marketing/faq': { titleFa: 'پرسش‌ها', titleEn: 'FAQ', group: 'core' },
   'marketing/popups': { titleFa: 'پاپ‌آپ‌ها', titleEn: 'Popups', group: 'core' },
+  'marketing/popup-leads': { titleFa: 'سرنخ‌های پاپ‌آپ', titleEn: 'Popup leads', group: 'core' },
   'marketing/services': { titleFa: 'خدمات', titleEn: 'Services', group: 'core' },
   'marketing/solutions': { titleFa: 'راه‌حل‌ها', titleEn: 'Solutions', group: 'core' },
   'marketing/team': { titleFa: 'تیم', titleEn: 'Team', group: 'core' },

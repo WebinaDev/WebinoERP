@@ -2,6 +2,7 @@
 
 namespace Modules\Sales\Services\Storefront;
 
+use App\Support\Currency;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
 use Modules\Sales\Entities\SalesCatalogItem;
@@ -101,11 +102,11 @@ class StorefrontSellables
                     'slug' => $slug,
                     'name' => trim(explode('؛', (string) ($p['title'] ?? $slug))[0]),
                     // Builder prices are toman; the shop stores IRR. Old price becomes the regular price, current one the sale price.
-                    'price' => ($old > $toman ? $old : $toman) * 10,
+                    'price' => Currency::toRialInt($old > $toman ? $old : $toman, 'IRT'),
                     'description' => (string) ($p['subtitle'] ?? ''),
                     'meta' => array_filter([
                         'kind' => $isPackage ? 'package' : 'license', 'digital' => true,
-                        'sale_price' => $old > $toman ? $toman * 10 : null,
+                        'sale_price' => $old > $toman ? Currency::toRialInt($toman, 'IRT') : null,
                         'image_url' => $images[0] ?? null, 'gallery' => $images,
                         'category_slug' => $isPackage ? 'packages' : 'products',
                         'category_name' => (string) ($p['category'] ?? ($isPackage ? 'پکیج‌ها' : 'محصولات')),
