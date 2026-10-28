@@ -6,6 +6,7 @@ use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Cache;
 use Modules\Sales\Entities\SalesCatalogItem;
+use Modules\Sales\Entities\SalesCoupon;
 use Modules\Sales\Entities\SalesProductQuestion;
 use Modules\Sales\Entities\SalesProductReview;
 use Modules\Sales\Entities\SalesStorefrontOrder;
@@ -54,6 +55,7 @@ class PublicStorefrontController extends Controller
                 'price_asc', 'price' => $query->orderBy('price'),
                 'price_desc' => $query->orderByDesc('price'),
                 'name' => $query->orderBy('name'),
+                'updated' => $query->orderByDesc('updated_at')->orderByDesc('id'),
                 default => $query->orderByDesc('id'),
             };
             $total = (clone $query)->count();
@@ -206,6 +208,29 @@ class PublicStorefrontController extends Controller
         return response()->json(['data' => ['coupon' => $coupon, 'discount_minor' => $discount]]);
     }
 
+    /** Merchant-opted-in (show_in_cart) active coupons, evaluated against the cart subtotal; eligible first, biggest saving first. */
+    public function availableCoupons(Request $request): JsonResponse
+    {
+        $data = $request->validate(['subtotal_minor' => 'nullable|integer|min:0']);
+        $subtotal = (int) ($data['subtotal_minor'] ?? 0);
+        $rows = SalesCoupon::query()->where('active', true)->where('show_in_cart', true)
+            ->where(fn ($q) => $q->whereNull('expires_at')->orWhere('expires_at', '>', now()))
+            ->orderByDesc('id')->limit(20)->get()
+            ->filter(fn ($c) => $c->usage_limit === null || $c->used < $c->usage_limit)
+            ->map(function ($c) use ($subtotal) {
+                [$discount, , $error] = $this->catalog->couponDiscount($c->code, $subtotal);
+
+                return [
+                    'code' => $c->code, 'description' => $c->description, 'type' => $c->type, 'amount' => (float) $c->value,
+                    'min_spend_minor' => (int) $c->min_total ?: null, 'expires_at' => $c->expires_at?->toIso8601String(),
+                    'eligible' => $error === null, 'discount_minor' => $error === null ? $discount : 0, 'free_shipping' => false, 'reason' => $error,
+                ];
+            })
+            ->sort(fn ($a, $b) => [$b['eligible'], $b['discount_minor']] <=> [$a['eligible'], $a['discount_minor']])->values();
+
+        return response()->json(['data' => $rows]);
+    }
+
     public function trackOrder(Request $request): JsonResponse
     {
         $data = $request->validate(['number' => 'required|string|max:30', 'phone' => 'required|string|max:30']);
@@ -291,6 +316,7 @@ class PublicStorefrontController extends Controller
             'price_asc', 'price' => $rows->sortBy(fn ($i) => $this->catalog->unitPrice($i)),
             'price_desc' => $rows->sortByDesc(fn ($i) => $this->catalog->unitPrice($i)),
             'name' => $rows->sortBy('name'),
+            'updated' => $rows->sortByDesc(fn ($i) => $i->updated_at?->getTimestamp() ?? 0),
             'popular' => $rows->sortByDesc(fn ($i) => (int) (((array) $i->meta)['views_count'] ?? 0)),
             'best_selling' => $rows->sortByDesc(fn ($i) => (int) (((array) $i->meta)['sales_count'] ?? 0)),
             default => $rows->sortByDesc('id'),

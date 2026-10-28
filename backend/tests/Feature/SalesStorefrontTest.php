@@ -61,6 +61,18 @@ class SalesStorefrontTest extends TestCase
         $this->assertSame(2, $this->getJson('/api/v1/public/catalog?tag=gift&per_page=1')->json('data.pagination.total'));
     }
 
+    public function test_available_coupons_lists_only_opted_in_active(): void
+    {
+        SalesCoupon::query()->create(['code' => 'SHOWN', 'type' => 'percent', 'value' => 10, 'min_total' => 0, 'show_in_cart' => true]);
+        SalesCoupon::query()->create(['code' => 'BIGMIN', 'type' => 'fixed', 'value' => 50, 'min_total' => 5000, 'show_in_cart' => true]);
+        SalesCoupon::query()->create(['code' => 'HIDDEN', 'type' => 'percent', 'value' => 50, 'min_total' => 0]);
+        SalesCoupon::query()->create(['code' => 'OFF', 'type' => 'percent', 'value' => 50, 'min_total' => 0, 'show_in_cart' => true, 'active' => false]);
+        $res = $this->postJson('/api/v1/public/coupons/available', ['subtotal_minor' => 1000])->assertOk()->assertJsonCount(2, 'data');
+        $this->assertSame('SHOWN', $res->json('data.0.code'));
+        $this->assertSame(100, $res->json('data.0.discount_minor'));
+        $this->assertFalse($res->json('data.1.eligible'));
+    }
+
     public function test_cart_checkout_coupon_and_payment_flow(): void
     {
         $p = $this->product(['slug' => 'cream', 'stock' => 5]);

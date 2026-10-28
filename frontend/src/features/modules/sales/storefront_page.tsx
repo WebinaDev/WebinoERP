@@ -11,7 +11,7 @@ import { normalizeListPayload } from '@/lib/list-utils';
 
 type Item = { id: number; name: string; sku?: string | null; price: string | number; status: string; description?: string | null; meta?: Record<string, unknown> | null };
 type Order = { id: number; number: string; status: string; total_minor: number; customer_name?: string | null; phone?: string | null; customer_email?: string | null; payment_mode?: string | null; payment_method?: string | null; created_at?: string; items: { name: string; quantity: number; total: number }[]; tracking_code?: string | null };
-type Coupon = { id: number; code: string; type: string; value: string | number; min_total: string | number; usage_limit: number | null; used: number; expires_at: string | null; active: boolean };
+type Coupon = { id: number; code: string; type: string; value: string | number; min_total: string | number; usage_limit: number | null; used: number; expires_at: string | null; active: boolean; show_in_cart?: boolean };
 type Settings = Record<string, string | number | boolean>;
 
 const TABS = [['products', 'محصولات'], ['orders', 'سفارش‌ها'], ['coupons', 'کدهای تخفیف'], ['settings', 'تنظیمات سبد و تسویه']] as const;
@@ -231,6 +231,7 @@ function Coupons() {
           <span><b dir="ltr">{c.code}</b> · {c.type === 'fixed' ? toman(c.value) : `${c.value}٪`} · استفاده {c.used}{c.usage_limit ? ` از ${c.usage_limit}` : ''}</span>
           <div className="flex gap-2">
             <button type="button" className={ghost} onClick={() => void apiClient.put(`/v1/sales/storefront/coupons/${c.id}`, { ...c, active: !c.active }).then(load)}>{c.active ? 'غیرفعال‌سازی' : 'فعال‌سازی'}</button>
+            <button type="button" className={ghost} title="نمایش در فهرست «کدهای تخفیف قابل استفاده» سبد خرید" onClick={() => void apiClient.put(`/v1/sales/storefront/coupons/${c.id}`, { ...c, show_in_cart: !c.show_in_cart }).then(load)}>{c.show_in_cart ? 'حذف از سبد خرید' : 'نمایش در سبد خرید'}</button>
             <button type="button" className={`${ghost} text-destructive`} onClick={() => void apiClient.delete(`/v1/sales/storefront/coupons/${c.id}`).then(load)}>حذف</button>
           </div>
         </div>

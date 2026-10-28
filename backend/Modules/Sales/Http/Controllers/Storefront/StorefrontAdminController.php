@@ -75,6 +75,8 @@ class StorefrontAdminController extends Controller
             'usage_limit' => 'nullable|integer|min:1',
             'expires_at' => 'nullable|date',
             'active' => 'nullable|boolean',
+            'show_in_cart' => 'nullable|boolean',
+            'description' => 'nullable|string|max:191',
         ]);
         $data['code'] = mb_strtoupper($data['code']);
         abort_if($data['type'] === 'percent' && $data['value'] > 100, 422, 'درصد تخفیف حداکثر ۱۰۰ است.');

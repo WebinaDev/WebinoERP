@@ -73,6 +73,7 @@ class SalesServiceProvider extends ServiceProvider
             Route::get('/product-stories', [PublicStorefrontController::class, 'stories']);
             Route::get('/geo/states', [GeoController::class, 'states']);
             Route::post('/coupons/preview', [PublicStorefrontController::class, 'previewCoupon'])->middleware('throttle:20,1,sf-coupons-preview');
+            Route::post('/coupons/available', [PublicStorefrontController::class, 'availableCoupons'])->middleware('throttle:30,1,sf-coupons-available');
             Route::post('/orders/track', [PublicStorefrontController::class, 'trackOrder'])->middleware('throttle:10,1,sf-orders-track');
         });
 

@@ -51,6 +51,10 @@ export type ShopProduct = {
   saleEndsAt?: string | null
   /** Category-specific return policy text (inherited from parent categories); null = use the global text. */
   returnNotice?: string | null
+  /** Product code (SKU) — item endpoint only. */
+  sku?: string | null
+  /** Latin model name shown under the title — item endpoint only. */
+  englishName?: string | null
 }
 
 export type ShopCategory = {
@@ -61,6 +65,8 @@ export type ShopCategory = {
   id?: number
   parentId?: number | null
   image?: string | null
+  /** Term description (HTML from WP import) — shown under the archive grid with a «show more» toggle. */
+  description?: string | null
   children?: ShopCategory[]
 }
 
@@ -352,6 +358,8 @@ export function mapApiProduct(raw: ApiRecord, index: number): ShopProduct {
     stock: raw.stock == null ? null : num(raw.stock),
     saleEndsAt: str(raw.sale_ends_at) || null,
     returnNotice: str(raw.return_notice) || null,
+    sku: str(raw.sku) || null,
+    englishName: str(raw.english_name) || null,
   }
 }
 
@@ -432,6 +440,7 @@ export function mapApiCategory(raw: ApiRecord, index: number): ShopCategory | nu
         .filter((item): item is ShopCategory => item !== null)
     : undefined
   return {
+    description: str(raw.description) || null,
     slug,
     name,
     tone: SAMPLE_CATEGORIES[index % SAMPLE_CATEGORIES.length].tone,
