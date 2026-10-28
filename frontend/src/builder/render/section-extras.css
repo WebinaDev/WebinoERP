@@ -11,3 +11,8 @@ html:has(.wb-full-bleed) body { overflow-x: clip; }
   -webkit-mask-size: var(--wb-pat-size, 96px); mask-size: var(--wb-pat-size, 96px);
   -webkit-mask-repeat: repeat; mask-repeat: repeat; -webkit-mask-position: center top; mask-position: center top;
 }
+
+/* Port Dashboard ba97367 + 2519513: full-bleed first/last body sections and footer sections sit flush (no theme margin strips). */
+.wb-section-stack > section.wb-full-bleed:first-child { margin-top: 0 !important; }
+.wb-section-stack > section.wb-full-bleed:last-child { margin-bottom: 0 !important; }
+.wb-section-stack > section:has(.wbx-foot) { margin-block: 0 !important; }
