@@ -246,6 +246,10 @@ services:
     restart: unless-stopped
     volumes:
       - ./docker/edge/nginx.conf:/etc/nginx/conf.d/default.conf:ro
+      - ./docker/edge/main.conf:/etc/nginx/nginx.conf:ro
+      - ./docker/edge/purge.js:/etc/nginx/purge.js:ro
+    environment:
+      EDGE_PURGE_SECRET: ${EDGE_PURGE_SECRET:-}
     tmpfs:
       - /var/cache/nginx:size=600m
     depends_on:

@@ -28,3 +28,15 @@ location ~ ^/purge(/.*) {
 
 Without the purge module, an alternative is lowering the edge TTL or bumping a cache-key version;
 until `EDGE_PURGE_URL` is set, edge pages expire on their normal 30s TTL.
+
+## Edge cache purge (WebinoERP edge)
+
+The edge (`docker/edge`) runs stock `nginx:alpine` without `ngx_cache_purge`, so purging is done with njs
+(`docker/edge/purge.js`, loaded by `docker/edge/main.conf`) on `:8083`, private networks only:
+
+    PURGE http://erp-edge:8083/purge/<path>   x-purge-secret: $EDGE_PURGE_SECRET   x-purge-host: <tenant host>
+
+It deletes every cache file (zones `webina_html` and `pages`) whose nginx `KEY:` is `<host><path>` (any query
+string / locale suffix); a trailing `*` purges a prefix (`/*` = whole host). 200 = purged, 404 = nothing cached,
+403 = bad/missing secret (also when the edge has no `EDGE_PURGE_SECRET`).
+Tenant frontends: `EDGE_PURGE_URL=http://erp-edge:8083/purge`, `EDGE_PURGE_SECRET` = the ERP `.env` value.
