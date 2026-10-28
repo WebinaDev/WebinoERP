@@ -12,7 +12,7 @@ import { POETRY_WIDGETS } from "./registry-poetry"
 import { POETRY_MODULE_WIDGETS } from "./registry-poetry-module"
 import { POETRY_PAGE_WIDGETS } from "./registry-poetry-pages"
 
-const FORM_TYPE_LABELS: Record<FormFieldType, string> = { text: "متن", email: "ایمیل", tel: "تلفن", number: "عدد", textarea: "متن بلند", select: "فهرست کشویی", radio: "تک‌انتخابی", checkbox: "چندانتخابی", date: "تاریخ", file: "فایل (پیوست)" , heading: "عنوان گروه"}
+const FORM_TYPE_LABELS: Record<FormFieldType, string> = { text: "متن", email: "ایمیل", tel: "تلفن", number: "عدد", textarea: "متن بلند", select: "فهرست کشویی", radio: "تک‌انتخابی", checkbox: "چندانتخابی", date: "تاریخ", file: "فایل (پیوست)", heading: "عنوان گروه", time: "ساعت", url: "نشانی وب", hidden: "پنهان", acceptance: "پذیرش قوانین", password: "رمز", rating: "امتیاز (ستاره)", calc: "محاسباتی" }
 
 function node(type: string, props: Record<string, unknown>, children?: WidgetNode["children"]): WidgetNode {
   return { id: uid("w"), type, props, children }
