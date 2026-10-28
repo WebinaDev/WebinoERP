@@ -11,6 +11,7 @@ import {
   type ReactNode,
 } from "react"
 import { ThemeProvider as NextThemesProvider, useTheme } from "next-themes"
+import { broadcastDashboardTheme, onRemoteDashboardTheme } from "@webina/ui"
 
 export type Accent =
   | "zinc"
@@ -64,6 +65,7 @@ function AccentAndAuthProviders({ children }: { children: ReactNode }) {
     (m: ThemeMode) => {
       setTheme(m)
       localStorage.setItem("theme_mode", m)
+      broadcastDashboardTheme({ mode: m })
     },
     [setTheme],
   )
@@ -88,6 +90,26 @@ function AccentAndAuthProviders({ children }: { children: ReactNode }) {
     }
     localStorage.setItem("theme_accent", accent)
     document.documentElement.setAttribute("data-accent", accent)
+  }, [hydrated, accent])
+
+  // Another tab changed accent / mode: apply here without a reload.
+  useEffect(
+    () =>
+      onRemoteDashboardTheme((patch) => {
+        if (patch.accent && ["zinc", "slate", "blue", "green", "rose", "orange"].includes(patch.accent)) {
+          setAccent(patch.accent as Accent)
+        }
+        if (patch.mode) {
+          setTheme(patch.mode)
+        }
+      }),
+    [setTheme],
+  )
+
+  useEffect(() => {
+    if (hydrated) {
+      broadcastDashboardTheme({ accent })
+    }
   }, [hydrated, accent])
 
   const mode: ThemeMode = resolvedTheme === "dark" ? "dark" : "light"

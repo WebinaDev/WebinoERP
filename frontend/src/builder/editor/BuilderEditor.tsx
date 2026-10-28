@@ -845,16 +845,16 @@ export function BuilderEditor({ mode }: { mode: Mode }) {
   const needle = widgetQuery.trim()
 
   if (loading) {
-    return <div className="grid h-svh max-h-full min-h-0 place-items-center text-sm text-[#0C2D63]">{t("loading")}</div>
+    return <div className="grid h-svh max-h-full min-h-0 place-items-center text-sm text-foreground">{t("loading")}</div>
   }
 
   return (
     <DesignProvider value={designApi}>
-    <div className="flex h-svh max-h-full min-h-0 flex-col bg-[#101820] text-[#0C2D63]">
-      <header className="relative flex h-14 shrink-0 items-center gap-1 border-b border-white/10 px-2 text-white sm:gap-2 sm:px-3">
-        <Link href={backHref} aria-label={t("back")} title={t("back")} className="grid size-8 shrink-0 place-items-center rounded-full text-white/80 hover:bg-white/10"><ArrowRight className="size-4" aria-hidden /></Link>
-        <input value={title} onChange={(event) => setTitle(event.target.value)} className="h-8 w-24 min-w-0 rounded-md bg-white/10 px-2 text-sm outline-none sm:w-44" aria-label={t("title")} />
-        <div className="mx-auto flex shrink-0 items-center gap-0.5 rounded-full bg-white/5 p-1">
+    <div className="flex h-svh max-h-full min-h-0 flex-col bg-background text-foreground">
+      <header className="relative flex h-14 shrink-0 items-center gap-1 border-b border-border bg-card px-2 text-foreground sm:gap-2 sm:px-3">
+        <Link href={backHref} aria-label={t("back")} title={t("back")} className="grid size-8 shrink-0 place-items-center rounded-full text-foreground/80 hover:bg-muted"><ArrowRight className="size-4" aria-hidden /></Link>
+        <input value={title} onChange={(event) => setTitle(event.target.value)} className="h-8 w-24 min-w-0 rounded-md bg-muted px-2 text-sm outline-none sm:w-44" aria-label={t("title")} />
+        <div className="mx-auto flex shrink-0 items-center gap-0.5 rounded-full bg-muted p-1">
           <IconButton label={t("desktop")} active={device === "desktop"} onClick={() => setDevice("desktop")}><Monitor className="size-4" /></IconButton>
           <IconButton label={t("tablet")} active={device === "tablet"} onClick={() => setDevice("tablet")}><Tablet className="size-4" /></IconButton>
           <IconButton label={t("mobile")} active={device === "mobile"} onClick={() => setDevice("mobile")}><Smartphone className="size-4" /></IconButton>
@@ -864,15 +864,15 @@ export function BuilderEditor({ mode }: { mode: Mode }) {
           <IconButton label={t("redo")} onClick={redo}><Redo2 className="size-4" /></IconButton>
         </div>
         <span className={`size-2 shrink-0 rounded-full ${saving ? "animate-pulse bg-amber-300" : dirty ? "bg-amber-400" : "bg-emerald-400"}`} title={saving ? t("saving") : dirty ? t("unsaved") : t("all_saved")} aria-live="polite" aria-label={saving ? t("saving") : dirty ? t("unsaved") : t("all_saved")} />
-        <a href={preview} target="_blank" rel="noreferrer" aria-label={t("preview")} title={t("preview")} className="hidden size-8 shrink-0 place-items-center rounded-full text-white hover:bg-white/10 sm:grid"><Eye className="size-4" aria-hidden /></a>
-        <Button type="button" size="sm" variant="outline" className="hidden border-white/20 bg-transparent text-white md:inline-flex" disabled={saving} onClick={() => void save(false)}>{t("save")}</Button>
-        <Button type="button" size="sm" className="shrink-0 bg-[#E16BA6] px-3 text-white hover:bg-[#d45b98]" disabled={saving} onClick={() => void save(true)}>{t("publish")}</Button>
+        <a href={preview} target="_blank" rel="noreferrer" aria-label={t("preview")} title={t("preview")} className="hidden size-8 shrink-0 place-items-center rounded-full text-foreground hover:bg-muted sm:grid"><Eye className="size-4" aria-hidden /></a>
+        <Button type="button" size="sm" variant="outline" className="hidden border-border bg-transparent text-foreground md:inline-flex" disabled={saving} onClick={() => void save(false)}>{t("save")}</Button>
+        <Button type="button" size="sm" className="shrink-0 bg-primary px-3 text-primary-foreground hover:bg-primary/90" disabled={saving} onClick={() => void save(true)}>{t("publish")}</Button>
         <div className="relative shrink-0">
           <IconButton label="بیشتر" active={moreOpen} onClick={() => setMoreOpen((o) => !o)}><MoreHorizontal className="size-4" /></IconButton>
           {moreOpen ? (
             <>
               <div className="fixed inset-0 z-40" onClick={() => setMoreOpen(false)} aria-hidden />
-              <div className="absolute end-0 z-50 mt-2 grid max-h-[75svh] w-64 gap-0.5 overflow-auto rounded-xl bg-white p-1.5 text-xs text-[#0C2D63] shadow-2xl" role="menu" onClick={(event) => { if ((event.target as HTMLElement).closest("[data-close]")) setMoreOpen(false) }}>
+              <div className="absolute end-0 z-50 mt-2 grid max-h-[75svh] w-64 gap-0.5 overflow-auto rounded-xl bg-card p-1.5 text-xs text-foreground shadow-2xl" role="menu" onClick={(event) => { if ((event.target as HTMLElement).closest("[data-close]")) setMoreOpen(false) }}>
                 {mode.kind === "page" ? (
                   <label className="grid gap-1 px-2 py-1.5">{t("slug")}<input dir="ltr" value={slug} onChange={(event) => setSlug(event.target.value)} className="h-8 rounded-md border px-2" aria-label={t("slug")} /></label>
                 ) : null}
@@ -880,24 +880,24 @@ export function BuilderEditor({ mode }: { mode: Mode }) {
                   <MenuItem icon={Undo2} label={t("undo")} onClick={undo} />
                   <MenuItem icon={Redo2} label={t("redo")} onClick={redo} />
                 </div>
-                <a data-close href={preview} target="_blank" rel="noreferrer" className="flex items-center gap-2 rounded-lg px-2 py-2 hover:bg-[#f2f5f9] sm:hidden"><Eye className="size-4" aria-hidden />{t("preview")}</a>
+                <a data-close href={preview} target="_blank" rel="noreferrer" className="flex items-center gap-2 rounded-lg px-2 py-2 hover:bg-muted sm:hidden"><Eye className="size-4" aria-hidden />{t("preview")}</a>
                 <MenuItem className="md:hidden" icon={Download} label={t("save")} onClick={() => void save(false)} />
                 {mode.kind === "page" ? <MenuItem icon={Sparkles} label="پیش‌نویس با AI" onClick={() => void draftFromBrief()} /> : null}
                 {mode.kind === "page" ? <MenuItem icon={SearchCheck} label="سئو" onClick={() => setSeoOpen(true)} /> : null}
                 {mode.kind === "page" && pageId ? <MenuItem icon={FileCog} label={t("page_settings")} onClick={() => setShowPageSettings(true)} /> : null}
                 {revisionTarget ? <MenuItem icon={History} label={t("revisions")} onClick={() => setShowRevisions(true)} /> : null}
                 <MenuItem icon={PaletteIcon} label="کیت‌های آماده" onClick={() => setShowKits(true)} />
-                <Link data-close href="/dashboard/builder/settings" className="flex items-center gap-2 rounded-lg px-2 py-2 hover:bg-[#f2f5f9]"><Settings2 className="size-4" aria-hidden />{t("globals")}</Link>
+                <Link data-close href="/dashboard/builder/settings" className="flex items-center gap-2 rounded-lg px-2 py-2 hover:bg-muted"><Settings2 className="size-4" aria-hidden />{t("globals")}</Link>
                 <MenuItem icon={Search} label={t("finder")} onClick={() => setShowFinder(true)} />
                 <MenuItem icon={Accessibility} label={t("a11y_audit")} onClick={() => setShowA11y(true)} />
                 <MenuItem icon={LayoutTemplate} label={t("save_page_template")} onClick={() => void saveToLibrary(null)} />
-                <div className="my-1 border-t border-[#e6eef6]" />
+                <div className="my-1 border-t border-border" />
                 <MenuItem icon={Download} label={t("export_json")} onClick={exportJson} />
                 <MenuItem icon={Upload} label={t("import_json")} onClick={() => importRef.current?.click()} />
                 <MenuItem icon={Keyboard} label={t("shortcuts")} onClick={() => setShowHelp(true)} />
                 <label className="flex items-center gap-2 px-2 py-2" title={t("zoom")}>
                   <ZoomIn className="size-4" aria-hidden />{t("zoom")}
-                  <select aria-label={t("zoom")} className="ms-auto rounded border bg-white px-1" value={zoom} onChange={(event) => setZoom(Number(event.target.value))}>
+                  <select aria-label={t("zoom")} className="ms-auto rounded border bg-card px-1" value={zoom} onChange={(event) => setZoom(Number(event.target.value))}>
                     {[50, 75, 90, 100, 125].map((value) => <option key={value} value={value}>{value}٪</option>)}
                   </select>
                 </label>
@@ -969,37 +969,37 @@ export function BuilderEditor({ mode }: { mode: Mode }) {
       ) : null}
       <div className="flex min-h-0 flex-1">
         {drawerOpen ? <div className="fixed inset-0 z-30 bg-black/40 lg:hidden" onClick={() => setDrawerOpen(false)} aria-hidden /> : null}
-        <aside className={`fixed inset-x-0 bottom-0 z-40 flex max-h-[80svh] min-h-[50svh] flex-col rounded-t-2xl border-[#e6eef6] bg-[#f7f9fc] shadow-2xl transition-transform duration-200 sm:inset-y-0 sm:start-0 sm:end-auto sm:max-h-none sm:w-80 sm:rounded-none lg:static lg:z-auto lg:min-h-0 lg:w-80 lg:shrink-0 lg:translate-x-0 lg:translate-y-0 lg:border-e lg:shadow-none ${drawerOpen ? "translate-y-0 sm:translate-x-0" : "translate-y-full sm:translate-y-0 sm:translate-x-full lg:translate-x-0"}`}>
-          <div className="flex justify-center pt-2 sm:hidden"><span className="h-1 w-10 rounded-full bg-[#0C2D63]/20" /></div>
+        <aside className={`fixed inset-x-0 bottom-0 z-40 flex max-h-[80svh] min-h-[50svh] flex-col rounded-t-2xl border-border bg-muted shadow-2xl transition-transform duration-200 sm:inset-y-0 sm:start-0 sm:end-auto sm:max-h-none sm:w-80 sm:rounded-none lg:static lg:z-auto lg:min-h-0 lg:w-80 lg:shrink-0 lg:translate-x-0 lg:translate-y-0 lg:border-e lg:shadow-none ${drawerOpen ? "translate-y-0 sm:translate-x-0" : "translate-y-full sm:translate-y-0 sm:translate-x-full lg:translate-x-0"}`}>
+          <div className="flex justify-center pt-2 sm:hidden"><span className="h-1 w-10 rounded-full bg-foreground/20" /></div>
           {selection ? (
             <>
-              <div className="flex items-center gap-2 border-b border-[#e6eef6] bg-white px-2 py-2">
-                <button type="button" className="inline-flex items-center gap-1 rounded-lg px-2 py-1.5 text-xs font-semibold text-[#0C2D63]/70 hover:bg-[#f2f5f9]" onClick={() => setSelectedId(null)} aria-label={t("widgets")}>
+              <div className="flex items-center gap-2 border-b border-border bg-card px-2 py-2">
+                <button type="button" className="inline-flex items-center gap-1 rounded-lg px-2 py-1.5 text-xs font-semibold text-foreground/70 hover:bg-muted" onClick={() => setSelectedId(null)} aria-label={t("widgets")}>
                   <ArrowRight className="size-4" aria-hidden />{t("widgets")}
                 </button>
                 <span className="flex min-w-0 flex-1 items-center gap-1.5 truncate text-sm font-bold">
-                  {selection.kind === "widget" ? <WidgetGlyph type={selection.widget.type} className="size-4 shrink-0 text-[#E16BA6]" /> : <Blocks className="size-4 shrink-0 text-[#E16BA6]" aria-hidden />}
+                  {selection.kind === "widget" ? <WidgetGlyph type={selection.widget.type} className="size-4 shrink-0 text-primary" /> : <Blocks className="size-4 shrink-0 text-primary" aria-hidden />}
                   <span className="truncate">{selection.kind === "widget" ? (widgetDef(selection.widget.type)?.label ?? selection.widget.type) : selection.kind === "section" ? "سکشن" : "ستون"}</span>
                 </span>
-                <button type="button" className="grid size-8 place-items-center rounded-full hover:bg-[#f2f5f9] lg:hidden" onClick={() => setDrawerOpen(false)} aria-label="بستن"><X className="size-4" aria-hidden /></button>
+                <button type="button" className="grid size-8 place-items-center rounded-full hover:bg-muted lg:hidden" onClick={() => setDrawerOpen(false)} aria-label="بستن"><X className="size-4" aria-hidden /></button>
               </div>
-              <div className="flex gap-1 bg-white p-2 text-xs font-semibold">
-                <button type="button" className={`flex flex-1 items-center justify-center gap-1 rounded-lg py-2 ${tab === "content" ? "bg-[#E16BA6]/10 text-[#E16BA6]" : "hover:bg-[#f2f5f9]"}`} onClick={() => setTab("content")}>
+              <div className="flex gap-1 bg-card p-2 text-xs font-semibold">
+                <button type="button" className={`flex flex-1 items-center justify-center gap-1 rounded-lg py-2 ${tab === "content" ? "bg-primary/10 text-primary" : "hover:bg-muted"}`} onClick={() => setTab("content")}>
                   <Type className="size-3.5" aria-hidden />
                   {t("content")}
                 </button>
-                <button type="button" className={`flex flex-1 items-center justify-center gap-1 rounded-lg py-2 ${tab === "style" ? "bg-[#E16BA6]/10 text-[#E16BA6]" : "hover:bg-[#f2f5f9]"}`} onClick={() => setTab("style")}>
+                <button type="button" className={`flex flex-1 items-center justify-center gap-1 rounded-lg py-2 ${tab === "style" ? "bg-primary/10 text-primary" : "hover:bg-muted"}`} onClick={() => setTab("style")}>
                   <Paintbrush className="size-3.5" aria-hidden />
                   {t("style")}
                 </button>
-                <button type="button" className={`flex flex-1 items-center justify-center gap-1 rounded-lg py-2 ${tab === "advanced" ? "bg-[#E16BA6]/10 text-[#E16BA6]" : "hover:bg-[#f2f5f9]"}`} onClick={() => setTab("advanced")}>
+                <button type="button" className={`flex flex-1 items-center justify-center gap-1 rounded-lg py-2 ${tab === "advanced" ? "bg-primary/10 text-primary" : "hover:bg-muted"}`} onClick={() => setTab("advanced")}>
                   <Settings2 className="size-3.5" aria-hidden />
                   {t("advanced")}
                 </button>
               </div>
-              <div className="min-h-0 flex-1 overflow-auto bg-white p-3">
+              <div className="min-h-0 flex-1 overflow-auto bg-card p-3">
           {selection && isLocked(doc, selection.id) ? (
-            <div className="mb-3 flex items-center gap-1.5 rounded-lg border border-[#e6eef6] bg-[#f7f9fc] p-2 text-[11px]">
+            <div className="mb-3 flex items-center gap-1.5 rounded-lg border border-border bg-muted p-2 text-[11px]">
               <Lock className="size-3.5" aria-hidden />
               {t("node_locked")}
             </div>
@@ -1148,39 +1148,39 @@ export function BuilderEditor({ mode }: { mode: Mode }) {
               </div>
             </div>
           ) : null}
-          <p className="mt-6 text-[10px] text-[#0C2D63]/40">{documentCss(doc).length ? t("style_ready") : ""}</p>
+          <p className="mt-6 text-[10px] text-foreground/40">{documentCss(doc).length ? t("style_ready") : ""}</p>
               </div>
             </>
           ) : (
             <>
-          <div className="flex border-b border-[#e6eef6] text-xs font-semibold">
-            <button type="button" className={`flex flex-1 items-center justify-center gap-1.5 py-2.5 ${panel === "widgets" ? "text-[#E16BA6]" : ""}`} onClick={() => setPanel("widgets")}>
+          <div className="flex border-b border-border text-xs font-semibold">
+            <button type="button" className={`flex flex-1 items-center justify-center gap-1.5 py-2.5 ${panel === "widgets" ? "text-primary" : ""}`} onClick={() => setPanel("widgets")}>
               <Blocks className="size-3.5" aria-hidden />
               {t("widgets")}
             </button>
-            <button type="button" className={`flex flex-1 items-center justify-center gap-1.5 py-2.5 ${panel === "navigator" ? "text-[#E16BA6]" : ""}`} onClick={() => setPanel("navigator")}>
+            <button type="button" className={`flex flex-1 items-center justify-center gap-1.5 py-2.5 ${panel === "navigator" ? "text-primary" : ""}`} onClick={() => setPanel("navigator")}>
               <ListTree className="size-3.5" aria-hidden />
               {t("navigator")}
             </button>
-            <button type="button" className={`flex flex-1 items-center justify-center gap-1.5 py-2.5 ${panel === "library" ? "text-[#E16BA6]" : ""}`} onClick={() => setPanel("library")}>
+            <button type="button" className={`flex flex-1 items-center justify-center gap-1.5 py-2.5 ${panel === "library" ? "text-primary" : ""}`} onClick={() => setPanel("library")}>
               <LayoutTemplate className="size-3.5" aria-hidden />
               {t("library")}
             </button>
           </div>
           {panel === "widgets" ? (
             <div className="min-h-0 flex-1 overflow-auto p-3">
-              <label className="sticky top-0 z-10 mb-3 flex items-center gap-2 rounded-xl border border-[#e6eef6] bg-white px-2 shadow-sm">
-                <Search className="size-3.5 text-[#0C2D63]/40" aria-hidden />
+              <label className="sticky top-0 z-10 mb-3 flex items-center gap-2 rounded-xl border border-border bg-card px-2 shadow-sm">
+                <Search className="size-3.5 text-foreground/40" aria-hidden />
                 <input value={widgetQuery} onChange={(event) => setWidgetQuery(event.target.value)} placeholder={t("widget_search")} aria-label={t("widget_search")} className="h-9 w-full bg-transparent text-xs outline-none" />
-                {widgetQuery ? <button type="button" onClick={() => setWidgetQuery("")} aria-label="پاک کردن"><X className="size-3.5 text-[#0C2D63]/50" aria-hidden /></button> : null}
+                {widgetQuery ? <button type="button" onClick={() => setWidgetQuery("")} aria-label="پاک کردن"><X className="size-3.5 text-foreground/50" aria-hidden /></button> : null}
               </label>
               <Button type="button" variant="outline" className="mb-3 w-full" onClick={() => { commit(addSection(doc)) }}>{t("add_section")}</Button>
               {globals.components.length ? (
                 <div className="mb-3">
-                  <div className="mb-2 flex items-center gap-1.5 text-[11px] font-bold text-[#0C2D63]/60"><Blocks className="size-3" aria-hidden />{t("components")}</div>
+                  <div className="mb-2 flex items-center gap-1.5 text-[11px] font-bold text-foreground/60"><Blocks className="size-3" aria-hidden />{t("components")}</div>
                   <div className="grid grid-cols-2 gap-2">
                     {globals.components.filter((c) => !needle || c.name.includes(needle)).map((c) => (
-                      <button key={c.id} type="button" className="rounded-xl border border-[#e6eef6] bg-white px-2 py-3 text-xs hover:border-[#E16BA6]" onClick={() => insertComponent(c.id)}>{c.name}</button>
+                      <button key={c.id} type="button" className="rounded-xl border border-border bg-card px-2 py-3 text-xs hover:border-primary" onClick={() => insertComponent(c.id)}>{c.name}</button>
                     ))}
                   </div>
                 </div>
@@ -1189,12 +1189,12 @@ export function BuilderEditor({ mode }: { mode: Mode }) {
                 const CatIcon = catalogIcon(category.icon)
                 const open = Boolean(needle) || !collapsed[category.id]
                 return (
-                  <section key={category.id} className="mb-2 rounded-xl border border-[#e6eef6] bg-white">
-                    <button type="button" aria-expanded={open} className="flex w-full items-center gap-2 px-3 py-2.5 text-xs font-bold text-[#0C2D63]/80" onClick={() => setCollapsed((c) => ({ ...c, [category.id]: open }))}>
-                      <CatIcon className="size-4 text-[#E16BA6]" aria-hidden />
+                  <section key={category.id} className="mb-2 rounded-xl border border-border bg-card">
+                    <button type="button" aria-expanded={open} className="flex w-full items-center gap-2 px-3 py-2.5 text-xs font-bold text-foreground/80" onClick={() => setCollapsed((c) => ({ ...c, [category.id]: open }))}>
+                      <CatIcon className="size-4 text-primary" aria-hidden />
                       {category.label}
-                      <span className="rounded-full bg-[#f2f5f9] px-1.5 text-[10px] font-semibold text-[#0C2D63]/50">{items.length.toLocaleString("fa-IR")}</span>
-                      <ChevronDown className={`ms-auto size-4 text-[#0C2D63]/40 transition-transform ${open ? "" : "rotate-90"}`} aria-hidden />
+                      <span className="rounded-full bg-muted px-1.5 text-[10px] font-semibold text-foreground/50">{items.length.toLocaleString("fa-IR")}</span>
+                      <ChevronDown className={`ms-auto size-4 text-foreground/40 transition-transform ${open ? "" : "rotate-90"}`} aria-hidden />
                     </button>
                     {open ? (
                       <div className="grid grid-cols-3 gap-1.5 px-2 pb-2">
@@ -1209,9 +1209,9 @@ export function BuilderEditor({ mode }: { mode: Mode }) {
                               event.dataTransfer.effectAllowed = "copy"
                             }}
                             onClick={() => { insertFromPalette(widget.type); setDrawerOpen(false) }}
-                            className="group flex min-h-[76px] flex-col items-center justify-center gap-1.5 rounded-lg border border-transparent bg-[#f7f9fc] px-1 py-2 text-center text-[11px] font-medium leading-4 hover:border-[#E16BA6] hover:bg-white"
+                            className="group flex min-h-[76px] flex-col items-center justify-center gap-1.5 rounded-lg border border-transparent bg-muted px-1 py-2 text-center text-[11px] font-medium leading-4 hover:border-primary hover:bg-card"
                           >
-                            <WidgetGlyph type={widget.type} className="size-5 text-[#0C2D63]/70 group-hover:text-[#E16BA6]" />
+                            <WidgetGlyph type={widget.type} className="size-5 text-foreground/70 group-hover:text-primary" />
                             <span className="line-clamp-2">{widget.label}</span>
                           </button>
                         ))}
@@ -1231,11 +1231,11 @@ export function BuilderEditor({ mode }: { mode: Mode }) {
             </>
           )}
         </aside>
-        <main className="min-w-0 flex-1 overflow-auto overflow-x-hidden bg-[#d7e0ea] p-2 pb-20 sm:p-6 lg:pb-6" onClick={() => setSelectedId(null)} onClickCapture={(event) => { if ((event.target as HTMLElement | null)?.closest?.("a[href]")) event.preventDefault() }} onSubmitCapture={(event) => event.preventDefault()}>
-          <div className="mx-auto min-h-full overflow-hidden rounded-2xl bg-[#f5f8fb] shadow-xl" style={{ width: DEVICE_WIDTH[device], maxWidth: "100%", zoom: zoom / 100 }}>
+        <main className="wb-editor-stage min-w-0 flex-1 overflow-auto overflow-x-hidden bg-muted/60 p-2 pb-20 sm:p-6 lg:pb-6" onClick={() => setSelectedId(null)} onClickCapture={(event) => { if ((event.target as HTMLElement | null)?.closest?.("a[href]")) event.preventDefault() }} onSubmitCapture={(event) => event.preventDefault()}>
+          <div className="wb-theme-boundary mx-auto min-h-full overflow-hidden rounded-2xl bg-background text-foreground shadow-xl" style={{ width: DEVICE_WIDTH[device], maxWidth: "100%", zoom: zoom / 100 }}>
             {doc.sections.length === 0 ? (
               <div className="grid min-h-80 place-items-center gap-2 text-sm">
-                <Blocks className="size-5 text-[#0C2D63]/30" aria-hidden />
+                <Blocks className="size-5 text-foreground/30" aria-hidden />
                 {t("empty")}
               </div>
             ) : (
@@ -1245,7 +1245,7 @@ export function BuilderEditor({ mode }: { mode: Mode }) {
             )}
           </div>
         </main>
-        <button type="button" className="fixed bottom-4 start-4 z-20 inline-flex items-center gap-2 rounded-full bg-[#0C2D63] px-4 py-3 text-sm font-semibold text-white shadow-xl lg:hidden" onClick={() => setDrawerOpen(true)}>
+        <button type="button" className="fixed bottom-4 start-4 z-20 inline-flex items-center gap-2 rounded-full bg-primary px-4 py-3 text-sm font-semibold text-primary-foreground shadow-xl lg:hidden" onClick={() => setDrawerOpen(true)}>
           {selection ? <Settings2 className="size-4" aria-hidden /> : <PanelRightOpen className="size-4" aria-hidden />}
           {selection ? t("content") : t("widgets")}
         </button>
@@ -1257,7 +1257,7 @@ export function BuilderEditor({ mode }: { mode: Mode }) {
 
 function MenuItem({ icon: Icon, label, onClick, className = "" }: { icon: React.ComponentType<{ className?: string }>; label: string; onClick: () => void; className?: string }) {
   return (
-    <button type="button" data-close role="menuitem" onClick={onClick} className={`flex w-full items-center gap-2 rounded-lg px-2 py-2 text-start hover:bg-[#f2f5f9] ${className}`}>
+    <button type="button" data-close role="menuitem" onClick={onClick} className={`flex w-full items-center gap-2 rounded-lg px-2 py-2 text-start hover:bg-muted ${className}`}>
       <Icon className="size-4 shrink-0" aria-hidden />{label}
     </button>
   )
@@ -1265,7 +1265,7 @@ function MenuItem({ icon: Icon, label, onClick, className = "" }: { icon: React.
 
 function IconButton({ children, label, onClick, active }: { children: React.ReactNode; label: string; onClick: () => void; active?: boolean }) {
   return (
-    <button type="button" aria-label={label} title={label} onClick={onClick} className={`grid size-8 place-items-center rounded-full ${active ? "bg-white text-[#0C2D63]" : "text-white hover:bg-white/10"}`}>
+    <button type="button" aria-label={label} title={label} onClick={onClick} className={`grid size-8 place-items-center rounded-full ${active ? "bg-primary text-primary-foreground" : "text-foreground hover:bg-muted"}`}>
       {children}
     </button>
   )
@@ -1273,7 +1273,7 @@ function IconButton({ children, label, onClick, active }: { children: React.Reac
 
 function FieldMark({ name }: { name: string }) {
   const Icon = FIELD_ICONS[name] ?? Settings2
-  return <Icon className="size-3.5 shrink-0 text-[#0C2D63]/45" aria-hidden />
+  return <Icon className="size-3.5 shrink-0 text-foreground/45" aria-hidden />
 }
 
 function GroupStylePicker({ widget, onSwitch }: { widget: WidgetNode; onSwitch: (type: string) => void }) {
@@ -1281,8 +1281,8 @@ function GroupStylePicker({ widget, onSwitch }: { widget: WidgetNode; onSwitch: 
   if (!group) return null
   return (
     <label className="mb-3 grid gap-1 text-xs">
-      <span className="font-bold text-[#0C2D63]/80">سبک نمایش {group.label}</span>
-      <select className="rounded-lg border border-[#e6eef6] bg-white px-2 py-1.5" value={widget.type} onChange={(e) => onSwitch(e.target.value)}>
+      <span className="font-bold text-foreground/80">سبک نمایش {group.label}</span>
+      <select className="rounded-lg border border-border bg-card px-2 py-1.5" value={widget.type} onChange={(e) => onSwitch(e.target.value)}>
         {group.members.filter((m) => widgetDef(m.type)).map((m) => <option key={m.type} value={m.type}>{m.label}</option>)}
       </select>
     </label>
@@ -1394,7 +1394,7 @@ function SeoPanel({ seo, onChange, title, slug, pageId, onClose }: { seo: PageSe
   const ctx = { title, slug }
   const len = (v?: string) => (v ?? "").length
   return (
-    <div className="absolute end-2 top-full z-50 mt-2 grid w-[min(24rem,calc(100vw-1rem))] gap-2 rounded-xl bg-white p-4 text-xs text-[#0C2D63] shadow-2xl" dir="rtl">
+    <div className="absolute end-2 top-full z-50 mt-2 grid w-[min(24rem,calc(100vw-1rem))] gap-2 rounded-xl bg-card p-4 text-xs text-foreground shadow-2xl" dir="rtl">
       <div className="flex items-center justify-between font-bold">سئوی صفحه<button type="button" onClick={onClose} aria-label="بستن">×</button></div>
       <label className="grid gap-1">
         <span className="flex items-center justify-between">عنوان سئو ({len(seo.title)}/۶۰)<AiAssist compact value={seo.title || title} onApply={(v) => set("title", v)} surface="builder.page" field="seo_title" context={ctx} targetId={pageId} /></span>
