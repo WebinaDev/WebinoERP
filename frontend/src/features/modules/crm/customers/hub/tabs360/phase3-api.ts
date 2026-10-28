@@ -34,8 +34,10 @@ export type OrderDetail = OrderRow & { items: OrderItem[] };
 export type OrdersMeta = PageMeta & {
   kpis?: { count: number; paid_count: number; total_amount: Money; basalam_count: number; marketplace_count: number };
   can: { link_basalam: boolean };
+  /** Distinct statuses among this customer's orders — the status filter is built from these. */
+  statuses?: string[];
 };
-export type BasalamStore = { connection_id: number; site_url: string; vendor_id: unknown; status: string; connected_at: ISO; last_seen_at: ISO; linked: boolean };
+export type BasalamStore = { connection_id: number; site_url: string; vendor_id: number | null; status: string; connected_at: ISO; last_seen_at: ISO; linked: boolean };
 export type BasalamStoresRes = { data: BasalamStore[]; meta: { candidates: BasalamStore[]; can: { link: boolean } } };
 
 export const getOrder = async (id: string, ref: string) =>
@@ -63,7 +65,7 @@ export type LedgerRow = { date: ISO; kind: 'invoice' | 'payment' | 'receipt' | '
 export type LedgerMeta = PageMeta & { opening_balance: Money; closing_balance: Money };
 export type InvoiceRow = {
   id: number; number: string; status: string; issue_date: ISO; due_date: ISO; total: Money; paid_amount: Money; remaining: Money;
-  overdue_days: number | null; source: 'sales'; project_id: number | null;
+  overdue_days: number; source: 'sales'; project_id: number | null;
 };
 export type InvoicesMeta = PageMeta & { kpis?: { open: number; overdue: number; paid: number } };
 
@@ -81,3 +83,15 @@ export const SMS_BODY_MAX = 900;
 
 export const sendSms = async (id: string, b: SmsSendBody) =>
   ((await apiClient.post(`${hubBase(id)}/sms`, b)).data as { data: SmsRow }).data;
+
+// ---- Write actions (gated by /hub/accounting meta.can) ----
+export const PAYMENT_METHODS = ['cash', 'card_to_card', 'bank_transfer', 'cheque', 'pos', 'other'] as const;
+export type PaymentMethod = (typeof PAYMENT_METHODS)[number];
+export type RecordPaymentBody = { amount: number; method: PaymentMethod; reference?: string; paid_at?: string; invoice_id?: number; note?: string };
+export type InvoiceItemBody = { title: string; price: number; discount?: number; desc?: string };
+export type CreateInvoiceBody = { items: InvoiceItemBody[]; issue_date?: string; project_id?: number; notes?: string; status?: 'draft' | 'unpaid' };
+
+export const recordPayment = async (id: string, b: RecordPaymentBody) =>
+  ((await apiClient.post(`${hubBase(id)}/actions/payment`, b)).data as { data: { id: string; invoice_status: string | null } }).data;
+export const createInvoice = async (id: string, b: CreateInvoiceBody) =>
+  ((await apiClient.post(`${hubBase(id)}/actions/invoice`, b)).data as { data: Record<string, unknown> }).data;

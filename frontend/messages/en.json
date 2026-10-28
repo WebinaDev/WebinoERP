@@ -3701,7 +3701,35 @@
             "logged": "Logged"
           },
           "provider": "Provider",
-          "createdBy": "Sent by"
+          "createdBy": "Sent by",
+          "orderStatus": "Order status",
+          "relinkTitle": "Move store to this customer?",
+          "relinkConfirm": "Move store",
+          "relinkHint": "Moving it attaches its unlinked orders here; orders already linked to the other customer stay there.",
+          "relinked": "Store moved to this customer.",
+          "recordPayment": "Record payment",
+          "createInvoice": "Create invoice",
+          "method": "Method",
+          "reference": "Reference",
+          "invoice": "Invoice",
+          "note": "Note",
+          "discount": "Discount",
+          "irrHint": "Amount in IRR (rial)",
+          "amountMin": "Amount must be at least 1.",
+          "paymentRecorded": "Payment recorded.",
+          "invoiceCreated": "Invoice created.",
+          "pm": {
+            "cash": "Cash",
+            "card_to_card": "Card to card",
+            "bank_transfer": "Bank transfer",
+            "cheque": "Cheque",
+            "pos": "POS",
+            "other": "Other"
+          },
+          "invSt": {
+            "unpaid": "Issued (unpaid)",
+            "draft": "Draft"
+          }
         }
       }
     }

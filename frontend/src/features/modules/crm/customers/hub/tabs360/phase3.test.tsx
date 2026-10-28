@@ -67,6 +67,63 @@ describe('Customer 360 phase 3', () => {
     expect(screen.queryByText('new')).not.toBeInTheDocument();
   });
 
+  it('orders status filter is built from meta.statuses', async () => {
+    api.get.mockImplementation((url: string) => Promise.resolve({ data: url.endsWith('/basalam/stores')
+      ? { data: [], meta: { candidates: [], can: { link: false } } }
+      : { data: [order], meta: { ...page, can: { link_basalam: false }, statuses: ['paid', 'shipped'] } } }));
+    wrap(<OrdersTab />);
+    const sel = await screen.findByLabelText(p3.orderStatus);
+    await screen.findByRole('option', { name: 'shipped' });
+    fireEvent.change(sel, { target: { value: 'shipped' } });
+    await waitFor(() => expect(api.get).toHaveBeenCalledWith('/v1/crm/customers/7/hub/orders', { params: expect.objectContaining({ status: 'shipped' }) }));
+  });
+
+  it('basalam relink: 409 asks to confirm, then resends with force', async () => {
+    const cand = { connection_id: 4, site_url: 'https://shop.ir', vendor_id: null, status: 'active', connected_at: null, last_seen_at: null, linked: false };
+    api.get.mockImplementation((url: string) => Promise.resolve({ data: url.endsWith('/basalam/stores')
+      ? { data: [], meta: { candidates: [cand], can: { link: true } } }
+      : { data: [], meta: { ...page, total: 0, can: { link_basalam: true }, statuses: [] } } }));
+    api.post.mockRejectedValueOnce({ response: { status: 409, data: { message: 'x' } } }).mockResolvedValue({ data: { data: cand } });
+    wrap(<OrdersTab />);
+    fireEvent.click(await screen.findByRole('button', { name: p3.link }));
+    fireEvent.click(await screen.findByRole('button', { name: p3.relinkConfirm }));
+    await waitFor(() => expect(api.post).toHaveBeenLastCalledWith('/v1/crm/customers/7/hub/basalam/stores', { connection_id: 4, force: true }));
+  });
+
+  const accSum = (can: object) => (url: string) => Promise.resolve({ data: url.endsWith('/hub/accounting')
+    ? { data: { currency: 'IRR', balance: 0, outstanding: 0, overdue: 0, overdue_count: 0, total_invoiced: 0, total_paid: 0, wallet_credit: null, credit_limit: null, aging: null, last_payment: null, acc_person: null }, meta: { can } }
+    : { data: [], meta: { ...page, total: 0 } } });
+
+  it('accounting actions hidden without meta.can', async () => {
+    api.get.mockImplementation(accSum({ record_payment: false, create_invoice: false }));
+    wrap(<AccountingTab />);
+    await screen.findByText(p3.outstanding);
+    expect(screen.queryByRole('button', { name: p3.recordPayment })).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: p3.createInvoice })).not.toBeInTheDocument();
+  });
+
+  it('record payment posts to actions/payment', async () => {
+    api.get.mockImplementation(accSum({ record_payment: true, create_invoice: false }));
+    api.post.mockResolvedValue({ data: { data: { id: 'mp-1', invoice_status: null } } });
+    wrap(<AccountingTab />);
+    fireEvent.click(await screen.findByRole('button', { name: p3.recordPayment }));
+    expect(screen.queryByRole('button', { name: p3.createInvoice })).not.toBeInTheDocument();
+    fireEvent.change(screen.getByLabelText(new RegExp(p3.amount)), { target: { value: '50000' } });
+    fireEvent.click(screen.getAllByRole('button', { name: p3.recordPayment }).at(-1)!);
+    await waitFor(() => expect(api.post).toHaveBeenCalledWith('/v1/crm/customers/7/hub/actions/payment', { amount: 50000, method: 'card_to_card' }));
+  });
+
+  it('create invoice posts one item to actions/invoice', async () => {
+    api.get.mockImplementation(accSum({ record_payment: false, create_invoice: true }));
+    api.post.mockResolvedValue({ data: { data: { id: 1 } } });
+    wrap(<AccountingTab />);
+    fireEvent.click(await screen.findByRole('button', { name: p3.createInvoice }));
+    fireEvent.change(screen.getByLabelText(new RegExp(p3.itemTitle)), { target: { value: 'Hosting' } });
+    fireEvent.change(screen.getByLabelText(new RegExp(p3.unitPrice)), { target: { value: '1000' } });
+    fireEvent.click(screen.getAllByRole('button', { name: p3.createInvoice }).at(-1)!);
+    await waitFor(() => expect(api.post).toHaveBeenCalledWith('/v1/crm/customers/7/hub/actions/invoice', { items: [{ title: 'Hosting', price: 1000 }], status: 'unpaid' }));
+  });
+
   it('hasMoney / anyMoney', () => {
     expect(hasMoney(null)).toBe(false);
     expect(hasMoney(0)).toBe(true);

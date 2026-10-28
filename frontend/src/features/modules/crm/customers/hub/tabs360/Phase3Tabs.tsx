@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useState } from 'react';
 import { useTranslations } from 'next-intl';
-import { Link2, MessageSquarePlus, Search, Unlink } from 'lucide-react';
+import { FilePlus2, Link2, MessageSquarePlus, Search, Unlink, Wallet } from 'lucide-react';
 import apiClient from '@/lib/api-client';
 import { getApiErrorMessage } from '@/lib/api-helpers';
 import { Badge } from '@/components/ui/badge';
@@ -12,10 +12,10 @@ import { LocaleDatePicker } from '@/components/ui/locale-date-picker';
 import { hubBase, useHubList, type Row } from '../hub-api';
 import { useHub } from '../HubContext';
 import { DataTable, Empty, HubCard, KV, Loading, Pager, StatusBadge, useFmt, type Col } from '../ui';
-import { DetailSheet, FilterBar, Kpi, TabForm, selectCls, type TField, type TValues } from './shared';
+import { DetailSheet, FilterBar, Kpi, TabForm, body, selectCls, type TField, type TValues } from './shared';
 import {
-  P3_AREAS, SMS_BODY_MAX, anyMoney, getBasalamStores, getOrder, hasMoney, linkBasalamStore, sendSms, unlinkBasalamStore,
-  type AccountingSummaryRes, type BasalamStoresRes, type InvoicesMeta, type LedgerMeta, type OrderDetail, type OrdersMeta, type SmsMeta, type SmsSendBody,
+  P3_AREAS, PAYMENT_METHODS, SMS_BODY_MAX, anyMoney, createInvoice, getBasalamStores, recordPayment, getOrder, hasMoney, linkBasalamStore, sendSms, unlinkBasalamStore,
+  type AccountingSummaryRes, type BasalamStoresRes, type InvoicesMeta, type LedgerMeta, type OrderDetail, type OrdersMeta, type PaymentMethod, type SmsMeta, type SmsSendBody,
 } from './phase3-api';
 
 const Wrap = ({ children }: { children: React.ReactNode }) => <div dir="auto" className="space-y-4">{children}</div>;
@@ -33,7 +33,7 @@ export function OrdersTab() {
   const [paid, setPaid] = useState('');
   const [status, setStatus] = useState('');
   const [q, setQ] = useState('');
-  const list = useHubList(id, P3_AREAS.orders.path, { source, paid: paid || undefined, status: status.trim() || undefined, q: q.trim() || undefined }, true, version);
+  const list = useHubList(id, P3_AREAS.orders.path, { source, paid: paid || undefined, status: status || undefined, q: q.trim() || undefined }, true, version);
   const meta = list.meta as OrdersMeta | null;
   const k = meta?.kpis;
   const [detail, setDetail] = useState<OrderDetail | null>(null);
@@ -69,7 +69,10 @@ export function OrdersTab() {
           <select aria-label={p('paid')} className={`${selectCls} w-32`} value={paid} onChange={(e) => setPaid(e.target.value)}>
             <option value="">{p('src.all')}</option><option value="1">{p('yes')}</option><option value="0">{p('no')}</option>
           </select>
-          <Input className="w-32" placeholder={p('status')} value={status} onChange={(e) => setStatus(e.target.value)} />
+          <select aria-label={p('orderStatus')} className={`${selectCls} w-40`} value={status} onChange={(e) => setStatus(e.target.value)}>
+            <option value="">{p('src.all')}</option>
+            {[...new Set([...(meta?.statuses ?? []), ...(status ? [status] : [])])].map((s) => <option key={s} value={s}>{s}</option>)}
+          </select>
         </FilterBar>
         {list.loading && !list.rows.length ? <Loading /> : <><DataTable cols={cols} rows={list.rows} /><Pager meta={list.meta} onPage={list.setPage} /></>}
       </HubCard>
@@ -106,10 +109,12 @@ function BasalamStores({ canLink }: { canLink: boolean }) {
   const load = useCallback(async () => { try { setRes(await getBasalamStores(id)); } catch { setRes(null); } }, [id]);
   useEffect(() => { void load(); }, [load, version]);
   const can = canLink && !!res?.meta.can.link;
-  const act = async (fn: () => Promise<unknown>) => {
+  const [force, setForce] = useState<number | null>(null);
+  const act = async (fn: () => Promise<unknown>, connectionId?: number) => {
     try { await fn(); await load(); refresh(); } catch (e) {
       const status = (e as { response?: { status?: number } })?.response?.status;
-      setNotice(status === 409 ? p('linkedElsewhere') : getApiErrorMessage(e));
+      if (status === 409 && connectionId !== undefined) setForce(connectionId);
+      else setNotice(getApiErrorMessage(e));
     }
   };
   if (!res) return null;
@@ -124,9 +129,13 @@ function BasalamStores({ canLink }: { canLink: boolean }) {
           { key: 'linked', label: p('linked'), render: (r) => (r.linked ? p('yes') : p('candidate')) },
           ...(can ? [{ key: 'act', label: '', render: (r: Row) => (r.linked
             ? <Button size="sm" variant="ghost" onClick={() => void act(() => unlinkBasalamStore(id, r.connection_id))}><Unlink className="me-1 h-4 w-4" />{p('unlink')}</Button>
-            : <Button size="sm" variant="outline" onClick={() => void act(() => linkBasalamStore(id, r.connection_id))}><Link2 className="me-1 h-4 w-4" />{p('link')}</Button>) }] : []),
+            : <Button size="sm" variant="outline" onClick={() => void act(() => linkBasalamStore(id, r.connection_id), r.connection_id)}><Link2 className="me-1 h-4 w-4" />{p('link')}</Button>) }] : []),
         ]} />
       )}
+      <TabForm open={force !== null} onOpenChange={(v) => !v && setForce(null)} title={p('relinkTitle')} fields={[]} submitLabel={p('relinkConfirm')}
+        onSubmit={async () => { if (force === null) return; await linkBasalamStore(id, force, true); await load(); refresh(); setNotice(p('relinked')); }}>
+        {() => <p className="text-sm" dir="auto">{p('linkedElsewhere')} {p('relinkHint')}</p>}
+      </TabForm>
     </HubCard>
   );
 }
@@ -137,29 +146,78 @@ export function AccountingTab() {
   const p = useTranslations('crm.hub.c360.p3');
   const f = useFmt();
   const { id, version } = useHub();
+  const { refresh, setNotice } = useHub();
   const [sum, setSum] = useState<AccountingSummaryRes['data'] | null>(null);
+  const [can, setCan] = useState<AccountingSummaryRes['meta']['can'] | null>(null);
+  const [dlg, setDlg] = useState<'payment' | 'invoice' | null>(null);
+  const [tick, setTick] = useState(0);
   const [loading, setLoading] = useState(true);
   useEffect(() => {
     let live = true;
     setLoading(true);
     apiClient.get(`${hubBase(id)}/${P3_AREAS.accounting.path}`)
-      .then((r) => live && setSum((r.data as AccountingSummaryRes).data))
-      .catch(() => live && setSum(null))
+      .then((r) => { if (live) { setSum((r.data as AccountingSummaryRes).data); setCan((r.data as AccountingSummaryRes).meta?.can ?? null); } })
+      .catch(() => { if (live) { setSum(null); setCan(null); } })
       .finally(() => live && setLoading(false));
     return () => { live = false; };
-  }, [id, version]);
+  }, [id, version, tick]);
   const [from, setFrom] = useState<string | null>(null);
   const [to, setTo] = useState<string | null>(null);
   const [invStatus, setInvStatus] = useState('open');
-  const ledger = useHubList(id, 'accounting/ledger', { from: from?.slice(0, 10), to: to?.slice(0, 10) }, true, version);
+  const ledger = useHubList(id, 'accounting/ledger', { from: from?.slice(0, 10), to: to?.slice(0, 10) }, true, version + tick);
   const lm = ledger.meta as LedgerMeta | null;
-  const inv = useHubList(id, 'accounting/invoices', { status: invStatus }, true, version);
+  const inv = useHubList(id, 'accounting/invoices', { status: invStatus }, true, version + tick);
   const im = inv.meta as InvoicesMeta | null;
-  const pay = useHubList(id, 'accounting/payments', {}, true, version);
+  const pay = useHubList(id, 'accounting/payments', {}, true, version + tick);
+  const after = (msg: string) => { setNotice(msg); setTick((n) => n + 1); refresh(); };
+  const openInvoices = inv.rows.filter((r) => r.status !== 'paid');
+  const payFields: TField[] = [
+    { name: 'amount', label: p('amount'), type: 'number', required: true, hint: p('irrHint') },
+    { name: 'method', label: p('method'), type: 'select', required: true, options: PAYMENT_METHODS.map((x) => [x, p(`pm.${x}` as never)]) },
+    { name: 'paid_at', label: p('paidAt'), type: 'date' },
+    { name: 'reference', label: p('reference') },
+    { name: 'invoice_id', label: p('invoice'), type: 'select', options: openInvoices.map((r) => [String(r.id), String(r.number)]) },
+    { name: 'note', label: p('note'), type: 'textarea' },
+  ];
+  const submitPayment = async (v: TValues) => {
+    const b = body(v, ['amount', 'invoice_id']) as Record<string, unknown>;
+    if (!(Number(b.amount) >= 1)) throw { response: { data: { message: p('amountMin'), errors: { amount: [p('amountMin')] } } } };
+    if (typeof b.paid_at === 'string') b.paid_at = b.paid_at.slice(0, 10);
+    await recordPayment(id, { ...(b as object), method: b.method as PaymentMethod } as never);
+    after(p('paymentRecorded'));
+  };
+  const invFields: TField[] = [
+    { name: 'title', label: p('itemTitle'), required: true, full: true },
+    { name: 'price', label: p('unitPrice'), type: 'number', required: true, hint: p('irrHint') },
+    { name: 'discount', label: p('discount'), type: 'number' },
+    { name: 'desc', label: p('description'), full: true },
+    { name: 'issue_date', label: p('issueDate'), type: 'date' },
+    { name: 'status', label: p('status'), type: 'select', required: true, options: [['unpaid', p('invSt.unpaid')], ['draft', p('invSt.draft')]] },
+    { name: 'notes', label: p('note'), type: 'textarea' },
+  ];
+  const submitInvoice = async (v: TValues) => {
+    const price = Number(v.price);
+    if (!(price >= 0) || Number.isNaN(price)) throw { response: { data: { message: p('amountMin'), errors: { price: [p('amountMin')] } } } };
+    const item: { title: string; price: number; discount?: number; desc?: string } = { title: String(v.title).trim(), price };
+    if (v.discount) item.discount = Number(v.discount);
+    if (v.desc) item.desc = String(v.desc);
+    await createInvoice(id, {
+      items: [item], status: (v.status as 'draft' | 'unpaid') || 'unpaid',
+      ...(v.issue_date ? { issue_date: String(v.issue_date).slice(0, 10) } : {}),
+      ...(v.notes ? { notes: String(v.notes) } : {}),
+    });
+    after(p('invoiceCreated'));
+  };
+  const actions = can?.record_payment || can?.create_invoice ? (
+    <div className="flex gap-2">
+      {can?.create_invoice ? <Button size="sm" variant="outline" onClick={() => setDlg('invoice')}><FilePlus2 className="me-1 h-4 w-4" />{p('createInvoice')}</Button> : null}
+      {can?.record_payment ? <Button size="sm" onClick={() => setDlg('payment')}><Wallet className="me-1 h-4 w-4" />{p('recordPayment')}</Button> : null}
+    </div>
+  ) : null;
   const m = (label: string, v: number | null | undefined, danger?: boolean) => (hasMoney(v) ? <Kpi key={label} label={label} value={f.money(v)} tone={danger ? 'danger' : undefined} /> : null);
   return (
     <Wrap>
-      <HubCard title={t('accounting')}>
+      <HubCard title={t('accounting')} actions={actions}>
         {loading && !sum ? <Loading /> : !sum ? <Empty /> : (
           <>
             <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
@@ -239,6 +297,8 @@ export function AccountingTab() {
           { key: 'status', label: p('status'), render: (r) => <StatusBadge value={r.paid ? 'paid' : r.status} label={r.status} /> },
         ], pay.rows)} /><Pager meta={pay.meta} onPage={pay.setPage} /></>}
       </HubCard>
+      {can?.record_payment ? <TabForm open={dlg === 'payment'} onOpenChange={(v) => !v && setDlg(null)} title={p('recordPayment')} fields={payFields} initial={{ method: 'card_to_card' }} onSubmit={submitPayment} submitLabel={p('recordPayment')} /> : null}
+      {can?.create_invoice ? <TabForm open={dlg === 'invoice'} onOpenChange={(v) => !v && setDlg(null)} title={p('createInvoice')} fields={invFields} initial={{ status: 'unpaid' }} onSubmit={submitInvoice} submitLabel={p('createInvoice')} /> : null}
     </Wrap>
   );
 }
