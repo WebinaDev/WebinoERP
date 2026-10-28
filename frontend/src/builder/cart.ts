@@ -38,6 +38,13 @@ export function cartSnapshot(): CartLine[] {
   return lines()
 }
 
+const EMPTY_CART: CartLine[] = []
+
+/** Server snapshot for useSyncExternalStore: a constant reference (an inline `() => []` loops, React #185). */
+export function cartServerSnapshot(): CartLine[] {
+  return EMPTY_CART
+}
+
 export function cartCount(): number {
   return lines().reduce((sum, line) => sum + line.qty, 0)
 }
