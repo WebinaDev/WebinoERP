@@ -29,10 +29,28 @@ final class PublicResponseCache
         }
     }
 
+    /**
+     * High-churn models written by ordinary traffic (CRM/chat/logs/jobs/payments/tokens...). They never change
+     * the public marketing/builder output; bumping on them meant the public cache was emptied on almost every
+     * request (Dashboard parity, see WebinoDashboard PublicResponseCache::isVolatile).
+     */
+    private const VOLATILE = '/(Log|Logs|Event|Events|Hit|Hits|Visit|PageView|Session|Cart|CartItem|Analytics|Metric|Metrics|Token|Otp|Attempt|Notification|Job|Order|OrderItem|Payment|Transaction|Audit|AuditLog|Activity|Snapshot|Stat|Stats|Alert|Subscriber|Lead|Message|Webhook|Sync|Usage|Heartbeat|Queue|Import|Export|Report|Intent|Entry|Ledger|Applicant)$/';
+
+    public static function isVolatile(Model $model): bool
+    {
+        if (preg_match(self::VOLATILE, class_basename($model))) {
+            return true;
+        }
+        // Only timestamp churn (touch()) is not a content change.
+        $changed = array_diff(array_keys($model->getChanges()), [$model->getUpdatedAtColumn() ?? 'updated_at', 'last_seen_at', 'last_used_at', 'views', 'view_count', 'hits']);
+
+        return $model->wasRecentlyCreated === false && $model->exists && $model->getChanges() !== [] && $changed === [];
+    }
+
     public static function register(): void
     {
         $handler = static function (string $event, array $payload): void {
-            if (($payload[0] ?? null) instanceof Model) {
+            if (($payload[0] ?? null) instanceof Model && ! self::isVolatile($payload[0])) {
                 try {
                     self::bump(1);
                 } catch (\Throwable) {
