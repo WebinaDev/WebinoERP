@@ -2,6 +2,7 @@
 
 import MarketingPopupLeadsPage from "../../modules/marketing/admin/popup-leads-page-client"
 import MarketingPopupsPage from "../../modules/marketing/admin/popups-page-client"
+import MarketingNavMenusPage from "../../modules/marketing/admin/menus-page-client"
 import type { ReactNode } from 'react';
 import { normalizeDashboardPath } from '@/lib/route-resolver';
 import { DashboardHomePage } from '@/components/dashboard/pages/DashboardHomePage';
@@ -448,6 +449,7 @@ const EXACT: Record<string, ReactNode> = {
   'marketing/academy-lessons': <MarketingAcademyLessonsPage />,
   'marketing/faq': <MarketingFaqPage />,
   'marketing/popups': <MarketingPopupsPage />,
+  'marketing/nav-menus': <MarketingNavMenusPage route={{} as never} />,
   'marketing/popup-leads': <MarketingPopupLeadsPage />,
   'marketing/services': <MarketingServicesPage />,
   'marketing/solutions': <MarketingSolutionsPage />,

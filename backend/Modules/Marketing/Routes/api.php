@@ -104,3 +104,11 @@ Route::get('/popups/{popup}', [\Modules\Marketing\Http\Controllers\MarketingPopu
 Route::put('/popups/{popup}', [\Modules\Marketing\Http\Controllers\MarketingPopupController::class, 'update'])->whereNumber('popup');
 Route::delete('/popups/{popup}', [\Modules\Marketing\Http\Controllers\MarketingPopupController::class, 'destroy'])->whereNumber('popup');
 Route::get('/popups/{popup}/leads', [\Modules\Marketing\Http\Controllers\MarketingPopupController::class, 'leads'])->whereNumber('popup');
+
+Route::get('/nav-menus', [\Modules\Marketing\Http\Controllers\MarketingNavMenuController::class, 'index']);
+Route::post('/nav-menus', [\Modules\Marketing\Http\Controllers\MarketingNavMenuController::class, 'store']);
+Route::get('/nav-menus/sources', [\Modules\Marketing\Http\Controllers\MarketingNavMenuController::class, 'sources']);
+Route::get('/nav-menus/from-categories', [\Modules\Marketing\Http\Controllers\MarketingNavMenuController::class, 'fromCategories']);
+Route::get('/nav-menus/{menu}', [\Modules\Marketing\Http\Controllers\MarketingNavMenuController::class, 'show'])->whereNumber('menu');
+Route::put('/nav-menus/{menu}', [\Modules\Marketing\Http\Controllers\MarketingNavMenuController::class, 'update'])->whereNumber('menu');
+Route::delete('/nav-menus/{menu}', [\Modules\Marketing\Http\Controllers\MarketingNavMenuController::class, 'destroy'])->whereNumber('menu');

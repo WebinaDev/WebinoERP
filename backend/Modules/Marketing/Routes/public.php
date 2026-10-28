@@ -67,6 +67,7 @@ Route::post('/forms/{slug}/upload', [PublicFormsController::class, 'upload'])
 
 Route::middleware('throttle:marketing-public')->group(function () {
     Route::get('/popups', [\Modules\Marketing\Http\Controllers\MarketingPopupController::class, 'publicIndex']);
+    Route::get('/nav-menus', [\Modules\Marketing\Http\Controllers\MarketingNavMenuController::class, 'publicIndex']);
 });
 Route::post('/popups/{popup}/event', [\Modules\Marketing\Http\Controllers\MarketingPopupController::class, 'event'])
     ->whereNumber('popup')->middleware('throttle:30,1');
