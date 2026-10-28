@@ -29,9 +29,17 @@ class LicenseRenewalTest extends TestCase
     use RefreshDatabase;
     use SeedsRbac;
 
+    protected function tearDown(): void
+    {
+        Carbon::setTestNow();
+        parent::tearDown();
+    }
+
     protected function setUp(): void
     {
         parent::setUp();
+        // Freeze the clock so month-length / midnight edges can't make expiry assertions flaky.
+        Carbon::setTestNow(Carbon::parse('2026-03-10 12:00:00'));
         $this->seedRbac();
         SystemModule::query()->firstOrCreate(['slug' => 'integrations'], ['name' => 'Integrations', 'is_active' => true]);
         SystemModule::query()->firstOrCreate(['slug' => 'platform'], ['name' => 'Platform', 'is_active' => true]);
@@ -175,7 +183,6 @@ class LicenseRenewalTest extends TestCase
 
         Carbon::setTestNow(now()->addDays(8));
         $this->get($url)->assertForbidden();
-        Carbon::setTestNow();
     }
 
     public function test_successful_callback_extends_license_creates_paid_invoice_and_reactivates_site(): void
@@ -193,7 +200,7 @@ class LicenseRenewalTest extends TestCase
 
         $license->refresh();
         $this->assertSame('active', $license->status);
-        $this->assertTrue(Carbon::parse($license->expires_at)->isSameDay(now()->addMonths(12)));
+        $this->assertTrue(Carbon::parse($license->expires_at)->isSameDay(now()->addMonthsNoOverflow(12)));
         $renewal = CoreLicenseRenewal::query()->sole();
         $this->assertSame('paid', $renewal->status);
         $invoice = SalesInvoice::query()->findOrFail($renewal->sales_invoice_id);
@@ -207,7 +214,7 @@ class LicenseRenewalTest extends TestCase
         // Idempotent: replaying the callback does nothing more.
         $this->gatewayCallback($redirect);
         $this->assertSame(1, SalesInvoice::query()->count());
-        $this->assertTrue(Carbon::parse($license->fresh()->expires_at)->isSameDay(now()->addMonths(12)));
+        $this->assertTrue(Carbon::parse($license->fresh()->expires_at)->isSameDay(now()->addMonthsNoOverflow(12)));
         app(LicenseRenewalService::class)->markPaid($renewal->id);
         $this->assertSame(1, SalesInvoice::query()->count());
         Event::assertDispatchedTimes(LicenseRenewed::class, 1);

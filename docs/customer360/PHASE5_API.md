@@ -44,7 +44,7 @@ Existing endpoints stay: `GET /portal/summary`, tickets (`POST /portal/tickets`,
 ### Contract signing with SMS OTP
 1. `POST /portal/contracts/{id}/sign/otp` → 200 `{ data: { sent_to: "0912***4567", expires_in: 300, resend_in: 60 } }`.
    Sends a 6‑digit code to the customer mobile (user mobile → account mobile) via `CrmOutboundMessenger`.
-   Code stored hashed in cache 5 min; 60 s resend throttle (429 `{message, retry_after}`); 422 if contract not `draft|active` or no mobile.
+   Code stored hashed in cache 5 min; 60 s resend throttle (429 `{message}` + `Retry-After` header in seconds); 422 if contract not `draft|active` or no mobile.
 2. `POST /portal/contracts/{id}/sign` `{ code, accept: true }` → 200 `{ data: Contract }` with `status:"signed"`, `signed_at`.
    Wrong code → 422 `errors.code`; 5 wrong attempts invalidate the code. Stores `signature_meta` (ip, user agent, mobile, user_id, at)
    in hub audit, fires `ContractSigned` (timeline + onboarding automation).
@@ -72,3 +72,11 @@ Base `/api/v1/crm/customers/reports/{section}`; query `from`, `to`, `segment`, `
 - `PATCH /api/v1/crm/customers/automations/{key}` `{ enabled?, config? }` → row. Stored in `core_workflows` (`trigger_key = "customer360.{key}"`).
 Keys: `renewal_reminder`, `installment_reminder`, `debtor_status`, `auto_suspend`, `onboarding`, `churn_risk`, `document_expiry`, `welcome_sms`.
 Defaults: SMS‑sending and suspending rules are OFF.
+
+## Implementation notes (backend as shipped)
+- Signable contract statuses: `draft | active | sent | pending`; anything else → 422.
+- Portal documents reuse the hub signed download route; only docs whose `visible_to_roles` includes `client` (and approved) are listed.
+- `sales_invoices` has no `due_date` column: `due_date` = `issue_date + payment_terms_days` (default 30).
+- Return URL after payment: `config('app.frontend_url')`, falling back to `config('app.url')`; a custom `return_url` must be on that host (else 422).
+- OTP resend throttle returns 429 with a `Retry-After` header (the API envelope strips extra body keys).
+- No new migrations: duplicate dismissals and OTP state live in existing tables / cache.

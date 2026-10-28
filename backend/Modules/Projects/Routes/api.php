@@ -1,6 +1,7 @@
 <?php
 
 use Illuminate\Support\Facades\Route;
+use Modules\Crm\Http\Controllers\Customer360\CustomerPortalHubController as PortalHub;
 use Modules\Projects\Http\Controllers\AppointmentController;
 use Modules\Projects\Http\Controllers\EpicController;
 use Modules\Projects\Http\Controllers\ContractController;
@@ -82,6 +83,17 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('/portal/appointments', [CustomerPortalController::class, 'requestAppointment']);
     Route::post('/portal/approvals/{id}/decide', [PmDeliveryController::class, 'decideApproval'])->whereNumber('id');
     Route::get('/portal/files/{id}', [CustomerPortalController::class, 'downloadFile'])->whereNumber('id');
+    // Customer 360 phase 5 portal (docs/customer360/PHASE5_API.md §3)
+    Route::get('/portal/profile', [PortalHub::class, 'profile']);
+    Route::get('/portal/contracts', [PortalHub::class, 'contracts']);
+    Route::get('/portal/contracts/{id}', [PortalHub::class, 'contract'])->whereNumber('id');
+    Route::post('/portal/contracts/{id}/sign/otp', [PortalHub::class, 'signOtp'])->whereNumber('id')->middleware('throttle:10,1');
+    Route::post('/portal/contracts/{id}/sign', [PortalHub::class, 'sign'])->whereNumber('id')->middleware('throttle:20,1');
+    Route::get('/portal/invoices', [PortalHub::class, 'invoices']);
+    Route::post('/portal/invoices/{id}/pay', [PortalHub::class, 'pay'])->whereNumber('id')->middleware('throttle:20,1');
+    Route::get('/portal/payments/{paymentId}', [PortalHub::class, 'payment'])->where('paymentId', '[0-9a-fA-F-]{36}');
+    Route::get('/portal/services', [PortalHub::class, 'services']);
+    Route::get('/portal/documents', [PortalHub::class, 'documents']);
 
     Route::get('/contracts', [ContractController::class, 'index'])->middleware('fieldsec:contract');
     Route::post('/contracts', [ContractController::class, 'store']);
