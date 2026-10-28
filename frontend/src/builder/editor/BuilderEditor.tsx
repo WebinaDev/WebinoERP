@@ -35,6 +35,7 @@ import {
   Sparkles,
   SearchCheck,
   X,
+  Palette as PaletteIcon,
 } from "lucide-react"
 import Link from "next/link"
 import { useTranslations } from "next-intl"
@@ -92,6 +93,7 @@ import { Navigator } from "./Navigator"
 import { ShortcutHelp } from "./ShortcutHelp"
 import { CLIPBOARD_KEY, duplicateSection, exportPayload, findNode, importPayload, isLocked, makeClip, parseClip, pasteClip, pasteStyle, patchNode, type Clip } from "../ops"
 import { RevisionsPanel, type RevisionTarget } from "./RevisionsPanel"
+import { KitPresetsPanel } from "./KitPresetsPanel"
 import { A11yPanel } from "./A11yPanel"
 import { Finder, type FinderAction } from "./Finder"
 import { PageSettingsPanel } from "./PageSettingsPanel"
@@ -168,6 +170,7 @@ export function BuilderEditor({ mode }: { mode: Mode }) {
   const [loading, setLoading] = useState(mode.kind !== "page" || mode.id !== "new")
   const [saving, setSaving] = useState(false)
   const [globals, setGlobals] = useState<BuilderGlobals>(DEFAULT_GLOBALS)
+  const [showKits, setShowKits] = useState(false)
   const [widgetQuery, setWidgetQuery] = useState("")
   const [collapsed, setCollapsed] = useState<Record<string, boolean>>({})
   const [moreOpen, setMoreOpen] = useState(false)
@@ -883,6 +886,7 @@ export function BuilderEditor({ mode }: { mode: Mode }) {
                 {mode.kind === "page" ? <MenuItem icon={SearchCheck} label="سئو" onClick={() => setSeoOpen(true)} /> : null}
                 {mode.kind === "page" && pageId ? <MenuItem icon={FileCog} label={t("page_settings")} onClick={() => setShowPageSettings(true)} /> : null}
                 {revisionTarget ? <MenuItem icon={History} label={t("revisions")} onClick={() => setShowRevisions(true)} /> : null}
+                <MenuItem icon={PaletteIcon} label="کیت‌های آماده" onClick={() => setShowKits(true)} />
                 <Link data-close href="/dashboard/builder/settings" className="flex items-center gap-2 rounded-lg px-2 py-2 hover:bg-[#f2f5f9]"><Settings2 className="size-4" aria-hidden />{t("globals")}</Link>
                 <MenuItem icon={Search} label={t("finder")} onClick={() => setShowFinder(true)} />
                 <MenuItem icon={Accessibility} label={t("a11y_audit")} onClick={() => setShowA11y(true)} />
@@ -914,10 +918,12 @@ export function BuilderEditor({ mode }: { mode: Mode }) {
         />
         {seoOpen && mode.kind === "page" ? <SeoPanel seo={seo} onChange={setSeo} title={title} slug={slug} pageId={pageId} onClose={() => setSeoOpen(false)} /> : null}
       </header>
+      {showKits ? <KitPresetsPanel globals={globals} onApply={updateGlobals} onClose={() => setShowKits(false)} /> : null}
       {showRevisions && revisionTarget ? (
         <RevisionsPanel
           target={revisionTarget}
           globals={globals}
+          current={doc}
           onClose={() => setShowRevisions(false)}
           onRestored={(restored) => {
             commit(restored)
