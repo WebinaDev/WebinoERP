@@ -129,6 +129,10 @@ webinaagency.ir, www.webinaagency.ir {
 	}
 	handle @tHtml {
 		reverse_proxy erp-edge:8082 {
+			# nginx holds the conn during proxy_cache_background_update; a reused conn stalls the next request ~2s
+			transport http {
+				keepalive off
+			}
 			header_up Host {host}
 			header_up X-Webina-Tenant {args[0]}
 			header_up X-Forwarded-Proto {scheme}
