@@ -66,7 +66,8 @@ class SalesStorefrontTest extends TestCase
         $p = $this->product(['slug' => 'cream', 'stock' => 5]);
         $sold = $this->product(['slug' => 'gone', 'stock' => 0]);
         SalesCoupon::query()->create(['code' => 'OFF10', 'type' => 'percent', 'value' => 10, 'min_total' => 0]);
-        $this->getJson('/api/v1/cart')->assertUnauthorized();
+        // Guests get an empty cart (X-Cart-Token flow) instead of 401 — parity with the WP plugin guest checkout.
+        $this->getJson('/api/v1/cart')->assertOk()->assertJsonCount(0, 'data.items');
         $this->actingAs(User::factory()->create(), 'sanctum');
 
         $this->postJson('/api/v1/cart/items', ['product_id' => $sold->id])->assertStatus(422);
