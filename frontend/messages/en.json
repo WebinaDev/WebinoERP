@@ -390,7 +390,8 @@
     "siteSubtitle": "Site",
     "projectsSection": "Projects",
     "singleNavHint": "Only Overview appears because your role has no extra dashboard permissions yet. Ask a site administrator to assign capabilities (e.g. Shop Manager, Editor) if you need store or content sections.",
-    "userFallback": "Signed in"
+    "userFallback": "Signed in",
+    "nav_menus": "Menus"
   },
   "layout": {
     "dashboard": "Dashboard",

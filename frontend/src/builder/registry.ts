@@ -1,4 +1,5 @@
 import { applyChromeExtras } from "./registry-chrome-extras"
+import { applyNavMenuFields } from "./registry-nav-menus"
 import { uid } from "./ids"
 import { resolveWidgetAlias } from "@webina/ui/builder"
 import { createSection } from "./tree"
@@ -1278,3 +1279,4 @@ export const WIDGET_CATEGORIES: { id: WidgetDef["category"]; label: string }[] =
 ]
 
 applyChromeExtras(WIDGETS)
+applyNavMenuFields(WIDGETS)

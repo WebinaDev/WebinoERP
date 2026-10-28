@@ -1,4 +1,5 @@
 "use client"
+import { useMenuTree } from "@/lib/nav-menus"
 
 /* Theme-part widgets: granular pieces of the header, footer, product page, archive,
  * cart and single post so theme templates (Theme Builder → header/footer/single_product/
@@ -397,6 +398,7 @@ export function HeaderPartWidget({ widget }: { widget: WidgetNode }) {
   const runtime = useBuilderRuntime()
   const theme = useClassicThemeSettings()
   const { count } = useCartSummary()
+  const menuTree = useMenuTree(widget.type === "nav-menu" ? propStr(widget.props, "menu", "") : "")
   switch (widget.type) {
     case "site-logo": {
       const height = propNum(widget.props, "height", 40)
@@ -407,7 +409,7 @@ export function HeaderPartWidget({ widget }: { widget: WidgetNode }) {
       )
     }
     case "nav-menu": {
-      const links = parseLinks(widget.props.links, [])
+      const links = menuTree ?? parseLinks(widget.props.links, [])
       const vertical = propStr(widget.props, "direction", "row") === "column"
       if (!links.length) return <Placeholder label="منو — برچسب|نشانی در هر خط" />
       return (
