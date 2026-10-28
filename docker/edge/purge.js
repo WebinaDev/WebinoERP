@@ -30,7 +30,7 @@ function keyOf(file) {
     } catch (e) {
         try { buf = fs.readFileSync(file); } catch (e2) { return null; }
     }
-    var s = buf.toString('latin1');
+    var s = buf.toString('utf8');
     var i = s.indexOf('\nKEY: ');
     if (i < 0) return null;
     var j = s.indexOf('\n', i + 6);
