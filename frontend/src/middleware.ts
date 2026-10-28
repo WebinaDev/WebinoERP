@@ -8,6 +8,7 @@ import {
   legacyAdminToDashboardPath,
 } from "@/lib/paths"
 import { getServerApiBase } from "@/lib/server-api-base"
+import { siteRedirectFor } from "@/lib/site-redirects"
 
 const LOCALES = ["fa", "en"] as const
 
@@ -74,6 +75,16 @@ export async function middleware(request: NextRequest) {
       const url = request.nextUrl.clone()
       url.pathname = "/connect"
       return NextResponse.rewrite(url)
+    }
+  }
+
+  // Configurable public 301s (SITE_REDIRECTS; default alikhabari /about → /about-poet).
+  if (!pathname.startsWith("/dashboard") && !pathname.startsWith("/api") && !pathname.includes(".")) {
+    const to = siteRedirectFor(host, pathname)
+    if (to) {
+      const url = request.nextUrl.clone()
+      url.pathname = to
+      return NextResponse.redirect(url, 301)
     }
   }
 

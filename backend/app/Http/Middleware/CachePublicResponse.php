@@ -18,9 +18,12 @@ class CachePublicResponse
     public function handle(Request $request, Closure $next): Response
     {
         $tid = 1;
-        if (! filter_var(config('services.public_api_cache', true), FILTER_VALIDATE_BOOL) || ! $request->isMethod('GET') || $tid <= 0
+        if (! filter_var(config('services.public_api_cache', true), FILTER_VALIDATE_BOOL) || ! in_array($request->getMethod(), ['GET', 'HEAD'], true) || $tid <= 0
             || $request->bearerToken() || $request->cookie(config('session.cookie')) || $request->cookie('webino_auth_token') || $request->cookie('auth_token')) {
-            return $this->finish($next($request));
+            $response = $this->finish($next($request));
+            $response->headers->set('X-Public-Cache', 'BYPASS');
+
+            return $response;
         }
 
         $key = 'pubcache:r:'.$tid.':'.PublicResponseCache::version($tid).':'.sha1(implode('|', [
@@ -49,6 +52,8 @@ class CachePublicResponse
             } catch (\Throwable) {
             }
             $response->headers->set('X-Public-Cache', 'MISS');
+        } else {
+            $response->headers->set('X-Public-Cache', 'BYPASS');
         }
 
         return $response;
