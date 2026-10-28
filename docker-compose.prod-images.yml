@@ -6,6 +6,8 @@ services:
   backend:
     image: ${IMAGE_REGISTRY:-ghcr.io/webinadev}/webino-erp-backend:${IMAGE_TAG:?set IMAGE_TAG}
     pull_policy: missing
+    environment:
+      WEBINO_INTERNAL_API_SECRET: ${WEBINO_INTERNAL_API_SECRET:-}
   worker:
     image: ${IMAGE_REGISTRY:-ghcr.io/webinadev}/webino-erp-backend:${IMAGE_TAG:?set IMAGE_TAG}
     pull_policy: missing
@@ -18,3 +20,5 @@ services:
   frontend:
     image: ${IMAGE_REGISTRY:-ghcr.io/webinadev}/webino-erp-frontend:${IMAGE_TAG:?set IMAGE_TAG}
     pull_policy: missing
+    environment:
+      WEBINO_INTERNAL_API_SECRET: ${WEBINO_INTERNAL_API_SECRET:-}

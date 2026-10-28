@@ -50,6 +50,8 @@ final class TenantEnvBuilder
 
         $appKey = $previous['APP_KEY'] ?? ('base64:'.base64_encode(random_bytes(32)));
         $dbPassword = $previous['DB_PASSWORD'] ?? bin2hex(random_bytes(12));
+        $revalidateSecret = ($previous['REVALIDATE_SECRET'] ?? '') !== '' ? $previous['REVALIDATE_SECRET'] : bin2hex(random_bytes(32));
+        $internalApiSecret = ($previous['WEBINO_INTERNAL_API_SECRET'] ?? '') !== '' ? $previous['WEBINO_INTERNAL_API_SECRET'] : bin2hex(random_bytes(32));
         $licenseHmac = (string) (config('app.webinocrm_license_hmac_secret') ?? '');
         $provisionSecret = (string) ($settings->provision_webhook_secret ?? '');
         $origin = 'https://'.$domain;
@@ -95,6 +97,9 @@ final class TenantEnvBuilder
             self::line('TENANT_SEED_JSON', (string) $seed),
             self::line('WEBINO_PROVISION_HMAC_SECRET', $provisionSecret),
             self::line('WEBINO_ERP_API_TOKEN', ErpApiToken::current()),
+            self::line('REVALIDATE_SECRET', $revalidateSecret),
+            self::line('FRONTEND_REVALIDATE_URL', 'http://frontend:3000/webino-revalidate'),
+            self::line('WEBINO_INTERNAL_API_SECRET', $internalApiSecret),
         ])."\n";
     }
 

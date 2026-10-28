@@ -116,6 +116,7 @@ services:
     env_file: .env
     volumes:
       - ./.env:/var/www/html/.env:ro
+      - ./storage-public:/var/www/html/storage/app/public
     depends_on:
       db:
         condition: service_healthy
@@ -133,6 +134,11 @@ services:
       INTERNAL_API_URL: {$api}
       API_PROXY_TARGET: {$api}
       WEBINO_SITE_SLUG: "{$safeSlug}"
+      REVALIDATE_SECRET: \${REVALIDATE_SECRET}
+      WEBINO_INTERNAL_API_SECRET: \${WEBINO_INTERNAL_API_SECRET}
+      INLINE_MEDIA_DIR: /app/.next/cache/inline-media
+    volumes:
+      - ./next-cache:/app/.next/cache
     depends_on:
       - {$backendSvc}
     networks:

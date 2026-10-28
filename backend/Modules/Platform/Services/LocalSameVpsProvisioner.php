@@ -82,6 +82,10 @@ class LocalSameVpsProvisioner
         $compose = TenantSiteStack::composeYaml($provision->slug, $channel);
         $envFile = $this->envFile($provision, $siteType, $token);
         $this->writeFile($dir.'/docker-compose.yml', $compose);
+        // persistent uploads + Next cache (inline media/ISR); frontend runs as uid 1001
+        $this->ensureDir($dir.'/storage-public');
+        $this->ensureDir($dir.'/next-cache/inline-media');
+        $this->run(['chown', '-R', '1001:65533', $dir.'/next-cache'], 30);
         $this->writeFile($dir.'/.env', $envFile);
 
         $this->writeCaddySnippet($provision->domain, $provision->slug, TenantAliasDomains::forProvision($provision));
