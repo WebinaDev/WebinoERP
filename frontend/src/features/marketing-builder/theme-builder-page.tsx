@@ -30,7 +30,7 @@ type KindGroup = { kind: ThemeKind; label: string; templates: TemplateRow[] }
 type Preset = { id: string; kind: string; title: string; blurb: string }
 type Kit = { id: string; title: string; blurb: string }
 
-const RULE_TYPES = ["entire_site", "url", "url_prefix", "url_contains", "singular", "archive", "search", "not_found", "collection"] as const
+const RULE_TYPES = ["entire_site", "url", "url_prefix", "url_contains", "singular", "archive", "search", "not_found", "collection", "front_page", "page", "post", "blog_category", "tag", "date_range", "weekday", "time_range"] as const
 
 export function ThemeBuilderPage() {
   const t = useTranslations("theme_builder")

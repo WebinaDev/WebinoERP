@@ -60,6 +60,8 @@ class PublicBuilderController extends Controller
             'not_found' => 'nullable|boolean',
             'slug' => 'nullable|string|max:191',
             'category' => 'nullable|string|max:191',
+            'brand' => 'nullable|string|max:191',
+            'tag' => 'nullable|string|max:191',
         ]);
 
         // Product pages: derive the catalog item's category so `product_category` rules can match.
