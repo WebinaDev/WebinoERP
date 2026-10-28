@@ -17,6 +17,9 @@ use Modules\Marketplace\Entities\MarketplaceBasalamConnection;
  */
 class BasalamOrderIngestController extends Controller
 {
+    /** Per-site cap, mirrors WebinaDashboard basalam-module 0.9.65 Basalam_Erp_Order_Mirror::MAX_QUEUE. */
+    public const MAX_QUEUE = 5000;
+
     public function store(Request $r): JsonResponse
     {
         $data = $r->validate([
@@ -83,7 +86,29 @@ class BasalamOrderIngestController extends Controller
             }
         }
 
-        return response()->json(['ok' => true, 'saved' => $saved, 'linked' => (bool) $account]);
+        $dropped = self::enforceCap($domain);
+
+        return response()->json(['ok' => true, 'saved' => $saved, 'dropped' => $dropped, 'linked' => (bool) $account]);
+    }
+
+    /**
+     * Keep at most MAX_QUEUE orders per site; drop the oldest (least recently pushed) when over.
+     * Same as the plugin: re-pushed orders count as newest; backfill/reconcile resends anything dropped.
+     */
+    public static function enforceCap(string $domain, ?int $max = null): int
+    {
+        $max ??= self::MAX_QUEUE;
+        $count = CrmBasalamOrder::query()->where('site_domain', $domain)->count();
+        if ($count <= $max) {
+            return 0;
+        }
+        $drop = $count - $max;
+        $ids = CrmBasalamOrder::query()->where('site_domain', $domain)
+            ->orderBy('updated_at')->orderBy('id')->limit($drop)->pluck('id');
+        $n = CrmBasalamOrder::query()->whereIn('id', $ids)->delete();
+        \Illuminate\Support\Facades\Log::info("basalam order ingest over cap for {$domain}, dropped {$n} oldest");
+
+        return $n;
     }
 
     /** Basalam order status ids -> ERP canonical status (unknown ids kept as "basalam_{id}"). */
