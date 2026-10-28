@@ -58,6 +58,18 @@ fi
 compose_cli config -q
 compose_cli pull backend worker scheduler ws frontend
 compose_cli up -d --no-build
+# Edge nginx caches upstream IPs; after frontend/backend are recreated it can keep
+# hitting a stale container IP (502). Reload it; never fail the deploy on this.
+reload_edge() {
+  if compose_cli ps --services 2>/dev/null | grep -qx edge && compose_cli exec -T edge nginx -s reload >/dev/null 2>&1; then
+    log "edge nginx reloaded (compose service edge)"
+  elif docker exec "${EDGE_CONTAINER:-webinoerm-edge-1}" nginx -s reload >/dev/null 2>&1; then
+    log "edge nginx reloaded (${EDGE_CONTAINER:-webinoerm-edge-1})"
+  else
+    log "WARN: edge nginx reload failed; check edge for stale upstreams (502)"
+  fi
+}
+reload_edge || true
 if [[ "${SKIP_MIGRATE:-0}" != 1 ]]; then
   # Same as update.sh: wait for backend, pg_dump backup, migrate --force + assert-schema.
   for i in $(seq 1 90); do compose_cli exec -T backend php -v >/dev/null 2>&1 && break; sleep 2
