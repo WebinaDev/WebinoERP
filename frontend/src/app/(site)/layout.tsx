@@ -6,6 +6,7 @@ import { requestPageLang } from '@/builder/page-lang';
 import { loadPublishedGlobals } from '@/builder/public-document';
 import { CustomCodeSlot } from '@/builder/render/custom-code';
 import { ThemeSlot } from '@/builder/theme/ThemeSlot';
+import { StorefrontPopups } from '@/components/marketing/StorefrontPopups';
 import { SiteFooter } from '@/themes/webina-corporate-v1/components/SiteFooter';
 import { SiteHeader } from '@/themes/webina-corporate-v1/components/SiteHeader';
 import { getPublicSite } from '@/lib/public-api-server';
@@ -78,7 +79,8 @@ export default async function SiteLayout({ children }: { children: ReactNode }) 
       </ThemeSlot>
       <main className="sf-main flex-1">{children}</main>
       <ThemeSlot kind="footer">
-        <SiteFooter siteName={siteName} logoUrl={logoUrl} badges={badges} socials={socials} contact={contact} footer={footer} company={company} />
+        <StorefrontPopups />
+      <SiteFooter siteName={siteName} logoUrl={logoUrl} badges={badges} socials={socials} contact={contact} footer={footer} company={company} />
       </ThemeSlot>
       <CustomCodeSlot entries={globals?.customCode} location="body_end" path={requestPath} />
     </div>

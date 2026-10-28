@@ -1,5 +1,6 @@
 'use client';
 
+import MarketingPopupsPage from "../../modules/marketing/admin/popups-page-client"
 import type { ReactNode } from 'react';
 import { normalizeDashboardPath } from '@/lib/route-resolver';
 import { DashboardHomePage } from '@/components/dashboard/pages/DashboardHomePage';
@@ -445,6 +446,7 @@ const EXACT: Record<string, ReactNode> = {
   'marketing/seo-routes': <MarketingSeoRoutesPage />,
   'marketing/academy-lessons': <MarketingAcademyLessonsPage />,
   'marketing/faq': <MarketingFaqPage />,
+  'marketing/popups': <MarketingPopupsPage />,
   'marketing/services': <MarketingServicesPage />,
   'marketing/solutions': <MarketingSolutionsPage />,
   'marketing/team': <MarketingTeamPage />,

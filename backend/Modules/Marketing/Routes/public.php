@@ -64,3 +64,9 @@ Route::post('/downloads/{id}/request', [PublicContentController::class, 'downloa
     ->whereNumber('id')->middleware('throttle:10,1');
 Route::post('/forms/{slug}/upload', [PublicFormsController::class, 'upload'])
     ->middleware('throttle:10,1');
+
+Route::middleware('throttle:marketing-public')->group(function () {
+    Route::get('/popups', [\Modules\Marketing\Http\Controllers\MarketingPopupController::class, 'publicIndex']);
+});
+Route::post('/popups/{popup}/event', [\Modules\Marketing\Http\Controllers\MarketingPopupController::class, 'event'])
+    ->whereNumber('popup')->middleware('throttle:30,1');

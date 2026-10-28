@@ -96,3 +96,10 @@ Route::get('/media/folders', [MarketingMediaController::class, 'folders']);
 Route::post('/media/folders', [MarketingMediaController::class, 'storeFolder']);
 Route::post('/media/upload', [MarketingMediaController::class, 'upload']);
 Route::delete('/media/{id}', [MarketingMediaController::class, 'destroy']);
+
+Route::get('/popups', [\Modules\Marketing\Http\Controllers\MarketingPopupController::class, 'index']);
+Route::post('/popups', [\Modules\Marketing\Http\Controllers\MarketingPopupController::class, 'store']);
+Route::get('/popups/{popup}', [\Modules\Marketing\Http\Controllers\MarketingPopupController::class, 'show'])->whereNumber('popup');
+Route::put('/popups/{popup}', [\Modules\Marketing\Http\Controllers\MarketingPopupController::class, 'update'])->whereNumber('popup');
+Route::delete('/popups/{popup}', [\Modules\Marketing\Http\Controllers\MarketingPopupController::class, 'destroy'])->whereNumber('popup');
+Route::get('/popups/{popup}/leads', [\Modules\Marketing\Http\Controllers\MarketingPopupController::class, 'leads'])->whereNumber('popup');
