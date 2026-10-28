@@ -21,17 +21,33 @@ Base: `/api/v1/crm/customers/{id}/hub` (frontend client: `/v1/crm/customers/{id}
 Manage actions (`CustomerHubAccess::MANAGE`): `sms` → `crm.hub.sms.send`; `basalam` (link stores) → `crm.accounts.manage`;
 `payment` → `sales.invoices.manage|accounting.receipt.manage`; `invoice` → `sales.invoices.manage`.
 
-## Nullable fields (summary)
-- **Money (null without `billing` view):** orders `total`, `paid_amount`; order kpis amounts; accounting `balance`, `outstanding`,
-  `overdue`, aging buckets, ledger `debit`/`credit`/`balance`/`opening_balance`/`closing_balance`; invoice `total`, `remaining`; payment `amount`.
-- **Always nullable:** dates (`placed_at`, `paid_at`, `issue_date`, `due_date`, `sent_at`, `delivered_at`), order `customer_name`/`mobile`,
-  Basalam `store_name`/`domain`, accounting `acc_person` (no matching accounting person), invoice `overdue_days` (when not overdue),
-  SMS `template_id`, `subject`, `user_id`, `error`, recipients `name`.
-- **Never null:** `id`/`ref`, `source`, `status`, `currency`, `meta.total`, `meta.can.*` (booleans), `opt_out` (bool), list arrays (empty `[]`).
+## Nullable fields (summary — matches the actual row shapes below)
+- **Money (null without `billing` view):** orders `total`, items `unit_price`/`total`, `meta.kpis.total_amount`; accounting summary
+  `balance`, `outstanding`, `overdue`, `total_invoiced`, `total_paid`, `wallet_credit`, `credit_limit`, `aging` (whole object);
+  ledger `debit`/`credit`/`balance`, `meta.opening_balance`/`closing_balance`; invoice `total`, `paid_amount`, `remaining`; payment `amount`.
+- **Always nullable:** orders `paid_at`, `ordered_at`, `buyer_name`, `buyer_mobile`, `gateway`, `payment_ref`, `store`, items `sku`;
+  stores `vendor_id`, `connected_at`, `last_seen_at`; accounting `last_payment`, `acc_person`; ledger `debit` or `credit` (one side is
+  always null); invoices `issue_date`, `due_date`, `project_id`; payments `date`, `gateway`, `tracking_code`, `invoice_id`;
+  SMS `provider`, `error`, `template_id`, `related_type`, `related_id`, `created_by`.
+- **Never null:** `id`/`ref`, `source`, `status`, `currency`, `paid` (bool), invoice `overdue_days` (int, `0` when not overdue),
+  `overdue_count`, `meta.total`, `meta.can.*` (bools), `meta.statuses`, `opt_out` (bool), list arrays (`[]` when empty).
+
+## Write actions behind `meta.can` (existing hub action bar endpoints)
+| `meta.can` key | endpoint | permission (any of) |
+|---|---|---|
+| `create_invoice` | `POST /hub/actions/invoice` `{ items: [{ title, price, discount?, desc? }] (≥1), issue_date?, project_id?, notes?, status?: draft|unpaid }` → 201 `{ data: SalesInvoice }` | `sales.invoices.manage` |
+| `record_payment` | `POST /hub/actions/payment` `{ amount (≥1), method: cash|card_to_card|bank_transfer|cheque|pos|other, reference?, paid_at?, invoice_id?, note? }` → 201 `{ data: { id: "mp-<n>", invoice_status|null } }` | `sales.invoices.manage`, `accounting.receipt.manage` |
+Both are audited. Timeline: a non-draft invoice fires `InvoiceIssued` (`invoice.issued`); a manual payment fires `PaymentRecorded`
+(`payment.recorded`, `meta.subject_type = "manual_payment"`). When `invoice_id` is given and payments reach the invoice total, the
+invoice becomes `paid`. After either call, refetch `/hub/accounting`, `/invoices`, `/payments`, `/ledger`.
 
 ---
 ## 1. Orders — `GET /hub/orders`
 Query: `source=all|marketplace|basalam` (default all), `status`, `q` (order number / buyer), `paid=1|0`.
+`status` is an exact match on the source's own status string (no fixed enum: Basalam statuses come from the site). Known values:
+marketplace `pending|paid|processing|shipped|delivered|completed|cancelled|refunded`; Basalam whatever the store sends
+(typically `pending|paid|preparing|shipped|delivered|completed|cancelled`). **Build the filter dropdown from `meta.statuses`**
+(sorted distinct statuses among this customer's orders); unknown values just return an empty list (no 422).
 
 Row:
 ```
@@ -41,7 +57,7 @@ Row:
   store: { connection_id: 4, site_url: "https://shop.example.ir" } | null }
 ```
 `meta.kpis = { count, paid_count, total_amount|null, basalam_count, marketplace_count }`
-`meta.can = { link_basalam: bool }`
+`meta.can = { link_basalam: bool }`, `meta.statuses: string[]`
 
 ### `GET /hub/orders/{ref}` (ref = `mo-12` | `bs-5`)
 `{ data: Row + { items: [{ title, qty, unit_price|null, total|null, sku|null }] } }`
@@ -49,7 +65,11 @@ Row:
 ### Basalam stores
 - `GET /hub/basalam/stores` → `{ data: [{ connection_id, site_url, vendor_id, status, connected_at, last_seen_at, linked: true }],
   meta: { candidates: [same shape, linked:false — unlinked stores whose host matches this customer's domains/sites], can: { link } } }`
-- `POST /hub/basalam/stores` `{ connection_id }` → 200 `{ data: store }` (re-links orders of that store with no customer). 409 if linked to another customer unless `force: true`.
+- `vendor_id`: `integer | null` (Basalam vendor id, `unsignedBigInteger`; null until the store reports it). `connection_id`: integer.
+- `POST /hub/basalam/stores` `{ connection_id: int, force?: bool }` → 200 `{ data: store }` (re-links orders of that store with no customer).
+  If the store is already linked to **another** customer → 409 `{ message }`. To move it, show a confirm dialog and resend the same body
+  with `force: true` → 200: the store is re-pointed to this customer (orders already linked to the old customer keep their link;
+  only unlinked orders are attached). Linking a store already on this customer is idempotent (200).
 - `DELETE /hub/basalam/stores/{connectionId}` → 204.
 - Auto-link: a connection is linked automatically when its `site_url` host matches `crm_customer_domains` / `webino_site_provisions.domain` / account website.
 

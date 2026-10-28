@@ -44,7 +44,7 @@ class Customer360Phase3Test extends TestCase
 
         Sanctum::actingAs($this->actingAsRole(R::ROLE_SYSTEM_MANAGER));
         $this->getJson($this->base().'/orders')->assertOk()->assertJsonCount(2, 'data')
-            ->assertJsonPath('meta.kpis.count', 2)->assertJsonPath('meta.kpis.paid_count', 1)->assertJsonPath('meta.can.link_basalam', true);
+            ->assertJsonPath('meta.kpis.count', 2)->assertJsonPath('meta.kpis.paid_count', 1)->assertJsonPath('meta.can.link_basalam', true)->assertJsonPath('meta.statuses', ['paid', 'pending']);
         $this->getJson($this->base().'/orders?source=basalam&q=ali')->assertOk()->assertJsonCount(1, 'data')->assertJsonPath('data.0.ref', fn ($v) => str_starts_with($v, 'bs-'));
         $bs = CrmBasalamOrder::query()->first();
         $this->getJson($this->base().'/orders/bs-'.$bs->id)->assertOk()->assertJsonPath('data.items.0.title', 'Mug')->assertJsonPath('data.items.0.unit_price', 250);
@@ -52,6 +52,22 @@ class Customer360Phase3Test extends TestCase
 
         Sanctum::actingAs($this->actingAsRole(R::ROLE_CLIENT));
         $this->getJson($this->base().'/orders')->assertForbidden();
+    }
+
+    public function test_record_payment_and_create_invoice_from_hub_fire_timeline_events(): void
+    {
+        Sanctum::actingAs($this->actingAsRole(R::ROLE_SYSTEM_MANAGER));
+        $this->getJson($this->base().'/accounting')->assertOk()
+            ->assertJsonPath('meta.can.record_payment', true)->assertJsonPath('meta.can.create_invoice', true);
+        $inv = $this->postJson($this->base().'/actions/invoice', ['items' => [['title' => 'Plan', 'price' => 1000]]])->assertCreated()->json('data.id');
+        $this->postJson($this->base().'/actions/payment', ['amount' => 1000, 'method' => 'cash', 'invoice_id' => $inv])->assertCreated()
+            ->assertJsonPath('data.invoice_status', 'paid');
+        $types = DB::table('crm_customer_activities')->where('account_id', $this->acc->id)->pluck('type')->all();
+        $this->assertContains('invoice.issued', $types);
+        $this->assertContains('payment.recorded', $types);
+
+        Sanctum::actingAs($this->actingAsRole(R::ROLE_CLIENT));
+        $this->postJson($this->base().'/actions/payment', ['amount' => 1, 'method' => 'cash'])->assertForbidden();
     }
 
     public function test_basalam_store_link_and_unlink(): void

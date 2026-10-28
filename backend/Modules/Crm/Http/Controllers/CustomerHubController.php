@@ -574,6 +574,9 @@ class CustomerHubController extends Controller
             return $pid;
         });
         $this->audit($r, $a, 'payment.manual', ['activity_id' => $pid, 'amount' => (float) $data['amount'], 'invoice_id' => $inv?->id]);
+        \Modules\Crm\Events\Customer\PaymentRecorded::dispatch($a->id, $pid, [
+            'subject_type' => 'manual_payment', 'amount' => (float) $data['amount'], 'method' => $data['method'], 'invoice_id' => $inv?->id,
+        ], $r->user()->id, (string) ($data['paid_at'] ?? now()), 'پرداخت دستی '.number_format((float) $data['amount']));
 
         return response()->json(['data' => ['id' => 'mp-'.$pid, 'invoice_status' => $inv?->fresh()->status]], 201);
     }

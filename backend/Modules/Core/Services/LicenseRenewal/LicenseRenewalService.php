@@ -82,12 +82,38 @@ class LicenseRenewalService
     {
         $meta = is_array($license->meta) ? $license->meta : [];
         $plan = trim((string) ($meta['plan'] ?? ''));
-        if ($plan === '' && Schema::hasTable('webino_site_provisions')) {
-            $p = WebinoSiteProvision::query()->where('license_id', $license->id)->with('package')->latest('id')->first();
-            $plan = (string) ($p?->package?->slug ?? '');
+        if ($plan === '') {
+            $plan = (string) ($this->provision($license)?->package?->sku ?? '');
         }
 
         return $plan !== '' ? strtolower($plan) : null;
+    }
+
+    /** Human plan name: price-list plan_name → meta.plan_name → linked package name → product label. */
+    public function planName(CoreLicense $license, ?Collection $options = null): ?string
+    {
+        $name = $options?->first(fn ($o) => filled($o->plan_name))?->plan_name;
+        $meta = is_array($license->meta) ? $license->meta : [];
+        $name = $name ?: ($meta['plan_name'] ?? null);
+        if (! $name && ($pkg = $this->provision($license)?->package)) {
+            $name = $pkg->name_fa ?: $pkg->name_en;
+        }
+
+        return $name ?: (CoreLicenseResolver::normalizeProduct($license->product ?? null) ?: null);
+    }
+
+    /** Site provision for the license: by license_id, else by the license domain (older sites were never linked). */
+    private function provision(CoreLicense $license): ?WebinoSiteProvision
+    {
+        if (! Schema::hasTable('webino_site_provisions')) {
+            return null;
+        }
+        $p = WebinoSiteProvision::query()->where('license_id', $license->id)->with('package')->latest('id')->first();
+        if (! $p && ($d = CoreLicenseResolver::normalizeDomain((string) $license->domain)) !== '') {
+            $p = WebinoSiteProvision::query()->where('domain', $d)->with('package')->latest('id')->first();
+        }
+
+        return $p;
     }
 
     /** Active options for this license: plan-specific rows override catch-all rows of the same length. */
@@ -188,7 +214,7 @@ class LicenseRenewalService
         $renewable = $this->isRenewable($license);
         $options = $renewable ? $this->options($license) : collect();
         $plan = $this->plan($license);
-        $planName = $options->first()?->plan_name;
+        $planName = $this->planName($license, $options);
 
         $banner = ['show' => false, 'level' => null, 'message' => null];
         if ($status === 'expiring') {

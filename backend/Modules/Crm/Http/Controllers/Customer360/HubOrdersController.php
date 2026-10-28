@@ -36,6 +36,7 @@ class HubOrdersController extends Hub360Base
         $meta['kpis'] = ['count' => $all->count(), 'paid_count' => $all->where('paid', true)->count(),
             'total_amount' => $money ? round((float) $all->where('paid', true)->sum(fn ($o) => (float) $o['total']), 2) : null,
             'basalam_count' => $all->where('source', 'basalam')->count(), 'marketplace_count' => $all->where('source', 'marketplace')->count()];
+        $meta['statuses'] = $all->pluck('status')->filter()->unique()->sort()->values()->all();
         $meta['can'] = ['link_basalam' => $this->access->canManage($r->user(), 'basalam')];
 
         return response()->json(['data' => $data, 'meta' => $meta]);

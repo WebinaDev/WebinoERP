@@ -116,6 +116,27 @@ class LicenseRenewalTest extends TestCase
         $this->assertTrue(LicenseRenewalService::settings()['reminders']['sms']);
     }
 
+    public function test_public_info_plan_falls_back_to_package_of_site_linked_by_domain(): void
+    {
+        $this->prices();
+        $license = $this->license(['meta' => null, 'domain' => 'alikhabari.ir']);
+        $pkg = WebinoPackage::query()->firstOrFail();
+        $this->site($license, ['license_id' => null, 'package_id' => $pkg->id, 'slug' => 'ak']);
+
+        $this->getJson('/api/v1/public/license-renewal?domain=alikhabari.ir')->assertOk()
+            ->assertJsonPath('data.plan.code', strtolower($pkg->sku))
+            ->assertJsonPath('data.plan.name', $pkg->name_fa ?: $pkg->name_en);
+    }
+
+    public function test_public_info_plan_name_falls_back_to_product_without_site(): void
+    {
+        $this->prices();
+        $this->license(['meta' => null, 'domain' => 'nosite.example.ir']);
+        $this->getJson('/api/v1/public/license-renewal?domain=nosite.example.ir')->assertOk()
+            ->assertJsonPath('data.plan.code', null)
+            ->assertJsonPath('data.plan.name', 'webinodashboard');
+    }
+
     public function test_public_info_by_domain_has_no_pii_and_filters_return_url(): void
     {
         $this->prices();
@@ -208,7 +229,7 @@ class LicenseRenewalTest extends TestCase
 
         $retry = $this->checkout($license, $monthly);
         $this->gatewayCallback($retry)->assertOk()->assertJsonPath('data.status', 'settled');
-        $this->assertTrue(Carbon::parse($license->fresh()->expires_at)->isSameDay($expires->copy()->addMonth()));
+        $this->assertTrue(Carbon::parse($license->fresh()->expires_at)->isSameDay($expires->copy()->addMonthsNoOverflow(1)));
     }
 
     public function test_reminders_send_in_app_once_with_renewal_link(): void
