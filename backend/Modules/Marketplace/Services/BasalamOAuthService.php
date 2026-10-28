@@ -35,7 +35,8 @@ class BasalamOAuthService
 
         return [
             'client_id' => (string) ($row?->client_id ?: self::DEFAULT_CLIENT_ID),
-            'client_secret' => (string) ($row?->client_secret ?? ''),
+            // DB first, then env (BASALAM_CLIENT_SECRET) — never required to build/boot.
+            'client_secret' => (string) (($row?->client_secret ?? '') ?: (string) env('BASALAM_CLIENT_SECRET', '')),
             'redirect_uri' => (string) ($row?->redirect_uri ?: self::DEFAULT_REDIRECT_URI),
             'scopes' => (string) ($row?->scopes ?: self::DEFAULT_SCOPES),
         ];
@@ -165,6 +166,35 @@ class BasalamOAuthService
      * @return array{access_token: string, refresh_token: string, expires_in: int, token_type: string}
      */
     public function refresh(string $refreshToken, ?string $siteUrl = null, ?int $vendorId = null): array
+    {
+        // Single-flight per refresh token: concurrent callers reuse the first result.
+        $key = 'basalam-erp-refresh:'.hash('sha256', $refreshToken);
+        if ($cached = \Illuminate\Support\Facades\Cache::get($key.':result')) {
+            return $cached;
+        }
+        $lock = \Illuminate\Support\Facades\Cache::lock($key, 60);
+        try {
+            $lock->block(20);
+        } catch (\Illuminate\Contracts\Cache\LockTimeoutException) {
+            throw new \RuntimeException('تمدید توکن باسلام در حال انجام است؛ کمی بعد دوباره تلاش کنید.');
+        }
+        try {
+            if ($cached = \Illuminate\Support\Facades\Cache::get($key.':result')) {
+                return $cached;
+            }
+            $result = $this->doRefresh($refreshToken, $siteUrl, $vendorId);
+            \Illuminate\Support\Facades\Cache::put($key.':result', $result, 60);
+
+            return $result;
+        } finally {
+            $lock->release();
+        }
+    }
+
+    /**
+     * @return array{access_token: string, refresh_token: string, expires_in: int, token_type: string}
+     */
+    protected function doRefresh(string $refreshToken, ?string $siteUrl = null, ?int $vendorId = null): array
     {
         $cfg = $this->getConfig();
         $token = $this->exchangeToken([
@@ -369,8 +399,8 @@ class BasalamOAuthService
                 ->acceptJson()
                 ->asJson()
                 ->post(self::TOKEN_URL, $body);
-        } catch (\Illuminate\Http\Client\ConnectionException) {
-            throw new \RuntimeException('Basalam token endpoint unreachable.');
+        } catch (\Illuminate\Http\Client\ConnectionException $e) {
+            throw new \RuntimeException(self::humanizeTransport($e->getMessage()));
         }
 
         $data = $response->json();
@@ -382,6 +412,30 @@ class BasalamOAuthService
         }
 
         return $data;
+    }
+
+    /** Persian message for transport failures (plugin v0.9.65); raw cURL text is never shown. */
+    public static function humanizeTransport(string $raw): string
+    {
+        if (preg_match('/cURL error (\d+)/i', $raw, $m)) {
+            switch ((int) $m[1]) {
+                case 18:
+                case 52:
+                case 56:
+                    return 'پاسخ سرور باسلام ناقص رسید (احتمالاً CDN پاسخ را قطع کرده). چند دقیقه بعد دوباره تلاش کنید.';
+                case 28:
+                    return 'سرور باسلام در زمان مقرر پاسخ نداد. چند دقیقه بعد دوباره تلاش کنید.';
+                case 6:
+                    return 'نشانی سرور باسلام پیدا نشد (خطای DNS).';
+                case 7:
+                    return 'اتصال به سرور باسلام برقرار نشد؛ ممکن است فایروال درخواست‌های خروجی را مسدود کرده باشد.';
+                case 35:
+                case 60:
+                    return 'ارتباط امن (SSL) با سرور باسلام برقرار نشد.';
+            }
+        }
+
+        return 'ارتباط با سرور باسلام برقرار نشد. چند دقیقه بعد دوباره تلاش کنید.';
     }
 
     protected function resolveVendorId(string $accessToken): int
