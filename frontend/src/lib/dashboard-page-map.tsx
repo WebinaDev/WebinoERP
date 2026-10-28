@@ -250,7 +250,7 @@ const EXACT: Record<string, ReactNode> = {
   'crm/leads': <LeadsListPage />,
   leads: <LeadsListPage />,
   'crm/customers': <CustomersListPage />,
-  // Customer 360 phase 5 (portal / BI reports / data) is paused; pages stay in code behind CUSTOMER360_PHASE5_ENABLED.
+  // Customer 360 phase 5 (portal / BI reports / data) — wired to PHASE5_API.md; toggle with CUSTOMER360_PHASE5_ENABLED.
   ...(CUSTOMER360_PHASE5_ENABLED
     ? {
         'crm/customer360/reports': <Customer360ReportsPage />,
