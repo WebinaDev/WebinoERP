@@ -12,7 +12,7 @@ class BasalamOAuthService
 {
     public const DEFAULT_CLIENT_ID = '2357';
 
-    public const DEFAULT_REDIRECT_URI = 'https://webina.dev/api/basalam/oauth/callback';
+    public const DEFAULT_REDIRECT_URI = 'https://webinaagency.ir/api/basalam/oauth/callback'; // must equal the URI registered with Basalam (plugin pins the same)
 
     public const TOKEN_URL = 'https://auth.basalam.com/oauth/token';
 
@@ -182,11 +182,16 @@ class BasalamOAuthService
                     'access_token' => $token['access_token'] ?? '',
                     'refresh_token' => $token['refresh_token'] ?? $refreshToken,
                     'expires_in' => $token['expires_in'] ?? null,
+                    'expires_at' => self::expiresAt($token['expires_in'] ?? null),
                 ]);
             } else {
                 $existing = MarketplaceBasalamConnection::query()->where('site_url', $siteUrl)->first();
                 if ($existing) {
-                    $this->upsertConnection($siteUrl, (int) ($existing->vendor_id ?? 0), 'connected');
+                    $this->upsertConnection($siteUrl, (int) ($existing->vendor_id ?? 0), 'connected', [
+                        'access_token' => $token['access_token'] ?? '',
+                        'refresh_token' => $token['refresh_token'] ?? $refreshToken,
+                        'expires_in' => $token['expires_in'] ?? null,
+                    ]);
                 }
             }
         }
@@ -195,6 +200,7 @@ class BasalamOAuthService
             'access_token' => (string) ($token['access_token'] ?? ''),
             'refresh_token' => (string) ($token['refresh_token'] ?? $refreshToken),
             'expires_in' => (int) ($token['expires_in'] ?? 0),
+            'expires_at' => self::expiresAt($token['expires_in'] ?? null),
             'token_type' => (string) ($token['token_type'] ?? 'Bearer'),
         ];
     }
@@ -237,6 +243,7 @@ class BasalamOAuthService
             'access_token' => $access,
             'refresh_token' => $refresh,
             'expires_in' => $expires,
+            'expires_at' => self::expiresAt($expires),
         ]);
 
         $ts = (string) time();
@@ -263,9 +270,21 @@ class BasalamOAuthService
             'webino_sig' => $sig,
             'webino_ts' => $ts,
             'webino_hk' => $handoffKey,
+            'expires_at' => (string) (self::expiresAt($expires) ?? ''),
             'oauth' => 'handoff',
             'return_url' => ! empty($session['return_url']) ? (string) $session['return_url'] : null,
         ]);
+
+        // v2: signed with the per-site Site-Auth secret (never in the URL) when the site is enrolled.
+        $siteSecret = \Modules\Core\Services\SiteAuth::secretFor((string) parse_url($site, PHP_URL_HOST));
+        if ($siteSecret !== '') {
+            $nonce = Str::random(24);
+            $query .= '&'.http_build_query([
+                'webino_v' => '2',
+                'webino_nonce' => $nonce,
+                'webino_sig2' => self::handoffSignatureV2($siteSecret, (string) parse_url($site, PHP_URL_HOST), $vendorId, $ts, $nonce, $access, $refresh, $expires),
+            ]);
+        }
 
         $handoff = $site.$handoffPath.'?'.$query;
         $sessionHost = parse_url($site, PHP_URL_HOST);
@@ -341,10 +360,15 @@ class BasalamOAuthService
      */
     protected function exchangeToken(array $body): array
     {
-        $response = Http::timeout(30)
-            ->acceptJson()
-            ->asJson()
-            ->post(self::TOKEN_URL, $body);
+        try {
+            $response = Http::timeout(30)
+                ->retry(2, 500, fn ($e) => $e instanceof \Illuminate\Http\Client\ConnectionException, throw: false)
+                ->acceptJson()
+                ->asJson()
+                ->post(self::TOKEN_URL, $body);
+        } catch (\Illuminate\Http\Client\ConnectionException) {
+            throw new \RuntimeException('Basalam token endpoint unreachable.');
+        }
 
         $data = $response->json();
         if (! is_array($data) || empty($data['access_token']) || ! $response->successful()) {
@@ -381,6 +405,25 @@ class BasalamOAuthService
         }
 
         return 0;
+    }
+
+    public static function expiresAt(mixed $expiresIn): ?int
+    {
+        $n = (int) $expiresIn;
+
+        return $n > 0 ? time() + $n : null;
+    }
+
+    /**
+     * hex(HMAC-SHA256(site_secret, "v2\nbasalam-handoff\n{domain}\n{vendor_id}\n{ts}\n{nonce}\n{expires_in}\n" . sha256(access_token."|".refresh_token)))
+     * domain = normalized host (lowercase, no www).
+     */
+    public static function handoffSignatureV2(string $secret, string $host, int $vendorId, string $ts, string $nonce, string $access, string $refresh, int $expiresIn): string
+    {
+        $domain = \Modules\Core\Services\CoreLicenseResolver::normalizeDomain($host);
+        $msg = implode("\n", ['v2', 'basalam-handoff', $domain, (string) $vendorId, $ts, $nonce, (string) $expiresIn, hash('sha256', $access.'|'.$refresh)]);
+
+        return hash_hmac('sha256', $msg, $secret);
     }
 
     protected function sessionKey(string $state): string

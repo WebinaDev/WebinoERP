@@ -74,9 +74,18 @@ class BasalamOAuthController extends Controller
         ]);
 
         try {
+            // Only a request that passes site auth for that host may update the stored connection
+            // (otherwise anyone holding a refresh token could re-point any site's store record).
+            $siteUrl = $data['site_url'] ?? null;
+            if (is_string($siteUrl) && $siteUrl !== '') {
+                $host = (string) (parse_url($siteUrl, PHP_URL_HOST) ?: '');
+                if ($host === '' || ! (\Modules\Core\Services\SiteAuth::authorize($request, $host)['ok'] ?? false)) {
+                    $siteUrl = null;
+                }
+            }
             $payload = $this->oauth->refresh(
                 $data['refresh_token'],
-                $data['site_url'] ?? null,
+                $siteUrl,
                 isset($data['vendor_id']) ? (int) $data['vendor_id'] : null,
             );
         } catch (\Throwable $e) {

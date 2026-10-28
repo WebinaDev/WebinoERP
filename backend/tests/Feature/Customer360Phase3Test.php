@@ -83,6 +83,9 @@ class Customer360Phase3Test extends TestCase
         $this->assertSame($this->acc->id, (int) CrmBasalamOrder::query()->first()->crm_account_id);
         $other = CrmAccount::query()->create(['name' => 'Other', 'type' => 'customer']);
         $this->postJson('/api/v1/crm/customers/'.$other->id.'/hub/basalam/stores', ['connection_id' => $c->id])->assertStatus(409);
+        $this->postJson('/api/v1/crm/customers/'.$other->id.'/hub/basalam/stores', ['connection_id' => $c->id, 'force' => true])->assertOk();
+        $this->assertSame($other->id, (int) CrmBasalamOrder::query()->first()->crm_account_id, 'forced relink moves the store orders');
+        $this->postJson($this->base().'/basalam/stores', ['connection_id' => $c->id, 'force' => true])->assertOk();
         $this->deleteJson($this->base().'/basalam/stores/'.$c->id)->assertNoContent();
         $this->assertNull($c->fresh()->crm_account_id);
     }

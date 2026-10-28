@@ -110,8 +110,12 @@ class HubOrdersController extends Hub360Base
         $v = $r->validate(['connection_id' => 'required|integer', 'force' => 'nullable|boolean']);
         $c = MarketplaceBasalamConnection::query()->findOrFail($v['connection_id']);
         abort_if($c->crm_account_id && $c->crm_account_id !== $a->id && empty($v['force']), 409, __('Store is linked to another customer'));
+        $previous = $c->crm_account_id;
         $c->forceFill(['crm_account_id' => $a->id])->saveQuietly();
-        CrmBasalamOrder::query()->where('connection_id', $c->id)->whereNull('crm_account_id')->update(['crm_account_id' => $a->id]);
+        // Move the store's mirrored orders with it (unlinked ones, and on a forced relink the old owner's).
+        CrmBasalamOrder::query()->where('connection_id', $c->id)
+            ->where(fn ($q) => $q->whereNull('crm_account_id')->when($previous, fn ($q) => $q->orWhere('crm_account_id', $previous)))
+            ->update(['crm_account_id' => $a->id]);
 
         return response()->json(['data' => $this->store($c->fresh())]);
     }
