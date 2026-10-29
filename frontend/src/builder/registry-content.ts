@@ -16,8 +16,51 @@ function node(type: string, props: Record<string, unknown>): WidgetNode {
 export const FORM_WIDGET: WidgetDef = sharedFormWidget({ formKeyLabel: "نامک فرم (بازاریابی ← فرم‌ها)", fieldsLabel: "فیلدها (خالی = فیلدهای خود فرم در بازاریابی ← فرم‌ها)" })
 
 /** Shared landing widgets + ERP-only rahn-estimate. */
+function withIconCardHref(defs: WidgetDef[]): WidgetDef[] {
+  return defs.map((def) => {
+    if (def.type !== "icon-cards") return def
+    return {
+      ...def,
+      fields: def.fields.map((field) => {
+        if (field.kind !== "repeater" || field.key !== "items") return field
+        const hasHref = field.fields.some((f) => f.key === "href")
+        if (hasHref) return field
+        return {
+          ...field,
+          fields: [...field.fields, { key: "href", label: "پیوند (tel یا mailto یا https)", kind: "url" as const }],
+        }
+      }),
+    }
+  })
+}
+
 export const CONTENT_WIDGETS: WidgetDef[] = [
-  ...sharedContentWidgets(ICON_OPTIONS),
+  ...withIconCardHref(sharedContentWidgets(ICON_OPTIONS) as WidgetDef[]),
+  {
+    type: "callout",
+    label: "باکس توجه",
+    category: "content",
+    fields: [
+      { kind: "text", key: "title", label: "عنوان" },
+      { kind: "textarea", key: "text", label: "متن" },
+      { kind: "icon", key: "icon", label: "آیکن", options: ICON_OPTIONS },
+      { kind: "select", key: "variant", label: "ظاهر", options: [
+        { value: "soft", label: "نرم" },
+        { value: "solid", label: "توپر" },
+        { value: "outline", label: "خطی" },
+      ] },
+      { kind: "select", key: "tone", label: "رنگ", options: [
+        { value: "brand", label: "برند" },
+        { value: "info", label: "اطلاعات" },
+        { value: "success", label: "موفقیت" },
+        { value: "warning", label: "هشدار" },
+        { value: "muted", label: "خنثی" },
+      ] },
+      { kind: "text", key: "buttonLabel", label: "متن دکمه (اختیاری)" },
+      { kind: "link", key: "buttonHref", label: "پیوند دکمه" },
+    ],
+    create: () => node("callout", { title: "نکته مهم", text: "متن کوتاه راهنما یا توجه", icon: "badge", variant: "soft", tone: "brand", buttonLabel: "", buttonHref: "" }),
+  },
   {
     type: "rahn-estimate",
     label: "برآورد قیمت (رهن درصدی)",
