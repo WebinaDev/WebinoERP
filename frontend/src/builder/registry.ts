@@ -192,9 +192,18 @@ export const WIDGETS: WidgetDef[] = [
     category: "commerce",
     fields: [
       { kind: "text", key: "eyebrow", label: "برچسب اسلاید اول" },
-      { kind: "textarea", key: "slides", label: "اسلایدها (عنوان|برچسب|پیوند|تصویر|زیرعنوان در هر خط)" },
+      { kind: "switch", key: "imageOnly", label: "فقط عکس" },
+      { kind: "repeater", key: "slides", label: "اسلایدها", fields: [
+        { key: "title", label: "عنوان", kind: "text" },
+        { key: "kicker", label: "برچسب", kind: "text" },
+        { key: "href", label: "پیوند", kind: "url" },
+        { key: "image", label: "تصویر", kind: "media" },
+        { key: "sub", label: "زیرعنوان", kind: "text" },
+        { key: "cta", label: "متن دکمه", kind: "text" },
+        { key: "mobileImage", label: "عکس موبایل", kind: "media" },
+      ] },
     ],
-    create: () => node("hero-slider", {}),
+    create: () => node("hero-slider", { imageOnly: false, slides: "" }),
   },
   {
     type: "category-grid",
@@ -634,7 +643,7 @@ export const WIDGETS: WidgetDef[] = [
     label: "شبکه بنر",
     category: "basic",
     fields: [
-      { kind: "repeater", key: "items", label: "بنرها", fields: [{ key: "image", label: "تصویر", kind: "media" }, { key: "href", label: "پیوند", kind: "url" }, { key: "alt", label: "متن جایگزین", kind: "text" }] },
+      { kind: "repeater", key: "items", label: "بنرها", fields: [{ key: "image", label: "تصویر", kind: "media" }, { key: "href", label: "پیوند", kind: "url" }, { key: "alt", label: "متن جایگزین", kind: "text" }, { key: "mobileImage", label: "عکس موبایل", kind: "media" }] },
       { kind: "number", key: "columns", label: "ستون‌ها", min: 1, max: 4 },
       { kind: "select", key: "ratio", label: "نسبت تصویر", options: [
         { value: "16/7", label: "۱۶:۷" },
