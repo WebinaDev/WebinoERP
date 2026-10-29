@@ -1804,9 +1804,36 @@ class LocalSameVpsProvisioner
         return $recreate;
     }
 
+    /**
+     * If the running backend still keeps uploads inside its container layer (no bind mount on
+     * storage/app/public), copy them to the persistent host dir before the stack is recreated.
+     * Aborts the update when the copy fails so uploads are never lost.
+     */
+    protected function preserveContainerUploads(WebinoSiteProvision $provision): void
+    {
+        $dir = $this->siteDir($provision);
+        $target = $dir.'/storage-public';
+        $this->ensureDir($target);
+        $container = TenantSiteStack::backendService($provision->slug);
+        $inspect = $this->run(['docker', 'inspect', '--format', '{{range .Mounts}}{{.Destination}}\n{{end}}', $container], 30);
+        if ($inspect['exit_code'] !== 0) {
+            return; // container does not exist yet (fresh provision)
+        }
+        if (str_contains($inspect['stdout'], '/var/www/html/storage/app/public')) {
+            return; // already persistent
+        }
+        $cp = $this->run(['docker', 'cp', $container.':/var/www/html/storage/app/public/.', $target], 600);
+        if ($cp['exit_code'] !== 0) {
+            throw new RuntimeException('platform.uploads_preserve_failed: '.$container.' '.trim($cp['stderr']));
+        }
+        $this->run(['chown', '-R', '33:33', $target], 120);
+    }
+
     protected function rewriteComposeImages(WebinoSiteProvision $provision, string $channel): void
     {
         $dir = $this->siteDir($provision);
+        // Never let a compose rewrite hide uploads: copy them out of the running container first.
+        $this->preserveContainerUploads($provision);
         $compose = TenantSiteStack::composeYaml($provision->slug, $channel);
         $this->writeFile($dir.'/docker-compose.yml', $compose);
         // Keep the stored copy aligned so a later generic deploy cannot restore
