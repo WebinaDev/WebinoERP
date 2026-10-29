@@ -14,7 +14,7 @@ import {
   Gift,
   Headphones,
   Heart,
-  Instagram,
+  Camera,
   Link2,
   Mail,
   MapPin,
@@ -67,7 +67,7 @@ const ICONS: Record<string, LucideIcon> = {
   map: MapPin,
   location: MapPin,
   mail: Mail,
-  instagram: Instagram,
+  instagram: Camera,
   whatsapp: MessageCircle,
   telegram: Send,
 }
