@@ -54,4 +54,47 @@ class CoreReportsApiTest extends TestCase
         $response->assertOk();
         $this->assertStringContainsString('text/csv', (string) $response->headers->get('Content-Type'));
     }
+
+    public function test_each_report_tab_returns_stats_shape(): void
+    {
+        $user = $this->actingAsRole(RolesAndPermissionsSeeder::ROLE_SYSTEM_MANAGER);
+        Sanctum::actingAs($user);
+
+        foreach (['overview', 'sales', 'team', 'customers', 'finance', 'tasks', 'tickets', 'agile', 'sites', 'marketing', 'notifications'] as $tab) {
+            $response = $this->getJson('/api/v1/core/reports?tab='.$tab.'&from=2026-01-01&to=2026-12-31');
+            $response->assertOk()
+                ->assertJsonPath('data.tab', $tab)
+                ->assertJsonStructure([
+                    'data' => [
+                        'stats',
+                        'charts',
+                        'tables',
+                        'range',
+                        'filters',
+                    ],
+                ]);
+        }
+    }
+
+    public function test_tickets_tab_includes_assignee_table(): void
+    {
+        $user = $this->actingAsRole(RolesAndPermissionsSeeder::ROLE_SYSTEM_MANAGER);
+        Sanctum::actingAs($user);
+
+        $response = $this->getJson('/api/v1/core/reports?tab=tickets&from=2026-01-01&to=2026-12-31');
+        $response->assertOk()
+            ->assertJsonStructure([
+                'data' => [
+                    'stats' => [
+                        'total_tickets',
+                        'tickets_closed',
+                        'open_tickets',
+                    ],
+                    'tables' => [
+                        'tickets_by_status',
+                        'recent_tickets',
+                    ],
+                ],
+            ]);
+    }
 }

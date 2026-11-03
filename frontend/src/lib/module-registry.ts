@@ -40,7 +40,13 @@ export type ErpModuleDef = {
 /** Shared dashboard home items (not tied to a toggle except dashboard module). */
 export const ERP_DASHBOARD_ITEMS: ErpMenuItemDef[] = [
   { id: 'dashboard', path: '', titleKey: 'nav.erp.dashboard', icon: 'ri-home-4-line' },
-  { id: 'reports', path: 'reports', titleKey: 'nav.erp.reports', icon: 'ri-bar-chart-box-line' },
+  {
+    id: 'reports',
+    path: 'reports',
+    titleKey: 'nav.erp.reports',
+    icon: 'ri-bar-chart-box-line',
+    requiredPermission: 'core.dashboard.reports',
+  },
 ]
 
 const MODIRPAYAMAK_CHILDREN: ErpMenuItemDef[] = [

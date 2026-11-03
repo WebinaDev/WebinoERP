@@ -21,11 +21,15 @@ export type ReportsPayload = {
   date_from?: string;
   date_to?: string;
   range?: { from?: string; to?: string };
+  filters?: { status?: string | null; site?: string | null };
+  filter_options?: { statuses?: string[] };
   stats?: Record<string, unknown>;
   charts?: {
     daily?: { date?: string; day?: string; total?: number; contracts?: number; tasks?: number; tickets?: number; projects?: number }[];
     monthly?: { month?: string; total?: number; contracts?: number; tasks?: number; tickets?: number; projects?: number }[];
     status_distribution?: { label: string; count: number }[];
+    priority_distribution?: { label: string; count: number }[];
+    member_activity?: { label: string; count: number }[];
   };
   tables?: Record<string, Record<string, unknown>[]>;
   contracts_total?: number;
@@ -35,6 +39,27 @@ export type ReportsPayload = {
   sprints_started?: number;
   series?: Record<string, { day: string; count: number }[]>;
 };
+
+/** Tabs that support a status filter in the shared toolbar. */
+export const TABS_WITH_STATUS_FILTER: ReportTabId[] = [
+  'sales',
+  'team',
+  'finance',
+  'tasks',
+  'tickets',
+  'agile',
+  'sites',
+  'notifications',
+];
+
+export const TABS_WITH_SITE_FILTER: ReportTabId[] = ['sites'];
+
+export const MONEY_STAT_KEYS =
+  /revenue|value|invoice_total|lifetime_value|total_value|avg_customer|avg_deal|avg_contract|paid_invoice|receipts_total|amount|total_revenue/;
+
+export function isMoneyKey(key: string): boolean {
+  return MONEY_STAT_KEYS.test(key.toLowerCase());
+}
 
 export function downloadBlob(blob: Blob, filename: string) {
   const url = window.URL.createObjectURL(blob);

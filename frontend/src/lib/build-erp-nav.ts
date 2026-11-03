@@ -72,7 +72,7 @@ export function buildErpNavigation(
       title: t('nav.erp.dashboard'),
       path: '',
       icon: 'ri-home-4-line',
-      children: ERP_DASHBOARD_ITEMS.map((item) => ({
+      children: ERP_DASHBOARD_ITEMS.filter((item) => allow(item.requiredPermission)).map((item) => ({
         id: item.id,
         title: t(item.titleKey),
         path: item.path,

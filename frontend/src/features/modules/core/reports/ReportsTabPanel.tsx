@@ -6,16 +6,28 @@ import {
   Megaphone, Percent, Receipt, Ticket, TrendingUp, Users, Wallet, type LucideIcon,
 } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { LocaleBarChart } from '@/components/charts/LocaleCharts';
+import { LocaleBarChart, LocaleDonutChart } from '@/components/charts/LocaleCharts';
 import { useLocale } from '@/hooks/use-locale-next';
 import { formatChartAxis } from '@/lib/locale/calendar-date';
+import { formatMoney } from '@/lib/money';
 import { localizeToken } from '@/features/modules/dashboard/localize';
-import type { ReportsPayload } from './types';
+import { isMoneyKey, type ReportsPayload } from './types';
 
 type Props = {
   tab: string;
   payload: ReportsPayload;
 };
+
+const DONUT_COLORS = [
+  'var(--color-primary)',
+  'oklch(0.65 0.15 160)',
+  'oklch(0.7 0.14 50)',
+  'oklch(0.62 0.18 25)',
+  'oklch(0.58 0.14 280)',
+  'oklch(0.68 0.12 220)',
+  'oklch(0.72 0.1 100)',
+  'oklch(0.55 0.08 30)',
+];
 
 function looksLikeIsoDate(value: unknown): boolean {
   if (typeof value !== 'string' || !value.trim()) return false;
@@ -28,20 +40,20 @@ function isDateKey(key: string): boolean {
 }
 
 const STAT_ICONS: { match: RegExp; icon: LucideIcon; tone: string }[] = [
-  { match: /rate|retention/, icon: Percent, tone: 'bg-violet-500/10 text-violet-600' },
-  { match: /revenue|value|invoice_total/, icon: BadgeDollarSign, tone: 'bg-emerald-500/10 text-emerald-600' },
-  { match: /invoice|receipt/, icon: Receipt, tone: 'bg-amber-500/10 text-amber-600' },
-  { match: /contract/, icon: FileText, tone: 'bg-sky-500/10 text-sky-600' },
-  { match: /lead|customer/, icon: Users, tone: 'bg-primary/10 text-primary' },
-  { match: /completed|closed|ready/, icon: CheckCircle2, tone: 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400' },
-  { match: /task/, icon: ListChecks, tone: 'bg-primary/10 text-primary' },
-  { match: /hour|minute|time|response/, icon: Clock, tone: 'bg-orange-500/10 text-orange-600' },
-  { match: /ticket/, icon: Ticket, tone: 'bg-rose-500/10 text-rose-600' },
-  { match: /project|sprint/, icon: FolderKanban, tone: 'bg-indigo-500/10 text-indigo-600' },
-  { match: /site/, icon: Globe, tone: 'bg-cyan-500/10 text-cyan-600' },
-  { match: /notification|unread/, icon: Bell, tone: 'bg-yellow-500/10 text-yellow-600' },
-  { match: /page|post|form|announce|content/, icon: Megaphone, tone: 'bg-pink-500/10 text-pink-600' },
-  { match: /wallet|balance/, icon: Wallet, tone: 'bg-emerald-500/10 text-emerald-600' },
+  { match: /rate|retention/, icon: Percent, tone: 'bg-violet-500/10 text-violet-600 dark:text-violet-400' },
+  { match: /revenue|value|invoice_total|paid_invoice|receipts_total|amount/, icon: BadgeDollarSign, tone: 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400' },
+  { match: /invoice|receipt/, icon: Receipt, tone: 'bg-amber-500/10 text-amber-600 dark:text-amber-400' },
+  { match: /contract/, icon: FileText, tone: 'bg-sky-500/10 text-sky-600 dark:text-sky-400' },
+  { match: /lead|customer|member/, icon: Users, tone: 'bg-primary/10 text-primary' },
+  { match: /completed|closed|ready|read_/, icon: CheckCircle2, tone: 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400' },
+  { match: /task|overdue|open_/, icon: ListChecks, tone: 'bg-primary/10 text-primary' },
+  { match: /hour|minute|time|response/, icon: Clock, tone: 'bg-orange-500/10 text-orange-600 dark:text-orange-400' },
+  { match: /ticket|sla/, icon: Ticket, tone: 'bg-rose-500/10 text-rose-600 dark:text-rose-400' },
+  { match: /project|sprint/, icon: FolderKanban, tone: 'bg-indigo-500/10 text-indigo-600 dark:text-indigo-400' },
+  { match: /site/, icon: Globe, tone: 'bg-cyan-500/10 text-cyan-600 dark:text-cyan-400' },
+  { match: /notification|unread/, icon: Bell, tone: 'bg-yellow-500/10 text-yellow-600 dark:text-yellow-400' },
+  { match: /page|post|form|announce|content/, icon: Megaphone, tone: 'bg-pink-500/10 text-pink-600 dark:text-pink-400' },
+  { match: /wallet|balance/, icon: Wallet, tone: 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400' },
   { match: /trend|growth/, icon: TrendingUp, tone: 'bg-primary/10 text-primary' },
 ];
 
@@ -49,6 +61,12 @@ function statIcon(key: string) {
   return STAT_ICONS.find((s) => s.match.test(key)) ?? { icon: Activity, tone: 'bg-muted text-muted-foreground', match: /./ };
 }
 
+function moneyText(value: unknown, locale: string): string {
+  return formatMoney(typeof value === 'number' ? value : Number(value), {
+    locale,
+    alreadyDisplay: true,
+  });
+}
 
 function StatGrid({ stats, keys }: { stats: Record<string, unknown>; keys: { key: string; label: string }[] }) {
   const { formatNumber, formatDate, formatDigits, locale } = useLocale();
@@ -61,20 +79,23 @@ function StatGrid({ stats, keys }: { stats: Record<string, unknown>; keys: { key
     if (isDateKey(key) && looksLikeIsoDate(value)) {
       return formatDate(String(value)) || formatDigits(String(value));
     }
-    if (typeof value === 'number') {
-      const text = formatNumber(value);
+    if (typeof value === 'number' || (typeof value === 'string' && /^-?\d+(\.\d+)?$/.test(value.trim()))) {
+      const num = typeof value === 'number' ? value : Number(value);
+      if (isMoneyKey(key)) return moneyText(num, locale);
+      const text = formatNumber(num);
       return key.includes('rate') ? `${text}${percent}` : text;
-    }
-    if (typeof value === 'string' && value.trim() !== '' && !Number.isNaN(Number(value)) && /^-?\d+(\.\d+)?$/.test(value.trim())) {
-      return formatNumber(Number(value));
     }
     return localizeToken(String(value), (token) => tDash(token as 'badges.open'), formatDigits);
   };
 
+  const visible = keys.filter(({ key }) => key in stats);
+  if (visible.length === 0) {
+    return <p className="py-6 text-center text-sm text-muted-foreground">{tCommon('emptyValue')}</p>;
+  }
+
   return (
     <div className="grid grid-cols-2 gap-2 sm:gap-3 lg:grid-cols-3 xl:grid-cols-4">
-      {keys.map(({ key, label }) => {
-        if (!(key in stats)) return null;
+      {visible.map(({ key, label }) => {
         const { icon: Icon, tone } = statIcon(key);
         return (
           <div key={key} className="flex min-w-0 items-center gap-3 rounded-xl border bg-card p-3 sm:p-4">
@@ -117,7 +138,11 @@ function DataTable({
     ) {
       return key.endsWith('_at') ? formatDateTime(String(value)) || formatDigits(String(value)) : formatDate(String(value)) || formatDigits(String(value));
     }
-    if (typeof value === 'number') return formatNumber(value);
+    if (typeof value === 'number' || (typeof value === 'string' && /^-?\d+(\.\d+)?$/.test(String(value).trim()))) {
+      const num = typeof value === 'number' ? value : Number(value);
+      if (isMoneyKey(key) || key === 'total') return moneyText(num, locale);
+      return formatNumber(num);
+    }
     if (key === 'reason') {
       return String(value)
         .split(',')
@@ -168,16 +193,70 @@ function DataTable({
   );
 }
 
-function ChartBars({ rows }: { rows: { label: string; value: number }[] }) {
+function ChartBars({ title, rows }: { title: string; rows: { label: string; value: number }[] }) {
   const { locale } = useLocale();
+  const tCommon = useTranslations('common');
   const axis = locale === 'fa' ? 'fa' : 'en';
+  if (!rows.length) {
+    return (
+      <Card>
+        <CardHeader className="py-3">
+          <CardTitle className="text-base">{title}</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <p className="py-6 text-center text-sm text-muted-foreground">{tCommon('emptyValue')}</p>
+        </CardContent>
+      </Card>
+    );
+  }
   return (
-    <LocaleBarChart
-      data={rows.map((row) => ({
-        label: formatChartAxis(row.label, axis),
-        value: row.value,
-      }))}
-    />
+    <Card>
+      <CardHeader className="py-3">
+        <CardTitle className="text-base">{title}</CardTitle>
+      </CardHeader>
+      <CardContent>
+        <LocaleBarChart
+          data={rows.map((row) => ({
+            label: formatChartAxis(row.label, axis),
+            value: row.value,
+          }))}
+        />
+      </CardContent>
+    </Card>
+  );
+}
+
+function ChartDonut({ title, rows }: { title: string; rows: { label: string; count: number }[] }) {
+  const { formatDigits } = useLocale();
+  const tDash = useTranslations('dashboard');
+  const tCommon = useTranslations('common');
+  if (!rows.length) {
+    return (
+      <Card>
+        <CardHeader className="py-3">
+          <CardTitle className="text-base">{title}</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <p className="py-6 text-center text-sm text-muted-foreground">{tCommon('emptyValue')}</p>
+        </CardContent>
+      </Card>
+    );
+  }
+  return (
+    <Card>
+      <CardHeader className="py-3">
+        <CardTitle className="text-base">{title}</CardTitle>
+      </CardHeader>
+      <CardContent>
+        <LocaleDonutChart
+          segments={rows.map((row, i) => ({
+            label: localizeToken(row.label, (token) => tDash(token as 'badges.open'), formatDigits),
+            value: row.count,
+            color: DONUT_COLORS[i % DONUT_COLORS.length],
+          }))}
+        />
+      </CardContent>
+    </Card>
   );
 }
 
@@ -210,6 +289,10 @@ export function ReportsTabPanel({ tab, payload }: Props) {
     revenue: t('columns.revenue'),
     entry_count: t('columns.entry_count'),
     status: t('columns.status'),
+    priority: tPages('col_priority'),
+    number: tPages('col_number'),
+    starts: tPages('col_starts'),
+    ends: tPages('col_ends'),
   };
 
   if (tab === 'sales') {
@@ -220,9 +303,21 @@ export function ReportsTabPanel({ tab, payload }: Props) {
           keys={[
             { key: 'total_contracts', label: t('metrics.contracts_total') },
             { key: 'total_revenue', label: t('statLabels.total_revenue') },
+            { key: 'avg_deal_size', label: tPages('avg_deal') },
             { key: 'total_leads', label: t('statLabels.total_leads') },
+            { key: 'conversion_rate', label: tPages('conversion_rate') },
           ]}
         />
+        <div className="grid gap-4 lg:grid-cols-2">
+          <ChartBars
+            title={tPages('chart_monthly')}
+            rows={(charts?.monthly ?? []).map((m) => ({ label: String(m.month ?? ''), value: Number(m.total ?? m.contracts ?? 0) }))}
+          />
+          <ChartDonut
+            title={tPages('by_status')}
+            rows={(charts?.status_distribution ?? []).map((r) => ({ label: r.label, count: r.count }))}
+          />
+        </div>
         <DataTable
           title={tPages('sales_by_month')}
           rows={(tables.sales_by_month as Record<string, unknown>[]) ?? []}
@@ -248,6 +343,26 @@ export function ReportsTabPanel({ tab, payload }: Props) {
   if (tab === 'team') {
     return (
       <div className="space-y-4">
+        <StatGrid
+          stats={stats}
+          keys={[
+            { key: 'total_tasks', label: t('statLabels.total_tasks') },
+            { key: 'completed_tasks', label: t('metrics.tasks_completed') },
+            { key: 'task_completion_rate', label: tPages('completion_rate') },
+            { key: 'active_members', label: tPages('active_members') },
+            { key: 'total_time_hours', label: tPages('total_hours') },
+          ]}
+        />
+        <div className="grid gap-4 lg:grid-cols-2">
+          <ChartBars
+            title={tPages('tasks_by_member')}
+            rows={(charts?.member_activity ?? []).map((r) => ({ label: r.label, value: r.count }))}
+          />
+          <ChartDonut
+            title={tPages('by_status')}
+            rows={(charts?.status_distribution ?? []).map((r) => ({ label: r.label, count: r.count }))}
+          />
+        </div>
         <DataTable
           title={tPages('tasks_by_member')}
           rows={(tables.tasks_by_member as Record<string, unknown>[]) ?? []}
@@ -279,9 +394,16 @@ export function ReportsTabPanel({ tab, payload }: Props) {
           stats={stats}
           keys={[
             { key: 'new_customers', label: tPages('new_customers') },
+            { key: 'unique_customers', label: tPages('unique_customers') },
+            { key: 'total_leads', label: t('statLabels.total_leads') },
             { key: 'retention_rate', label: tPages('retention') },
             { key: 'avg_customer_value', label: tPages('avg_ltv') },
+            { key: 'total_revenue', label: t('statLabels.total_revenue') },
           ]}
+        />
+        <ChartBars
+          title={tPages('chart_monthly')}
+          rows={(charts?.monthly ?? []).map((m) => ({ label: String(m.month ?? ''), value: Number(m.total ?? m.contracts ?? 0) }))}
         />
         <DataTable
           title={t('ltvTable')}
@@ -290,6 +412,14 @@ export function ReportsTabPanel({ tab, payload }: Props) {
             { key: 'customer_name', label: cols.customer },
             { key: 'total_contracts', label: cols.contract },
             { key: 'lifetime_value', label: cols.value },
+          ]}
+        />
+        <DataTable
+          title={tPages('leads_by_status')}
+          rows={(tables.leads_by_status as Record<string, unknown>[]) ?? []}
+          columns={[
+            { key: 'status', label: cols.status },
+            { key: 'count', label: cols.count },
           ]}
         />
       </div>
@@ -304,22 +434,44 @@ export function ReportsTabPanel({ tab, payload }: Props) {
           keys={[
             { key: 'total_revenue', label: t('statLabels.total_revenue') },
             { key: 'total_contracts', label: t('metrics.contracts_total') },
+            { key: 'avg_contract_value', label: tPages('avg_deal') },
             { key: 'invoice_count', label: tDash('ops.invoices') },
             { key: 'invoice_total', label: tDash('ops.invoiceTotal') },
             { key: 'open_invoices', label: tDash('ops.openInvoices') },
+            { key: 'paid_invoice_total', label: tPages('paid_total') },
             { key: 'receipts_count', label: tDash('ops.receipts') },
+            { key: 'receipts_total', label: tPages('receipts_total') },
           ]}
         />
-        {(charts?.monthly?.length ?? 0) > 0 ? (
-          <Card>
-            <CardHeader className="py-3">
-              <CardTitle className="text-base">{tPages('chart_monthly')}</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <ChartBars rows={(charts?.monthly ?? []).map((m) => ({ label: String(m.month ?? ''), value: Number(m.total ?? m.contracts ?? 0) }))} />
-            </CardContent>
-          </Card>
-        ) : null}
+        <div className="grid gap-4 lg:grid-cols-2">
+          <ChartBars
+            title={tPages('chart_monthly')}
+            rows={(charts?.monthly ?? []).map((m) => ({ label: String(m.month ?? ''), value: Number(m.total ?? m.contracts ?? 0) }))}
+          />
+          <ChartDonut
+            title={tPages('by_status')}
+            rows={(charts?.status_distribution ?? []).map((r) => ({ label: r.label, count: r.count }))}
+          />
+        </div>
+        <DataTable
+          title={tPages('invoices_by_status')}
+          rows={(tables.invoices_by_status as Record<string, unknown>[]) ?? []}
+          columns={[
+            { key: 'status', label: cols.status },
+            { key: 'count', label: cols.count },
+            { key: 'total', label: cols.total },
+          ]}
+        />
+        <DataTable
+          title={tPages('recent_invoices')}
+          rows={(tables.recent_invoices as Record<string, unknown>[]) ?? []}
+          columns={[
+            { key: 'number', label: cols.number },
+            { key: 'status', label: cols.status },
+            { key: 'total', label: cols.total },
+            { key: 'created_at', label: cols.when },
+          ]}
+        />
       </div>
     );
   }
@@ -332,8 +484,28 @@ export function ReportsTabPanel({ tab, payload }: Props) {
           keys={[
             { key: 'total_tasks', label: t('statLabels.total_tasks') },
             { key: 'completed_tasks', label: t('metrics.tasks_completed') },
+            { key: 'open_tasks', label: tPages('open_tasks') },
+            { key: 'overdue_tasks', label: tPages('overdue_tasks') },
             { key: 'task_completion_rate', label: tPages('completion_rate') },
             { key: 'total_time_hours', label: tPages('total_hours') },
+          ]}
+        />
+        <div className="grid gap-4 lg:grid-cols-2">
+          <ChartDonut
+            title={tPages('by_status')}
+            rows={(charts?.status_distribution ?? []).map((r) => ({ label: r.label, count: r.count }))}
+          />
+          <ChartBars
+            title={tPages('chart_daily')}
+            rows={(charts?.daily ?? []).slice(-14).map((d) => ({ label: String(d.date ?? d.day ?? ''), value: Number(d.total ?? 0) }))}
+          />
+        </div>
+        <DataTable
+          title={tPages('tasks_by_status')}
+          rows={(tables.tasks_by_status as Record<string, unknown>[]) ?? []}
+          columns={[
+            { key: 'status', label: cols.status },
+            { key: 'count', label: cols.count },
           ]}
         />
         <DataTable
@@ -351,14 +523,51 @@ export function ReportsTabPanel({ tab, payload }: Props) {
 
   if (tab === 'tickets') {
     return (
-      <StatGrid
-        stats={stats}
-        keys={[
-          { key: 'total_tickets', label: t('statLabels.total_tickets') },
-          { key: 'tickets_closed', label: t('metrics.tickets_closed') },
-          { key: 'avg_response_time', label: tPages('avg_response') },
-        ]}
-      />
+      <div className="space-y-4">
+        <StatGrid
+          stats={stats}
+          keys={[
+            { key: 'total_tickets', label: t('statLabels.total_tickets') },
+            { key: 'tickets_closed', label: t('metrics.tickets_closed') },
+            { key: 'open_tickets', label: tPages('open_tickets') },
+            { key: 'sla_breaches', label: tPages('sla_breaches') },
+            { key: 'avg_response_time', label: tPages('avg_response') },
+            { key: 'close_rate', label: tPages('close_rate') },
+          ]}
+        />
+        <div className="grid gap-4 lg:grid-cols-2">
+          <ChartDonut
+            title={tPages('by_status')}
+            rows={(charts?.status_distribution ?? []).map((r) => ({ label: r.label, count: r.count }))}
+          />
+          <ChartDonut
+            title={tPages('by_priority')}
+            rows={(charts?.priority_distribution ?? []).map((r) => ({ label: r.label, count: r.count }))}
+          />
+        </div>
+        <ChartBars
+          title={tPages('chart_daily')}
+          rows={(charts?.daily ?? []).slice(-14).map((d) => ({ label: String(d.date ?? ''), value: Number(d.total ?? 0) }))}
+        />
+        <DataTable
+          title={tPages('tickets_by_assignee')}
+          rows={(tables.tickets_by_assignee as Record<string, unknown>[]) ?? []}
+          columns={[
+            { key: 'user_name', label: cols.member },
+            { key: 'count', label: cols.count },
+          ]}
+        />
+        <DataTable
+          title={tPages('recent_tickets')}
+          rows={(tables.recent_tickets as Record<string, unknown>[]) ?? []}
+          columns={[
+            { key: 'title', label: cols.title },
+            { key: 'status', label: cols.status },
+            { key: 'priority', label: cols.priority },
+            { key: 'created_at', label: cols.when },
+          ]}
+        />
+      </div>
     );
   }
 
@@ -372,18 +581,38 @@ export function ReportsTabPanel({ tab, payload }: Props) {
             { key: 'active_projects', label: tPages('active_projects') },
             { key: 'task_completion_rate', label: tPages('completion_rate') },
             { key: 'sprints_started', label: t('metrics.sprints_started') },
+            { key: 'sprints_active', label: tPages('sprints_active') },
+            { key: 'completed_tasks', label: t('metrics.tasks_completed') },
           ]}
         />
-        {(charts?.monthly?.length ?? 0) > 0 ? (
-          <Card>
-            <CardHeader className="py-3">
-              <CardTitle className="text-base">{tPages('chart_monthly')}</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <ChartBars rows={(charts?.monthly ?? []).map((m) => ({ label: String(m.month ?? ''), value: Number(m.total ?? 0) }))} />
-            </CardContent>
-          </Card>
-        ) : null}
+        <div className="grid gap-4 lg:grid-cols-2">
+          <ChartBars
+            title={tPages('chart_monthly')}
+            rows={(charts?.monthly ?? []).map((m) => ({ label: String(m.month ?? ''), value: Number(m.total ?? 0) }))}
+          />
+          <ChartDonut
+            title={tPages('by_status')}
+            rows={(charts?.status_distribution ?? []).map((r) => ({ label: r.label, count: r.count }))}
+          />
+        </div>
+        <DataTable
+          title={tPages('projects_by_status')}
+          rows={(tables.projects_by_status as Record<string, unknown>[]) ?? []}
+          columns={[
+            { key: 'status', label: cols.status },
+            { key: 'count', label: cols.count },
+          ]}
+        />
+        <DataTable
+          title={tPages('recent_sprints')}
+          rows={(tables.recent_sprints as Record<string, unknown>[]) ?? []}
+          columns={[
+            { key: 'title', label: cols.title },
+            { key: 'status', label: cols.status },
+            { key: 'starts_at', label: cols.starts },
+            { key: 'ends_at', label: cols.ends },
+          ]}
+        />
       </div>
     );
   }
@@ -401,6 +630,10 @@ export function ReportsTabPanel({ tab, payload }: Props) {
             { key: 'sites_created', label: t('statLabels.sites_created') },
           ]}
         />
+        <ChartDonut
+          title={tPages('by_status')}
+          rows={(charts?.status_distribution ?? []).map((r) => ({ label: r.label, count: r.count }))}
+        />
         <DataTable
           title={tPages('problem_sites')}
           rows={(tables.problem_sites as Record<string, unknown>[]) ?? []}
@@ -408,6 +641,15 @@ export function ReportsTabPanel({ tab, payload }: Props) {
             { key: 'domain', label: cols.domain },
             { key: 'status', label: cols.status },
             { key: 'reason', label: cols.reason },
+          ]}
+        />
+        <DataTable
+          title={tPages('recent_sites')}
+          rows={(tables.recent_sites as Record<string, unknown>[]) ?? []}
+          columns={[
+            { key: 'domain', label: cols.domain },
+            { key: 'status', label: cols.status },
+            { key: 'created_at', label: cols.when },
           ]}
         />
       </div>
@@ -428,16 +670,26 @@ export function ReportsTabPanel({ tab, payload }: Props) {
             { key: 'leads_in_range', label: t('statLabels.total_leads') },
           ]}
         />
-        {(charts?.daily?.length ?? 0) > 0 ? (
-          <Card>
-            <CardHeader className="py-3">
-              <CardTitle className="text-base">{tPages('chart_submissions')}</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <ChartBars rows={(charts?.daily ?? []).map((row) => ({ label: String(row.date ?? ''), value: Number(row.total ?? 0) }))} />
-            </CardContent>
-          </Card>
-        ) : null}
+        <ChartBars
+          title={tPages('chart_submissions')}
+          rows={(charts?.daily ?? []).map((row) => ({ label: String(row.date ?? ''), value: Number(row.total ?? 0) }))}
+        />
+        <DataTable
+          title={tPages('submissions_by_form')}
+          rows={(tables.submissions_by_form as Record<string, unknown>[]) ?? []}
+          columns={[
+            { key: 'title', label: cols.title },
+            { key: 'count', label: cols.count },
+          ]}
+        />
+        <DataTable
+          title={tPages('leads_by_status')}
+          rows={(tables.leads_by_status as Record<string, unknown>[]) ?? []}
+          columns={[
+            { key: 'status', label: cols.status },
+            { key: 'count', label: cols.count },
+          ]}
+        />
       </div>
     );
   }
@@ -450,7 +702,13 @@ export function ReportsTabPanel({ tab, payload }: Props) {
           keys={[
             { key: 'notifications_total', label: tDash('ops.notifications') },
             { key: 'unread_notifications', label: tDash('ops.unread') },
+            { key: 'read_notifications', label: tPages('read_count') },
+            { key: 'read_rate', label: tPages('read_rate') },
           ]}
+        />
+        <ChartBars
+          title={tPages('chart_daily')}
+          rows={(charts?.daily ?? []).slice(-14).map((d) => ({ label: String(d.date ?? ''), value: Number(d.total ?? 0) }))}
         />
         <DataTable
           title={tPages('recent_notifications')}
@@ -483,15 +741,21 @@ export function ReportsTabPanel({ tab, payload }: Props) {
           { key: 'invoice_total', label: tDash('ops.invoiceTotal') },
         ]}
       />
-      {(charts?.daily?.length ?? 0) > 0 ? (
-        <Card>
-          <CardHeader className="py-3">
-            <CardTitle className="text-base">{tPages('chart_daily')}</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <ChartBars rows={(charts?.daily ?? []).slice(-14).map((d) => ({ label: String(d.date ?? d.day ?? ''), value: Number(d.total ?? 0) }))} />
-          </CardContent>
-        </Card>
+      <div className="grid gap-4 lg:grid-cols-2">
+        <ChartBars
+          title={tPages('chart_daily')}
+          rows={(charts?.daily ?? []).slice(-14).map((d) => ({ label: String(d.date ?? d.day ?? ''), value: Number(d.total ?? 0) }))}
+        />
+        <ChartBars
+          title={tPages('chart_monthly')}
+          rows={(charts?.monthly ?? []).map((m) => ({ label: String(m.month ?? ''), value: Number(m.total ?? 0) }))}
+        />
+      </div>
+      {(charts?.status_distribution?.length ?? 0) > 0 ? (
+        <ChartDonut
+          title={tPages('by_status')}
+          rows={(charts?.status_distribution ?? []).map((r) => ({ label: r.label, count: r.count }))}
+        />
       ) : null}
       <DataTable
         title={tPages('leads_by_status')}
@@ -501,6 +765,17 @@ export function ReportsTabPanel({ tab, payload }: Props) {
           { key: 'count', label: cols.count },
         ]}
       />
+      {(tables.problem_sites?.length ?? 0) > 0 ? (
+        <DataTable
+          title={tPages('problem_sites')}
+          rows={(tables.problem_sites as Record<string, unknown>[]) ?? []}
+          columns={[
+            { key: 'domain', label: cols.domain },
+            { key: 'status', label: cols.status },
+            { key: 'reason', label: cols.reason },
+          ]}
+        />
+      ) : null}
     </div>
   );
 }

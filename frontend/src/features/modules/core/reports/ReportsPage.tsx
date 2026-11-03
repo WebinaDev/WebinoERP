@@ -1,21 +1,26 @@
 'use client';
 
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useTranslations } from 'next-intl';
 import apiClient from '@/lib/api-client';
 import { unwrapData, getAxiosMessage } from '@/lib/api-helpers';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
+import { Input } from '@/components/ui/input';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { LocaleDatePicker } from '@/components/ui/locale-date-picker';
-import { BarChart3, CalendarDays, FileJson, FileSpreadsheet, Printer, RefreshCw } from 'lucide-react';
+import { BarChart3, CalendarDays, FileJson, FileSpreadsheet, Filter, Printer, RefreshCw } from 'lucide-react';
 import { useLocale } from '@/hooks/use-locale';
 import { jalaliMonthIsoRange } from '@/lib/locale/calendar-date';
 import { ReportsTabPanel } from './ReportsTabPanel';
 import {
   REPORT_TAB_IDS,
+  TABS_WITH_SITE_FILTER,
+  TABS_WITH_STATUS_FILTER,
   clientCsvFromPayload,
   downloadBlob,
+  type ReportTabId,
   type ReportsPayload,
 } from './types';
 
@@ -28,6 +33,12 @@ function todayIso(): string {
   return new Date().toISOString().slice(0, 10);
 }
 
+function daysAgoIso(days: number): string {
+  const d = new Date();
+  d.setDate(d.getDate() - days);
+  return d.toISOString().slice(0, 10);
+}
+
 export function ReportsPage() {
   const t = useTranslations('reports');
   const tPages = useTranslations('pages.reports');
@@ -37,9 +48,19 @@ export function ReportsPage() {
   const [tab, setTab] = useState<string>('overview');
   const [from, setFrom] = useState<string | null>(initial.from);
   const [to, setTo] = useState<string | null>(locale === 'fa' && initial.to > todayIso() ? todayIso() : initial.to);
+  const [status, setStatus] = useState<string>('all');
+  const [site, setSite] = useState('');
   const [payload, setPayload] = useState<ReportsPayload | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
+
+  const showStatus = TABS_WITH_STATUS_FILTER.includes(tab as ReportTabId);
+  const showSite = TABS_WITH_SITE_FILTER.includes(tab as ReportTabId);
+
+  const statusOptions = useMemo(() => {
+    const fromPayload = payload?.filter_options?.statuses ?? [];
+    return fromPayload.filter((s) => s && s !== 'all');
+  }, [payload?.filter_options?.statuses]);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -52,6 +73,8 @@ export function ReportsPage() {
           to: to ?? undefined,
           date_from: from ?? undefined,
           date_to: to ?? undefined,
+          status: showStatus && status !== 'all' ? status : undefined,
+          site: showSite && site.trim() ? site.trim() : undefined,
         },
       });
       setPayload(unwrapData<ReportsPayload>(res));
@@ -61,11 +84,16 @@ export function ReportsPage() {
     } finally {
       setLoading(false);
     }
-  }, [tab, from, to]);
+  }, [tab, from, to, status, site, showStatus, showSite]);
 
   useEffect(() => {
     void load();
   }, [load]);
+
+  useEffect(() => {
+    setStatus('all');
+    setSite('');
+  }, [tab]);
 
   const range = payload?.range ?? { from: from ?? undefined, to: to ?? undefined };
 
@@ -79,6 +107,8 @@ export function ReportsPage() {
           to: to ?? undefined,
           date_from: from ?? undefined,
           date_to: to ?? undefined,
+          status: showStatus && status !== 'all' ? status : undefined,
+          site: showSite && site.trim() ? site.trim() : undefined,
         },
         responseType: 'blob',
       });
@@ -104,7 +134,7 @@ export function ReportsPage() {
     if (locale === 'fa') {
       const range = jalaliMonthIsoRange(0);
       setFrom(range.from);
-      setTo(range.to);
+      setTo(range.to > todayIso() ? todayIso() : range.to);
       return;
     }
     const d = new Date();
@@ -122,6 +152,11 @@ export function ReportsPage() {
     const d = new Date();
     setFrom(new Date(d.getFullYear(), d.getMonth() - 1, 1).toISOString().slice(0, 10));
     setTo(new Date(d.getFullYear(), d.getMonth(), 0).toISOString().slice(0, 10));
+  }
+
+  function setPresetDays(days: number) {
+    setFrom(daysAgoIso(days - 1));
+    setTo(todayIso());
   }
 
   return (
@@ -158,7 +193,7 @@ export function ReportsPage() {
 
       <Card className="min-w-0 overflow-hidden rounded-2xl">
         <CardContent className="space-y-4 p-3 sm:p-5">
-          <div className="grid grid-cols-2 gap-3 rounded-xl bg-muted/40 p-3 md:grid-cols-[minmax(0,1fr)_minmax(0,1fr)_auto] md:items-end lg:grid-cols-[minmax(0,14rem)_minmax(0,14rem)_1fr_auto]">
+          <div className="grid grid-cols-2 gap-3 rounded-xl bg-muted/40 p-3 md:grid-cols-[minmax(0,1fr)_minmax(0,1fr)_auto] md:items-end lg:grid-cols-[minmax(0,12rem)_minmax(0,12rem)_1fr_auto]">
             <label className="min-w-0 space-y-1">
               <span className="flex items-center gap-1 text-xs font-medium text-muted-foreground">
                 <CalendarDays className="size-3.5" />
@@ -173,7 +208,13 @@ export function ReportsPage() {
               </span>
               <LocaleDatePicker value={to} onChange={setTo} className="w-full" />
             </label>
-            <div className="col-span-2 grid grid-cols-2 gap-2 md:col-span-1 md:flex lg:justify-start">
+            <div className="col-span-2 grid grid-cols-2 gap-2 sm:grid-cols-4 md:col-span-1 md:flex md:flex-wrap lg:justify-start">
+              <Button type="button" variant="outline" size="sm" className="h-9" onClick={() => setPresetDays(7)}>
+                {tPages('preset7d')}
+              </Button>
+              <Button type="button" variant="outline" size="sm" className="h-9" onClick={() => setPresetDays(30)}>
+                {tPages('preset30d')}
+              </Button>
               <Button type="button" variant="outline" size="sm" className="h-9" onClick={setPresetThisMonth}>
                 {t('presetThisMonth')}
               </Button>
@@ -191,6 +232,46 @@ export function ReportsPage() {
               {loading ? tCommon('loading') : t('load')}
             </Button>
           </div>
+
+          {(showStatus || showSite) && (
+            <div className="grid grid-cols-1 gap-3 rounded-xl border border-dashed bg-card/60 p-3 sm:grid-cols-2 lg:grid-cols-3">
+              {showStatus ? (
+                <label className="min-w-0 space-y-1">
+                  <span className="flex items-center gap-1 text-xs font-medium text-muted-foreground">
+                    <Filter className="size-3.5" />
+                    {tPages('filter_status')}
+                  </span>
+                  <Select value={status} onValueChange={setStatus}>
+                    <SelectTrigger className="h-9 w-full">
+                      <SelectValue placeholder={tPages('filter_all')} />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">{tPages('filter_all')}</SelectItem>
+                      {statusOptions.map((s) => (
+                        <SelectItem key={s} value={s}>
+                          {s}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </label>
+              ) : null}
+              {showSite ? (
+                <label className="min-w-0 space-y-1">
+                  <span className="flex items-center gap-1 text-xs font-medium text-muted-foreground">
+                    <Filter className="size-3.5" />
+                    {tPages('filter_site')}
+                  </span>
+                  <Input
+                    value={site}
+                    onChange={(e) => setSite(e.target.value)}
+                    placeholder={tPages('filter_site_ph')}
+                    className="h-9"
+                  />
+                </label>
+              ) : null}
+            </div>
+          )}
 
           {error ? <p className="rounded-lg bg-destructive/10 p-3 text-sm text-destructive">{error}</p> : null}
 
@@ -214,13 +295,15 @@ export function ReportsPage() {
               <TabsContent key={id} value={id} className="min-w-0 pt-4">
                 {loading && tab === id ? (
                   <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
-                    {Array.from({ length: 4 }).map((_, i) => (
+                    {Array.from({ length: 8 }).map((_, i) => (
                       <div key={i} className="h-20 animate-pulse rounded-xl bg-muted" />
                     ))}
                   </div>
                 ) : payload && tab === id ? (
                   <ReportsTabPanel tab={id} payload={payload} />
-                ) : tab === id && !error ? (
+                ) : tab === id && error ? (
+                  <p className="py-8 text-center text-sm text-destructive">{error}</p>
+                ) : tab === id ? (
                   <p className="py-8 text-center text-sm text-muted-foreground">{t('emptyRange')}</p>
                 ) : null}
               </TabsContent>

@@ -54,13 +54,13 @@ class StaffOpsService
     /**
      * @return array{stats: array<string, mixed>, charts: array<string, mixed>, tables: array<string, mixed>}
      */
-    public function report(string $tab, Carbon $from, Carbon $to): array
+    public function report(string $tab, Carbon $from, Carbon $to, string $status = '', string $site = ''): array
     {
         return match ($tab) {
-            'sites' => $this->sitesReport($from, $to),
+            'sites' => $this->sitesReport($from, $to, $status, $site),
             'marketing' => $this->marketingReport($from, $to),
-            'notifications' => $this->notificationsReport($from, $to),
-            'finance' => $this->financeReport($from, $to),
+            'notifications' => $this->notificationsReport($from, $to, $status),
+            'finance' => $this->financeReport($from, $to, $status),
             default => $this->overviewExtras($from, $to),
         };
     }
@@ -429,42 +429,155 @@ class StaffOpsService
     /**
      * @return array{stats: array<string, mixed>, charts: array<string, mixed>, tables: array<string, mixed>}
      */
-    private function financeReport(Carbon $from, Carbon $to): array
+    private function financeReport(Carbon $from, Carbon $to, string $status = ''): array
     {
         $invoiceCount = 0;
         $invoiceTotal = 0.0;
         $openInvoices = 0;
-        if (Schema::hasTable('acc_invoices')) {
-            $invoiceCount += $this->safeCount(fn () => AccountingInvoice::query()->whereBetween('created_at', [$from, $to])->count());
-            $invoiceTotal += $this->safeSum(fn () => (float) AccountingInvoice::query()->whereBetween('created_at', [$from, $to])->sum('total'));
-            $openInvoices += $this->safeCount(fn () => AccountingInvoice::query()->whereBetween('created_at', [$from, $to])->whereNotIn('status', ['paid', 'void', 'cancelled'])->count());
-        }
-        if (Schema::hasTable('sales_invoices')) {
-            $invoiceCount += $this->safeCount(fn () => SalesInvoice::query()->whereBetween('created_at', [$from, $to])->count());
-            $invoiceTotal += $this->safeSum(fn () => (float) SalesInvoice::query()->whereBetween('created_at', [$from, $to])->sum('total'));
-            $openInvoices += $this->safeCount(fn () => SalesInvoice::query()->whereBetween('created_at', [$from, $to])->whereNotIn('status', ['paid', 'void', 'cancelled'])->count());
-        }
+        $paidTotal = 0.0;
+        $byStatus = [];
+        $recent = [];
+
+        $collectInvoices = function (string $table, string $modelClass) use ($from, $to, $status, &$invoiceCount, &$invoiceTotal, &$openInvoices, &$paidTotal, &$byStatus, &$recent): void {
+            if (! Schema::hasTable($table)) {
+                return;
+            }
+            /** @var \Illuminate\Database\Eloquent\Builder $q */
+            $q = $modelClass::query()->whereBetween('created_at', [$from, $to]);
+            if ($status !== '' && Schema::hasColumn($table, 'status')) {
+                $q->where('status', $status);
+            }
+            $invoiceCount += $this->safeCount(fn () => (clone $q)->count());
+            $invoiceTotal += $this->safeSum(fn () => (float) (clone $q)->sum('total'));
+            $openInvoices += $this->safeCount(fn () => (clone $q)->whereNotIn('status', ['paid', 'void', 'cancelled'])->count());
+            $paidTotal += $this->safeSum(fn () => (float) (clone $q)->where('status', 'paid')->sum('total'));
+
+            try {
+                foreach ((clone $q)->selectRaw('COALESCE(status, ?) as status, COUNT(*) as count, COALESCE(SUM(total),0) as total', ['__unknown__'])->groupBy('status')->get() as $row) {
+                    $key = (string) $row->status;
+                    if (! isset($byStatus[$key])) {
+                        $byStatus[$key] = ['status' => $key, 'count' => 0, 'total' => 0.0];
+                    }
+                    $byStatus[$key]['count'] += (int) $row->count;
+                    $byStatus[$key]['total'] += (float) $row->total;
+                }
+            } catch (\Throwable) {
+            }
+
+            try {
+                $cols = ['id', 'number', 'status', 'total', 'created_at'];
+                $available = array_values(array_filter($cols, fn ($c) => Schema::hasColumn($table, $c)));
+                foreach ((clone $q)->orderByDesc('id')->limit(12)->get($available ?: ['id']) as $inv) {
+                    $recent[] = [
+                        'id' => (int) ($inv->id ?? 0),
+                        'number' => (string) ($inv->number ?? '#'.$inv->id),
+                        'status' => (string) ($inv->status ?? ''),
+                        'total' => (float) ($inv->total ?? 0),
+                        'created_at' => optional($inv->created_at)?->utc()->toIso8601String(),
+                        'source' => $table,
+                    ];
+                }
+            } catch (\Throwable) {
+            }
+        };
+
+        $collectInvoices('acc_invoices', AccountingInvoice::class);
+        $collectInvoices('sales_invoices', SalesInvoice::class);
+
+        usort($recent, static fn ($a, $b) => strcmp((string) ($b['created_at'] ?? ''), (string) ($a['created_at'] ?? '')));
+        $recent = array_slice($recent, 0, 15);
+
+        $receiptsTotal = $this->safeSum(fn () => Schema::hasTable('acc_receipt_vouchers')
+            ? (float) AccReceiptVoucher::query()->whereBetween('created_at', [$from, $to])->sum('amount')
+            : 0);
+        $receiptsCount = $this->safeCount(fn () => Schema::hasTable('acc_receipt_vouchers')
+            ? AccReceiptVoucher::query()->whereBetween('created_at', [$from, $to])->count()
+            : 0);
 
         return [
             'stats' => [
                 'invoice_count' => $invoiceCount,
                 'invoice_total' => round($invoiceTotal, 2),
                 'open_invoices' => $openInvoices,
-                'receipts_count' => $this->safeCount(fn () => Schema::hasTable('acc_receipt_vouchers')
-                    ? AccReceiptVoucher::query()->whereBetween('created_at', [$from, $to])->count()
-                    : 0),
+                'paid_invoice_total' => round($paidTotal, 2),
+                'receipts_count' => $receiptsCount,
+                'receipts_total' => round($receiptsTotal, 2),
             ],
-            'charts' => [],
-            'tables' => [],
+            'charts' => [
+                'status_distribution' => array_map(static fn ($r) => [
+                    'label' => $r['status'],
+                    'count' => $r['count'],
+                ], array_values($byStatus)),
+            ],
+            'tables' => [
+                'invoices_by_status' => array_values($byStatus),
+                'recent_invoices' => $recent,
+            ],
         ];
     }
 
     /**
      * @return array{stats: array<string, mixed>, charts: array<string, mixed>, tables: array<string, mixed>}
      */
-    private function sitesReport(Carbon $from, Carbon $to): array
+    private function sitesReport(Carbon $from, Carbon $to, string $status = '', string $site = ''): array
     {
         $problems = $this->problemSites(null);
+        if ($status !== '') {
+            $problems = array_values(array_filter($problems, static fn (array $row) => ($row['status'] ?? '') === $status));
+        }
+        if ($site !== '') {
+            $needle = mb_strtolower($site);
+            $problems = array_values(array_filter($problems, static function (array $row) use ($needle) {
+                return str_contains(mb_strtolower((string) ($row['domain'] ?? '')), $needle)
+                    || str_contains(mb_strtolower((string) ($row['title'] ?? '')), $needle);
+            }));
+        }
+
+        $byStatus = [];
+        try {
+            if (Schema::hasTable('webino_site_provisions')) {
+                $byStatus = WebinoSiteProvision::query()
+                    ->selectRaw('COALESCE(status, ?) as status, COUNT(*) as count', ['__unknown__'])
+                    ->groupBy('status')
+                    ->orderByDesc('count')
+                    ->get()
+                    ->map(fn ($r) => ['status' => (string) $r->status, 'count' => (int) $r->count])
+                    ->all();
+            }
+        } catch (\Throwable) {
+            $byStatus = [];
+        }
+
+        $recent = [];
+        try {
+            if (Schema::hasTable('webino_site_provisions')) {
+                $q = WebinoSiteProvision::query()->whereBetween('created_at', [$from, $to])->orderByDesc('id');
+                if ($status !== '') {
+                    $q->where('status', $status);
+                }
+                if ($site !== '') {
+                    $q->where(function ($inner) use ($site) {
+                        $inner->where('domain', 'like', '%'.$site.'%')->orWhere('slug', 'like', '%'.$site.'%');
+                    });
+                }
+                $recent = $q->limit(15)->get(['id', 'domain', 'slug', 'status', 'created_at'])->map(fn ($row) => [
+                    'domain' => (string) ($row->domain ?: $row->slug),
+                    'status' => (string) $row->status,
+                    'created_at' => optional($row->created_at)?->utc()->toIso8601String(),
+                ])->all();
+            }
+        } catch (\Throwable) {
+            $recent = [];
+        }
+
+        $statuses = [];
+        try {
+            $statuses = Schema::hasTable('webino_site_provisions')
+                ? WebinoSiteProvision::query()->whereNotNull('status')->distinct()->orderBy('status')->limit(40)->pluck('status')->map(fn ($s) => (string) $s)->all()
+                : [];
+        } catch (\Throwable) {
+            $statuses = [];
+        }
 
         return [
             'stats' => [
@@ -474,13 +587,23 @@ class StaffOpsService
                 'sites_problems' => $this->problemSiteCount(),
                 'sites_created' => $this->safeCount(fn () => WebinoSiteProvision::query()->whereBetween('created_at', [$from, $to])->count()),
             ],
-            'charts' => [],
+            'charts' => [
+                'status_distribution' => array_map(static fn ($r) => [
+                    'label' => $r['status'],
+                    'count' => $r['count'],
+                ], $byStatus),
+            ],
             'tables' => [
-                'problem_sites' => array_map(static fn (array $site) => [
-                    'domain' => $site['domain'],
-                    'status' => $site['status'],
-                    'reason' => implode(',', $site['reasons']),
+                'problem_sites' => array_map(static fn (array $row) => [
+                    'domain' => $row['domain'],
+                    'status' => $row['status'],
+                    'reason' => implode(',', $row['reasons']),
                 ], $problems),
+                'sites_by_status' => $byStatus,
+                'recent_sites' => $recent,
+            ],
+            'filter_options' => [
+                'statuses' => $statuses,
             ],
         ];
     }
@@ -502,6 +625,51 @@ class StaffOpsService
                 }
                 $daily[] = ['date' => $day, 'total' => $rows->count()];
             }
+            usort($daily, static fn ($a, $b) => strcmp($a['date'], $b['date']));
+        }
+
+        $byForm = [];
+        try {
+            if (Schema::hasTable('marketing_form_submissions') && Schema::hasTable('marketing_forms')) {
+                $byForm = MarketingFormSubmission::query()
+                    ->leftJoin('marketing_forms', 'marketing_forms.id', '=', 'marketing_form_submissions.form_id')
+                    ->whereBetween('marketing_form_submissions.created_at', [$from, $to])
+                    ->selectRaw('COALESCE(marketing_forms.title, ?) as title, COUNT(*) as count', ['__unknown__'])
+                    ->groupBy('title')
+                    ->orderByDesc('count')
+                    ->limit(15)
+                    ->get()
+                    ->map(fn ($r) => ['title' => (string) $r->title, 'count' => (int) $r->count])
+                    ->all();
+            }
+        } catch (\Throwable) {
+            $byForm = [];
+        }
+
+        $leadsByStatus = [];
+        try {
+            if (Schema::hasTable('crm_leads')) {
+                if (Schema::hasTable('crm_statuses')) {
+                    $leadsByStatus = CrmLead::query()
+                        ->leftJoin('crm_statuses', 'crm_statuses.id', '=', 'crm_leads.status_id')
+                        ->whereBetween('crm_leads.created_at', [$from, $to])
+                        ->selectRaw('COALESCE(crm_statuses.name, ?) as status, COUNT(*) as count', ['__unknown__'])
+                        ->groupBy('status')
+                        ->get()
+                        ->map(fn ($r) => ['status' => (string) $r->status, 'count' => (int) $r->count])
+                        ->all();
+                } else {
+                    $leadsByStatus = CrmLead::query()
+                        ->whereBetween('created_at', [$from, $to])
+                        ->selectRaw('COALESCE(CAST(status_id AS CHAR), ?) as status, COUNT(*) as count', ['__unknown__'])
+                        ->groupBy('status')
+                        ->get()
+                        ->map(fn ($r) => ['status' => (string) $r->status, 'count' => (int) $r->count])
+                        ->all();
+                }
+            }
+        } catch (\Throwable) {
+            $leadsByStatus = [];
         }
 
         return [
@@ -516,23 +684,64 @@ class StaffOpsService
                 'leads_in_range' => $this->safeCount(fn () => CrmLead::query()->whereBetween('created_at', [$from, $to])->count()),
             ],
             'charts' => ['daily' => $daily],
-            'tables' => [],
+            'tables' => [
+                'submissions_by_form' => $byForm,
+                'leads_by_status' => $leadsByStatus,
+            ],
         ];
     }
 
     /**
      * @return array{stats: array<string, mixed>, charts: array<string, mixed>, tables: array<string, mixed>}
      */
-    private function notificationsReport(Carbon $from, Carbon $to): array
+    private function notificationsReport(Carbon $from, Carbon $to, string $status = ''): array
     {
+        $total = $this->safeCount(fn () => CoreNotification::query()->whereBetween('created_at', [$from, $to])->count());
+        $unread = $this->safeCount(fn () => CoreNotification::query()->where('is_read', false)->count());
+        $readInRange = $this->safeCount(fn () => CoreNotification::query()->whereBetween('created_at', [$from, $to])->where('is_read', true)->count());
+
+        $daily = [];
+        try {
+            if (Schema::hasTable('core_notifications')) {
+                $plucked = CoreNotification::query()
+                    ->whereBetween('created_at', [$from->copy()->startOfDay(), $to->copy()->endOfDay()])
+                    ->selectRaw('DATE(created_at) as day, COUNT(*) as count')
+                    ->groupBy('day')
+                    ->pluck('count', 'day');
+                $cursor = $from->copy()->startOfDay();
+                $end = $to->copy()->endOfDay();
+                while ($cursor->lte($end)) {
+                    $day = $cursor->toDateString();
+                    $daily[] = ['date' => $day, 'total' => (int) ($plucked[$day] ?? 0)];
+                    $cursor->addDay();
+                }
+            }
+        } catch (\Throwable) {
+            $daily = [];
+        }
+
+        $recent = $this->recentNotifications(null, 20, $from, $to);
+        if ($status === 'read') {
+            $recent = array_values(array_filter($recent, static fn ($row) => ! empty($row['is_read'])));
+        } elseif ($status === 'unread') {
+            $recent = array_values(array_filter($recent, static fn ($row) => empty($row['is_read'])));
+        }
+
         return [
             'stats' => [
-                'notifications_total' => $this->safeCount(fn () => CoreNotification::query()->whereBetween('created_at', [$from, $to])->count()),
-                'unread_notifications' => $this->safeCount(fn () => CoreNotification::query()->where('is_read', false)->count()),
+                'notifications_total' => $total,
+                'unread_notifications' => $unread,
+                'read_notifications' => $readInRange,
+                'read_rate' => $total > 0 ? round(($readInRange / $total) * 100, 1) : 0,
             ],
-            'charts' => [],
+            'charts' => [
+                'daily' => $daily,
+            ],
             'tables' => [
-                'recent_notifications' => $this->recentNotifications(null, 12, $from, $to),
+                'recent_notifications' => $recent,
+            ],
+            'filter_options' => [
+                'statuses' => ['read', 'unread'],
             ],
         ];
     }
