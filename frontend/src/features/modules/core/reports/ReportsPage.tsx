@@ -128,7 +128,7 @@ export function ReportsPage() {
     <div className="wd-page-shell wd-reports min-w-0 max-w-full space-y-4 overflow-x-hidden text-start sm:space-y-6" dir={isRtl ? 'rtl' : 'ltr'}>
       <div className="flex flex-col gap-3 rounded-2xl border bg-card p-4 sm:flex-row sm:items-center sm:justify-between sm:p-5">
         <div className="flex min-w-0 items-start gap-3">
-          <span className="grid size-11 shrink-0 place-items-center rounded-xl bg-[#0054ff]/10 text-[#0054ff]">
+          <span className="grid size-11 shrink-0 place-items-center rounded-xl bg-primary/10 text-primary">
             <BarChart3 className="size-5" />
           </span>
           <div className="min-w-0">
@@ -183,7 +183,7 @@ export function ReportsPage() {
             </div>
             <Button
               type="button"
-              className="col-span-2 h-9 gap-1.5 bg-[#0054ff] text-white hover:bg-[#0054ff]/90 md:col-span-3 lg:col-span-1"
+              className="col-span-2 h-9 gap-1.5 md:col-span-3 lg:col-span-1"
               onClick={() => void load()}
               disabled={loading}
             >
@@ -201,7 +201,7 @@ export function ReportsPage() {
                   <TabsTrigger
                     key={id}
                     value={id}
-                    className="shrink-0 rounded-lg px-3 py-1.5 text-xs data-[state=active]:bg-[#0054ff] data-[state=active]:text-white sm:text-sm md:flex-none"
+                    className="shrink-0 rounded-lg px-3 py-1.5 text-xs data-[state=active]:bg-primary data-[state=active]:text-primary-foreground sm:text-sm md:flex-none"
                   >
                     {id === 'sales' || id === 'team' || id === 'customers'
                       ? tPages(`tab_${id}`)

@@ -130,7 +130,7 @@ function Pill({ tone, children }: { tone: 'green' | 'gray' | 'amber' | 'blue' | 
     green: 'bg-emerald-50 text-emerald-700 ring-emerald-600/20 dark:bg-emerald-500/10 dark:text-emerald-300',
     gray: 'bg-muted text-muted-foreground ring-border',
     amber: 'bg-amber-50 text-amber-800 ring-amber-600/25 dark:bg-amber-500/10 dark:text-amber-300',
-    blue: 'bg-[#0054ff]/10 text-[#0054ff] ring-[#0054ff]/20 dark:text-[#6f9bff]',
+    blue: 'bg-primary/10 text-primary ring-primary/20',
     red: 'bg-red-50 text-red-700 ring-red-600/20 dark:bg-red-500/10 dark:text-red-300',
   } as const;
   return (
@@ -366,7 +366,7 @@ export function PaymentGatewaysPage() {
           <div key={kpi.label} className="min-w-0 rounded-xl border bg-card p-3 sm:p-4">
             <div className="flex items-center justify-between gap-2 text-xs text-muted-foreground">
               <span className="truncate">{kpi.label}</span>
-              <span className="text-[#0054ff]">{kpi.icon}</span>
+              <span className="text-primary">{kpi.icon}</span>
             </div>
             <div className="mt-1.5 text-xl font-semibold tabular-nums">{kpi.value}</div>
           </div>
@@ -374,8 +374,8 @@ export function PaymentGatewaysPage() {
       </div>
 
       {stats.active === 0 ? (
-        <div className="flex items-start gap-3 rounded-xl border border-[#0054ff]/25 bg-[#0054ff]/5 p-4 text-sm">
-          <PlugZap className="mt-0.5 size-5 shrink-0 text-[#0054ff]" />
+        <div className="flex items-start gap-3 rounded-xl border border-primary/25 bg-primary/5 p-4 text-sm">
+          <PlugZap className="mt-0.5 size-5 shrink-0 text-primary" />
           <div className="space-y-1">
             <p className="font-medium">{tg('noneActiveTitle')}</p>
             <p className="text-muted-foreground">{tg('noneActiveBody')}</p>
@@ -420,7 +420,7 @@ export function PaymentGatewaysPage() {
               key={row.code}
               className={cn(
                 'min-w-0 overflow-hidden rounded-xl border bg-card shadow-sm transition-colors',
-                row.enabled ? 'border-[#0054ff]/30' : 'border-border',
+                row.enabled ? 'border-primary/30' : 'border-border',
               )}
             >
               {/* Header */}
@@ -442,7 +442,7 @@ export function PaymentGatewaysPage() {
                   </div>
                 </div>
                 <label htmlFor={`${row.code}-enabled`} className="flex shrink-0 cursor-pointer items-center gap-2 rounded-lg border bg-background px-3 py-1.5 text-sm">
-                  <span className={cn('font-medium', row.enabled ? 'text-[#0054ff]' : 'text-muted-foreground')}>
+                  <span className={cn('font-medium', row.enabled ? 'text-primary' : 'text-muted-foreground')}>
                     {row.enabled ? t('enabled') : t('disabled')}
                   </span>
                   <Switch id={`${row.code}-enabled`} checked={row.enabled} onCheckedChange={(checked) => update(row.code, { enabled: checked })} />
@@ -467,10 +467,10 @@ export function PaymentGatewaysPage() {
                         className={cn(
                           'flex min-w-0 items-start gap-3 rounded-lg border p-3 text-start transition-colors',
                           !mode.supported && 'cursor-not-allowed opacity-50',
-                          mode.supported && mode.on ? 'border-[#0054ff] bg-[#0054ff]/5' : 'hover:bg-muted/40',
+                          mode.supported && mode.on ? 'border-primary bg-primary/5' : 'hover:bg-muted/40',
                         )}
                       >
-                        <span className={cn('mt-0.5 flex size-5 shrink-0 items-center justify-center rounded border', mode.supported && mode.on ? 'border-[#0054ff] bg-[#0054ff] text-white' : 'bg-background')}>
+                        <span className={cn('mt-0.5 flex size-5 shrink-0 items-center justify-center rounded border', mode.supported && mode.on ? 'border-primary bg-primary text-primary-foreground' : 'bg-background')}>
                           {mode.supported && mode.on ? <Check className="size-3.5" /> : null}
                         </span>
                         <span className="min-w-0">
@@ -495,7 +495,7 @@ export function PaymentGatewaysPage() {
                         onClick={() => update(row.code, { sandbox: opt.v })}
                         className={cn(
                           'rounded-md px-4 py-1.5 text-sm font-medium transition-colors',
-                          row.sandbox === opt.v ? 'bg-background text-[#0054ff] shadow-sm' : 'text-muted-foreground hover:text-foreground',
+                          row.sandbox === opt.v ? 'bg-background text-primary shadow-sm' : 'text-muted-foreground hover:text-foreground',
                         )}
                       >
                         {opt.l}
@@ -688,7 +688,7 @@ export function PaymentGatewaysPage() {
             <RotateCcw className="size-4" />
             {tg('discard')}
           </Button>
-          <Button type="button" size="sm" className="bg-[#0054ff] text-white hover:bg-[#0047d9]" disabled={saving} onClick={() => void save()}>
+          <Button type="button" size="sm" className="bg-primary text-primary-foreground hover:bg-primary/90" disabled={saving} onClick={() => void save()}>
             {saving ? <Loader2 className="size-4 animate-spin" /> : <Save className="size-4" />}
             {saving ? tNav('common.loading') : t('save')}
           </Button>

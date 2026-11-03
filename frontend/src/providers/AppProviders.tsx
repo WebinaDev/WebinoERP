@@ -7,27 +7,36 @@ import {
   useEffect,
   useLayoutEffect,
   useMemo,
+  useRef,
   useState,
   type ReactNode,
 } from "react"
 import { ThemeProvider as NextThemesProvider, useTheme } from "next-themes"
 import { broadcastDashboardTheme, onRemoteDashboardTheme } from "@webina/ui"
 
-export type Accent =
-  | "zinc"
-  | "slate"
-  | "blue"
-  | "green"
-  | "rose"
-  | "orange"
+import {
+  ACCENT_PRESETS,
+  normalizeAccent,
+  type AccentPreset,
+} from "@/lib/accent"
+import { apiFetch } from "@/lib/api"
 
-type ThemeMode = "light" | "dark"
+export type Accent = AccentPreset
+
+export const ACCENT_OPTIONS: Accent[] = [...ACCENT_PRESETS]
+
+export type ThemeMode = "light" | "dark" | "system"
 
 type ThemeCtx = {
   mode: ThemeMode
+  resolvedMode: "light" | "dark"
   setMode: (m: ThemeMode) => void
   accent: Accent
   setAccent: (a: Accent) => void
+  applyServerPreferences: (prefs: {
+    theme?: string | null
+    accent?: string | null
+  }) => void
 }
 
 const ThemeContext = createContext<ThemeCtx | null>(null)
@@ -55,49 +64,89 @@ export function useAuth() {
   return v
 }
 
+function persistPreferences(patch: { theme?: ThemeMode; accent?: Accent }) {
+  const body: Record<string, string> = {}
+  if (patch.theme) body.ui_theme = patch.theme
+  if (patch.accent) body.ui_accent = patch.accent
+  if (!Object.keys(body).length) return
+  void apiFetch("settings", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(body),
+  }).catch(() => {
+    /* offline / unauthenticated — local storage already updated */
+  })
+}
+
 function AccentAndAuthProviders({ children }: { children: ReactNode }) {
-  const { resolvedTheme, setTheme } = useTheme()
+  const { theme, resolvedTheme, setTheme } = useTheme()
   const [authenticated, setAuthenticated] = useState(false)
   const [hydrated, setHydrated] = useState(false)
-  const [accent, setAccent] = useState<Accent>("zinc")
+  const [accent, setAccentState] = useState<Accent>("colorful")
+  const userAccentOverride = useRef(false)
+  const skipPersist = useRef(true)
 
   const setMode = useCallback(
     (m: ThemeMode) => {
       setTheme(m)
       localStorage.setItem("theme_mode", m)
-      broadcastDashboardTheme({ mode: m })
+      const resolved = m === "system" ? (resolvedTheme === "dark" ? "dark" : "light") : m
+      broadcastDashboardTheme({ mode: resolved })
+      if (!skipPersist.current) {
+        persistPreferences({ theme: m })
+      }
+    },
+    [resolvedTheme, setTheme],
+  )
+
+  const setAccent = useCallback((a: Accent) => {
+    const next = normalizeAccent(a)
+    userAccentOverride.current = true
+    setAccentState(next)
+    localStorage.setItem("theme_accent", next)
+    broadcastDashboardTheme({ accent: next })
+    if (!skipPersist.current) {
+      persistPreferences({ accent: next })
+    }
+  }, [])
+
+  const applyServerPreferences = useCallback(
+    (prefs: { theme?: string | null; accent?: string | null }) => {
+      skipPersist.current = true
+      if (prefs.theme === "light" || prefs.theme === "dark" || prefs.theme === "system") {
+        setTheme(prefs.theme)
+        localStorage.setItem("theme_mode", prefs.theme)
+      }
+      if (prefs.accent && !userAccentOverride.current) {
+        const next = normalizeAccent(prefs.accent)
+        setAccentState(next)
+        localStorage.setItem("theme_accent", next)
+      }
+      queueMicrotask(() => {
+        skipPersist.current = false
+      })
     },
     [setTheme],
   )
 
   useLayoutEffect(() => {
     const storedAccent =
-      (localStorage.getItem("theme_accent") as Accent | null) ??
-      (localStorage.getItem("webino-accent") as Accent | null)
-    if (
-      storedAccent &&
-      ["zinc", "slate", "blue", "green", "rose", "orange"].includes(storedAccent)
-    ) {
-      setAccent(storedAccent)
+      localStorage.getItem("theme_accent") ?? localStorage.getItem("webino-accent")
+    if (storedAccent) {
+      userAccentOverride.current = true
+      setAccentState(normalizeAccent(storedAccent))
     }
-    // Locale/dir come from NEXT_LOCALE cookie via layout + useLocaleSync — do not override here.
+    skipPersist.current = false
     setHydrated(true)
   }, [])
 
-  useEffect(() => {
-    if (!hydrated) {
-      return
-    }
-    localStorage.setItem("theme_accent", accent)
-    document.documentElement.setAttribute("data-accent", accent)
-  }, [hydrated, accent])
-
-  // Another tab changed accent / mode: apply here without a reload.
+  // Another tab changed accent / mode: apply here without a reload (no server write — that tab already saved it).
   useEffect(
     () =>
       onRemoteDashboardTheme((patch) => {
-        if (patch.accent && ["zinc", "slate", "blue", "green", "rose", "orange"].includes(patch.accent)) {
-          setAccent(patch.accent as Accent)
+        if (patch.accent) {
+          userAccentOverride.current = true
+          setAccentState(normalizeAccent(patch.accent))
         }
         if (patch.mode) {
           setTheme(patch.mode)
@@ -107,21 +156,26 @@ function AccentAndAuthProviders({ children }: { children: ReactNode }) {
   )
 
   useEffect(() => {
-    if (hydrated) {
-      broadcastDashboardTheme({ accent })
+    if (!hydrated) {
+      return
     }
+    document.documentElement.setAttribute("data-accent", accent)
   }, [hydrated, accent])
 
-  const mode: ThemeMode = resolvedTheme === "dark" ? "dark" : "light"
+  const mode: ThemeMode =
+    theme === "dark" || theme === "light" || theme === "system" ? theme : "system"
+  const resolvedMode: "light" | "dark" = resolvedTheme === "dark" ? "dark" : "light"
 
   const themeValue = useMemo(
     () => ({
       mode,
+      resolvedMode,
       setMode,
       accent,
       setAccent,
+      applyServerPreferences,
     }),
-    [mode, setMode, accent],
+    [mode, resolvedMode, setMode, accent, setAccent, applyServerPreferences],
   )
 
   const authValue = useMemo(() => ({ authenticated, setAuthenticated }), [authenticated])

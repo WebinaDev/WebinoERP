@@ -955,7 +955,7 @@ function DefaultStorefrontHeader({
   const { cart, auth } = useServerCart()
   const serverCount = (cart?.items ?? []).reduce((sum, line) => sum + line.quantity, 0)
   const shown = auth === "auth" ? serverCount : count
-  const { mode: resolvedMode, setMode } = useThemeSettings()
+  const { resolvedMode, setMode } = useThemeSettings()
   const [open, setOpen] = useState(false)
   const [mobileNav, setMobileNav] = useState(false)
   const [query, setQuery] = useState("")

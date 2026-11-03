@@ -168,20 +168,20 @@ export function CourseStructurePanel() {
                 <Button size="sm" variant="outline" disabled={!!busy || !chapters.length} onClick={() => void genAll()}><Sparkles className="size-4" />۲. تولید فصل‌ها و درس‌ها به ترتیب</Button>
                 <Button size="sm" variant="outline" disabled={!!busy || !dirty} onClick={() => void save()}>ذخیره ساختار</Button>
               </div>
-              {busy ? <p className="text-violet-700">در حال تولید… ({busy})</p> : null}
-              {msg ? <p className="text-slate-600">{msg}</p> : null}
+              {busy ? <p className="text-primary">در حال تولید… ({busy})</p> : null}
+              {msg ? <p className="text-muted-foreground">{msg}</p> : null}
             </div>
             {desc !== null ? (
-              <div className="grid gap-1 rounded-lg border border-violet-200 bg-violet-50/40 p-3">
+              <div className="grid gap-1 rounded-lg border border-primary/20 bg-primary/5 p-3">
                 <span className="font-semibold">توضیح دوره پیشنهادی (قابل ویرایش)</span>
-                <textarea className="border-input min-h-20 rounded-md border bg-white px-2 py-1" value={desc} onChange={(e) => setDesc(e.target.value)} />
+                <textarea className="border-input min-h-20 rounded-md border bg-background px-2 py-1" value={desc} onChange={(e) => setDesc(e.target.value)} />
                 <div className="flex gap-2"><Button size="sm" onClick={() => void applyCourse('description', desc)}>اعمال توضیح</Button><Button size="sm" variant="outline" onClick={() => setDesc(null)}>رد</Button></div>
               </div>
             ) : null}
             {outcomes !== null ? (
-              <div className="grid gap-1 rounded-lg border border-violet-200 bg-violet-50/40 p-3">
+              <div className="grid gap-1 rounded-lg border border-primary/20 bg-primary/5 p-3">
                 <span className="font-semibold">خروجی‌های یادگیری پیشنهادی</span>
-                <textarea className="border-input min-h-20 rounded-md border bg-white px-2 py-1" value={outcomes} onChange={(e) => setOutcomes(e.target.value)} />
+                <textarea className="border-input min-h-20 rounded-md border bg-background px-2 py-1" value={outcomes} onChange={(e) => setOutcomes(e.target.value)} />
                 <div className="flex gap-2"><Button size="sm" onClick={() => void applyCourse('outcomes', outcomes)}>اعمال خروجی‌ها</Button><Button size="sm" variant="outline" onClick={() => setOutcomes(null)}>رد</Button></div>
               </div>
             ) : null}
@@ -191,7 +191,7 @@ export function CourseStructurePanel() {
                   <div className="flex items-center gap-2">
                     <span className="font-bold">فصل {ci + 1}</span>
                     <input className={input} value={c.title} onChange={(e) => edit(chapters.map((x, i) => (i === ci ? { ...x, title: e.target.value } : x)))} />
-                    <button type="button" title="تولید فصل" disabled={!!busy} onClick={() => void genChapter(ci).catch((e) => setMsg(errMsg(e)))}><Sparkles className="size-4 text-violet-600" /></button>
+                    <button type="button" title="تولید فصل" disabled={!!busy} onClick={() => void genChapter(ci).catch((e) => setMsg(errMsg(e)))}><Sparkles className="size-4 text-primary" /></button>
                     <button type="button" aria-label="بالا" onClick={() => edit(move(chapters, ci, -1))}><ArrowUp className="size-4" /></button>
                     <button type="button" aria-label="پایین" onClick={() => edit(move(chapters, ci, 1))}><ArrowDown className="size-4" /></button>
                     {!c.id ? <button type="button" aria-label="حذف" onClick={() => edit(chapters.filter((_, i) => i !== ci))}><Trash2 className="size-4 text-red-500" /></button> : null}
@@ -199,29 +199,29 @@ export function CourseStructurePanel() {
                   <textarea className="border-input min-h-12 rounded-md border bg-transparent px-2 py-1 text-xs" placeholder="خلاصه فصل" value={c.summary ?? ''} onChange={(e) => edit(chapters.map((x, i) => (i === ci ? { ...x, summary: e.target.value } : x)))} />
                   <ol className="grid gap-2 ps-4">
                     {c.lessons.map((l, li) => (
-                      <li key={li} className="grid gap-1 rounded-md bg-slate-50 p-2">
+                      <li key={li} className="grid gap-1 rounded-md bg-muted/50 p-2">
                         <div className="flex items-center gap-2">
                           <span className="text-xs">{ci + 1}.{li + 1}</span>
                           <input className={input} value={l.title} onChange={(e) => edit(chapters.map((x, i) => (i === ci ? { ...x, lessons: x.lessons.map((y, j) => (j === li ? { ...y, title: e.target.value } : y)) } : x)))} />
-                          <button type="button" title="تولید درس" disabled={!!busy} onClick={() => void genLesson(ci, li).catch((e) => setMsg(errMsg(e)))}><Sparkles className="size-4 text-violet-600" /></button>
+                          <button type="button" title="تولید درس" disabled={!!busy} onClick={() => void genLesson(ci, li).catch((e) => setMsg(errMsg(e)))}><Sparkles className="size-4 text-primary" /></button>
                           {ci > 0 ? <button type="button" title="انتقال به فصل قبل" onClick={() => edit(chapters.map((x, i) => (i === ci ? { ...x, lessons: x.lessons.filter((_, j) => j !== li) } : i === ci - 1 ? { ...x, lessons: [...x.lessons, l] } : x)))}><ArrowUp className="size-4" /></button> : null}
                           {ci < chapters.length - 1 ? <button type="button" title="انتقال به فصل بعد" onClick={() => edit(chapters.map((x, i) => (i === ci ? { ...x, lessons: x.lessons.filter((_, j) => j !== li) } : i === ci + 1 ? { ...x, lessons: [l, ...x.lessons] } : x)))}><ArrowDown className="size-4" /></button> : null}
-                          {!l.id ? <button type="button" aria-label="حذف" onClick={() => edit(chapters.map((x, i) => (i === ci ? { ...x, lessons: x.lessons.filter((_, j) => j !== li) } : x)))}><Trash2 className="size-4 text-red-500" /></button> : <span className="text-[10px] text-slate-500">{l.published ? 'منتشرشده' : 'پیش‌نویس'}</span>}
+                          {!l.id ? <button type="button" aria-label="حذف" onClick={() => edit(chapters.map((x, i) => (i === ci ? { ...x, lessons: x.lessons.filter((_, j) => j !== li) } : x)))}><Trash2 className="size-4 text-destructive" /></button> : <span className="text-[10px] text-muted-foreground">{l.published ? 'منتشرشده' : 'پیش‌نویس'}</span>}
                         </div>
                         <input className={`${input} text-xs`} placeholder="خلاصه درس" value={l.summary ?? ''} onChange={(e) => edit(chapters.map((x, i) => (i === ci ? { ...x, lessons: x.lessons.map((y, j) => (j === li ? { ...y, summary: e.target.value } : y)) } : x)))} />
                         {l.content ? (
-                          <details><summary className="cursor-pointer text-xs text-violet-700">متن درس (HTML، قابل ویرایش)</summary>
-                            <textarea className="border-input mt-1 min-h-32 w-full rounded-md border bg-white px-2 py-1 text-xs" dir="auto" value={l.content} onChange={(e) => edit(chapters.map((x, i) => (i === ci ? { ...x, lessons: x.lessons.map((y, j) => (j === li ? { ...y, content: e.target.value } : y)) } : x)))} />
+                          <details><summary className="cursor-pointer text-xs text-primary">متن درس (HTML، قابل ویرایش)</summary>
+                            <textarea className="border-input mt-1 min-h-32 w-full rounded-md border bg-background px-2 py-1 text-xs" dir="auto" value={l.content} onChange={(e) => edit(chapters.map((x, i) => (i === ci ? { ...x, lessons: x.lessons.map((y, j) => (j === li ? { ...y, content: e.target.value } : y)) } : x)))} />
                           </details>
                         ) : null}
                       </li>
                     ))}
-                    <li><button type="button" className="flex items-center gap-1 text-xs text-slate-600" onClick={() => edit(chapters.map((x, i) => (i === ci ? { ...x, lessons: [...x.lessons, { title: 'درس جدید' }] } : x)))}><Plus className="size-3" />درس</button></li>
+                    <li><button type="button" className="flex items-center gap-1 text-xs text-muted-foreground" onClick={() => edit(chapters.map((x, i) => (i === ci ? { ...x, lessons: [...x.lessons, { title: 'درس جدید' }] } : x)))}><Plus className="size-3" />درس</button></li>
                   </ol>
                 </li>
               ))}
             </ol>
-            <button type="button" className="flex items-center gap-1 text-xs text-slate-600" onClick={() => edit([...chapters, { title: 'فصل جدید', lessons: [] }])}><Plus className="size-3" />فصل</button>
+            <button type="button" className="flex items-center gap-1 text-xs text-muted-foreground" onClick={() => edit([...chapters, { title: 'فصل جدید', lessons: [] }])}><Plus className="size-3" />فصل</button>
           </>
         ) : null}
       </CardContent>

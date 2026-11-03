@@ -86,7 +86,7 @@ export function IssuePayslipPage() {
         <Card>
           <CardContent className="pt-6">
             {html ? (
-              <div className="rounded border bg-white p-3 text-black" dangerouslySetInnerHTML={{ __html: html }} />
+              <div className="rounded border bg-card p-3 text-foreground shadow-inner" dangerouslySetInnerHTML={{ __html: html }} />
             ) : (
               <p className="text-sm text-muted-foreground">{t('payslip.emptyPreview')}</p>
             )}

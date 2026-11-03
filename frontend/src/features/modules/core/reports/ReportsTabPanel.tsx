@@ -32,9 +32,9 @@ const STAT_ICONS: { match: RegExp; icon: LucideIcon; tone: string }[] = [
   { match: /revenue|value|invoice_total/, icon: BadgeDollarSign, tone: 'bg-emerald-500/10 text-emerald-600' },
   { match: /invoice|receipt/, icon: Receipt, tone: 'bg-amber-500/10 text-amber-600' },
   { match: /contract/, icon: FileText, tone: 'bg-sky-500/10 text-sky-600' },
-  { match: /lead|customer/, icon: Users, tone: 'bg-[#0054ff]/10 text-[#0054ff]' },
-  { match: /completed|closed|ready/, icon: CheckCircle2, tone: 'bg-emerald-500/10 text-emerald-600' },
-  { match: /task/, icon: ListChecks, tone: 'bg-[#0054ff]/10 text-[#0054ff]' },
+  { match: /lead|customer/, icon: Users, tone: 'bg-primary/10 text-primary' },
+  { match: /completed|closed|ready/, icon: CheckCircle2, tone: 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400' },
+  { match: /task/, icon: ListChecks, tone: 'bg-primary/10 text-primary' },
   { match: /hour|minute|time|response/, icon: Clock, tone: 'bg-orange-500/10 text-orange-600' },
   { match: /ticket/, icon: Ticket, tone: 'bg-rose-500/10 text-rose-600' },
   { match: /project|sprint/, icon: FolderKanban, tone: 'bg-indigo-500/10 text-indigo-600' },
@@ -42,11 +42,11 @@ const STAT_ICONS: { match: RegExp; icon: LucideIcon; tone: string }[] = [
   { match: /notification|unread/, icon: Bell, tone: 'bg-yellow-500/10 text-yellow-600' },
   { match: /page|post|form|announce|content/, icon: Megaphone, tone: 'bg-pink-500/10 text-pink-600' },
   { match: /wallet|balance/, icon: Wallet, tone: 'bg-emerald-500/10 text-emerald-600' },
-  { match: /trend|growth/, icon: TrendingUp, tone: 'bg-[#0054ff]/10 text-[#0054ff]' },
+  { match: /trend|growth/, icon: TrendingUp, tone: 'bg-primary/10 text-primary' },
 ];
 
 function statIcon(key: string) {
-  return STAT_ICONS.find((s) => s.match.test(key)) ?? { icon: Activity, tone: 'bg-slate-500/10 text-slate-600', match: /./ };
+  return STAT_ICONS.find((s) => s.match.test(key)) ?? { icon: Activity, tone: 'bg-muted text-muted-foreground', match: /./ };
 }
 
 
@@ -83,7 +83,7 @@ function StatGrid({ stats, keys }: { stats: Record<string, unknown>; keys: { key
             </span>
             <div className="min-w-0">
               <p className="truncate text-[11px] text-muted-foreground sm:text-xs">{label}</p>
-              <p className="truncate text-base font-bold tabular-nums text-[#22242a] dark:text-foreground sm:text-xl">
+              <p className="truncate text-base font-bold tabular-nums text-foreground sm:text-xl">
                 {formatStat(key, stats[key])}
               </p>
             </div>

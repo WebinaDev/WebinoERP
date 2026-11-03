@@ -18,13 +18,55 @@
   --wd-mobile-font: var(--font-yekan), var(--wd-font-ui), "Yekan Bakh", Tahoma, sans-serif;
 }
 
+/* Brand follows tenant accent; colorful/default keep Webina blue with AA dark variants. */
+html[data-accent]:not([data-accent='colorful']):not([data-accent='default']):not([data-accent='zinc']):not([data-accent='slate']) {
+  --wd-brand: var(--color-primary);
+  --wd-brand-dark: color-mix(in oklch, var(--color-primary) 82%, black);
+}
+
+html[data-wd-dashboard][data-accent='colorful'],
+html[data-wd-dashboard][data-accent='zinc'],
+html[data-wd-dashboard][data-accent='slate'] {
+  --wd-brand: #0054ff;
+  --wd-brand-dark: #0041d4;
+}
+
+html:not(.dark)[data-wd-dashboard][data-accent='colorful'] {
+  --color-primary: #0054ff;
+  --color-primary-foreground: #ffffff;
+  --color-ring: #0054ff;
+  --color-sidebar-primary: #0054ff;
+  --color-sidebar-primary-foreground: #ffffff;
+  --color-chart-1: #0054ff;
+}
+
 .dark {
+  /* Explicit ink so sidebar/nav never keeps light-mode charcoal on dark surfaces */
+  --wd-ink: oklch(96% 0.01 195);
+  --wd-brand: #4d8dff;
+  --wd-brand-dark: #2f74ff;
   --wd-mobile-bg: var(--color-background);
   --wd-mobile-card: var(--color-card);
   --wd-mobile-hint: var(--color-muted-foreground);
   --wd-mobile-line: var(--color-border);
   --wd-mobile-tint: color-mix(in srgb, var(--wd-brand) 22%, var(--color-card));
   --wd-mobile-shadow: 0 1px 2px rgba(0, 0, 0, 0.28);
+}
+
+html.dark[data-accent]:not([data-accent='colorful']):not([data-accent='default']):not([data-accent='zinc']):not([data-accent='slate']) {
+  --wd-brand: var(--color-primary);
+  --wd-brand-dark: color-mix(in oklch, var(--color-primary) 85%, white);
+}
+
+html[data-wd-dashboard].dark[data-accent='colorful'] {
+  --wd-brand: #4d8dff;
+  --wd-brand-dark: #2f74ff;
+  --color-primary: #4d8dff;
+  --color-primary-foreground: #0b1020;
+  --color-ring: #4d8dff;
+  --color-sidebar-primary: #4d8dff;
+  --color-sidebar-primary-foreground: #0b1020;
+  --color-chart-1: #6b9fff;
 }
 
 @media (max-width: 767px) {

@@ -191,7 +191,7 @@ export function TemplatesPage() {
               )}
               <Button variant="outline" onClick={() => void renderPreview()} disabled={!recordId}>{t('templates.preview')}</Button>
               {preview ? (
-                <div className="rounded border bg-white p-3 text-black" dangerouslySetInnerHTML={{ __html: preview }} />
+                <div className="rounded border bg-card p-3 text-foreground shadow-inner" dangerouslySetInnerHTML={{ __html: preview }} />
               ) : (
                 <p className="text-sm text-muted-foreground">{t('templates.placeholders')}</p>
               )}
