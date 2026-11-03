@@ -212,6 +212,7 @@ import {
   MarketingTeamPage,
   MarketingTestimonialsPage,
   MarketingFormsPage,
+  MarketingMenusPage,
 } from '@/features/modules/marketing/marketing_pages';
 import { BuilderEditorPage } from '@/features/marketing-builder/builder-editor-page';
 import { BuilderListPage } from '@/features/marketing-builder/builder-page';
