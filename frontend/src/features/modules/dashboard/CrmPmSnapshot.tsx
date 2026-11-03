@@ -68,13 +68,15 @@ type TodoRow = {
 
 type WorkItem = TodoRow & { kind: string; href: string; bucket: string };
 
+type HomeKpiTone = Exclude<keyof typeof WD_CHART, 'grid'>;
+
 type HomeKpi = {
   key: string;
   icon: LucideIcon;
   label: string;
   value: number;
   href: string;
-  tone: keyof typeof WD_CHART;
+  tone: HomeKpiTone;
   viz?: 'spark' | 'ring';
   section: string;
 };
