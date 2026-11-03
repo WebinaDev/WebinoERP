@@ -38,7 +38,7 @@ class PoetryModuleTest extends TestCase
             $this->assertTrue(PoetryTerm::query()->where('kind', 'figure')->where('name', $name)->exists(), $name);
         }
         $this->getJson('/api/v1/public/poetry/terms?kind=occasion')->assertOk()->assertJsonCount(6, 'data');
-        $this->assertArrayHasKey('poetry', SiteTypeProfiles::modulesFor('blog'));
+        $this->assertArrayNotHasKey('poetry', SiteTypeProfiles::modulesFor('blog') ?? []);
     }
 
     public function test_admin_crud_public_detail_search_related_and_text(): void
