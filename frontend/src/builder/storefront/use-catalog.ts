@@ -68,8 +68,12 @@ type CatalogPayload = {
   facets?: CatalogFacets | null
 }
 
-export function mapCatalogJson(json: { data?: { items?: unknown[]; categories?: unknown[]; brands?: unknown[]; facets?: CatalogFacets | null; pagination?: { total?: number } } } | null): CatalogPayload | null {
+export function mapCatalogJson(json: { data?: { items?: unknown[]; categories?: unknown[]; brands?: unknown[]; facets?: CatalogFacets | null; pagination?: { total?: number }; currency_display?: unknown } } | null): CatalogPayload | null {
       if (!json?.data) return null
+      if (json.data.currency_display) {
+        // Lazy import keeps this module usable on the server without pulling client hooks.
+        void import("@/lib/display-currency").then((m) => m.applyCurrencyDisplay(json.data?.currency_display))
+      }
       const items = Array.isArray(json.data.items) ? json.data.items : []
       const categories = Array.isArray(json.data.categories) ? json.data.categories : []
       const brands = Array.isArray(json.data.brands) ? json.data.brands : []

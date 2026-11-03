@@ -97,7 +97,9 @@ class StorefrontCatalog
             'discounted_price_minor' => $price,
             'sale_ends_at' => $price < $regular && ! empty($meta['sale_ends_at']) && strtotime((string) $meta['sale_ends_at']) ? date(DATE_ATOM, strtotime((string) $meta['sale_ends_at'])) : null,
             'discount_percent' => $price < $regular && $regular > 0 ? (int) round(100 - $price * 100 / $regular) : null,
-            'currency' => 'IRR',
+            // Canonical shop storage is IRR (rial). Clients convert via Money / formatMoney.
+            'currency' => \App\Support\Currency::BASE,
+            'currency_display' => \App\Support\Money::displayCurrency(),
             'is_available' => $this->available($item),
             'is_sold_out' => ! $this->available($item),
             'is_new' => (bool) ($meta['is_new'] ?? false),
@@ -158,7 +160,8 @@ class StorefrontCatalog
             'coupon_error' => $couponError,
             'free_shipping_over_minor' => $freeOver,
             'requires_shipping' => $physical,
-            'currency' => 'IRR',
+            'currency' => \App\Support\Currency::BASE,
+            'currency_display' => \App\Support\Money::displayCurrency(),
         ];
     }
 

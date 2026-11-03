@@ -66,7 +66,7 @@ class PublicStorefrontController extends Controller
             'categories' => $this->catalog->categories($all),
             'brands' => $all->map(fn ($i) => $i->meta['brand'] ?? null)->filter()->unique()->values()->map(fn ($b) => ['id' => 0, 'name' => $b, 'slug' => $b]),
             'items' => $items,
-            'currency_display' => ['currency' => 'IRT', 'currency_position' => 'after', 'thousand_separator' => ',', 'decimal_separator' => '.', 'price_decimals' => 0],
+            'currency_display' => \App\Support\Money::storefrontDisplay(),
             'pagination' => ['page' => $page, 'per_page' => $perPage, 'total' => $total],
             'query' => $q !== '' ? $q : null,
         ]])->header('Cache-Control', 'no-cache, must-revalidate');

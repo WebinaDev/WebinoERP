@@ -5,6 +5,8 @@
 
 import { useSyncExternalStore } from "react"
 
+import { formatPriceFromMinor } from "@/lib/money"
+
 // NEXT_PUBLIC_API_URL is usually "/api" (or "https://host/api"); shop paths already start with /api.
 const API = (process.env.NEXT_PUBLIC_API_URL ?? "").trim().replace(/\/+$/, "").replace(/\/api$/, "")
 const TOKEN_KEY = "webino.cart.token"
@@ -36,8 +38,8 @@ export type ShopUser = { id: number; name: string; email: string; roles?: string
 
 export type ApiResult<T> = { ok: true; data: T } | { ok: false; status: number; message: string; errors?: Record<string, string[]> }
 
-/** IRR minor units → «۱۲٬۰۰۰ تومان». */
-export const tomanFromMinor = (minor: number) => `${new Intl.NumberFormat("fa-IR").format(Math.round((minor || 0) / 10))} تومان`
+/** IRR minor (rial) → display string via unified Money handler. */
+export const tomanFromMinor = (minor: number) => formatPriceFromMinor(minor, "fa")
 
 function token(): string | null {
   if (typeof window === "undefined") return null

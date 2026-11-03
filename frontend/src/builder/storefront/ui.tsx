@@ -14,6 +14,7 @@ import { useEffect, useMemo, useState, useSyncExternalStore } from "react"
 
 import { ApiError, api } from "@/lib/api"
 import { formatDate, formatNumber, normalizeUiLocale, toLatinDigits, toLocaleDigits } from "@/lib/locale"
+import { formatMoney } from "@/lib/money"
 import { useThemeSettings } from "@/providers/AppProviders"
 
 import { cartCount, cartServerSnapshot, cartSnapshot, clearCart, setQty, subscribeCart } from "../cart"
@@ -52,10 +53,8 @@ const NAV = [
 ]
 
 function useMoney() {
-  const t = useTranslations("builder")
   const locale = useLocale()
-  return (amount: number) =>
-    `${formatNumber(Math.max(0, Math.round(amount)), normalizeUiLocale(locale))} ${t("currency_toman")}`
+  return (amount: number) => formatMoney(amount, { locale })
 }
 
 function digits(value: number, locale: string) {

@@ -1,13 +1,15 @@
 "use client"
 
 /* Builder-facing cart API. Backed by the real Shop (Sales storefront) cart on the server, via AJAX.
- * Kept the old function names so product, course and theme widgets keep working. `price` is in toman. */
+ * Kept the old function names so product, course and theme widgets keep working.
+ * `price` is canonical IRR (rial) — format via `@/lib/money`. */
 
 import { addToShopCart, cartState, refreshCart, removeShopItem, setShopQty, subscribeShopCart, type ShopCart } from "@/features/shop/shop-api"
 
 export type CartLine = {
   slug: string
   name: string
+  /** IRR (rial) unit price. */
   price: number
   qty: number
   tone: string
@@ -25,7 +27,7 @@ function lines(): CartLine[] {
   lastLines = (cart?.items ?? []).map((l) => ({
     slug: l.product.slug,
     name: l.product.name,
-    price: Math.round(l.unit_price_minor / 10),
+    price: Math.round(l.unit_price_minor),
     qty: l.quantity,
     tone: "#0054ff",
     image: l.product.cover_image_url || l.product.image_url || null,

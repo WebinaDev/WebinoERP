@@ -2,6 +2,7 @@
 
 namespace Modules\Accounting\Http\Controllers;
 
+use App\Support\Money;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Modules\Accounting\Entities\AccUserDefault;
@@ -11,23 +12,13 @@ class AccountingSettingsController extends Controller
 {
     public function settings(): JsonResponse
     {
-        $currency = (string) SystemSetting::get('accounting_currency', 'IRT');
-        $currency = strtoupper($currency) === 'IRR' ? 'IRR' : 'IRT';
-        $symbol = (string) SystemSetting::get('accounting_currency_symbol', 'default');
-        $allowed = $currency === 'IRR'
-            ? ['rial-1', 'rial-2']
-            : ['default', 'toman-1', 'toman-2'];
-        if (! in_array($symbol, $allowed, true)) {
-            $symbol = $currency === 'IRR' ? 'rial-1' : 'default';
-        }
+        $money = Money::settingsPayload();
         $fyId = SystemSetting::get('accounting_default_fiscal_year_id');
 
         return response()->json([
-            'data' => [
-                'currency' => $currency,
-                'currency_symbol' => $symbol,
+            'data' => array_merge($money, [
                 'fiscal_year_id' => $fyId ? (int) $fyId : null,
-            ],
+            ]),
         ]);
     }
 

@@ -4,8 +4,9 @@ import Link from "next/link"
 import { useLocale } from "next-intl"
 import type { ReactNode } from "react"
 
-import { CurrencyMark } from "@/components/CurrencyMark"
+import { MoneyDisplay } from "@/components/currency/MoneyDisplay"
 import { formatNumber, normalizeUiLocale, toLocaleDigits } from "@/lib/locale"
+import { fromRialAmount } from "@/lib/money"
 import { useClassicThemeSettings } from "@/themes/shared/site-branding-context"
 
 import { IconChevronLeft } from "./icons"
@@ -28,14 +29,14 @@ export function useDigits() {
   return (value: number) => formatNumber(Math.max(0, Math.round(value)), normalizeUiLocale(locale))
 }
 
-/** Toman amount + glyph (currentColor mask) — classic price atom. */
+/** Price atom — value is canonical IRR (rial); MoneyDisplay converts to settings unit. */
 export function ClassicAmount({ value, className }: { value: number; className?: string }) {
-  const digits = useDigits()
   return (
-    <span className={`sfc-amount ${className ?? ""}`}>
-      <bdi>{digits(value)}</bdi>
-      <CurrencyMark symbol="toman-1" className="sfc-amount__glyph" alt="تومان" />
-    </span>
+    <MoneyDisplay
+      amount={value}
+      className={`sfc-amount ${className ?? ""}`}
+      amountClassName="sfc-amount__num"
+    />
   )
 }
 
@@ -46,7 +47,7 @@ export function ClassicPrice({ price, compare, size = "md" }: { price: number; c
     <div className={`sfc-price sfc-price--${size}`}>
       {off > 0 ? (
         <div className="sfc-price__old">
-          <del>{digits(compare ?? 0)}</del>
+          <del>{digits(fromRialAmount(compare ?? 0))}</del>
           <span className="sfc-price__off">{digits(off)}٪</span>
         </div>
       ) : null}

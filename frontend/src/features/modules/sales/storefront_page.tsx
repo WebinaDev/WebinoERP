@@ -8,6 +8,7 @@ import { useCallback, useEffect, useState } from 'react';
 
 import apiClient from '@/lib/api-client';
 import { normalizeListPayload } from '@/lib/list-utils';
+import { formatPriceFromMinor } from '@/lib/money';
 
 type Item = { id: number; name: string; sku?: string | null; price: string | number; status: string; description?: string | null; meta?: Record<string, unknown> | null };
 type Order = { id: number; number: string; status: string; total_minor: number; customer_name?: string | null; phone?: string | null; customer_email?: string | null; payment_mode?: string | null; payment_method?: string | null; created_at?: string; items: { name: string; quantity: number; total: number }[]; tracking_code?: string | null };
@@ -17,7 +18,7 @@ type Settings = Record<string, string | number | boolean>;
 const TABS = [['products', 'محصولات'], ['orders', 'سفارش‌ها'], ['coupons', 'کدهای تخفیف'], ['settings', 'تنظیمات سبد و تسویه']] as const;
 const STATUS: Record<string, string> = { pending_payment: 'در انتظار پرداخت', paid: 'پرداخت‌شده', processing: 'در حال پردازش', shipped: 'ارسال‌شده', delivered: 'تحویل‌شده', cancelled: 'لغوشده' };
 const KINDS: Record<string, string> = { license: 'لایسنس / افزونه', package: 'پکیج', course: 'دوره آموزشی', product: 'کالای فیزیکی', service: 'خدمت', digital: 'فایل دیجیتال' };
-const toman = (rial: number | string) => `${new Intl.NumberFormat('fa-IR').format(Math.round(Number(rial || 0) / 10))} تومان`;
+const toman = (rial: number | string) => formatPriceFromMinor(rial, 'fa');
 const input = 'h-10 w-full rounded-xl border border-border bg-background px-3 text-sm outline-none focus:border-primary';
 const btn = 'inline-flex h-10 items-center justify-center rounded-xl bg-primary px-4 text-sm font-bold text-primary-foreground disabled:opacity-50';
 const ghost = 'inline-flex h-9 items-center justify-center rounded-xl border border-border px-3 text-sm';

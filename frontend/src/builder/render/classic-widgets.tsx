@@ -6,6 +6,7 @@ import { useLocale, useTranslations } from "next-intl"
 import { useEffect, useState } from "react"
 
 import { formatNumber, normalizeUiLocale } from "@/lib/locale"
+import { formatMoney } from "@/lib/money"
 import { StorefrontMegaMenuPanel, ProductReviewsPanel, ProductQuestionsPanel } from "../storefront/storefront-chrome"
 import { StoreProductCard, StorefrontAccount } from "../storefront/ui"
 import { addShopItem } from "../storefront/actions"
@@ -260,7 +261,7 @@ export function AddToCartBoxWidget({ productSlug, editing = false }: { productSl
   const product = catalog.products.find((item) => item.slug === slug) ?? (editing ? catalog.products[0] : undefined)
   const [note, setNote] = useState("")
   if (!product) return null
-  const money = `${formatNumber(Math.round(product.price), normalizeUiLocale(locale))} ${t("currency_toman")}`
+  const money = formatMoney(product.price, { locale })
   return (
     <div className="mx-auto max-w-md px-4 py-4">
       <div className="sf-atc-box sf-card p-5">

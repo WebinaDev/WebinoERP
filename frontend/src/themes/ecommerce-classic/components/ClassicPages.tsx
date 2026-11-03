@@ -6,6 +6,7 @@ import { useEffect, useState, type ReactNode } from "react"
 import { useLocale, useTranslations } from "next-intl"
 
 import { formatDate, formatNumber, normalizeUiLocale } from "@/lib/locale"
+import { formatMoney } from "@/lib/money"
 import { useClassicThemeSettings } from "@/themes/shared/site-branding-context"
 import { useServerCart } from "@/builder/storefront/actions"
 import { quietApi } from "@/builder/storefront/session"
@@ -401,8 +402,7 @@ export function ClassicComparePage() {
       .finally(() => setLoading(false))
   }, [query, enabled])
 
-  const money = (minor: number) =>
-    `${formatNumber(Math.round(minor), normalizeUiLocale(locale))} ${t("currency_toman")}`
+  const money = (minor: number) => formatMoney(minor, { locale })
 
   if (!enabled) {
     return (

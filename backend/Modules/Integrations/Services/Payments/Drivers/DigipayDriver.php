@@ -40,7 +40,7 @@ class DigipayDriver implements PaymentGatewayDriver
         $type = $this->ticketType($intent, $config);
         $res = $this->http->postJson($this->base($config).'/tickets/business?type='.$type, [
             'cellNumber' => (string) ($intent->mobile ?: '09120000000'),
-            'amount' => (int) $intent->total_amount,
+            'amount' => \App\Support\Money::gatewayRialFromBase((int) $intent->total_amount),
             'providerId' => $intent->public_id,
             'callbackUrl' => $callbackUrl,
             'basketDetailsDto' => [
@@ -150,7 +150,7 @@ class DigipayDriver implements PaymentGatewayDriver
         $res = $this->http->postJson($this->base($config).'/purchases/reverse?type='.$type, [
             'purchaseTrackingCode' => (string) ($intent->provider_ref ?: $intent->authority),
             'providerId' => $intent->public_id,
-            'amount' => (int) $intent->total_amount,
+            'amount' => \App\Support\Money::gatewayRialFromBase((int) $intent->total_amount),
         ], $this->headers(), $access);
         $status = $res['json']['result']['status'] ?? null;
         if (! $res['ok'] || ($status !== null && (int) $status !== 0)) {

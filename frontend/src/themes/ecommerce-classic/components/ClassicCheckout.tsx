@@ -8,6 +8,7 @@ import { useLocale, useTranslations } from "next-intl"
 import { trackAnalyticsEvent } from "@/lib/analytics-track"
 import { ApiError, api } from "@/lib/api"
 import { formatNumber, normalizeUiLocale, toLatinDigits, toLocaleDigits } from "@/lib/locale"
+import { formatMoney } from "@/lib/money"
 import { useClassicThemeSettings } from "@/themes/shared/site-branding-context"
 
 import { syncGuestCart, useServerCart } from "@/builder/storefront/actions"
@@ -507,7 +508,7 @@ export function ClassicCheckout() {
                                 percent: toLocaleDigits(gateway.quote.fee_percent, locale),
                               })}
                               {" · "}
-                              {formatNumber(gateway.quote.charge_minor, normalizeUiLocale(locale))} تومان
+                              {formatMoney(gateway.quote.charge_minor, { locale })}
                             </em>
                           ) : (
                             <em>{tx("checkout.gateway_ready")}</em>

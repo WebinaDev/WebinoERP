@@ -16,9 +16,11 @@ import { propNum, propStr } from "../props"
 import type { WidgetNode } from "../types"
 import { visitorHeaders } from "../storefront/visitor"
 
+import { formatPriceFromMinor } from "@/lib/money"
+
 const API = (process.env.NEXT_PUBLIC_API_URL ?? "").trim().replace(/\/+$/, "").replace(/\/api$/, "")
 const fa = (n: number) => new Intl.NumberFormat("fa-IR").format(n)
-const toman = (minor: number) => `${fa(Math.round(minor / 10))} تومان`
+const toman = (minor: number) => formatPriceFromMinor(minor, "fa")
 
 export type ApiProduct = {
   id: number
@@ -213,7 +215,7 @@ function ProductCard({ p, eager, showTimer }: { p: ApiProduct; eager?: boolean; 
             <button
               type="button"
               disabled={p.is_available === false}
-              onClick={() => { addToCart({ slug: p.slug, productId: p.id, name: p.name, price: Math.round(price / 10), tone: "#0054ff", image: img || null }); setAdded(true); window.setTimeout(() => setAdded(false), 2200) }}
+              onClick={() => { addToCart({ slug: p.slug, productId: p.id, name: p.name, price: Math.round(price), tone: "#0054ff", image: img || null }); setAdded(true); window.setTimeout(() => setAdded(false), 2200) }}
               className="inline-flex h-11 flex-1 items-center justify-center gap-2 rounded-2xl bg-[#0054ff] text-sm font-bold text-white transition hover:bg-[#0045d1] disabled:opacity-50"
             >
               <ShoppingCart className="h-4 w-4" />{added ? "به سبد اضافه شد" : "افزودن به سبد"}
@@ -498,7 +500,7 @@ export function CompareTableWidget({ widget }: { widget: WidgetNode }) {
                     <button
                       type="button"
                       disabled={r.is_available === false}
-                      onClick={() => { const price = r.discounted_price_minor || r.price_minor; addToCart({ slug: r.slug, productId: r.id, name: r.name, price: Math.round(price / 10), tone: "#0054ff", image: r.image_url || null }); setAdded(r.id); window.setTimeout(() => setAdded(null), 2200) }}
+                      onClick={() => { const price = r.discounted_price_minor || r.price_minor; addToCart({ slug: r.slug, productId: r.id, name: r.name, price: Math.round(price), tone: "#0054ff", image: r.image_url || null }); setAdded(r.id); window.setTimeout(() => setAdded(null), 2200) }}
                       className="inline-flex h-11 w-full items-center justify-center gap-2 rounded-2xl bg-[#0054ff] text-sm font-bold text-white disabled:opacity-50"
                     >
                       <ShoppingCart className="h-4 w-4" />{added === r.id ? "به سبد اضافه شد" : "افزودن به سبد"}

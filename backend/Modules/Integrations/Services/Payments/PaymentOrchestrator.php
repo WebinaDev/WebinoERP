@@ -2,6 +2,8 @@
 
 namespace Modules\Integrations\Services\Payments;
 
+use App\Support\Currency;
+use App\Support\Money;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -25,13 +27,18 @@ class PaymentOrchestrator
     /**
      * @return array<string, mixed>
      */
-    public function quote(string $gateway, string $mode, int $baseAmount): array
+    public function quote(string $gateway, string $mode, int $baseAmount, ?string $amountCurrency = null): array
     {
         $config = $this->assertPayableGateway($gateway, $mode);
-        $quote = $this->fees->quote($baseAmount, (float) $config['fee_percent'], $mode, (bool) $config['apply_fee_on_cash']);
+        // Settlement for Iranian PSPs is always IRR (rial). Convert when callers pass display units.
+        $rial = $amountCurrency === null || Currency::normalize($amountCurrency, Currency::BASE) === Currency::BASE
+            ? Money::gatewayRialFromBase($baseAmount)
+            : Money::gatewayRial($baseAmount, $amountCurrency);
+        $quote = $this->fees->quote($rial, (float) $config['fee_percent'], $mode, (bool) $config['apply_fee_on_cash']);
         $quote['gateway'] = $gateway;
         $quote['mode'] = $mode;
-        $quote['currency'] = 'IRR';
+        $quote['currency'] = Currency::SETTLEMENT;
+        $quote['display_currency'] = Money::displayCurrency();
 
         return $quote;
     }
@@ -52,7 +59,12 @@ class PaymentOrchestrator
 
         $gateway = $this->pickGateway(isset($input['gateway']) ? (string) $input['gateway'] : null, $mode);
         $config = $this->assertPayableGateway($gateway, $mode);
-        $quote = $this->fees->quote($bill['base_amount'], (float) $config['fee_percent'], $mode, (bool) $config['apply_fee_on_cash']);
+        // BillableResolver returns IRR for shop/sales invoices; optional amount_currency converts display → rial.
+        $amountCurrency = isset($input['amount_currency']) ? (string) $input['amount_currency'] : Currency::BASE;
+        $baseRial = Currency::normalize($amountCurrency, Currency::BASE) === Currency::BASE
+            ? Money::gatewayRialFromBase((int) $bill['base_amount'])
+            : Money::gatewayRial((int) $bill['base_amount'], $amountCurrency);
+        $quote = $this->fees->quote($baseRial, (float) $config['fee_percent'], $mode, (bool) $config['apply_fee_on_cash']);
 
         if ($mode === 'installment' || $gateway === 'zarinpal') {
             $eligible = $this->registry->get($gateway)->checkEligible($quote['total_amount'], $config);
@@ -101,7 +113,7 @@ class PaymentOrchestrator
             'payable_id' => $bill['id'],
             'mode' => $mode,
             'gateway' => $gateway,
-            'currency' => 'IRR',
+            'currency' => Currency::SETTLEMENT,
             'base_amount' => $quote['base_amount'],
             'fee_percent' => $quote['fee_percent'],
             'fee_amount' => $quote['fee_amount'],
@@ -112,7 +124,10 @@ class PaymentOrchestrator
             'callback_token' => Str::random(40),
             'description' => $bill['description'],
             'mobile' => $mobile,
-            'meta' => $bill['meta'],
+            'meta' => array_merge($bill['meta'], [
+                'display_currency' => Money::displayCurrency(),
+                'settlement_currency' => Currency::SETTLEMENT,
+            ]),
         ]);
         $intent->provider_tx = 'P'.str_pad((string) $intent->id, 8, '0', STR_PAD_LEFT);
         $intent->save();

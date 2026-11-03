@@ -7,6 +7,8 @@ import Link from "next/link"
 import { usePathname } from "next/navigation"
 import { useEffect, useState, useSyncExternalStore, type ReactNode } from "react"
 
+import { formatPriceFromMinor } from "@/lib/money"
+
 import { addToCart, cartSnapshot, subscribeCart } from "../cart"
 
 import { propStr } from "../props"
@@ -375,9 +377,9 @@ function CourseCartButton({ slug, name, price, image, label, cartHref, light }: 
     </div>
   )
 }
-const toman = (n: number) => `${faNum(n)} تومان`
+const toman = (rial: number) => formatPriceFromMinor(rial, "fa")
 
-/** Shop catalog price (toman) for a product slug; 0 while loading or when not sold. */
+/** Shop catalog price (IRR) for a product slug; 0 while loading or when not sold. */
 function useShopPrice(slug: string) {
   const [price, setPrice] = useState(0)
   useEffect(() => {
@@ -385,7 +387,7 @@ function useShopPrice(slug: string) {
     let alive = true
     void fetch(`/api/v1/public/catalog/items/${encodeURIComponent(slug)}`, { headers: { Accept: "application/json", "X-Requested-With": "XMLHttpRequest" } })
       .then((r) => (r.ok ? r.json() : null))
-      .then((j) => { const d = j?.data ?? j; if (alive && d?.is_available !== false) setPrice(Math.round(Number(d?.discounted_price_minor ?? d?.price_minor ?? 0) / 10)) })
+      .then((j) => { const d = j?.data ?? j; if (alive && d?.is_available !== false) setPrice(Math.round(Number(d?.discounted_price_minor ?? d?.price_minor ?? 0))) })
       .catch(() => undefined)
     return () => { alive = false }
   }, [slug])

@@ -10,6 +10,7 @@ import { useLocale, useTranslations } from "next-intl"
 import { useRouter, useSearchParams } from "next/navigation"
 import { useEffect, useMemo, useState, type ReactNode } from "react"
 import { formatNumber, normalizeUiLocale } from "@/lib/locale"
+import { formatMoney } from "@/lib/money"
 
 import { embedVideoSrc, sanitizeBuilderHtml } from "./sanitize-html"
 import {
@@ -201,9 +202,8 @@ const NAV = [
 ]
 
 function useMoney() {
-  const t = useTranslations("builder")
   const locale = useLocale()
-  return (amount: number) => `${formatNumber(Math.max(0, Math.round(amount)), normalizeUiLocale(locale))} ${t("currency_toman")}`
+  return (amount: number) => formatMoney(amount, { locale })
 }
 
 function AbstractArt({ tone, label }: { tone: string; label: string }) {

@@ -34,10 +34,11 @@ class ZarinpalDriver implements PaymentGatewayDriver
             return GatewayResult::failure('شناسه پذیرنده زرین‌پال خالی است.');
         }
         $base = $this->apiBase($config);
+        // Zarinpal docs: amount in the unit of `currency`. We always settle in IRR (rial).
         $res = $this->http->postJson($base.'request.json', [
             'merchant_id' => $merchant,
-            'amount' => (int) $intent->total_amount,
-            'currency' => 'IRR',
+            'amount' => \App\Support\Money::gatewayRialFromBase((int) $intent->total_amount),
+            'currency' => \App\Support\Currency::SETTLEMENT,
             'callback_url' => $callbackUrl,
             'description' => mb_substr((string) ($intent->description ?: 'پرداخت وبینو'), 0, 255),
             'metadata' => array_filter([
@@ -75,7 +76,7 @@ class ZarinpalDriver implements PaymentGatewayDriver
         $authority = (string) ($callback['Authority'] ?? $callback['authority'] ?? $intent->authority);
         $res = $this->http->postJson($this->apiBase($config).'verify.json', [
             'merchant_id' => $merchant,
-            'amount' => (int) $intent->total_amount,
+            'amount' => \App\Support\Money::gatewayRialFromBase((int) $intent->total_amount),
             'authority' => $authority,
         ]);
         $code = (int) ($res['json']['data']['code'] ?? 0);

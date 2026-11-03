@@ -213,7 +213,8 @@ abstract class SnappStyleDriver implements PaymentGatewayDriver
      */
     protected function tokenBody(PaymentIntent $intent, string $callbackUrl): array
     {
-        $amount = (int) $intent->total_amount;
+        // SnappPay / TorobPay: amounts in IRR (rial), never display toman.
+        $amount = \App\Support\Money::gatewayRialFromBase((int) $intent->total_amount);
         $title = mb_substr((string) ($intent->description ?: 'سفارش وبینو'), 0, 120);
 
         return [
