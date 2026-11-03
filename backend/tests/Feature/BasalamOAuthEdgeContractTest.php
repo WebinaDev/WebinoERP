@@ -53,6 +53,29 @@ class BasalamOAuthEdgeContractTest extends TestCase
         $this->assertSame('new-refresh', $res->json('refresh_token'));
     }
 
+    public function test_finance_proxy_calls_basalam_from_erp(): void
+    {
+        Http::fake([
+            'https://accounting.basalam.com/*' => Http::response(['balance' => 15000], 200),
+        ]);
+
+        $res = $this->postJson('/api/webinocrm/v1/basalam/finance/proxy', [
+            'site_url' => 'https://shop.example.com',
+            'access_token' => 'vendor-token',
+            'op' => 'balance',
+        ])->assertOk();
+
+        $this->assertSame(15000, $res->json('balance'));
+        Http::assertSent(function ($request) {
+            $referer = (string) ($request->header('referer')[0] ?? '');
+
+            return $request->url() === 'https://accounting.basalam.com/financial/v1/client/transaction/balance'
+                && $request->hasHeader('Authorization', 'Bearer vendor-token')
+                && str_contains($referer, 'webina.dev')
+                && ! str_contains($referer, 'webinaagency.ir');
+        });
+    }
+
     public function test_start_without_secret_is_503_with_message(): void
     {
         $res = $this->postJson('/api/webinocrm/v1/basalam/oauth/start', [

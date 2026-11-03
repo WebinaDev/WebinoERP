@@ -4,6 +4,7 @@ namespace Modules\Marketplace\Providers;
 
 use Illuminate\Support\Facades\Route;
 use Illuminate\Support\ServiceProvider;
+use Modules\Marketplace\Http\Controllers\BasalamFinanceController;
 use Modules\Marketplace\Http\Controllers\BasalamOAuthController;
 use Modules\Marketplace\Http\Controllers\WebinocrmMarketplaceCompatController;
 
@@ -31,6 +32,12 @@ class MarketplaceServiceProvider extends ServiceProvider
                 Route::post('/start', [BasalamOAuthController::class, 'start']);
                 Route::post('/refresh', [BasalamOAuthController::class, 'refresh']);
                 Route::post('/disconnect', [BasalamOAuthController::class, 'disconnect'])->middleware('webino.site');
+            });
+
+        Route::prefix('api/webinocrm/v1/basalam/finance')
+            ->middleware(['api', 'throttle:60,1', 'webino.site'])
+            ->group(function () {
+                Route::post('/proxy', [BasalamFinanceController::class, 'proxy']);
             });
 
         $this->loadMigrationsFrom(module_path($this->moduleName, 'Database/Migrations'));
