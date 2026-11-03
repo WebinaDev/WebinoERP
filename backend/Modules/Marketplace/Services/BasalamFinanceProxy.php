@@ -2,6 +2,7 @@
 
 namespace Modules\Marketplace\Services;
 
+use Illuminate\Http\Client\ConnectionException;
 use Illuminate\Support\Facades\Http;
 use Modules\Marketplace\Entities\MarketplaceBasalamConnection;
 
@@ -90,7 +91,11 @@ class BasalamFinanceProxy
      */
     private function send(string $method, string $url, string $token, ?array $body = null): array
     {
-        $pending = Http::timeout(20)
+        $pending = Http::timeout(25)
+            ->withOptions([
+                'version' => 1.1,
+                'curl' => [CURLOPT_HTTP_VERSION => CURL_HTTP_VERSION_1_1],
+            ])
             ->acceptJson()
             ->withToken($token)
             ->withHeaders([
@@ -98,9 +103,22 @@ class BasalamFinanceProxy
                 'referer' => 'https://webina.dev',
             ]);
 
-        $response = $method === 'POST'
-            ? $pending->asJson()->post($url, $body ?? [])
-            : $pending->get($url);
+        try {
+            $response = $method === 'POST'
+                ? $pending->asJson()->post($url, $body ?? [])
+                : $pending->get($url);
+        } catch (ConnectionException $e) {
+            try {
+                $response = $method === 'POST'
+                    ? $pending->asJson()->post($url, $body ?? [])
+                    : $pending->get($url);
+            } catch (ConnectionException $e) {
+                return [
+                    'status' => 502,
+                    'body' => ['message' => 'اتصال به حسابداری باسلام قطع شد. دوباره تلاش کنید.'],
+                ];
+            }
+        }
 
         $decoded = $response->json();
 
