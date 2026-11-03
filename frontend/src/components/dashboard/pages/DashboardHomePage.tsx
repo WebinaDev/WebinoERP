@@ -15,11 +15,13 @@ import { localizeToken } from '@/features/modules/dashboard/localize';
 import { useInitialDashboardStats } from '@/lib/initial-dashboard-context';
 import { dashboardHref } from '@/lib/route-resolver';
 import { useLocale } from '@/hooks/use-locale-next';
+import { canDashboardSection, canListWidget } from '@/lib/dashboard-access';
 import {
   BriefcaseBusiness,
   ChartColumn,
   ClipboardList,
   FolderKanban,
+  Globe,
   ListTodo,
   Settings2,
   Ticket,
@@ -47,11 +49,24 @@ type Stats = {
   tickets_open?: number;
 };
 
-type WidgetItem = Record<string, unknown>;
+type WidgetItem = {
+  id?: number | string;
+  title?: string;
+  subject?: string;
+  name?: string;
+  label?: string;
+  status?: string;
+  subtitle?: string;
+  href?: string;
+  amount_display?: string;
+  due_at?: string;
+};
 
 type FullDash = {
+  role?: string;
+  sections?: string[];
   stats?: Record<string, number>;
-  widgets?: { id: string; title: string; type: string; items?: WidgetItem[] }[];
+  widgets?: { id: string; title: string; type: string; href?: string; items?: WidgetItem[] }[];
 };
 
 type QuickLink = { href: string; labelKey: string };
@@ -62,7 +77,26 @@ function roleQuickLinks(role: string): QuickLink[] {
       { href: 'pm/projects', labelKey: 'quickLinks.projects' },
       { href: 'reports', labelKey: 'quickLinks.reports' },
       { href: 'crm/leads', labelKey: 'quickLinks.leads' },
+      { href: 'finance/invoices', labelKey: 'quickLinks.invoices' },
       { href: 'admin/settings', labelKey: 'quickLinks.settings' },
+    ];
+  }
+  if (role === 'project_manager') {
+    return [
+      { href: 'pm/projects', labelKey: 'quickLinks.projects' },
+      { href: 'pm/tasks', labelKey: 'quickLinks.tasks' },
+      { href: 'crm/tickets', labelKey: 'quickLinks.tickets' },
+      { href: 'pm/workload', labelKey: 'quickLinks.workload' },
+      { href: 'admin/platform/sites', labelKey: 'quickLinks.sites' },
+    ];
+  }
+  if (role === 'crm_specialist') {
+    return [
+      { href: 'crm/leads', labelKey: 'quickLinks.leads' },
+      { href: 'crm/customers', labelKey: 'quickLinks.customers' },
+      { href: 'crm/deals', labelKey: 'quickLinks.deals' },
+      { href: 'crm/tickets', labelKey: 'quickLinks.tickets' },
+      { href: 'crm/consultations', labelKey: 'quickLinks.consultations' },
     ];
   }
   if (role === 'sales_consultant') {
@@ -106,8 +140,6 @@ function roleQuickLinks(role: string): QuickLink[] {
   ];
 }
 
-
-/** Lucide only — same stroke as MobileBottomNav. */
 const ICON_STROKE = 1.75;
 
 const WIDGET_ICONS: Record<string, LucideIcon> = {
@@ -117,6 +149,7 @@ const WIDGET_ICONS: Record<string, LucideIcon> = {
   recent_projects: FolderKanban,
   recent_deals: Handshake,
   recent_invoices: FileText,
+  recent_sites: Globe,
 };
 
 const QUICK_LINK_ICONS: Record<string, LucideIcon> = {
@@ -124,12 +157,16 @@ const QUICK_LINK_ICONS: Record<string, LucideIcon> = {
   'pm/tasks': ListTodo,
   'pm/time-tracking': BriefcaseBusiness,
   'pm/appointments': BriefcaseBusiness,
+  'pm/workload': ChartColumn,
   reports: ChartColumn,
   'crm/leads': UsersRound,
   'crm/deals': BriefcaseBusiness,
   'crm/customers': UsersRound,
   'crm/tickets': Ticket,
+  'crm/consultations': ClipboardList,
   'admin/settings': Settings2,
+  'admin/platform/sites': Globe,
+  'finance/invoices': FileText,
   profile: UserRound,
   'hrm/staff': UsersRound,
   'hrm/payroll': BriefcaseBusiness,
@@ -155,6 +192,8 @@ export function DashboardHomePage() {
   const [financeSummary, setFinanceSummary] = useState<Record<string, unknown> | null>(null);
   const [salesSummary, setSalesSummary] = useState<{ open_deals?: number; new_leads?: number } | null>(null);
   const [adminSummary, setAdminSummary] = useState<{ licenses?: number; visitors?: number } | null>(null);
+  const [listPrefs, setListPrefs] = useState<{ key: string; visible: boolean }[]>([]);
+  const [settingsOpen, setSettingsOpen] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
 
@@ -165,13 +204,14 @@ export function DashboardHomePage() {
       const u = await getCurrentUser();
       setUser(u);
       const role = u?.dashboard_role ?? 'guest';
-      const showTeamTab = role !== 'client';
+      const showTeamTab = canDashboardSection(role, 'team_tab');
 
       const requests: Promise<unknown>[] = [
         initialStats
           ? Promise.resolve({ data: initialStats })
           : apiClient.get('/v1/core/dashboard/stats'),
         apiClient.get('/v1/core/dashboard'),
+        apiClient.get('/v1/core/dashboard/widgets'),
         apiClient.get('/v1/projects/projects', { params: { per_page: 8 } }),
       ];
       if (showTeamTab) {
@@ -182,11 +222,16 @@ export function DashboardHomePage() {
       const pick = (i: number) => (settled[i]?.status === 'fulfilled' ? settled[i].value : null);
       const sRes = pick(0);
       const fRes = pick(1);
-      const pRes = pick(2);
-      const uRes = pick(3);
+      const wRes = pick(2);
+      const pRes = pick(3);
+      const uRes = pick(4);
 
       if (sRes) setStats(unwrapData<Stats>(sRes as { data: unknown }));
       if (fRes) setFull(unwrapData<FullDash>(fRes as { data: unknown }));
+      if (wRes) {
+        const prefs = unwrapData<{ widgets?: { key: string; visible: boolean }[] }>(wRes as { data: unknown });
+        setListPrefs((prefs?.widgets ?? []).filter((w) => w.key.startsWith('recent_')));
+      }
       if (pRes) setProjects(normalizeListPayload(unwrapData<unknown>(pRes as { data: unknown })));
       setTeam(uRes ? normalizeListPayload(unwrapData<unknown>(uRes as { data: unknown })) : []);
       const failed = settled.filter((r) => r.status === 'rejected');
@@ -195,20 +240,26 @@ export function DashboardHomePage() {
       }
 
       if (role === 'team_member') {
-        const tm = await apiClient.get('/v1/core/dashboard/stats/team-member');
-        setTeamMember(unwrapData<{ tasks_assigned?: number; tickets_assigned?: number }>(tm));
+        try {
+          const tm = await apiClient.get('/v1/core/dashboard/stats/team-member');
+          setTeamMember(unwrapData<{ tasks_assigned?: number; tickets_assigned?: number }>(tm));
+        } catch {
+          setTeamMember(null);
+        }
       } else {
         setTeamMember(null);
       }
-      if (role === 'finance_manager') {
+      if (role === 'finance_manager' || role === 'system_manager') {
         try {
           const fin = await apiClient.get('/v1/accounting/summary');
           setFinanceSummary(unwrapData(fin) as Record<string, unknown>);
-        } catch { setFinanceSummary(null); }
+        } catch {
+          setFinanceSummary(null);
+        }
       } else {
         setFinanceSummary(null);
       }
-      if (role === 'sales_consultant') {
+      if (role === 'sales_consultant' || role === 'crm_specialist') {
         try {
           const [dealsRes, leadsRes] = await Promise.all([
             apiClient.get('/v1/crm/deals', { params: { per_page: 1, status: 'open' } }),
@@ -217,7 +268,9 @@ export function DashboardHomePage() {
           const dealsBody = dealsRes.data as { meta?: { total?: number } };
           const leadsBody = leadsRes.data as { meta?: { total?: number } };
           setSalesSummary({ open_deals: dealsBody.meta?.total, new_leads: leadsBody.meta?.total });
-        } catch { setSalesSummary(null); }
+        } catch {
+          setSalesSummary(null);
+        }
       } else {
         setSalesSummary(null);
       }
@@ -230,7 +283,9 @@ export function DashboardHomePage() {
           const licenses = normalizeListPayload(unwrapData(licRes));
           const vis = unwrapData<{ unique_visitors?: number }>(visRes);
           setAdminSummary({ licenses: licenses.length, visitors: vis.unique_visitors });
-        } catch { setAdminSummary(null); }
+        } catch {
+          setAdminSummary(null);
+        }
       } else {
         setAdminSummary(null);
       }
@@ -257,22 +312,22 @@ export function DashboardHomePage() {
     };
   }, [s, full]);
 
-  const role = user?.dashboard_role ?? 'guest';
+  const role = user?.dashboard_role ?? full?.role ?? 'guest';
   const roleLabel = t(`roles.${role}` as 'roles.guest');
-  const showTeamTab = role !== 'client';
-  const showFullOverview = role !== 'client' && role !== 'team_member';
+  const showTeamTab = canDashboardSection(role, 'team_tab') || (full?.sections?.includes('team_tab') ?? false);
+  const showFullOverview = canDashboardSection(role, 'full_overview') || (full?.sections?.includes('full_overview') ?? false);
+  const showSnapshot = role !== 'client';
   const quickLinks = useMemo(() => roleQuickLinks(role), [role]);
+
+  const hiddenLists = useMemo(
+    () => new Set(listPrefs.filter((p) => !p.visible).map((p) => p.key)),
+    [listPrefs],
+  );
 
   const visibleWidgets = useMemo(() => {
     const widgets = full?.widgets ?? [];
-    if (role === 'team_member') {
-      return widgets.filter((w) => w.id === 'recent_tasks' || w.id === 'recent_tickets');
-    }
-    if (role === 'client') {
-      return widgets.filter((w) => w.id === 'recent_tickets');
-    }
-    return widgets;
-  }, [full?.widgets, role]);
+    return widgets.filter((w) => canListWidget(role, w.id) && !hiddenLists.has(w.id));
+  }, [full?.widgets, role, hiddenLists]);
 
   const cmp = (n: number) => compactNumber(n, locale);
 
@@ -294,18 +349,39 @@ export function DashboardHomePage() {
   }
 
   function summarizeWidgetRow(it: WidgetItem): string {
-    const title = (it.title ?? it.subject ?? it.name ?? it.label) as string | undefined;
+    const title = it.title ?? it.subject ?? it.name ?? it.label;
     if (title) return String(title);
-    return JSON.stringify(it).slice(0, 80);
+    return tCommon('emptyValue');
+  }
+
+  async function toggleListWidget(key: string, visible: boolean) {
+    const map = new Map(listPrefs.map((p) => [p.key, p]));
+    map.set(key, { key, visible });
+    const next = Array.from(map.values());
+    setListPrefs(next);
+    await apiClient
+      .put('/v1/core/dashboard/widgets', {
+        widgets: next.map((item, index) => ({
+          key: item.key,
+          visible: item.visible,
+          sort_order: index,
+        })),
+      })
+      .catch(() => undefined);
   }
 
   const labelOf = (value: string) => localizeToken(value, (key) => t(key as 'badges.open'), formatDigits);
 
   const initial = (user?.name ?? user?.email ?? 'W').trim().charAt(0).toUpperCase();
 
+  const listSettingKeys = useMemo(() => {
+    const fromPrefs = listPrefs.map((p) => p.key);
+    const fromWidgets = (full?.widgets ?? []).map((w) => w.id);
+    return Array.from(new Set([...fromPrefs, ...fromWidgets])).filter((k) => canListWidget(role, k));
+  }, [listPrefs, full?.widgets, role]);
+
   return (
     <div className="wd-mobile-home space-y-6 text-start md:space-y-6" dir={isRtl ? 'rtl' : 'ltr'}>
-      {/* Mobile chrome: Bale-style hero + lifted quick actions */}
       <div className="md:hidden">
         <header className="wd-mobile-hero">
           <div className="wd-mobile-hero-top">
@@ -351,7 +427,6 @@ export function DashboardHomePage() {
         </div>
       </div>
 
-      {/* Desktop formal home header */}
       <header className="wd-home-hero wd-home-hero--desktop relative z-0 hidden space-y-4 md:block">
         <div className="flex flex-wrap items-start justify-between gap-3">
           <div className="wd-desk-home-greeting min-w-0">
@@ -366,6 +441,16 @@ export function DashboardHomePage() {
               <span className="text-muted-foreground text-sm" dir="ltr">
                 {user.email}
               </span>
+            ) : null}
+            {canDashboardSection(role, 'widget_settings') ? (
+              <button
+                type="button"
+                className="inline-flex items-center gap-1.5 rounded-lg border border-border bg-card px-2.5 py-1.5 text-xs font-medium text-muted-foreground hover:text-foreground"
+                onClick={() => setSettingsOpen((v) => !v)}
+              >
+                <Settings2 className="size-3.5" strokeWidth={ICON_STROKE} />
+                {t('widgetSettings')}
+              </button>
             ) : null}
           </div>
         </div>
@@ -391,6 +476,26 @@ export function DashboardHomePage() {
         </div>
       </header>
 
+      {settingsOpen && canDashboardSection(role, 'widget_settings') ? (
+        <HomeCard icon={Settings2} title={t('widgetSettings')} tone="ink" isRtl={isRtl}>
+          <div className="wd-widget-settings">
+            {listSettingKeys.map((key) => (
+              <label key={key} className="wd-widget-settings-row">
+                <span>{t(`widgets.${key}` as 'widgets.recent_leads')}</span>
+                <input
+                  type="checkbox"
+                  checked={!hiddenLists.has(key)}
+                  onChange={(e) => void toggleListWidget(key, e.target.checked)}
+                />
+              </label>
+            ))}
+            {listSettingKeys.length === 0 ? (
+              <p className="text-sm text-muted-foreground">{t('empty')}</p>
+            ) : null}
+          </div>
+        </HomeCard>
+      ) : null}
+
       {role === 'team_member' && teamMember ? (
         <div className="wd-kpi-grid wd-kpi-grid--2">
           <KpiTile icon={ListTodo} tone="blue" label={t('teamMember.tasksAssigned')} value={loading ? '…' : cmp(teamMember.tasks_assigned ?? 0)} href={dashboardHref(locale, 'pm/tasks')} />
@@ -398,7 +503,7 @@ export function DashboardHomePage() {
         </div>
       ) : null}
 
-      {role === 'finance_manager' && financeSummary ? (
+      {(role === 'finance_manager' || role === 'system_manager') && financeSummary ? (
         <div className="wd-kpi-grid wd-kpi-grid--3">
           <KpiTile icon={Wallet} tone="teal" label={t('finance.summary')} value={financeSummary.total_invoices == null ? tCommon('emptyValue') : cmp(Number(financeSummary.total_invoices))} />
           <KpiTile icon={FileText} tone="blue" label={t('finance.invoices')} value={financeSummary.invoices_count == null ? tCommon('emptyValue') : cmp(Number(financeSummary.invoices_count))} href={dashboardHref(locale, 'finance/invoices')} />
@@ -406,7 +511,7 @@ export function DashboardHomePage() {
         </div>
       ) : null}
 
-      {role === 'sales_consultant' && salesSummary ? (
+      {(role === 'sales_consultant' || role === 'crm_specialist') && salesSummary ? (
         <div className="wd-kpi-grid wd-kpi-grid--2">
           <KpiTile icon={Handshake} tone="teal" label={t('sales.openDeals')} value={cmp(salesSummary.open_deals ?? 0)} href={dashboardHref(locale, 'crm/deals')}
             viz={<Ring value={salesSummary.open_deals ?? 0} max={Math.max(1, (salesSummary.open_deals ?? 0) + (salesSummary.new_leads ?? 0))} size={40} color={WD_CHART.teal} label=" " />} />
@@ -421,7 +526,7 @@ export function DashboardHomePage() {
         </div>
       ) : null}
 
-      {role === 'client' ? <CustomerPortalPanel /> : <CrmPmSnapshot />}
+      {role === 'client' ? <CustomerPortalPanel /> : showSnapshot ? <CrmPmSnapshot /> : null}
 
       <Tabs defaultValue="overview" dir={isRtl ? 'rtl' : 'ltr'} className="mt-2 text-start md:mt-0">
         <TabsList className="mx-0 w-full justify-start overflow-x-auto rounded-xl bg-muted/70 p-1 md:w-auto">
@@ -429,32 +534,72 @@ export function DashboardHomePage() {
           {showTeamTab ? <TabsTrigger value="team" className="gap-1.5 rounded-lg"><UsersRound className="size-3.5" strokeWidth={ICON_STROKE} />{t('tabs.teamProjects')}</TabsTrigger> : null}
         </TabsList>
         <TabsContent value="overview" className="space-y-4">
-          <div className="grid gap-4 lg:grid-cols-3">
-            {showFullOverview ? (
-              <HomeCard icon={PieChartIcon} title={t('charts.statusDistribution')} isRtl={isRtl}>
-                <Donut data={donutSegments} format={(n) => formatNumber(n)} />
-              </HomeCard>
-            ) : null}
-            {visibleWidgets.map((w) => {
-              const Icon = WIDGET_ICONS[w.id] ?? CircleDot;
-              return (
-                <HomeCard key={w.id} icon={Icon} title={widgetTitle(w)} tone="ink" isRtl={isRtl}
-                  aside={(w.items?.length ?? 0) > 0 ? <span className="wd-hc-chip">{formatNumber(w.items?.length ?? 0)}</span> : null}>
-                  <ul className="space-y-1.5">
-                    {(w.items ?? []).slice(0, 5).map((it, idx) => (
-                      <li key={idx} className="wd-row">
-                        <span className="wd-row-ic"><Icon strokeWidth={ICON_STROKE} /></span>
-                        <span className="min-w-0 flex-1 truncate text-sm">{summarizeWidgetRow(it)}</span>
-                      </li>
-                    ))}
-                    {!(w.items && w.items.length) ? (
-                      <li className="text-sm text-muted-foreground">{tCommon('empty')}</li>
-                    ) : null}
-                  </ul>
+          {loading && !full ? (
+            <div className="wd-home-loading">
+              <div className="wd-skel" />
+              <div className="wd-skel" />
+            </div>
+          ) : (
+            <div className="grid gap-4 lg:grid-cols-3">
+              {showFullOverview ? (
+                <HomeCard icon={PieChartIcon} title={t('charts.statusDistribution')} isRtl={isRtl}>
+                  <Donut data={donutSegments} format={(n) => formatNumber(n)} />
                 </HomeCard>
-              );
-            })}
-          </div>
+              ) : null}
+              {visibleWidgets.map((w) => {
+                const Icon = WIDGET_ICONS[w.id] ?? CircleDot;
+                const items = w.items ?? [];
+                return (
+                  <HomeCard
+                    key={w.id}
+                    icon={Icon}
+                    title={widgetTitle(w)}
+                    tone="ink"
+                    isRtl={isRtl}
+                    href={w.href ? dashboardHref(locale, w.href) : undefined}
+                    aside={items.length > 0 ? <span className="wd-hc-chip">{formatNumber(items.length)}</span> : null}
+                  >
+                    <ul className="space-y-1.5">
+                      {items.slice(0, 6).map((it, idx) => {
+                        const rowHref = it.href ? dashboardHref(locale, it.href) : w.href ? dashboardHref(locale, w.href) : undefined;
+                        const inner = (
+                          <>
+                            <span className="wd-row-ic"><Icon strokeWidth={ICON_STROKE} /></span>
+                            <div className="wd-row-meta">
+                              <span className="truncate text-sm">{summarizeWidgetRow(it)}</span>
+                              {it.subtitle || it.amount_display ? (
+                                <span className="wd-row-sub">{String(it.amount_display || it.subtitle)}</span>
+                              ) : null}
+                            </div>
+                            {it.status ? (
+                              <span className="wd-status-pill">{labelOf(String(it.status))}</span>
+                            ) : null}
+                          </>
+                        );
+                        return (
+                          <li key={`${w.id}-${it.id ?? idx}`}>
+                            {rowHref ? (
+                              <Link href={rowHref} className="wd-row">
+                                {inner}
+                              </Link>
+                            ) : (
+                              <div className="wd-row">{inner}</div>
+                            )}
+                          </li>
+                        );
+                      })}
+                      {!items.length ? (
+                        <li className="text-sm text-muted-foreground">{loading ? '…' : tCommon('empty')}</li>
+                      ) : null}
+                    </ul>
+                  </HomeCard>
+                );
+              })}
+              {!loading && visibleWidgets.length === 0 && !showFullOverview ? (
+                <p className="text-sm text-muted-foreground lg:col-span-3">{t('empty')}</p>
+              ) : null}
+            </div>
+          )}
         </TabsContent>
 
         {showTeamTab ? (
@@ -466,7 +611,7 @@ export function DashboardHomePage() {
                   <thead>
                     <tr className="border-b text-muted-foreground">
                       <th className="py-2 text-start">{t('colName')}</th>
-                      <th className="py-2 text-start">{t('stats.tasks')}</th>
+                      <th className="py-2 text-start">{t('colStatus')}</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -481,6 +626,11 @@ export function DashboardHomePage() {
                         <td colSpan={2} className="py-4 text-center text-muted-foreground">
                           {t('empty')}
                         </td>
+                      </tr>
+                    ) : null}
+                    {loading && !projects.length ? (
+                      <tr>
+                        <td colSpan={2} className="py-4 text-center text-muted-foreground">…</td>
                       </tr>
                     ) : null}
                   </tbody>

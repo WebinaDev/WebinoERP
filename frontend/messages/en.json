@@ -6166,8 +6166,14 @@
     "widgets": {
       "recent_leads": "Latest leads",
       "recent_tasks": "Latest tasks",
-      "recent_tickets": "Latest tickets"
+      "recent_tickets": "Latest tickets",
+      "recent_deals": "Latest deals",
+      "recent_projects": "Latest projects",
+      "recent_invoices": "Latest invoices",
+      "recent_sites": "Latest sites"
     },
+    "widgetSettings": "Widget visibility",
+    "colStatus": "Status",
     "heroTitle": "Project management",
     "heroSubtitle": "Jump to the areas that matter for your role.",
     "colName": "Name",
@@ -6189,7 +6195,11 @@
       "hrmCartable": "HR inbox",
       "hrmPortal": "My portal",
       "hrmPayslip": "My payslip",
-      "hrmLeave": "Leave"
+      "hrmLeave": "Leave",
+      "invoices": "Invoices",
+      "workload": "Workload",
+      "sites": "Sites",
+      "consultations": "Consultations"
     },
     "crmPmTitle": "CRM and project summary",
     "crmCustomers": "Customers",
@@ -6273,7 +6283,9 @@
       "license_expired": "License expired",
       "unassigned": "Unassigned",
       "unknown": "Unknown",
-      "customer": "Customer"
+      "customer": "Customer",
+      "won": "Won",
+      "lost": "Lost"
     },
     "welcomeNamed": "Welcome, {name}",
     "greetingNamed": "Good morning, {name}",

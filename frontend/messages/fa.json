@@ -6166,8 +6166,14 @@
     "widgets": {
       "recent_leads": "آخرین سرنخ‌ها",
       "recent_tasks": "آخرین وظایف",
-      "recent_tickets": "آخرین تیکت‌ها"
+      "recent_tickets": "آخرین تیکت‌ها",
+      "recent_deals": "آخرین معاملات",
+      "recent_projects": "آخرین پروژه‌ها",
+      "recent_invoices": "آخرین فاکتورها",
+      "recent_sites": "آخرین سایت‌ها"
     },
+    "widgetSettings": "نمایش ویجت‌ها",
+    "colStatus": "وضعیت",
     "heroTitle": "مدیریت پروژه",
     "heroSubtitle": "به بخش‌های مرتبط با نقش خود بروید.",
     "colName": "نام",
@@ -6189,7 +6195,11 @@
       "hrmCartable": "کارتابل HR",
       "hrmPortal": "پورتال من",
       "hrmPayslip": "فیش حقوقی",
-      "hrmLeave": "مرخصی"
+      "hrmLeave": "مرخصی",
+      "invoices": "فاکتورها",
+      "workload": "حجم کار",
+      "sites": "سایت‌ها",
+      "consultations": "مشاوره‌ها"
     },
     "crmPmTitle": "خلاصه ارتباط با مشتری و پروژه",
     "crmCustomers": "مشتریان",
@@ -6273,7 +6283,9 @@
       "license_expired": "لایسنس منقضی",
       "unassigned": "بدون مسئول",
       "unknown": "نامشخص",
-      "customer": "مشتری"
+      "customer": "مشتری",
+      "won": "برنده",
+      "lost": "باخته"
     },
     "welcomeNamed": "{name} عزیز، خوش آمدید",
     "greetingNamed": "{name} عزیز، صبح بخیر",
