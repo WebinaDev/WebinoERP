@@ -77,7 +77,7 @@ html[data-wd-dashboard].dark[data-accent='colorful'] {
   }
 
   .dark .wd-mobile-chrome {
-    color: var(--color-foreground);
+    color: var(--wd-ink);
   }
 
   .wd-mobile-chrome .wd-app-atmosphere {
