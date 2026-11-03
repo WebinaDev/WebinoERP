@@ -47,8 +47,13 @@ export const metadata: Metadata = {
   title: "Webino ERP",
   description: "Integrated business management platform",
   icons: {
-    icon: [{ url: "/brand/favicon.png", type: "image/png" }],
-    apple: "/brand/apple-touch-icon.png",
+    // Transparent assets only (no baked white plate). PNG first for broad tab support.
+    icon: [
+      { url: "/brand/favicon.png", type: "image/png", sizes: "any" },
+      { url: "/brand/webina-fav.png", type: "image/png", sizes: "512x512" },
+      { url: "/brand/webina-mark.svg", type: "image/svg+xml" },
+    ],
+    apple: [{ url: "/brand/apple-touch-icon.png", type: "image/png", sizes: "180x180" }],
   },
   manifest: "/manifest.webmanifest",
   generator: "Webina ERP",

@@ -9,7 +9,8 @@
   "lang": "fa",
   "dir": "rtl",
   "icons": [
-    { "src": "/brand/favicon.png", "sizes": "32x32", "type": "image/png" },
-    { "src": "/brand/apple-touch-icon.png", "sizes": "180x180", "type": "image/png" }
+    { "src": "/brand/webina-fav.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
+    { "src": "/brand/favicon.png", "sizes": "1000x1000", "type": "image/png", "purpose": "any" },
+    { "src": "/brand/apple-touch-icon.png", "sizes": "180x180", "type": "image/png", "purpose": "any" }
   ]
 }

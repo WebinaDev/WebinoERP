@@ -1,5 +1,5 @@
 const CACHE = 'webino-shell-v3';
-const SHELL = ['/offline.html', '/manifest.webmanifest', '/brand/favicon.png'];
+const SHELL = ['/offline.html', '/manifest.webmanifest', '/brand/favicon.png', '/brand/webina-fav.png'];
 
 self.addEventListener('install', (event) => {
   event.waitUntil(

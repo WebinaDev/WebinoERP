@@ -2,7 +2,6 @@
 
 import type { ComponentProps } from 'react';
 import { useEffect, useState } from 'react';
-import Image from 'next/image';
 import { useTranslations } from 'next-intl';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
@@ -14,6 +13,7 @@ import { cn } from '@/lib/utils';
 import { login, registerUser, sendAdminTwoFactor, sendLoginOtp, verifyAdminTwoFactor, verifyLoginOtp } from '@/lib/auth';
 import { getAxiosMessage } from '@/lib/api-helpers';
 import { DASHBOARD_BASE, legacyAdminToDashboardPath } from '@/lib/paths';
+import { BrandMark, BrandWordmark } from '@/themes/webina-corporate-v1/components/BrandMark';
 import { toast } from 'sonner';
 
 export function LoginForm({ className, ...props }: ComponentProps<'div'>) {
@@ -157,14 +157,7 @@ export function LoginForm({ className, ...props }: ComponentProps<'div'>) {
         <CardContent className="grid p-0 md:grid-cols-2">
           <div className="flex flex-col gap-6 p-6 md:p-8">
           <div className="flex flex-col items-center gap-2 text-center">
-            <Image
-              src="/brand/logo.png"
-              alt=""
-              width={40}
-              height={40}
-              className="size-10 rounded-md"
-              priority
-            />
+            <BrandMark className="h-10 w-auto text-foreground" title="Webino ERP" />
             <h1 className="text-2xl font-bold">
               {step === '2fa' ? t('login.twoFactorTitle') : t('login.title')}
             </h1>
@@ -305,13 +298,10 @@ export function LoginForm({ className, ...props }: ComponentProps<'div'>) {
               <p className="text-sm leading-relaxed text-muted-foreground">{t('login.customerHint')}</p>
               <p className="mt-4 font-semibold">{t('app.title')}</p>
             </div>
-            <Image
-              src="/brand/logo.png"
-              alt=""
-              width={96}
-              height={96}
-              className="mx-auto size-24 rounded-lg object-contain shadow-sm"
-            />
+            <div className="mx-auto flex flex-col items-center gap-3 text-foreground">
+              <BrandMark className="h-16 w-auto" title="Webino ERP" />
+              <BrandWordmark className="h-7 w-auto" />
+            </div>
           </div>
         </CardContent>
       </Card>
