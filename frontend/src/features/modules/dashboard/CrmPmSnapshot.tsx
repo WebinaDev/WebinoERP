@@ -68,6 +68,17 @@ type TodoRow = {
 
 type WorkItem = TodoRow & { kind: string; href: string; bucket: string };
 
+type HomeKpi = {
+  key: string;
+  icon: LucideIcon;
+  label: string;
+  value: number;
+  href: string;
+  tone: keyof typeof WD_CHART;
+  viz?: 'spark' | 'ring';
+  section: string;
+};
+
 type Ops = {
   finance?: Record<string, number>;
   tickets?: Record<string, number>;
@@ -282,7 +293,7 @@ export function CrmPmSnapshot() {
   const trendSum = trendVals.reduce((a, b) => a + b, 0);
   const n = (v: unknown) => Number(v ?? 0);
 
-  const kpis: { key: string; icon: LucideIcon; label: string; value: number; href: string; tone: keyof typeof WD_CHART; viz?: 'spark' | 'ring'; section: string }[] = [
+  const allKpis: HomeKpi[] = [
     { key: 'customers', section: 'crm_kpis', icon: UsersRound, label: t('crmCustomers'), value: n(crm.customers), href: 'crm/customers', tone: 'blue', viz: 'spark' },
     { key: 'leads', section: 'crm_kpis', icon: UserPlus, label: t('crmLeads'), value: n(crm.leads), href: 'crm/leads', tone: 'violet' },
     { key: 'deals', section: 'crm_kpis', icon: Handshake, label: t('crmDeals'), value: n(crm.deals), href: 'crm/deals', tone: 'teal', viz: 'ring' },
@@ -291,7 +302,8 @@ export function CrmPmSnapshot() {
     { key: 'tasks', section: 'pm_kpis', icon: ListTodo, label: t('pmOpenTasks'), value: n(pm.open_tasks), href: 'pm/tasks', tone: 'amber', viz: 'spark' },
     { key: 'tickets', section: 'pm_kpis', icon: Ticket, label: t('pmTickets'), value: n(pm.tickets), href: 'crm/tickets', tone: 'rose' },
     { key: 'contracts', section: 'pm_kpis', icon: FileText, label: t('pmContracts'), value: n(pm.contracts), href: 'docs/contracts', tone: 'ink' },
-  ].filter((k) => sectionOk(k.section));
+  ];
+  const kpis = allKpis.filter((k) => sectionOk(k.section));
 
   const invoices = n(finance.invoice_count);
   const openInv = Math.min(invoices, n(finance.open_invoices));
