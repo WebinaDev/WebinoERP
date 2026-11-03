@@ -92,10 +92,13 @@ export function ThemeBuilderPage() {
       actions={
         <>
           <Button variant="outline" asChild>
-            <Link href="/dashboard/builder/settings"><Settings2 className="size-4" aria-hidden />{t("globals")}</Link>
+            <Link href="/dashboard/builder/new?panel=globals" {...PAGE_BUILDER_NEW_TAB_PROPS}><Settings2 className="size-4" aria-hidden />{t("globals")}</Link>
           </Button>
           <Button variant="outline" asChild>
             <Link href="/dashboard/builder" {...PAGE_BUILDER_NEW_TAB_PROPS}>{t("pages")}</Link>
+          </Button>
+          <Button variant="outline" asChild>
+            <Link href="/dashboard/settings/site/menus">{t("menus_link")}</Link>
           </Button>
         </>
       }

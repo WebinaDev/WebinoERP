@@ -99,7 +99,10 @@ import { KitPresetsPanel } from "./KitPresetsPanel"
 import { A11yPanel } from "./A11yPanel"
 import { Finder, type FinderAction } from "./Finder"
 import { PageSettingsPanel } from "./PageSettingsPanel"
+import { BuilderGlobalsPanel } from "./BuilderGlobalsPanel"
+import { ThemeTemplatesPanel } from "./ThemeTemplatesPanel"
 import { ApiError } from "@/lib/api"
+import { builderThemeSettingsHref } from "@/lib/page-builder-nav"
 import { widgetLabel } from "../render/widgets"
 import { AiAssist, contentAssist } from "@/features/ai/content-assist"
 
@@ -185,6 +188,9 @@ export function BuilderEditor({ mode }: { mode: Mode }) {
   const [chromeId, setChromeId] = useState<number | null>(null)
   const [showRevisions, setShowRevisions] = useState(false)
   const [showPageSettings, setShowPageSettings] = useState(false)
+  const [showGlobalsPanel, setShowGlobalsPanel] = useState(false)
+  const [showThemePanel, setShowThemePanel] = useState(false)
+  const [publishingGlobals, setPublishingGlobals] = useState(false)
   const [showA11y, setShowA11y] = useState(false)
   const [showFinder, setShowFinder] = useState(false)
   const [lockedBy, setLockedBy] = useState<string | null>(null)
@@ -234,6 +240,27 @@ export function BuilderEditor({ mode }: { mode: Mode }) {
       toast.error(t("globals_publish_failed"))
     }
   }
+
+  async function publishGlobalsNow() {
+    setPublishingGlobals(true)
+    try {
+      await api("/api/v1/builder/globals", { method: "PUT", json: { settings: globals } })
+      await api("/api/v1/builder/globals/publish", { method: "POST" })
+      globalsTouched.current = false
+      toast.success(t("published"))
+    } catch {
+      toast.error(t("globals_publish_failed"))
+    } finally {
+      setPublishingGlobals(false)
+    }
+  }
+
+  useEffect(() => {
+    if (typeof window === "undefined") return
+    const panel = new URLSearchParams(window.location.search).get("panel")
+    if (panel === "globals") setShowGlobalsPanel(true)
+    if (panel === "theme") setShowThemePanel(true)
+  }, [])
 
   useEffect(() => {
     let cancel = false
@@ -845,7 +872,7 @@ export function BuilderEditor({ mode }: { mode: Mode }) {
   const preview = mode.kind === "page" ? previewHref(slug || "home") : "/"
   const backHref =
     mode.kind === "theme"
-      ? "/dashboard/theme-builder"
+      ? builderThemeSettingsHref()
       : mode.kind === "product"
         ? `/dashboard/products/${mode.id}`
         : mode.kind === "post"
@@ -853,6 +880,7 @@ export function BuilderEditor({ mode }: { mode: Mode }) {
           : mode.kind === "article"
             ? `/dashboard/magazine/posts/${mode.id}`
             : "/dashboard/builder"
+  const modeLabel = mode.kind === "theme" ? t("theme_mode_label") : mode.kind === "chrome" ? t(mode.chrome) : t("page_mode_label")
   const needle = widgetQuery.trim()
 
   if (loading) {
@@ -861,61 +889,46 @@ export function BuilderEditor({ mode }: { mode: Mode }) {
 
   return (
     <DesignProvider value={designApi}>
-    <div className="flex h-svh max-h-full min-h-0 flex-col bg-background text-foreground">
-      <header className="relative flex h-14 shrink-0 items-center gap-1 border-b border-border bg-card px-2 text-foreground sm:gap-2 sm:px-3">
-        <Link href={backHref} aria-label={t("back")} title={t("back")} className="grid size-8 shrink-0 place-items-center rounded-full text-foreground/80 hover:bg-muted"><ArrowRight className="size-4" aria-hidden /></Link>
-        <input value={title} onChange={(event) => setTitle(event.target.value)} className="h-8 w-24 min-w-0 rounded-md bg-muted px-2 text-sm outline-none sm:w-44" aria-label={t("title")} />
-        <div className="mx-auto flex shrink-0 items-center gap-0.5 rounded-full bg-muted p-1">
+    <div className="flex h-svh max-h-full min-h-0 flex-col bg-[#101820] text-[#0C2D63]">
+      <header className="flex h-14 items-center gap-2 border-b border-white/10 px-3 text-white">
+        <Link href={backHref} className="rounded-md px-2 py-1 text-xs text-white/70 hover:bg-white/10">{t("back")}</Link>
+        <span className="rounded-full bg-white/10 px-2 py-0.5 text-[10px] text-white/80">{modeLabel}</span>
+        <input value={title} onChange={(event) => setTitle(event.target.value)} className="h-8 w-44 rounded-md bg-white/10 px-2 text-sm outline-none" aria-label={t("title")} />
+        {mode.kind === "page" ? (
+          <input value={slug} onChange={(event) => setSlug(event.target.value)} className="h-8 w-32 rounded-md bg-white/10 px-2 text-xs outline-none" aria-label={t("slug")} />
+        ) : null}
+        <div className="mx-auto flex items-center gap-1 rounded-full bg-white/5 p-1">
           <IconButton label={t("desktop")} active={device === "desktop"} onClick={() => setDevice("desktop")}><Monitor className="size-4" /></IconButton>
           <IconButton label={t("tablet")} active={device === "tablet"} onClick={() => setDevice("tablet")}><Tablet className="size-4" /></IconButton>
           <IconButton label={t("mobile")} active={device === "mobile"} onClick={() => setDevice("mobile")}><Smartphone className="size-4" /></IconButton>
         </div>
-        <div className="hidden items-center sm:flex">
-          <IconButton label={t("undo")} onClick={undo}><Undo2 className="size-4" /></IconButton>
-          <IconButton label={t("redo")} onClick={redo}><Redo2 className="size-4" /></IconButton>
-        </div>
-        <span className={`size-2 shrink-0 rounded-full ${saving ? "animate-pulse bg-amber-300" : dirty ? "bg-amber-400" : "bg-emerald-400"}`} title={saving ? t("saving") : dirty ? t("unsaved") : t("all_saved")} aria-live="polite" aria-label={saving ? t("saving") : dirty ? t("unsaved") : t("all_saved")} />
-        <a href={preview} target="_blank" rel="noreferrer" aria-label={t("preview")} title={t("preview")} className="hidden size-8 shrink-0 place-items-center rounded-full text-foreground hover:bg-muted sm:grid"><Eye className="size-4" aria-hidden /></a>
-        <Button type="button" size="sm" variant="outline" className="hidden border-border bg-transparent text-foreground md:inline-flex" disabled={saving} onClick={() => void save(false)}>{t("save")}</Button>
-        <Button type="button" size="sm" className="shrink-0 bg-primary px-3 text-primary-foreground hover:bg-primary/90" disabled={saving} onClick={() => void save(true)}>{t("publish")}</Button>
-        <div className="relative shrink-0">
-          <IconButton label="بیشتر" active={moreOpen} onClick={() => setMoreOpen((o) => !o)}><MoreHorizontal className="size-4" /></IconButton>
-          {moreOpen ? (
-            <>
-              <div className="fixed inset-0 z-40" onClick={() => setMoreOpen(false)} aria-hidden />
-              <div className="absolute end-0 z-50 mt-2 grid max-h-[75svh] w-64 gap-0.5 overflow-auto rounded-xl bg-card p-1.5 text-xs text-foreground shadow-2xl" role="menu" onClick={(event) => { if ((event.target as HTMLElement).closest("[data-close]")) setMoreOpen(false) }}>
-                {mode.kind === "page" ? (
-                  <label className="grid gap-1 px-2 py-1.5">{t("slug")}<input dir="ltr" value={slug} onChange={(event) => setSlug(event.target.value)} className="h-8 rounded-md border px-2" aria-label={t("slug")} /></label>
-                ) : null}
-                <div className="flex items-center gap-1 px-1 sm:hidden">
-                  <MenuItem icon={Undo2} label={t("undo")} onClick={undo} />
-                  <MenuItem icon={Redo2} label={t("redo")} onClick={redo} />
-                </div>
-                <a data-close href={preview} target="_blank" rel="noreferrer" className="flex items-center gap-2 rounded-lg px-2 py-2 hover:bg-muted sm:hidden"><Eye className="size-4" aria-hidden />{t("preview")}</a>
-                <MenuItem className="md:hidden" icon={Download} label={t("save")} onClick={() => void save(false)} />
-                {mode.kind === "page" ? <MenuItem icon={Sparkles} label="پیش‌نویس با AI" onClick={() => void draftFromBrief()} /> : null}
-                {mode.kind === "page" ? <MenuItem icon={SearchCheck} label="سئو" onClick={() => setSeoOpen(true)} /> : null}
-                {mode.kind === "page" && pageId ? <MenuItem icon={FileCog} label={t("page_settings")} onClick={() => setShowPageSettings(true)} /> : null}
-                {revisionTarget ? <MenuItem icon={History} label={t("revisions")} onClick={() => setShowRevisions(true)} /> : null}
-                <MenuItem icon={PaletteIcon} label="کیت‌های آماده" onClick={() => setShowKits(true)} />
-                <Link data-close href="/dashboard/builder/settings" className="flex items-center gap-2 rounded-lg px-2 py-2 hover:bg-muted"><Settings2 className="size-4" aria-hidden />{t("globals")}</Link>
-                <MenuItem icon={Search} label={t("finder")} onClick={() => setShowFinder(true)} />
-                <MenuItem icon={Accessibility} label={t("a11y_audit")} onClick={() => setShowA11y(true)} />
-                <MenuItem icon={LayoutTemplate} label={t("save_page_template")} onClick={() => void saveToLibrary(null)} />
-                <div className="my-1 border-t border-border" />
-                <MenuItem icon={Download} label={t("export_json")} onClick={exportJson} />
-                <MenuItem icon={Upload} label={t("import_json")} onClick={() => importRef.current?.click()} />
-                <MenuItem icon={Keyboard} label={t("shortcuts")} onClick={() => setShowHelp(true)} />
-                <label className="flex items-center gap-2 px-2 py-2" title={t("zoom")}>
-                  <ZoomIn className="size-4" aria-hidden />{t("zoom")}
-                  <select aria-label={t("zoom")} className="ms-auto rounded border bg-card px-1" value={zoom} onChange={(event) => setZoom(Number(event.target.value))}>
-                    {[50, 75, 90, 100, 125].map((value) => <option key={value} value={value}>{value}٪</option>)}
-                  </select>
-                </label>
-              </div>
-            </>
-          ) : null}
-        </div>
+        {mode.kind === "page" ? (
+          <button type="button" className="rounded-md px-2 py-1 text-xs text-violet-200 hover:bg-white/10" onClick={() => void draftFromBrief()}>✨ پیش‌نویس با AI</button>
+        ) : null}
+        {mode.kind === "page" ? (
+          <span className="relative">
+            <button type="button" className="rounded-md px-2 py-1 text-xs text-white/80 hover:bg-white/10" onClick={() => setSeoOpen((o) => !o)}>سئو</button>
+            {seoOpen ? <SeoPanel seo={seo} onChange={setSeo} title={title} slug={slug} pageId={pageId} onClose={() => setSeoOpen(false)} /> : null}
+          </span>
+        ) : null}
+        <IconButton label={t("undo")} onClick={undo}><Undo2 className="size-4" /></IconButton>
+        <IconButton label={t("redo")} onClick={redo}><Redo2 className="size-4" /></IconButton>
+        <button type="button" className="inline-flex items-center gap-1 rounded-md px-2 py-1 text-xs text-white/80 hover:bg-white/10" onClick={() => setShowGlobalsPanel(true)}>
+          <Settings2 className="size-3.5" aria-hidden />
+          {t("globals")}
+        </button>
+        <button type="button" className="inline-flex items-center gap-1 rounded-md px-2 py-1 text-xs text-white/80 hover:bg-white/10" onClick={() => setShowThemePanel(true)}>
+          <Palette className="size-3.5" aria-hidden />
+          {t("theme_builder")}
+        </button>
+        <label className="flex items-center gap-1 text-[11px] text-white/70" title={t("zoom")}>
+          <ZoomIn className="size-3.5" aria-hidden />
+          <select aria-label={t("zoom")} className="rounded bg-transparent text-white" value={zoom} onChange={(event) => setZoom(Number(event.target.value))}>
+            {[50, 75, 90, 100, 125].map((value) => <option key={value} value={value} className="text-black">{value}٪</option>)}
+          </select>
+        </label>
+        <IconButton label={t("export_json")} onClick={exportJson}><Download className="size-4" /></IconButton>
+        <IconButton label={t("import_json")} onClick={() => importRef.current?.click()}><Upload className="size-4" /></IconButton>
         <input
           ref={importRef}
           type="file"
@@ -978,6 +991,16 @@ export function BuilderEditor({ mode }: { mode: Mode }) {
           }}
         />
       ) : null}
+      {showGlobalsPanel ? (
+        <BuilderGlobalsPanel
+          settings={globals}
+          onChange={updateGlobals}
+          onClose={() => setShowGlobalsPanel(false)}
+          onPublish={() => void publishGlobalsNow()}
+          publishing={publishingGlobals}
+        />
+      ) : null}
+      {showThemePanel ? <ThemeTemplatesPanel onClose={() => setShowThemePanel(false)} /> : null}
       <div className="flex min-h-0 flex-1">
         {drawerOpen ? <div className="fixed inset-0 z-30 bg-black/40 lg:hidden" onClick={() => setDrawerOpen(false)} aria-hidden /> : null}
         <aside className={`fixed inset-x-0 bottom-0 z-40 flex max-h-[80svh] min-h-[50svh] flex-col rounded-t-2xl border-border bg-muted shadow-2xl transition-transform duration-200 sm:inset-y-0 sm:start-0 sm:end-auto sm:max-h-none sm:w-80 sm:rounded-none lg:static lg:z-auto lg:min-h-0 lg:w-80 lg:shrink-0 lg:translate-x-0 lg:translate-y-0 lg:border-e lg:shadow-none ${drawerOpen ? "translate-y-0 sm:translate-x-0" : "translate-y-full sm:translate-y-0 sm:translate-x-full lg:translate-x-0"}`}>

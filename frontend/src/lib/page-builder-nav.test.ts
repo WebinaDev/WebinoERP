@@ -27,9 +27,13 @@ describe('page-builder-nav', () => {
 
   it('fullscreen only for editor surfaces', () => {
     expect(isPageBuilderFullscreenPath('/dashboard/builder')).toBe(false)
+    expect(isPageBuilderFullscreenPath('/dashboard/builder/settings')).toBe(false)
+    expect(isPageBuilderFullscreenPath('/dashboard/builder/collections')).toBe(false)
     expect(isPageBuilderFullscreenPath('/dashboard/builder/42')).toBe(true)
     expect(isPageBuilderFullscreenPath('/dashboard/builder/new')).toBe(true)
     expect(isPageBuilderFullscreenPath('/dashboard/builder/chrome/footer')).toBe(true)
+    expect(isPageBuilderFullscreenPath('/dashboard/builder/product/9')).toBe(true)
     expect(isPageBuilderFullscreenPath('/dashboard/theme-builder/footer/2')).toBe(true)
+    expect(isPageBuilderFullscreenPath('/dashboard/theme-builder')).toBe(false)
   })
 })

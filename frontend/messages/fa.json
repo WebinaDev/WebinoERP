@@ -9184,7 +9184,12 @@
     "transform": "تبدیل (transform)",
     "update_preset": "به‌روزرسانی پیش‌تنظیم از این ویجت",
     "variant_name_prompt": "نام حالت (variant):",
-    "z_index": "لایه (z-index)"
+    "z_index": "لایه (z-index)",
+    "globals_live_hint": "تغییرات رنگ و فونت بلافاصله روی بوم دیده می‌شوند.",
+    "theme_panel_hint": "قالب‌های پوسته را از اینجا باز کنید.",
+    "theme_settings_link": "تنظیمات سایت · پوسته‌ساز",
+    "theme_mode_label": "پوسته‌ساز",
+    "page_mode_label": "صفحه‌ساز"
   },
   "theme_builder": {
     "title": "پوسته‌ساز",
@@ -9249,7 +9254,8 @@
       "not_found": "صفحه ۴۰۴",
       "collection_item": "آیتم مجموعه (CMS)"
     },
-    "collection": "مجموعه (CMS)"
+    "collection": "مجموعه (CMS)",
+    "menus_link": "منوها"
   },
   "builder_globals": {
     "follow_dashboard_accent": "رنگ اصلی سایت از رنگ تأکید داشبورد پیروی کند",
@@ -10383,7 +10389,12 @@
     "prev": "قبلی",
     "next": "بعدی",
     "gallery_hint": "یک نشانی تصویر در هر خط",
-    "no_refs": "آیتمی در مجموعه مقصد نیست"
+    "no_refs": "آیتمی در مجموعه مقصد نیست",
+    "eyebrow": "محتوا",
+    "stat_collections": "مجموعه‌ها",
+    "stat_items": "آیتم‌ها",
+    "stat_active": "فعال",
+    "sidebar_heading": "مجموعه‌ها"
   },
   "shell": {
     "mobileNav": {

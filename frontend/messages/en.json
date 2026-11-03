@@ -9184,7 +9184,12 @@
     "transform": "Transform",
     "update_preset": "Update preset from this widget",
     "variant_name_prompt": "Variant name:",
-    "z_index": "Z-index"
+    "z_index": "Z-index",
+    "globals_live_hint": "Color and font changes apply to the canvas immediately.",
+    "theme_panel_hint": "Open theme templates here.",
+    "theme_settings_link": "Site settings · Theme builder",
+    "theme_mode_label": "Theme builder",
+    "page_mode_label": "Page builder"
   },
   "theme_builder": {
     "title": "Theme builder",
@@ -9249,7 +9254,8 @@
       "not_found": "404 page",
       "collection_item": "Collection item (CMS)"
     },
-    "collection": "Collection (CMS)"
+    "collection": "Collection (CMS)",
+    "menus_link": "Menus"
   },
   "builder_globals": {
     "follow_dashboard_accent": "Site primary follows the dashboard accent",
@@ -10383,7 +10389,12 @@
     "prev": "Previous",
     "next": "Next",
     "gallery_hint": "One image URL per line",
-    "no_refs": "No items in the target collection"
+    "no_refs": "No items in the target collection",
+    "eyebrow": "Content",
+    "stat_collections": "Collections",
+    "stat_items": "Items",
+    "stat_active": "Active",
+    "sidebar_heading": "Collections"
   },
   "shell": {
     "mobileNav": {

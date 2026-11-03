@@ -33,26 +33,35 @@ class SiteBuilderSeeder extends Seeder
             ['slug' => 'cafe', 'name_fa' => 'کافه', 'name_en' => 'Cafe', 'module_slug' => 'cafe', 'sort_order' => 9],
             ['slug' => 'resume', 'name_fa' => 'رزومه', 'name_en' => 'Resume', 'module_slug' => 'resume', 'sort_order' => 10, 'is_addon' => true, 'is_builtin' => true, 'default_enabled' => false],
             ['slug' => 'corporate', 'name_fa' => 'شرکتی', 'name_en' => 'Corporate', 'module_slug' => 'corporate', 'sort_order' => 11],
-            ['slug' => 'accounting', 'name_fa' => 'حسابداری', 'name_en' => 'Accounting', 'module_slug' => 'accounting', 'sort_order' => 12, 'is_addon' => true],
-            // WebinoDashboard built-in module (route /dashboard/link-hub, e.g. contact.cafebluedez.ir).
-            ['slug' => 'link-hub', 'name_fa' => 'لینک‌هاب', 'name_en' => 'Link Hub', 'module_slug' => 'link-hub', 'icon' => 'ri-links-line', 'sort_order' => 13, 'is_addon' => false, 'is_builtin' => true],
+            ['slug' => 'accounting', 'name_fa' => 'حسابداری', 'name_en' => 'Accounting', 'module_slug' => 'accounting', 'sort_order' => 12, 'is_addon' => true, 'default_enabled' => false],
+            // Opt-in only: never attach to site-type defaults / packages. Enable via ERP selection (e.g. علی خبری).
+            ['slug' => 'poetry', 'name_fa' => 'شعر و ادبیات', 'name_en' => 'Poetry & Literature', 'module_slug' => 'poetry', 'sort_order' => 13, 'is_addon' => true, 'default_enabled' => false],
         ];
 
         $hasIcon = Schema::hasColumn('webino_dashboard_features', 'icon');
         $hasBuiltin = Schema::hasColumn('webino_dashboard_features', 'is_builtin');
         foreach ($features as $f) {
-            if (! $hasIcon) unset($f['icon']);
-            if (! $hasBuiltin) unset($f['is_builtin']);
+            $isAddon = (bool) ($f['is_addon'] ?? false);
             WebinoDashboardFeature::query()->firstOrCreate(
                 ['slug' => $f['slug']],
-                array_merge(['default_enabled' => true, 'is_addon' => false], $f)
+                array_merge([
+                    'default_enabled' => $isAddon ? false : true,
+                    'is_addon' => false,
+                ], $f)
             );
         }
 
-        // Backfill icons only where empty (keeps admin edits).
-        foreach ($hasIcon ? self::ICONS : [] as $slug => $icon) {
-            WebinoDashboardFeature::query()->where('slug', $slug)->whereNull('icon')->update(['icon' => $icon]);
-        }
+        // Enforce opt-in posture even if an older seed created these as default-on.
+        WebinoDashboardFeature::query()->whereIn('slug', ['poetry', 'accounting'])->update([
+            'is_addon' => true,
+            'default_enabled' => false,
+        ]);
+        WebinoDashboardFeature::query()->where('slug', 'poetry')->update([
+            'name_fa' => 'شعر و ادبیات',
+            'name_en' => 'Poetry & Literature',
+            'module_slug' => 'poetry',
+            'is_active' => true,
+        ]);
 
         $category = WebinoBusinessCategory::query()->firstOrCreate(
             ['slug' => 'site_types'],
@@ -85,7 +94,19 @@ class SiteBuilderSeeder extends Seeder
             );
 
             $ids = collect($mods)->map(fn ($s) => $featureMap[$s] ?? null)->filter()->values();
-            if ($type->wasRecentlyCreated) $type->features()->sync($ids->mapWithKeys(fn ($id) => [$id => ['is_required' => false, 'default_selected' => true]])->all());
+            if ($type->wasRecentlyCreated) {
+                $sync = $ids->mapWithKeys(fn ($id) => [$id => ['is_required' => false, 'default_selected' => true]])->all();
+                // Poetry is attachable as an opt-in add-on on every site type, never default_selected.
+                if ($poetryId = $featureMap['poetry'] ?? null) {
+                    $sync[$poetryId] = ['is_required' => false, 'default_selected' => false];
+                }
+                $type->features()->sync($sync);
+            } elseif ($poetryId = $featureMap['poetry'] ?? null) {
+                // Existing types: ensure poetry is available as add-on without forcing it on.
+                $type->features()->syncWithoutDetaching([
+                    $poetryId => ['is_required' => false, 'default_selected' => false],
+                ]);
+            }
 
             // Create-only: never overwrite admin-edited prices/names/features on update.
             $pkg = WebinoPackage::query()->firstOrCreate(
@@ -99,6 +120,7 @@ class SiteBuilderSeeder extends Seeder
                 ]
             );
             if ($pkg->wasRecentlyCreated) {
+                // Starter packages stay free of opt-in add-ons like poetry.
                 $pkg->features()->sync($ids->all());
             }
         }

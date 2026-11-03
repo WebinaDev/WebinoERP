@@ -92,9 +92,9 @@ export function BuilderListPage() {
     <PageShell title={t("list_title")} description={t("list_subtitle")}>
       <div className="mb-4 flex flex-wrap gap-2">
         <Button asChild><Link href="/dashboard/builder/new" {...PAGE_BUILDER_NEW_TAB_PROPS}><FilePlus2 className="size-4" aria-hidden />{t("create")}</Link></Button>
-        <Button variant="outline" asChild><Link href="/dashboard/theme-builder"><Palette className="size-4" aria-hidden />{t("theme_builder")}</Link></Button>
+        <Button variant="outline" asChild><Link href="/dashboard/settings/site/theme"><Palette className="size-4" aria-hidden />{t("theme_builder")}</Link></Button>
         <Button variant="outline" asChild><Link href="/dashboard/builder/site" {...PAGE_BUILDER_NEW_TAB_PROPS}><Home className="size-4" aria-hidden />تنظیمات سراسری سایت</Link></Button>
-        <Button variant="outline" asChild><Link href="/dashboard/builder/settings"><Settings2 className="size-4" aria-hidden />{t("globals")}</Link></Button>
+        <Button variant="outline" asChild><Link href="/dashboard/builder/new?panel=globals" {...PAGE_BUILDER_NEW_TAB_PROPS}><Settings2 className="size-4" aria-hidden />{t("globals")}</Link></Button>
         <Button variant="outline" asChild><Link href="/dashboard/builder/chrome/header" {...PAGE_BUILDER_NEW_TAB_PROPS}><PanelTop className="size-4" aria-hidden />{t("header")}</Link></Button>
         <Button variant="outline" asChild><Link href="/dashboard/builder/chrome/footer" {...PAGE_BUILDER_NEW_TAB_PROPS}><PanelBottom className="size-4" aria-hidden />{t("footer")}</Link></Button>
         <Button variant="outline" disabled={busy} onClick={() => void seed()}>{t("seed")}</Button>

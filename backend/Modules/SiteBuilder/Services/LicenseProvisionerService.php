@@ -8,6 +8,7 @@ use Modules\Core\Entities\CoreLicense;
 use Modules\Core\Services\CoreLicenseMetaNormalizer;
 use Modules\Core\Services\CoreLicenseResolver;
 use Modules\Platform\Support\SiteTypeProfiles;
+use Modules\SiteBuilder\Entities\WebinoDashboardFeature;
 use Modules\SiteBuilder\Entities\WebinoPackage;
 use Modules\SiteBuilder\Entities\WebinoSiteProvision;
 use RuntimeException;
@@ -110,15 +111,29 @@ class LicenseProvisionerService
         }
 
         $profileModules = SiteTypeProfiles::moduleSlugsFor($siteType);
-        $modules = array_values(array_unique(array_filter(array_merge(
-            $profileModules,
-            $context['extra_module_slugs'] ?? [],
-        ))));
 
         $features = array_values(array_unique(array_merge(
             $package->features->pluck('slug')->all(),
             $context['selected_feature_slugs'] ?? [],
         )));
+
+        // Explicitly selected (or package-attached) add-ons become licensed modules.
+        // Site-type profile modules stay the only defaults — poetry/literature etc. must
+        // appear here via ERP selection, never via SiteTypeProfiles.
+        $addonModules = WebinoDashboardFeature::query()
+            ->whereIn('slug', $features)
+            ->where('is_addon', true)
+            ->get(['slug', 'module_slug'])
+            ->map(fn (WebinoDashboardFeature $f) => (string) ($f->module_slug ?: $f->slug))
+            ->filter(fn (string $slug) => $slug !== '')
+            ->values()
+            ->all();
+
+        $modules = array_values(array_unique(array_filter(array_merge(
+            $profileModules,
+            $context['extra_module_slugs'] ?? [],
+            $addonModules,
+        ))));
 
         $meta = CoreLicenseMetaNormalizer::validateForStorage([
             'modules' => $modules,

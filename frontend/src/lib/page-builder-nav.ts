@@ -22,6 +22,7 @@ export function normalizeBuilderHref(href: string): string {
   } catch {
     /* keep raw */
   }
+  path = path.split(/[?#]/)[0] ?? path
   // drop locale prefix: /fa/dashboard/... or /en/dashboard/...
   path = path.replace(/^\/(fa|en)(?=\/)/, '')
   if (!path.startsWith('/')) path = `/${path}`
@@ -65,9 +66,24 @@ export function isPageBuilderFullscreenPath(href: string): boolean {
   const path = normalizeBuilderHref(href)
   if (path === '/dashboard/builder/new') return true
   if (path.startsWith('/dashboard/builder/chrome/')) return true
+  if (path.startsWith('/dashboard/builder/product/')) return true
+  if (path.startsWith('/dashboard/builder/post/')) return true
+  if (path.startsWith('/dashboard/builder/article/')) return true
   if (/^\/dashboard\/builder\/\d+$/.test(path)) return true
   if (/^\/dashboard\/theme-builder\/[^/]+\/[^/]+$/.test(path)) return true
   return false
+}
+
+export function builderGlobalsHref(): string {
+  return '/dashboard/builder/new?panel=globals'
+}
+
+export function builderThemeSettingsHref(): string {
+  return '/dashboard/settings/site/theme'
+}
+
+export function builderMenusSettingsHref(): string {
+  return '/dashboard/settings/site/menus'
 }
 
 export function openPageBuilderInNewTab(href: string): void {

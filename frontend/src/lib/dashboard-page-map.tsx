@@ -215,10 +215,11 @@ import {
 } from '@/features/modules/marketing/marketing_pages';
 import { BuilderEditorPage } from '@/features/marketing-builder/builder-editor-page';
 import { BuilderListPage } from '@/features/marketing-builder/builder-page';
-import { BuilderSettingsPage } from '@/features/marketing-builder/builder-settings-page';
 import { BuilderCollectionsPage } from '@/features/marketing-builder/builder-collections-page';
 import { HomeBuilderPage } from '@/features/marketing-builder/home-builder-page';
 import { ThemeBuilderPage } from '@/features/marketing-builder/theme-builder-page';
+import { ThemeBuilderRedirectPage } from '@/features/marketing-builder/theme-builder-redirect-page';
+import { BuilderSettingsRedirectPage } from '@/features/marketing-builder/builder-settings-redirect-page';
 import { UnknownRoutePage } from '@/features/shell/errors/UnknownRoutePage';
 import { ConnectPage } from '@/features/expansion/ConnectPage';
 import { CompaniesPage } from '@/features/expansion/CompaniesPage';
@@ -457,11 +458,13 @@ const EXACT: Record<string, ReactNode> = {
   'marketing/announcements': <MarketingAnnouncementsPage />,
   'marketing/testimonials': <MarketingTestimonialsPage />,
   'marketing/downloads': <MarketingDownloadsPage />,
-  'marketing/menus': <LegacyMenusRedirect />,
+  'marketing/menus': <MarketingMenusPage />,
+  'settings/site/menus': <MarketingMenusPage />,
   'marketing/forms': <MarketingFormsPage />,
-  'theme-builder': <ThemeBuilderPage />,
+  'theme-builder': <ThemeBuilderRedirectPage />,
+  'settings/site/theme': <ThemeBuilderPage />,
   builder: <BuilderListPage />,
-  'builder/settings': <BuilderSettingsPage />,
+  'builder/settings': <BuilderSettingsRedirectPage />,
   'builder/collections': <BuilderCollectionsPage />,
   'builder/site': <HomeBuilderPage />,
 };
@@ -565,6 +568,10 @@ export function resolveDashboardPage(path: string): ReactNode {
 
   const platformPage = resolvePlatformPage(normalized);
   if (platformPage) return platformPage;
+
+  if (normalized.startsWith('settings/site/')) {
+    if (EXACT[normalized]) return EXACT[normalized];
+  }
 
   if (normalized.startsWith('theme-builder/') || normalized.startsWith('builder/')) {
     if (EXACT[normalized]) return EXACT[normalized];
