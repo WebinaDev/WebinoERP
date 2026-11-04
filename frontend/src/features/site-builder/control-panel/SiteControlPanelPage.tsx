@@ -9,10 +9,12 @@ import { LocaleDatePicker } from '@/components/ui/locale-date-picker';
 import {
   ArrowLeft,
   ClipboardCopy,
+  Cpu,
   Database,
   ExternalLink,
   FlaskConical,
   Globe2,
+  HardDrive,
   ImageIcon,
   KeyRound,
   Layers,
@@ -29,6 +31,7 @@ import {
   Server,
   ShieldCheck,
   Trash2,
+  Upload,
   UserRound,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -56,10 +59,22 @@ import {
   updateProvision,
   updateProvisionAdmin,
   updateProvisionModules,
+  updateProvisionRuntimeLimits,
   type SiteControlPayload,
+  type SiteRuntimeLimits,
   type StackCheckKey,
   type StackCheckState,
 } from '@/lib/api/site-builder';
+
+const DEFAULT_RUNTIME_LIMITS: SiteRuntimeLimits = {
+  max_upload_mb: 64,
+  backend_memory_mb: 512,
+  frontend_memory_mb: 512,
+  backend_cpus: 1,
+  frontend_cpus: 1,
+  db_memory_mb: 256,
+  redis_memory_mb: 128,
+};
 import { stackProbeState } from '@/features/site-builder/control-panel/stack-probe';
 import { SiteStatusCard } from '@/features/site-builder/control-panel/SiteStatusCard';
 import { SiteCustomerHubCard } from '@/features/site-builder/control-panel/SiteCustomerHubCard';
@@ -134,6 +149,7 @@ export function SiteControlPanelPage({ id }: { id: string }) {
   const [installStatus, setInstallStatus] = useState<string | null>(null);
   const [composeLogs, setComposeLogs] = useState('');
   const [logsBusy, setLogsBusy] = useState(false);
+  const [limits, setLimits] = useState<SiteRuntimeLimits>(DEFAULT_RUNTIME_LIMITS);
 
   const applyControl = useCallback((ctrl: SiteControlPayload) => {
     setData(ctrl);
@@ -144,6 +160,11 @@ export function SiteControlPanelPage({ id }: { id: string }) {
     setSiteName(String(ctrl.provision?.wizard_payload?.site_name ?? ctrl.license?.project_name ?? ''));
     setExpiresAt(ctrl.license?.expires_at ? ctrl.license.expires_at.slice(0, 10) : '');
     setStartDate(ctrl.license?.start_date ?? '');
+    setLimits({
+      ...DEFAULT_RUNTIME_LIMITS,
+      ...(ctrl.runtime_limits_defaults ?? {}),
+      ...(ctrl.runtime_limits ?? {}),
+    });
   }, []);
 
   /** Light load: identity / license / modules / power — no docker diagnostics (avoids 15s axios timeout). */
@@ -467,6 +488,136 @@ export function SiteControlPanelPage({ id }: { id: string }) {
                 </Button>
               ) : null}
             </div>
+          </Section>
+
+          <Section
+            icon={HardDrive}
+            title={t('controlResources')}
+            description={t('controlResourcesHint')}
+            testId="control-resources"
+          >
+            <div className="grid gap-3 sm:grid-cols-2">
+              <div className="space-y-1.5 sm:col-span-2">
+                <Label className="inline-flex items-center gap-1.5">
+                  <Upload className="size-3.5" />
+                  {t('controlMaxUploadMb')}
+                </Label>
+                <Input
+                  type="number"
+                  min={8}
+                  max={512}
+                  value={limits.max_upload_mb}
+                  onChange={(e) =>
+                    setLimits((prev) => ({ ...prev, max_upload_mb: Number(e.target.value) || 0 }))
+                  }
+                />
+                <p className="text-muted-foreground text-xs">{t('controlMaxUploadHint')}</p>
+              </div>
+              <div className="space-y-1.5">
+                <Label className="inline-flex items-center gap-1.5">
+                  <HardDrive className="size-3.5" />
+                  {t('controlBackendMemoryMb')}
+                </Label>
+                <Input
+                  type="number"
+                  min={128}
+                  max={8192}
+                  step={64}
+                  value={limits.backend_memory_mb}
+                  onChange={(e) =>
+                    setLimits((prev) => ({ ...prev, backend_memory_mb: Number(e.target.value) || 0 }))
+                  }
+                />
+              </div>
+              <div className="space-y-1.5">
+                <Label>{t('controlFrontendMemoryMb')}</Label>
+                <Input
+                  type="number"
+                  min={128}
+                  max={8192}
+                  step={64}
+                  value={limits.frontend_memory_mb}
+                  onChange={(e) =>
+                    setLimits((prev) => ({ ...prev, frontend_memory_mb: Number(e.target.value) || 0 }))
+                  }
+                />
+              </div>
+              <div className="space-y-1.5">
+                <Label className="inline-flex items-center gap-1.5">
+                  <Cpu className="size-3.5" />
+                  {t('controlBackendCpus')}
+                </Label>
+                <Input
+                  type="number"
+                  min={0.25}
+                  max={8}
+                  step={0.25}
+                  value={limits.backend_cpus}
+                  onChange={(e) =>
+                    setLimits((prev) => ({ ...prev, backend_cpus: Number(e.target.value) || 0 }))
+                  }
+                />
+              </div>
+              <div className="space-y-1.5">
+                <Label>{t('controlFrontendCpus')}</Label>
+                <Input
+                  type="number"
+                  min={0.25}
+                  max={8}
+                  step={0.25}
+                  value={limits.frontend_cpus}
+                  onChange={(e) =>
+                    setLimits((prev) => ({ ...prev, frontend_cpus: Number(e.target.value) || 0 }))
+                  }
+                />
+              </div>
+              <div className="space-y-1.5">
+                <Label className="inline-flex items-center gap-1.5">
+                  <Database className="size-3.5" />
+                  {t('controlDbMemoryMb')}
+                </Label>
+                <Input
+                  type="number"
+                  min={128}
+                  max={8192}
+                  step={64}
+                  value={limits.db_memory_mb}
+                  onChange={(e) =>
+                    setLimits((prev) => ({ ...prev, db_memory_mb: Number(e.target.value) || 0 }))
+                  }
+                />
+              </div>
+              <div className="space-y-1.5">
+                <Label>{t('controlRedisMemoryMb')}</Label>
+                <Input
+                  type="number"
+                  min={128}
+                  max={8192}
+                  step={64}
+                  value={limits.redis_memory_mb}
+                  onChange={(e) =>
+                    setLimits((prev) => ({ ...prev, redis_memory_mb: Number(e.target.value) || 0 }))
+                  }
+                />
+              </div>
+            </div>
+            <Button
+              type="button"
+              disabled={busy !== null}
+              data-testid="control-save-resources"
+              onClick={() => {
+                if (!window.confirm(t('controlConfirmApplyResources'))) return;
+                void run('resources', async () => {
+                  const result = await updateProvisionRuntimeLimits(provisionId, {
+                    ...limits,
+                    apply: true,
+                  });
+                  if (result.limits) setLimits(result.limits);
+                });
+              }}
+            >
+              {t('controlSaveResources')}
+            </Button>
           </Section>
 
           <Section

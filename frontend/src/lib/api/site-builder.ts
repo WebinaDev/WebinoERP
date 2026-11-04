@@ -196,6 +196,18 @@ export type SiteControlPayload = {
     app_log?: string;
     log?: string | null;
   } | null;
+  runtime_limits?: SiteRuntimeLimits;
+  runtime_limits_defaults?: SiteRuntimeLimits;
+};
+
+export type SiteRuntimeLimits = {
+  max_upload_mb: number;
+  backend_memory_mb: number;
+  frontend_memory_mb: number;
+  backend_cpus: number;
+  frontend_cpus: number;
+  db_memory_mb: number;
+  redis_memory_mb: number;
 };
 
 export type StackCheckState = 'ok' | 'fail' | 'skipped' | 'not_run';
@@ -272,6 +284,26 @@ export async function updateProvisionAdmin(
     message: typeof (res.data as { message?: string })?.message === 'string'
       ? (res.data as { message?: string }).message
       : undefined,
+  };
+}
+
+export async function updateProvisionRuntimeLimits(
+  id: number,
+  body: Partial<SiteRuntimeLimits> & { apply?: boolean },
+) {
+  const res = await apiClient.put(`${BASE}/provisions/${id}/runtime-limits`, body, {
+    timeout: 120_000,
+  });
+  const meta = readSiblingMeta(res);
+  return {
+    data: unwrapData<SiteProvision>(res),
+    limits: (meta.limits ?? undefined) as SiteRuntimeLimits | undefined,
+    applied: Boolean(meta.applied),
+    log: typeof meta.log === 'string' ? meta.log : undefined,
+    message:
+      typeof (res.data as { message?: string })?.message === 'string'
+        ? (res.data as { message?: string }).message
+        : undefined,
   };
 }
 

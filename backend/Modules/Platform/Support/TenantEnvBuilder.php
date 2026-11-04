@@ -100,6 +100,10 @@ final class TenantEnvBuilder
             self::line('REVALIDATE_SECRET', $revalidateSecret),
             self::line('FRONTEND_REVALIDATE_URL', 'http://frontend:3000/webino-revalidate'),
             self::line('WEBINO_INTERNAL_API_SECRET', $internalApiSecret),
+            // Upload ceiling: Dashboard media.php + entrypoint PHP/nginx overrides.
+            self::line('MEDIA_MAX_UPLOAD_KB', (string) TenantSiteLimits::mediaMaxUploadKb(
+                TenantSiteLimits::forProvision($provision)
+            )),
         ])."\n";
     }
 

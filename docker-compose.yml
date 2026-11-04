@@ -273,6 +273,8 @@ services:
       - ./docker/caddy/Caddyfile:/etc/caddy/Caddyfile:ro
       # Durable tenant snippets (survive git clean / update.sh). Backend writes here too.
       - /var/lib/webino/caddy.d:/etc/caddy/sites
+      # Custom TLS material for tenant Caddy snippets (lyna/limbo/gatabi, …)
+      - ${WEBINO_CERTS_DIR:-/var/lib/webino/certs}:/srv/certs:ro
       # Serve Laravel public disk directly at /storage/* (read-only).
       - ${WEBINO_STORAGE_PUBLIC:-/var/lib/webino/storage-public}:/srv/storage:ro
       # Persist Let's Encrypt certs across recreate/update — never delete this volume.

@@ -12,6 +12,7 @@ use Modules\Platform\Entities\PlatformServer;
 use Modules\Platform\Support\StackHealthReport;
 use Modules\Platform\Support\TenantAliasDomains;
 use Modules\Platform\Support\TenantEnvBuilder;
+use Modules\Platform\Support\TenantSiteLimits;
 use Modules\Platform\Support\TenantSiteStack;
 use Modules\SiteBuilder\Entities\WebinoSiteProvision;
 use Modules\SiteBuilder\Services\LicenseProvisionerService;
@@ -79,7 +80,11 @@ class LocalSameVpsProvisioner
         $this->ensureDir($dir);
 
         $channel = (string) (($payload['channel'] ?? null) ?: 'latest');
-        $compose = TenantSiteStack::composeYaml($provision->slug, $channel);
+        $compose = TenantSiteStack::composeYaml(
+            $provision->slug,
+            $channel,
+            TenantSiteLimits::forProvision($provision),
+        );
         $envFile = $this->envFile($provision, $siteType, $token);
         $this->writeFile($dir.'/docker-compose.yml', $compose);
         // persistent uploads + Next cache (inline media/ISR); frontend runs as uid 1001
@@ -1834,7 +1839,11 @@ class LocalSameVpsProvisioner
         $dir = $this->siteDir($provision);
         // Never let a compose rewrite hide uploads: copy them out of the running container first.
         $this->preserveContainerUploads($provision);
-        $compose = TenantSiteStack::composeYaml($provision->slug, $channel);
+        $compose = TenantSiteStack::composeYaml(
+            $provision->slug,
+            $channel,
+            TenantSiteLimits::forProvision($provision),
+        );
         $this->writeFile($dir.'/docker-compose.yml', $compose);
         // Keep the stored copy aligned so a later generic deploy cannot restore
         // the shared "backend" hostname. Does not touch Caddy or certificates.
@@ -2201,6 +2210,49 @@ class LocalSameVpsProvisioner
         );
         $token = (string) ($provision->provision_token ?: '');
         $this->writeFile($this->siteDir($provision).'/.env', $this->envFile($provision, $siteType, $token));
+    }
+
+    /**
+     * Persist-aware apply: rewrite .env (MEDIA_MAX_UPLOAD_KB) + compose mem/cpu, recreate stack.
+     *
+     * @return array{exit_code:int,stdout:string,stderr:string,log:string,limits:array}
+     */
+    public function applyRuntimeLimits(WebinoSiteProvision $provision): array
+    {
+        $limits = TenantSiteLimits::forProvision($provision);
+        $dir = $this->siteDir($provision);
+        if (! is_dir($dir) || ! is_file($dir.'/docker-compose.yml')) {
+            throw new RuntimeException('platform.site_dir_missing: '.$dir);
+        }
+
+        $this->rewriteEnvFile($provision);
+        $this->rewriteComposeImages($provision, $this->effectiveTag($provision));
+
+        $project = $this->composeProjectForSlug($provision->slug);
+        $services = [
+            'db',
+            'redis',
+            TenantSiteStack::backendService($provision->slug),
+            TenantSiteStack::frontendService($provision->slug),
+        ];
+        $up = $this->run([
+            'docker', 'compose',
+            '-p', $project,
+            '-f', $dir.'/docker-compose.yml',
+            '--env-file', $dir.'/.env',
+            'up', '-d', '--force-recreate', '--remove-orphans',
+            ...$services,
+        ], 900);
+        $attachLog = $this->attachToProxyNetwork($provision->slug);
+        if (($up['exit_code'] ?? 1) === 0) {
+            $this->updateResourceStatus($provision, 'running');
+        }
+
+        return [
+            ...$up,
+            'limits' => $limits,
+            'log' => trim(($up['stdout'] ?? '')."\n".($up['stderr'] ?? '')."\n".$attachLog),
+        ];
     }
 
     /**

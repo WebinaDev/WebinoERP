@@ -64,7 +64,10 @@ final class TenantSiteStack
         return 'latest';
     }
 
-    public static function composeYaml(string $slug, string $channel = 'latest'): string
+    /**
+     * @param  array<string, mixed>|null  $limits  Normalized TenantSiteLimits (null = defaults).
+     */
+    public static function composeYaml(string $slug, string $channel = 'latest', ?array $limits = null): string
     {
         $project = self::projectName($slug);
         $internal = $project.'_net';
@@ -75,6 +78,13 @@ final class TenantSiteStack
         // WEBINO_SITE_SLUG to rewrite a leftover "backend" host to this name.
         $safeSlug = substr($project, 3);
         $api = 'http://'.$backendSvc.':8080';
+        $lim = TenantSiteLimits::normalize($limits);
+        $dbMem = TenantSiteLimits::memLimit((int) $lim['db_memory_mb']);
+        $redisMem = TenantSiteLimits::memLimit((int) $lim['redis_memory_mb']);
+        $beMem = TenantSiteLimits::memLimit((int) $lim['backend_memory_mb']);
+        $feMem = TenantSiteLimits::memLimit((int) $lim['frontend_memory_mb']);
+        $beCpus = TenantSiteLimits::cpusYaml((float) $lim['backend_cpus']);
+        $feCpus = TenantSiteLimits::cpusYaml((float) $lim['frontend_cpus']);
 
         return <<<YAML
 # Isolated tenant stack. Images: webino-backend:{$tag}, webino-next:{$tag}
@@ -91,6 +101,7 @@ services:
     image: postgres:15-alpine
     container_name: {$project}-db
     restart: unless-stopped
+    mem_limit: {$dbMem}
     environment:
       POSTGRES_DB: webino
       POSTGRES_USER: webino
@@ -108,11 +119,14 @@ services:
     image: redis:7-alpine
     container_name: {$project}-redis
     restart: unless-stopped
+    mem_limit: {$redisMem}
     networks: [{$internal}]
   {$backendSvc}:
     image: webino-backend:{$tag}
     container_name: {$project}-backend
     restart: unless-stopped
+    mem_limit: {$beMem}
+    cpus: {$beCpus}
     env_file: .env
     volumes:
       - ./.env:/var/www/html/.env:ro
@@ -130,6 +144,8 @@ services:
     image: webino-next:{$tag}
     container_name: {$project}-frontend
     restart: unless-stopped
+    mem_limit: {$feMem}
+    cpus: {$feCpus}
     environment:
       INTERNAL_API_URL: {$api}
       API_PROXY_TARGET: {$api}

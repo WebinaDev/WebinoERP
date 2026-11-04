@@ -12,6 +12,7 @@ use Modules\Platform\Entities\PlatformServer;
 use Modules\Platform\Support\StackHealthReport;
 use Modules\Platform\Support\TenantAliasDomains;
 use Modules\Platform\Support\TenantEnvBuilder;
+use Modules\Platform\Support\TenantSiteLimits;
 use Modules\Platform\Support\TenantSiteStack;
 use Modules\SiteBuilder\Entities\WebinoSiteProvision;
 use Modules\SiteBuilder\Services\LicenseProvisionerService;
@@ -63,7 +64,11 @@ class WebinoDashboardProvisioner
         $provision->save();
 
         $dir = $this->siteDir($provision);
-        $compose = TenantSiteStack::composeYaml($provision->slug);
+        $compose = TenantSiteStack::composeYaml(
+            $provision->slug,
+            'latest',
+            TenantSiteLimits::forProvision($provision),
+        );
         $this->docker->writeFile($server, $dir.'/docker-compose.yml', $compose);
         $envFile = $this->envFile($provision, $siteType, $token);
         $this->docker->writeFile($server, $dir.'/.env', $envFile);
@@ -603,7 +608,11 @@ class WebinoDashboardProvisioner
         if (preg_match('/webino-backend:([^\s"\']+)/', (string) ($existing['stdout'] ?? ''), $m)) {
             $tag = TenantSiteStack::imageTag($m[1]);
         }
-        $compose = TenantSiteStack::composeYaml($provision->slug, $tag);
+        $compose = TenantSiteStack::composeYaml(
+            $provision->slug,
+            $tag,
+            TenantSiteLimits::forProvision($provision),
+        );
         $this->docker->writeFile($server, $dir.'/docker-compose.yml', $compose);
         PlatformResource::query()
             ->where('provision_id', $provision->id)
@@ -796,9 +805,82 @@ class WebinoDashboardProvisioner
         return '/var/lib/webino/sites/'.$provision->slug;
     }
 
-    protected function envFile(WebinoSiteProvision $provision, string $siteType, string $token): string
+    protected function envFile(WebinoSiteProvision $provision, string $siteType, string $token, array $previous = []): string
     {
-        return TenantEnvBuilder::build($provision, $siteType, $token);
+        return TenantEnvBuilder::build($provision, $siteType, $token, $previous, false);
+    }
+
+    /**
+     * Rewrite remote .env + compose with runtime_limits, recreate containers.
+     *
+     * @return array{exit_code:int,stdout:string,stderr:string,log:string,limits:array}
+     */
+    public function applyRuntimeLimits(WebinoSiteProvision $provision): array
+    {
+        $limits = TenantSiteLimits::forProvision($provision);
+        $server = $this->serverFor($provision);
+        $dir = $this->siteDir($provision);
+        $provision->loadMissing(['license', 'package.businessType']);
+        $siteType = (string) (
+            ($provision->wizard_payload['site_type_slug'] ?? null)
+            ?: ($provision->package?->businessType?->slug)
+            ?: 'corporate'
+        );
+        $token = (string) ($provision->provision_token ?: '');
+
+        $previousEnv = [];
+        $read = $this->docker->sshRun($server, 'cat '.escapeshellarg($dir.'/.env').' 2>/dev/null || true', 30);
+        foreach (preg_split('/\r?\n/', (string) ($read['stdout'] ?? '')) ?: [] as $line) {
+            if (! str_contains($line, '=')) {
+                continue;
+            }
+            [$k, $v] = explode('=', $line, 2);
+            $previousEnv[trim($k)] = trim($v, " \t\"'");
+        }
+
+        $env = $this->envFile($provision, $siteType, $token, $previousEnv);
+        $this->docker->writeFile($server, $dir.'/.env', $env);
+
+        $existing = $this->docker->sshRun(
+            $server,
+            'cat '.escapeshellarg($dir.'/docker-compose.yml').' 2>/dev/null || true',
+            20
+        );
+        $tag = 'latest';
+        if (preg_match('/webino-backend:([^\s"\']+)/', (string) ($existing['stdout'] ?? ''), $m)) {
+            $tag = TenantSiteStack::imageTag($m[1]);
+        }
+        $compose = TenantSiteStack::composeYaml($provision->slug, $tag, $limits);
+        $this->docker->writeFile($server, $dir.'/docker-compose.yml', $compose);
+        PlatformResource::query()
+            ->where('provision_id', $provision->id)
+            ->update(['docker_compose_raw' => $compose]);
+
+        $project = TenantSiteStack::projectName($provision->slug);
+        $services = [
+            'db',
+            'redis',
+            TenantSiteStack::backendService($provision->slug),
+            TenantSiteStack::frontendService($provision->slug),
+        ];
+        $result = $this->docker->sshRun(
+            $server,
+            'cd '.escapeshellarg($dir)
+            .' && docker compose -p '.escapeshellarg($project)
+            .' --env-file .env up -d --force-recreate --remove-orphans '
+            .implode(' ', array_map('escapeshellarg', $services)),
+            900
+        );
+        $this->attachProxyNetwork($server, $provision->slug);
+        if (($result['exit_code'] ?? 1) === 0) {
+            $this->updateResourceStatus($provision, 'running');
+        }
+
+        return [
+            ...$result,
+            'limits' => $limits,
+            'log' => trim(($result['stdout'] ?? '')."\n".($result['stderr'] ?? '')),
+        ];
     }
 
     protected function updateResourceStatus(WebinoSiteProvision $provision, string $status): void

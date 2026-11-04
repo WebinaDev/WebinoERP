@@ -15,6 +15,7 @@ use Modules\Platform\Entities\PlatformDomain;
 use Modules\Platform\Entities\PlatformResource;
 use Modules\Platform\Entities\PlatformServer;
 use Modules\Platform\Support\StackHealthReport;
+use Modules\Platform\Support\TenantSiteLimits;
 use Modules\SiteBuilder\Entities\WebinoSiteProvision;
 use Modules\SiteBuilder\Jobs\ProvisionWebinoSiteJob;
 use Modules\SiteBuilder\Jobs\UpdateWebinoSiteJob;
@@ -774,12 +775,76 @@ class SiteProvisionController extends Controller
                     'customer' => $siteProvision->crmAccount,
                     'ssl' => $ssl,
                     'stack' => $stack,
+                    'runtime_limits' => TenantSiteLimits::forProvision($siteProvision),
+                    'runtime_limits_defaults' => TenantSiteLimits::defaults(),
                 ],
             ],
             200,
             [],
             JSON_INVALID_UTF8_SUBSTITUTE
         );
+    }
+
+    public function updateRuntimeLimits(Request $request, WebinoSiteProvision $siteProvision, SiteProvisionOrchestrator $orchestrator): JsonResponse
+    {
+        if (! $this->isControlEditable($siteProvision)) {
+            return response()->json([
+                'message' => 'سایت در این وضعیت قابل کنترل نیست: '.$siteProvision->status,
+            ], 422);
+        }
+
+        $data = $request->validate([
+            'max_upload_mb' => 'nullable|numeric|min:'.TenantSiteLimits::MIN_UPLOAD_MB.'|max:'.TenantSiteLimits::MAX_UPLOAD_MB,
+            'backend_memory_mb' => 'nullable|numeric|min:'.TenantSiteLimits::MIN_MEMORY_MB.'|max:'.TenantSiteLimits::MAX_MEMORY_MB,
+            'frontend_memory_mb' => 'nullable|numeric|min:'.TenantSiteLimits::MIN_MEMORY_MB.'|max:'.TenantSiteLimits::MAX_MEMORY_MB,
+            'backend_cpus' => 'nullable|numeric|min:'.TenantSiteLimits::MIN_CPUS.'|max:'.TenantSiteLimits::MAX_CPUS,
+            'frontend_cpus' => 'nullable|numeric|min:'.TenantSiteLimits::MIN_CPUS.'|max:'.TenantSiteLimits::MAX_CPUS,
+            'db_memory_mb' => 'nullable|numeric|min:'.TenantSiteLimits::MIN_MEMORY_MB.'|max:'.TenantSiteLimits::MAX_MEMORY_MB,
+            'redis_memory_mb' => 'nullable|numeric|min:'.TenantSiteLimits::MIN_MEMORY_MB.'|max:'.TenantSiteLimits::MAX_MEMORY_MB,
+            'apply' => 'nullable|boolean',
+        ]);
+
+        $apply = (bool) ($data['apply'] ?? true);
+        unset($data['apply']);
+
+        $merged = array_merge(
+            TenantSiteLimits::forProvision($siteProvision),
+            array_filter($data, static fn ($v) => $v !== null)
+        );
+        $limits = TenantSiteLimits::normalize($merged);
+        $siteProvision->runtime_limits = $limits;
+        $siteProvision->save();
+
+        $meta = ['limits' => $limits, 'applied' => false, 'log' => null];
+        if ($apply) {
+            try {
+                $result = $orchestrator->applyRuntimeLimits($siteProvision->fresh());
+                $ok = ((int) ($result['exit_code'] ?? 1)) === 0;
+                $meta['applied'] = $ok;
+                $meta['log'] = $result['log'] ?? null;
+                if (! $ok) {
+                    return response()->json([
+                        'data' => $siteProvision->fresh(['license', 'crmAccount']),
+                        'meta' => $meta,
+                        'message' => 'تنظیمات ذخیره شد ولی اعمال روی استک ناموفق بود.',
+                    ], 422);
+                }
+            } catch (Throwable $e) {
+                return response()->json([
+                    'data' => $siteProvision->fresh(['license', 'crmAccount']),
+                    'meta' => $meta,
+                    'message' => $e->getMessage() ?: 'اعمال محدودیت‌ها ناموفق بود.',
+                ], 422);
+            }
+        }
+
+        return response()->json([
+            'data' => $siteProvision->fresh(['license', 'crmAccount']),
+            'meta' => $meta,
+            'message' => $apply
+                ? 'محدودیت‌های آپلود و منابع ذخیره و روی سایت اعمال شد.'
+                : 'محدودیت‌ها ذخیره شد (هنوز روی استک اعمال نشده).',
+        ]);
     }
 
     public function syncAlias(Request $request, WebinoSiteProvision $siteProvision, SiteProvisionOrchestrator $orchestrator): JsonResponse

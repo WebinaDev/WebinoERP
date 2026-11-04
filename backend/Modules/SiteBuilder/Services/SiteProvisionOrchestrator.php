@@ -300,6 +300,21 @@ class SiteProvisionOrchestrator
     }
 
     /**
+     * Apply stored runtime_limits to live site .env + compose and recreate containers.
+     *
+     * @return array{exit_code:int,stdout:string,stderr:string,log:string,limits:array}
+     */
+    public function applyRuntimeLimits(WebinoSiteProvision $provision): array
+    {
+        $result = $this->shouldUseLocal($provision)
+            ? $this->local->applyRuntimeLimits($provision)
+            : $this->remote->applyRuntimeLimits($provision);
+        $this->audit->log($provision->created_by, 'provision.runtime_limits', $provision->fresh());
+
+        return $result;
+    }
+
+    /**
      * Sync LinkHub alias subdomain (Caddy multi-host + Sanctum/CORS + platform_domains).
      */
     public function syncAliasDomains(WebinoSiteProvision $provision, ?string $aliasLabel = null): void

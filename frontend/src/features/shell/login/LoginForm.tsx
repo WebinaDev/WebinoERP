@@ -292,13 +292,8 @@ export function LoginForm({ className, ...props }: ComponentProps<'div'>) {
             </Tabs>
             )}
           </div>
-          <div className="relative hidden flex-col justify-between gap-4 bg-muted p-8 md:flex">
-            <div>
-              <p className="text-sm leading-relaxed text-muted-foreground">{t('login.heroHint')}</p>
-              <p className="text-sm leading-relaxed text-muted-foreground">{t('login.customerHint')}</p>
-              <p className="mt-4 font-semibold">{t('app.title')}</p>
-            </div>
-            <div className="mx-auto flex flex-col items-center gap-3 text-foreground">
+          <div className="relative hidden items-center justify-center bg-muted p-8 md:flex">
+            <div className="flex flex-col items-center gap-3 text-foreground">
               <BrandMark className="h-16 w-auto" title="Webino ERP" />
               <BrandWordmark className="h-7 w-auto" />
             </div>

@@ -25,6 +25,8 @@ class TenantFrontendBackendProbeTest extends TestCase
         $this->assertStringContainsString('INTERNAL_API_URL: http://ws-bluecafe-backend:8080', $yaml);
         $this->assertStringContainsString('API_PROXY_TARGET: http://ws-bluecafe-backend:8080', $yaml);
         $this->assertStringContainsString('WEBINO_SITE_SLUG: "bluecafe"', $yaml);
+        $this->assertStringContainsString('mem_limit: 512m', $yaml);
+        $this->assertStringContainsString('cpus: 1', $yaml);
         $this->assertDoesNotMatchRegularExpression('/INTERNAL_API_URL:\s+http:\/\/backend:8080/', $yaml);
         $this->assertDoesNotMatchRegularExpression('/API_PROXY_TARGET:\s+http:\/\/backend:8080/', $yaml);
         $this->assertSame(1, substr_count($yaml, 'aliases: [backend]'));

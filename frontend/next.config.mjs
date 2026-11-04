@@ -1,9 +1,4 @@
-import bundleAnalyzer from "@next/bundle-analyzer"
 import createNextIntlPlugin from "next-intl/plugin"
-
-const withBundleAnalyzer = bundleAnalyzer({
-  enabled: process.env.ANALYZE === "true",
-})
 
 const withNextIntl = createNextIntlPlugin("./src/i18n/request.ts")
 
@@ -54,4 +49,12 @@ const nextConfig = {
   },
 }
 
-export default withBundleAnalyzer(withNextIntl(nextConfig))
+const config = withNextIntl(nextConfig)
+
+// Only pull in @next/bundle-analyzer when ANALYZE=true so production
+// installs that omit devDependencies can still load next.config.mjs.
+export default process.env.ANALYZE === "true"
+  ? import("@next/bundle-analyzer").then(({ default: bundleAnalyzer }) =>
+      bundleAnalyzer({ enabled: true })(config),
+    )
+  : config
