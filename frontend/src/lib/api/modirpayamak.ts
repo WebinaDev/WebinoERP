@@ -13,13 +13,16 @@ export type ModirPayamakDomainNumber = {
 };
 
 export type ModirPayamakAccount = {
-  id: number;
+  id: number | string;
   domain: string;
   balance: number;
-  default_from?: string;
+  default_from?: string | null;
   status: string;
   expires_at?: string | null;
   numbers?: ModirPayamakDomainNumber[];
+  project_name?: string;
+  license_status?: string;
+  virtual?: boolean;
 };
 
 export type ModirPayamakLedgerRow = {

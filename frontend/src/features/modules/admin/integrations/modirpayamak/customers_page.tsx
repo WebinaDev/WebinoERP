@@ -172,7 +172,7 @@ export function ModirpayamakCustomersPage() {
               </TableHeader>
               <TableBody>
                 {accounts.map((a) => (
-                  <TableRow key={a.id}>
+                  <TableRow key={a.domain || String(a.id)}>
                     <TableCell className="font-mono">{a.domain}</TableCell>
                     <TableCell>{formatNumber(a.balance)}</TableCell>
                     <TableCell className="max-w-xs truncate text-sm" dir="ltr" title={lineLabel(a)}>

@@ -46,7 +46,7 @@ export function ModirpayamakTicketsPage() {
   const { layoutProps, setError, setSuccess } = useCrmFeedback();
   const { configured, loading: configLoading } = useModirPayamakConfigured();
   const loader = useCallback(() => edgeListTickets(), []);
-  const { items, loading, reload } = useModirPayamakEdge(loader);
+  const { items, loading, error, reload } = useModirPayamakEdge(loader);
 
   const [createOpen, setCreateOpen] = useState(false);
   const [subject, setSubject] = useState('');
@@ -125,7 +125,11 @@ export function ModirpayamakTicketsPage() {
             <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
           </div>
         ) : items.length === 0 ? (
-          <PmEmptyState title={t('empty')} />
+          <div className="space-y-3">
+            <p className="text-sm text-muted-foreground">{t('hint')}</p>
+            {error ? <p className="text-destructive text-sm">{error}</p> : null}
+            <PmEmptyState title={t('empty')} />
+          </div>
         ) : (
           <Card>
             <CardContent className="p-0 pt-6">

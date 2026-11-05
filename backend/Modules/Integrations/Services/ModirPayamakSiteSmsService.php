@@ -103,8 +103,9 @@ class ModirPayamakSiteSmsService
     {
         $domain = $this->manager->normalizeDomain($domain);
         $stored = IntegrationSetting::getJson('modirpayamak', $this->shopSettingsKey($domain), []);
+        $settings = array_merge(['enabled' => true, 'events' => []], is_array($stored) ? $stored : []);
 
-        return array_merge(['enabled' => true, 'events' => []], is_array($stored) ? $stored : []);
+        return $this->enrichSenderLines($domain, $settings);
     }
 
     /**
@@ -117,15 +118,16 @@ class ModirPayamakSiteSmsService
         $out = $this->getShopSettings($domain);
 
         foreach ($input as $k => $v) {
-            if (is_string($k) && ! in_array($k, ['domain', 'license_key', 'path', 'templates'], true)) {
+            if (is_string($k) && ! in_array($k, ['domain', 'license_key', 'path', 'templates', 'numbers', 'sender_line_service', 'sender_line_dedicated', 'domain_numbers_ready'], true)) {
                 $out[$k] = $v;
             }
         }
         $out['enabled'] = (bool) ($out['enabled'] ?? true);
+        unset($out['numbers'], $out['sender_line_service'], $out['sender_line_dedicated'], $out['domain_numbers_ready']);
 
         IntegrationSetting::putJson('modirpayamak', $this->shopSettingsKey($domain), $out);
 
-        return $out;
+        return $this->getShopSettings($domain);
     }
 
     /**
@@ -304,6 +306,12 @@ class ModirPayamakSiteSmsService
             return ['ok' => false, 'message' => __('messages.phone_is_required')];
         }
 
+        $price = $this->manager->pricePerUnit();
+        $wallet = $this->manager->getOrCreateAccount($domain);
+        if ((float) $wallet->balance < $price) {
+            return ['ok' => false, 'message' => __('messages.insufficient_modirpayamak_balance')];
+        }
+
         $settings = $this->getSiteSettings($domain);
         if (empty($settings['enabled'])) {
             return ['ok' => false, 'message' => __('messages.site_sms_is_disabled')];
@@ -326,6 +334,7 @@ class ModirPayamakSiteSmsService
         $template = (string) ($settings[$templateKey] ?? $this->defaultSiteSettings()[$templateKey]);
         $from = $this->resolveFromNumber($domain, $settings);
         $usePattern = ! empty($settings['use_pattern_for_otp']);
+        $patternCode = '';
 
         if ($usePattern) {
             $eventKey = $purpose === 'register' ? 'otp_register' : 'otp_login';
@@ -352,14 +361,26 @@ class ModirPayamakSiteSmsService
             return ['ok' => false, 'message' => (string) ($result['message'] ?: 'Send failed')];
         }
 
+        $body = $usePattern ? $patternCode : str_replace('{code}', $code, $template);
         try {
-            $this->manager->debit($domain, $this->manager->pricePerUnit(), 'otp', null, [
+            $this->manager->debit($domain, $price, 'otp', null, [
                 'phone' => $phone,
                 'purpose' => $purpose,
             ]);
         } catch (\Throwable) {
-            // Balance debit is best-effort for test OTP; send already succeeded.
+            // Provider already accepted the OTP; the pre-check should make this rare.
         }
+        $this->manager->recordMessage(
+            $domain,
+            $usePattern ? 'pattern' : 'webservice',
+            $body,
+            [$phone],
+            $from,
+            'sent',
+            $price,
+            $usePattern ? $patternCode : null,
+            ['event_key' => $purpose === 'register' ? 'otp_register' : 'otp_login', 'role' => 'customer'],
+        );
 
         return ['ok' => true];
     }
@@ -374,24 +395,24 @@ class ModirPayamakSiteSmsService
             return $settings;
         }
 
-        $service = ModirPayamakDomainNumber::query()
+        $rows = ModirPayamakDomainNumber::query()
             ->where('domain', $domain)
-            ->where('role', ModirPayamakManager::ROLE_SERVICE)
+            ->orderBy('role')
             ->orderByDesc('is_default')
             ->orderBy('id')
-            ->value('number');
-        $dedicated = ModirPayamakDomainNumber::query()
-            ->where('domain', $domain)
-            ->whereIn('role', [ModirPayamakManager::ROLE_PERSONAL, 'marketing'])
-            ->orderByDesc('is_default')
-            ->orderBy('id')
-            ->value('number');
+            ->get();
+        $settings['numbers'] = $rows
+            ->map(fn (ModirPayamakDomainNumber $n) => $this->manager->formatDomainNumber($n))
+            ->all();
+
+        $service = $rows->first(fn (ModirPayamakDomainNumber $n) => $n->role === ModirPayamakManager::ROLE_SERVICE);
+        $dedicated = $rows->first(fn (ModirPayamakDomainNumber $n) => in_array($n->role, [ModirPayamakManager::ROLE_PERSONAL, 'marketing'], true));
 
         if ($service) {
-            $settings['sender_line_service'] = (string) $service;
+            $settings['sender_line_service'] = (string) $service->number;
         }
         if ($dedicated) {
-            $settings['sender_line_dedicated'] = (string) $dedicated;
+            $settings['sender_line_dedicated'] = (string) $dedicated->number;
         }
 
         return $settings;

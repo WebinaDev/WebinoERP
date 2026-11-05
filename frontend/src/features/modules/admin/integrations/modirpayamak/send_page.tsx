@@ -10,9 +10,10 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Input } from '@/components/ui/input';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
-import { adminModirPayamakSend } from '@/lib/api/modirpayamak';
+import { adminModirPayamakSend, getModirPayamakCustomers } from '@/lib/api/modirpayamak';
 import { edgeField, type EdgeRow } from '@/lib/api/modirpayamak-edge';
 import { getAxiosMessage } from '@/lib/api-helpers';
 import { ModirPayamakLineSelect } from './components/line-select';
@@ -37,6 +38,8 @@ export function ModirpayamakSendPage() {
   const [patternParams, setPatternParams] = useState<Record<string, string>>({});
   const [debitTenant, setDebitTenant] = useState(false);
   const [domain, setDomain] = useState('');
+  const [domainQuery, setDomainQuery] = useState('');
+  const [domains, setDomains] = useState<Array<{ domain: string; project_name?: string }>>([]);
   const [loading, setLoading] = useState(false);
   const [lastResult, setLastResult] = useState<{ id: string; cost: string; status: string } | null>(null);
 
@@ -138,7 +141,12 @@ export function ModirpayamakSendPage() {
             </div>
             <div className="space-y-2">
               <Label>{t('fromNumber')}</Label>
-              <ModirPayamakLineSelect value={from} onChange={setFrom} disabled={loading} />
+              <ModirPayamakLineSelect
+                value={from}
+                onChange={setFrom}
+                disabled={loading}
+                mode={mode === 'simple' ? 'simple' : 'pattern'}
+              />
             </div>
             <div className="space-y-2">
               <Label>{t('recipients')}</Label>
@@ -199,10 +207,48 @@ export function ModirpayamakSendPage() {
                 <Label>{t('domain')}</Label>
                 <Input
                   dir="ltr"
-                  value={domain}
-                  onChange={(e) => setDomain(e.target.value)}
-                  placeholder="example.com"
+                  value={domainQuery}
+                  onChange={(e) => setDomainQuery(e.target.value)}
+                  placeholder={t('domain')}
                 />
+                <Select
+                  value={domain || undefined}
+                  onValueChange={(value) => {
+                    setDomain(value);
+                    setDomainQuery(value);
+                  }}
+                  onOpenChange={(open) => {
+                    if (!open || domains.length > 0) return;
+                    void getModirPayamakCustomers().then((res) => {
+                      setDomains(
+                        (res.accounts ?? []).map((account) => ({
+                          domain: account.domain,
+                          project_name: account.project_name,
+                        })),
+                      );
+                    });
+                  }}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder={t('domain')} />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {domains
+                      .filter((row) => {
+                        const q = domainQuery.trim().toLowerCase();
+                        if (!q) return true;
+                        return (
+                          row.domain.toLowerCase().includes(q) ||
+                          (row.project_name ?? '').toLowerCase().includes(q)
+                        );
+                      })
+                      .map((row) => (
+                        <SelectItem key={row.domain} value={row.domain}>
+                          {row.project_name ? `${row.project_name} — ${row.domain}` : row.domain}
+                        </SelectItem>
+                      ))}
+                  </SelectContent>
+                </Select>
               </div>
             ) : null}
             <Button

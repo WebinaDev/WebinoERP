@@ -6,7 +6,6 @@ use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Modules\Core\Entities\CoreLicense;
 use Modules\Core\Services\CoreLicenseResolver;
-use Modules\Integrations\Entities\ModirPayamakMessage;
 use Modules\Integrations\Services\ModirPayamakManager;
 use Modules\Integrations\Services\ModirPayamakSiteSmsService;
 
@@ -75,24 +74,10 @@ class WebinocrmModirPayamakCompatController extends Controller
     protected function tenantDashboard(Request $request, string $domain): JsonResponse
     {
         $account = $this->manager->getOrCreateAccount($domain);
-        $messages = ModirPayamakMessage::query()
-            ->where('domain', $domain)
-            ->orderByDesc('id')
-            ->limit(10)
-            ->get()
-            ->map(fn (ModirPayamakMessage $m) => [
-                'id' => $m->id,
-                'domain' => $m->domain,
-                'sending_type' => $m->sending_type ?? 'webservice',
-                'cost' => (float) ($m->cost ?? 0),
-                'status' => $m->status ?? 'sent',
-                'created_at' => $m->created_at?->toIso8601String(),
-            ])
-            ->all();
 
         return $this->ok([
             'account' => $this->manager->formatAccountPublic($account),
-            'messages' => $messages,
+            'messages' => $this->manager->sentHistory($domain, 10),
             'balance' => (float) $account->balance,
         ]);
     }
@@ -113,6 +98,12 @@ class WebinocrmModirPayamakCompatController extends Controller
                 : $this->siteSms->listTemplates($domain);
 
             return $this->ok(['saved' => true, 'settings' => $settings, 'templates' => $templates]);
+        }
+
+        try {
+            app(\Modules\Integrations\Services\ModirPayamakPatternSync::class)->reconcileCached($domain);
+        } catch (\Throwable) {
+            // A slow or rejected provider rename must not blank the settings page.
         }
 
         return $this->ok([

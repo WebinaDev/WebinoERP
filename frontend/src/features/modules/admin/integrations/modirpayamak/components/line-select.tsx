@@ -13,9 +13,24 @@ type Props = {
   value: string;
   onChange: (value: string) => void;
   disabled?: boolean;
+  /** simple = dedicated lines only. pattern = pattern and dedicated lines. */
+  mode?: 'simple' | 'pattern';
 };
 
-export function ModirPayamakLineSelect({ value, onChange, disabled }: Props) {
+function lineBlob(row: EdgeRow): string {
+  return [edgeField(row, 'type', 'line_type', 'title', 'name', 'role'), edgeField(row, 'number', 'line')]
+    .join(' ')
+    .toLowerCase();
+}
+
+function isPatternOnly(row: EdgeRow): boolean {
+  const blob = lineBlob(row);
+  const pattern = /pattern|shared|پترن|خدماتی اشتراکی|is_pattern|is_shared/.test(blob);
+  const dedicated = /dedicated|personal|webservice|advert|اختصاص|اختصاصی/.test(blob);
+  return pattern && !dedicated;
+}
+
+export function ModirPayamakLineSelect({ value, onChange, disabled, mode = 'pattern' }: Props) {
   const t = useTranslations('modirpayamak');
   const params = useParams();
   const locale = (params?.locale as string) || 'fa';
@@ -25,13 +40,14 @@ export function ModirPayamakLineSelect({ value, onChange, disabled }: Props) {
   const load = useCallback(async () => {
     setLoading(true);
     const res = await edgeListNumbers();
-    setLines(res.items);
-    if (!value && res.items.length > 0) {
-      const first = edgeField(res.items[0], 'number', 'line', 'from_number', 'sender');
+    const items = mode === 'simple' ? res.items.filter((row) => !isPatternOnly(row)) : res.items;
+    setLines(items);
+    if (!value && items.length > 0) {
+      const first = edgeField(items[0], 'number', 'line', 'from_number', 'sender');
       if (first !== '—') onChange(first);
     }
     setLoading(false);
-  }, [onChange, value]);
+  }, [onChange, value, mode]);
 
   useEffect(() => {
     void load();

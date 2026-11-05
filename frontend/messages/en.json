@@ -5955,6 +5955,7 @@
     },
     "tickets": {
       "empty": "No tickets yet",
+      "hint": "These are tickets opened with IPPanel support. An empty list means none were opened; a connection error is shown here.",
       "newTicket": "New ticket",
       "subject": "Subject",
       "status": "Status",
@@ -5965,6 +5966,7 @@
     },
     "users": {
       "empty": "No IPPanel users yet",
+      "hint": "These are IPPanel panel logins, not site customers. Site wallets are on the customers page. This list stays empty when the panel has no sub-users.",
       "addUser": "Add user",
       "username": "Username",
       "password": "Password",

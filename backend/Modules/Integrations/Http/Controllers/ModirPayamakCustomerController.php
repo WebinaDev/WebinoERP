@@ -45,7 +45,10 @@ class ModirPayamakCustomerController extends Controller
             return $res['ok'] ? $res['data'] : null;
         });
 
-        return response()->json(['data' => ['account' => $account, 'edge_credit' => $credit]]);
+        return response()->json(['data' => [
+            'account' => $this->manager->formatAccountPublic($account),
+            'edge_credit' => $credit,
+        ]]);
     }
 
     public function packages(): JsonResponse
@@ -173,20 +176,85 @@ class ModirPayamakCustomerController extends Controller
     {
         $data = $request->validate([
             'domain' => 'required|string|max:255',
-            'message' => 'required|string',
-            'recipients' => 'required|array|min:1',
+            'message' => 'nullable|string',
+            'phone' => 'nullable|string',
+            'recipients' => 'nullable|array',
             'from_number' => 'nullable|string',
+            'sending_type' => 'nullable|string',
+            'code' => 'nullable|string',
+            'params' => 'nullable|array',
+            'send_time' => 'nullable',
         ]);
         $domain = $this->domain($request);
-        $from = $data['from_number'] ?? $this->edge->defaultFrom();
-        $result = $this->edge->sendWebservice($from, $data['message'], $data['recipients']);
-        if (! $result['ok']) {
-            return response()->json(['message' => $result['message'] ?: 'Send failed', 'meta' => $result['meta']], 422);
+        $recipients = $this->collectRecipients($data);
+        if ($recipients === []) {
+            return response()->json(['message' => 'recipients required', 'ok' => false], 422);
         }
-        $cost = count($data['recipients']) * $this->manager->pricePerUnit();
-        $account = $this->manager->debit($domain, $cost, 'send', null, ['recipients' => count($data['recipients'])]);
+        $type = strtolower((string) ($data['sending_type'] ?? ''));
+        $code = trim((string) ($data['code'] ?? ''));
+        $isPattern = $type === 'pattern' || $code !== '';
+        $message = (string) ($data['message'] ?? '');
+        if (! $isPattern && trim($message) === '') {
+            return response()->json(['message' => 'message required', 'ok' => false], 422);
+        }
+        if ($isPattern && $code === '') {
+            return response()->json(['message' => 'pattern code required', 'ok' => false], 422);
+        }
 
-        return response()->json(['data' => ['edge' => $result['data'], 'account' => $account]]);
+        $from = (string) ($data['from_number'] ?? $this->edge->defaultFrom());
+        $price = $this->manager->pricePerUnit();
+        $cost = count($recipients) * $price;
+        $account = $this->manager->getOrCreateAccount($domain);
+        if ((float) $account->balance < $cost) {
+            return response()->json([
+                'message' => __('messages.insufficient_modirpayamak_balance'),
+                'ok' => false,
+                'reason' => 'insufficient_balance',
+            ], 402);
+        }
+
+        if ($isPattern) {
+            $params = is_array($data['params'] ?? null) ? $data['params'] : [];
+            $result = $this->edge->sendPattern($from, $code, $recipients, $params);
+            if ($message === '') {
+                $message = $code;
+            }
+            $sendingType = 'pattern';
+        } else {
+            $result = $this->edge->sendWebservice($from, $message, $recipients, $this->formatSendTime($data['send_time'] ?? null));
+            $sendingType = 'webservice';
+            $code = '';
+        }
+        if (! $result['ok']) {
+            return response()->json(['message' => $result['message'] ?: 'Send failed', 'meta' => $result['meta'] ?? [], 'ok' => false], 422);
+        }
+
+        try {
+            $account = $this->manager->debit($domain, $cost, 'send', null, [
+                'recipients' => count($recipients),
+                'type' => $sendingType,
+            ]);
+        } catch (\Throwable) {
+            $account = $this->manager->getOrCreateAccount($domain);
+        }
+        $this->manager->recordMessage(
+            $domain,
+            $sendingType,
+            $message,
+            $recipients,
+            $from,
+            'sent',
+            $cost,
+            $code !== '' ? $code : null,
+            ['edge' => $result['data'] ?? null],
+        );
+
+        return response()->json(['data' => [
+            'ok' => true,
+            'edge' => $result['data'],
+            'account' => $this->manager->formatAccountPublic($account),
+            'cost' => $cost,
+        ]]);
     }
 
     public function sendPeerToPeer(Request $request): JsonResponse
@@ -197,13 +265,54 @@ class ModirPayamakCustomerController extends Controller
             'from_number' => 'nullable|string',
         ]);
         $domain = $this->domain($request);
-        $from = $data['from_number'] ?? $this->edge->defaultFrom();
+        $from = (string) ($data['from_number'] ?? $this->edge->defaultFrom());
+        $recipients = [];
+        $preview = '';
+        foreach ($data['groups'] as $group) {
+            if (! is_array($group)) {
+                continue;
+            }
+            if ($preview === '' && isset($group['message'])) {
+                $preview = (string) $group['message'];
+            }
+            foreach ((array) ($group['recipients'] ?? []) as $phone) {
+                if (is_scalar($phone) && trim((string) $phone) !== '') {
+                    $recipients[] = trim((string) $phone);
+                }
+            }
+        }
+        $recipients = array_values(array_unique($recipients));
+        $cost = max(1, count($recipients)) * $this->manager->pricePerUnit();
+        $account = $this->manager->getOrCreateAccount($domain);
+        if ((float) $account->balance < $cost) {
+            return response()->json([
+                'message' => __('messages.insufficient_modirpayamak_balance'),
+                'ok' => false,
+                'reason' => 'insufficient_balance',
+            ], 402);
+        }
         $result = $this->edge->sendPeerToPeer($data['groups'], $from);
         if (! $result['ok']) {
-            return response()->json(['message' => $result['message'] ?: 'Send failed'], 422);
+            return response()->json(['message' => $result['message'] ?: 'Send failed', 'ok' => false], 422);
         }
+        try {
+            $account = $this->manager->debit($domain, $cost, 'send', null, [
+                'recipients' => count($recipients),
+                'type' => 'peer_to_peer',
+            ]);
+        } catch (\Throwable) {
+            $account = $this->manager->getOrCreateAccount($domain);
+        }
+        $this->manager->recordMessage($domain, 'peer_to_peer', $preview, $recipients, $from, 'sent', $cost, null, [
+            'edge' => $result['data'] ?? null,
+        ]);
 
-        return response()->json(['data' => $result['data']]);
+        return response()->json(['data' => [
+            'ok' => true,
+            'edge' => $result['data'],
+            'account' => $this->manager->formatAccountPublic($account),
+            'cost' => $cost,
+        ]]);
     }
 
     public function calculatePrice(Request $request): JsonResponse
@@ -223,14 +332,20 @@ class ModirPayamakCustomerController extends Controller
 
     public function reportsOutbox(Request $request): JsonResponse
     {
-        $this->domain($request);
+        $domain = $this->domain($request);
+        $limit = max(1, (int) $request->query('limit', 20));
         $result = $this->edge->reportOutbox(
             (int) $request->query('page', 1),
-            (int) $request->query('limit', 20),
+            $limit,
             (array) $request->query('filters', [])
         );
+        $remote = $result['ok'] ? \Modules\Integrations\Services\ModirPayamakReportRows::messages($result['data'] ?? null) : [];
+        $rows = $this->manager->mergeSent($this->manager->recentMessages($domain, $limit), $remote, max($limit, count($remote)));
 
-        return response()->json(['data' => $result['data'], 'meta' => $result['meta']], $result['ok'] ? 200 : 422);
+        return response()->json([
+            'data' => ['entries' => $rows, 'messages' => $rows],
+            'meta' => $result['meta'] ?? [],
+        ]);
     }
 
     public function reportOutboxDetail(Request $request, string $id): JsonResponse
@@ -243,14 +358,13 @@ class ModirPayamakCustomerController extends Controller
 
     public function reportsMessages(Request $request): JsonResponse
     {
-        $this->domain($request);
-        $result = $this->edge->reportInbox(
-            (int) $request->query('page', 1),
-            (int) $request->query('limit', 20),
-            (array) $request->query('filters', [])
-        );
+        $domain = $this->domain($request);
+        $limit = max(1, (int) $request->query('limit', 20));
+        $page = max(1, (int) $request->query('page', 1));
+        $rows = $this->manager->sentHistory($domain, $page * $limit);
+        $slice = array_slice($rows, ($page - 1) * $limit, $limit);
 
-        return response()->json(['data' => $result['data'], 'meta' => $result['meta']], $result['ok'] ? 200 : 422);
+        return response()->json(['data' => ['messages' => array_values($slice), 'entries' => array_values($slice)]]);
     }
 
     public function patterns(Request $request): JsonResponse
@@ -263,10 +377,15 @@ class ModirPayamakCustomerController extends Controller
 
     public function numbers(Request $request): JsonResponse
     {
-        $this->domain($request);
-        $result = $this->edge->listNumbers($request->query());
+        $domain = $this->domain($request);
+        $account = $this->manager->formatAccountPublic($this->manager->getOrCreateAccount($domain));
+        $numbers = is_array($account['numbers'] ?? null) ? $account['numbers'] : [];
+        if ($numbers === []) {
+            $result = $this->edge->listNumbers($request->query());
+            $numbers = \Modules\Integrations\Services\ModirPayamakReportRows::lines($result['data'] ?? null);
+        }
 
-        return response()->json(['data' => $result['data']], $result['ok'] ? 200 : 422);
+        return response()->json(['data' => ['numbers' => $numbers]]);
     }
 
     public function phonebooks(Request $request): JsonResponse
@@ -399,5 +518,46 @@ class ModirPayamakCustomerController extends Controller
         ], 200);
     }
 
+    /**
+     * @param  array<string, mixed>  $data
+     * @return list<string>
+     */
+    private function collectRecipients(array $data): array
+    {
+        $out = [];
+        foreach ((array) ($data['recipients'] ?? []) as $value) {
+            if (is_scalar($value) && trim((string) $value) !== '') {
+                $out[] = trim((string) $value);
+            }
+        }
+        if (isset($data['phone']) && is_scalar($data['phone']) && trim((string) $data['phone']) !== '') {
+            $out[] = trim((string) $data['phone']);
+        }
 
+        return array_values(array_unique($out));
+    }
+
+    private function formatSendTime(mixed $value): ?string
+    {
+        if ($value === null || $value === '') {
+            return null;
+        }
+        if (is_numeric($value)) {
+            $ts = (int) $value;
+            if ($ts > 1_000_000_000_000) {
+                $ts = (int) floor($ts / 1000);
+            }
+            if ($ts <= 0) {
+                return null;
+            }
+
+            return \Carbon\Carbon::createFromTimestamp($ts, 'Asia/Tehran')->format('Y-m-d H:i:s');
+        }
+        $text = trim((string) $value);
+        if (preg_match('/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}/', $text)) {
+            return str_replace('T', ' ', substr($text, 0, 16)).':00';
+        }
+
+        return $text !== '' ? $text : null;
+    }
 }

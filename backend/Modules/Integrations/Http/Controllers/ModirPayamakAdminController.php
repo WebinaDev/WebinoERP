@@ -73,10 +73,7 @@ class ModirPayamakAdminController extends Controller
     public function customers(Request $request): JsonResponse
     {
         try {
-            $accounts = ModirPayamakAccount::query()->orderBy('domain')->get()
-                ->map(fn (ModirPayamakAccount $a) => $this->manager->formatAccountPublic($a))
-                ->values()
-                ->all();
+            $accounts = $this->customersWithLicenses();
 
             if ($request->boolean('paginate')) {
                 $page = max(1, (int) $request->query('page', 1));
@@ -110,6 +107,60 @@ class ModirPayamakAdminController extends Controller
 
             return response()->json(['data' => ['accounts' => []]]);
         }
+    }
+
+    /**
+     * Every licensed domain, including sites that do not have an SMS wallet yet.
+     *
+     * @return list<array<string, mixed>>
+     */
+    protected function customersWithLicenses(): array
+    {
+        $byDomain = [];
+        if (\Illuminate\Support\Facades\Schema::hasTable('modirpayamak_accounts')) {
+            foreach (ModirPayamakAccount::query()->orderBy('domain')->get() as $account) {
+                $public = $this->manager->formatAccountPublic($account);
+                $byDomain[$public['domain']] = $public;
+            }
+        }
+        if (\Illuminate\Support\Facades\Schema::hasTable('core_licenses')) {
+            $grouped = [];
+            foreach (\Modules\Core\Entities\CoreLicense::query()->orderByDesc('id')->get() as $license) {
+                $domain = $this->manager->normalizeDomain((string) $license->domain);
+                if ($domain === '') {
+                    continue;
+                }
+                if (! isset($grouped[$domain])) {
+                    $grouped[$domain] = $license;
+                } elseif ($license->status === 'active') {
+                    $grouped[$domain] = $license;
+                }
+            }
+            foreach ($grouped as $domain => $license) {
+                $name = trim((string) ($license->project_name ?? ''));
+                if (isset($byDomain[$domain])) {
+                    $byDomain[$domain]['project_name'] = $name;
+                    $byDomain[$domain]['license_status'] = (string) $license->status;
+                    continue;
+                }
+                $byDomain[$domain] = [
+                    'id' => 'license:'.$domain,
+                    'domain' => $domain,
+                    'balance' => 0,
+                    'default_from' => null,
+                    'status' => 'none',
+                    'expires_at' => optional($license->expires_at)?->toIso8601String(),
+                    'numbers' => [],
+                    'domain_numbers_ready' => \Illuminate\Support\Facades\Schema::hasTable('modirpayamak_domain_numbers'),
+                    'project_name' => $name,
+                    'license_status' => (string) $license->status,
+                    'virtual' => true,
+                ];
+            }
+        }
+        ksort($byDomain);
+
+        return array_values($byDomain);
     }
 
     public function customerBalance(Request $request): JsonResponse
@@ -638,8 +689,12 @@ class ModirPayamakAdminController extends Controller
                 (int) $request->query('limit', 20),
                 (array) $request->query('filters', [])
             );
+            $rows = \Modules\Integrations\Services\ModirPayamakReportRows::messages($result['data'] ?? null);
 
-            return response()->json(['data' => $result['data'], 'meta' => $result['meta']], $result['ok'] ? 200 : 422);
+            return response()->json([
+                'data' => ['entries' => $rows, 'messages' => $rows],
+                'meta' => $result['meta'] ?? [],
+            ], $result['ok'] ? 200 : 422);
         } catch (\Illuminate\Database\QueryException|\Throwable) {
             return response()->json(['data' => []]);
         }
@@ -948,7 +1003,7 @@ class ModirPayamakAdminController extends Controller
             $results = [];
             $allOk = true;
             foreach ($phones as $to) {
-                $r = $this->sendOne($from, $code, $to, $params);
+                $r = $this->sendOne($domain, $from, $code, $to, $params, $scope, ! $test);
                 $allOk = $allOk && $r['ok'];
                 $results[] = $r;
             }
@@ -992,7 +1047,7 @@ class ModirPayamakAdminController extends Controller
                     $out['customer'] = ['ok' => false, 'phone' => $customerPhone, 'reason' => 'pattern_not_bound'];
                     $allOk = false;
                 } else {
-                    $out['customer'] = $this->sendOne($from, $code, $customerPhone, $params);
+                    $out['customer'] = $this->sendOne($domain, $from, $code, $customerPhone, $params, 'customer', ! $test);
                     $anySent = true;
                     $allOk = $allOk && $out['customer']['ok'];
                 }
@@ -1008,7 +1063,7 @@ class ModirPayamakAdminController extends Controller
                 $allOk = false;
             } else {
                 foreach ($admins as $to) {
-                    $r = $this->sendOne($from, $code, $to, $params);
+                    $r = $this->sendOne($domain, $from, $code, $to, $params, 'admin', ! $test);
                     $out['admin'][] = $r;
                     $anySent = true;
                     $allOk = $allOk && $r['ok'];
@@ -1105,14 +1160,56 @@ class ModirPayamakAdminController extends Controller
     }
 
     /** @return array<string, mixed> */
-    protected function sendOne(string $from, string $code, string $to, array $params): array
+    protected function sendOne(string $domain, string $from, string $code, string $to, array $params, string $role = '', bool $charge = true): array
     {
+        $price = $this->manager->pricePerUnit();
+        if ($charge) {
+            $account = $this->manager->getOrCreateAccount($domain);
+            if ((float) $account->balance < $price) {
+                return [
+                    'phone' => $to,
+                    'ok' => false,
+                    'pattern_code' => $code,
+                    'message' => 'insufficient_balance',
+                    'reason' => 'insufficient_balance',
+                ];
+            }
+        }
         $send = $this->edge->sendPattern($from, $code, [$to], $params);
         $ok = (bool) ($send['ok'] ?? false);
+        if ($ok && $charge) {
+            try {
+                $this->manager->debit($domain, $price, 'send', null, [
+                    'phone' => $to,
+                    'pattern' => $code,
+                    'role' => $role,
+                ]);
+            } catch (\Throwable) {
+                // The provider already accepted the message.
+            }
+        }
+        if ($ok) {
+            $this->manager->recordMessage(
+                $domain,
+                'pattern',
+                (string) ($params['message'] ?? $code),
+                [$to],
+                $from,
+                'sent',
+                $charge ? $price : 0,
+                $code,
+                [
+                    'event_key' => $params['event'] ?? null,
+                    'role' => $role,
+                    'edge' => $send['data'] ?? null,
+                ],
+            );
+        }
 
         return [
             'phone' => $to, 'ok' => $ok, 'pattern_code' => $code,
             'message' => $ok ? null : (string) ($send['message'] ?? 'send_failed'),
+            'reason' => $ok ? null : 'send_failed',
             'edge' => $send['data'] ?? null,
         ];
     }

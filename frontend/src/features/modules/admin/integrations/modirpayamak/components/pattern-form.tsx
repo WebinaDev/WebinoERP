@@ -49,7 +49,7 @@ export function validatePatternForm(form: PatternFormValue, t: (k: string) => st
   if (!form.title.trim()) return t('patternTitleRequired');
   if (!form.description.trim()) return t('patternDescRequired');
   if (!form.message.trim()) return t('patternMessageRequired');
-  if (form.website && !/^https:\/\//i.test(form.website.trim())) {
+  if (!/^https:\/\//i.test(form.website.trim())) {
     return t('patternWebsiteHttps');
   }
   const brand = form.brandName.trim();

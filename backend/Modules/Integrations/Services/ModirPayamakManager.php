@@ -5,6 +5,7 @@ namespace Modules\Integrations\Services;
 use Modules\Integrations\Entities\ModirPayamakAccount;
 use Modules\Integrations\Entities\ModirPayamakBalanceLedger;
 use Modules\Integrations\Entities\ModirPayamakDomainNumber;
+use Modules\Integrations\Entities\ModirPayamakMessage;
 use Illuminate\Support\Facades\Schema;
 use Modules\Integrations\Entities\ModirPayamakPackage;
 use Modules\Integrations\Entities\ModirPayamakPatternRegistry;
@@ -398,5 +399,143 @@ class ModirPayamakManager
                 'created_at' => optional($row->created_at)?->toIso8601String(),
             ])
             ->all();
+    }
+
+    /**
+     * Persist a tenant send so the site dashboard and reports can list it.
+     *
+     * @param  list<string>  $recipients
+     * @param  array<string, mixed>  $edge
+     */
+    public function recordMessage(
+        string $domain,
+        string $sendingType,
+        string $message,
+        array $recipients,
+        string $from,
+        string $status,
+        float $cost,
+        ?string $patternCode = null,
+        array $edge = [],
+    ): void {
+        if (! Schema::hasTable('modirpayamak_messages')) {
+            return;
+        }
+        $domain = $this->normalizeDomain($domain);
+        try {
+            ModirPayamakMessage::query()->create([
+                'domain' => $domain,
+                'sending_type' => $sendingType !== '' ? $sendingType : 'webservice',
+                'message' => $message,
+                'recipients' => array_values($recipients),
+                'from_number' => $from,
+                'status' => $status !== '' ? $status : 'sent',
+                'cost' => $cost,
+                'pattern_code' => $patternCode,
+                'edge_payload' => $edge,
+            ]);
+        } catch (\Throwable) {
+            // History must not fail a send that already left the provider.
+        }
+    }
+
+    /**
+     * @return list<array<string, mixed>>
+     */
+    public function recentMessages(string $domain, int $limit = 20): array
+    {
+        $domain = $this->normalizeDomain($domain);
+        if ($domain === '' || ! Schema::hasTable('modirpayamak_messages')) {
+            return [];
+        }
+        $limit = min(100, max(1, $limit));
+
+        return ModirPayamakMessage::query()
+            ->where('domain', $domain)
+            ->orderByDesc('id')
+            ->limit($limit)
+            ->get()
+            ->map(function (ModirPayamakMessage $m) {
+                $edge = is_array($m->edge_payload) ? $m->edge_payload : [];
+                $recipients = is_array($m->recipients) ? array_values($m->recipients) : [];
+
+                return [
+                    'id' => $m->id,
+                    'messages_outbox_id' => $m->id,
+                    'domain' => $m->domain,
+                    'sending_type' => $m->sending_type ?: 'webservice',
+                    'type' => $m->sending_type ?: 'webservice',
+                    'message' => (string) ($m->message ?? ''),
+                    'recipients' => $recipients,
+                    'recipient' => $recipients[0] ?? '',
+                    'from_number' => (string) ($m->from_number ?? ''),
+                    'number' => (string) ($m->from_number ?? ''),
+                    'status' => (string) ($m->status ?? 'sent'),
+                    'state' => (string) ($m->status ?? 'sent'),
+                    'cost' => (float) $m->cost,
+                    'pattern_code' => $m->pattern_code,
+                    'event_key' => $edge['event_key'] ?? null,
+                    'role' => $edge['role'] ?? null,
+                    'rcpts_count' => (string) count($recipients),
+                    'exit_count' => '',
+                    'created_at' => optional($m->created_at)?->toIso8601String(),
+                    'time' => optional($m->created_at)?->getTimestamp(),
+                    'source' => 'erp',
+                ];
+            })
+            ->all();
+    }
+
+    /**
+     * Local ledger first, then provider outbox rows the ledger does not already cover.
+     *
+     * @return list<array<string, mixed>>
+     */
+    public function sentHistory(string $domain, int $limit = 20): array
+    {
+        $limit = min(100, max(1, $limit));
+        $local = $this->recentMessages($domain, $limit);
+        $remote = [];
+        try {
+            $edge = app(ModirPayamakEdgeClient::class);
+            $res = $edge->reportOutbox(1, max($limit, 20));
+            if (! empty($res['ok'])) {
+                $remote = ModirPayamakReportRows::messages($res['data'] ?? null);
+            }
+        } catch (\Throwable) {
+            $remote = [];
+        }
+
+        return $this->mergeSent($local, $remote, $limit);
+    }
+
+    /**
+     * @param  list<array<string, mixed>>  $local
+     * @param  list<array<string, mixed>>  $remote
+     * @return list<array<string, mixed>>
+     */
+    public function mergeSent(array $local, array $remote, int $limit): array
+    {
+        $seen = [];
+        $out = [];
+        foreach (array_merge($local, $remote) as $row) {
+            if (! is_array($row)) {
+                continue;
+            }
+            $key = (string) ($row['messages_outbox_id'] ?? $row['id'] ?? '')
+                .'|'.(string) ($row['message'] ?? '')
+                .'|'.(string) ($row['created_at'] ?? $row['time'] ?? '')
+                .'|'.(string) ($row['recipient'] ?? '');
+            if (isset($seen[$key])) {
+                continue;
+            }
+            $seen[$key] = true;
+            $out[] = $row;
+            if (count($out) >= $limit) {
+                break;
+            }
+        }
+
+        return $out;
     }
 }

@@ -45,7 +45,7 @@ export function ModirpayamakUsersPage() {
   const { layoutProps, setError, setSuccess } = useCrmFeedback();
   const { configured, loading: configLoading } = useModirPayamakConfigured();
   const loader = useCallback(() => edgeListUsers(), []);
-  const { items, loading, reload } = useModirPayamakEdge(loader);
+  const { items, loading, error, reload } = useModirPayamakEdge(loader);
 
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editId, setEditId] = useState<string | null>(null);
@@ -126,7 +126,11 @@ export function ModirpayamakUsersPage() {
             <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
           </div>
         ) : items.length === 0 ? (
-          <PmEmptyState title={t('empty')} />
+          <div className="space-y-3">
+            <p className="text-sm text-muted-foreground">{t('hint')}</p>
+            {error ? <p className="text-destructive text-sm">{error}</p> : null}
+            <PmEmptyState title={t('empty')} />
+          </div>
         ) : (
           <Card>
             <CardContent className="p-0 pt-6">

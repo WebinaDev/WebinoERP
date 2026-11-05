@@ -230,7 +230,12 @@ export async function edgeUpdateUser(userId: string, body: Record<string, unknow
 }
 
 export async function edgeListTickets(query?: Record<string, unknown>) {
-  return asList(await edgeRequest('GET', 'api/ticket', undefined, withPage(query)));
+  const page = withPage(query);
+  const listed = asList(await edgeRequest('GET', 'api/ticket', undefined, page));
+  if (listed.items.length > 0) return listed;
+  const posted = asList(await edgeRequest('POST', 'api/ticket/list', page));
+  if (posted.items.length > 0) return posted;
+  return listed.error ? listed : posted.error ? posted : listed;
 }
 
 export async function edgeGetTicket(id: number) {
