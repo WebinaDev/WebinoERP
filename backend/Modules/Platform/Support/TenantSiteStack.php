@@ -96,6 +96,7 @@ final class TenantSiteStack
 # proxy must call {$api}. WEBINO_SITE_SLUG={$safeSlug} is the same slug the
 # dashboard image uses if a generic "backend" host is still configured.
 # A private-net alias "backend" remains for health-probe fallback only.
+name: {$project}
 services:
   db:
     image: postgres:15-alpine
