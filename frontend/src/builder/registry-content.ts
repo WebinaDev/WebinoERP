@@ -4,6 +4,7 @@
 import { uid } from "./ids"
 import { sharedContentWidgets, sharedFormWidget, sharedGapWidgets } from "@webina/ui/builder"
 import { ICON_OPTIONS } from "./render/icon-options"
+import { doodleWidgets, withDoodleContentFields } from "./doodle-registry"
 import { DETAIL_ICON_OPTIONS } from "./render/portfolio-detail-icons"
 import { createSection } from "./tree"
 import type { WidgetDef, WidgetNode } from "./types"
@@ -35,7 +36,8 @@ function withIconCardHref(defs: WidgetDef[]): WidgetDef[] {
 }
 
 export const CONTENT_WIDGETS: WidgetDef[] = [
-  ...withIconCardHref(sharedContentWidgets(ICON_OPTIONS) as WidgetDef[]),
+  ...withDoodleContentFields(withIconCardHref(sharedContentWidgets(ICON_OPTIONS) as WidgetDef[])),
+  ...doodleWidgets(ICON_OPTIONS),
   {
     type: "callout",
     label: "باکس توجه",
@@ -414,6 +416,19 @@ const SECTION_PRESETS: Record<string, number[]> = { "12": [12], "6-6": [6, 6], "
 export const GAP_WIDGETS: WidgetDef[] = sharedGapWidgets(ICON_OPTIONS).map((def) => {
   const shared = def as unknown as WidgetDef
   const base = shared
+  if (def.type === "site-header" || def.type === "site-footer") {
+    return {
+      ...base,
+      fields: base.fields.map((field) => {
+        if (field.kind !== "select" || field.key !== "tone") return field
+        if (field.options.some((o) => o.value === "chalk")) return field
+        return {
+          ...field,
+          options: [...field.options, { value: "chalk", label: "دودل / گچی" }],
+        }
+      }),
+    }
+  }
   if (!["section", "columns", "flex-container", "grid-container"].includes(def.type)) return base
   return {
     ...base,
