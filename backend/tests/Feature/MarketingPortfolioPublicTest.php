@@ -28,4 +28,24 @@ class MarketingPortfolioPublicTest extends TestCase
         $this->getJson('/api/v1/public/portfolio/b')->assertOk()->assertJsonPath('data.challenge', 'c')->assertJsonPath('data.technologies.0', 'UI');
         $this->getJson('/api/v1/public/portfolio/hidden')->assertNotFound();
     }
+
+    public function test_portfolio_show_includes_website_and_link_hub_urls(): void
+    {
+        $web = MarketingPortfolioCategory::query()->create(['slug' => 'web', 'name' => 'وب', 'sort_order' => 1]);
+        MarketingPortfolioItem::query()->create([
+            'slug' => 'demo-cafe',
+            'title' => 'دمو کافه',
+            'category_id' => $web->id,
+            'published' => true,
+            'published_at' => now(),
+            'website_url' => 'https://demo.example/',
+            'link_hub_url' => 'https://contact.demo.example/',
+            'seo' => ['live_url' => 'https://legacy.example/', 'tags' => ['cafe']],
+        ]);
+
+        $this->getJson('/api/v1/public/portfolio/demo-cafe')->assertOk()
+            ->assertJsonPath('data.website_url', 'https://demo.example/')
+            ->assertJsonPath('data.link_hub_url', 'https://contact.demo.example/')
+            ->assertJsonPath('data.seo.live_url', 'https://legacy.example/');
+    }
 }

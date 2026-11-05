@@ -163,6 +163,8 @@ export function MarketingPortfolioPage() {
       columns={[
         { key: 'slug', labelKey: 'marketing.slug' },
         { key: 'title', labelKey: 'marketing.title' },
+        { key: 'website_url', labelKey: 'marketing.websiteUrl' },
+        { key: 'link_hub_url', labelKey: 'marketing.linkHubUrl' },
         { key: 'result_metric', labelKey: 'marketing.result' },
         { key: 'featured', labelKey: 'marketing.featured' },
         { key: 'published', labelKey: 'marketing.published' },
@@ -173,6 +175,8 @@ export function MarketingPortfolioPage() {
         { key: 'title', labelKey: 'marketing.title' },
         { key: 'category_id', labelKey: 'marketing.category', kind: 'select', optionsEndpoint: '/v1/marketing/portfolio-categories' },
         { key: 'client', labelKey: 'marketing.client' },
+        { key: 'website_url', labelKey: 'marketing.websiteUrl' },
+        { key: 'link_hub_url', labelKey: 'marketing.linkHubUrl' },
         { key: 'cover_url', labelKey: 'marketing.cover' },
         { key: 'result_metric', labelKey: 'marketing.result' },
         { key: 'description', labelKey: 'marketing.description', kind: 'textarea' },

@@ -55,6 +55,11 @@ trait HandlesMarketingCrud
     {
         $row = $this->modelClass()::query()->findOrFail($id);
         $data = $request->validate($this->validationRules(false));
+        // Merge seo JSON so extra keys (live_url, tags, …) are not wiped when only form fields are sent.
+        if (array_key_exists('seo', $data) && is_array($data['seo'])) {
+            $existing = is_array($row->seo ?? null) ? $row->seo : [];
+            $data['seo'] = array_merge($existing, $data['seo']);
+        }
         $row->update($data);
 
         return response()->json(['data' => $row->fresh()]);

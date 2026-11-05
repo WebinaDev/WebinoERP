@@ -2392,6 +2392,8 @@
     "challenge": "چالش",
     "solution": "راه‌حل",
     "results": "نتایج",
+    "websiteUrl": "لینک سایت",
+    "linkHubUrl": "لینک‌هاب",
     "serviceTags": "خدمات انجام‌شده (هر خط یک برچسب)",
     "gallery": "گالری (هر خط یک نشانی تصویر)",
     "sortOrder": "ترتیب",

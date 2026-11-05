@@ -2392,6 +2392,8 @@
     "challenge": "Challenge",
     "solution": "Solution",
     "results": "Results",
+    "websiteUrl": "Website URL",
+    "linkHubUrl": "LinkHub URL",
     "serviceTags": "Services (one tag per line)",
     "gallery": "Gallery (one image URL per line)",
     "sortOrder": "Order",

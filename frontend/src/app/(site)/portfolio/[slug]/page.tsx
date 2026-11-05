@@ -25,10 +25,12 @@ type PortfolioItem = {
   solution?: string | null;
   results?: string | null;
   case_study?: string | null;
+  website_url?: string | null;
+  link_hub_url?: string | null;
   category?: { name: string } | null;
   industry?: { name?: string; title?: string } | null;
   service?: { name?: string; title?: string } | null;
-  seo?: { live_url?: string; tags?: string[] } | null;
+  seo?: { live_url?: string; link_hub_url?: string; tags?: string[] } | null;
 };
 
 const paras = (t?: string | null) => (t ?? '').split('\n').map((s) => s.trim()).filter(Boolean);
@@ -87,8 +89,9 @@ export default async function PortfolioDetailPage({ params }: { params: Promise<
   const gallery = Array.from(new Set([item.cover_url, ...(item.images ?? [])].filter((s): s is string => !!s)));
   const services = item.technologies ?? [];
   const tags = item.seo?.tags ?? [];
-  const liveUrl = item.seo?.live_url || null;
-  const host = liveUrl ? liveUrl.replace(/^https?:\/\//, '').replace(/\/$/, '') : null;
+  const liveUrl = item.website_url || item.seo?.live_url || null;
+  const linkHubUrl = item.link_hub_url || item.seo?.link_hub_url || null;
+  const hostOf = (url: string) => url.replace(/^https?:\/\//, '').replace(/\/$/, '');
   const clientName = item.client ? item.client.replace(/\s*\([^)]*\)\s*$/, '') : null;
   const industry = item.industry?.name || item.industry?.title || null;
   const service = item.service?.name || item.service?.title || null;
@@ -141,7 +144,12 @@ export default async function PortfolioDetailPage({ params }: { params: Promise<
                 {service ? <Row icon={<Layers className={ic} />} label="خدمت">{service}</Row> : null}
                 {liveUrl ? (
                   <Row icon={<Globe className={ic} />} label="وب‌سایت">
-                    <a href={liveUrl} target="_blank" rel="noopener" dir="ltr" className="inline-flex items-center gap-1 text-[#0054ff] hover:underline">{host}<ExternalLink className="h-3.5 w-3.5" /></a>
+                    <a href={liveUrl} target="_blank" rel="noopener" dir="ltr" className="inline-flex items-center gap-1 text-[#0054ff] hover:underline">{hostOf(liveUrl)}<ExternalLink className="h-3.5 w-3.5" /></a>
+                  </Row>
+                ) : null}
+                {linkHubUrl ? (
+                  <Row icon={<ExternalLink className={ic} />} label="لینک‌هاب">
+                    <a href={linkHubUrl} target="_blank" rel="noopener" dir="ltr" className="inline-flex items-center gap-1 text-[#0054ff] hover:underline">{hostOf(linkHubUrl)}<ExternalLink className="h-3.5 w-3.5" /></a>
                   </Row>
                 ) : null}
                 {item.result_metric ? <Row icon={<TrendingUp className={ic} />} label="نتیجه">{item.result_metric}</Row> : null}
@@ -149,10 +157,19 @@ export default async function PortfolioDetailPage({ params }: { params: Promise<
                 {tags.length ? <Row icon={<Tag className={ic} />} label="برچسب‌ها"><Chips items={tags} /></Row> : null}
               </tbody>
             </table>
-            {liveUrl ? (
-              <a href={liveUrl} target="_blank" rel="noopener" className="btn-saffron mt-5 flex w-full items-center justify-center gap-2">
-                مشاهده سایت زنده<ExternalLink className="h-4 w-4" />
-              </a>
+            {liveUrl || linkHubUrl ? (
+              <div className="mt-5 grid gap-2">
+                {liveUrl ? (
+                  <a href={liveUrl} target="_blank" rel="noopener" className="btn-saffron flex w-full items-center justify-center gap-2">
+                    مشاهده سایت زنده<ExternalLink className="h-4 w-4" />
+                  </a>
+                ) : null}
+                {linkHubUrl ? (
+                  <a href={linkHubUrl} target="_blank" rel="noopener" className="flex w-full items-center justify-center gap-2 rounded-full border border-[#0054ff]/30 px-4 py-2 text-sm font-bold text-[#0054ff] hover:bg-[#f0f4ff]">
+                    لینک‌هاب<ExternalLink className="h-4 w-4" />
+                  </a>
+                ) : null}
+              </div>
             ) : null}
           </div>
           <div className="rounded-3xl bg-[#22242a] p-6 text-white">

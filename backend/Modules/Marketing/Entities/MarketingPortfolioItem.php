@@ -10,11 +10,12 @@ class MarketingPortfolioItem extends Model
 {
     protected $table = 'marketing_portfolio_items';
 
-    protected $fillable = ['seo', 
+    protected $fillable = ['seo',
         'slug', 'title', 'description', 'images', 'service_id',
         'industry_id', 'client', 'published', 'published_at',
         'category_id', 'cover_url', 'result_metric', 'technologies', 'case_study', 'featured',
         'challenge', 'solution', 'results', 'sort_order',
+        'website_url', 'link_hub_url',
     ];
 
     protected $casts = ['seo' => 'array', 

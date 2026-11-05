@@ -44,6 +44,8 @@ class MarketingPortfolioController extends Controller
             'solution' => 'nullable|string',
             'results' => 'nullable|string',
             'sort_order' => 'nullable|integer',
+            'website_url' => 'nullable|string|max:500',
+            'link_hub_url' => 'nullable|string|max:500',
         ];
     }
 }
