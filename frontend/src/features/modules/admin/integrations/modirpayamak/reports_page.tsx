@@ -54,6 +54,7 @@ export function ModirpayamakReportsPage() {
   const [dateFrom, setDateFrom] = useState('');
   const [dateTo, setDateTo] = useState('');
   const [domainInput, setDomainInput] = useState(domainFilter);
+  const [query, setQuery] = useState('');
   const [items, setItems] = useState<EdgeRow[]>([]);
   const [localMessages, setLocalMessages] = useState<Array<Record<string, unknown>>>([]);
   const [loading, setLoading] = useState(true);
@@ -90,7 +91,6 @@ export function ModirpayamakReportsPage() {
         const filters: Record<string, unknown> = {};
         if (recipient.trim()) filters.number = recipient.trim();
         if (statusFilter.trim()) filters.state_id = statusFilter.trim();
-        if (domainFilter.trim()) filters.username = domainFilter.trim();
         if (dateFrom.trim()) {
           const ts = Math.floor(new Date(`${dateFrom.trim()}T00:00:00`).getTime() / 1000);
           if (Number.isFinite(ts)) filters.create_from_date = String(ts);
@@ -138,14 +138,30 @@ export function ModirpayamakReportsPage() {
   };
 
   const formatDate = (raw: unknown) => {
-    if (!raw) return '—';
-    const s = String(raw);
-    try {
-      const iso = s.includes('T') ? s : s.replace(/-/g, '/').slice(0, 16);
-      return formatDateTime(new Date(iso).toISOString()) || s.slice(0, 16);
-    } catch {
-      return s.slice(0, 16);
+    if (raw == null || raw === '') return '—';
+    const asDate = (ms: number) => {
+      const d = new Date(ms);
+      return Number.isNaN(d.getTime()) ? '—' : formatDateTime(d.toISOString()) || '—';
+    };
+    if (typeof raw === 'number' && Number.isFinite(raw)) {
+      return asDate(raw > 1e12 ? raw : raw * 1000);
     }
+    const s = String(raw).trim();
+    if (/^\d{10}$/.test(s)) return asDate(Number(s) * 1000);
+    if (/^\d{13}$/.test(s)) return asDate(Number(s));
+    const naive = s.match(/^(\d{4})-(\d{2})-(\d{2})[ T](\d{2}):(\d{2})(?::(\d{2}))?$/);
+    if (naive && Number(naive[1]) < 1700) {
+      return asDate(Date.parse(`${naive[1]}-${naive[2]}-${naive[3]}T${naive[4]}:${naive[5]}:${naive[6] ?? '00'}+03:30`));
+    }
+    const parsed = Date.parse(s.includes('T') ? s : s.replace(' ', 'T'));
+    if (!Number.isNaN(parsed)) return asDate(parsed);
+    return s.slice(0, 16);
+  };
+
+  const matchesQuery = (row: Record<string, unknown>) => {
+    const q = query.trim().toLowerCase();
+    if (!q) return true;
+    return JSON.stringify(row).toLowerCase().includes(q);
   };
 
   const tabTitle =
@@ -178,6 +194,14 @@ export function ModirpayamakReportsPage() {
                 void load();
               }}
             >
+              <div className="space-y-1">
+                <Label>{tCommon('search')}</Label>
+                <Input
+                  value={query}
+                  onChange={(e) => setQuery(e.target.value)}
+                  className="w-[180px]"
+                />
+              </div>
               <div className="space-y-1">
                 <Label>{t('domain')}</Label>
                 <Input
@@ -276,7 +300,7 @@ export function ModirpayamakReportsPage() {
                         </TableRow>
                       </TableHeader>
                       <TableBody>
-                        {localMessages.map((m, i) => (
+                        {localMessages.filter(matchesQuery).map((m, i) => (
                           <TableRow key={String(m.id ?? i)}>
                             <TableCell className="font-mono text-xs" dir="ltr">
                               {String(m.domain ?? '—')}
@@ -298,7 +322,10 @@ export function ModirpayamakReportsPage() {
                     <PmEmptyState title={t('reportsEmpty')} />
                   </div>
                 ) : (
-                  <ModirPayamakOutboxTable items={items} onRowClick={(row) => void openDetail(row)} />
+                  <ModirPayamakOutboxTable
+                    items={items.filter(matchesQuery)}
+                    onRowClick={(row) => void openDetail(row)}
+                  />
                 )}
               </CardContent>
             </Card>
