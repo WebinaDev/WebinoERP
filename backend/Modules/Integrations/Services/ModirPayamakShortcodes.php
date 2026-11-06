@@ -55,9 +55,106 @@ class ModirPayamakShortcodes
             ['key' => 'site_url', 'label' => 'آدرس سایت', 'scope' => 'all'],
             ['key' => 'code', 'label' => 'کد یکبار مصرف', 'scope' => 'otp'],
             ['key' => 'product_name', 'label' => 'نام محصول', 'scope' => 'stock'],
+            ['key' => 'product_title', 'label' => 'نام محصول', 'scope' => 'stock'],
+            ['key' => 'product_code', 'label' => 'کد محصول', 'scope' => 'stock'],
             ['key' => 'product_url', 'label' => 'لینک محصول', 'scope' => 'stock'],
             ['key' => 'qty', 'label' => 'موجودی', 'scope' => 'stock'],
             ['key' => 'stock_quantity', 'label' => 'موجودی انبار', 'scope' => 'stock'],
+            ['key' => 'cancel_reason', 'label' => 'دلیل لغو', 'scope' => 'order'],
         ];
+    }
+
+    /**
+     * IPPanel variable name → site shortcode expression.
+     *
+     * @return array<string, string>
+     */
+    public static function expressions(): array
+    {
+        return [
+            'otp' => '{code}',
+            'code' => '{code}',
+            'name' => '{customer_name}',
+            'orderid' => '{order_number}',
+            'order_id' => '{order_number}',
+            'total' => '{total}',
+            'amount' => '{total_amount}',
+            'status' => '{status_label}',
+            'post_tracking_code' => '{tracking_code}',
+            'tracking_code' => '{tracking_code}',
+            'post_tracking_url' => '{tracking_url}',
+            'tracking_url' => '{tracking_url}',
+            'product_name' => '{product_name}',
+            'product_title' => '{product_name}',
+            'product_code' => '{product_code}',
+            'stock' => '{stock_quantity}',
+            'qty' => '{stock_quantity}',
+            'discount_code' => '{coupon_code}',
+            'discount_amount' => '{coupon_discount_text}',
+            'discount_percent' => '{coupon_discount_text}',
+            'expire_date' => '{coupon_expires}',
+            'expire_time' => '{coupon_expires}',
+            'cancel_reason' => '{cancel_reason}',
+            'mobile' => '{customer_phone}',
+            'phone' => '{customer_phone}',
+            'shipment' => '{shipping_method}',
+        ];
+    }
+
+    public static function expression(string $varName): string
+    {
+        return self::expressions()[$varName] ?? '{'.$varName.'}';
+    }
+
+    /**
+     * Fill pattern variable names from the canonical snapshot fields.
+     *
+     * @param  array<string, mixed>  $vars
+     * @return array<string, string>
+     */
+    public static function expand(array $vars): array
+    {
+        $flat = [];
+        foreach ($vars as $key => $value) {
+            if (is_scalar($value)) {
+                $flat[(string) $key] = (string) $value;
+            }
+        }
+        $sources = [
+            'otp' => ['code'],
+            'name' => ['customer_name', 'b_first_name'],
+            'orderid' => ['order_number', 'number', 'order_id'],
+            'order_id' => ['order_number', 'number'],
+            'amount' => ['total_amount', 'price_amount', 'total'],
+            'status' => ['status_label', 'status'],
+            'post_tracking_code' => ['tracking_code', 'tracking', 'barcode'],
+            'post_tracking_url' => ['tracking_url'],
+            'tracking_code' => ['tracking', 'barcode', 'post_tracking_code'],
+            'product_title' => ['product_name'],
+            'product_code' => ['sku', 'product_sku'],
+            'stock' => ['stock_quantity', 'qty'],
+            'discount_code' => ['coupon_code', 'coupon'],
+            'discount_amount' => ['coupon_discount_text', 'coupon_amount'],
+            'discount_percent' => ['coupon_discount_text', 'coupon_amount'],
+            'expire_date' => ['coupon_expires'],
+            'expire_time' => ['coupon_expires'],
+            'shipment' => ['shipping_method'],
+            'mobile' => ['customer_phone', 'phone'],
+        ];
+        foreach ($sources as $alias => $keys) {
+            $force = $alias === 'order_id';
+            if (! $force && trim($flat[$alias] ?? '') !== '') {
+                continue;
+            }
+            foreach ($keys as $key) {
+                if (trim($flat[$key] ?? '') === '') {
+                    continue;
+                }
+                $flat[$alias] = $flat[$key];
+                break;
+            }
+        }
+
+        return $flat;
     }
 }

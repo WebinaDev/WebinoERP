@@ -1214,12 +1214,7 @@ class ModirPayamakAdminController extends Controller
     protected function mappedPatternParams(string $domain, string $scope, string $eventKey, string $code, array $context, bool $test): array
     {
         $map = $this->paramMapFor($domain, $scope, $eventKey);
-        $vars = [];
-        foreach ($context as $key => $value) {
-            if (is_scalar($value)) {
-                $vars[(string) $key] = (string) $value;
-            }
-        }
+        $vars = \Modules\Integrations\Services\ModirPayamakShortcodes::expand($context);
         $names = array_keys($map);
         if ($names === [] && $code !== '') {
             $detail = $this->edge->getPattern($code);
@@ -1235,7 +1230,12 @@ class ModirPayamakAdminController extends Controller
         }
         $out = [];
         foreach ($names as $name) {
-            $rendered = isset($map[$name]) ? (string) $map[$name] : '{'.$name.'}';
+            $naive = '{'.$name.'}';
+            $preferred = \Modules\Integrations\Services\ModirPayamakShortcodes::expression($name);
+            $rendered = isset($map[$name]) ? (string) $map[$name] : $preferred;
+            if ($rendered === $naive) {
+                $rendered = $preferred;
+            }
             foreach ($vars as $key => $value) {
                 $rendered = str_replace('{'.$key.'}', $value, $rendered);
             }

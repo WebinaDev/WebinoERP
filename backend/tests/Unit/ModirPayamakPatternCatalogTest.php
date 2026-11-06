@@ -5,6 +5,7 @@ namespace Tests\Unit;
 use Modules\Integrations\Services\ModirPayamakEdgeClient;
 use Modules\Integrations\Services\ModirPayamakPatternCatalog;
 use Modules\Integrations\Services\ModirPayamakReportRows;
+use Modules\Integrations\Services\ModirPayamakShortcodes;
 use PHPUnit\Framework\TestCase;
 
 class ModirPayamakPatternCatalogTest extends TestCase
@@ -114,5 +115,32 @@ class ModirPayamakPatternCatalogTest extends TestCase
         ], $row['variable']);
         $this->assertSame('+989121234567', ModirPayamakEdgeClient::toE164('09121234567'));
         $this->assertSame('+989121234567', ModirPayamakEdgeClient::toE164('+989121234567'));
+    }
+
+    public function test_pattern_variables_expand_to_site_fields(): void
+    {
+        $this->assertSame('{customer_name}', ModirPayamakShortcodes::expression('name'));
+        $this->assertSame('{order_number}', ModirPayamakShortcodes::expression('orderid'));
+        $this->assertSame('{order_number}', ModirPayamakShortcodes::expression('order_id'));
+        $this->assertSame('{tracking_code}', ModirPayamakShortcodes::expression('post_tracking_code'));
+        $this->assertSame('{code}', ModirPayamakShortcodes::expression('otp'));
+
+        $expanded = ModirPayamakShortcodes::expand([
+            'customer_name' => 'نگار',
+            'order_number' => '1405',
+            'order_id' => '99',
+            'tracking_code' => 'TRK',
+            'total_amount' => '250000',
+            'coupon_code' => 'WELCOME',
+            'coupon_expires' => '1405/9/1',
+        ]);
+
+        $this->assertSame('نگار', $expanded['name']);
+        $this->assertSame('1405', $expanded['orderid']);
+        $this->assertSame('1405', $expanded['order_id']);
+        $this->assertSame('TRK', $expanded['post_tracking_code']);
+        $this->assertSame('250000', $expanded['amount']);
+        $this->assertSame('WELCOME', $expanded['discount_code']);
+        $this->assertSame('1405/9/1', $expanded['expire_date']);
     }
 }
