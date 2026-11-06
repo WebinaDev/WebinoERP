@@ -2,7 +2,7 @@
 
 import { useTranslations } from 'next-intl';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { edgeField, type EdgeRow } from '@/lib/api/modirpayamak-edge';
+import { edgeField, edgeText, type EdgeRow } from '@/lib/api/modirpayamak-edge';
 import { ModirPayamakStatusBadge } from './status-badge';
 import { useLocale } from '@/hooks/use-locale-next';
 
@@ -39,7 +39,7 @@ export function ModirPayamakOutboxTable({ items, onRowClick }: Props) {
         {items.map((row, i) => {
           const id = edgeField(row, 'id', 'messages_outbox_id', 'outbox_id');
           const recipient = edgeField(row, 'recipient', 'to', 'mobile', 'phone', 'number');
-          const message = edgeField(row, 'message', 'text', 'body', 'content');
+          const message = edgeText(row, 'pattern_message', 'message', 'text', 'body', 'content');
           const status = edgeField(row, 'status', 'state', 'delivery_status');
           return (
             <TableRow

@@ -147,6 +147,151 @@ class ModirPayamakPatternCatalog
         ];
     }
 
+    /**
+     * Match a provider pattern to a licensed site even when the title is not canonical yet.
+     *
+     * @param  list<array{domain: string, name: string}>  $sites
+     * @return array{site: string, domain: string, role: string, action: string, event_key: string}|null
+     */
+    public static function identify(string $title, string $message, string $website, array $sites): ?array
+    {
+        $parsed = self::parseTitle($title);
+        $site = null;
+        if ($parsed !== null && $parsed['site'] !== '') {
+            $site = self::matchSiteName($parsed['site'], $sites);
+        }
+        if ($site === null) {
+            $host = self::websiteHost($website);
+            if ($host !== '') {
+                $site = self::matchSiteName($host, $sites);
+            }
+        }
+        $eventKey = $parsed['event_key'] ?? '';
+        $role = $parsed['role'] ?? '';
+        if ($eventKey === '') {
+            $eventKey = self::eventInText(trim($title.' '.$message)) ?? '';
+        }
+        if ($role === '') {
+            $role = self::roleInText($title.' '.$message) ?? '';
+        }
+        if ($role === '' && in_array($eventKey, ['otp_login', 'otp_register'], true)) {
+            $role = 'مشتری';
+        }
+        if ($site === null || $eventKey === '' || $role === '') {
+            return null;
+        }
+
+        return [
+            'site' => $site['name'] !== '' ? $site['name'] : $site['domain'],
+            'domain' => $site['domain'],
+            'role' => $role,
+            'action' => self::actionLabel($eventKey),
+            'event_key' => $eventKey,
+        ];
+    }
+
+    /**
+     * @param  list<array{domain: string, name: string}>  $sites
+     * @return array{domain: string, name: string}|null
+     */
+    public static function matchSiteName(string $siteName, array $sites): ?array
+    {
+        if (trim($siteName) === '') {
+            return null;
+        }
+        $exact = null;
+        $fuzzy = null;
+        foreach ($sites as $site) {
+            if (self::fold($siteName) === self::fold($site['name'])
+                || self::fold($siteName) === self::fold($site['domain'])) {
+                $exact = $site;
+                break;
+            }
+            if ($fuzzy === null && (
+                self::namesMatch($siteName, $site['name'])
+                || self::namesMatch($siteName, $site['domain'])
+            )) {
+                $fuzzy = $site;
+            }
+        }
+
+        return $exact ?? $fuzzy;
+    }
+
+    public static function websiteHost(string $website): string
+    {
+        $website = trim($website);
+        if ($website === '') {
+            return '';
+        }
+        if (! str_contains($website, '://')) {
+            $website = 'https://'.$website;
+        }
+        $host = parse_url($website, PHP_URL_HOST);
+        if (! is_string($host) || $host === '') {
+            return '';
+        }
+        $host = strtolower($host);
+
+        return str_starts_with($host, 'www.') ? substr($host, 4) : $host;
+    }
+
+    public static function eventInText(string $text): ?string
+    {
+        $folded = self::fold($text);
+        if ($folded === '') {
+            return null;
+        }
+        $best = null;
+        $bestLen = 0;
+        $candidates = self::ALIASES;
+        foreach (self::ACTIONS as $key => $label) {
+            $candidates[$label] = $key;
+            $candidates[$key] = $key;
+        }
+        foreach ($candidates as $label => $key) {
+            $needle = self::fold((string) $label);
+            if (mb_strlen($needle) < 3 || ! str_contains($folded, $needle)) {
+                continue;
+            }
+            if (mb_strlen($needle) > $bestLen) {
+                $best = $key;
+                $bestLen = mb_strlen($needle);
+            }
+        }
+
+        return $best;
+    }
+
+    public static function roleInText(string $text): ?string
+    {
+        $folded = self::fold($text);
+        if (str_contains($folded, self::fold('مدیر')) || str_contains($folded, 'admin')) {
+            return 'مدیر';
+        }
+        if (str_contains($folded, self::fold('مشتری')) || str_contains($folded, 'customer')) {
+            return 'مشتری';
+        }
+
+        return null;
+    }
+
+    /**
+     * @param  array<string, mixed>  $params
+     */
+    public static function fillTemplate(string $template, array $params): string
+    {
+        $text = $template;
+        foreach ($params as $key => $value) {
+            if (! is_string($key) || ! is_scalar($value)) {
+                continue;
+            }
+            $text = str_replace(['%'.$key.'%', '{'.$key.'}'], (string) $value, $text);
+        }
+
+        return $text;
+    }
+
     public static function namesMatch(string $left, string $right): bool
     {
         $a = self::fold($left);

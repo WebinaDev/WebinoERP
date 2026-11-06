@@ -48,6 +48,7 @@ import {
 import {
   edgeDeletePattern,
   edgeField,
+  edgeText,
   edgeGetPattern,
   edgeListPatterns,
   edgeSavePattern,
@@ -204,7 +205,7 @@ export function ModirpayamakPatternsPage() {
 
   const openEdit = (row: EdgeRow) => {
     setEditCode(edgeField(row, 'code', 'pattern_code', 'id'));
-    const message = edgeField(row, 'message', 'text', 'body', 'pattern');
+    const message = edgeText(row, 'pattern_message', 'message', 'text', 'body');
     const vars: PatternFormValue['variable'] = [];
     const rawVars = row.variable ?? row.vars;
     if (Array.isArray(rawVars)) {
@@ -478,6 +479,7 @@ export function ModirpayamakPatternsPage() {
                     <TableRow>
                       <TableHead>{t('patternCode')}</TableHead>
                       <TableHead>{t('name')}</TableHead>
+                      <TableHead>{t('message')}</TableHead>
                       <TableHead>{t('patternStatus')}</TableHead>
                       <TableHead>{t('colDate')}</TableHead>
                       <TableHead className="w-[180px]">{tCommon('actions')}</TableHead>
@@ -491,6 +493,9 @@ export function ModirpayamakPatternsPage() {
                           <TableCell className="font-mono">{code}</TableCell>
                           <TableCell className="max-w-xs truncate">
                             {edgeField(row, 'title', 'name', 'description')}
+                          </TableCell>
+                          <TableCell className="max-w-xs truncate" title={edgeText(row)}>
+                            {edgeText(row)}
                           </TableCell>
                           <TableCell>
                             <ModirPayamakStatusBadge
@@ -573,7 +578,7 @@ export function ModirpayamakPatternsPage() {
               <div>
                 <Label>{t('message')}</Label>
                 <pre className="mt-1 whitespace-pre-wrap rounded bg-muted p-3 text-xs">
-                  {edgeField(detailRow, 'message', 'text', 'body', 'pattern')}
+                  {edgeText(detailRow)}
                 </pre>
               </div>
               <Button size="sm" asChild>

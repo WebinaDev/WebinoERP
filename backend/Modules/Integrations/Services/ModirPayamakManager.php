@@ -6,6 +6,7 @@ use Modules\Integrations\Entities\ModirPayamakAccount;
 use Modules\Integrations\Entities\ModirPayamakBalanceLedger;
 use Modules\Integrations\Entities\ModirPayamakDomainNumber;
 use Modules\Integrations\Entities\ModirPayamakMessage;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Schema;
 use Modules\Integrations\Entities\ModirPayamakPackage;
 use Modules\Integrations\Entities\ModirPayamakPatternRegistry;
@@ -422,6 +423,13 @@ class ModirPayamakManager
             return;
         }
         $domain = $this->normalizeDomain($domain);
+        $patternCode = $patternCode !== null ? trim($patternCode) : '';
+        if ($patternCode !== '' && ($message === '' || trim($message) === $patternCode)) {
+            $template = $this->patternBodies()[$patternCode] ?? '';
+            if ($template !== '') {
+                $message = ModirPayamakPatternCatalog::fillTemplate($template, $this->scalarParams($edge));
+            }
+        }
         try {
             ModirPayamakMessage::query()->create([
                 'domain' => $domain,
@@ -431,7 +439,7 @@ class ModirPayamakManager
                 'from_number' => $from,
                 'status' => $status !== '' ? $status : 'sent',
                 'cost' => $cost,
-                'pattern_code' => $patternCode,
+                'pattern_code' => $patternCode !== '' ? $patternCode : null,
                 'edge_payload' => $edge,
             ]);
         } catch (\Throwable) {
@@ -458,6 +466,8 @@ class ModirPayamakManager
             ->map(function (ModirPayamakMessage $m) {
                 $edge = is_array($m->edge_payload) ? $m->edge_payload : [];
                 $recipients = is_array($m->recipients) ? array_values($m->recipients) : [];
+                $code = (string) ($m->pattern_code ?? '');
+                $text = $this->displayMessage((string) ($m->message ?? ''), $code, $edge);
 
                 return [
                     'id' => $m->id,
@@ -465,7 +475,8 @@ class ModirPayamakManager
                     'domain' => $m->domain,
                     'sending_type' => $m->sending_type ?: 'webservice',
                     'type' => $m->sending_type ?: 'webservice',
-                    'message' => (string) ($m->message ?? ''),
+                    'message' => $text,
+                    'pattern_message' => $text,
                     'recipients' => $recipients,
                     'recipient' => $recipients[0] ?? '',
                     'from_number' => (string) ($m->from_number ?? ''),
@@ -506,7 +517,101 @@ class ModirPayamakManager
             $remote = [];
         }
 
-        return $this->mergeSent($local, $remote, $limit);
+        return $this->withPatternText($this->mergeSent($local, $remote, $limit));
+    }
+
+    /**
+     * @param  list<array<string, mixed>>  $rows
+     * @return list<array<string, mixed>>
+     */
+    public function withPatternText(array $rows): array
+    {
+        foreach ($rows as $index => $row) {
+            $edge = is_array($row['edge_payload'] ?? null) ? $row['edge_payload'] : [];
+            $text = $this->displayMessage(
+                (string) ($row['message'] ?? ''),
+                (string) ($row['pattern_code'] ?? ''),
+                $edge
+            );
+            $rows[$index]['message'] = $text;
+            if (trim((string) ($row['pattern_message'] ?? '')) === '' || (string) ($row['pattern_message'] ?? '') === (string) ($row['pattern_code'] ?? '')) {
+                $rows[$index]['pattern_message'] = $text;
+            }
+        }
+
+        return $rows;
+    }
+
+    /**
+     * @return array<string, string>
+     */
+    public function patternBodies(): array
+    {
+        $cached = Cache::get('modirpayamak:pattern-bodies');
+        if (is_array($cached)) {
+            return $cached;
+        }
+        $map = [];
+        try {
+            $edge = app(ModirPayamakEdgeClient::class);
+            if (! config('integrations.modirpayamak.mock', false) && ! $edge->isConfigured()) {
+                return [];
+            }
+            $listed = $edge->listPatterns(['per_page' => 200, 'page' => 1]);
+            if (empty($listed['ok'])) {
+                return [];
+            }
+            foreach (ModirPayamakReportRows::patterns($listed['data'] ?? null) as $row) {
+                $code = trim((string) ($row['pattern_code'] ?? ''));
+                $body = trim((string) ($row['pattern_message'] ?? ''));
+                if ($code !== '' && $body !== '' && $body !== $code) {
+                    $map[$code] = $body;
+                }
+            }
+        } catch (\Throwable) {
+            return [];
+        }
+        Cache::put('modirpayamak:pattern-bodies', $map, now()->addMinutes(10));
+
+        return $map;
+    }
+
+    public function displayMessage(string $message, string $code, array $edge = []): string
+    {
+        $message = trim($message);
+        $code = trim($code);
+        if ($code === '' || ($message !== '' && $message !== $code)) {
+            return $message;
+        }
+        $template = $this->patternBodies()[$code] ?? '';
+        if ($template === '') {
+            return $message;
+        }
+
+        return ModirPayamakPatternCatalog::fillTemplate($template, $this->scalarParams($edge));
+    }
+
+    /**
+     * @param  array<string, mixed>  $edge
+     * @return array<string, scalar>
+     */
+    private function scalarParams(array $edge): array
+    {
+        $params = $edge['params'] ?? null;
+        if (! is_array($params) && isset($edge['edge']) && is_array($edge['edge'])) {
+            $params = $edge['edge']['params'] ?? null;
+        }
+        if (! is_array($params)) {
+            return [];
+        }
+        $out = [];
+        foreach ($params as $key => $value) {
+            if (is_string($key) && is_scalar($value)) {
+                $out[$key] = $value;
+            }
+        }
+
+        return $out;
     }
 
     /**

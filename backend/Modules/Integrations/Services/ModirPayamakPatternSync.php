@@ -46,40 +46,46 @@ class ModirPayamakPatternSync
         if (empty($listed['ok'])) {
             return $stats;
         }
-        $patterns = ModirPayamakReportRows::extract($listed['data'] ?? null);
+        $patterns = ModirPayamakReportRows::patterns($listed['data'] ?? null);
+        usort($patterns, function (array $left, array $right): int {
+            $leftTitle = $this->text($left, ['title', 'pattern_title', 'name']);
+            $rightTitle = $this->text($right, ['title', 'pattern_title', 'name']);
+
+            return (ModirPayamakPatternCatalog::parseTitle($rightTitle) !== null ? 1 : 0)
+                <=> (ModirPayamakPatternCatalog::parseTitle($leftTitle) !== null ? 1 : 0);
+        });
         $sites = $this->sites();
+        $taken = [];
 
         foreach ($patterns as $pattern) {
-            if (! is_array($pattern)) {
-                $stats['skipped']++;
-                continue;
-            }
             $code = $this->code($pattern);
             $title = $this->text($pattern, ['title', 'pattern_title', 'name']);
-            $message = $this->text($pattern, ['message', 'pattern_message', 'text', 'body']);
-            $parsed = ModirPayamakPatternCatalog::parseTitle($title);
-            if ($code === '' || $parsed === null) {
+            $message = $this->text($pattern, ['pattern_message', 'message', 'text', 'body']);
+            $website = $this->text($pattern, ['website', 'url', 'site']);
+            $found = ModirPayamakPatternCatalog::identify($title, $message, $website, $sites);
+            if ($code === '' || $found === null) {
                 $stats['skipped']++;
                 continue;
             }
-            $site = $this->matchSite($parsed['site'], $sites);
-            if ($site === null) {
-                $stats['skipped']++;
-                continue;
-            }
-            $eventKey = $parsed['event_key'];
+            $eventKey = $found['event_key'];
             $scope = in_array($eventKey, ModirPayamakManager::SITE_EVENTS, true)
                 ? 'site'
-                : ModirPayamakPatternCatalog::scopeForRole($parsed['role']);
-            $canonical = ModirPayamakPatternCatalog::title($site['name'] !== '' ? $site['name'] : $site['domain'], $parsed['role'], $parsed['action']);
+                : ModirPayamakPatternCatalog::scopeForRole($found['role']);
+            $slot = $found['domain'].'|'.$scope.'|'.$eventKey;
+            if (isset($taken[$slot])) {
+                $stats['skipped']++;
+                continue;
+            }
+            $canonical = ModirPayamakPatternCatalog::title($found['site'], $found['role'], $found['action']);
             $variables = ModirPayamakPatternCatalog::variablesFromMessage($message);
-            $website = 'https://'.$site['domain'];
+            $siteUrl = 'https://'.$found['domain'];
             if ($title !== $canonical && $message !== '') {
                 $updated = $this->edge->updatePattern($code, [
                     'title' => $canonical,
                     'description' => $canonical,
                     'message' => $message,
-                    'website' => $website,
+                    'pattern_message' => $message,
+                    'website' => $siteUrl,
                     'is_share' => false,
                     'variable' => $variables,
                 ]);
@@ -91,8 +97,13 @@ class ModirPayamakPatternSync
             foreach ($variables as $variable) {
                 $map[$variable['name']] = $variable['name'];
             }
-            $this->manager->attachPattern($site['domain'], $scope, $eventKey, $code, $map !== [] ? $map : null);
+            $this->manager->attachPattern($found['domain'], $scope, $eventKey, $code, $map !== [] ? $map : null);
+            $taken[$slot] = $code;
             $stats['bound']++;
+        }
+
+        if ($stats['updated'] > 0) {
+            Cache::forget('modirpayamak:pattern-bodies');
         }
 
         return $stats;
@@ -117,34 +128,6 @@ class ModirPayamakPatternSync
         }
 
         return $out;
-    }
-
-    /**
-     * @param  list<array{domain: string, name: string}>  $sites
-     * @return array{domain: string, name: string}|null
-     */
-    private function matchSite(string $siteName, array $sites): ?array
-    {
-        if (trim($siteName) === '') {
-            return null;
-        }
-        $exact = null;
-        $fuzzy = null;
-        foreach ($sites as $site) {
-            if (ModirPayamakPatternCatalog::fold($siteName) === ModirPayamakPatternCatalog::fold($site['name'])
-                || ModirPayamakPatternCatalog::fold($siteName) === ModirPayamakPatternCatalog::fold($site['domain'])) {
-                $exact = $site;
-                break;
-            }
-            if ($fuzzy === null && (
-                ModirPayamakPatternCatalog::namesMatch($siteName, $site['name'])
-                || ModirPayamakPatternCatalog::namesMatch($siteName, $site['domain'])
-            )) {
-                $fuzzy = $site;
-            }
-        }
-
-        return $exact ?? $fuzzy;
     }
 
     /**

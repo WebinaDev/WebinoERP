@@ -60,5 +60,34 @@ class ModirPayamakPatternCatalogTest extends TestCase
         $this->assertSame(['09120000000'], $rows[0]['recipients']);
         $this->assertSame(500.0, $rows[0]['cost']);
         $this->assertNotSame('', $rows[0]['created_at']);
+
+        $nested = ModirPayamakReportRows::patterns([
+            'data' => [[
+                'pattern_code' => 'abc',
+                'title' => 'قدیمی',
+                'pattern' => ['pattern_message' => 'کد شما %otp% است'],
+            ]],
+        ]);
+        $this->assertSame('کد شما %otp% است', $nested[0]['message']);
+        $this->assertSame('کد شما %otp% است', $nested[0]['pattern_message']);
+    }
+
+    public function test_identifies_pattern_from_website_and_message_when_title_is_not_canonical(): void
+    {
+        $found = ModirPayamakPatternCatalog::identify(
+            'کد تایید',
+            'کد ورود شما %otp% است',
+            'https://www.mobogallery.shop/path',
+            [['domain' => 'mobogallery.shop', 'name' => 'موبوگالری']]
+        );
+
+        $this->assertNotNull($found);
+        $this->assertSame('mobogallery.shop', $found['domain']);
+        $this->assertSame('otp_login', $found['event_key']);
+        $this->assertSame('مشتری', $found['role']);
+        $this->assertSame(
+            'موبوگالری | مشتری | ورود',
+            ModirPayamakPatternCatalog::title($found['site'], $found['role'], $found['action'])
+        );
     }
 }

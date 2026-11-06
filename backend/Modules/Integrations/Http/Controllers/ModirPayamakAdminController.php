@@ -671,8 +671,14 @@ class ModirPayamakAdminController extends Controller
                 (int) $request->query('limit', 20),
                 (array) $request->query('filters', [])
             );
+            $rows = $result['ok']
+                ? $this->manager->withPatternText(\Modules\Integrations\Services\ModirPayamakReportRows::messages($result['data'] ?? null))
+                : [];
 
-            return response()->json(['data' => $result['data'], 'meta' => $result['meta']], $result['ok'] ? 200 : 422);
+            return response()->json([
+                'data' => ['entries' => $rows, 'messages' => $rows],
+                'meta' => $result['meta'] ?? [],
+            ], $result['ok'] ? 200 : 422);
         } catch (\Illuminate\Database\QueryException|\Throwable) {
             return response()->json(['data' => []]);
         }
@@ -706,8 +712,13 @@ class ModirPayamakAdminController extends Controller
             abort(503, __('messages.modirpayamak_is_not_configured'));
         }
         $result = $this->edge->reportOutboxById($id);
+        $data = $result['data'] ?? null;
+        if (is_array($data) && ! array_is_list($data)) {
+            $rows = $this->manager->withPatternText([\Modules\Integrations\Services\ModirPayamakReportRows::message($data)]);
+            $data = $rows[0] ?? $data;
+        }
 
-        return response()->json(['data' => $result['data']], $result['ok'] ? 200 : 422);
+        return response()->json(['data' => $data], $result['ok'] ? 200 : 422);
     }
 
     public function patterns(Request $request): JsonResponse
@@ -716,9 +727,17 @@ class ModirPayamakAdminController extends Controller
             abort(503, __('messages.modirpayamak_is_not_configured'));
         }
         try {
+            try {
+                app(\Modules\Integrations\Services\ModirPayamakPatternSync::class)->reconcileCached('');
+            } catch (\Throwable) {
+                // A rejected provider rename must not hide the pattern list.
+            }
             $result = $this->edge->listPatterns($request->query());
+            $rows = \Modules\Integrations\Services\ModirPayamakReportRows::patterns($result['data'] ?? null);
 
-            return response()->json(['data' => $result['data']], $result['ok'] ? 200 : 422);
+            return response()->json([
+                'data' => ['data' => $rows, 'patterns' => $rows],
+            ], $result['ok'] ? 200 : 422);
         } catch (\Illuminate\Database\QueryException|\Throwable) {
             return response()->json(['data' => []]);
         }
@@ -793,10 +812,16 @@ class ModirPayamakAdminController extends Controller
             'sending_type' => $m->sending_type,
             'cost' => (float) $m->cost,
             'message' => $m->message,
+            'pattern_message' => $m->message,
             'from_number' => $m->from_number,
             'pattern_code' => $m->pattern_code,
+            'edge_payload' => $m->edge_payload,
             'created_at' => optional($m->created_at)?->toIso8601String(),
         ])->values()->all();
+        $rows = $this->manager->withPatternText($rows);
+        foreach ($rows as $index => $row) {
+            unset($rows[$index]['edge_payload']);
+        }
 
         return response()->json(['data' => ['messages' => $rows]]);
     }

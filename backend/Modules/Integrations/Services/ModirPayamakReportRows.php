@@ -45,7 +45,7 @@ class ModirPayamakReportRows
     {
         $id = self::scalar($row, ['messages_outbox_id', 'outbox_id', 'bulk_id', 'id']);
         $sender = self::scalar($row, ['number', 'from_number', 'sender', 'line']);
-        $body = self::scalar($row, ['message', 'body', 'text', 'summary', 'pattern_message']);
+        $body = self::messageText($row);
         $status = self::scalar($row, ['status', 'state']);
         $type = self::scalar($row, ['sending_type', 'type']);
         $recipients = self::recipients($row);
@@ -77,6 +77,7 @@ class ModirPayamakReportRows
             'rcpts_count' => self::scalar($row, ['rcpts_count', 'recipients_count']) ?: (string) count($recipients),
             'exit_count' => self::scalar($row, ['exit_count', 'sent_count']),
             'pattern_code' => self::scalar($row, ['pattern_code', 'code']),
+            'pattern_message' => self::messageText($row),
             'time' => $time,
             'created_at' => $created !== '' ? $created : $time,
             'source' => 'edge',
@@ -106,6 +107,98 @@ class ModirPayamakReportRows
             'role' => $role,
             'label' => self::scalar($row, ['label', 'title', 'name']),
         ];
+    }
+
+    /**
+     * Provider pattern rows with the body always on `message` and `pattern_message`.
+     *
+     * @return list<array<string, mixed>>
+     */
+    public static function patterns(mixed $data): array
+    {
+        $out = [];
+        foreach (self::extract($data) as $row) {
+            $flat = $row;
+            foreach (['pattern', 'data'] as $nest) {
+                if (isset($row[$nest]) && is_array($row[$nest]) && ! array_is_list($row[$nest])) {
+                    $flat = array_merge($row[$nest], $flat);
+                }
+            }
+            $body = self::messageText($flat);
+            $title = self::scalar($flat, ['title', 'pattern_title', 'name', 'description']);
+            $code = self::scalar($flat, ['pattern_code', 'code', 'pattern_id']);
+            $flat['pattern_code'] = $code;
+            $flat['code'] = $code !== '' ? $code : ($flat['code'] ?? null);
+            $flat['title'] = $title;
+            $flat['message'] = $body;
+            $flat['pattern_message'] = $body;
+            $out[] = $flat;
+        }
+
+        return $out;
+    }
+
+    /**
+     * @param  array<string, mixed>  $row
+     */
+    public static function messageText(array $row): string
+    {
+        $code = self::scalar($row, ['pattern_code', 'code']);
+        $found = self::digText($row, ['pattern_message', 'message', 'body', 'text', 'summary', 'content', 'msg']);
+        if ($found !== '' && $found !== $code) {
+            return $found;
+        }
+        foreach (['pattern', 'data'] as $nest) {
+            if (! isset($row[$nest]) || ! is_array($row[$nest]) || array_is_list($row[$nest])) {
+                continue;
+            }
+            $nested = self::digText($row[$nest], ['pattern_message', 'message', 'body', 'text', 'summary']);
+            if ($nested !== '' && $nested !== $code) {
+                return $nested;
+            }
+        }
+
+        return $found;
+    }
+
+    /**
+     * @param  array<string, mixed>  $row
+     * @param  list<string>  $keys
+     */
+    private static function digText(array $row, array $keys): string
+    {
+        foreach ($keys as $key) {
+            if (! array_key_exists($key, $row) || $row[$key] === null || $row[$key] === '') {
+                continue;
+            }
+            $value = $row[$key];
+            if (is_string($value)) {
+                $trim = trim($value);
+                if ($trim !== '' && (str_starts_with($trim, '{') || str_starts_with($trim, '['))) {
+                    $decoded = json_decode($trim, true);
+                    if (is_array($decoded)) {
+                        $value = $decoded;
+                    } else {
+                        return $trim;
+                    }
+                } else {
+                    return $trim;
+                }
+            }
+            if (is_array($value) && ! array_is_list($value)) {
+                $inner = self::digText($value, ['pattern_message', 'message', 'body', 'text', 'summary', 'content']);
+                if ($inner !== '') {
+                    return $inner;
+                }
+            } elseif (is_scalar($value)) {
+                $trim = trim((string) $value);
+                if ($trim !== '') {
+                    return $trim;
+                }
+            }
+        }
+
+        return '';
     }
 
     /**

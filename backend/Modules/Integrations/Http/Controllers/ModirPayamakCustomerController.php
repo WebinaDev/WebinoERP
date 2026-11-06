@@ -340,7 +340,9 @@ class ModirPayamakCustomerController extends Controller
             (array) $request->query('filters', [])
         );
         $remote = $result['ok'] ? \Modules\Integrations\Services\ModirPayamakReportRows::messages($result['data'] ?? null) : [];
-        $rows = $this->manager->mergeSent($this->manager->recentMessages($domain, $limit), $remote, max($limit, count($remote)));
+        $rows = $this->manager->withPatternText(
+            $this->manager->mergeSent($this->manager->recentMessages($domain, $limit), $remote, max($limit, count($remote)))
+        );
 
         return response()->json([
             'data' => ['entries' => $rows, 'messages' => $rows],
@@ -369,10 +371,18 @@ class ModirPayamakCustomerController extends Controller
 
     public function patterns(Request $request): JsonResponse
     {
-        $this->domain($request);
+        $domain = $this->domain($request);
+        try {
+            app(\Modules\Integrations\Services\ModirPayamakPatternSync::class)->reconcileCached($domain);
+        } catch (\Throwable) {
+            // A rejected provider rename must not hide the pattern list.
+        }
         $result = $this->edge->listPatterns($request->query());
+        $rows = \Modules\Integrations\Services\ModirPayamakReportRows::patterns($result['data'] ?? null);
 
-        return response()->json(['data' => $result['data']], $result['ok'] ? 200 : 422);
+        return response()->json([
+            'data' => ['data' => $rows, 'patterns' => $rows],
+        ], $result['ok'] ? 200 : 422);
     }
 
     public function numbers(Request $request): JsonResponse

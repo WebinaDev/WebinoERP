@@ -25,6 +25,7 @@ import { useLocale } from '@/hooks/use-locale-next';
 import { getModirPayamakMessages } from '@/lib/api/modirpayamak';
 import {
   edgeField,
+  edgeText,
   edgeReportInbox,
   edgeReportOutbox,
   edgeReportOutboxDetail,
@@ -294,6 +295,7 @@ export function ModirpayamakReportsPage() {
                       <TableHeader>
                         <TableRow>
                           <TableHead>{t('domain')}</TableHead>
+                          <TableHead>{t('message')}</TableHead>
                           <TableHead>{t('status')}</TableHead>
                           <TableHead>{t('cost')}</TableHead>
                           <TableHead>{t('date')}</TableHead>
@@ -304,6 +306,9 @@ export function ModirpayamakReportsPage() {
                           <TableRow key={String(m.id ?? i)}>
                             <TableCell className="font-mono text-xs" dir="ltr">
                               {String(m.domain ?? '—')}
+                            </TableCell>
+                            <TableCell className="max-w-xs truncate" title={edgeText(m, 'pattern_message', 'message', 'text', 'body')}>
+                              {edgeText(m, 'pattern_message', 'message', 'text', 'body')}
                             </TableCell>
                             <TableCell>
                               <ModirPayamakStatusBadge status={String(m.status ?? m.sending_type ?? '—')} />
@@ -350,7 +355,7 @@ export function ModirpayamakReportsPage() {
               </div>
               <div>
                 <dt className="text-muted-foreground">{t('message')}</dt>
-                <dd className="whitespace-pre-wrap">{edgeField(detail, 'message', 'text', 'body')}</dd>
+                <dd className="whitespace-pre-wrap">{edgeText(detail, 'pattern_message', 'message', 'text', 'body')}</dd>
               </div>
             </dl>
           ) : null}

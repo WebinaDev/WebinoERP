@@ -46,9 +46,52 @@ export function edgeField(row: EdgeRow | null | undefined, ...keys: string[]): s
   if (!row) return '—';
   for (const key of keys) {
     const v = row[key];
-    if (v != null && v !== '') return String(v);
+    if (v != null && v !== '' && typeof v !== 'object') return String(v);
   }
   return '—';
+}
+
+function digEdgeText(value: unknown): string {
+  if (typeof value === 'string') {
+    const trim = value.trim();
+    if (!trim) return '';
+    if (trim.startsWith('{') || trim.startsWith('[')) {
+      try {
+        return digEdgeText(JSON.parse(trim));
+      } catch {
+        return trim;
+      }
+    }
+    return trim;
+  }
+  if (typeof value === 'number') return String(value);
+  if (!value || typeof value !== 'object' || Array.isArray(value)) return '';
+  const row = value as EdgeRow;
+  for (const key of ['pattern_message', 'message', 'body', 'text', 'summary', 'content']) {
+    const found = digEdgeText(row[key]);
+    if (found) return found;
+  }
+  return '';
+}
+
+/** Message body, including provider fields that sit under pattern_message or a nested object. */
+export function edgeText(row: EdgeRow | null | undefined, ...keys: string[]): string {
+  if (!row) return '—';
+  const code = edgeField(row, 'pattern_code', 'code');
+  let fallback = '';
+  const look = keys.length > 0 ? keys : ['pattern_message', 'message', 'body', 'text', 'summary'];
+  for (const key of look) {
+    const found = digEdgeText(row[key]);
+    if (!found) continue;
+    if (code !== '—' && found === code) {
+      fallback = found;
+      continue;
+    }
+    return found;
+  }
+  const nested = digEdgeText(row.pattern);
+  if (nested && nested !== code) return nested;
+  return fallback || '—';
 }
 
 export function edgeNumber(row: EdgeRow | null | undefined, ...keys: string[]): number {
