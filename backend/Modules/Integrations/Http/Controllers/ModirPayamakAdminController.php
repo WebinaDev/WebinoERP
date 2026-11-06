@@ -1009,13 +1009,19 @@ class ModirPayamakAdminController extends Controller
 
         $rawRecipients = $request->input('recipients');
         $explicitScope = $request->input('scope');
+        $role = strtolower(trim((string) $request->input('role', '')));
+        $scopeFromRole = match ($role) {
+            'admin', 'order_admin' => 'order_admin',
+            'customer', 'order_customer' => 'order_customer',
+            default => null,
+        };
         $isLegacyList = is_array($rawRecipients) && array_is_list($rawRecipients);
         $isRoutedObject = is_array($rawRecipients) && ! $isLegacyList;
 
         // Legacy / manual path: explicit phone list or explicit scope (test sends from the dashboard).
-        if ($isLegacyList || (! $isRoutedObject && ($test || is_string($explicitScope) && $explicitScope !== ''))) {
+        if ($isLegacyList || (! $isRoutedObject && ($test || is_string($explicitScope) && $explicitScope !== '' || $scopeFromRole !== null))) {
             $scope = is_string($explicitScope) && in_array($explicitScope, ModirPayamakManager::PATTERN_SCOPES, true)
-                ? $explicitScope : 'order_customer';
+                ? $explicitScope : ($scopeFromRole ?? 'order_customer');
             $phones = $isLegacyList ? $rawRecipients : [(string) ($request->input('phone') ?? '')];
             $phones = array_values(array_filter(array_map(fn ($v) => is_scalar($v) ? $this->normalizeMobile((string) $v) : '', $phones)));
             if ($phones === []) {
@@ -1025,6 +1031,7 @@ class ModirPayamakAdminController extends Controller
             if ($code === '') {
                 return response()->json(['ok' => false, 'event_key' => $eventKey, 'results' => [], 'reason' => 'pattern_not_bound', 'message' => __('messages.no_pattern_bound_for_event').$eventKey], 422);
             }
+            $params = $this->mappedPatternParams($domain, $scope, $eventKey, $code, $params, $test);
             $results = [];
             $allOk = true;
             foreach ($phones as $to) {
@@ -1033,10 +1040,22 @@ class ModirPayamakAdminController extends Controller
                 $results[] = $r;
             }
 
-            return response()->json(['data' => [
-                'ok' => $allOk, 'event_key' => $eventKey, 'test' => $test, 'scope' => $scope,
-                'results' => $results, 'reason' => $allOk ? null : 'send_failed',
-            ]], $allOk ? 200 : 422);
+            $failMessage = '';
+            foreach ($results as $row) {
+                if (empty($row['ok']) && ! empty($row['message'])) {
+                    $failMessage = (string) $row['message'];
+                    break;
+                }
+            }
+
+            return response()->json([
+                'message' => $failMessage,
+                'data' => [
+                    'ok' => $allOk, 'event_key' => $eventKey, 'test' => $test, 'scope' => $scope,
+                    'results' => $results, 'reason' => $allOk ? null : 'send_failed',
+                    'message' => $failMessage,
+                ],
+            ], $allOk ? 200 : 422);
         }
 
         // Automatic order-status path: route per the shop's per-event customer/admin toggles.
@@ -1072,7 +1091,8 @@ class ModirPayamakAdminController extends Controller
                     $out['customer'] = ['ok' => false, 'phone' => $customerPhone, 'reason' => 'pattern_not_bound'];
                     $allOk = false;
                 } else {
-                    $out['customer'] = $this->sendOne($domain, $from, $code, $customerPhone, $params, 'customer', ! $test);
+                    $customerParams = $this->mappedPatternParams($domain, 'order_customer', $eventKey, $code, $params, $test);
+                    $out['customer'] = $this->sendOne($domain, $from, $code, $customerPhone, $customerParams, 'customer', ! $test);
                     $anySent = true;
                     $allOk = $allOk && $out['customer']['ok'];
                 }
@@ -1087,8 +1107,9 @@ class ModirPayamakAdminController extends Controller
                 $out['admin'][] = ['ok' => false, 'reason' => 'pattern_not_bound'];
                 $allOk = false;
             } else {
+                $adminParams = $this->mappedPatternParams($domain, 'order_admin', $eventKey, $code, $params, $test);
                 foreach ($admins as $to) {
-                    $r = $this->sendOne($domain, $from, $code, $to, $params, 'admin', ! $test);
+                    $r = $this->sendOne($domain, $from, $code, $to, $adminParams, 'admin', ! $test);
                     $out['admin'][] = $r;
                     $anySent = true;
                     $allOk = $allOk && $r['ok'];
@@ -1182,6 +1203,95 @@ class ModirPayamakAdminController extends Controller
         }
 
         return '';
+    }
+
+    /**
+     * IPPanel accepts only the pattern's own variables, not the raw order snapshot.
+     *
+     * @param  array<string, mixed>  $context
+     * @return array<string, string>
+     */
+    protected function mappedPatternParams(string $domain, string $scope, string $eventKey, string $code, array $context, bool $test): array
+    {
+        $map = $this->paramMapFor($domain, $scope, $eventKey);
+        $vars = [];
+        foreach ($context as $key => $value) {
+            if (is_scalar($value)) {
+                $vars[(string) $key] = (string) $value;
+            }
+        }
+        $names = array_keys($map);
+        if ($names === [] && $code !== '') {
+            $detail = $this->edge->getPattern($code);
+            $row = \Modules\Integrations\Services\ModirPayamakReportRows::pattern($detail['data'] ?? null);
+            foreach ((array) ($row['variable'] ?? []) as $var) {
+                if (is_array($var) && ! empty($var['name'])) {
+                    $names[] = (string) $var['name'];
+                }
+            }
+        }
+        if ($names === []) {
+            return [];
+        }
+        $out = [];
+        foreach ($names as $name) {
+            $rendered = isset($map[$name]) ? (string) $map[$name] : '{'.$name.'}';
+            foreach ($vars as $key => $value) {
+                $rendered = str_replace('{'.$key.'}', $value, $rendered);
+            }
+            if ($test) {
+                $rendered = preg_replace('/\{[A-Za-z0-9_]+\}/', 'تست', $rendered) ?? $rendered;
+                if (trim($rendered) === '') {
+                    $rendered = 'تست';
+                }
+            }
+            $out[$name] = $rendered;
+        }
+
+        return $out;
+    }
+
+    /**
+     * @return array<string, string>
+     */
+    protected function paramMapFor(string $domain, string $scope, string $eventKey): array
+    {
+        foreach ($this->manager->listPatternRegistry($domain) as $row) {
+            if (! is_array($row) || ($row['scope'] ?? '') !== $scope || ($row['event_key'] ?? '') !== $eventKey) {
+                continue;
+            }
+            if (is_array($row['param_map'] ?? null) && $row['param_map'] !== []) {
+                return $this->stringMap($row['param_map']);
+            }
+        }
+        $templates = app(\Modules\Integrations\Services\ModirPayamakSiteSmsService::class)->listTemplates($domain, $scope, $eventKey);
+        foreach ($templates as $template) {
+            if (is_array($template['param_map'] ?? null) && $template['param_map'] !== []) {
+                return $this->stringMap($template['param_map']);
+            }
+        }
+
+        return [];
+    }
+
+    /**
+     * @param  array<mixed>  $map
+     * @return array<string, string>
+     */
+    protected function stringMap(array $map): array
+    {
+        $out = [];
+        foreach ($map as $key => $value) {
+            if (! is_scalar($value)) {
+                continue;
+            }
+            $name = trim((string) $key);
+            if ($name !== '') {
+                $out[$name] = (string) $value;
+            }
+        }
+
+        return $out;
     }
 
     /** @return array<string, mixed> */

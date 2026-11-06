@@ -88,6 +88,21 @@ class ModirPayamakEdgeClient
         $data = is_array($json) ? ($json['data'] ?? null) : null;
         $meta = is_array($json) ? ($json['meta'] ?? []) : [];
         $message = is_array($meta) && ! empty($meta['message']) ? (string) $meta['message'] : '';
+        if ($message === '' && is_array($meta) && is_array($meta['errors'] ?? null)) {
+            $bits = [];
+            foreach ($meta['errors'] as $err) {
+                if (is_string($err) && trim($err) !== '') {
+                    $bits[] = trim($err);
+                } elseif (is_array($err)) {
+                    foreach ($err as $line) {
+                        if (is_string($line) && trim($line) !== '') {
+                            $bits[] = trim($line);
+                        }
+                    }
+                }
+            }
+            $message = implode(' ', array_slice($bits, 0, 3));
+        }
         $ok = $response->successful() && (! is_array($meta) || ! isset($meta['status']) || $meta['status']);
 
         return ['ok' => $ok, 'code' => $response->status(), 'data' => $data, 'meta' => $meta, 'message' => $message];
@@ -104,7 +119,7 @@ class ModirPayamakEdgeClient
             'sending_type' => 'webservice',
             'from_number' => $from,
             'message' => $message,
-            'params' => ['recipients' => array_values($recipients)],
+            'params' => ['recipients' => self::e164List($recipients)],
         ];
         if ($sendTime) {
             $body['send_time'] = $sendTime;
@@ -115,21 +130,84 @@ class ModirPayamakEdgeClient
 
     public function sendPattern(string $from, string $code, array $recipients, array $params): array
     {
+        $clean = [];
+        foreach ($params as $key => $value) {
+            if (! is_scalar($value)) {
+                continue;
+            }
+            $name = trim((string) $key);
+            if ($name === '') {
+                continue;
+            }
+            $clean[$name] = (string) $value;
+        }
+
         return $this->send([
             'sending_type' => 'pattern',
             'from_number' => $from,
             'code' => $code,
-            'recipients' => array_values($recipients),
-            'params' => $params,
+            'recipients' => self::e164List($recipients),
+            'params' => $clean,
         ]);
+    }
+
+    /**
+     * IPPanel pattern and webservice sends require E.164 (+989…).
+     */
+    public static function toE164(string $phone): string
+    {
+        $digits = preg_replace('/\D+/', '', $phone) ?? '';
+        if (str_starts_with($digits, '0098')) {
+            $digits = substr($digits, 4);
+        }
+        if (str_starts_with($digits, '98') && strlen($digits) >= 12) {
+            return '+'.$digits;
+        }
+        if (str_starts_with($digits, '0') && strlen($digits) >= 10) {
+            return '+98'.substr($digits, 1);
+        }
+        if (str_starts_with($digits, '9') && strlen($digits) === 10) {
+            return '+98'.$digits;
+        }
+
+        return $digits !== '' ? '+'.$digits : '';
+    }
+
+    /**
+     * @param  list<mixed>  $recipients
+     * @return list<string>
+     */
+    public static function e164List(array $recipients): array
+    {
+        $out = [];
+        foreach ($recipients as $phone) {
+            if (! is_scalar($phone)) {
+                continue;
+            }
+            $normalized = self::toE164((string) $phone);
+            if ($normalized !== '' && ! in_array($normalized, $out, true)) {
+                $out[] = $normalized;
+            }
+        }
+
+        return $out;
     }
 
     public function sendPeerToPeer(array $groups, string $from): array
     {
+        $normalized = [];
+        foreach ($groups as $group) {
+            if (! is_array($group)) {
+                continue;
+            }
+            $group['recipients'] = self::e164List((array) ($group['recipients'] ?? []));
+            $normalized[] = $group;
+        }
+
         return $this->send([
             'sending_type' => 'peer_to_peer',
             'from_number' => $from,
-            'params' => ['groups' => $groups],
+            'params' => ['groups' => $normalized],
         ]);
     }
 

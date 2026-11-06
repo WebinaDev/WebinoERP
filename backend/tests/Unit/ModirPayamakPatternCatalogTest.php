@@ -2,6 +2,7 @@
 
 namespace Tests\Unit;
 
+use Modules\Integrations\Services\ModirPayamakEdgeClient;
 use Modules\Integrations\Services\ModirPayamakPatternCatalog;
 use Modules\Integrations\Services\ModirPayamakReportRows;
 use PHPUnit\Framework\TestCase;
@@ -89,5 +90,29 @@ class ModirPayamakPatternCatalogTest extends TestCase
             'موبوگالری | مشتری | ورود',
             ModirPayamakPatternCatalog::title($found['site'], $found['role'], $found['action'])
         );
+    }
+
+    public function test_pattern_detail_exposes_message_and_named_variables(): void
+    {
+        $row = ModirPayamakReportRows::pattern([
+            'data' => [
+                'code' => 'abc',
+                'pattern' => [
+                    'pattern_message' => 'سفارش %order_number% برای %name% ثبت شد',
+                    'variable' => [
+                        ['name' => 'order_number', 'type' => 'integer'],
+                        ['name' => 'name', 'type' => 'string'],
+                    ],
+                ],
+            ],
+        ]);
+
+        $this->assertSame('سفارش %order_number% برای %name% ثبت شد', $row['pattern_message']);
+        $this->assertSame([
+            ['name' => 'order_number', 'type' => 'integer'],
+            ['name' => 'name', 'type' => 'string'],
+        ], $row['variable']);
+        $this->assertSame('+989121234567', ModirPayamakEdgeClient::toE164('09121234567'));
+        $this->assertSame('+989121234567', ModirPayamakEdgeClient::toE164('+989121234567'));
     }
 }

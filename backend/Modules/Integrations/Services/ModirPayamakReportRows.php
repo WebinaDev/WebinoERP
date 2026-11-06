@@ -132,7 +132,114 @@ class ModirPayamakReportRows
             $flat['title'] = $title;
             $flat['message'] = $body;
             $flat['pattern_message'] = $body;
+            $flat['variable'] = self::patternVariables($flat);
             $out[] = $flat;
+        }
+
+        return $out;
+    }
+
+    /**
+     * One pattern, including a detail payload that is not wrapped in a list.
+     *
+     * @return array<string, mixed>
+     */
+    public static function pattern(mixed $data): array
+    {
+        $row = self::patternRow($data);
+        if ($row === []) {
+            return [];
+        }
+        $normalized = self::patterns([$row]);
+
+        return $normalized[0] ?? [];
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    private static function patternRow(mixed $data): array
+    {
+        if (! is_array($data)) {
+            return [];
+        }
+        if (self::isList($data)) {
+            foreach ($data as $item) {
+                if (is_array($item)) {
+                    return $item;
+                }
+            }
+
+            return [];
+        }
+        foreach (['pattern', 'data', 'item'] as $key) {
+            $nested = $data[$key] ?? null;
+            if (is_array($nested) && ! self::isList($nested) && self::looksLikePattern($nested)) {
+                return array_merge($nested, $data);
+            }
+        }
+
+        return $data;
+    }
+
+    /**
+     * @param  array<string, mixed>  $row
+     */
+    private static function looksLikePattern(array $row): bool
+    {
+        foreach (['pattern_code', 'code', 'pattern_message', 'message', 'variable', 'vars'] as $key) {
+            if (! empty($row[$key])) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    /**
+     * @param  array<string, mixed>  $row
+     * @return list<array{name: string, type: string}>
+     */
+    public static function patternVariables(array $row): array
+    {
+        $out = [];
+        $seen = [];
+        foreach (['variable', 'vars', 'variables', 'params'] as $key) {
+            $list = $row[$key] ?? null;
+            if (is_string($list)) {
+                $decoded = json_decode($list, true);
+                $list = is_array($decoded) ? $decoded : null;
+            }
+            if (! is_array($list)) {
+                continue;
+            }
+            foreach ($list as $var) {
+                if (is_string($var)) {
+                    $name = trim($var, " %{}");
+                    $type = 'string';
+                } elseif (is_array($var)) {
+                    $name = trim((string) ($var['name'] ?? $var['var'] ?? $var['key'] ?? ''), " %{}");
+                    $type = strtolower((string) ($var['type'] ?? 'string'));
+                } else {
+                    continue;
+                }
+                if ($name === '' || isset($seen[$name])) {
+                    continue;
+                }
+                $seen[$name] = true;
+                $out[] = [
+                    'name' => $name,
+                    'type' => $type === 'integer' ? 'integer' : 'string',
+                ];
+            }
+        }
+        $body = self::messageText($row);
+        foreach (ModirPayamakPatternCatalog::variablesFromMessage($body) as $var) {
+            if (isset($seen[$var['name']])) {
+                continue;
+            }
+            $seen[$var['name']] = true;
+            $out[] = $var;
         }
 
         return $out;

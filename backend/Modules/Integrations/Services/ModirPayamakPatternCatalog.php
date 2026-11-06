@@ -319,11 +319,17 @@ class ModirPayamakPatternCatalog
      */
     public static function variablesFromMessage(string $message): array
     {
-        if (! preg_match_all('/%([A-Za-z0-9_]+)%/u', $message, $matches)) {
+        if (! preg_match_all('/%([A-Za-z0-9_]+)%|\{([A-Za-z0-9_]+)\}/u', $message, $matches, PREG_SET_ORDER)) {
             return [];
         }
         $out = [];
-        foreach (array_unique($matches[1]) as $name) {
+        $seen = [];
+        foreach ($matches as $match) {
+            $name = $match[1] !== '' ? $match[1] : ($match[2] ?? '');
+            if ($name === '' || isset($seen[$name])) {
+                continue;
+            }
+            $seen[$name] = true;
             $folded = strtolower($name);
             $out[] = [
                 'name' => $name,

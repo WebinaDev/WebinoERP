@@ -7,6 +7,7 @@ use Illuminate\Http\Request;
 use Modules\Core\Entities\CoreLicense;
 use Modules\Core\Services\CoreLicenseResolver;
 use Modules\Integrations\Services\ModirPayamakManager;
+use Modules\Integrations\Services\ModirPayamakShortcodes;
 use Modules\Integrations\Services\ModirPayamakSiteSmsService;
 
 /**
@@ -160,9 +161,7 @@ class WebinocrmModirPayamakCompatController extends Controller
     protected function templateShortcodes(Request $request, string $domain): JsonResponse
     {
         return $this->ok([
-            'shortcodes' => [
-                ['key' => 'code', 'label' => 'OTP code', 'scope' => ModirPayamakSiteSmsService::SCOPE_SITE],
-            ],
+            'shortcodes' => ModirPayamakShortcodes::all(),
             'event_keys' => $this->manager::SITE_EVENTS,
         ]);
     }
@@ -312,6 +311,10 @@ class WebinocrmModirPayamakCompatController extends Controller
 
         if ($method === null && preg_match('#^drafts/([^/]+)$#', $path, $m)) {
             return $this->customer->draftShow($request, $m[1]);
+        }
+
+        if ($method === null && preg_match('#^patterns/([^/]+)$#', $path, $m)) {
+            return $this->customer->patternShow($request, rawurldecode($m[1]));
         }
 
         if ($method === null) {

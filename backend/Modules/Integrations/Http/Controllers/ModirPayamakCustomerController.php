@@ -369,6 +369,31 @@ class ModirPayamakCustomerController extends Controller
         return response()->json(['data' => ['messages' => array_values($slice), 'entries' => array_values($slice)]]);
     }
 
+    public function patternShow(Request $request, string $code): JsonResponse
+    {
+        $this->domain($request);
+        $code = rawurldecode(trim($code));
+        if ($code === '') {
+            return response()->json(['message' => 'pattern code required', 'ok' => false], 422);
+        }
+        $result = $this->edge->getPattern($code);
+        $row = \Modules\Integrations\Services\ModirPayamakReportRows::pattern($result['data'] ?? null);
+        if ($row === [] || (($row['pattern_message'] ?? '') === '' && ($row['pattern_code'] ?? '') === '')) {
+            return response()->json([
+                'message' => $result['message'] !== '' ? $result['message'] : 'pattern not found',
+                'ok' => false,
+            ], $result['ok'] ? 404 : 422);
+        }
+        if (($row['pattern_code'] ?? '') === '') {
+            $row['pattern_code'] = $code;
+            $row['code'] = $code;
+        }
+
+        return response()->json([
+            'data' => ['data' => $row, 'pattern' => $row],
+        ], $result['ok'] ? 200 : 422);
+    }
+
     public function patterns(Request $request): JsonResponse
     {
         $domain = $this->domain($request);
