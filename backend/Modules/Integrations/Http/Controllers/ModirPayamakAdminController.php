@@ -1230,12 +1230,10 @@ class ModirPayamakAdminController extends Controller
         }
         $out = [];
         foreach ($names as $name) {
-            $naive = '{'.$name.'}';
-            $preferred = \Modules\Integrations\Services\ModirPayamakShortcodes::expression($name);
-            $rendered = isset($map[$name]) ? (string) $map[$name] : $preferred;
-            if ($rendered === $naive) {
-                $rendered = $preferred;
-            }
+            $rendered = \Modules\Integrations\Services\ModirPayamakShortcodes::resolveExpression(
+                $name,
+                isset($map[$name]) ? (string) $map[$name] : ''
+            );
             foreach ($vars as $key => $value) {
                 $rendered = str_replace('{'.$key.'}', $value, $rendered);
             }

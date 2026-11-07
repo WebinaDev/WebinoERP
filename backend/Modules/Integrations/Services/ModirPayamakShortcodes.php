@@ -107,6 +107,23 @@ class ModirPayamakShortcodes
     }
 
     /**
+     * Replace a previously saved self-map (`orderid` or `{orderid}`) with the site field.
+     */
+    public static function resolveExpression(string $varName, ?string $stored): string
+    {
+        $preferred = self::expression($varName);
+        $stored = trim((string) $stored);
+        if ($stored === '' || $stored === $varName || $stored === '{'.$varName.'}') {
+            return $preferred;
+        }
+        if (! str_contains($stored, '{') && preg_match('/^[A-Za-z0-9_]+$/', $stored) === 1) {
+            return '{'.$stored.'}';
+        }
+
+        return $stored;
+    }
+
+    /**
      * Fill pattern variable names from the canonical snapshot fields.
      *
      * @param  array<string, mixed>  $vars

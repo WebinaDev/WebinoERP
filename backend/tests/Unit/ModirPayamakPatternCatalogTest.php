@@ -124,6 +124,11 @@ class ModirPayamakPatternCatalogTest extends TestCase
         $this->assertSame('{order_number}', ModirPayamakShortcodes::expression('order_id'));
         $this->assertSame('{tracking_code}', ModirPayamakShortcodes::expression('post_tracking_code'));
         $this->assertSame('{code}', ModirPayamakShortcodes::expression('otp'));
+        $this->assertSame('{order_number}', ModirPayamakShortcodes::resolveExpression('orderid', 'orderid'));
+        $this->assertSame('{customer_name}', ModirPayamakShortcodes::resolveExpression('name', 'name'));
+        $this->assertSame('{status_label}', ModirPayamakShortcodes::resolveExpression('status', '{status}'));
+        $this->assertSame('{total}', ModirPayamakShortcodes::resolveExpression('total', 'total'));
+        $this->assertSame('{transaction_id}', ModirPayamakShortcodes::resolveExpression('orderid', '{transaction_id}'));
 
         $expanded = ModirPayamakShortcodes::expand([
             'customer_name' => 'نگار',
