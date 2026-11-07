@@ -57,6 +57,16 @@ for _pair in "PHP_IMAGE=${PHP_IMAGE}" "COMPOSER_IMAGE=${COMPOSER_IMAGE}" "NODE_I
   fi
 done
 
+# webino-web (nginx + php-fpm) requires an FPM base. Reject cli/zts overrides early.
+case "${PHP_IMAGE}" in
+  *php*fpm*|*php-fpm*) ;;
+  *)
+    log "error: PHP_IMAGE must be a php-fpm tag (got: ${PHP_IMAGE})"
+    log "hint: use hub.hamdocker.ir/library/php:8.3-fpm-bookworm or php:8.3-fpm-bookworm"
+    exit 1
+    ;;
+esac
+
 log "Base images: PHP_IMAGE=${PHP_IMAGE}"
 log "Base images: COMPOSER_IMAGE=${COMPOSER_IMAGE}"
 log "Base images: NODE_IMAGE=${NODE_IMAGE}"
