@@ -47,14 +47,17 @@ Route::put('/sms/settings', [SmsIntegrationController::class, 'updateSettings'])
 Route::post('/payments/initiate', [PaymentIntegrationController::class, 'initiate'])->middleware(['auth:sanctum', 'module:integrations', 'module.permission:integrations']);
 Route::post('/payments/verify', [PaymentIntegrationController::class, 'verify']);
 Route::match(['get', 'post'], '/payments/callback/{gateway}', [PaymentCallbackController::class, 'handle'])
-    ->whereIn('gateway', ['zarinpal', 'snappay', 'digipay', 'torobpay'])
+    ->where('gateway', '[A-Za-z0-9_\\-]+')
+    ->middleware('throttle:60,1');
+Route::get('/payments/bridge/{publicId}', [\Modules\Integrations\Http\Controllers\PaymentFormBridgeController::class, 'show'])
+    ->where('publicId', '[0-9a-fA-F-]{36}')
     ->middleware('throttle:60,1');
 
 Route::middleware(['auth:sanctum', 'module:integrations', 'module.permission:integrations'])->group(function () {
     Route::get('/payments/gateways', [PaymentGatewaySettingsController::class, 'index']);
     Route::put('/payments/gateways', [PaymentGatewaySettingsController::class, 'update']);
     Route::post('/payments/gateways/{code}/test', [PaymentGatewaySettingsController::class, 'test'])
-        ->whereIn('code', ['zarinpal', 'snappay', 'digipay', 'torobpay']);
+        ->where('code', '[A-Za-z0-9_\\-]+');
     Route::get('/payments/options', [PaymentCheckoutController::class, 'options']);
     Route::post('/payments/quote', [PaymentCheckoutController::class, 'quote']);
     Route::get('/payments/bills', [PaymentCheckoutController::class, 'bills']);

@@ -76,6 +76,12 @@ const BRAND: Record<string, { bg: string; fg: string; initials: string }> = {
   torobpay: { bg: 'bg-violet-100 dark:bg-violet-500/15', fg: 'text-violet-700 dark:text-violet-300', initials: 'TP' },
 };
 
+function brandFor(code: string) {
+  if (BRAND[code]) return BRAND[code]
+  const initials = code.replace(/[^a-z0-9]/gi, '').slice(0, 2).toUpperCase() || 'GW'
+  return { bg: 'bg-muted', fg: 'text-foreground', initials }
+}
+
 function toForm(row: PaymentGatewaySettings): FormState {
   return {
     code: row.code,

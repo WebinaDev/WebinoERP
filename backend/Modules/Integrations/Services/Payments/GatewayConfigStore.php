@@ -110,12 +110,23 @@ class GatewayConfigStore
             return $this->missingLiveCredentials($code, $config);
         }
 
-        $base = trim((string) ($config['base_url'] ?? ''));
-        if ($base !== '' && ! $this->missingLiveCredentials($code, $config)) {
-            return false;
+        // Snapp/Torob-style: sandbox without a custom base_url uses the local simulator.
+        if (in_array($code, ['snappay', 'torobpay'], true)) {
+            $base = trim((string) ($config['base_url'] ?? ''));
+            if ($base !== '' && ! $this->missingLiveCredentials($code, $config)) {
+                return false;
+            }
+
+            return true;
         }
 
-        return true;
+        // Other catalog gateways: simulate when live credentials are incomplete.
+        if ($this->missingLiveCredentials($code, $config)) {
+            return true;
+        }
+
+        // Catalogs with empty required_live still simulate until a secret field is filled.
+        return ! $this->hasFilledSecretField($code, $config);
     }
 
     /**
@@ -127,6 +138,25 @@ class GatewayConfigStore
         $required = is_array($spec['required_live'] ?? null) ? $spec['required_live'] : [];
         foreach ($required as $field) {
             if (trim((string) ($config[$field] ?? '')) === '') {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    /**
+     * @param  array<string, mixed>  $config
+     */
+    protected function hasFilledSecretField(string $code, array $config): bool
+    {
+        $spec = $this->catalog()[$code] ?? [];
+        foreach ($spec['fields'] ?? [] as $field) {
+            if (! is_array($field) || empty($field['secret'])) {
+                continue;
+            }
+            $key = (string) ($field['key'] ?? '');
+            if ($key !== '' && trim((string) ($config[$key] ?? '')) !== '') {
                 return true;
             }
         }

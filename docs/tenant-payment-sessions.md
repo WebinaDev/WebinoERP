@@ -121,11 +121,17 @@ Legacy `POST /api/v1/integrations/payments/initiate` and `/verify` stay. They us
 
 ## Gateways
 
+Native ERP drivers:
+
 | Code | Modes | Live credentials | Sandbox without credentials |
 | --- | --- | --- | --- |
 | `zarinpal` | cash | `merchant_id` | Local simulator, unless the merchant id is 36 characters (then HTTP sandbox). |
 | `snappay` | installment | `client_id`, `client_secret`, `username`, `password`, and a base URL | Local simulator. Production base `https://api.snapppay.ir`. The ERP server IP must be whitelisted. |
 | `digipay` | cash and installment | same OAuth fields | Local simulator. UAT `https://uat.mydigipay.info/digipay/api`, production `https://api.mydigipay.com/digipay/api`. This is Digikala UPG, not another DigiPay product. Cash ticket type `0`, installment type `13`. |
 | `torobpay` | installment | same OAuth fields plus base URL | Local simulator. Default production base `https://cpg.torobpay.com`. |
+
+Parity drivers (same catalog as Webino Dashboard commerce, via `CommerceDriverAdapter`): Vandar, Aghayepardakht, BitPay, IDPay, NextPay, PayPing, Pay.ir, Zibal, Shepa, Paystar, Jibit, Parspal, Payfa, EasyPay, Zarinplus, Toman, Tara, Asanpardakht, Pasargad, Sepehr, Saderat, Samankish, Irankish, Omidpay, Iran Wallet, Saman, Sadad, Parsian, Mellat, Stripe, PayPal, NOWPayments, Cryptomus, CoinGate, Perfect Money, Payeer, CoinPayments, Binance Pay, IRCrypto Pay.
+
+POST bank / SCI pages use `GET /api/v1/integrations/payments/bridge/{publicId}`.
 
 Snapp Pay and Torob Pay verify then settle. Digipay verifies then delivers. Zarinpal verify codes `100` and `101` are success and do not need a separate settle call.
