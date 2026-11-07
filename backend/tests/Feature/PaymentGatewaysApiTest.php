@@ -82,7 +82,7 @@ class PaymentGatewaysApiTest extends TestCase
         $this->enableZarinpal();
         $this->putJson('/api/v1/integrations/payments/gateways', [
             'gateways' => [
-                'snappay' => [
+                'snapppay' => [
                     'enabled' => false,
                     'sandbox' => true,
                     'cash_enabled' => false,
@@ -97,8 +97,8 @@ class PaymentGatewaysApiTest extends TestCase
         $cashCodes = collect($options->json('data.cash'))->pluck('code')->all();
         $installmentCodes = collect($options->json('data.installment'))->pluck('code')->all();
         $this->assertContains('zarinpal', $cashCodes);
-        $this->assertNotContains('snappay', $cashCodes);
-        $this->assertNotContains('snappay', $installmentCodes);
+        $this->assertNotContains('snapppay', $cashCodes);
+        $this->assertNotContains('snapppay', $installmentCodes);
 
         $this->postJson('/api/v1/integrations/payments/quote', [
             'gateway' => 'zarinpal',
@@ -110,7 +110,7 @@ class PaymentGatewaysApiTest extends TestCase
 
         $this->enableSnapp(10);
         $this->postJson('/api/v1/integrations/payments/quote', [
-            'gateway' => 'snappay',
+            'gateway' => 'snapppay',
             'mode' => 'installment',
             'base_amount' => 100000,
         ])->assertOk()
@@ -119,7 +119,7 @@ class PaymentGatewaysApiTest extends TestCase
             ->assertJsonPath('data.fee_applied', true);
 
         $options = $this->getJson('/api/v1/integrations/payments/options?mode=installment')->assertOk();
-        $this->assertContains('snappay', collect($options->json('data.gateways'))->pluck('code')->all());
+        $this->assertContains('snapppay', collect($options->json('data.gateways'))->pluck('code')->all());
         $this->assertNotContains('zarinpal', collect($options->json('data.gateways'))->pluck('code')->all());
     }
 
@@ -185,10 +185,10 @@ class PaymentGatewaysApiTest extends TestCase
         ]);
 
         $this->fakeSnappStyle('https://snapp.test');
-        $this->enableOauthGateway('snappay', 'https://snapp.test', 5);
-        $snapp = $this->startInstallment('snappay', $invoice->id);
+        $this->enableOauthGateway('snapppay', 'https://snapp.test', 5);
+        $snapp = $this->startInstallment('snapppay', $invoice->id);
         $this->assertSame('https://snapp.test/pay/pay-token', $snapp->json('data.redirect_url'));
-        $this->callbackProvider('snappay', (string) $snapp->json('data.payment_id'), [
+        $this->callbackProvider('snapppay', (string) $snapp->json('data.payment_id'), [
             'state' => 'OK',
             'amount' => 210000,
         ])->assertOk()->assertJsonPath('data.status', 'settled');
@@ -378,7 +378,7 @@ class PaymentGatewaysApiTest extends TestCase
     {
         $this->putJson('/api/v1/integrations/payments/gateways', [
             'gateways' => [
-                'snappay' => [
+                'snapppay' => [
                     'enabled' => true,
                     'sandbox' => true,
                     'cash_enabled' => false,

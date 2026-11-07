@@ -47,12 +47,19 @@ class GatewayConfigStore
      */
     public function for(string $code): array
     {
+        if ($code === 'snappay') {
+            $code = 'snapppay';
+        }
         $spec = $this->catalog()[$code] ?? null;
         if (! is_array($spec)) {
             throw new PaymentException('درگاه ناشناخته است.', 'unknown_gateway');
         }
         $savedAll = $this->saved();
         $row = is_array($savedAll[$code] ?? null) ? $savedAll[$code] : [];
+        // Legacy ERP id was `snappay`; Dashboard / catalog canonical id is `snapppay`.
+        if ($row === [] && $code === 'snapppay' && is_array($savedAll['snappay'] ?? null)) {
+            $row = $savedAll['snappay'];
+        }
         $defaults = is_array($spec['defaults'] ?? null) ? $spec['defaults'] : [];
         $envMap = is_array($spec['env_fallback'] ?? null) ? $spec['env_fallback'] : [];
 
@@ -110,12 +117,23 @@ class GatewayConfigStore
             return $this->missingLiveCredentials($code, $config);
         }
 
-        $base = trim((string) ($config['base_url'] ?? ''));
-        if ($base !== '' && ! $this->missingLiveCredentials($code, $config)) {
-            return false;
+        // Snapp/Torob-style: sandbox without a custom base_url uses the local simulator.
+        if (in_array($code, ['snapppay', 'torobpay'], true)) {
+            $base = trim((string) ($config['base_url'] ?? ''));
+            if ($base !== '' && ! $this->missingLiveCredentials($code, $config)) {
+                return false;
+            }
+
+            return true;
         }
 
-        return true;
+        // Other catalog gateways: simulate when live credentials are incomplete.
+        if ($this->missingLiveCredentials($code, $config)) {
+            return true;
+        }
+
+        // Catalogs with empty required_live still simulate until a secret field is filled.
+        return ! $this->hasFilledSecretField($code, $config);
     }
 
     /**
@@ -127,6 +145,25 @@ class GatewayConfigStore
         $required = is_array($spec['required_live'] ?? null) ? $spec['required_live'] : [];
         foreach ($required as $field) {
             if (trim((string) ($config[$field] ?? '')) === '') {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    /**
+     * @param  array<string, mixed>  $config
+     */
+    protected function hasFilledSecretField(string $code, array $config): bool
+    {
+        $spec = $this->catalog()[$code] ?? [];
+        foreach ($spec['fields'] ?? [] as $field) {
+            if (! is_array($field) || empty($field['secret'])) {
+                continue;
+            }
+            $key = (string) ($field['key'] ?? '');
+            if ($key !== '' && trim((string) ($config[$key] ?? '')) !== '') {
                 return true;
             }
         }
@@ -173,6 +210,9 @@ class GatewayConfigStore
 
         return [
             'code' => $code,
+            // Dashboard billing normalizer expects `id`; keep `code` for ERP admin UI.
+            'id' => $code,
+            'label' => (string) ($spec['label_fa'] ?? $code),
             'label_fa' => (string) ($spec['label_fa'] ?? $code),
             'label_en' => (string) ($spec['label_en'] ?? $code),
             'supports' => array_values($spec['supports'] ?? []),
