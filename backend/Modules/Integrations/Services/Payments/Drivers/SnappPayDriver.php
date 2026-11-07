@@ -6,7 +6,7 @@ class SnappPayDriver extends SnappStyleDriver
 {
     public function code(): string
     {
-        return 'snappay';
+        return 'snapppay';
     }
 
     protected function defaultProductionBase(): string

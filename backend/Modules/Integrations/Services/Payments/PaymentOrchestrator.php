@@ -352,7 +352,7 @@ class PaymentOrchestrator
         if ($digits === '' && ! empty($config['local_simulation'])) {
             return '09120000000';
         }
-        if ($digits === '' && in_array($config['code'] ?? '', ['snappay', 'digipay', 'torobpay'], true) && empty($config['local_simulation'])) {
+        if ($digits === '' && in_array($config['code'] ?? '', ['snapppay', 'digipay', 'torobpay'], true) && empty($config['local_simulation'])) {
             throw new PaymentException('شماره موبایل برای این درگاه الزامی است.', 'mobile');
         }
 

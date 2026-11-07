@@ -47,12 +47,19 @@ class GatewayConfigStore
      */
     public function for(string $code): array
     {
+        if ($code === 'snappay') {
+            $code = 'snapppay';
+        }
         $spec = $this->catalog()[$code] ?? null;
         if (! is_array($spec)) {
             throw new PaymentException('درگاه ناشناخته است.', 'unknown_gateway');
         }
         $savedAll = $this->saved();
         $row = is_array($savedAll[$code] ?? null) ? $savedAll[$code] : [];
+        // Legacy ERP id was `snappay`; Dashboard / catalog canonical id is `snapppay`.
+        if ($row === [] && $code === 'snapppay' && is_array($savedAll['snappay'] ?? null)) {
+            $row = $savedAll['snappay'];
+        }
         $defaults = is_array($spec['defaults'] ?? null) ? $spec['defaults'] : [];
         $envMap = is_array($spec['env_fallback'] ?? null) ? $spec['env_fallback'] : [];
 
@@ -111,7 +118,7 @@ class GatewayConfigStore
         }
 
         // Snapp/Torob-style: sandbox without a custom base_url uses the local simulator.
-        if (in_array($code, ['snappay', 'torobpay'], true)) {
+        if (in_array($code, ['snapppay', 'torobpay'], true)) {
             $base = trim((string) ($config['base_url'] ?? ''));
             if ($base !== '' && ! $this->missingLiveCredentials($code, $config)) {
                 return false;
@@ -203,6 +210,9 @@ class GatewayConfigStore
 
         return [
             'code' => $code,
+            // Dashboard billing normalizer expects `id`; keep `code` for ERP admin UI.
+            'id' => $code,
+            'label' => (string) ($spec['label_fa'] ?? $code),
             'label_fa' => (string) ($spec['label_fa'] ?? $code),
             'label_en' => (string) ($spec['label_en'] ?? $code),
             'supports' => array_values($spec['supports'] ?? []),

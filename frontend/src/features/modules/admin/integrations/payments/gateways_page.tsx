@@ -71,7 +71,7 @@ const SAMPLE = 10_000_000;
 
 const BRAND: Record<string, { bg: string; fg: string; initials: string }> = {
   zarinpal: { bg: 'bg-amber-100 dark:bg-amber-500/15', fg: 'text-amber-700 dark:text-amber-300', initials: 'ZP' },
-  snappay: { bg: 'bg-sky-100 dark:bg-sky-500/15', fg: 'text-sky-700 dark:text-sky-300', initials: 'SP' },
+  snapppay: { bg: 'bg-sky-100 dark:bg-sky-500/15', fg: 'text-sky-700 dark:text-sky-300', initials: 'SP' },
   digipay: { bg: 'bg-rose-100 dark:bg-rose-500/15', fg: 'text-rose-700 dark:text-rose-300', initials: 'DP' },
   torobpay: { bg: 'bg-violet-100 dark:bg-violet-500/15', fg: 'text-violet-700 dark:text-violet-300', initials: 'TP' },
 };

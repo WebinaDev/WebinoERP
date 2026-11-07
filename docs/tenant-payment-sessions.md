@@ -44,7 +44,7 @@ All are `POST` and JSON.
   "payable_type": "wallet_topup",
   "payable_id": "client.example.com",
   "mode": "installment",
-  "gateway": "snappay",
+  "gateway": "snapppay",
   "return_url": "https://dashboard.example.com/billing/return",
   "mobile": "09120000000",
   "amount": 150000,
@@ -76,7 +76,7 @@ Success is `201`:
     "redirect_url": "https://gateway.example/pay/...",
     "status": "redirected",
     "mode": "installment",
-    "gateway": "snappay",
+    "gateway": "snapppay",
     "base_amount": 150000,
     "fee_percent": 10,
     "fee_amount": 15000,
@@ -90,7 +90,7 @@ Send the browser to `redirect_url`. Repeating the same `idempotency_key`, or the
 
 ## Callback and return
 
-The gateway calls ERP at `GET` or `POST /api/v1/integrations/payments/callback/{gateway}` where `{gateway}` is `zarinpal`, `snappay`, `digipay`, or `torobpay`. ERP verifies with the provider (and settles when that provider requires it) before any side effect. A redirect or `Status=OK` alone does not mark the bill paid.
+The gateway calls ERP at `GET` or `POST /api/v1/integrations/payments/callback/{gateway}` where `{gateway}` is `zarinpal`, `snapppay`, `digipay`, or `torobpay`. ERP verifies with the provider (and settles when that provider requires it) before any side effect. A redirect or `Status=OK` alone does not mark the bill paid.
 
 After settle, a browser callback is redirected to `return_url` with:
 
@@ -115,7 +115,7 @@ Sanctum, module `integrations`, and permission `integrations`:
 | `GET` | `/api/v1/integrations/payments/intents/{publicId}` |
 | `POST` | `/api/v1/integrations/payments/intents/{publicId}/cancel` |
 
-`PUT /payments/gateways` body is `{ "gateways": { "zarinpal": { ... }, "snappay": { ... } } }`. Blank secret fields keep the saved value. Responses mask secrets. A disabled gateway is absent from `options` and from the payment picker.
+`PUT /payments/gateways` body is `{ "gateways": { "zarinpal": { ... }, "snapppay": { ... } } }`. Blank secret fields keep the saved value. Responses mask secrets. A disabled gateway is absent from `options` and from the payment picker.
 
 Legacy `POST /api/v1/integrations/payments/initiate` and `/verify` stay. They use the new flow when a cash gateway is enabled, and the previous cache sandbox when it is not.
 
@@ -126,7 +126,7 @@ Native ERP drivers:
 | Code | Modes | Live credentials | Sandbox without credentials |
 | --- | --- | --- | --- |
 | `zarinpal` | cash | `merchant_id` | Local simulator, unless the merchant id is 36 characters (then HTTP sandbox). |
-| `snappay` | installment | `client_id`, `client_secret`, `username`, `password`, and a base URL | Local simulator. Production base `https://api.snapppay.ir`. The ERP server IP must be whitelisted. |
+| `snapppay` | installment | `client_id`, `client_secret`, `username`, `password`, and a base URL | Local simulator. Production base `https://api.snapppay.ir`. The ERP server IP must be whitelisted. |
 | `digipay` | cash and installment | same OAuth fields | Local simulator. UAT `https://uat.mydigipay.info/digipay/api`, production `https://api.mydigipay.com/digipay/api`. This is Digikala UPG, not another DigiPay product. Cash ticket type `0`, installment type `13`. |
 | `torobpay` | installment | same OAuth fields plus base URL | Local simulator. Default production base `https://cpg.torobpay.com`. |
 

@@ -111,6 +111,10 @@ class PaymentGatewayRegistry
 
     public function get(string $code): PaymentGatewayDriver
     {
+        // Legacy ERP spelling; Dashboard / catalog use snapppay.
+        if ($code === 'snappay') {
+            $code = 'snapppay';
+        }
         if (! isset($this->drivers[$code])) {
             throw new PaymentException('درگاه ناشناخته است.', 'unknown_gateway');
         }
