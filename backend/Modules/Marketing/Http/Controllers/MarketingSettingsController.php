@@ -5,6 +5,7 @@ namespace Modules\Marketing\Http\Controllers;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Modules\Marketing\Entities\MarketingSiteSetting;
+use Modules\Marketing\Support\EnamadFile;
 
 class MarketingSettingsController extends Controller
 {
@@ -25,6 +26,9 @@ class MarketingSettingsController extends Controller
             'home_blocks' => 'nullable|array',
             'social_links' => 'nullable|array',
         ]);
+        if (isset($data['branding']) && is_array($data['branding']) && array_key_exists('enamad_file', $data['branding'])) {
+            $data['branding']['enamad_file'] = EnamadFile::normalize($data['branding']['enamad_file']);
+        }
         $settings = MarketingSiteSetting::current();
         $settings->update($data);
 

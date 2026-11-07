@@ -10,6 +10,7 @@ use Modules\Marketing\Http\Controllers\Public\PublicSiteController;
 
 Route::middleware('throttle:marketing-public')->group(function () {
     Route::get('/site', [PublicSiteController::class, 'site'])->middleware('public.cache');
+    Route::get('/enamad/{code}', [PublicSiteController::class, 'enamadFile'])->where('code', '[0-9]{1,64}');
     Route::get('/sitemap', [\Modules\Marketing\Http\Controllers\Public\PublicSitemapController::class, 'index']);
     Route::get('/home', [PublicSiteController::class, 'home']);
     Route::get('/services', [PublicSiteController::class, 'services']);

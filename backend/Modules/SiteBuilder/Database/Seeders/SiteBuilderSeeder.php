@@ -41,6 +41,12 @@ class SiteBuilderSeeder extends Seeder
         $hasIcon = Schema::hasColumn('webino_dashboard_features', 'icon');
         $hasBuiltin = Schema::hasColumn('webino_dashboard_features', 'is_builtin');
         foreach ($features as $f) {
+            if (! $hasIcon) {
+                unset($f['icon']);
+            }
+            if (! $hasBuiltin) {
+                unset($f['is_builtin']);
+            }
             $isAddon = (bool) ($f['is_addon'] ?? false);
             WebinoDashboardFeature::query()->firstOrCreate(
                 ['slug' => $f['slug']],

@@ -6,6 +6,8 @@ import { toast } from "sonner"
 
 import { PageShell } from "@/components/PageShell"
 import { Button } from "@/components/ui/button"
+import { Input } from "@/components/ui/input"
+import { Label } from "@/components/ui/label"
 import { api } from "@/lib/builder-api"
 import {
   BADGE_FIELDS,
@@ -28,6 +30,11 @@ const TABS = [
   { id: "badges", label: "نشان‌های اعتماد" },
 ] as const
 type TabId = (typeof TABS)[number]["id"]
+
+function enamadCode(raw: string): string {
+  const value = raw.trim().toLowerCase().replace(/\.txt$/, "")
+  return /^[0-9]{1,64}$/.test(value) ? value : ""
+}
 
 const PAGES = [
   { slug: "home", label: "صفحه اصلی" },
@@ -63,8 +70,10 @@ export function HomeBuilderPage() {
 
   async function save() {
     setBusy(true)
+    const nextBranding = { ...branding, enamad_file: enamadCode(String(branding.enamad_file ?? "")) }
+    setBranding(nextBranding)
     try {
-      await api("/api/v1/marketing/settings", { method: "PUT", json: { branding, social_links: socials } })
+      await api("/api/v1/marketing/settings", { method: "PUT", json: { branding: nextBranding, social_links: socials } })
       toast.success("ذخیره شد. سایت تا یک دقیقه دیگر به‌روز می‌شود.")
     } catch {
       toast.error("ذخیره ناموفق بود.")
@@ -157,6 +166,23 @@ export function HomeBuilderPage() {
 
       {loaded && tab === "badges" ? (
         <Panel>
+          <div className="grid max-w-sm gap-1">
+            <Label htmlFor="enamad-file">فایل احراز اینماد</Label>
+            <Input
+              id="enamad-file"
+              dir="ltr"
+              inputMode="numeric"
+              placeholder="4534534"
+              value={typeof branding.enamad_file === "string" ? branding.enamad_file : ""}
+              onChange={(e) => setBranding({ ...branding, enamad_file: e.target.value })}
+            />
+            <p className="text-muted-foreground text-xs">
+              فقط عدد اینماد را بنویسید. یک فایل متنی خالی و عمومی در صفحه اصلی سایت ساخته می‌شود، مثل 4534534.txt.
+            </p>
+            {enamadCode(String(branding.enamad_file ?? "")) ? (
+              <p className="text-xs" dir="ltr">{`/${enamadCode(String(branding.enamad_file ?? ""))}.txt`}</p>
+            ) : null}
+          </div>
           <ListField
             field={{ key: "trust_badges", label: "نشان‌های اعتماد (اینماد، ساماندهی…)", kind: "list", fields: BADGE_FIELDS, itemTitle: "label" }}
             value={Array.isArray(branding.trust_badges) ? (branding.trust_badges as unknown[]).filter(isObj) : []}

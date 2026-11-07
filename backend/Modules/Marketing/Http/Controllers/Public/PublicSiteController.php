@@ -14,6 +14,7 @@ use Modules\Marketing\Entities\MarketingSiteSetting;
 use Modules\Marketing\Entities\MarketingSolutionIndustry;
 use Modules\Marketing\Entities\MarketingTestimonial;
 use Modules\Marketing\Http\Controllers\Controller;
+use Modules\Marketing\Support\EnamadFile;
 
 class PublicSiteController extends Controller
 {
@@ -103,5 +104,13 @@ class PublicSiteController extends Controller
             ->get();
 
         return response()->json(['data' => $industries]);
+    }
+
+    /** Empty body when the code matches the site's eNamad file. */
+    public function enamadFile(string $code): \Illuminate\Http\Response
+    {
+        $branding = MarketingSiteSetting::current()->branding;
+
+        return EnamadFile::response((string) (is_array($branding) ? ($branding['enamad_file'] ?? '') : ''), $code);
     }
 }
