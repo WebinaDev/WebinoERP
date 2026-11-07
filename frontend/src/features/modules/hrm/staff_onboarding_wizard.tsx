@@ -109,6 +109,12 @@ function numOrNull(value: string): number | null {
   return Number.isFinite(n) ? n : null;
 }
 
+/** Backend NOT NULL money columns reject JSON null — always send a number. */
+function numOrZero(value: string): number {
+  const n = numOrNull(value);
+  return n == null || n < 0 ? 0 : n;
+}
+
 export function StaffOnboardingWizard({
   open,
   editing,
@@ -321,10 +327,10 @@ export function StaffOnboardingWizard({
         contract_status: form.contract_status,
         engagement_type: form.engagement_type,
         pay_basis: form.pay_basis,
-        base_salary: numOrNull(form.base_salary),
-        daily_rate: numOrNull(form.daily_rate),
-        hourly_rate: numOrNull(form.hourly_rate),
-        project_fee: numOrNull(form.project_fee),
+        base_salary: numOrZero(form.base_salary),
+        daily_rate: numOrZero(form.daily_rate),
+        hourly_rate: numOrZero(form.hourly_rate),
+        project_fee: numOrZero(form.project_fee),
         insurance_applicable: form.insurance_applicable,
         tax_applicable: form.tax_applicable,
         issue_decree: form.issue_decree,

@@ -83,7 +83,7 @@ class HrmEmployeeOnboarding
         $code = IranianNationalId::normalize((string) $data['employee_code']);
         if (! IranianNationalId::isValid($code)) {
             throw ValidationException::withMessages([
-                'employee_code' => 'Personnel code must be a valid 10-digit Iranian national ID.',
+                'employee_code' => 'کد پرسنلی باید یک کد ملی ۱۰ رقمی معتبر باشد.',
             ]);
         }
         $data['employee_code'] = $code;
@@ -91,7 +91,7 @@ class HrmEmployeeOnboarding
         $position = HrmOrgPosition::query()->findOrFail($data['org_position_id']);
         if ($position->is_active === false) {
             throw ValidationException::withMessages([
-                'org_position_id' => 'Choose an active organization position.',
+                'org_position_id' => 'یک پست سازمانی فعال انتخاب کنید.',
             ]);
         }
         $data['position'] = $position->title;
@@ -103,7 +103,7 @@ class HrmEmployeeOnboarding
         }
         if (! empty($data['contract_end_date']) && ! empty($data['contract_start_date']) && $data['contract_end_date'] < $data['contract_start_date']) {
             throw ValidationException::withMessages([
-                'contract_end_date' => 'Contract end cannot be before contract start.',
+                'contract_end_date' => 'تاریخ پایان قرارداد نمی‌تواند قبل از شروع باشد.',
             ]);
         }
 
@@ -130,21 +130,26 @@ class HrmEmployeeOnboarding
             'contract_status' => $data['contract_status'],
             'engagement_type' => $data['engagement_type'],
             'pay_basis' => $data['pay_basis'],
-            'project_fee' => $data['project_fee'] ?? null,
-            'daily_rate' => $data['daily_rate'] ?? null,
-            'hourly_rate' => $data['hourly_rate'] ?? null,
+            'project_fee' => $data['project_fee'] ?? 0,
+            'daily_rate' => $data['daily_rate'] ?? 0,
+            'hourly_rate' => $data['hourly_rate'] ?? 0,
             'insurance_applicable' => $data['insurance_applicable'] ?? null,
             'tax_applicable' => $data['tax_applicable'] ?? null,
             'status' => $data['status'],
-            'base_salary' => $data['base_salary'] ?? null,
+            'base_salary' => $data['base_salary'] ?? 0,
             'notes' => $data['notes'] ?? ($employee->notes ?? null),
         ];
         if (Schema::hasColumn('hrm_employees', 'contract_start_date')) {
             $attrs['contract_start_date'] = $data['contract_start_date'] ?? null;
         }
         $attrs = $rules->applyDefaults($attrs);
+        // Re-assert money after defaults — never pass SQL NULL into NOT NULL numeric columns.
+        foreach (['base_salary', 'daily_rate', 'hourly_rate', 'project_fee'] as $moneyKey) {
+            $attrs[$moneyKey] = HrmCompensationRules::money($attrs[$moneyKey] ?? 0);
+        }
         $rules->assertEmployee(new HrmEmployee(array_merge($employee?->toArray() ?? [], $attrs)));
 
+        $isNew = $employee === null;
         if ($employee) {
             $employee->update($attrs);
         } else {
@@ -174,7 +179,13 @@ class HrmEmployeeOnboarding
             'project_fee' => (float) ($attrs['project_fee'] ?? 0),
             default => (float) ($attrs['base_salary'] ?? 0),
         };
-        if (Schema::hasTable('hrm_employee_salaries')) {
+        // New hire always gets a salary row; edits only when pay fields were in the payload.
+        $shouldWriteSalary = $isNew || array_key_exists('base_salary', $data)
+            || array_key_exists('daily_rate', $data)
+            || array_key_exists('hourly_rate', $data)
+            || array_key_exists('project_fee', $data)
+            || array_key_exists('salary_components', $data);
+        if ($shouldWriteSalary && Schema::hasTable('hrm_employee_salaries')) {
             HrmEmployeeSalary::query()->create([
                 'employee_id' => $employee->id,
                 'base_salary' => $primary,
