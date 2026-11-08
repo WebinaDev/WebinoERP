@@ -4,6 +4,7 @@
 services:
   db:
     image: postgres:15-alpine
+    restart: unless-stopped
     environment:
       POSTGRES_DB: ${POSTGRES_DB:-webina_crm}
       POSTGRES_USER: ${POSTGRES_USER:-webino}
@@ -20,6 +21,7 @@ services:
 
   redis:
     image: redis:7-alpine
+    restart: unless-stopped
     command: ["redis-server", "--requirepass", "${REDIS_PASSWORD:-CHANGE_ME}"]
     volumes:
       - redis_data:/data
