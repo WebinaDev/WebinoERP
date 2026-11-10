@@ -18,7 +18,7 @@ import { type ShopCategory, type ShopProduct } from "@/builder/catalog"
 import { filterNavItems, useNavMenuItems } from "@/lib/nav-menus"
 import { NavDrawerList, NavHeaderItem, NavItemLink, NavMegaPanel } from "./ClassicNavMenu"
 import { categoryHref } from "@/kernel/store-slug-href"
-import { setServerQty, useServerCart } from "@/builder/storefront/actions"
+import { setServerLineQty, useServerCart } from "@/builder/storefront/actions"
 import { quietApi } from "@/builder/storefront/session"
 import { useCatalog } from "@/builder/storefront/use-catalog"
 
@@ -793,21 +793,21 @@ export function ClassicHeader({
     auth === "auth"
       ? (cart?.items ?? []).map((line) => ({
           key: String(line.id),
-          name: line.product.name,
+          name: line.variant_name ? `${line.product.name} (${line.variant_name})` : line.product.name,
           image: line.product.cover_image_url || line.product.image_url,
           price: pricing?.lines?.find((row) => row.id === line.id)?.unit_price_minor ?? line.product.price_minor,
           qty: line.quantity,
           href: line.product.slug ? `/product/${line.product.slug}` : undefined,
-          onQty: (qty: number) => void setServerQty(line.product.id, qty),
+          onQty: (qty: number) => void setServerLineQty(line.id, qty),
         }))
       : localLines.map((line) => ({
-          key: line.slug,
-          name: line.name,
+          key: line.key ?? line.slug,
+          name: line.variantName ? `${line.name} (${line.variantName})` : line.name,
           image: line.image,
           price: line.price,
           qty: line.qty,
           href: `/product/${line.slug}`,
-          onQty: (qty: number) => setQty(line.slug, qty),
+          onQty: (qty: number) => setQty(line.key ?? line.slug, qty),
         }))
   const miniTotal =
     auth === "auth" && pricing?.subtotal_minor != null

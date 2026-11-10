@@ -1,5 +1,6 @@
 "use client"
 
+import { VariantPicker } from "@/builder/storefront/variant-picker"
 import { useClassicThemeSettings } from "@/themes/shared/site-branding-context"
 
 import Link from "next/link"
@@ -10,7 +11,7 @@ import { InstallmentBadges } from "@/components/payments/InstallmentBadges"
 import { useBodyScrollLock } from "@/hooks/use-body-scroll-lock"
 import { trackAnalyticsEvent } from "@/lib/analytics-track"
 import { mapApiProduct, toneClass, type ShopProduct } from "@/builder/catalog"
-import { addShopItem } from "@/builder/storefront/actions"
+import { addShopItem, implicitVariant } from "@/builder/storefront/actions"
 import { quietApi } from "@/builder/storefront/session"
 import { LowerPriceReportForm, PriceDropAlertForm, ProductReviewsPanel, StockAlertForm } from "@/builder/storefront/storefront-chrome"
 import { ProductPriceHistory } from "@/builder/storefront/storefront-extras"
@@ -168,7 +169,8 @@ export function ClassicProduct({ slug, editing }: { slug?: string; editing: bool
   const [qty, setQty] = useState(1)
   const [image, setImage] = useState(0)
   const [lightbox, setLightbox] = useState(false)
-  const [variantId, setVariantId] = useState<number | null>(null)
+  const [variantId, setVariantId] = useState<string | null>(null)
+  const [variantTouched, setVariantTouched] = useState(false)
   const [tab, setTab] = useState<"desc" | "spec" | "faq">("desc")
   const [liked, setLiked] = useState(false)
   const [note, setNote] = useState("")
@@ -226,7 +228,8 @@ export function ClassicProduct({ slug, editing }: { slug?: string; editing: bool
     return <p className="sfc-container sfc-empty-note">{tx("product.not_found")}</p>
   }
 
-  const variant = product.variants.find((item) => item.id === variantId) ?? null
+  const variant = product.variants.find((item) => item.id === variantId) ?? (variantId === null && !variantTouched ? implicitVariant(product) : null)
+  const needsVariant = product.variants.length > 0 && !variant
   const gallery = product.images.length ? product.images : product.image ? [product.image] : []
   const activeImage = variant?.image || gallery[image] || product.image
   const blocked = !product.inStock || (variant ? !variant.inStock : false)
@@ -244,8 +247,12 @@ export function ClassicProduct({ slug, editing }: { slug?: string; editing: bool
 
   function add() {
     if (editing || blocked || !product) return
+    if (needsVariant) {
+      setNote(tx("product.select_model"))
+      return
+    }
     trackAnalyticsEvent("add_to_cart", { productId: product.id })
-    void addShopItem(product, qty).then((result) => {
+    void addShopItem(product, qty, variant?.id ?? null).then((result) => {
       if (result !== "error" && !ajaxAdd) {
         // Theme Settings → «افزودن به سبد بدون رفرش» off: go to the cart like a classic form post.
         router.push("/cart")
@@ -413,19 +420,7 @@ export function ClassicProduct({ slug, editing }: { slug?: string; editing: bool
               {product.variants.length ? (
                 <div className="sfc-pdp__variants">
                   <span className="sfc-divider-title">{tx("product.select_model")}</span>
-                  <div className="sfc-pdp__variant-list">
-                    {product.variants.map((item) => (
-                      <button
-                        key={item.id}
-                        type="button"
-                        disabled={!item.inStock}
-                        onClick={() => setVariantId(item.id)}
-                        className={variantId === item.id ? "is-active" : ""}
-                      >
-                        {item.name}
-                      </button>
-                    ))}
-                  </div>
+                  <VariantPicker className="sfc-pdp__variant-list" variants={product.variants} value={variant?.id ?? null} onChange={(id) => { setVariantId(id); setVariantTouched(true); setNote("") }} />
                 </div>
               ) : null}
 

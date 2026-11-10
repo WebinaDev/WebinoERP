@@ -11,17 +11,18 @@ import { Moon, Search, ShoppingBag, Sun, UserRound } from "lucide-react"
 import { useLocale, useTranslations } from "next-intl"
 import Link from "next/link"
 import { useRouter, useSearchParams } from "next/navigation"
-import { useEffect, useMemo, useState, useSyncExternalStore } from "react"
+import { useEffect, useState, useSyncExternalStore } from "react"
 
-import { ApiError, api } from "@/lib/api"
-import { formatDate, formatNumber, normalizeUiLocale, toLatinDigits, toLocaleDigits } from "@/lib/locale"
+import { formatDate, formatNumber, normalizeUiLocale } from "@/lib/locale"
 import { useThemeSettings } from "@/providers/AppProviders"
 
 import { cartCount, cartServerSnapshot, cartSnapshot, clearCart, setQty, subscribeCart } from "../cart"
 import { toneClass, mapApiProduct, type ShopProduct } from "../catalog"
 import { parseLinks, propStr } from "../props"
 import type { WidgetNode } from "../types"
-import { addShopItem, setServerQty, syncGuestCart, useServerCart } from "./actions"
+import { addShopItem, implicitVariant, setServerLineQty, useServerCart } from "./actions"
+import { VariantPicker } from "./variant-picker"
+import { StorefrontSteppedCheckout } from "./checkout-steps"
 import { ProductPriceHistory } from "./storefront-extras"
 import {
   StorefrontAccountShell,
@@ -36,9 +37,7 @@ import { quietApi } from "./session"
 import { useCatalog } from "./use-catalog"
 import { useIsClassicSkin } from "../render/runtime"
 import { ClassicFilters } from "@/themes/ecommerce-classic/components/ClassicArchive"
-import { ClassicCart, ClassicCheckoutSteps } from "@/themes/ecommerce-classic/components/ClassicCart"
-import { ClassicCheckout, checkoutFieldOrder, isValidIranNationalId } from "@/themes/ecommerce-classic/components/ClassicCheckout"
-import { useClassicThemeSettings } from "@/themes/shared/site-branding-context"
+import { ClassicCart } from "@/themes/ecommerce-classic/components/ClassicCart"
 import { ClassicFooter } from "@/themes/ecommerce-classic/components/ClassicFooter"
 import { CLASSIC_NAV, ClassicHeader } from "@/themes/ecommerce-classic/components/ClassicHeader"
 import { ClassicProduct } from "@/themes/ecommerce-classic/components/ClassicProduct"
@@ -202,7 +201,7 @@ function DefaultStorefrontProduct({ slug, editing }: { slug?: string; editing: b
   const [remote, setRemote] = useState<ShopProduct | null | undefined>(undefined)
   const [qty, setQuantity] = useState(1)
   const [image, setImage] = useState(0)
-  const [variantId, setVariantId] = useState<number | null>(null)
+  const [variantId, setVariantId] = useState<string | null>(null)
   const [tab, setTab] = useState("desc")
   const [note, setNote] = useState("")
   const { auth } = useServerCart()
@@ -239,11 +238,21 @@ function DefaultStorefrontProduct({ slug, editing }: { slug?: string; editing: b
     if (editing || !product?.id) return
     trackAnalyticsEvent("product_view", { productId: product.id })
   }, [editing, product?.id])
+  // Preselect the default (or only) variant once the product is known.
+  useEffect(() => {
+    if (product && variantId === null) {
+      const pick = implicitVariant(product)
+      if (pick) setVariantId(pick.id)
+    }
+  }, [product, variantId])
   const variant = product?.variants.find((item) => item.id === variantId) ?? null
   const gallery = product?.images.length ? product.images : product?.image ? [product.image] : []
   const activeImage = variant?.image || gallery[image] || product?.image
+  const hasVariants = (product?.variants.length ?? 0) > 0
   const blocked = !product?.inStock || (variant ? !variant.inStock : false)
   const priceGap = variant && variant.price > 0 && variant.price !== product?.price
+  const shownPrice = variant?.price || product?.price || 0
+  const shownCompare = variant ? variant.compare : product?.compare
 
   if (!product) {
     return <p className="sf-card p-8 text-center text-sm">{t("empty_none")}</p>
@@ -251,8 +260,12 @@ function DefaultStorefrontProduct({ slug, editing }: { slug?: string; editing: b
 
   function add() {
     if (editing || blocked) return
+    if (hasVariants && !variant) {
+      setNote(t("choose_variant"))
+      return
+    }
     trackAnalyticsEvent("add_to_cart", { productId: product.id })
-    void addShopItem(product as ShopProduct, qty).then((result) => setNote(result === "error" ? t("add_failed") : t("added")))
+    void addShopItem(product as ShopProduct, qty, variant?.id ?? null).then((result) => setNote(result === "error" ? t("add_failed") : t("added")))
   }
 
   return (
@@ -296,26 +309,14 @@ function DefaultStorefrontProduct({ slug, editing }: { slug?: string; editing: b
         <p className="mt-2 text-sm text-muted-foreground">{product.inStock ? t("stock_in") : t("stock_out")}</p>
         {!product.inStock ? <StockAlertForm slug={product.slug} /> : null}
         <div className="mt-4 flex items-end gap-3">
-          <div className="text-2xl font-bold">{money(product.price, product.compare)}</div>
+          <div className="text-2xl font-bold">{money(shownPrice, shownCompare)}</div>
         </div>
         {product.cashPrice && product.cashPrice !== product.price ? (
           <p className="mt-2 text-sm text-muted-foreground">{t("cash_hint", { amount: money.text(product.cashPrice) })}</p>
         ) : null}
         <InstallmentBadges productId={product.id} amountMinor={product.price} />
-        {product.variants.length ? (
-          <div className="mt-4 flex flex-wrap gap-2">
-            {product.variants.map((item) => (
-              <button
-                key={item.id}
-                type="button"
-                onClick={() => setVariantId(item.id)}
-                className={`rounded-full px-3 py-1 text-xs font-semibold ${variantId === item.id ? "bg-primary text-primary-foreground" : "bg-muted"}`}
-              >
-                {item.name}
-                {!item.inStock ? ` (${t("stock_out")})` : ""}
-              </button>
-            ))}
-          </div>
+        {hasVariants ? (
+          <VariantPicker className="mt-4" variants={product.variants} value={variantId} onChange={(id) => { setVariantId(id); setNote("") }} />
         ) : null}
         {priceGap ? <p className="mt-2 text-xs text-muted-foreground">{t("variant_price_note")}</p> : null}
         {product.installments.length ? (
@@ -407,7 +408,7 @@ function DefaultStorefrontProduct({ slug, editing }: { slug?: string; editing: b
       <div className="sf-sticky-cta md:hidden">
         <div>
           <div className="text-xs text-muted-foreground">{product.inStock ? t("stock_in") : t("stock_out")}</div>
-          <div className="font-bold">{money(product.price, product.compare)}</div>
+          <div className="font-bold">{money(shownPrice, shownCompare)}</div>
         </div>
         <button type="button" disabled={editing || blocked} onClick={add} className="rounded-full bg-primary px-5 py-2.5 text-sm font-bold text-primary-foreground disabled:opacity-50">
           {tCart("add_to_cart")}
@@ -473,16 +474,21 @@ function DefaultStorefrontCart() {
               </div>
               <div className="flex-1">
                 <div className="font-bold">{line.product.name}</div>
-                <div className="text-sm">{money(unitFor(line.id, line.product.price_minor))}</div>
+                {line.variant_name ? <div className="text-xs text-muted-foreground">{t("variant_label", { name: line.variant_name })}</div> : null}
+                <div className="text-sm">{money(unitFor(line.id, line.unit_price_minor ?? line.product.price_minor), line.regular_price_minor)}</div>
               </div>
               <input
                 className="sf-field h-10 w-16 text-center"
                 type="number"
                 min={0}
+                max={line.stock != null && line.stock > 0 ? line.stock : undefined}
                 value={line.quantity}
                 aria-label={tCart("quantity")}
-                onChange={(event) => void setServerQty(line.product.id, Number(event.target.value))}
+                onChange={(event) => void setServerLineQty(line.id, Number(event.target.value))}
               />
+              <button type="button" className="rounded-full px-2 py-1 text-xs text-muted-foreground hover:text-destructive" aria-label={t("remove_line")} onClick={() => void setServerLineQty(line.id, 0)}>
+                ×
+              </button>
             </div>
           ))}
         </div>
@@ -516,13 +522,14 @@ function DefaultStorefrontCart() {
       <div className="grid gap-3">
         <p className="text-sm text-muted-foreground">{t("guest_note")}</p>
         {local.map((line) => (
-          <div key={line.slug} className="sf-card flex items-center gap-3 p-3">
+          <div key={line.key ?? line.slug} className="sf-card flex items-center gap-3 p-3">
             <div className="size-20 overflow-hidden rounded-2xl bg-muted">
               {line.image ? <img src={line.image} alt="" className="h-full w-full object-cover" /> : null}
             </div>
             <div className="flex-1">
               <div className="font-bold">{line.name}</div>
-              <div className="text-sm">{money(line.price)}</div>
+              {line.variantName ? <div className="text-xs text-muted-foreground">{t("variant_label", { name: line.variantName })}</div> : null}
+              <div className="text-sm">{money(line.price, line.compare)}</div>
             </div>
             <input
               className="sf-field h-10 w-16 text-center"
@@ -530,7 +537,7 @@ function DefaultStorefrontCart() {
               min={0}
               value={line.qty}
               aria-label={tCart("quantity")}
-              onChange={(event) => setQty(line.slug, Number(event.target.value))}
+              onChange={(event) => setQty(line.key ?? line.slug, Number(event.target.value))}
             />
           </div>
         ))}
@@ -549,322 +556,12 @@ function DefaultStorefrontCart() {
   )
 }
 
-type Gateway = {
-  id: "zarinpal" | "digipay" | "snapppay" | "torobpay" | "bale_pay" | "basalam_pay"
-  title?: string
-  cash_enabled?: boolean
-  installment_enabled?: boolean
-  fee_percent?: number
-  fee_payer?: string
-  quote?: { fee_percent: number; fee_payer: string; fee_minor: number; base_minor: number; charge_minor: number }
-}
-
-type Rate = { instance_id: number; title: string; cost_minor: number }
-
-
-function labelForGateway(id: string, tCheckout: (key: "pay_zarinpal" | "pay_digipay" | "pay_snapppay" | "pay_torobpay") => string, t: (key: "pay_bale" | "pay_basalam") => string) {
-  if (id === "zarinpal") return tCheckout("pay_zarinpal")
-  if (id === "digipay") return tCheckout("pay_digipay")
-  if (id === "snapppay") return tCheckout("pay_snapppay")
-  if (id === "torobpay") return tCheckout("pay_torobpay")
-  if (id === "bale_pay") return t("pay_bale")
-  if (id === "basalam_pay") return t("pay_basalam")
-  return tCheckout("pay_zarinpal")
-}
-
+/** Stepped checkout (address, delivery time, shipping, payment) on the step endpoints; see checkout-steps.tsx. */
 function DefaultStorefrontCheckout() {
-  const t = useTranslations("storefront")
-  const tCheckout = useTranslations("checkout")
-
   useEffect(() => {
     trackAnalyticsEvent("checkout_start")
   }, [])
-  const money = useMoney()
-  const locale = useLocale()
-  const params = useSearchParams()
-  const { auth, cart } = useServerCart()
-  const [states, setStates] = useState<{ code: string; name: string }[]>([])
-  const [stateCode, setStateCode] = useState("")
-  const [city, setCity] = useState("")
-  const [postcode, setPostcode] = useState("")
-  const [address, setAddress] = useState("")
-  const [phone, setPhone] = useState("")
-  const [nationalId, setNationalId] = useState("")
-  const commerce = useClassicThemeSettings().commerce ?? {}
-  const nationalMode = commerce.checkout_national_id === "optional" || commerce.checkout_national_id === "required" ? commerce.checkout_national_id : "hidden"
-  const fieldOrder = checkoutFieldOrder(commerce.checkout_field_order)
-  const [note, setNote] = useState("")
-  const [coupon, setCoupon] = useState("")
-  const [rates, setRates] = useState<Rate[]>([])
-  const [rateId, setRateId] = useState<number | null>(null)
-  const [orderId, setOrderId] = useState<number | null>(null)
-  const [gateways, setGateways] = useState<Gateway[]>([])
-  const [mode, setMode] = useState<"cash" | "installment">("cash")
-  const [error, setError] = useState("")
-  const [busy, setBusy] = useState(false)
-  const flash = params.get("payment")
-
-  useEffect(() => {
-    void quietApi<{ states?: { code: string; name: string }[] }>("/api/v1/public/geo/states").then((res) => {
-      if (res.ok) setStates(res.data.states ?? [])
-    })
-  }, [])
-
-  useEffect(() => {
-    if (auth !== "auth") return
-    void syncGuestCart()
-  }, [auth])
-
-  useEffect(() => {
-    if (cart?.pricing?.purchase_type === "installment") setMode("installment")
-  }, [cart?.pricing?.purchase_type])
-
-  useEffect(() => {
-    if (!orderId || auth !== "auth") return
-    void api<{ gateways?: Gateway[] }>(`/api/v1/payments/checkout-options?order_id=${orderId}`)
-      .then((res) => setGateways(res.gateways ?? []))
-      .catch(() => setGateways([]))
-  }, [auth, orderId])
-
-  const allowed = useMemo(
-    () =>
-      gateways.filter((gateway) => (mode === "installment" ? gateway.installment_enabled : gateway.cash_enabled)),
-    [gateways, mode],
-  )
-
-  if (auth !== "auth") {
-    if (auth === "loading") {
-      return <div className="sf-card p-8 text-center text-sm text-muted-foreground">{t("loading")}</div>
-    }
-    return (
-      <div className="sf-card p-8 text-center">
-        <p className="text-sm">{t("guest_note")}</p>
-        <Link href={`/login?next=${encodeURIComponent("/checkout")}`} className="mt-4 inline-flex rounded-full bg-primary px-5 py-2 text-sm font-bold text-primary-foreground">
-          {t("login_checkout")}
-        </Link>
-      </div>
-    )
-  }
-
-  async function quoteShipping() {
-    setError("")
-    try {
-      const res = await api<{ rates?: Rate[] }>("/api/v1/shipping/quote", {
-        method: "POST",
-        json: {
-          state_code: stateCode || null,
-          postcode: postcode || null,
-          cart_subtotal_minor: cart?.pricing?.subtotal_minor ?? 0,
-        },
-      })
-      const next = res.rates ?? []
-      setRates(next)
-      setRateId(next[0]?.instance_id ?? null)
-      if (!next.length) setError(t("shipping_empty"))
-    } catch (err) {
-      setError(err instanceof ApiError ? err.message : t("add_failed"))
-    }
-  }
-
-  async function placeOrder() {
-    if (nationalMode !== "hidden" && (nationalMode === "required" || nationalId) && !isValidIranNationalId(nationalId)) {
-      setError(t("national_id_invalid"))
-      return
-    }
-    setBusy(true)
-    setError("")
-    try {
-      const shippingAddress = [stateCode, city, address, postcode].filter(Boolean).join("، ")
-      const order = await api<{ id: number }>("/api/v1/checkout", {
-        method: "POST",
-        json: {
-          shipping_address: shippingAddress || null,
-          customer_phone: phone || null,
-          customer_note: note || null,
-          coupon_code: coupon || null,
-          shipping_instance_id: rateId,
-          shipping_state_code: stateCode || null,
-          shipping_postcode: postcode || null,
-          customer_national_id: nationalMode !== "hidden" ? nationalId || null : null,
-        },
-      })
-      setOrderId(order.id)
-    } catch (err) {
-      setError(err instanceof ApiError ? err.message : t("add_failed"))
-    } finally {
-      setBusy(false)
-    }
-  }
-
-  async function pay(provider: Gateway["id"]) {
-    if (!orderId) return
-    setError("")
-    try {
-      const intent = await api<{ redirect_url: string | null }>("/api/v1/payments/intent", {
-        method: "POST",
-        json: { order_id: orderId, provider, mode },
-      })
-      if (intent.redirect_url?.startsWith("http")) {
-        window.location.assign(intent.redirect_url)
-        return
-      }
-      setError(t("pay_missing"))
-    } catch (err) {
-      setError(err instanceof ApiError ? err.message : t("add_failed"))
-    }
-  }
-
-  return (
-    <div className="sf-checkout grid gap-4 lg:grid-cols-[1fr_300px]">
-      <form
-        className="sf-card grid gap-3 p-5 md:grid-cols-2"
-        onSubmit={(event) => {
-          event.preventDefault()
-          void placeOrder()
-        }}
-      >
-        <h2 className="text-xl font-bold md:col-span-2">{tCheckout("title")}</h2>
-        {flash === "success" ? <p className="text-sm text-primary md:col-span-2">{tCheckout("payment_ok")}</p> : null}
-        {flash === "refund_pending" ? <p role="alert" className="text-sm text-destructive md:col-span-2">{tCheckout("payment_refund_pending")}</p> : null}
-        {flash === "failed" ? <p className="text-sm text-destructive md:col-span-2">{tCheckout("payment_failed")}</p> : null}
-        {fieldOrder.map((field) => {
-          switch (field) {
-          case "state":
-            return (
-              <label key="state" className="grid gap-1 text-sm">
-                <span>{t("shipping_state")}</span>
-                <select className="sf-field" value={stateCode} onChange={(event) => setStateCode(event.target.value)}>
-                  <option value="">{t("choose")}</option>
-                  {states.map((item) => (
-                    <option key={item.code} value={item.code}>
-                      {item.name}
-                    </option>
-                  ))}
-                </select>
-              </label>
-            )
-          case "city":
-            return (
-              <label key="city" className="grid gap-1 text-sm">
-                <span>{t("shipping_city")}</span>
-                <input className="sf-field" value={city} onChange={(event) => setCity(event.target.value)} />
-              </label>
-            )
-          case "postcode":
-            return (
-              <label key="postcode" className="grid gap-1 text-sm">
-                <span>{t("shipping_postcode")}</span>
-                <input className="sf-field" dir="ltr" value={postcode} onChange={(event) => setPostcode(toLatinDigits(event.target.value).replace(/\D/g, ""))} />
-              </label>
-            )
-          case "phone":
-            return (
-              <label key="phone" className="grid gap-1 text-sm">
-                <span>{tCheckout("customer_phone")}</span>
-                <input required className="sf-field" dir="ltr" value={phone} onChange={(event) => setPhone(event.target.value)} />
-              </label>
-            )
-          case "address":
-            return (
-              <label key="address" className="grid gap-1 text-sm md:col-span-2">
-                <span>{tCheckout("shipping_address")}</span>
-                <textarea required className="sf-field min-h-24 py-2" value={address} onChange={(event) => setAddress(event.target.value)} />
-              </label>
-            )
-          case "coupon":
-            return (
-              <label key="coupon" className="grid gap-1 text-sm">
-                <span>{t("coupon")}</span>
-                <input className="sf-field" value={coupon} onChange={(event) => setCoupon(event.target.value)} />
-              </label>
-            )
-          case "note":
-            return (
-              <label key="note" className="grid gap-1 text-sm">
-                <span>{tCheckout("customer_note")}</span>
-                <input className="sf-field" value={note} onChange={(event) => setNote(event.target.value)} />
-              </label>
-            )
-          case "national_id":
-            return nationalMode === "hidden" ? null : (
-              <label key="national_id" className="grid gap-1 text-sm">
-                <span>{t("national_id")}</span>
-                <input
-                  className="sf-field"
-                  dir="ltr"
-                  inputMode="numeric"
-                  autoComplete="off"
-                  required={nationalMode === "required"}
-                  pattern="\\d{10}"
-                  value={nationalId}
-                  onChange={(event) => setNationalId(toLatinDigits(event.target.value).replace(/\D/g, "").slice(0, 10))}
-                />
-              </label>
-            )
-          default:
-            return null
-          }
-        })}
-        <div className="md:col-span-2">
-          <button type="button" className="rounded-full border border-border px-4 py-2 text-sm font-semibold" onClick={() => void quoteShipping()}>
-            {t("shipping_quote")}
-          </button>
-          <div className="mt-3 grid gap-2">
-            {rates.map((rate) => (
-              <label key={rate.instance_id} className="sf-muted flex items-center justify-between rounded-2xl px-3 py-2 text-sm">
-                <span className="flex items-center gap-2">
-                  <input type="radio" name="ship" checked={rateId === rate.instance_id} onChange={() => setRateId(rate.instance_id)} />
-                  {rate.title}
-                </span>
-                <span>{money(rate.cost_minor)}</span>
-              </label>
-            ))}
-          </div>
-        </div>
-        {error ? <p className="text-sm text-destructive md:col-span-2">{error}</p> : null}
-        <button type="submit" disabled={busy || auth !== "auth"} className="h-11 rounded-full bg-primary text-sm font-bold text-primary-foreground disabled:opacity-50 md:col-span-2">
-          {tCheckout("place_order")}
-        </button>
-        {orderId ? (
-          <p className="text-sm text-muted-foreground md:col-span-2">
-            {tCheckout("order_created")} #{digits(orderId, locale)}
-          </p>
-        ) : null}
-      </form>
-      <aside className="sf-card h-fit p-5">
-        <h3 className="font-bold">{t("pay_title")}</h3>
-        <div className="mt-3 flex gap-2">
-          <button type="button" className={`rounded-full px-3 py-1 text-xs font-semibold ${mode === "cash" ? "bg-primary text-primary-foreground" : "bg-muted"}`} onClick={() => setMode("cash")}>
-            {tCheckout("mode_cash")}
-          </button>
-          <button type="button" className={`rounded-full px-3 py-1 text-xs font-semibold ${mode === "installment" ? "bg-primary text-primary-foreground" : "bg-muted"}`} onClick={() => setMode("installment")}>
-            {tCheckout("mode_installment")}
-          </button>
-        </div>
-        <div className="mt-4 grid gap-2">
-          {allowed.length === 0 ? <p className="text-sm text-muted-foreground">{tCheckout("no_gateway_mode")}</p> : null}
-          {allowed.map((gateway) => (
-            <button
-              key={gateway.id}
-              type="button"
-              disabled={!orderId}
-              onClick={() => void pay(gateway.id)}
-              className="rounded-2xl border border-border px-3 py-3 text-start text-sm font-semibold disabled:opacity-50"
-            >
-              <span>{gateway.title || labelForGateway(gateway.id, tCheckout, t)}</span>
-              {gateway.quote && gateway.quote.fee_percent > 0 ? (
-                <span className="mt-1 block text-xs font-normal text-muted-foreground">
-                  {tCheckout("fee_line", { percent: toLocaleDigits(gateway.quote.fee_percent, locale) })}
-                  {" · "}
-                  {money(gateway.quote.charge_minor)}
-                </span>
-              ) : null}
-            </button>
-          ))}
-        </div>
-      </aside>
-    </div>
-  )
+  return <StorefrontSteppedCheckout />
 }
 
 type AccountOrder = {
@@ -1136,8 +833,8 @@ export function StorefrontCart() {
 }
 
 export function StorefrontCheckout() {
-  const classic = useIsClassicSkin()
-  return classic ? <ClassicCheckout /> : <DefaultStorefrontCheckout />
+  // Both skins use the stepped checkout so the merchant's checkout flow settings apply everywhere.
+  return <DefaultStorefrontCheckout />
 }
 
 export function StorefrontHeader({

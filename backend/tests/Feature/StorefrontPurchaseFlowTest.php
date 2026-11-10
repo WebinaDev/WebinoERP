@@ -145,6 +145,39 @@ class StorefrontPurchaseFlowTest extends TestCase
         $this->postJson('/api/v1/checkout', $this->contact(['gift_card_code' => $old->code]), $this->guest())->assertStatus(422);
     }
 
+    public function test_abandoned_pending_orders_expire_and_release_gift_card_stock_and_coupon(): void
+    {
+        $cards = app(StorefrontGiftCards::class);
+        $card = $cards->issue(['amount_minor' => 300000]);
+        $p = $this->product(['stock' => 5]);
+        $this->postJson('/api/v1/cart/items', ['product_id' => $p->id, 'quantity' => 2], $this->guest())->assertOk();
+        $order = $this->postJson('/api/v1/checkout', $this->contact(['gift_card_code' => $card->code]), $this->guest())->assertCreated()->json('data');
+        $this->assertSame(0, $card->fresh()->balance_minor);
+        $this->assertSame(3, (int) ($p->fresh()->meta['stock'] ?? $p->fresh()->stock ?? -1));
+
+        // A fresh order is kept; past the TTL it is cancelled and everything is released, once.
+        $this->artisan('sales:expire-pending-orders')->assertSuccessful();
+        $this->assertSame('pending_payment', SalesStorefrontOrder::query()->findOrFail($order['id'])->status);
+        $this->travel(49)->hours();
+        $this->artisan('sales:expire-pending-orders')->expectsOutputToContain('Expired 1')->assertSuccessful();
+        $row = SalesStorefrontOrder::query()->findOrFail($order['id']);
+        $this->assertSame('cancelled', $row->status);
+        $this->assertSame('payment_timeout', $row->meta['cancel_reason']);
+        $this->assertSame('cancelled', SalesInvoice::query()->findOrFail($order['invoice_id'])->status);
+        $this->assertSame(300000, $card->fresh()->balance_minor);
+        $this->assertSame(5, (int) ($p->fresh()->meta['stock'] ?? $p->fresh()->stock ?? -1));
+        $this->artisan('sales:expire-pending-orders')->expectsOutputToContain('Expired 0');
+        $this->assertSame(300000, $card->fresh()->balance_minor);
+
+        // Paid invoices are never expired; TTL 0 turns expiry off.
+        $this->postJson('/api/v1/cart/items', ['product_id' => $p->id], $this->guest())->assertOk();
+        $paid = $this->postJson('/api/v1/checkout', $this->contact(), $this->guest())->assertCreated()->json('data');
+        SalesInvoice::query()->whereKey($paid['invoice_id'])->update(['status' => 'paid']);
+        $this->travel(49)->hours();
+        $this->assertSame(0, app(\Modules\Sales\Services\Storefront\StorefrontPendingOrders::class)->expire());
+        $this->assertSame(0, app(\Modules\Sales\Services\Storefront\StorefrontPendingOrders::class)->expire(0));
+    }
+
     public function test_admin_gift_cards_crud(): void
     {
         $this->actingAs($this->admin(), 'sanctum');

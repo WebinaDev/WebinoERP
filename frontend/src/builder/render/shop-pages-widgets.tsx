@@ -42,6 +42,7 @@ export type ApiProduct = {
   kind?: string
   url?: string | null
   digital?: boolean
+  variants?: { id: string | number; name?: string; is_default?: boolean; is_available?: boolean }[]
 }
 
 type CatalogJson = { data?: { items?: ApiProduct[]; categories?: Array<{ slug: string; name: string }>; pagination?: { total?: number; last_page?: number } } }
@@ -55,6 +56,13 @@ function hrefOf(p: ApiProduct) {
 
 function plain(html?: string | null) {
   return (html ?? "").replace(/<[^>]+>/g, " ").replace(/\s+/g, " ").trim()
+}
+
+/** Default (or only) variant for quick add from a card; null lets the server decide or send the shopper to the product page. */
+function quickVariant(p: { variants?: { id: string | number; is_default?: boolean; is_available?: boolean }[] }): string | null {
+  const list = p.variants ?? []
+  const hit = list.find((v) => v.is_default && v.is_available !== false) ?? (list.length === 1 ? list[0] : null)
+  return hit ? String(hit.id) : null
 }
 
 export function specsOf(raw: unknown): Array<{ name: string; value: string }> {
@@ -213,7 +221,7 @@ function ProductCard({ p, eager, showTimer }: { p: ApiProduct; eager?: boolean; 
             <button
               type="button"
               disabled={p.is_available === false}
-              onClick={() => { addToCart({ slug: p.slug, productId: p.id, name: p.name, price: Math.round(price), tone: "#0054ff", image: img || null }); setAdded(true); window.setTimeout(() => setAdded(false), 2200) }}
+              onClick={() => { addToCart({ slug: p.slug, productId: p.id, variantId: quickVariant(p), name: p.name, price: Math.round(price), tone: "#0054ff", image: img || null }); setAdded(true); window.setTimeout(() => setAdded(false), 2200) }}
               className="inline-flex h-11 flex-1 items-center justify-center gap-2 rounded-2xl bg-[#0054ff] text-sm font-bold text-white transition hover:bg-[#0045d1] disabled:opacity-50"
             >
               <ShoppingCart className="h-4 w-4" />{added ? "به سبد اضافه شد" : "افزودن به سبد"}
@@ -498,7 +506,7 @@ export function CompareTableWidget({ widget }: { widget: WidgetNode }) {
                     <button
                       type="button"
                       disabled={r.is_available === false}
-                      onClick={() => { const price = r.discounted_price_minor || r.price_minor; addToCart({ slug: r.slug, productId: r.id, name: r.name, price: Math.round(price), tone: "#0054ff", image: r.image_url || null }); setAdded(r.id); window.setTimeout(() => setAdded(null), 2200) }}
+                      onClick={() => { const price = r.discounted_price_minor || r.price_minor; addToCart({ slug: r.slug, productId: r.id, variantId: quickVariant(r), name: r.name, price: Math.round(price), tone: "#0054ff", image: r.image_url || null }); setAdded(r.id); window.setTimeout(() => setAdded(null), 2200) }}
                       className="inline-flex h-11 w-full items-center justify-center gap-2 rounded-2xl bg-[#0054ff] text-sm font-bold text-white disabled:opacity-50"
                     >
                       <ShoppingCart className="h-4 w-4" />{added === r.id ? "به سبد اضافه شد" : "افزودن به سبد"}

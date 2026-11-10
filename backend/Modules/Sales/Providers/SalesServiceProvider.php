@@ -21,6 +21,15 @@ class SalesServiceProvider extends ServiceProvider
         $this->loadMigrationsFrom(module_path($this->moduleName, 'Database/Migrations'));
 
         $this->registerStorefrontRoutes();
+        \Illuminate\Support\Facades\Artisan::command('sales:expire-pending-orders {--hours=}', function () {
+            $hours = $this->option('hours');
+            $n = app(\Modules\Sales\Services\Storefront\StorefrontPendingOrders::class)->expire($hours !== null && $hours !== '' ? (int) $hours : null);
+            $this->info("Expired {$n} unpaid storefront orders");
+        })->purpose('Cancel abandoned unpaid storefront orders and release gift card holds, stock and coupons');
+        $this->app->booted(function () {
+            $this->app->make(\Illuminate\Console\Scheduling\Schedule::class)
+                ->command('sales:expire-pending-orders')->hourly()->withoutOverlapping();
+        });
         if ($this->app->runningInConsole()) {
             $this->commands([\Modules\Sales\Console\SyncStorefrontSellablesCommand::class]);
         }

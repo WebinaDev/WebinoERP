@@ -1,5 +1,6 @@
 "use client"
 
+import { toRialAmount } from "@/lib/money"
 import { builderCurrencySnapshot, currencyText } from "../money"
 import { Menu, X } from "lucide-react"
 import Link from "next/link"
@@ -528,14 +529,16 @@ export function LowerPriceReportForm({ slug }: { slug: string }) {
       className="mt-2 grid gap-2 rounded-2xl border border-border bg-muted/40 p-3 text-xs"
       onSubmit={(event) => {
         event.preventDefault()
-        const toman = Number(toLatinDigits(price).replace(/[^\d]/g, ""))
+        // Typed in the dashboard display currency; the API stores IRR (rial).
+        const typed = Number(toLatinDigits(price).replace(/[^\d.]/g, ""))
+        const rial = typed > 0 ? Math.round(toRialAmount(typed, builderCurrencySnapshot().currency)) : 0
         setBusy(true)
         void quietApi(`/api/v1/public/catalog/items/${encodeURIComponent(slug)}/reports`, {
           method: "POST",
           json: {
             type: "lower_price",
             competitor_url: url.trim(),
-            ...(toman > 0 ? { competitor_price_minor: toman } : {}),
+            ...(rial > 0 ? { competitor_price_minor: rial } : {}),
           },
         })
           .then((res) => setNote(res.ok ? "سپاس! گزارش شما ثبت شد." : "ثبت گزارش ناموفق بود."))

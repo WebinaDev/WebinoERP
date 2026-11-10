@@ -4,7 +4,9 @@ import Link from "next/link"
 import { useEffect, useRef, useState } from "react"
 import { BookOpen, ChevronDown, LayoutDashboard, LogIn, LogOut, Package, ShoppingBag, Trash2, User, UserPlus } from "lucide-react"
 
-import { isStaff, removeShopItem, setCartPanel, shopLogout, tomanFromMinor, useShopCart, useShopUser } from "./shop-api"
+import { BuilderPrice } from "@/builder/money"
+
+import { isStaff, removeLine, setCartPanel, shopLogout, useShopCart, useShopUser } from "./shop-api"
 
 function useOutside(ref: React.RefObject<HTMLElement | null>, onOut: () => void, active: boolean) {
   useEffect(() => {
@@ -60,14 +62,15 @@ export function HeaderCart() {
                     {l.product.cover_image_url || l.product.image_url ? <img src={l.product.cover_image_url || l.product.image_url || ""} alt="" className="size-12 rounded-xl object-cover" /> : <span className="flex size-12 items-center justify-center rounded-xl bg-[#eef4ff] text-[#0054ff]"><Package className="size-5" /></span>}
                     <div className="min-w-0 flex-1">
                       <p className="truncate text-sm font-bold">{l.product.name}</p>
-                      <p className="text-xs text-[#6b7080]">{fa(l.quantity)} × {tomanFromMinor(l.unit_price_minor)}</p>
+                      {l.variant_name ? <p className="text-xs text-[#6b7080]">{l.variant_name}</p> : null}
+                      <p className="text-xs text-[#6b7080]">{fa(l.quantity)} × <BuilderPrice amount={l.unit_price_minor} original={l.regular_price_minor} from="IRR" /></p>
                     </div>
-                    <button type="button" aria-label="حذف" onClick={() => void removeShopItem(l.product_id)} className="rounded-full p-2 text-[#9aa0ad] hover:bg-[#fff1f1] hover:text-[#ff4d4f]"><Trash2 className="size-4" /></button>
+                    <button type="button" aria-label="حذف" onClick={() => void removeLine(l.id)} className="rounded-full p-2 text-[#9aa0ad] hover:bg-[#fff1f1] hover:text-[#ff4d4f]"><Trash2 className="size-4" /></button>
                   </li>
                 ))}
               </ul>
               <div className="border-t border-[#eef1f6] p-4">
-                <div className="flex items-center justify-between text-sm"><span className="text-[#6b7080]">جمع کل</span><b className="text-base">{tomanFromMinor(cart?.pricing?.total_minor ?? 0)}</b></div>
+                <div className="flex items-center justify-between text-sm"><span className="text-[#6b7080]">جمع کل</span><b className="text-base"><BuilderPrice amount={cart?.pricing?.total_minor ?? 0} from="IRR" /></b></div>
                 <div className="mt-3 grid grid-cols-2 gap-2">
                   <Link href="/cart" onClick={() => setCartPanel(false)} className="flex h-11 items-center justify-center rounded-2xl border border-[#d8deeb] text-sm font-bold hover:border-[#0054ff] hover:text-[#0054ff]">مشاهده سبد</Link>
                   <Link href="/checkout" onClick={() => setCartPanel(false)} className="flex h-11 items-center justify-center rounded-2xl bg-[#0054ff] text-sm font-bold text-white hover:bg-[#0045d1]">تسویه حساب</Link>

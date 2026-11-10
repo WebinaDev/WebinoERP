@@ -1,6 +1,10 @@
 export type ShopVariant = {
-  id: number
+  /** Variant key from the shop API (string, e.g. "red-l"); sent back as `variant_id`. */
+  id: string
   name: string
+  /** Attribute map (e.g. { رنگ: "قرمز", سایز: "L" }) used by the combo picker. */
+  attributes: Record<string, string>
+  isDefault?: boolean
   price: number
   compare?: number
   image?: string | null
@@ -374,18 +378,40 @@ function mapFaqs(raw: unknown): Array<{ question: string; answer: string }> {
     .filter((row) => row.question && row.answer)
 }
 
+/** Accepts `{ color: "red" }` or `[{ name: "color", value: "red" }]`. */
+function mapAttributes(raw: unknown): Record<string, string> {
+  const out: Record<string, string> = {}
+  if (Array.isArray(raw)) {
+    for (const row of raw) {
+      if (row && typeof row === "object") {
+        const r = row as ApiRecord
+        const k = str(r.name) || str(r.label) || str(r.key)
+        const v = str(r.value) || str(r.option)
+        if (k && v) out[k] = v
+      }
+    }
+  } else if (raw && typeof raw === "object") {
+    for (const [k, v] of Object.entries(raw as ApiRecord)) {
+      if (k && (typeof v === "string" || typeof v === "number") && String(v).trim()) out[k] = String(v).trim()
+    }
+  }
+  return out
+}
+
 function mapVariant(raw: ApiRecord): ShopVariant | null {
-  const id = num(raw.id)
+  const id = typeof raw.id === "string" ? raw.id.trim() : num(raw.id) ? String(num(raw.id)) : ""
   const name = str(raw.name)
   if (!id || !name) return null
   const price = num(raw.sale_price_minor) || num(raw.price_minor)
   const compare = num(raw.price_minor)
   const stock = raw.stock == null ? null : num(raw.stock)
   const status = str(raw.stock_status)
-  const inStock = status !== "outofstock" && (stock == null || stock > 0 || raw.manage_stock === false)
+  const inStock = raw.is_available !== false && status !== "outofstock" && (stock == null || stock > 0 || raw.manage_stock === false)
   return {
     id,
     name,
+    attributes: mapAttributes(raw.attributes),
+    isDefault: raw.is_default === true,
     price: price || compare,
     compare: compare > price ? compare : undefined,
     image: str(raw.image_url) || null,

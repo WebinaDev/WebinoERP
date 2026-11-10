@@ -22,7 +22,21 @@ export type ShopProductLite = {
   kind?: string
   url?: string | null
 }
-export type ShopCartLine = { id: number; product_id: number; quantity: number; unit_price_minor: number; line_total_minor: number; product: ShopProductLite }
+export type ShopCartLine = {
+  id: number
+  product_id: number
+  quantity: number
+  unit_price_minor: number
+  line_total_minor: number
+  /** Variant key (empty for simple products) and its label. */
+  variant_id?: string | null
+  variant_name?: string | null
+  /** Regular (pre-sale) unit price; shown struck through when higher than the unit price. */
+  regular_price_minor?: number | null
+  on_sale?: boolean
+  stock?: number | null
+  product: ShopProductLite
+}
 export type ShopPricing = {
   items_count: number
   subtotal_minor: number
@@ -109,9 +123,12 @@ function accept(res: ApiResult<ShopCart>) {
 
 export async function refreshCart() { return accept(await shopApi<ShopCart>("/api/v1/cart")) }
 
-export async function addToShopCart(ref: { slug?: string; productId?: number; name?: string }, quantity = 1) {
+export async function addToShopCart(ref: { slug?: string; productId?: number; name?: string; variantId?: string | null }, quantity = 1) {
   emit({ busy: true })
-  const res = accept(await shopApi<ShopCart>("/api/v1/cart/items", { method: "POST", json: { ...(ref.productId ? { product_id: ref.productId } : { slug: ref.slug }), quantity } }))
+  const res = accept(await shopApi<ShopCart>("/api/v1/cart/items", {
+    method: "POST",
+    json: { ...(ref.productId ? { product_id: ref.productId } : { slug: ref.slug }), quantity, ...(ref.variantId ? { variant_id: ref.variantId } : {}) },
+  }))
   if (res.ok) emit({ open: true, lastAdded: ref.name ?? ref.slug ?? null })
   return res
 }
@@ -123,6 +140,18 @@ export async function removeShopItem(productId: number) {
   emit({ busy: true })
   return accept(await shopApi<ShopCart>(`/api/v1/cart/items/${productId}`, { method: "DELETE" }))
 }
+/** Per-line endpoints: two variants of one product are separate lines. */
+export async function setLineQty(lineId: number, quantity: number) {
+  emit({ busy: true })
+  const q = Math.max(0, Math.min(99, Math.round(quantity)))
+  return accept(await shopApi<ShopCart>(`/api/v1/cart/lines/${lineId}`, q > 0 ? { method: "PUT", json: { quantity: q } } : { method: "DELETE" }))
+}
+export async function removeLine(lineId: number) {
+  emit({ busy: true })
+  return accept(await shopApi<ShopCart>(`/api/v1/cart/lines/${lineId}`, { method: "DELETE" }))
+}
+/** Keep the shared store in sync after another client (checkout steps) changed the cart. */
+export function acceptCart(res: ApiResult<ShopCart>) { return accept(res) }
 export async function applyCoupon(code: string) {
   emit({ busy: true })
   return accept(await shopApi<ShopCart>("/api/v1/cart/coupon", { method: "POST", json: { coupon_code: code } }))

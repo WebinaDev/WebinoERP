@@ -25,6 +25,8 @@ class StorefrontSettings
         'shipping_methods' => [],
         // Stepped checkout config (CheckoutFlowSettings); empty = defaults.
         'checkout_flow' => [],
+        // Unpaid storefront orders are cancelled after this many hours (gift card, stock, coupon released). 0 = never.
+        'pending_order_ttl_hours' => 48,
     ];
 
     /** @var array<string, mixed>|null */

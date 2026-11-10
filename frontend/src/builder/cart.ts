@@ -4,7 +4,7 @@
  * Kept the old function names so product, course and theme widgets keep working.
  * `price` is canonical IRR (rial) — format via `@/lib/money`. */
 
-import { addToShopCart, cartState, refreshCart, removeShopItem, setShopQty, subscribeShopCart, type ShopCart } from "@/features/shop/shop-api"
+import { addToShopCart, cartState, refreshCart, removeLine, setLineQty, subscribeShopCart, type ShopCart } from "@/features/shop/shop-api"
 
 export type CartLine = {
   slug: string
@@ -15,6 +15,14 @@ export type CartLine = {
   tone: string
   image?: string | null
   productId?: number
+  /** Chosen variant key; required by the server for products with several variants. */
+  variantId?: string | null
+  variantName?: string | null
+  /** Server cart line id (per product and variant) and a stable key for lists and qty updates. */
+  lineId?: number
+  key?: string
+  /** Regular unit price when the line is on sale (IRR), for strike-through. */
+  compare?: number
 }
 
 let lastCart: ShopCart | null | undefined
@@ -32,6 +40,11 @@ function lines(): CartLine[] {
     tone: "#0054ff",
     image: l.product.cover_image_url || l.product.image_url || null,
     productId: l.product_id,
+    variantId: l.variant_id || null,
+    variantName: l.variant_name || null,
+    lineId: l.id,
+    key: `line:${l.id}`,
+    compare: l.regular_price_minor && l.regular_price_minor > l.unit_price_minor ? Math.round(l.regular_price_minor) : undefined,
   }))
   return lastLines
 }
@@ -56,16 +69,22 @@ export function subscribeCart(listener: () => void): () => void {
 }
 
 /** AJAX add: the server resolves the shop product by slug (or id) and owns the price. */
-export function addToCart(line: Omit<CartLine, "qty">, qty = 1) {
-  void addToShopCart({ slug: line.slug, productId: line.productId, name: line.name }, qty)
+/** Products with several variants need a choice: the server answers 422 on `variant_id` and the shopper goes to the product page. */
+export async function addToCart(line: Omit<CartLine, "qty">, qty = 1) {
+  const res = await addToShopCart({ slug: line.slug, productId: line.productId, name: line.name, variantId: line.variantId }, qty)
+  if (!res.ok && res.status === 422 && !line.variantId && res.errors?.variant_id && line.slug && typeof window !== "undefined") {
+    window.location.assign(`/product/${encodeURIComponent(line.slug)}`)
+  }
+  return res
 }
 
-export function setQty(slug: string, qty: number) {
-  const found = lines().find((l) => l.slug === slug)
-  if (!found?.productId) return
-  void (qty > 0 ? setShopQty(found.productId, qty) : removeShopItem(found.productId))
+/** `key` is a line key (`line:{id}`) or, for older callers, a product slug (first matching line). */
+export function setQty(key: string, qty: number) {
+  const found = lines().find((l) => l.key === key) ?? lines().find((l) => l.slug === key)
+  if (!found?.lineId) return
+  void (qty > 0 ? setLineQty(found.lineId, qty) : removeLine(found.lineId))
 }
 
 export function clearCart() {
-  void Promise.all(lines().map((l) => (l.productId ? removeShopItem(l.productId) : null))).then(() => refreshCart())
+  void Promise.all(lines().map((l) => (l.lineId ? removeLine(l.lineId) : null))).then(() => refreshCart())
 }

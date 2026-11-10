@@ -4,7 +4,7 @@ import Link from "next/link"
 import { useEffect, useMemo, useState, useSyncExternalStore, type ReactNode } from "react"
 
 import { cartServerSnapshot, cartSnapshot, clearCart, setQty, subscribeCart } from "@/builder/cart"
-import { setServerQty, useServerCart } from "@/builder/storefront/actions"
+import { setServerLineQty, useServerCart } from "@/builder/storefront/actions"
 import { previewCoupon, readStoredCoupon, storeCoupon } from "@/builder/storefront/coupon"
 
 import { useClassicThemeSettings } from "@/themes/shared/site-branding-context"
@@ -154,21 +154,21 @@ export function ClassicCart() {
     auth === "auth"
       ? (cart?.items ?? []).map((line) => ({
           key: String(line.id),
-          name: line.product.name,
+          name: line.variant_name ? `${line.product.name} (${line.variant_name})` : line.product.name,
           image: line.product.cover_image_url || line.product.image_url,
           price: pricing?.lines?.find((row) => row.id === line.id)?.unit_price_minor ?? line.product.price_minor,
           qty: line.quantity,
           href: line.product.slug ? `/product/${line.product.slug}` : undefined,
-          onQty: (qty: number) => void setServerQty(line.product.id, qty),
+          onQty: (qty: number) => void setServerLineQty(line.id, qty),
         }))
       : local.map((line) => ({
-          key: line.slug,
-          name: line.name,
+          key: line.key ?? line.slug,
+          name: line.variantName ? `${line.name} (${line.variantName})` : line.name,
           image: line.image,
           price: line.price,
           qty: line.qty,
           href: `/product/${line.slug}`,
-          onQty: (qty: number) => setQty(line.slug, qty),
+          onQty: (qty: number) => setQty(line.key ?? line.slug, qty),
         }))
   const count = lines.reduce((sum, l) => sum + l.qty, 0)
   const total = auth === "auth" && pricing?.subtotal_minor != null ? pricing.subtotal_minor : lines.reduce((sum, l) => sum + l.price * l.qty, 0)

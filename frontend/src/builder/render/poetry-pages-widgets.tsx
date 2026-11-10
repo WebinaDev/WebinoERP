@@ -625,12 +625,12 @@ function PriceLine({ p, it }: { p: P; it: Item }) {
   return <em><BuilderPrice amount={it.price} original={it.old} from={it.live ? "IRR" : undefined} /></em>
 }
 
-function BuyButton({ p, it, qty = 1, big = false, option = "" }: { p: P; it: Item; qty?: number; big?: boolean; option?: string }) {
+function BuyButton({ p, it, qty = 1, big = false, option = "", variantId = null }: { p: P; it: Item; qty?: number; big?: boolean; option?: string; variantId?: string | null }) {
   const mode = propStr(p, "checkoutMode", "inquiry")
   const [done, setDone] = useState(false)
   if (mode === "none") return null
   if (mode === "cart" && it.live && it.price > 0 && it.inStock) {
-    return <button type="button" className={`akx-b1 ${big ? "akx-b1-big" : ""}`} onClick={() => { addToCart({ slug: it.slug, name: option ? `${it.title} (${option})` : it.title, price: it.price, tone: "", image: it.image || null, productId: it.productId }, qty); setDone(true); window.setTimeout(() => setDone(false), 1600) }}>{done ? <><Check size={16} aria-hidden /> افزوده شد</> : propStr(p, "cartLabel", "افزودن به سبد")}</button>
+    return <button type="button" className={`akx-b1 ${big ? "akx-b1-big" : ""}`} onClick={() => { addToCart({ slug: it.slug, name: option ? `${it.title} (${option})` : it.title, price: it.price, tone: "", image: it.image || null, productId: it.productId, variantId }, qty); setDone(true); window.setTimeout(() => setDone(false), 1600) }}>{done ? <><Check size={16} aria-hidden /> افزوده شد</> : propStr(p, "cartLabel", "افزودن به سبد")}</button>
   }
   const base = safeLink(propStr(p, "inquiryHref"), "")
   const label = propStr(p, "inquiryLabel", "استعلام و سفارش")
@@ -764,7 +764,7 @@ export function PoetryProductWidget({ widget }: { widget: WidgetNode }) {
           <div className={`akx-stock ${priced.inStock ? "" : "is-out"}`}>{priced.inStock ? propStr(p, "stockLabel", "● موجود در انبار") : propStr(p, "outLabel", "● ناموجود")}</div>
           <div className="akx-buy">
             {propStr(p, "checkoutMode", "inquiry") === "cart" && priced.live ? <div className="akx-qty"><button type="button" onClick={() => setQty((q) => q + 1)} aria-label="افزایش">+</button><span>{fa(qty)}</span><button type="button" onClick={() => setQty((q) => Math.max(1, q - 1))} aria-label="کاهش">−</button></div> : null}
-            <BuyButton p={p} it={priced} qty={qty} big option={optionLabel} />
+            <BuyButton p={p} it={priced} qty={qty} big option={optionLabel} variantId={variant?.id ?? null} />
             <button type="button" className="akx-heart" aria-pressed={fav} aria-label="علاقه‌مندی" onClick={() => { const v = !fav; setFav(v); localStorage.setItem(`akx-wish:${it.slug}`, v ? "1" : "0") }}>{fav ? "♥" : "♡"}</button>
           </div>
           {propStr(p, "trustLine") ? <div className="akx-trust">{propStr(p, "trustLine")}</div> : null}
