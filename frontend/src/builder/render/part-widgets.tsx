@@ -1,4 +1,5 @@
 "use client"
+import { builderCurrencySnapshot, currencyText } from "../money"
 import { useMenuTree } from "@/lib/nav-menus"
 
 /* Theme-part widgets: granular pieces of the header, footer, product page, archive,
@@ -227,7 +228,7 @@ export function PriceFilterWidget({ widget }: { widget: WidgetNode }) {
   const params = useSearchParams()
   const [min, setMin] = useState(params.get("min_price") ?? "")
   const [max, setMax] = useState(params.get("max_price") ?? "")
-  const title = propStr(widget.props, "title", "محدوده قیمت (تومان)")
+  const title = propStr(widget.props, "title", "") || `محدوده قیمت (${currencyText("", builderCurrencySnapshot().currency)})`
   const apply = (lo: string, hi: string) => {
     const next = new URLSearchParams(params.toString())
     const clean = (v: string) => v.replace(/[۰-۹]/g, (d) => String("۰۱۲۳۴۵۶۷۸۹".indexOf(d))).replace(/\D/g, "")

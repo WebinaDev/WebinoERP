@@ -8,9 +8,9 @@ class SalesCart extends Model
 {
     protected $table = 'sales_carts';
 
-    protected $fillable = ['user_id', 'token', 'coupon_code'];
+    protected $fillable = ['user_id', 'token', 'coupon_code', 'meta'];
 
-    protected $casts = [];
+    protected $casts = ['meta' => 'array'];
 
     public function items(): \Illuminate\Database\Eloquent\Relations\HasMany
     {

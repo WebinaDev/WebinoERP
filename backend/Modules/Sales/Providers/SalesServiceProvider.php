@@ -72,9 +72,12 @@ class SalesServiceProvider extends ServiceProvider
             Route::delete('/compare/products/{productId}', [PublicStorefrontController::class, 'compareRemove'])->whereNumber('productId')->middleware('throttle:30,1,sf-compare-products-productId');
             Route::get('/product-stories', [PublicStorefrontController::class, 'stories']);
             Route::get('/geo/states', [GeoController::class, 'states']);
+            // Display currency + symbol for builder prices (BuilderPrice / useBuilderCurrency).
+            Route::get('/currency', fn () => response()->json(['data' => \App\Support\Money::storefrontDisplay()]));
             Route::post('/coupons/preview', [PublicStorefrontController::class, 'previewCoupon'])->middleware('throttle:20,1,sf-coupons-preview');
             Route::post('/coupons/available', [PublicStorefrontController::class, 'availableCoupons'])->middleware('throttle:30,1,sf-coupons-available');
             Route::post('/orders/track', [PublicStorefrontController::class, 'trackOrder'])->middleware('throttle:10,1,sf-orders-track');
+            Route::post('/gift-cards/balance', [\Modules\Sales\Http\Controllers\Storefront\GiftCardController::class, 'publicBalance'])->middleware('throttle:10,1,sf-gift-cards-balance');
         });
 
         // Cart + checkout: guests (X-Cart-Token) or signed-in customers.
@@ -83,6 +86,11 @@ class SalesServiceProvider extends ServiceProvider
             Route::post('/cart/items', [CartController::class, 'addItem']);
             Route::put('/cart/items/{product}', [CartController::class, 'setQuantity'])->whereNumber('product');
             Route::delete('/cart/items/{product}', [CartController::class, 'removeItem'])->whereNumber('product');
+            Route::put('/cart/lines/{line}', [CartController::class, 'setLineQuantity'])->whereNumber('line');
+            Route::delete('/cart/lines/{line}', [CartController::class, 'removeLine'])->whereNumber('line');
+            Route::get('/storefront/checkout-config', [\Modules\Sales\Http\Controllers\Storefront\CheckoutStepsController::class, 'config']);
+            Route::get('/checkout/session', [\Modules\Sales\Http\Controllers\Storefront\CheckoutStepsController::class, 'session']);
+            Route::post('/checkout/steps/{step}', [\Modules\Sales\Http\Controllers\Storefront\CheckoutStepsController::class, 'step'])->where('step', 'address|delivery_time|shipping|payment')->middleware('throttle:60,1,sf-checkout-steps');
             Route::post('/cart/coupon', [CartController::class, 'applyCoupon'])->middleware('throttle:20,1,sf-cart-coupon');
             Route::delete('/cart', [CartController::class, 'clear']);
             Route::post('/shipping/quote', [CheckoutController::class, 'shippingQuote']);
@@ -119,6 +127,15 @@ class SalesServiceProvider extends ServiceProvider
             Route::patch('/reviews/{review}', [StorefrontAdminController::class, 'updateReview'])->whereNumber('review');
             Route::get('/questions', [StorefrontAdminController::class, 'questions']);
             Route::patch('/questions/{question}', [StorefrontAdminController::class, 'answerQuestion'])->whereNumber('question');
+            Route::get('/checkout-flow', [\Modules\Sales\Http\Controllers\Storefront\CheckoutStepsController::class, 'adminShow']);
+            Route::put('/checkout-flow', [\Modules\Sales\Http\Controllers\Storefront\CheckoutStepsController::class, 'adminUpdate']);
+            Route::get('/gift-cards', [\Modules\Sales\Http\Controllers\Storefront\GiftCardController::class, 'index']);
+            Route::post('/gift-cards', [\Modules\Sales\Http\Controllers\Storefront\GiftCardController::class, 'store']);
+            Route::post('/gift-cards/generate-code', [\Modules\Sales\Http\Controllers\Storefront\GiftCardController::class, 'generateCode']);
+            Route::get('/gift-cards/{card}', [\Modules\Sales\Http\Controllers\Storefront\GiftCardController::class, 'show'])->whereNumber('card');
+            Route::put('/gift-cards/{card}', [\Modules\Sales\Http\Controllers\Storefront\GiftCardController::class, 'update'])->whereNumber('card');
+            Route::delete('/gift-cards/{card}', [\Modules\Sales\Http\Controllers\Storefront\GiftCardController::class, 'destroy'])->whereNumber('card');
+            Route::post('/gift-cards/{card}/adjust', [\Modules\Sales\Http\Controllers\Storefront\GiftCardController::class, 'adjust'])->whereNumber('card');
             Route::get('/coupons', [StorefrontAdminController::class, 'coupons']);
             Route::post('/coupons', [StorefrontAdminController::class, 'saveCoupon']);
             Route::put('/coupons/{coupon}', [StorefrontAdminController::class, 'saveCoupon'])->whereNumber('coupon');

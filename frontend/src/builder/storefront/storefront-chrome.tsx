@@ -1,5 +1,6 @@
 "use client"
 
+import { builderCurrencySnapshot, currencyText } from "../money"
 import { Menu, X } from "lucide-react"
 import Link from "next/link"
 import { usePathname } from "next/navigation"
@@ -546,7 +547,7 @@ export function LowerPriceReportForm({ slug }: { slug: string }) {
         <input className="sf-field h-10" dir="ltr" type="url" required value={url} onChange={(e) => setUrl(e.target.value)} placeholder="https://" />
       </label>
       <label className="grid gap-1">
-        <span>قیمت (تومان، اختیاری)</span>
+        <span>قیمت ({currencyText("", builderCurrencySnapshot().currency)}، اختیاری)</span>
         <input className="sf-field h-10" inputMode="numeric" value={price} onChange={(e) => setPrice(e.target.value)} />
       </label>
       <button type="submit" disabled={busy} className="justify-self-start rounded-full bg-primary px-4 py-2 font-bold text-primary-foreground disabled:opacity-60">

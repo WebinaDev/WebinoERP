@@ -8,7 +8,7 @@ class SalesCartItem extends Model
 {
     protected $table = 'sales_cart_items';
 
-    protected $fillable = ['cart_id', 'product_id', 'quantity', 'saved_for_later'];
+    protected $fillable = ['cart_id', 'product_id', 'variant_key', 'quantity', 'saved_for_later'];
 
     protected $casts = ['quantity' => 'integer', 'saved_for_later' => 'boolean'];
 

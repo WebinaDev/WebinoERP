@@ -27,7 +27,11 @@ class StorefrontAdminController extends Controller
     {
         $data = $request->validate(['status' => 'sometimes|in:pending_payment,paid,processing,shipped,delivered,cancelled', 'tracking_code' => 'nullable|string|max:60']);
         $row = SalesStorefrontOrder::query()->findOrFail($order);
+        $from = (string) $row->status;
         $row->update($data);
+        if (isset($data['status'])) {
+            CheckoutController::onStatusChange($row->fresh(), $from, (string) $data['status']);
+        }
 
         return response()->json(['data' => AccountController::orderPayload($row)]);
     }

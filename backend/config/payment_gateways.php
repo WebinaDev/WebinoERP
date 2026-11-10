@@ -310,7 +310,7 @@ return [
         ],
 
         'payir' => [
-            'label_fa' => 'پی',
+            'label_fa' => 'پی‌دات‌آی‌آر',
             'label_en' => 'Pay.ir',
             'supports' => ['cash'],
             'required_live' => ['api_key'],
@@ -1230,7 +1230,7 @@ return [
         ],
 
         'nowpayments' => [
-            'label_fa' => 'NOWPayments',
+            'label_fa' => 'نوپیمنتس',
             'label_en' => 'NOWPayments',
             'supports' => ['cash'],
             'required_live' => ['api_key'],
@@ -1282,7 +1282,7 @@ return [
         ],
 
         'cryptomus' => [
-            'label_fa' => 'Cryptomus',
+            'label_fa' => 'کریپتوموس',
             'label_en' => 'Cryptomus',
             'supports' => ['cash'],
             'required_live' => ['merchant_id', 'api_key'],
@@ -1328,7 +1328,7 @@ return [
         ],
 
         'coinpayments' => [
-            'label_fa' => 'CoinPayments',
+            'label_fa' => 'کوین‌پیمنتس',
             'label_en' => 'CoinPayments',
             'supports' => ['cash'],
             'required_live' => ['public_key', 'private_key', 'merchant_id'],
@@ -1386,7 +1386,7 @@ return [
         ],
 
         'binance_pay' => [
-            'label_fa' => 'Binance Pay',
+            'label_fa' => 'بایننس پی',
             'label_en' => 'Binance Pay',
             'supports' => ['cash'],
             'required_live' => ['api_key', 'secret_key'],
@@ -1536,7 +1536,7 @@ return [
         ],
 
         'coingate' => [
-            'label_fa' => 'CoinGate',
+            'label_fa' => 'کوین‌گیت',
             'label_en' => 'CoinGate',
             'supports' => ['cash'],
             'required_live' => ['api_token'],

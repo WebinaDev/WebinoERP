@@ -3,6 +3,7 @@
 /* Sellable product widgets (page builder): product hero with gallery + price box + add to cart,
  * tabbed details, catalog grid with category filter, cart. All content/prices live in builder props. */
 
+import { BuilderPrice, builderCurrencySnapshot, formatMoneyPlain } from "../money"
 import Link from "next/link"
 import { useEffect, useMemo, useState, useSyncExternalStore, type ReactNode } from "react"
 import {
@@ -20,7 +21,8 @@ const rows = (t: string) => t.split("\n").map((l) => l.trim()).filter(Boolean).m
 const lines = (t: string) => t.split("\n").map((l) => l.trim()).filter(Boolean)
 const safe = (h: string) => (/^(https?:|mailto:|tel:|\/|#)/i.test(h.trim()) ? h.trim() : h.trim() ? `/${h.trim().replace(/^\/+/, "")}` : "")
 const num = (v: string) => Number(String(v).replace(/[^\d]/g, "")) || 0
-export const toman = (n: number) => `${new Intl.NumberFormat("fa-IR").format(n)} تومان`
+/** Manual widget prices are in the display currency; text form for strings only. */
+export const toman = (n: number) => formatMoneyPlain(n, builderCurrencySnapshot())
 const EMPTY: CartLine[] = []
 let cache: CartLine[] = EMPTY
 let cacheKey = ""
@@ -131,8 +133,7 @@ export function SaleProductHeroWidget({ widget }: { widget: WidgetNode }) {
           {propStr(p, "license", "") ? <p className="mb-3 text-sm font-bold text-[#22242a]">{propStr(p, "license", "")}</p> : null}
           <div className="flex items-end justify-between gap-2">
             <div>
-              {off ? <p className="text-sm text-[#9aa0ad] line-through">{toman(old)}</p> : null}
-              <p className="text-2xl font-black text-[#22242a]">{price ? toman(price) : "تماس بگیرید"}</p>
+              <p className="text-2xl font-black text-[#22242a]">{price ? <BuilderPrice amount={price} original={off ? old : null} /> : "تماس بگیرید"}</p>
             </div>
             {off ? <span className="rounded-xl bg-[#ff4d4f] px-2.5 py-1 text-sm font-black text-white">{off}٪</span> : null}
           </div>
@@ -284,8 +285,7 @@ export function SaleProductGridWidget({ widget }: { widget: WidgetNode }) {
               {it.short ? <p className="mt-1 line-clamp-2 text-sm leading-7 text-[#6b7080]">{it.short}</p> : null}
               <div className="mt-auto flex items-end justify-between gap-2 pt-4">
                 <div>
-                  {it.old > it.price ? <p className="text-xs text-[#9aa0ad] line-through">{toman(it.old)}</p> : null}
-                  <p className="font-black text-[#22242a]">{it.price ? toman(it.price) : "استعلام"}</p>
+                  <p className="font-black text-[#22242a]">{it.price ? <BuilderPrice amount={it.price} original={it.old} /> : "استعلام"}</p>
                 </div>
                 <div className="flex items-start gap-2">
                   <CompareBySlug slug={it.slug} compact />

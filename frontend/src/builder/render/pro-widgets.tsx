@@ -1,12 +1,12 @@
 "use client"
 
+import { useBuilderMoney } from "../money"
 import { ChevronDown, Plus, ShoppingBag, X } from "lucide-react"
 import { useLocale, useTranslations } from "next-intl"
 import Link from "next/link"
 import { useEffect, useId, useMemo, useRef, useState, useSyncExternalStore } from "react"
 
 import { formatNumber, normalizeUiLocale } from "@/lib/locale"
-import { formatMoney } from "@/lib/money"
 import { cartSnapshot, subscribeCart, type CartLine } from "../cart"
 import { mapApiProduct, type ShopProduct } from "../catalog"
 import { linkAttrs, parseRows, propBool, propNum, propStr } from "../props"
@@ -22,9 +22,9 @@ import { Img } from "./img"
 import { collectionQuery, collectionRows } from "../collections"
 import { applyFilterState, archiveFilterParams, archiveFiltersFromSearch, catalogSort, LOOP_FILTER_EVENT, mergeQueryProps, reduceFilterState, type LoopFilterDetail, type LoopFilterState } from "../loop-query"
 
+/** Prices from the shop API are IRR; rendered with the dashboard currency glyph (shared BuilderPrice). */
 function useMoney() {
-  const locale = useLocale()
-  return (amount: number) => formatMoney(amount, { locale })
+  return useBuilderMoney("IRR")
 }
 
 function safeHref(href: string): string {

@@ -1,5 +1,6 @@
 "use client"
 
+import { useBuilderMoney } from "../money"
 import { footerMenuSlugs } from "../registry-nav-menus"
 import { filterNavItems, navItemsToLinks, useFooterMenuColumns, useNavMenuItems } from "@/lib/nav-menus"
 import { NavHeaderItem, NavItemLink } from "@/themes/ecommerce-classic/components/ClassicNavMenu"
@@ -14,7 +15,6 @@ import { useEffect, useMemo, useState, useSyncExternalStore } from "react"
 
 import { ApiError, api } from "@/lib/api"
 import { formatDate, formatNumber, normalizeUiLocale, toLatinDigits, toLocaleDigits } from "@/lib/locale"
-import { formatMoney } from "@/lib/money"
 import { useThemeSettings } from "@/providers/AppProviders"
 
 import { cartCount, cartServerSnapshot, cartSnapshot, clearCart, setQty, subscribeCart } from "../cart"
@@ -52,9 +52,9 @@ const NAV = [
   { label: "درباره", href: "/pages/about" },
 ]
 
+/** Prices from the shop API are IRR; rendered with the dashboard currency glyph (shared BuilderPrice). */
 function useMoney() {
-  const locale = useLocale()
-  return (amount: number) => formatMoney(amount, { locale })
+  return useBuilderMoney("IRR")
 }
 
 function digits(value: number, locale: string) {
@@ -115,8 +115,7 @@ function DefaultStoreProductCard({ product }: { product: ShopProduct }) {
       <p className="mt-1 text-xs text-primary">{product.brand}</p>
       <div className="mt-auto flex items-end justify-between gap-2 pt-3">
         <div>
-          {product.compare ? <div className="text-[11px] text-muted-foreground line-through">{money(product.compare)}</div> : null}
-          <div className="text-sm font-bold">{money(product.price)}</div>
+          <div className="text-sm font-bold">{money(product.price, product.compare)}</div>
         </div>
         <button
           type="button"
@@ -297,11 +296,10 @@ function DefaultStorefrontProduct({ slug, editing }: { slug?: string; editing: b
         <p className="mt-2 text-sm text-muted-foreground">{product.inStock ? t("stock_in") : t("stock_out")}</p>
         {!product.inStock ? <StockAlertForm slug={product.slug} /> : null}
         <div className="mt-4 flex items-end gap-3">
-          {product.compare ? <div className="text-sm text-muted-foreground line-through">{money(product.compare)}</div> : null}
-          <div className="text-2xl font-bold">{money(product.price)}</div>
+          <div className="text-2xl font-bold">{money(product.price, product.compare)}</div>
         </div>
         {product.cashPrice && product.cashPrice !== product.price ? (
-          <p className="mt-2 text-sm text-muted-foreground">{t("cash_hint", { amount: money(product.cashPrice) })}</p>
+          <p className="mt-2 text-sm text-muted-foreground">{t("cash_hint", { amount: money.text(product.cashPrice) })}</p>
         ) : null}
         <InstallmentBadges productId={product.id} amountMinor={product.price} />
         {product.variants.length ? (
@@ -325,7 +323,7 @@ function DefaultStorefrontProduct({ slug, editing }: { slug?: string; editing: b
             <div className="text-sm font-bold">{t("installment_title")}</div>
             <ul className="mt-2 grid gap-1 text-sm">
               {product.installments.map((plan) => (
-                <li key={plan.months}>{t("installment_row", { months: digits(plan.months, locale), amount: money(plan.monthly) })}</li>
+                <li key={plan.months}>{t("installment_row", { months: digits(plan.months, locale), amount: money.text(plan.monthly) })}</li>
               ))}
             </ul>
           </div>
@@ -409,7 +407,7 @@ function DefaultStorefrontProduct({ slug, editing }: { slug?: string; editing: b
       <div className="sf-sticky-cta md:hidden">
         <div>
           <div className="text-xs text-muted-foreground">{product.inStock ? t("stock_in") : t("stock_out")}</div>
-          <div className="font-bold">{money(product.price)}</div>
+          <div className="font-bold">{money(product.price, product.compare)}</div>
         </div>
         <button type="button" disabled={editing || blocked} onClick={add} className="rounded-full bg-primary px-5 py-2.5 text-sm font-bold text-primary-foreground disabled:opacity-50">
           {tCart("add_to_cart")}
@@ -492,7 +490,7 @@ function DefaultStorefrontCart() {
           <div className="text-sm opacity-80">{t("subtotal")}</div>
           <div className="mt-1 text-2xl font-bold">{money(total)}</div>
           {pricing?.purchase_type === "installment" && pricing.installment_monthly_minor ? (
-            <p className="mt-2 text-xs opacity-90">{t("installment_row", { months: digits(pricing.installment_months ?? 0, locale), amount: money(pricing.installment_monthly_minor) })}</p>
+            <p className="mt-2 text-xs opacity-90">{t("installment_row", { months: digits(pricing.installment_months ?? 0, locale), amount: money.text(pricing.installment_monthly_minor) })}</p>
           ) : null}
           <Link href="/checkout" className="mt-4 block rounded-full bg-card py-2.5 text-center text-sm font-bold text-foreground">
             {t("checkout")}

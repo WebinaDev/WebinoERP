@@ -4,8 +4,9 @@
  *  - shop-catalog:  live Sales storefront catalog with filters (category, on_sale=1, in_stock, sort, search) synced to the URL
  *  - offers-grid:   every discounted product, sorted by discount, with countdowns when meta.sale_ends_at is set
  *  - compare-table: per-visitor compare list (X-Visitor-Id), price/feature table, add from the catalog, add to cart
- * Prices come from /api/v1/public/catalog in IRR minor units and are shown in toman. Copy lives in builder props. */
+ * Prices come from /api/v1/public/catalog in IRR minor units and are shown in the dashboard display currency (BuilderPrice). Copy lives in builder props. */
 
+import { BuilderPrice } from "../money"
 import Link from "next/link"
 import { usePathname, useRouter, useSearchParams } from "next/navigation"
 import { useCallback, useEffect, useMemo, useState, useSyncExternalStore, type ReactNode } from "react"
@@ -16,11 +17,9 @@ import { propNum, propStr } from "../props"
 import type { WidgetNode } from "../types"
 import { visitorHeaders } from "../storefront/visitor"
 
-import { formatPriceFromMinor } from "@/lib/money"
 
 const API = (process.env.NEXT_PUBLIC_API_URL ?? "").trim().replace(/\/+$/, "").replace(/\/api$/, "")
 const fa = (n: number) => new Intl.NumberFormat("fa-IR").format(n)
-const toman = (minor: number) => formatPriceFromMinor(minor, "fa")
 
 export type ApiProduct = {
   id: number
@@ -208,8 +207,7 @@ function ProductCard({ p, eager, showTimer }: { p: ApiProduct; eager?: boolean; 
         {showTimer && p.sale_ends_at ? <div className="mt-3"><Countdown ends={p.sale_ends_at} /></div> : null}
         <div className="mt-auto pt-4">
           <div className="mb-3">
-            {price < p.price_minor ? <p className="text-xs text-[#9aa0ad] line-through">{toman(p.price_minor)}</p> : null}
-            <p className="font-black text-[#22242a]">{price ? toman(price) : "استعلام قیمت"}</p>
+            <p className="font-black text-[#22242a]">{price ? <BuilderPrice amount={price} original={p.price_minor} from="IRR" /> : "استعلام قیمت"}</p>
           </div>
           <div className="flex gap-2">
             <button
@@ -436,7 +434,7 @@ export function CompareTableWidget({ widget }: { widget: WidgetNode }) {
                 <button type="button" onClick={() => { void toggleCompare(c.id, true); if (rows.length + 1 >= max) setPicker(false) }} className="flex w-full items-center gap-3 rounded-2xl border border-[#eef0f6] p-2 text-start hover:border-[#0054ff]">
                   {/* eslint-disable-next-line @next/next/no-img-element */}
                   {c.image_url ? <img src={c.image_url} alt="" loading="lazy" className="h-12 w-16 shrink-0 rounded-xl object-cover" /> : <span className="h-12 w-16 shrink-0 rounded-xl bg-[#f2f5fc]" />}
-                  <span className="min-w-0"><span className="block truncate text-sm font-bold text-[#22242a]">{c.name}</span><span className="text-xs text-[#6b7080]">{toman(c.discounted_price_minor || c.price_minor)}</span></span>
+                  <span className="min-w-0"><span className="block truncate text-sm font-bold text-[#22242a]">{c.name}</span><span className="text-xs text-[#6b7080]"><BuilderPrice amount={c.discounted_price_minor || c.price_minor} from="IRR" /></span></span>
                 </button>
               </li>
             ))}
@@ -482,7 +480,7 @@ export function CompareTableWidget({ widget }: { widget: WidgetNode }) {
             <tbody>
               {line("قیمت", (r) => {
                 const price = r.discounted_price_minor || r.price_minor
-                return <>{price < r.price_minor ? <s className="block text-xs text-[#9aa0ad]">{toman(r.price_minor)}</s> : null}<b className="text-[#22242a]">{toman(price)}</b></>
+                return <b className="text-[#22242a]"><BuilderPrice amount={price} original={r.price_minor} from="IRR" /></b>
               })}
               {line("تخفیف", (r) => (r.discount_percent ? <span className="rounded-full bg-[#fff1f1] px-2 py-0.5 font-bold text-[#e5484d]">{fa(r.discount_percent)}٪</span> : "ندارد"))}
               {rows.some((r) => r.sale_ends_at) ? line("پایان تخفیف", (r) => (r.sale_ends_at ? <Countdown ends={r.sale_ends_at} /> : "بدون محدودیت زمانی")) : null}

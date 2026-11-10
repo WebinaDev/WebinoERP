@@ -3,11 +3,11 @@
 /* Academy course widgets (صفحه‌ساز). Course data (syllabus, lessons, quizzes, instructor) comes from
  * داشبورد ← بازاریابی ← آکادمی via /v1/public/academy/{slug}; the widgets hold only page copy and labels. */
 
+import { BuilderPrice } from "../money"
 import Link from "next/link"
 import { usePathname } from "next/navigation"
 import { useEffect, useState, useSyncExternalStore, type ReactNode } from "react"
 
-import { formatPriceFromMinor } from "@/lib/money"
 
 import { addToCart, cartSnapshot, subscribeCart } from "../cart"
 
@@ -377,7 +377,6 @@ function CourseCartButton({ slug, name, price, image, label, cartHref, light }: 
     </div>
   )
 }
-const toman = (rial: number) => formatPriceFromMinor(rial, "fa")
 
 /** Shop catalog price (IRR) for a product slug; 0 while loading or when not sold. */
 function useShopPrice(slug: string) {
@@ -448,7 +447,7 @@ export function AcademyCourseEnrollWidget({ widget }: { widget: WidgetNode }) {
       {schema}
       <div className="grid gap-6 rounded-3xl border border-black/5 bg-white p-5 shadow-xl sm:p-7 md:grid-cols-[1fr_1.2fr] dark:border-white/10 dark:bg-white/5">
         <div>
-          <p className="text-2xl font-extrabold" style={{ color: PRIMARY }}>{propStr(p, "priceLabel", "") || (price ? toman(price) : c.is_free ? "رایگان" : "ثبت‌نام آنلاین")}</p>
+          <p className="text-2xl font-extrabold" style={{ color: PRIMARY }}>{propStr(p, "priceLabel", "") || (price ? <BuilderPrice amount={price} from="IRR" /> : c.is_free ? "رایگان" : "ثبت‌نام آنلاین")}</p>
           {cart}
           {propStr(p, "text", "") ? <p className="mt-2 text-sm leading-7 opacity-80">{propStr(p, "text", "")}</p> : null}
           <Link href={enroll} className="mt-4 block rounded-full px-6 py-3 text-center font-bold text-white" style={{ background: PRIMARY }}>{label}</Link>

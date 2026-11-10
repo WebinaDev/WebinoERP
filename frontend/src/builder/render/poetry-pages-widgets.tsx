@@ -6,6 +6,7 @@
  * Poetry public API; the shop reads the storefront catalog and falls back to a manual (demo) list,
  * and works with the payment gateway off (checkoutMode = inquiry | none). */
 
+import { BuilderPrice, builderCurrencySnapshot, formatMoneyPlain } from "../money"
 import { FooterExtras, NavExtras, footerExtraClass, footerExtraStyle } from "./chrome-extras"
 import { DEFAULT_POEM_HREF, poemHref } from "./poem-href"
 import Link from "next/link"
@@ -50,7 +51,7 @@ const isExternal = (h: string) => /^https?:/i.test(h)
 export function toman(raw: string | number): string {
   const n = Number(toEn(String(raw)).replace(/[^\d]/g, ""))
   if (!Number.isFinite(n) || n <= 0) return ""
-  return `${fa(n.toLocaleString("en-US").replace(/,/g, "٬"))} تومان`
+  return formatMoneyPlain(n, builderCurrencySnapshot())
 }
 
 /** Colour fields → CSS variables. */
@@ -620,7 +621,8 @@ export function useCatalog(enabled: boolean, query: string): { items: ShopProduc
 function PriceLine({ p, it }: { p: P; it: Item }) {
   const text = propStr(p, "priceText", "قیمت (از مشتری)")
   if (propStr(p, "priceMode", "auto") === "text" || !it.price) return <em>{text}</em>
-  return <>{it.old ? <s>{toman(it.old)}</s> : null}<em>{toman(it.price)}</em></>
+  // Catalog items are IRR; manual items are typed in the display currency.
+  return <em><BuilderPrice amount={it.price} original={it.old} from={it.live ? "IRR" : undefined} /></em>
 }
 
 function BuyButton({ p, it, qty = 1, big = false, option = "" }: { p: P; it: Item; qty?: number; big?: boolean; option?: string }) {

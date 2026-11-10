@@ -37,7 +37,10 @@ function publish(next: DisplayCurrencyState) {
 
 /** Apply currency_display blob from public catalog / settings APIs. */
 export function applyCurrencyDisplay(raw: unknown): DisplayCurrencyState {
-  const row = raw && typeof raw === "object" ? (raw as Record<string, unknown>) : {}
+  // Catalog payloads may send a bare code ("IRT"); keep the current symbol in that case.
+  const row: Record<string, unknown> = typeof raw === "string" && raw.trim()
+    ? { currency: raw, currency_symbol: getDisplayCurrencyState().symbol }
+    : raw && typeof raw === "object" ? (raw as Record<string, unknown>) : {}
   const currency = normalizeStoreCurrency(String(row.currency ?? row.currency_display ?? "IRT"))
   const symbol = normalizeCurrencySymbol(currency, String(row.currency_symbol ?? "default"))
   const next: DisplayCurrencyState = {

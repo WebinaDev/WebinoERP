@@ -1,5 +1,6 @@
 "use client"
 
+import { useBuilderMoney } from "../money"
 import "./doodle-widgets.css"
 import { useMenuTree } from "@/lib/nav-menus"
 
@@ -12,7 +13,6 @@ import { useLocale, useTranslations } from "next-intl"
 import { useRouter, useSearchParams } from "next/navigation"
 import { useEffect, useMemo, useState, type ReactNode } from "react"
 import { formatNumber, normalizeUiLocale } from "@/lib/locale"
-import { formatMoney } from "@/lib/money"
 
 import { embedVideoSrc, sanitizeBuilderHtml } from "./sanitize-html"
 import {
@@ -206,9 +206,9 @@ const NAV = [
   { label: "درباره", href: "/pages/about" },
 ]
 
+/** Prices from the shop API are IRR; rendered with the dashboard currency glyph (shared BuilderPrice). */
 function useMoney() {
-  const locale = useLocale()
-  return (amount: number) => formatMoney(amount, { locale })
+  return useBuilderMoney("IRR")
 }
 
 function AbstractArt({ tone, label }: { tone: string; label: string }) {
@@ -973,7 +973,7 @@ function LoopCard({ product, template }: { product: ShopProduct; template: Build
   const filled = fillDocumentTokens(widgets, {
     name: product.name,
     brand: product.brand,
-    price: money(product.price),
+    price: money.text(product.price),
     slug: product.slug,
     href: `/product/${product.slug}`,
   })
@@ -1059,8 +1059,7 @@ function DealBar({ widget }: { widget: WidgetNode }) {
           <div>
             <div className="text-sm font-bold">{product.name}</div>
             <div className="text-xs">
-              {product.compare && product.compare > product.price ? <s className="me-1 opacity-60">{money(product.compare)}</s> : null}
-              {money(product.price)}
+              {money(product.price, product.compare)}
             </div>
           </div>
           <span className="rounded-full bg-card px-2 py-1 text-[11px] font-bold text-primary">ویژه</span>
