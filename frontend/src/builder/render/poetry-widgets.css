@@ -181,3 +181,4 @@ html:has(.wpz-mfw), html:has(.akx-mfw) { overflow-x: clip; }
 .wpz-poem { position: relative; }
 .wpz-stretch::after { content: ""; position: absolute; inset: 0; z-index: 1; border-radius: inherit; }
 .wpz-poem :is(.wpz-play, .wpz-menu-wrap, .wpz-icon-btn) { position: relative; z-index: 2; }
+.wpz-price-old { opacity: .55; font-size: .85em; margin-inline-end: .5em; }

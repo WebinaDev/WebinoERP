@@ -55,7 +55,9 @@ export function toman(raw: string | number): string {
 
 /** Colour fields → CSS variables. */
 /** mobileFullWidth (default on): edge-to-edge on phones. */
-export const akxMfw = (p: P) => (propBool(p, "mobileFullWidth", true) ? "akx-mfw" : "")
+/** Mobile full-width flag plus the shared `tone: glass` surface (same classes as the poetry widgets). */
+export const akxMfw = (p: P) =>
+  [propBool(p, "mobileFullWidth", true) ? "akx-mfw" : "", propStr(p, "tone") === "glass" ? "akx-glass wpz-light wpz-glass" : ""].filter(Boolean).join(" ")
 
 /** transparent / fully see-through colours (transparent, #rgba with 00 alpha, rgba(...,0)) */
 export function isClearColor(v: string): boolean {

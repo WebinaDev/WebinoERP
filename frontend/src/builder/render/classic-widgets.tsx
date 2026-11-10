@@ -267,7 +267,10 @@ export function AddToCartBoxWidget({ productSlug, editing = false }: { productSl
       <div className="sf-atc-box sf-card p-5">
         <p className="text-xs font-bold text-primary">{product.brand}</p>
         <h3 className="mt-1 text-lg font-extrabold">{product.name}</h3>
-        <p className="mt-3 text-2xl font-bold">{money}</p>
+        <p className="mt-3 text-2xl font-bold">
+          {product.compare && product.compare > product.price ? <s className="me-2 text-base font-normal text-muted-foreground">{formatMoney(product.compare, { locale })}</s> : null}
+          {money}
+        </p>
         <p className="mt-1 text-xs text-muted-foreground">{product.inStock ? t("stock_in") : t("stock_out")}</p>
         <button
           type="button"

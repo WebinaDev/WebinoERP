@@ -358,7 +358,7 @@ export function mediaRows(items: unknown) {
 }
 
 /** 6) shop showcase: real products from the store catalog (count/category), manual rows as override. */
-type ShowRow = { title: string; image: string; price: string; href: string; demo?: boolean }
+type ShowRow = { title: string; image: string; price: string; old?: string; href: string; demo?: boolean }
 export function ShopShowcaseWidget({ widget }: { widget: WidgetNode }) {
   const p = widget.props
   const manual = parseRows(p.items, ["title", "image", "price", "href"]).filter((r) => r.title)
@@ -369,7 +369,7 @@ export function ShopShowcaseWidget({ widget }: { widget: WidgetNode }) {
   const fromCatalog: ShowRow[] = (items ?? [])
     .filter((x) => !category || x.categorySlug === category || x.category === category)
     .slice(0, count)
-    .map((x) => ({ title: x.name.replace(/\s*(\(نمونه\)|\[demo\]|«نمونه»)\s*/gi, " ").trim(), image: x.image || x.images[0] || "", price: x.price ? String(x.price) : "", href: `/product/${encodeURIComponent(x.slug)}`, demo: isDemoProduct(x.slug, x.name) }))
+    .map((x) => ({ title: x.name.replace(/\s*(\(نمونه\)|\[demo\]|«نمونه»)\s*/gi, " ").trim(), image: x.image || x.images[0] || "", price: x.price ? String(x.price) : "", old: x.compare && x.compare > x.price ? String(x.compare) : "", href: `/product/${encodeURIComponent(x.slug)}`, demo: isDemoProduct(x.slug, x.name) }))
   const rows: ShowRow[] = manual.length ? (manual as unknown as ShowRow[]) : fromCatalog
   const loading = live && items === null
   const ratio = RATIOS[propStr(p, "imageRatio", "4/5")] ?? "4 / 5"
@@ -391,7 +391,7 @@ export function ShopShowcaseWidget({ widget }: { widget: WidgetNode }) {
               {r.image ? <img {...optImg(r.image, "(max-width: 760px) 80vw, 300px")} alt={r.title} className="wpz-product-img" loading="lazy" decoding="async" /> : <span className="wpz-product-img wpz-img-empty"><ShoppingBag className="h-8 w-8" aria-hidden /></span>}
             </Link>
             <h3 className="wpz-product-title">{r.title}</h3>
-            <p className="wpz-price">{formatToman(r.price) || propStr(p, "priceLabel")}</p>
+            <p className="wpz-price">{r.old ? <s className="wpz-price-old">{formatToman(r.old)}</s> : null}{formatToman(r.price) || propStr(p, "priceLabel")}</p>
             <Link className="wpz-btn wpz-btn-primary" href={safeHref(r.href, "/shop")}>{propStr(p, "buttonLabel", "مشاهده محصول")}</Link>
           </article>
         ))}
