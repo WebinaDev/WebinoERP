@@ -125,7 +125,7 @@ class MarketingThemeBuilderTest extends TestCase
             ],
         ])->assertOk()
             ->assertJsonPath('data.settings.colors.primary', '#112233')
-            ->assertJsonPath('data.settings.colors.secondary', '#0C2D63')
+            ->assertJsonPath('data.settings.colors.secondary', '#22242a')
             ->assertJsonPath('data.has_published', false);
 
         $this->getJson('/api/v1/public/builder/globals')->assertNotFound();
@@ -144,6 +144,73 @@ class MarketingThemeBuilderTest extends TestCase
         ])->assertOk();
         $this->getJson('/api/v1/public/builder/globals')
             ->assertJsonPath('data.settings.colors.primary', '#112233');
+    }
+
+
+    public function test_empty_globals_use_webina_brand_not_blush(): void
+    {
+        $this->getJson('/api/v1/builder/globals')
+            ->assertOk()
+            ->assertJsonPath('data.settings.colors.primary', '#0054ff')
+            ->assertJsonPath('data.settings.colors.secondary', '#22242a')
+            ->assertJsonPath('data.settings.colors.accent', '#0054ff');
+    }
+
+    public function test_empty_and_seed_globals_derive_from_site_brand(): void
+    {
+        $settings = \Modules\Marketing\Entities\MarketingSiteSetting::current();
+        $branding = is_array($settings->branding) ? $settings->branding : [];
+        $branding['primary'] = '#1122AA';
+        $branding['ink'] = '#101218';
+        $branding['foreground'] = '#101218';
+        $branding['paper'] = '#F7F8FA';
+        $settings->branding = $branding;
+        $settings->save();
+
+        $this->getJson('/api/v1/builder/globals')
+            ->assertOk()
+            ->assertJsonPath('data.settings.colors.primary', '#1122aa')
+            ->assertJsonPath('data.settings.colors.text', '#101218')
+            ->assertJsonPath('data.settings.colors.background', '#f7f8fa');
+
+        $this->putJson('/api/v1/builder/globals', ['settings' => [
+            'colors' => [
+                'primary' => '#E16BA6',
+                'secondary' => '#0C2D63',
+                'text' => '#0C2D63',
+                'accent' => '#E16BA6',
+                'background' => '#F5F8FB',
+                'surface' => '#FFFFFF',
+                'border' => '#E6EEF6',
+                'muted' => '#5C6B82',
+            ],
+        ]])->assertOk()
+            ->assertJsonPath('data.settings.colors.primary', '#1122aa')
+            ->assertJsonPath('data.settings.colors.secondary', '#101218');
+
+        $this->putJson('/api/v1/builder/globals', ['settings' => [
+            'colors' => ['primary' => '#abcdef'],
+        ]])->assertOk()
+            ->assertJsonPath('data.settings.colors.primary', '#abcdef')
+            ->assertJsonPath('data.settings.colors.secondary', '#22242a');
+    }
+
+    public function test_public_globals_derive_seed_without_writing(): void
+    {
+        $published = ['customCode' => [], 'colors' => []];
+        \Modules\Marketing\Entities\BuilderGlobal::query()->create([
+            'tenant_id' => \Modules\Marketing\Services\Builder\BuilderSite::ID,
+            'draft' => $published,
+            'published' => $published,
+        ]);
+
+        $this->getJson('/api/v1/public/builder/globals')
+            ->assertOk()
+            ->assertJsonPath('data.settings.colors.primary', '#0054ff')
+            ->assertJsonPath('data.settings.colors.text', '#22242a');
+
+        $row = \Modules\Marketing\Entities\BuilderGlobal::query()->where('tenant_id', \Modules\Marketing\Services\Builder\BuilderSite::ID)->first();
+        $this->assertSame([], $row?->published['colors'] ?? null);
     }
 
     public function test_builder_pages_keep_dashboard_document_shape(): void

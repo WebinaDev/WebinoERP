@@ -19,7 +19,7 @@ class BuilderGlobalsController extends Controller
         return response()->json(['data' => [
             'has_draft' => is_array($row?->draft),
             'has_published' => is_array($row?->published),
-            'settings' => $normalizer->normalize(is_array($row?->draft) ? $row->draft : (is_array($row?->published) ? $row->published : [])),
+            'settings' => $normalizer->normalizeForSite(is_array($row?->draft) ? $row->draft : (is_array($row?->published) ? $row->published : [])),
         ]]);
     }
 
@@ -27,7 +27,7 @@ class BuilderGlobalsController extends Controller
     {
         \Modules\Marketing\Services\Builder\BuilderAccess::authorize($request, 'design');
         $data = $request->validate(['settings' => 'required|array']);
-        $settings = app(BuilderGlobalsNormalizer::class)->normalize($data['settings']);
+        $settings = app(BuilderGlobalsNormalizer::class)->normalizeForSite($data['settings']);
         $json = json_encode($settings);
         abort_if($json === false || strlen($json) > 2000000, 422, 'settings too large');
         $row = BuilderGlobal::query()->updateOrCreate(
@@ -63,7 +63,7 @@ class BuilderGlobalsController extends Controller
         abort_unless($row && is_array($row->published), 404);
 
         return response()->json(['data' => [
-            'settings' => $row->published,
+            'settings' => app(BuilderGlobalsNormalizer::class)->normalizeForSite($row->published),
         ]]);
     }
 }

@@ -3,7 +3,7 @@ import { cache, Suspense, type ReactNode } from "react"
 import { apiServer, nullIfNotFound } from "@/lib/public-api-server"
 import { hoistDataUrls } from "@/lib/inline-media"
 import { prefetchForDocuments } from "./server-prefetch"
-import { asGlobals, type BuilderGlobals } from "./globals"
+import { applyBrandColors, asGlobals, type BuilderGlobals } from "./globals"
 import { DocumentView } from "./render/DocumentView"
 import { themeQueryString, type ThemeQuery } from "./theme/context"
 import { requestThemeContext } from "./theme/request"
@@ -57,8 +57,12 @@ export function loadPublishedTemplate(kind: "header" | "footer"): Promise<Builde
 
 export const loadPublishedGlobals = cache(async (): Promise<BuilderGlobals | null> => {
   try {
-    const res = await apiServer<{ data?: { settings?: unknown } }>("/v1/public/builder/globals", { revalidate: PUBLIC_DOC_TTL, tags: ["builder"] })
-    return res?.data?.settings ? asGlobals(hoistDataUrls(res.data.settings)) : null
+    const [res, site] = await Promise.all([
+      apiServer<{ data?: { settings?: unknown } }>("/v1/public/builder/globals", { revalidate: PUBLIC_DOC_TTL, tags: ["builder"] }),
+      apiServer<{ data?: { branding?: Record<string, string | null | undefined> } }>("/v1/public/site", { revalidate: 60, tags: ["tenant"] }),
+    ])
+    const settings = res?.data?.settings ? hoistDataUrls(res.data.settings) : null
+    return settings ? applyBrandColors(asGlobals(settings), site?.data?.branding, settings) : null
   } catch {
     return null
   }

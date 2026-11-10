@@ -154,22 +154,22 @@ const variant = (
 
 export const DEFAULT_GLOBALS: BuilderGlobals = {
   colors: {
-    primary: "#E16BA6",
-    secondary: "#0C2D63",
-    text: "#0C2D63",
-    accent: "#E16BA6",
-    background: "#F5F8FB",
-    surface: "#FFFFFF",
-    border: "#E6EEF6",
-    muted: "#5C6B82",
+    primary: "#0054ff",
+    secondary: "#22242a",
+    text: "#22242a",
+    accent: "#0054ff",
+    background: "#ffffff",
+    surface: "#ffffff",
+    border: "#e6e9f2",
+    muted: "#6b7080",
     success: "#1F8A70",
     danger: "#C2414A",
   },
   palette: [
-    { id: "blush", name: "سرخابی", value: "#E16BA6" },
-    { id: "navy", name: "سرمه‌ای", value: "#0C2D63" },
-    { id: "mist", name: "مه", value: "#F5F8FB" },
-    { id: "ink", name: "مرکب", value: "#101820" },
+    { id: "primary", name: "اصلی", value: "#0054ff" },
+    { id: "secondary", name: "ثانویه", value: "#22242a" },
+    { id: "background", name: "پس‌زمینه", value: "#ffffff" },
+    { id: "text", name: "متن", value: "#22242a" },
   ],
   fonts: {
     body: "Yekan Bakh, Vazirmatn, Tahoma, sans-serif",
@@ -185,7 +185,7 @@ export const DEFAULT_GLOBALS: BuilderGlobals = {
     h6: type("1rem", "600", "1.45"),
     body: type("0.95rem", "400", "1.75"),
     small: type("0.8rem", "400", "1.5"),
-    link: type("0.95rem", "600", "1.5", "#E16BA6"),
+    link: type("0.95rem", "600", "1.5", "#0054ff"),
   },
   buttons: {
     radius: "999px",
@@ -194,19 +194,19 @@ export const DEFAULT_GLOBALS: BuilderGlobals = {
     fontSize: "0.875rem",
     fontWeight: "600",
     variants: {
-      primary: variant("#E16BA6", "#FFFFFF", "#d45b98", "#FFFFFF"),
-      secondary: variant("#0C2D63", "#FFFFFF", "#16386f", "#FFFFFF"),
-      outline: variant("transparent", "#0C2D63", "#F5F8FB", "#0C2D63", "#E6EEF6"),
-      ghost: variant("transparent", "#0C2D63", "#F5F8FB", "#E16BA6", "transparent"),
+      primary: variant("#0054ff", "#FFFFFF", "#004ae0", "#FFFFFF"),
+      secondary: variant("#22242a", "#FFFFFF", "#1e2025", "#FFFFFF"),
+      outline: variant("transparent", "#22242a", "#ffffff", "#22242a", "#e6e9f2"),
+      ghost: variant("transparent", "#22242a", "#ffffff", "#0054ff", "transparent"),
     },
   },
   images: { radius: "16px", objectFit: "cover", lazy: true, lightbox: true },
   forms: {
     radius: "12px",
-    labelColor: "#0C2D63",
-    fieldBackground: "#FFFFFF",
-    borderColor: "#E6EEF6",
-    focusColor: "#E16BA6",
+    labelColor: "#22242a",
+    fieldBackground: "#ffffff",
+    borderColor: "#e6e9f2",
+    focusColor: "#0054ff",
     errorColor: "#C2414A",
     padding: "0.65rem 0.75rem",
   },
@@ -214,7 +214,7 @@ export const DEFAULT_GLOBALS: BuilderGlobals = {
     containerWidth: "72rem",
     sectionGap: "1.5rem",
     columnGap: "1rem",
-    background: "#F5F8FB",
+    background: "#ffffff",
     contentPadding: "1rem",
   },
   lightbox: { enabled: true, background: "rgba(16,24,32,0.72)" },
@@ -424,3 +424,11 @@ export function asGlobals(value: unknown): BuilderGlobals {
     queries: Array.isArray(incoming.queries) ? incoming.queries.filter((q) => q && typeof q.id === "string" && typeof q.source === "string") : [],
   }
 }
+
+export {
+  SEED_GLOBAL_COLORS,
+  type BrandColorSource,
+  resolveBrandGlobalColors,
+  colorsAreUnsetOrSeed,
+  applyBrandColors,
+} from "./globals-brand.ts"
