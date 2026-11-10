@@ -88,7 +88,7 @@ class LocalSameVpsProvisioner
         $envFile = $this->envFile($provision, $siteType, $token);
         $this->writeFile($dir.'/docker-compose.yml', $compose);
         // persistent uploads + Next cache (inline media/ISR); frontend runs as uid 1001
-        $this->ensureDir($dir.'/storage-public');
+        $this->ensureStoragePublicOwnership($dir);
         $this->ensureDir($dir.'/next-cache/inline-media');
         $this->run(['chown', '-R', '1001:65533', $dir.'/next-cache'], 30);
         $this->writeFile($dir.'/.env', $envFile);
@@ -121,6 +121,7 @@ class LocalSameVpsProvisioner
         $up['stdout'] .= "\n".$dbLog."\n".$recreate['stdout'];
         $up['stderr'] .= "\n".$recreate['stderr'];
         $this->attachToProxyNetwork($provision->slug);
+        $this->ensureRestartUnlessStopped($provision->slug);
         ProvisionProgress::assertNotCancelled($provision);
 
         $resource = PlatformResource::query()->updateOrCreate(
@@ -1831,7 +1832,7 @@ class LocalSameVpsProvisioner
         if ($cp['exit_code'] !== 0) {
             throw new RuntimeException('platform.uploads_preserve_failed: '.$container.' '.trim($cp['stderr']));
         }
-        $this->run(['chown', '-R', '33:33', $target], 120);
+        $this->ensureStoragePublicOwnership($dir);
     }
 
     protected function rewriteComposeImages(WebinoSiteProvision $provision, string $channel): void
@@ -1888,6 +1889,7 @@ class LocalSameVpsProvisioner
             $conflictLog .= "\nretry project={$canonical} exit=".($result['exit_code'] ?? '?');
         }
         $attachLog = $this->attachToProxyNetwork($provision->slug);
+        $this->ensureRestartUnlessStopped($provision->slug);
         $this->updateResourceStatus($provision, 'running');
 
         return [
@@ -1966,6 +1968,9 @@ class LocalSameVpsProvisioner
         foreach ([$canonical.'-db', $canonical.'-redis'] as $name) {
             $this->run(['docker', 'start', $name], 30);
         }
+        // compose up -d without --force-recreate does not restamp HostConfig, so a
+        // leftover RestartPolicy=no (e.g. after docker update --restart=no) stays.
+        $this->ensureRestartUnlessStopped($provision->slug);
     }
 
     /**
@@ -2589,12 +2594,7 @@ class LocalSameVpsProvisioner
             'up', '-d', '--remove-orphans',
         ], 900);
         if (($result['exit_code'] ?? 1) !== 0 && $this->isComposeNameConflict($result)) {
-            $names = [
-                TenantSiteStack::backendService($slug),
-                TenantSiteStack::frontendService($slug),
-                TenantSiteStack::projectName($slug).'-db',
-                TenantSiteStack::projectName($slug).'-redis',
-            ];
+            $names = TenantSiteStack::stackContainerNames($slug);
             $this->forceRemoveNamedContainers($names);
             $result = $this->run([
                 'docker', 'compose',
@@ -2604,8 +2604,34 @@ class LocalSameVpsProvisioner
                 'up', '-d', '--remove-orphans',
             ], 900);
         }
+        $this->ensureRestartUnlessStopped($slug);
 
         return $result;
+    }
+
+    /**
+     * php-fpm in the dashboard image runs as www-data (uid 33). Bind-mounted
+     * storage-public is otherwise root-owned and uploads 403.
+     */
+    protected function ensureStoragePublicOwnership(string $dir): void
+    {
+        $target = $dir.'/storage-public';
+        $this->ensureDir($target);
+        $this->run(['chown', '-R', 'www-data:www-data', $target], 120);
+    }
+
+    /**
+     * Stamp unless-stopped on existing containers without recreating them.
+     * `docker compose up -d` does not update RestartPolicy on already-created
+     * containers, so a prior `docker update --restart=no` (or a start-only
+     * recover) would otherwise survive a compose file that already has
+     * restart: unless-stopped.
+     */
+    protected function ensureRestartUnlessStopped(string $slug): void
+    {
+        foreach (TenantSiteStack::stackContainerNames($slug) as $name) {
+            $this->run(['docker', 'update', '--restart', 'unless-stopped', $name], 30);
+        }
     }
 
     /**

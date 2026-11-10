@@ -95,7 +95,24 @@ class DockerRemoteService
     {
         $p = $project ? ' -p '.escapeshellarg($project) : '';
 
-        return $this->ssh->run($server, 'cd '.escapeshellarg($dir).' && docker compose'.$p.' up -d --build', 900);
+        $result = $this->ssh->run($server, 'cd '.escapeshellarg($dir).' && docker compose'.$p.' up -d --build', 900);
+        $this->ensureRestartUnlessStopped($server, $dir, $project);
+
+        return $result;
+    }
+
+    /**
+     * Non-disruptive: restamp unless-stopped on already-created project containers.
+     * Compose up without --force-recreate does not update RestartPolicy.
+     */
+    public function ensureRestartUnlessStopped(PlatformServer $server, string $dir, ?string $project = null): array
+    {
+        $p = $project ? ' -p '.escapeshellarg($project) : '';
+        $cmd = 'cd '.escapeshellarg($dir)
+            .' && ids=$(docker compose'.$p.' ps -aq); '
+            .'[ -z "$ids" ] || docker update --restart unless-stopped $ids';
+
+        return $this->ssh->run($server, $cmd, 60);
     }
 
     public function composeDown(PlatformServer $server, string $dir, ?string $project = null): array

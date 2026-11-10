@@ -214,4 +214,21 @@ CADDY;
     {
         return [self::backendService($slug), self::frontendService($slug)];
     }
+
+    /**
+     * All compose containers in a tenant stack (app + data).
+     *
+     * @return list<string>
+     */
+    public static function stackContainerNames(string $slug): array
+    {
+        $project = self::projectName($slug);
+
+        return [
+            self::backendService($slug),
+            self::frontendService($slug),
+            $project.'-db',
+            $project.'-redis',
+        ];
+    }
 }

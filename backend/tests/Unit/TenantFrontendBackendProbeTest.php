@@ -52,6 +52,27 @@ class TenantFrontendBackendProbeTest extends TestCase
         $this->assertStringContainsString('WEBINO_SITE_SLUG: "blue-cafe"', $yaml);
     }
 
+    public function test_compose_sets_unless_stopped_on_every_stack_container(): void
+    {
+        $yaml = TenantSiteStack::composeYaml('bluecafe');
+
+        $this->assertSame([
+            'ws-bluecafe-backend',
+            'ws-bluecafe-frontend',
+            'ws-bluecafe-db',
+            'ws-bluecafe-redis',
+        ], TenantSiteStack::stackContainerNames('bluecafe'));
+
+        foreach (['ws-bluecafe-db', 'ws-bluecafe-redis', 'ws-bluecafe-backend', 'ws-bluecafe-frontend'] as $name) {
+            $this->assertStringContainsString(
+                "container_name: {$name}\n    restart: unless-stopped",
+                $yaml,
+                $name.' missing restart: unless-stopped',
+            );
+        }
+        $this->assertSame(4, substr_count($yaml, 'restart: unless-stopped'));
+    }
+
     public function test_unique_hostname_success_does_not_fall_back(): void
     {
         $probe = new FrontendBackendProbeDouble;

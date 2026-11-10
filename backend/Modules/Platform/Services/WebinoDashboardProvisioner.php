@@ -72,6 +72,7 @@ class WebinoDashboardProvisioner
         $this->docker->writeFile($server, $dir.'/docker-compose.yml', $compose);
         $envFile = $this->envFile($provision, $siteType, $token);
         $this->docker->writeFile($server, $dir.'/.env', $envFile);
+        $this->ensureRemoteStoragePublic($server, $dir);
 
         // Ensure external compose network + published images exist on remote host.
         $preflight = $this->docker->sshRun(
@@ -1230,5 +1231,20 @@ class WebinoDashboardProvisioner
             ->timeout(60)
             ->post('https://'.$provision->domain.'/api/v1/provision/bootstrap')
             ->throw();
+    }
+
+    /**
+     * php-fpm runs as www-data (uid 33). Bind-mounted storage-public must match
+     * or tenant uploads return 403.
+     */
+    protected function ensureRemoteStoragePublic(PlatformServer $server, string $dir): void
+    {
+        $public = $dir.'/storage-public';
+        $this->docker->sshRun(
+            $server,
+            'mkdir -p '.escapeshellarg($public)
+            .' && chown -R www-data:www-data '.escapeshellarg($public),
+            60
+        );
     }
 }
