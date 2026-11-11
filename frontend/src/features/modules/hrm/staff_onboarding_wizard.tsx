@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useMemo, useState, type ReactNode } from 'react';
+import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import { useTranslations } from 'next-intl';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
@@ -12,8 +12,8 @@ import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sh
 import { Switch } from '@/components/ui/switch';
 import { Textarea } from '@/components/ui/textarea';
 import { WizardStepper } from '@/features/shared/pm/WizardStepper';
-import { useCrmFeedback } from '@/features/shared/hooks/useCrmFeedback';
 import { useLocale } from '@/hooks/use-locale-next';
+import { getAxiosMessage } from '@/lib/api-helpers';
 import {
   getEmployeeSalaries,
   getPayrollComponents,
@@ -109,28 +109,45 @@ function numOrNull(value: string): number | null {
   return Number.isFinite(n) ? n : null;
 }
 
+/** Backend NOT NULL money columns reject JSON null — always send a number. */
+function numOrZero(value: string): number {
+  const n = numOrNull(value);
+  return n == null || n < 0 ? 0 : n;
+}
+
 export function StaffOnboardingWizard({
   open,
   editing,
   orgRows,
   onClose,
   onSaved,
+  onSuccess,
 }: {
   open: boolean;
   editing: Record<string, unknown> | null;
   orgRows: Record<string, unknown>[];
   onClose: () => void;
   onSaved: () => void;
+  /** Parent-owned success banner (wizard used to call a disconnected feedback hook). */
+  onSuccess?: (message: string) => void;
 }) {
   const t = useTranslations('hrm');
   const tNav = useTranslations();
   const { isRtl } = useLocale();
-  const { setSuccess, applyAxiosError } = useCrmFeedback();
   const [step, setStep] = useState(1);
   const [form, setForm] = useState<FormState>(emptyForm);
   const [lines, setLines] = useState<CompLine[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
+  const errorRef = useRef<HTMLParagraphElement | null>(null);
+
+  const showError = (message: string) => {
+    setError(message);
+    // Keep the message next to the actions in view — the old top-only alert was easy to miss.
+    window.requestAnimationFrame(() => {
+      errorRef.current?.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+    });
+  };
 
   const positions = useMemo(
     () => orgRows.filter((r) => r.is_active !== false && r.is_active !== 0),
@@ -245,30 +262,30 @@ export function StaffOnboardingWizard({
   const validateStep = (current: number): boolean => {
     if (current === 1) {
       if (!form.first_name.trim() || !form.last_name.trim()) {
-        setError(t('wizard.required'));
+        showError(t('wizard.required'));
         return false;
       }
       if (!isValidIranianNationalId(form.employee_code)) {
-        setError(t('wizard.nationalIdInvalid'));
+        showError(t('wizard.nationalIdInvalid'));
         return false;
       }
     }
     if (current === 2 && !form.org_position_id) {
-      setError(positions.length === 0 ? t('wizard.noPositions') : t('wizard.required'));
+      showError(positions.length === 0 ? t('wizard.noPositions') : t('wizard.required'));
       return false;
     }
     if (current === 3) {
       if (form.contract_start_date && form.contract_end_date && form.contract_end_date < form.contract_start_date) {
-        setError(t('wizard.dateOrder'));
+        showError(t('wizard.dateOrder'));
         return false;
       }
     }
     if (current === 4 && numOrNull(form[primaryKey]) == null) {
-      setError(t('wizard.required'));
+      showError(t('wizard.required'));
       return false;
     }
     if (current === 5 && form.doc_file && !form.doc_title.trim()) {
-      setError(t('wizard.required'));
+      showError(t('wizard.required'));
       return false;
     }
     setError(null);
@@ -276,11 +293,19 @@ export function StaffOnboardingWizard({
   };
 
   const submit = async () => {
-    if (!validateStep(5) || !validateStep(4) || !validateStep(2) || !validateStep(1)) {
-      setStep(!isValidIranianNationalId(form.employee_code) || !form.first_name.trim() ? 1 : !form.org_position_id ? 2 : numOrNull(form[primaryKey]) == null ? 4 : 5);
+    if (!validateStep(1) || !validateStep(2) || !validateStep(4) || !validateStep(5)) {
+      const nextStep = !isValidIranianNationalId(form.employee_code) || !form.first_name.trim() || !form.last_name.trim()
+        ? 1
+        : !form.org_position_id
+          ? 2
+          : numOrNull(form[primaryKey]) == null
+            ? 4
+            : 5;
+      setStep(nextStep);
       return;
     }
     setSubmitting(true);
+    setError(null);
     try {
       const payload: Record<string, unknown> = {
         onboarding: true,
@@ -302,10 +327,10 @@ export function StaffOnboardingWizard({
         contract_status: form.contract_status,
         engagement_type: form.engagement_type,
         pay_basis: form.pay_basis,
-        base_salary: numOrNull(form.base_salary),
-        daily_rate: numOrNull(form.daily_rate),
-        hourly_rate: numOrNull(form.hourly_rate),
-        project_fee: numOrNull(form.project_fee),
+        base_salary: numOrZero(form.base_salary),
+        daily_rate: numOrZero(form.daily_rate),
+        hourly_rate: numOrZero(form.hourly_rate),
+        project_fee: numOrZero(form.project_fee),
         insurance_applicable: form.insurance_applicable,
         tax_applicable: form.tax_applicable,
         issue_decree: form.issue_decree,
@@ -331,11 +356,13 @@ export function StaffOnboardingWizard({
         body.append('file', form.doc_file);
         await saveStaffDocument(id, body);
       }
-      setSuccess(tNav('common.saved'));
+      onSuccess?.(tNav('common.saved'));
       onSaved();
       onClose();
     } catch (err) {
-      applyAxiosError(err);
+      // Previously applyAxiosError wrote into a private useCrmFeedback() that the
+      // wizard never rendered — API failures looked like a dead "ثبت کارمند" button.
+      showError(getAxiosMessage(err) || tNav('common.error'));
     } finally {
       setSubmitting(false);
     }
@@ -343,12 +370,12 @@ export function StaffOnboardingWizard({
 
   return (
     <Sheet open={open} onOpenChange={(next) => { if (!next) onClose(); }}>
-      <SheetContent side="left" className="flex h-full w-full flex-col overflow-y-auto sm:max-w-3xl">
+      <SheetContent side="left" className="flex h-full w-full flex-col gap-0 overflow-hidden p-0 sm:max-w-3xl">
+        <div className="flex flex-1 flex-col gap-3 overflow-y-auto p-6 pb-4">
         <SheetHeader>
           <SheetTitle>{editing ? t('wizard.editTitle') : t('wizard.title')}</SheetTitle>
         </SheetHeader>
         <WizardStepper steps={steps} current={step} isRtl={isRtl} />
-        {error ? <p className="text-sm text-destructive">{error}</p> : null}
         <div className="grid flex-1 gap-3 py-2 sm:grid-cols-2">
           {step === 1 ? (
             <>
@@ -472,15 +499,37 @@ export function StaffOnboardingWizard({
             </div>
           ) : null}
         </div>
-        <div className="mt-4 flex flex-wrap items-center justify-between gap-2">
-          <Button variant="outline" onClick={() => (step === 1 ? onClose() : setStep((s) => s - 1))}>
-            {step === 1 ? tNav('common.cancel') : tNav('common.back')}
-          </Button>
-          {step < 5 ? (
-            <Button onClick={() => { if (validateStep(step)) setStep((s) => s + 1); }}>{tNav('common.next')}</Button>
-          ) : (
-            <Button onClick={() => void submit()} disabled={submitting}>{editing ? tNav('common.save') : t('wizard.finish')}</Button>
-          )}
+        </div>
+        <div className="sticky bottom-0 z-10 space-y-2 border-t bg-background p-4">
+          {error ? (
+            <p ref={errorRef} role="alert" className="text-sm text-destructive">
+              {error}
+            </p>
+          ) : null}
+          <div className="flex flex-wrap items-center justify-between gap-2">
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => (step === 1 ? onClose() : setStep((s) => s - 1))}
+              disabled={submitting}
+            >
+              {step === 1 ? tNav('common.cancel') : tNav('common.back')}
+            </Button>
+            {step < 5 ? (
+              <Button
+                type="button"
+                onClick={() => {
+                  if (validateStep(step)) setStep((s) => s + 1);
+                }}
+              >
+                {tNav('common.next')}
+              </Button>
+            ) : (
+              <Button type="button" onClick={() => void submit()} disabled={submitting}>
+                {submitting ? tNav('common.saving') : editing ? tNav('common.save') : t('wizard.finish')}
+              </Button>
+            )}
+          </div>
         </div>
       </SheetContent>
     </Sheet>
