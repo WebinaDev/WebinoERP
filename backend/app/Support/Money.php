@@ -70,7 +70,7 @@ final class Money
             return $symbol;
         }
 
-        return $currency === 'IRR' ? 'rial-1' : 'default';
+        return $currency === 'IRR' ? 'rial-1' : 'toman-1';
     }
 
     /**

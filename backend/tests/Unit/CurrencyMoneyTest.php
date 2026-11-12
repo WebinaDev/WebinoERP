@@ -54,4 +54,19 @@ class CurrencyMoneyTest extends TestCase
         $this->assertSame('هزار تومان', Currency::label('IRHT', 'fa'));
         $this->assertSame('دلار', Currency::label('USD', 'fa'));
     }
+
+    public function test_toman_store_multiplies_only_for_irr_gateways(): void
+    {
+        $this->assertSame(100000, Currency::toGatewayApiAmount(10000, 'IRT', 'zibal'));
+        $this->assertSame(10000, Currency::toGatewayApiAmount(10000, 'IRT', 'zarinpal'));
+        $this->assertSame(10000, Currency::toGatewayApiAmount(10000, 'IRT', 'nextpay'));
+        $this->assertSame('IRR', Currency::apiUnitFor('zibal', 'IRT'));
+        $this->assertSame('IRT', Currency::apiUnitFor('zarinpal', 'IRT'));
+    }
+
+    public function test_null_currency_defaults_to_toman_not_rial(): void
+    {
+        $this->assertSame(100000, Currency::toGatewayRial(10000, null));
+    }
+
 }
