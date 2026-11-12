@@ -69,4 +69,21 @@ class CurrencyMoneyTest extends TestCase
         $this->assertSame(100000, Currency::toGatewayRial(10000, null));
     }
 
+
+    public function test_erp_rial_storage_shows_toman_and_charges_rial(): void
+    {
+        $this->assertSame(3900000, (int) Currency::fromRial(39000000, 'IRT'));
+        $this->assertSame(3900000, Currency::convert(39000000, 'IRR', 'IRT'));
+        $this->assertSame(39000000, Currency::toGatewayApiAmount(39000000, 'IRR', 'zibal', 'IRT'));
+        $this->assertSame(3900000, Currency::toGatewayApiAmount(39000000, 'IRR', 'zarinpal', 'IRT'));
+        $this->assertSame(39000000, Money::gatewayRialFromBase(39000000));
+    }
+
+    public function test_irr_row_on_irt_display_is_not_multiplied_again(): void
+    {
+        $this->assertSame(85000, Currency::convert(850000, 'IRR', 'IRT'));
+        $this->assertSame(850000, Currency::toGatewayApiAmount(850000, 'IRR', 'zibal', 'IRT'));
+        $this->assertSame(85000, Currency::toGatewayApiAmount(850000, 'IRR', 'zarinpal', 'IRT'));
+    }
+
 }
