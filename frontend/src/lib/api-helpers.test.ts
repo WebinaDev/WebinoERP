@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { formatProvisionError, getAxiosMessage, isAxiosTransportError } from './api-helpers';
+import { formatProvisionError, getAxiosMessage, getLoginErrorMessage, isAxiosTransportError } from './api-helpers';
 
 function axiosErr(message: string, extra: Record<string, unknown> = {}) {
   const err = new Error(message);
@@ -96,5 +96,22 @@ describe('getAxiosMessage', () => {
 
   it('translates license conflict codes stored on the provision error log', () => {
     expect(formatProvisionError('platform.license_customer_conflict')).toContain('مشتری');
+  });
+});
+
+describe('getLoginErrorMessage', () => {
+  it('returns clean concise message on network transport errors', () => {
+    const network = axiosErr('Network Error', { code: 'ERR_NETWORK' });
+    expect(getLoginErrorMessage(network)).toBe('اتصال به سرور برقرار نشد. لطفاً اتصال اینترنت خود را بررسی کنید و دوباره تلاش کنید.');
+    expect(getLoginErrorMessage(network)).not.toContain('/api');
+    expect(getLoginErrorMessage(network)).not.toContain('localhost');
+  });
+
+  it('returns invalid credentials message on 401 and 403', () => {
+    const unauthorized = axiosErr('Request failed with status code 401', { response: { status: 401 } });
+    expect(getLoginErrorMessage(unauthorized)).toBe('نام کاربری یا رمز عبور اشتباه است.');
+
+    const forbidden = axiosErr('Request failed with status code 403', { response: { status: 403 } });
+    expect(getLoginErrorMessage(forbidden)).toBe('نام کاربری یا رمز عبور اشتباه است.');
   });
 });

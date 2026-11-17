@@ -11,7 +11,7 @@ import { Label } from '@/components/ui/label';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { cn } from '@/lib/utils';
 import { login, registerUser, sendAdminTwoFactor, sendLoginOtp, verifyAdminTwoFactor, verifyLoginOtp } from '@/lib/auth';
-import { getAxiosMessage } from '@/lib/api-helpers';
+import { getLoginErrorMessage } from '@/lib/api-helpers';
 import { DASHBOARD_BASE, legacyAdminToDashboardPath } from '@/lib/paths';
 import { BrandMark, BrandWordmark } from '@/themes/webina-corporate-v1/components/BrandMark';
 import { toast } from 'sonner';
@@ -66,7 +66,7 @@ export function LoginForm({ className, ...props }: ComponentProps<'div'>) {
         setTwoFactorHint(t('login.twoFactorGenerated'));
       }
     } catch (err) {
-      toast.error(getAxiosMessage(err));
+      toast.error(getLoginErrorMessage(err));
     }
   }
 
@@ -82,7 +82,7 @@ export function LoginForm({ className, ...props }: ComponentProps<'div'>) {
       }
       goDashboard();
     } catch (err) {
-      toast.error(getAxiosMessage(err));
+      toast.error(getLoginErrorMessage(err));
     } finally {
       setPending(false);
     }
@@ -96,7 +96,7 @@ export function LoginForm({ className, ...props }: ComponentProps<'div'>) {
       sessionStorage.removeItem('webino_2fa_redirect');
       goDashboard();
     } catch (err) {
-      toast.error(getAxiosMessage(err));
+      toast.error(getLoginErrorMessage(err));
     } finally {
       setPending(false);
     }
@@ -109,7 +109,7 @@ export function LoginForm({ className, ...props }: ComponentProps<'div'>) {
       const r = await sendLoginOtp(mobile);
       toast.success(r.message ?? t('login.otpSent'));
     } catch (err) {
-      toast.error(getAxiosMessage(err));
+      toast.error(getLoginErrorMessage(err));
     } finally {
       setPending(false);
     }
@@ -122,7 +122,7 @@ export function LoginForm({ className, ...props }: ComponentProps<'div'>) {
       await verifyLoginOtp(mobile, otpCode);
       goDashboard();
     } catch (err) {
-      toast.error(getAxiosMessage(err));
+      toast.error(getLoginErrorMessage(err));
     } finally {
       setPending(false);
     }
@@ -145,7 +145,7 @@ export function LoginForm({ className, ...props }: ComponentProps<'div'>) {
       toast.success(t('login.registerSuccess'));
       setTab('password');
     } catch (err) {
-      toast.error(getAxiosMessage(err));
+      toast.error(getLoginErrorMessage(err));
     } finally {
       setPending(false);
     }

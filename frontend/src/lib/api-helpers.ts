@@ -275,3 +275,24 @@ export function getAxiosMessage(err: unknown): string {
 export function getApiErrorMessage(err: unknown, _body?: unknown): string {
   return getAxiosMessage(err)
 }
+
+/**
+ * User-facing error message specifically for authentication forms (login, OTP, 2FA, register).
+ * Prevents leaking infrastructure details like internal routing or dev troubleshooting hints.
+ */
+export function getLoginErrorMessage(err: unknown): string {
+  if (isAxiosTransportError(err)) {
+    return 'اتصال به سرور برقرار نشد. لطفاً اتصال اینترنت خود را بررسی کنید و دوباره تلاش کنید.';
+  }
+  const status =
+    err && typeof err === 'object' && 'response' in err
+      ? (err as { response?: { status?: number } }).response?.status
+      : undefined;
+  if (status === 401 || status === 403) {
+    return 'نام کاربری یا رمز عبور اشتباه است.';
+  }
+  if (status === 429) {
+    return 'تعداد تلاش‌های ورود بیش از حد مجاز است. لطفاً چند دقیقه صبر کنید.';
+  }
+  return getAxiosMessage(err);
+}
