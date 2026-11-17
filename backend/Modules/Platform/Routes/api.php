@@ -111,3 +111,24 @@ Route::delete('tags/{tag}', [TagController::class, 'destroy']);
 
 Route::post('webino/launch', [WebinoProvisionController::class, 'launch']);
 Route::get('crm/{accountId}/sites', [CrmSitesController::class, 'show']);
+
+
+// Domain Email Infrastructure & Webmail Management
+Route::prefix('mail')->group(function () {
+    Route::get('/domains', [\Modules\Platform\Http\Controllers\DomainMailController::class, 'domains']);
+    Route::post('/domains/setup', [\Modules\Platform\Http\Controllers\DomainMailController::class, 'setup']);
+    Route::post('/domains/{mailDomain}/check-dns', [\Modules\Platform\Http\Controllers\DomainMailController::class, 'checkDns']);
+    Route::get('/domains/{mailDomain}/mailboxes', [\Modules\Platform\Http\Controllers\DomainMailController::class, 'mailboxes']);
+    Route::post('/domains/{mailDomain}/mailboxes', [\Modules\Platform\Http\Controllers\DomainMailController::class, 'createMailbox']);
+});
+
+
+// Domain Advanced Operations (DNS Zones, SSL Lifecycle, Uptime, Customer Hub)
+Route::prefix('domains/{domain}')->group(function () {
+    Route::get('/dns-records', [\Modules\Platform\Http\Controllers\DomainOperationsController::class, 'records']);
+    Route::post('/dns-records', [\Modules\Platform\Http\Controllers\DomainOperationsController::class, 'upsertRecord']);
+    Route::delete('/dns-records/{record}', [\Modules\Platform\Http\Controllers\DomainOperationsController::class, 'deleteRecord']);
+    Route::post('/check-uptime', [\Modules\Platform\Http\Controllers\DomainOperationsController::class, 'checkUptime']);
+    Route::post('/inspect-ssl', [\Modules\Platform\Http\Controllers\DomainOperationsController::class, 'inspectSsl']);
+});
+Route::get('/customers/{customerId}/domains', [\Modules\Platform\Http\Controllers\DomainOperationsController::class, 'customerDomains']);

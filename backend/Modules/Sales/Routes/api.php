@@ -56,3 +56,12 @@ Route::prefix('rahn/public')->middleware('throttle:60,1')->group(function () {
         ->where('token', '[a-zA-Z0-9]+')
         ->withoutMiddleware(['auth:sanctum', 'module:sales', 'module.permission:sales']);
 });
+
+
+// Order-to-Cash & Growth Attribution
+Route::prefix('quotes')->group(function () {
+    Route::get('/', [\Modules\Sales\Http\Controllers\QuoteController::class, 'index']);
+    Route::post('/', [\Modules\Sales\Http\Controllers\QuoteController::class, 'store']);
+    Route::post('/{quote}/convert', [\Modules\Sales\Http\Controllers\QuoteController::class, 'convert']);
+    Route::get('/growth/attribution', [\Modules\Sales\Http\Controllers\QuoteController::class, 'growthAttribution']);
+});

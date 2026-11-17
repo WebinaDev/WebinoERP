@@ -706,9 +706,27 @@ export function ModuleDetailPage({ moduleId: moduleIdProp }: { moduleId?: string
                     <div className="font-medium">
                       {r.version} {r.tag_name ? `(${r.tag_name})` : ''}
                     </div>
-                    <div className="text-muted-foreground text-xs">
-                      {t('releaseStatus')}: {r.status}
-                      {r.published_at ? ` · ${formatDateTime(r.published_at)}` : ''}
+                    <div className="text-muted-foreground text-xs space-y-1">
+                      <div className="flex items-center gap-2">
+                        <span>{t('releaseStatus')}: <strong className="capitalize text-foreground">{r.status}</strong></span>
+                        {r.release_channel ? (
+                          <span className="inline-flex items-center rounded-full px-2 py-0.5 text-[10px] font-medium bg-primary/10 text-primary uppercase">
+                            {r.release_channel}
+                          </span>
+                        ) : null}
+                        {r.has_client_dist ? (
+                          <span className="inline-flex items-center text-[10px] text-emerald-600 dark:text-emerald-400 font-medium">
+                            ✓ دارای باندل کلاینت
+                          </span>
+                        ) : null}
+                        {r.published_at ? ` · ${formatDateTime(r.published_at)}` : ''}
+                      </div>
+                      {r.checksum_sha256 ? (
+                        <div className="font-mono text-[11px] text-muted-foreground truncate max-w-md" title={r.checksum_sha256}>
+                          SHA-256: <span className="text-foreground">{r.checksum_sha256.slice(0, 16)}...{r.checksum_sha256.slice(-8)}</span>
+                          {r.package_size_bytes ? ` (${(r.package_size_bytes / 1024).toFixed(1)} KB)` : ''}
+                        </div>
+                      ) : null}
                     </div>
                   </div>
                   <div className="flex gap-2">
