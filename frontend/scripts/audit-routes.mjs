@@ -43,7 +43,7 @@ function parseRegistryPaths(src) {
 
 function parseExactPageMap(src) {
   const keys = [];
-  const re = /^\s*'([^']*)':\s*</gm;
+  const re = /^\s*['"]?([a-zA-Z0-9_\-\.\/]*)['"]?:\s*</gm;
   let m;
   while ((m = re.exec(src))) keys.push(m[1]);
   return keys;
@@ -97,8 +97,8 @@ function isAllowlistedMissing(path) {
 }
 
 function main() {
-  const registrySrc = read('lib/module-registry.ts');
-  const pageMapSrc = read('lib/dashboard-page-map.tsx');
+  const registrySrc = read('src/lib/module-registry.ts');
+  const pageMapSrc = read('src/lib/dashboard-page-map.tsx');
   let webinocrmSrc = '';
   try {
     webinocrmSrc = readRepo('../Wordpress/webinocrm/client/src/routes/routes.config.tsx');

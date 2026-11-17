@@ -1,0 +1,13 @@
+{
+    "name": "Qm",
+    "alias": "qm",
+    "description": "Quality Management — inspection plans, incoming/in-process/final/return checks, quarantine gates, NCR, and CAPA",
+    "keywords": [],
+    "priority": 22,
+    "providers": [
+        "Modules\\Qm\\Providers\\QmServiceProvider"
+    ],
+    "aliases": {},
+    "files": [],
+    "requires": []
+}

@@ -1,0 +1,13 @@
+{
+    "name": "Bi",
+    "alias": "bi",
+    "description": "Lightweight ERP data mart, role-based executive dashboards, KPI thresholds, and report subscriptions",
+    "keywords": [],
+    "priority": 20,
+    "providers": [
+        "Modules\\Bi\\Providers\\BiServiceProvider"
+    ],
+    "aliases": {},
+    "files": [],
+    "requires": []
+}

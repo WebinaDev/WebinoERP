@@ -1,8 +1,8 @@
 import assert from "node:assert/strict"
 import { test } from "node:test"
 
-import { applyBrandColors, SEED_GLOBAL_COLORS } from "./globals-brand.ts"
-import type { BuilderGlobals } from "./globals.ts"
+import { applyBrandColors, SEED_GLOBAL_COLORS } from "./globals-brand"
+import type { BuilderGlobals } from "./globals"
 
 const catalog: BuilderGlobals = {
   colors: {

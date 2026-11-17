@@ -1,0 +1,41 @@
+<?php
+
+namespace Modules\Bi\Console;
+
+use App\Models\User;
+use App\Support\StaffNotifier;
+use Illuminate\Console\Command;
+use Modules\Bi\Entities\BiSubscription;
+use Modules\Bi\Services\BiDataMartService;
+
+class DeliverScheduledBiReports extends Command
+{
+    protected $signature = 'bi:deliver-scheduled-reports';
+
+    protected $description = 'Generate and deliver scheduled BI reports to subscribers';
+
+    public function handle(BiDataMartService $dataMart): int
+    {
+        $subs = BiSubscription::query()->where('is_active', true)->get();
+        $count = 0;
+
+        foreach ($subs as $sub) {
+            $kpis = $dataMart->getKpiSummary($sub->filters ?? []);
+            $recipients = $sub->recipients ?? [];
+
+            foreach ($recipients as $recipient) {
+                $user = is_numeric($recipient) ? User::find((int) $recipient) : User::where('email', $recipient)->first();
+                if ($user) {
+                    StaffNotifier::notify($user, "گزارش دوره‌ای هوش تجاری: {$sub->name}", "گزارش دوره‌ای {$sub->report_type} تولید و ارسال گردید.");
+                    $count++;
+                }
+            }
+
+            $sub->update(['last_sent_at' => now()]);
+        }
+
+        $this->info("BI scheduled report deliveries: {$count}");
+
+        return self::SUCCESS;
+    }
+}

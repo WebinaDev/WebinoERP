@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-07-08T00:11:16.000Z",
+  "generatedAt": "2026-11-17T12:12:29.089Z",
   "version": 1,
   "routes": [
     {
@@ -31,7 +31,7 @@
       "apiHint": "/v1/core/reports",
       "e2ePath": "reports",
       "e2eAuth": true,
-      "component": "ReportsPageView",
+      "component": "ReportsPage",
       "apiSmoke": {
         "method": "GET",
         "path": "/api/v1/core/reports",
@@ -139,6 +139,20 @@
       }
     },
     {
+      "route": "hrm/payroll/decrees",
+      "module": "hrm",
+      "apiHint": "/v1/hrm/payroll/decrees",
+      "e2ePath": "hrm/payroll/decrees",
+      "e2eAuth": true,
+      "component": "PayrollDecreesPage",
+      "apiSmoke": {
+        "method": "GET",
+        "path": "/api/v1/hrm/payroll/decrees",
+        "role": "system_manager",
+        "allowNotFound": false
+      }
+    },
+    {
       "route": "hrm/recruitment",
       "module": "hrm",
       "apiHint": "/v1/hrm/recruitment",
@@ -176,6 +190,118 @@
       "apiSmoke": {
         "method": "GET",
         "path": "/api/v1/hrm/training",
+        "role": "system_manager",
+        "allowNotFound": false
+      }
+    },
+    {
+      "route": "hrm/me",
+      "module": "hrm",
+      "apiHint": "/v1/hrm/me",
+      "e2ePath": "hrm/me",
+      "e2eAuth": true,
+      "component": "MyPortalPage",
+      "apiSmoke": {
+        "method": "GET",
+        "path": "/api/v1/hrm/me",
+        "role": "system_manager",
+        "allowNotFound": false
+      }
+    },
+    {
+      "route": "hrm/my-time",
+      "module": "hrm",
+      "apiHint": "/v1/hrm/me/attendance",
+      "e2ePath": "hrm/my-time",
+      "e2eAuth": true,
+      "component": "MyTimePage",
+      "apiSmoke": {
+        "method": "GET",
+        "path": "/api/v1/hrm/me/attendance",
+        "role": "system_manager",
+        "allowNotFound": false
+      }
+    },
+    {
+      "route": "hrm/my-docs",
+      "module": "hrm",
+      "apiHint": "/v1/hrm/me/decrees",
+      "e2ePath": "hrm/my-docs",
+      "e2eAuth": true,
+      "component": "MyDocsPage",
+      "apiSmoke": {
+        "method": "GET",
+        "path": "/api/v1/hrm/me/decrees",
+        "role": "system_manager",
+        "allowNotFound": false
+      }
+    },
+    {
+      "route": "hrm/my-insurance",
+      "module": "hrm",
+      "apiHint": "/v1/hrm/me/dependents",
+      "e2ePath": "hrm/my-insurance",
+      "e2eAuth": true,
+      "component": "MyInsurancePage",
+      "apiSmoke": {
+        "method": "GET",
+        "path": "/api/v1/hrm/me/dependents",
+        "role": "system_manager",
+        "allowNotFound": false
+      }
+    },
+    {
+      "route": "hrm/my-org",
+      "module": "hrm",
+      "apiHint": "/v1/hrm/me/org-chart",
+      "e2ePath": "hrm/my-org",
+      "e2eAuth": true,
+      "component": "MyOrgPage",
+      "apiSmoke": {
+        "method": "GET",
+        "path": "/api/v1/hrm/me/org-chart",
+        "role": "system_manager",
+        "allowNotFound": false
+      }
+    },
+    {
+      "route": "hrm/my-profile",
+      "module": "hrm",
+      "apiHint": "/v1/hrm/me/profile",
+      "e2ePath": "hrm/my-profile",
+      "e2eAuth": true,
+      "component": "MyProfilePage",
+      "apiSmoke": {
+        "method": "GET",
+        "path": "/api/v1/hrm/me/profile",
+        "role": "system_manager",
+        "allowNotFound": false
+      }
+    },
+    {
+      "route": "hrm/my-payroll",
+      "module": "hrm",
+      "apiHint": "/v1/hrm/payroll/my-payslips",
+      "e2ePath": "hrm/my-payroll",
+      "e2eAuth": true,
+      "component": "MyPayrollPage",
+      "apiSmoke": {
+        "method": "GET",
+        "path": "/api/v1/hrm/payroll/my-payslips",
+        "role": "system_manager",
+        "allowNotFound": false
+      }
+    },
+    {
+      "route": "hrm/cartable",
+      "module": "hrm",
+      "apiHint": "/v1/hrm/requests/inbox",
+      "e2ePath": "hrm/cartable",
+      "e2eAuth": true,
+      "component": "HrmCartablePage",
+      "apiSmoke": {
+        "method": "GET",
+        "path": "/api/v1/hrm/requests/inbox",
         "role": "system_manager",
         "allowNotFound": false
       }
@@ -383,7 +509,7 @@
       "apiHint": "/v1/crm/accounts",
       "e2ePath": "crm/customers",
       "e2eAuth": true,
-      "component": "CustomersListPage",
+      "component": "CustomersListPage + Customer360",
       "apiSmoke": {
         "method": "GET",
         "path": "/api/v1/crm/accounts",
@@ -397,7 +523,7 @@
       "apiHint": "/v1/crm/accounts/{id}",
       "e2ePath": "crm/customers/1",
       "e2eAuth": true,
-      "component": "EntityDetailPage",
+      "component": "CustomerDetailPage",
       "apiSmoke": {
         "method": "GET",
         "path": "/api/v1/crm/accounts/1",
@@ -667,7 +793,7 @@
       "apiHint": "/v1/integrations/modirpayamak/admin/dashboard",
       "e2ePath": "admin/integrations/modirpayamak",
       "e2eAuth": true,
-      "component": "ModirpayamakPage",
+      "component": "ModirpayamakDashboardPage",
       "apiSmoke": {
         "method": "GET",
         "path": "/api/v1/integrations/modirpayamak/admin/dashboard",
@@ -694,13 +820,13 @@
     {
       "route": "admin/integrations/modirpayamak/reports",
       "module": "sales/modirpayamak",
-      "apiHint": "/v1/integrations/modirpayamak/admin/reports/outbox",
+      "apiHint": "/v1/integrations/modirpayamak/reports",
       "e2ePath": "admin/integrations/modirpayamak/reports",
       "e2eAuth": true,
       "component": "ModirpayamakReportsPage",
       "apiSmoke": {
         "method": "GET",
-        "path": "/api/v1/integrations/modirpayamak/admin/reports/outbox",
+        "path": "/api/v1/integrations/modirpayamak/reports",
         "role": "system_manager",
         "allowNotFound": false
       }
@@ -750,13 +876,13 @@
     {
       "route": "admin/integrations/modirpayamak/patterns",
       "module": "sales/modirpayamak",
-      "apiHint": "/v1/integrations/modirpayamak/admin/patterns",
+      "apiHint": "/v1/integrations/modirpayamak/patterns",
       "e2ePath": "admin/integrations/modirpayamak/patterns",
       "e2eAuth": true,
       "component": "ModirpayamakPatternsPage",
       "apiSmoke": {
         "method": "GET",
-        "path": "/api/v1/integrations/modirpayamak/admin/patterns",
+        "path": "/api/v1/integrations/modirpayamak/patterns",
         "role": "system_manager",
         "allowNotFound": false
       }
@@ -764,13 +890,13 @@
     {
       "route": "admin/integrations/modirpayamak/phonebooks",
       "module": "sales/modirpayamak",
-      "apiHint": "/v1/integrations/modirpayamak/admin/phonebooks",
+      "apiHint": "/v1/integrations/modirpayamak/phonebooks",
       "e2ePath": "admin/integrations/modirpayamak/phonebooks",
       "e2eAuth": true,
       "component": "ModirpayamakPhonebooksPage",
       "apiSmoke": {
         "method": "GET",
-        "path": "/api/v1/integrations/modirpayamak/admin/phonebooks",
+        "path": "/api/v1/integrations/modirpayamak/phonebooks",
         "role": "system_manager",
         "allowNotFound": false
       }
@@ -778,13 +904,13 @@
     {
       "route": "admin/integrations/modirpayamak/numbers",
       "module": "sales/modirpayamak",
-      "apiHint": "/v1/integrations/modirpayamak/admin/numbers",
+      "apiHint": "/v1/integrations/modirpayamak/numbers",
       "e2ePath": "admin/integrations/modirpayamak/numbers",
       "e2eAuth": true,
       "component": "ModirpayamakNumbersPage",
       "apiSmoke": {
         "method": "GET",
-        "path": "/api/v1/integrations/modirpayamak/admin/numbers",
+        "path": "/api/v1/integrations/modirpayamak/numbers",
         "role": "system_manager",
         "allowNotFound": false
       }
@@ -799,6 +925,34 @@
       "apiSmoke": {
         "method": "GET",
         "path": "/api/v1/integrations/modirpayamak/settings",
+        "role": "system_manager",
+        "allowNotFound": false
+      }
+    },
+    {
+      "route": "admin/integrations/modirpayamak/tariffs",
+      "module": "sales/modirpayamak",
+      "apiHint": "/v1/integrations/modirpayamak/admin/tariffs",
+      "e2ePath": "admin/integrations/modirpayamak/tariffs",
+      "e2eAuth": true,
+      "component": "ModirpayamakTariffsPage",
+      "apiSmoke": {
+        "method": "GET",
+        "path": "/api/v1/integrations/modirpayamak/admin/tariffs",
+        "role": "system_manager",
+        "allowNotFound": false
+      }
+    },
+    {
+      "route": "admin/integrations/modirpayamak/secretaries",
+      "module": "sales/modirpayamak",
+      "apiHint": "/v1/integrations/modirpayamak/admin/secretaries",
+      "e2ePath": "admin/integrations/modirpayamak/secretaries",
+      "e2eAuth": true,
+      "component": "ModirpayamakSecretariesPage",
+      "apiSmoke": {
+        "method": "GET",
+        "path": "/api/v1/integrations/modirpayamak/admin/secretaries",
         "role": "system_manager",
         "allowNotFound": false
       }
@@ -851,16 +1005,10 @@
     {
       "route": "admin/integrations/bale",
       "module": "sales/bale",
-      "apiHint": "/v1/integrations/bale/*",
+      "apiHint": "/webinocrm/v1/bale/*",
       "e2ePath": "admin/integrations/bale",
       "e2eAuth": true,
       "component": "BaleBusinessDashboard",
-      "apiSmoke": {
-        "method": "GET",
-        "path": "/api/webinocrm/v1/bale/settings",
-        "role": "system_manager",
-        "allowNotFound": false
-      },
       "featureTest": true
     },
     {
@@ -902,6 +1050,132 @@
       "apiSmoke": {
         "method": "GET",
         "path": "/api/v1/docs/files",
+        "role": "system_manager",
+        "allowNotFound": false
+      }
+    },
+    {
+      "route": "ai-content",
+      "module": "ai_content",
+      "apiHint": "/v1/ai-content/overview",
+      "e2ePath": "ai-content",
+      "e2eAuth": true,
+      "component": "AiOverviewPage",
+      "apiSmoke": {
+        "method": "GET",
+        "path": "/api/v1/ai-content/overview",
+        "role": "system_manager",
+        "allowNotFound": false
+      }
+    },
+    {
+      "route": "ai-content/jobs",
+      "module": "ai_content",
+      "apiHint": "/v1/ai-content/jobs",
+      "e2ePath": "ai-content/jobs",
+      "e2eAuth": true,
+      "component": "AiJobsPage",
+      "apiSmoke": {
+        "method": "GET",
+        "path": "/api/v1/ai-content/jobs",
+        "role": "system_manager",
+        "allowNotFound": false
+      }
+    },
+    {
+      "route": "ai-content/calendar",
+      "module": "ai_content",
+      "apiHint": "/v1/ai-content/calendar",
+      "e2ePath": "ai-content/calendar",
+      "e2eAuth": true,
+      "component": "AiCalendarPage",
+      "apiSmoke": {
+        "method": "GET",
+        "path": "/api/v1/ai-content/calendar",
+        "role": "system_manager",
+        "allowNotFound": false
+      }
+    },
+    {
+      "route": "ai-content/products",
+      "module": "ai_content",
+      "apiHint": "/v1/ai-content/products",
+      "e2ePath": "ai-content/products",
+      "e2eAuth": true,
+      "component": "AiProductsPage",
+      "apiSmoke": {
+        "method": "GET",
+        "path": "/api/v1/ai-content/products",
+        "role": "system_manager",
+        "allowNotFound": false
+      }
+    },
+    {
+      "route": "ai-content/titles",
+      "module": "ai_content",
+      "apiHint": "/v1/ai-content/proposals/title",
+      "e2ePath": "ai-content/titles",
+      "e2eAuth": true,
+      "component": "AiTitlesPage",
+      "apiSmoke": {
+        "method": "GET",
+        "path": "/api/v1/ai-content/proposals/title",
+        "role": "system_manager",
+        "allowNotFound": false
+      }
+    },
+    {
+      "route": "ai-content/pages",
+      "module": "ai_content",
+      "apiHint": "/v1/ai-content/pages",
+      "e2ePath": "ai-content/pages",
+      "e2eAuth": true,
+      "component": "AiPagesPage",
+      "apiSmoke": {
+        "method": "GET",
+        "path": "/api/v1/ai-content/pages",
+        "role": "system_manager",
+        "allowNotFound": false
+      }
+    },
+    {
+      "route": "ai-content/taxonomies",
+      "module": "ai_content",
+      "apiHint": "/v1/ai-content/suggest-categories",
+      "e2ePath": "ai-content/taxonomies",
+      "e2eAuth": true,
+      "component": "AiTaxonomiesPage",
+      "apiSmoke": {
+        "method": "GET",
+        "path": "/api/v1/ai-content/suggest-categories",
+        "role": "system_manager",
+        "allowNotFound": false
+      }
+    },
+    {
+      "route": "ai-content/attributes",
+      "module": "ai_content",
+      "apiHint": "/v1/ai-content/attribute-templates",
+      "e2ePath": "ai-content/attributes",
+      "e2eAuth": true,
+      "component": "AiAttributesPage",
+      "apiSmoke": {
+        "method": "GET",
+        "path": "/api/v1/ai-content/attribute-templates",
+        "role": "system_manager",
+        "allowNotFound": false
+      }
+    },
+    {
+      "route": "ai-content/settings",
+      "module": "ai_content",
+      "apiHint": "/v1/ai-content/settings",
+      "e2ePath": "ai-content/settings",
+      "e2eAuth": true,
+      "component": "AiSettingsPage",
+      "apiSmoke": {
+        "method": "GET",
+        "path": "/api/v1/ai-content/settings",
         "role": "system_manager",
         "allowNotFound": false
       }
@@ -1055,7 +1329,7 @@
       "apiHint": "/v1/core/settings",
       "e2ePath": "admin/settings/general/general",
       "e2eAuth": true,
-      "component": "SettingsHubPage",
+      "component": "SettingsHubPage → SettingsPageView",
       "apiSmoke": {
         "method": "GET",
         "path": "/api/v1/core/settings",
@@ -1069,7 +1343,7 @@
       "apiHint": "/v1/core/settings",
       "e2ePath": "admin/settings/projects/general",
       "e2eAuth": true,
-      "component": "SettingsHubPage",
+      "component": "SettingsHubPage → SettingsPageView",
       "apiSmoke": {
         "method": "GET",
         "path": "/api/v1/core/settings",
@@ -1083,7 +1357,7 @@
       "apiHint": "/v1/core/settings",
       "e2ePath": "admin/settings/crm/general",
       "e2eAuth": true,
-      "component": "SettingsHubPage",
+      "component": "SettingsHubPage → SettingsPageView",
       "apiSmoke": {
         "method": "GET",
         "path": "/api/v1/core/settings",
@@ -1097,7 +1371,7 @@
       "apiHint": "/v1/core/settings",
       "e2ePath": "admin/settings/bots",
       "e2eAuth": true,
-      "component": "SettingsHubPage",
+      "component": "SettingsHubPage → SettingsPageView",
       "apiSmoke": {
         "method": "GET",
         "path": "/api/v1/core/settings",
@@ -1111,7 +1385,7 @@
       "apiHint": "/v1/core/settings",
       "e2ePath": "admin/settings/accounting/general",
       "e2eAuth": true,
-      "component": "SettingsHubPage",
+      "component": "SettingsHubPage → SettingsPageView",
       "apiSmoke": {
         "method": "GET",
         "path": "/api/v1/core/settings",
@@ -1125,7 +1399,7 @@
       "apiHint": "/v1/mfg/overview",
       "e2ePath": "mfg",
       "e2eAuth": true,
-      "component": "mfg",
+      "component": "MfgOverviewPage",
       "apiSmoke": {
         "method": "GET",
         "path": "/api/v1/mfg/overview",
@@ -1143,7 +1417,7 @@
       "apiHint": "/v1/mfg/boms",
       "e2ePath": "mfg/boms",
       "e2eAuth": true,
-      "component": "mfg/boms",
+      "component": "MfgBomsPage",
       "apiSmoke": {
         "method": "GET",
         "path": "/api/v1/mfg/boms",
@@ -1161,7 +1435,7 @@
       "apiHint": "/v1/mfg/work-orders",
       "e2ePath": "mfg/work-orders",
       "e2eAuth": true,
-      "component": "mfg/work-orders",
+      "component": "MfgWorkOrdersPage",
       "apiSmoke": {
         "method": "GET",
         "path": "/api/v1/mfg/work-orders",
@@ -1179,7 +1453,7 @@
       "apiHint": "/v1/mfg/inspections",
       "e2ePath": "mfg/quality",
       "e2eAuth": true,
-      "component": "mfg/quality",
+      "component": "MfgQualityPage",
       "apiSmoke": {
         "method": "GET",
         "path": "/api/v1/mfg/inspections",
@@ -1197,7 +1471,7 @@
       "apiHint": "/v1/mfg/planning/mrp",
       "e2ePath": "mfg/planning",
       "e2eAuth": true,
-      "component": "mfg/planning",
+      "component": "MfgPlanningPage",
       "apiSmoke": {
         "method": "GET",
         "path": "/api/v1/mfg/planning/mrp",
@@ -1208,6 +1482,732 @@
         ]
       },
       "featureTest": true
+    },
+    {
+      "route": "org",
+      "module": "org",
+      "apiHint": "/v1/org/context/active",
+      "e2ePath": "org",
+      "e2eAuth": true,
+      "component": "OrgOverviewPage",
+      "apiSmoke": {
+        "method": "GET",
+        "path": "/api/v1/org/context/active",
+        "role": "system_manager",
+        "allowNotFound": false
+      },
+      "featureTest": true
+    },
+    {
+      "route": "org/companies",
+      "module": "org",
+      "apiHint": "/v1/org/companies",
+      "e2ePath": "org/companies",
+      "e2eAuth": true,
+      "component": "OrgCompaniesPage",
+      "apiSmoke": {
+        "method": "GET",
+        "path": "/api/v1/org/companies",
+        "role": "system_manager",
+        "allowNotFound": false
+      },
+      "featureTest": true
+    },
+    {
+      "route": "org/branches",
+      "module": "org",
+      "apiHint": "/v1/org/branches",
+      "e2ePath": "org/branches",
+      "e2eAuth": true,
+      "component": "OrgBranchesPage",
+      "apiSmoke": {
+        "method": "GET",
+        "path": "/api/v1/org/branches",
+        "role": "system_manager",
+        "allowNotFound": false
+      },
+      "featureTest": true
+    },
+    {
+      "route": "org/transfers",
+      "module": "org",
+      "apiHint": "/v1/org/transfers",
+      "e2ePath": "org/transfers",
+      "e2eAuth": true,
+      "component": "OrgTransfersPage",
+      "apiSmoke": {
+        "method": "GET",
+        "path": "/api/v1/org/transfers",
+        "role": "system_manager",
+        "allowNotFound": false
+      },
+      "featureTest": true
+    },
+    {
+      "route": "org/sequences",
+      "module": "org",
+      "apiHint": "/v1/org/sequences",
+      "e2ePath": "org/sequences",
+      "e2eAuth": true,
+      "component": "OrgSequencesPage",
+      "apiSmoke": {
+        "method": "GET",
+        "path": "/api/v1/org/sequences",
+        "role": "system_manager",
+        "allowNotFound": false
+      },
+      "featureTest": true
+    },
+    {
+      "route": "org/consolidated",
+      "module": "org",
+      "apiHint": "/v1/org/reports/consolidated",
+      "e2ePath": "org/consolidated",
+      "e2eAuth": true,
+      "component": "OrgConsolidatedPage",
+      "apiSmoke": {
+        "method": "GET",
+        "path": "/api/v1/org/reports/consolidated",
+        "role": "system_manager",
+        "allowNotFound": false
+      },
+      "featureTest": true
+    },
+    {
+      "route": "workflow",
+      "module": "workflow",
+      "apiHint": "/v1/workflow/inbox",
+      "e2ePath": "workflow",
+      "e2eAuth": true,
+      "component": "WorkflowOverviewPage",
+      "apiSmoke": {
+        "method": "GET",
+        "path": "/api/v1/workflow/inbox",
+        "role": "system_manager",
+        "allowNotFound": false
+      },
+      "featureTest": true
+    },
+    {
+      "route": "workflow/inbox",
+      "module": "workflow",
+      "apiHint": "/v1/workflow/inbox",
+      "e2ePath": "workflow/inbox",
+      "e2eAuth": true,
+      "component": "WorkflowInboxPage",
+      "apiSmoke": {
+        "method": "GET",
+        "path": "/api/v1/workflow/inbox",
+        "role": "system_manager",
+        "allowNotFound": false
+      },
+      "featureTest": true
+    },
+    {
+      "route": "workflow/definitions",
+      "module": "workflow",
+      "apiHint": "/v1/workflow/definitions",
+      "e2ePath": "workflow/definitions",
+      "e2eAuth": true,
+      "component": "WorkflowDefinitionsPage",
+      "apiSmoke": {
+        "method": "GET",
+        "path": "/api/v1/workflow/definitions",
+        "role": "system_manager",
+        "allowNotFound": false
+      },
+      "featureTest": true
+    },
+    {
+      "route": "workflow/delegations",
+      "module": "workflow",
+      "apiHint": "/v1/workflow/delegations",
+      "e2ePath": "workflow/delegations",
+      "e2eAuth": true,
+      "component": "WorkflowDelegationsPage",
+      "apiSmoke": {
+        "method": "GET",
+        "path": "/api/v1/workflow/delegations",
+        "role": "system_manager",
+        "allowNotFound": false
+      },
+      "featureTest": true
+    },
+    {
+      "route": "workflow/history",
+      "module": "workflow",
+      "apiHint": "/v1/workflow/history",
+      "e2ePath": "workflow/history",
+      "e2eAuth": true,
+      "component": "WorkflowHistoryPage",
+      "apiSmoke": {
+        "method": "GET",
+        "path": "/api/v1/workflow/history",
+        "role": "system_manager",
+        "allowNotFound": false
+      },
+      "featureTest": true
+    },
+    {
+      "route": "bi",
+      "module": "bi",
+      "apiHint": "/v1/bi/kpis",
+      "e2ePath": "bi",
+      "e2eAuth": true,
+      "component": "BiOverviewPage",
+      "apiSmoke": {
+        "method": "GET",
+        "path": "/api/v1/bi/kpis",
+        "role": "system_manager",
+        "allowNotFound": false
+      },
+      "featureTest": true
+    },
+    {
+      "route": "bi/kpis",
+      "module": "bi",
+      "apiHint": "/v1/bi/kpis",
+      "e2ePath": "bi/kpis",
+      "e2eAuth": true,
+      "component": "BiKpisPage",
+      "apiSmoke": {
+        "method": "GET",
+        "path": "/api/v1/bi/kpis",
+        "role": "system_manager",
+        "allowNotFound": false
+      },
+      "featureTest": true
+    },
+    {
+      "route": "bi/dashboards",
+      "module": "bi",
+      "apiHint": "/v1/bi/dashboards/ceo",
+      "e2ePath": "bi/dashboards",
+      "e2eAuth": true,
+      "component": "BiDashboardsPage",
+      "apiSmoke": {
+        "method": "GET",
+        "path": "/api/v1/bi/dashboards/ceo",
+        "role": "system_manager",
+        "allowNotFound": false
+      },
+      "featureTest": true
+    },
+    {
+      "route": "bi/subscriptions",
+      "module": "bi",
+      "apiHint": "/v1/bi/subscriptions",
+      "e2ePath": "bi/subscriptions",
+      "e2eAuth": true,
+      "component": "BiSubscriptionsPage",
+      "apiSmoke": {
+        "method": "GET",
+        "path": "/api/v1/bi/subscriptions",
+        "role": "system_manager",
+        "allowNotFound": false
+      },
+      "featureTest": true
+    },
+    {
+      "route": "bi/alerts",
+      "module": "bi",
+      "apiHint": "/v1/bi/alerts",
+      "e2ePath": "bi/alerts",
+      "e2eAuth": true,
+      "component": "BiAlertsPage",
+      "apiSmoke": {
+        "method": "GET",
+        "path": "/api/v1/bi/alerts",
+        "role": "system_manager",
+        "allowNotFound": false
+      },
+      "featureTest": true
+    },
+    {
+      "route": "field-service",
+      "module": "field_service",
+      "apiHint": "/v1/field-service/reports",
+      "e2ePath": "field-service",
+      "e2eAuth": true,
+      "component": "FieldServiceOverviewPage",
+      "apiSmoke": {
+        "method": "GET",
+        "path": "/api/v1/field-service/reports",
+        "role": "system_manager",
+        "allowNotFound": false
+      },
+      "featureTest": true
+    },
+    {
+      "route": "field-service/install-base",
+      "module": "field_service",
+      "apiHint": "/v1/field-service/install-bases",
+      "e2ePath": "field-service/install-base",
+      "e2eAuth": true,
+      "component": "FieldServiceInstallBasePage",
+      "apiSmoke": {
+        "method": "GET",
+        "path": "/api/v1/field-service/install-bases",
+        "role": "system_manager",
+        "allowNotFound": false
+      },
+      "featureTest": true
+    },
+    {
+      "route": "field-service/orders",
+      "module": "field_service",
+      "apiHint": "/v1/field-service/orders",
+      "e2ePath": "field-service/orders",
+      "e2eAuth": true,
+      "component": "FieldServiceOrdersPage",
+      "apiSmoke": {
+        "method": "GET",
+        "path": "/api/v1/field-service/orders",
+        "role": "system_manager",
+        "allowNotFound": false
+      },
+      "featureTest": true
+    },
+    {
+      "route": "field-service/technicians",
+      "module": "field_service",
+      "apiHint": "/v1/field-service/technicians",
+      "e2ePath": "field-service/technicians",
+      "e2eAuth": true,
+      "component": "FieldServiceTechniciansPage",
+      "apiSmoke": {
+        "method": "GET",
+        "path": "/api/v1/field-service/technicians",
+        "role": "system_manager",
+        "allowNotFound": false
+      },
+      "featureTest": true
+    },
+    {
+      "route": "field-service/reports",
+      "module": "field_service",
+      "apiHint": "/v1/field-service/reports",
+      "e2ePath": "field-service/reports",
+      "e2eAuth": true,
+      "component": "FieldServiceReportsPage",
+      "apiSmoke": {
+        "method": "GET",
+        "path": "/api/v1/field-service/reports",
+        "role": "system_manager",
+        "allowNotFound": false
+      },
+      "featureTest": true
+    },
+    {
+      "route": "qm",
+      "module": "qm",
+      "apiHint": "/v1/qm/analytics",
+      "e2ePath": "qm",
+      "e2eAuth": true,
+      "component": "QmOverviewPage",
+      "apiSmoke": {
+        "method": "GET",
+        "path": "/api/v1/qm/analytics",
+        "role": "system_manager",
+        "allowNotFound": false
+      },
+      "featureTest": true
+    },
+    {
+      "route": "qm/plans",
+      "module": "qm",
+      "apiHint": "/v1/qm/plans",
+      "e2ePath": "qm/plans",
+      "e2eAuth": true,
+      "component": "QmPlansPage",
+      "apiSmoke": {
+        "method": "GET",
+        "path": "/api/v1/qm/plans",
+        "role": "system_manager",
+        "allowNotFound": false
+      },
+      "featureTest": true
+    },
+    {
+      "route": "qm/lots",
+      "module": "qm",
+      "apiHint": "/v1/qm/lots",
+      "e2ePath": "qm/lots",
+      "e2eAuth": true,
+      "component": "QmLotsPage",
+      "apiSmoke": {
+        "method": "GET",
+        "path": "/api/v1/qm/lots",
+        "role": "system_manager",
+        "allowNotFound": false
+      },
+      "featureTest": true
+    },
+    {
+      "route": "qm/inspections",
+      "module": "qm",
+      "apiHint": "/v1/qm/inspections",
+      "e2ePath": "qm/inspections",
+      "e2eAuth": true,
+      "component": "QmInspectionsPage",
+      "apiSmoke": {
+        "method": "GET",
+        "path": "/api/v1/qm/inspections",
+        "role": "system_manager",
+        "allowNotFound": false
+      },
+      "featureTest": true
+    },
+    {
+      "route": "qm/ncrs",
+      "module": "qm",
+      "apiHint": "/v1/qm/ncrs",
+      "e2ePath": "qm/ncrs",
+      "e2eAuth": true,
+      "component": "QmNcrsPage",
+      "apiSmoke": {
+        "method": "GET",
+        "path": "/api/v1/qm/ncrs",
+        "role": "system_manager",
+        "allowNotFound": false
+      },
+      "featureTest": true
+    },
+    {
+      "route": "qm/capas",
+      "module": "qm",
+      "apiHint": "/v1/qm/capas",
+      "e2ePath": "qm/capas",
+      "e2eAuth": true,
+      "component": "QmCapasPage",
+      "apiSmoke": {
+        "method": "GET",
+        "path": "/api/v1/qm/capas",
+        "role": "system_manager",
+        "allowNotFound": false
+      },
+      "featureTest": true
+    },
+    {
+      "route": "qm/analytics",
+      "module": "qm",
+      "apiHint": "/v1/qm/analytics",
+      "e2ePath": "qm/analytics",
+      "e2eAuth": true,
+      "component": "QmAnalyticsPage",
+      "apiSmoke": {
+        "method": "GET",
+        "path": "/api/v1/qm/analytics",
+        "role": "system_manager",
+        "allowNotFound": false
+      },
+      "featureTest": true
+    },
+    {
+      "route": "assets",
+      "module": "assets",
+      "apiHint": "/v1/assets/items",
+      "e2ePath": "assets",
+      "e2eAuth": true,
+      "component": "AssetsOverviewPage",
+      "apiSmoke": {
+        "method": "GET",
+        "path": "/api/v1/assets/items",
+        "role": "system_manager",
+        "allowNotFound": false
+      },
+      "featureTest": true
+    },
+    {
+      "route": "assets/items",
+      "module": "assets",
+      "apiHint": "/v1/assets/items",
+      "e2ePath": "assets/items",
+      "e2eAuth": true,
+      "component": "AssetsItemsPage",
+      "apiSmoke": {
+        "method": "GET",
+        "path": "/api/v1/assets/items",
+        "role": "system_manager",
+        "allowNotFound": false
+      },
+      "featureTest": true
+    },
+    {
+      "route": "assets/depreciation",
+      "module": "assets",
+      "apiHint": "/v1/assets/depreciation-runs",
+      "e2ePath": "assets/depreciation",
+      "e2eAuth": true,
+      "component": "AssetsDepreciationPage",
+      "apiSmoke": {
+        "method": "GET",
+        "path": "/api/v1/assets/depreciation-runs",
+        "role": "system_manager",
+        "allowNotFound": false
+      },
+      "featureTest": true
+    },
+    {
+      "route": "assets/maintenance-plans",
+      "module": "assets",
+      "apiHint": "/v1/assets/maintenance-plans",
+      "e2ePath": "assets/maintenance-plans",
+      "e2eAuth": true,
+      "component": "AssetsMaintenancePlansPage",
+      "apiSmoke": {
+        "method": "GET",
+        "path": "/api/v1/assets/maintenance-plans",
+        "role": "system_manager",
+        "allowNotFound": false
+      },
+      "featureTest": true
+    },
+    {
+      "route": "assets/maintenance-orders",
+      "module": "assets",
+      "apiHint": "/v1/assets/maintenance-orders",
+      "e2ePath": "assets/maintenance-orders",
+      "e2eAuth": true,
+      "component": "AssetsMaintenanceOrdersPage",
+      "apiSmoke": {
+        "method": "GET",
+        "path": "/api/v1/assets/maintenance-orders",
+        "role": "system_manager",
+        "allowNotFound": false
+      },
+      "featureTest": true
+    },
+    {
+      "route": "assets/insurances",
+      "module": "assets",
+      "apiHint": "/v1/assets/insurances",
+      "e2ePath": "assets/insurances",
+      "e2eAuth": true,
+      "component": "AssetsInsurancesPage",
+      "apiSmoke": {
+        "method": "GET",
+        "path": "/api/v1/assets/insurances",
+        "role": "system_manager",
+        "allowNotFound": false
+      },
+      "featureTest": true
+    },
+    {
+      "route": "authz",
+      "module": "authz",
+      "apiHint": "/v1/authz/me",
+      "e2ePath": "authz",
+      "e2eAuth": true,
+      "component": "AuthzOverviewPage",
+      "apiSmoke": {
+        "method": "GET",
+        "path": "/api/v1/authz/me",
+        "role": "system_manager",
+        "allowNotFound": false
+      },
+      "featureTest": true
+    },
+    {
+      "route": "authz/roles",
+      "module": "authz",
+      "apiHint": "/v1/authz/roles",
+      "e2ePath": "authz/roles",
+      "e2eAuth": true,
+      "component": "AuthzRolesPage",
+      "apiSmoke": {
+        "method": "GET",
+        "path": "/api/v1/authz/roles",
+        "role": "system_manager",
+        "allowNotFound": false
+      },
+      "featureTest": true
+    },
+    {
+      "route": "authz/permissions",
+      "module": "authz",
+      "apiHint": "/v1/authz/permissions",
+      "e2ePath": "authz/permissions",
+      "e2eAuth": true,
+      "component": "AuthzPermissionsPage",
+      "apiSmoke": {
+        "method": "GET",
+        "path": "/api/v1/authz/permissions",
+        "role": "system_manager",
+        "allowNotFound": false
+      },
+      "featureTest": true
+    },
+    {
+      "route": "authz/policies",
+      "module": "authz",
+      "apiHint": "/v1/authz/field-policies",
+      "e2ePath": "authz/policies",
+      "e2eAuth": true,
+      "component": "AuthzPoliciesPage",
+      "apiSmoke": {
+        "method": "GET",
+        "path": "/api/v1/authz/field-policies",
+        "role": "system_manager",
+        "allowNotFound": false
+      },
+      "featureTest": true
+    },
+    {
+      "route": "authz/simulator",
+      "module": "authz",
+      "apiHint": "/v1/authz/simulate",
+      "e2ePath": "authz/simulator",
+      "e2eAuth": true,
+      "component": "AuthzSimulatorPage",
+      "apiSmoke": {
+        "method": "GET",
+        "path": "/api/v1/authz/simulate",
+        "role": "system_manager",
+        "allowNotFound": false
+      },
+      "featureTest": true
+    },
+    {
+      "route": "authz/audit-logs",
+      "module": "authz",
+      "apiHint": "/v1/authz/audit-logs",
+      "e2ePath": "authz/audit-logs",
+      "e2eAuth": true,
+      "component": "AuthzAuditLogsPage",
+      "apiSmoke": {
+        "method": "GET",
+        "path": "/api/v1/authz/audit-logs",
+        "role": "system_manager",
+        "allowNotFound": false
+      },
+      "featureTest": true
+    },
+    {
+      "route": "procurement",
+      "module": "procurement",
+      "apiHint": "/v1/procurement/orders",
+      "e2ePath": "procurement",
+      "e2eAuth": true,
+      "component": "ProcurementOverviewPage",
+      "apiSmoke": {
+        "method": "GET",
+        "path": "/api/v1/procurement/orders",
+        "role": "system_manager",
+        "allowNotFound": false
+      }
+    },
+    {
+      "route": "procurement/requests",
+      "module": "procurement",
+      "apiHint": "/v1/procurement/requests",
+      "e2ePath": "procurement/requests",
+      "e2eAuth": true,
+      "component": "ProcurementRequestsPage",
+      "apiSmoke": {
+        "method": "GET",
+        "path": "/api/v1/procurement/requests",
+        "role": "system_manager",
+        "allowNotFound": false
+      }
+    },
+    {
+      "route": "procurement/rfqs",
+      "module": "procurement",
+      "apiHint": "/v1/procurement/rfqs",
+      "e2ePath": "procurement/rfqs",
+      "e2eAuth": true,
+      "component": "ProcurementRfqsPage",
+      "apiSmoke": {
+        "method": "GET",
+        "path": "/api/v1/procurement/rfqs",
+        "role": "system_manager",
+        "allowNotFound": false
+      }
+    },
+    {
+      "route": "procurement/orders",
+      "module": "procurement",
+      "apiHint": "/v1/procurement/orders",
+      "e2ePath": "procurement/orders",
+      "e2eAuth": true,
+      "component": "ProcurementOrdersPage",
+      "apiSmoke": {
+        "method": "GET",
+        "path": "/api/v1/procurement/orders",
+        "role": "system_manager",
+        "allowNotFound": false
+      }
+    },
+    {
+      "route": "procurement/receipts",
+      "module": "procurement",
+      "apiHint": "/v1/procurement/receipts",
+      "e2ePath": "procurement/receipts",
+      "e2eAuth": true,
+      "component": "ProcurementReceiptsPage",
+      "apiSmoke": {
+        "method": "GET",
+        "path": "/api/v1/procurement/receipts",
+        "role": "system_manager",
+        "allowNotFound": false
+      }
+    },
+    {
+      "route": "device-gateway",
+      "module": "device_gateway",
+      "apiHint": "/v1/device-gateway/gateways",
+      "e2ePath": "device-gateway",
+      "e2eAuth": true,
+      "component": "DeviceGatewayOverviewPage",
+      "apiSmoke": {
+        "method": "GET",
+        "path": "/api/v1/device-gateway/gateways",
+        "role": "system_manager",
+        "allowNotFound": false
+      }
+    },
+    {
+      "route": "device-gateway/gateways",
+      "module": "device_gateway",
+      "apiHint": "/v1/device-gateway/gateways",
+      "e2ePath": "device-gateway/gateways",
+      "e2eAuth": true,
+      "component": "DeviceGatewayGatewaysPage",
+      "apiSmoke": {
+        "method": "GET",
+        "path": "/api/v1/device-gateway/gateways",
+        "role": "system_manager",
+        "allowNotFound": false
+      }
+    },
+    {
+      "route": "device-gateway/peripherals",
+      "module": "device_gateway",
+      "apiHint": "/v1/device-gateway/peripherals",
+      "e2ePath": "device-gateway/peripherals",
+      "e2eAuth": true,
+      "component": "DeviceGatewayPeripheralsPage",
+      "apiSmoke": {
+        "method": "GET",
+        "path": "/api/v1/device-gateway/peripherals",
+        "role": "system_manager",
+        "allowNotFound": false
+      }
+    },
+    {
+      "route": "device-gateway/print-jobs",
+      "module": "device_gateway",
+      "apiHint": "/v1/device-gateway/print-jobs",
+      "e2ePath": "device-gateway/print-jobs",
+      "e2eAuth": true,
+      "component": "DeviceGatewayPrintJobsPage",
+      "apiSmoke": {
+        "method": "GET",
+        "path": "/api/v1/device-gateway/print-jobs",
+        "role": "system_manager",
+        "allowNotFound": false
+      }
     },
     {
       "route": "admin/hosting-infra",

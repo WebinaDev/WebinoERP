@@ -4,6 +4,7 @@ import { ExternalLink, LayoutGrid, Maximize, Minimize } from 'lucide-react';
 import { useEffect, useMemo, useState } from 'react';
 import { useLocale, useTranslations } from 'next-intl';
 import { AppSidebar } from '@/components/blocks/sidebar-07/components/app-sidebar';
+import { OrgContextSwitcher } from '@/features/shell/layout/OrgContextSwitcher';
 import { AccentMenu } from '@/components/AccentMenu';
 import { LanguageMenu } from '@/components/LanguageMenu';
 import { ThemeMenu } from '@/components/ThemeMenu';
@@ -302,6 +303,7 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
                   <LanguageMenu iconOnly />
                   <AccentMenu />
                   <ThemeMenu />
+                  <OrgContextSwitcher />
                 </div>
               </div>
             </div>

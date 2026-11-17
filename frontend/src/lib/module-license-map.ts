@@ -17,6 +17,15 @@ export const LICENSE_SLUG_TO_MODULE_ID: Record<string, string> = {
   warehouse: 'scm',
   site_builder: 'platform',
   platform: 'platform',
+  org: 'org',
+  workflow: 'workflow',
+  bi: 'bi',
+  field_service: 'field_service',
+  qm: 'qm',
+  assets: 'assets',
+  authz: 'authz',
+  procurement: 'procurement',
+  device_gateway: 'device_gateway',
 };
 
 export function mapLicensedModulesToNavIds(slugs: string[]): string[] {

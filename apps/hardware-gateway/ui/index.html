@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html lang="fa" dir="rtl">
+<head>
+  <meta charset="UTF-8">
+  <title>Webino Hardware Gateway</title>
+  <style>
+    body {
+      font-family: system-ui, -apple-system, sans-serif;
+      background: #0f172a;
+      color: #f8fafc;
+      margin: 0;
+      padding: 24px;
+    }
+    .header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      border-bottom: 1px solid #334155;
+      padding-bottom: 16px;
+    }
+    .status-badge {
+      background: #059669;
+      color: #ecfdf5;
+      padding: 4px 12px;
+      border-radius: 9999px;
+      font-size: 13px;
+      font-weight: 600;
+    }
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 16px;
+      margin-top: 24px;
+    }
+    .card {
+      background: #1e293b;
+      border: 1px solid #334155;
+      border-radius: 12px;
+      padding: 16px;
+    }
+    .card h3 {
+      margin-top: 0;
+      font-size: 16px;
+      color: #38bdf8;
+    }
+    .card p {
+      font-size: 14px;
+      color: #94a3b8;
+      margin-bottom: 0;
+    }
+    .port-tag {
+      font-family: monospace;
+      background: #0284c7;
+      color: #fff;
+      padding: 2px 6px;
+      border-radius: 4px;
+      font-size: 12px;
+    }
+  </style>
+</head>
+<body>
+  <div class="header">
+    <div>
+      <h2 style="margin: 0;">عامل محلی Webino Hardware Gateway</h2>
+      <p style="margin: 4px 0 0; color: #94a3b8; font-size: 14px;">پل امن ارتباط سخت‌افزارهای فروش، انبار و تردد با WebinoERP</p>
+    </div>
+    <div class="status-badge">فعال روی پورت 9100</div>
+  </div>
+
+  <div class="grid">
+    <div class="card">
+      <h3>کارتخوان بانکی (PC-POS)</h3>
+      <p>درایور سامان‌کیش (SEP) روی پورت <span class="port-tag">COM3</span> فعال و آماده تراکنش خرید است.</p>
+    </div>
+    <div class="card">
+      <h3>فیش‌پرینتر و کشوی دخل</h3>
+      <p>پرینتر حرارتی Bixolon از طریق درگاه <span class="port-tag">USB</span> متصل است.</p>
+    </div>
+    <div class="card">
+      <h3>ترازوی دیجیتال</h3>
+      <p>استریم وزن روی پورت <span class="port-tag">COM1</span> فعال است.</p>
+    </div>
+    <div class="card">
+      <h3>حضور و غیاب</h3>
+      <p>ارتباط شبکه با دستگاه ZKTeco روی پورت <span class="port-tag">4370</span> متصل است.</p>
+    </div>
+  </div>
+</body>
+</html>

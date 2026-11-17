@@ -1,0 +1,11 @@
+{
+  "name": "webino-hardware-gateway",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Desktop Agent and Edge Peripheral Gateway for WebinoERP",
+  "scripts": {
+    "tauri": "tauri",
+    "dev": "tauri dev",
+    "build": "tauri build"
+  }
+}

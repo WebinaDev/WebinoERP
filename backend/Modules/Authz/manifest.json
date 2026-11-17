@@ -1,0 +1,23 @@
+{
+  "slug": "authz",
+  "name_fa": "کنترل دسترسی پیشرفته",
+  "name_en": "Access Control Plane",
+  "submodules": [
+    "overview",
+    "roles",
+    "permissions",
+    "memberships",
+    "policies",
+    "field-security",
+    "simulator",
+    "audit-logs"
+  ],
+  "admin_nav": {
+    "section": "authz",
+    "order": 14
+  },
+  "site_types": [
+    "erp"
+  ],
+  "public_routes": []
+}

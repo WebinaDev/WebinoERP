@@ -1,0 +1,21 @@
+{
+  "slug": "qm",
+  "name_fa": "مدیریت کیفیت و بازرسی",
+  "name_en": "Quality Management (QM)",
+  "submodules": [
+    "overview",
+    "plans",
+    "inspections",
+    "quarantine",
+    "ncr",
+    "capa"
+  ],
+  "admin_nav": {
+    "section": "qm",
+    "order": 19
+  },
+  "site_types": [
+    "erp"
+  ],
+  "public_routes": []
+}

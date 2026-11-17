@@ -1,0 +1,21 @@
+{
+  "slug": "assets",
+  "name_fa": "مدیریت اموال و استهلاک",
+  "name_en": "Fixed Assets & Maintenance",
+  "submodules": [
+    "overview",
+    "register",
+    "depreciation",
+    "maintenance-plans",
+    "work-orders",
+    "insurance"
+  ],
+  "admin_nav": {
+    "section": "assets",
+    "order": 20
+  },
+  "site_types": [
+    "erp"
+  ],
+  "public_routes": []
+}

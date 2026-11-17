@@ -1,0 +1,13 @@
+{
+    "name": "FieldService",
+    "alias": "field_service",
+    "description": "After-sales field service, customer install base, technician dispatch, spare parts consumption, and SLA tracking",
+    "keywords": [],
+    "priority": 21,
+    "providers": [
+        "Modules\\FieldService\\Providers\\FieldServiceServiceProvider"
+    ],
+    "aliases": {},
+    "files": [],
+    "requires": []
+}
