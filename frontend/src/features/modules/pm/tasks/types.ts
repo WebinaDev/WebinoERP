@@ -60,4 +60,13 @@ export type TaskGanttItem = {
   duration: number;
   progress: number;
   dependsOn?: number[];
+  isCritical?: boolean;
+  baselineStart?: string;
+  baselineEnd?: string;
+};
+
+export type SprintBurndownDay = {
+  day: string;
+  idealRemaining: number;
+  actualRemaining: number;
 };

@@ -39,6 +39,7 @@ function daysAgoIso(days: number): string {
   return d.toISOString().slice(0, 10);
 }
 
+import { EnterpriseReportsSuite } from './EnterpriseReportsSuite';
 export function ReportsPage() {
   const t = useTranslations('reports');
   const tPages = useTranslations('pages.reports');
@@ -161,6 +162,7 @@ export function ReportsPage() {
 
   return (
     <div className="wd-page-shell wd-reports min-w-0 max-w-full space-y-4 overflow-x-hidden text-start sm:space-y-6" dir={isRtl ? 'rtl' : 'ltr'}>
+      <EnterpriseReportsSuite />
       <div className="flex flex-col gap-3 rounded-2xl border bg-card p-4 sm:flex-row sm:items-center sm:justify-between sm:p-5">
         <div className="flex min-w-0 items-start gap-3">
           <span className="grid size-11 shrink-0 place-items-center rounded-xl bg-primary/10 text-primary">

@@ -211,4 +211,50 @@ class ScmWarehouseController extends Controller
 
         return response()->json(['data' => $warehouse, 'message' => __('messages.warehouse_created')], 201);
     }
+
+    public function locations(Request $request, ScmWarehouse $warehouse): JsonResponse
+    {
+        $rows = \Modules\Scm\Entities\ScmWarehouseLocation::query()
+            ->where('warehouse_id', $warehouse->id)
+            ->where('is_active', true)
+            ->get();
+
+        return response()->json(['data' => $rows]);
+    }
+
+    public function postDocument(Request $request, ScmWarehouseDocument $document, \Modules\Scm\Services\StockLedgerEngine $engine): JsonResponse
+    {
+        if ($document->status === 'posted') {
+            return response()->json(['message' => 'این سند پیش‌تر قطعی و در کاردکس انبار ثبت شده است.'], 422);
+        }
+
+        $document->loadMissing('lines');
+        $items = $document->lines->isNotEmpty() ? $document->lines : (is_array($document->items) ? $document->items : []);
+
+        foreach ($items as $item) {
+            $prodId = is_array($item) ? (int) ($item['product_id'] ?? 0) : (int) $item->product_id;
+            $qty = is_array($item) ? (float) ($item['quantity'] ?? 0) : (float) $item->quantity;
+            $locId = is_array($item) ? ($item['location_id'] ?? null) : $item->location_id;
+
+            if ($prodId <= 0 || $qty == 0) {
+                continue;
+            }
+
+            $multiplier = $document->type === 'outbound' ? -1 : 1;
+            $engine->recordMovement([
+                'warehouse_id' => $document->warehouse_id,
+                'product_id' => $prodId,
+                'location_id' => $locId,
+                'document_id' => $document->id,
+                'movement_type' => $document->type . '_posted',
+                'quantity_change' => $qty * $multiplier,
+                'user_id' => $request->user()?->id,
+            ]);
+        }
+
+        $document->update(['status' => 'posted']);
+
+        return response()->json(['data' => $document->fresh(), 'message' => 'سند انبار با موفقیت قطعی شد و کاردکس کالا به‌روزرسانی گردید.']);
+    }
+
 }

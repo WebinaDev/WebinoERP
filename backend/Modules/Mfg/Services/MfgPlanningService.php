@@ -65,4 +65,55 @@ class MfgPlanningService
             'shortages' => $shortages,
         ];
     }
+
+    /**
+     * Auto-generate Purchase Requests (PR) from MRP shortages into Procurement module.
+     *
+     * @return array{generated_pr_count: int, requests: list<array<string, mixed>>}
+     */
+    public function generatePurchaseRequestsFromShortages(int $horizonDays = 30, ?int $userId = null): array
+    {
+        $mrp = $this->mrp($horizonDays);
+        $shortages = $mrp['shortages'];
+
+        if (empty($shortages) || ! class_exists(\Modules\Procurement\Entities\PrcPurchaseRequest::class)) {
+            return ['generated_pr_count' => 0, 'requests' => []];
+        }
+
+        $items = [];
+        foreach ($shortages as $item) {
+            $items[] = [
+                'product_id' => $item['product_id'],
+                'quantity' => $item['shortage'],
+                'uom' => 'unit',
+                'estimated_unit_cost' => 0,
+                'notes' => 'تولید خودکار از موتور برنامه‌ریزی احتیاجات مواد (MRP)',
+            ];
+        }
+
+        $prNumber = 'PR-MRP-' . date('Ymd') . '-' . rand(1000, 9999);
+        $pr = \Modules\Procurement\Entities\PrcPurchaseRequest::create([
+            'pr_number' => $prNumber,
+            'requester_id' => $userId,
+            'department' => 'برنامه‌ریزی تولید و ساخت',
+            'required_date' => now()->addDays($horizonDays),
+            'status' => 'submitted',
+            'total_estimated_amount' => 0,
+            'justification' => 'تأمین کسری مواد اولیه ناشی از محاسبات MRP خط مونتاژ',
+            'items' => $items,
+        ]);
+
+        return [
+            'generated_pr_count' => 1,
+            'requests' => [
+                [
+                    'id' => $pr->id,
+                    'pr_number' => $pr->pr_number,
+                    'items_count' => count($items),
+                    'status' => $pr->status,
+                ],
+            ],
+        ];
+    }
+
 }

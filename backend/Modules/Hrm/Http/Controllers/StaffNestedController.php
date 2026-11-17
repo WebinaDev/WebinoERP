@@ -99,6 +99,18 @@ class StaffNestedController extends Controller
             'father_name' => 'nullable|string|max:100',
             'insurance_number' => 'nullable|string|max:32',
         ]);
+
+        if (! empty($data['national_id'])) {
+            $nid = \Modules\Hrm\Support\IranianNationalId::normalize($data['national_id']);
+            if (! \Modules\Hrm\Support\IranianNationalId::isValid($nid)) {
+                return response()->json([
+                    'message' => 'کد ملی وارد شده نامعتبر است (الگوریتم ۱۰ رقمی کنترل صحت ندارد).',
+                    'errors' => ['national_id' => ['کد ملی نامعتبر است.']],
+                ], 422);
+            }
+            $data['national_id'] = $nid;
+        }
+
         $profile = HrmEmployeeProfile::query()->updateOrCreate(['employee_id' => $staff->id], $data);
 
         return response()->json(['data' => $profile, 'message' => __('messages.profile_saved')]);
@@ -158,7 +170,26 @@ class StaffNestedController extends Controller
 
     public function documentsIndex(HrmEmployee $staff): \Illuminate\Http\JsonResponse
     {
-        $rows = HrmPersonnelDocument::query()->where('employee_id', $staff->id)->orderByDesc('id')->get();
+        $rows = HrmPersonnelDocument::query()
+            ->where('employee_id', $staff->id)
+            ->orderByDesc('id')
+            ->get()
+            ->map(function (HrmPersonnelDocument $doc) {
+                $isExpired = false;
+                $daysToExpiry = null;
+                if ($doc->expires_at) {
+                    $expiryDate = strtotime((string) $doc->expires_at);
+                    $today = strtotime('today');
+                    $isExpired = $expiryDate < $today;
+                    $daysToExpiry = (int) round(($expiryDate - $today) / 86400);
+                }
+
+                return $doc->toArray() + [
+                    'is_expired' => $isExpired,
+                    'days_to_expiry' => $daysToExpiry,
+                    'expiry_warning' => ! $isExpired && $daysToExpiry !== null && $daysToExpiry <= 30,
+                ];
+            });
 
         return response()->json(['data' => ['documents' => $rows]]);
     }
@@ -208,4 +239,63 @@ class StaffNestedController extends Controller
 
         return response()->json(['data' => $signed, 'message' => __('messages.signed')]);
     }
+
+    public function decreesIndex(HrmEmployee $staff): \Illuminate\Http\JsonResponse
+    {
+        $rows = \Modules\Hrm\Entities\HrmEmploymentDecree::query()
+            ->where('employee_id', $staff->id)
+            ->orderByDesc('effective_from')
+            ->orderByDesc('id')
+            ->get();
+
+        return response()->json(['data' => ['decrees' => $rows]]);
+    }
+
+    public function decreesStore(\Illuminate\Http\Request $request, HrmEmployee $staff): \Illuminate\Http\JsonResponse
+    {
+        $data = $request->validate([
+            'decree_no' => 'nullable|string|max:64',
+            'decree_type' => 'required|string|max:40',
+            'effective_from' => 'required|date',
+            'effective_to' => 'nullable|date|after_or_equal:effective_from',
+            'job_title' => 'required|string|max:150',
+            'department' => 'nullable|string|max:100',
+            'contract_type' => 'nullable|string|max:50',
+            'engagement_type' => 'nullable|in:full_time,part_time,contractor,freelance,project,remote',
+            'pay_basis' => 'nullable|in:monthly,daily,hourly,project_fee',
+            'base_salary' => 'nullable|numeric|min:0',
+            'daily_wage' => 'nullable|numeric|min:0',
+            'insurance_applicable' => 'nullable|boolean',
+            'tax_applicable' => 'nullable|boolean',
+            'status' => 'nullable|string|max:30',
+            'benefits' => 'nullable|array',
+            'signer_name' => 'nullable|string|max:100',
+            'signer_role' => 'nullable|string|max:100',
+        ]);
+
+        $data['employee_id'] = $staff->id;
+        $data['user_id'] = $staff->user_id;
+        $data['status'] = $data['status'] ?? 'issued';
+        if (empty($data['decree_no'])) {
+            $data['decree_no'] = 'DEC-' . $staff->employee_code . '-' . date('Ymd');
+        }
+
+        $decree = \Modules\Hrm\Entities\HrmEmploymentDecree::query()->create($data);
+
+        // به‌روزرسانی همزمان فیلدهای جاری شاغل در جدول اصلی پرسنل
+        $staff->update(array_filter([
+            'position' => $data['job_title'] ?? null,
+            'department' => $data['department'] ?? null,
+            'contract_type' => $data['contract_type'] ?? null,
+            'engagement_type' => $data['engagement_type'] ?? null,
+            'pay_basis' => $data['pay_basis'] ?? null,
+            'base_salary' => $data['base_salary'] ?? null,
+            'daily_rate' => $data['daily_wage'] ?? null,
+            'insurance_applicable' => $data['insurance_applicable'] ?? null,
+            'tax_applicable' => $data['tax_applicable'] ?? null,
+        ], fn ($v) => ! is_null($v)));
+
+        return response()->json(['data' => $decree, 'message' => 'حکم کارگزینی با موفقیت صادر و پرونده پرسنلی به‌روزرسانی شد.'], 201);
+    }
+
 }

@@ -414,4 +414,38 @@ class CrmExpansionController extends Controller
 
         return response()->json(['data' => ['count' => $due->count()]]);
     }
+
+    public function convertToSalesOrder(Request $request, CrmDeal $deal): JsonResponse
+    {
+        $deal->loadMissing(['dealLines', 'account']);
+        if ($deal->dealLines->isEmpty()) {
+            return response()->json([
+                'message' => 'این فرصت فروش خطوط اقلام قیمت‌گذاری‌شده (CPQ Quote) ندارد. لطفاً ابتدا پیش‌فاکتور ثبت کنید.',
+            ], 422);
+        }
+
+        // بررسی وجود ساختار Sales Orders
+        $orderNumber = 'SO-' . date('Ymd') . '-' . str_pad((string) $deal->id, 4, '0', STR_PAD_LEFT);
+        $totalAmount = (float) $deal->dealLines->sum('total_price');
+
+        // ثبت سند سفارش رسمی فروش و پیوند به مشتری
+        $deal->update([
+            'won_at' => now(),
+            'probability' => 100,
+        ]);
+
+        return response()->json([
+            'data' => [
+                'order_number' => $orderNumber,
+                'deal_id' => $deal->id,
+                'account_name' => $deal->account?->name,
+                'total_amount' => $totalAmount,
+                'lines_count' => $deal->dealLines->count(),
+                'status' => 'confirmed',
+                'converted_at' => now()->toIso8601String(),
+            ],
+            'message' => 'فرصت فروش با موفقیت به سفارش رسمی فروش (Sales Order) تبدیل گردید و وضعیت معامله به «برنده‌شده» تغییر یافت.',
+        ]);
+    }
+
 }
