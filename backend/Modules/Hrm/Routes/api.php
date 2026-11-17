@@ -97,6 +97,8 @@ Route::prefix('staff')->group(function () {
     Route::post('/{staff}/documents', [StaffNestedController::class, 'documentsStore']);
     Route::get('/{staff}/documents/{document}/download', [StaffNestedController::class, 'documentsDownload']);
     Route::post('/{staff}/documents/{document}/sign', [StaffNestedController::class, 'documentsSign']);
+    Route::get('/{staff}/decrees', [StaffNestedController::class, 'decreesIndex']);
+    Route::post('/{staff}/decrees', [StaffNestedController::class, 'decreesStore']);
 });
 Route::get('org-positions', [StaffNestedController::class, 'orgPositionsIndex']);
 Route::post('org-positions', [StaffNestedController::class, 'orgPositionStore']);
@@ -114,6 +116,7 @@ Route::delete('attendance/device-users/{mapping}', [AttendanceDeviceController::
 Route::get('attendance/punches', [AttendanceDeviceController::class, 'punches']);
 Route::post('attendance/punches/{punch}/assign', [AttendanceDeviceController::class, 'assignPunch']);
 Route::post('attendance/import-csv', [AttendanceDeviceController::class, 'importCsv']);
+Route::post('attendance/ingest', [AttendanceDeviceController::class, 'ingest']);
 Route::post('attendance/check-out', [AttendanceNestedController::class, 'checkOut']);
 
 Route::prefix('leave')->group(function () {

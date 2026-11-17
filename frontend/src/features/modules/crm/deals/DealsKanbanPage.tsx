@@ -128,11 +128,33 @@ function DealCard({
   );
 }
 
-function StageColumn({ stage, children }: { stage: Stage; children: React.ReactNode }) {
+function StageColumn({ stage, count = 0, wipLimit = 5, children }: { stage: Stage; count?: number; wipLimit?: number; children: React.ReactNode }) {
   const { setNodeRef, isOver } = useDroppable({ id: `stage-${stage.id}` });
+  const isOverLimit = wipLimit > 0 && count > wipLimit;
+
   return (
-    <div ref={setNodeRef} className={cn('flex min-h-[280px] min-w-[220px] flex-1 flex-col gap-2 rounded-lg border bg-muted/30 p-2', isOver && 'ring-2 ring-primary/40')}>
-      <p className="text-xs font-semibold text-muted-foreground">{stage.name}</p>
+    <div
+      ref={setNodeRef}
+      className={cn(
+        "flex min-h-[280px] min-w-[240px] flex-1 flex-col gap-2 rounded-xl border bg-muted/30 p-2.5 transition-all",
+        isOver && "ring-2 ring-primary/40 bg-primary/5",
+        isOverLimit && "border-rose-500/50 bg-rose-500/5"
+      )}
+    >
+      <div className="flex items-center justify-between pb-1 border-b border-border/50 text-xs">
+        <span className="font-bold text-foreground">{stage.name}</span>
+        <div className="flex items-center gap-1">
+          <span
+            className={cn(
+              "px-1.5 py-0.5 rounded text-[11px] font-mono font-bold",
+              isOverLimit ? "bg-rose-500 text-white" : "bg-muted text-muted-foreground"
+            )}
+            title={isOverLimit ? "تعداد کارت‌ها از حد مجاز فراتر رفته است!" : "تعداد کارت‌ها"}
+          >
+            {count} / {wipLimit}
+          </span>
+        </div>
+      </div>
       {children}
     </div>
   );
@@ -280,7 +302,7 @@ export function DealsKanbanPage() {
         <DndContext sensors={sensors} collisionDetection={closestCorners} onDragEnd={(e) => void onDragEnd(e)}>
           <div className="flex gap-3 overflow-x-auto pb-2">
             {columns.map((stage) => (
-              <StageColumn key={stage.id} stage={stage}>
+              <StageColumn key={stage.id} stage={stage} count={(dealsByStage[stage.id] ?? []).length} wipLimit={stage.is_closed ? 99 : 5}>
                 {(dealsByStage[stage.id] ?? []).length === 0 ? (
                   <p className="px-1 text-xs text-muted-foreground">{t('emptyColumn')}</p>
                 ) : null}

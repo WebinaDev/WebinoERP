@@ -113,10 +113,13 @@ class MfgWorkOrderService
         }
 
         $outItems = [];
+        $totalDirectMaterialsCost = 0.0;
         foreach ($bom->lines as $line) {
             $need = (float) $line->quantity * $qtyProduced * (1 + ((float) $line->scrap_percent / 100));
             if ($need > 0) {
                 $outItems[] = ['product_id' => $line->component_product_id, 'quantity' => $need];
+                $unitCost = (float) (\Modules\Accounting\Entities\AccProduct::query()->whereKey($line->component_product_id)->value('purchase_price') ?? 0);
+                $totalDirectMaterialsCost += ($need * $unitCost);
             }
         }
 
@@ -129,10 +132,29 @@ class MfgWorkOrderService
             $this->warehouse->postDocument((int) $out['id'], 'outbound', false);
         }
 
+        // محاسبه بهای تمام‌شده صنعتی از طریق CostAccountingService
+        $costService = app(\Modules\Accounting\Services\CostAccountingService::class);
+        $costResult = $costService->computeWorkOrderCost([
+            'direct_materials_cost' => $totalDirectMaterialsCost,
+            'direct_labor_hours' => $qtyProduced * 0.5,
+            'labor_hourly_rate' => 1500000,
+            'machine_hours' => $qtyProduced * 0.25,
+        ], [
+            'انرژی و استهلاک خط' => 5000000,
+            'سربار کارگاهی' => 3500000,
+        ], $qtyProduced);
+
+        $unitManufacturingCost = (float) ($costResult['unit_cost'] ?? 0);
+
+        // رسید کالای ساخته‌شده به انبار با قیمت تمام‌شده واقعی
         $in = $this->warehouse->createDocument([
             'warehouse_id' => $wo->warehouse_id,
             'reference' => 'WO-'.$wo->id,
-            'items' => [['product_id' => $wo->product_id, 'quantity' => $qtyProduced]],
+            'items' => [[
+                'product_id' => $wo->product_id,
+                'quantity' => $qtyProduced,
+                'unit_cost' => $unitManufacturingCost,
+            ]],
         ], 'inbound', null);
         $this->warehouse->postDocument((int) $in['id'], 'inbound', true);
     }

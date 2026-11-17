@@ -148,6 +148,7 @@ Route::post('catalog-products', [CrmExpansionController::class, 'storeProduct'])
 Route::get('price-books', [CrmExpansionController::class, 'priceBooks']);
 Route::post('price-books', [CrmExpansionController::class, 'storePriceBook']);
 Route::post('deals/{deal}/quote', [CrmExpansionController::class, 'quote']);
+Route::post('deals/{deal}/convert-to-order', [CrmExpansionController::class, 'convertToSalesOrder']);
 Route::get('lead-forms', [CrmExpansionController::class, 'forms']);
 Route::post('lead-forms', [CrmExpansionController::class, 'storeForm']);
 Route::post('ai/assist', [CrmExpansionController::class, 'assist']);

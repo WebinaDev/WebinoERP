@@ -7,6 +7,8 @@ Route::get('/warehouses', [ScmWarehouseController::class, 'warehouses']);
 Route::post('/warehouses', [ScmWarehouseController::class, 'storeWarehouse']);
 Route::post('/warehouses/{warehouse}', [ScmWarehouseController::class, 'updateWarehouse']);
 Route::delete('/warehouses/{warehouse}', [ScmWarehouseController::class, 'destroyWarehouse']);
+Route::get('/warehouses/{warehouse}/locations', [ScmWarehouseController::class, 'locations']);
+Route::post('/documents/{document}/post', [ScmWarehouseController::class, 'postDocument']);
 
 Route::get('/stock', [ScmWarehouseController::class, 'stock']);
 Route::get('/stock/{warehouseId}/{productId}', [ScmWarehouseController::class, 'stockDetail']);

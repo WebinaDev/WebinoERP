@@ -448,40 +448,63 @@ class IranianPayrollCalculator
 
     private function approvedHours(int $employeeId, string $type, int $year, int $month, string $field = 'hours'): float
     {
-        if (! Schema::hasTable('hrm_requests')) {
-            return 0.0;
-        }
-
         $total = 0.0;
-        $rows = HrmRequest::query()
-            ->where('employee_id', $employeeId)
-            ->where('type', $type)
-            ->where('status', 'approved')
-            ->get();
 
-        foreach ($rows as $row) {
-            $payload = $row->payload ?? [];
-            $y = (int) ($payload['year'] ?? 0);
-            $m = (int) ($payload['month'] ?? 0);
-            if ($y && $m) {
-                if ($y !== $year || $m !== $month) {
-                    continue;
-                }
-            } elseif (! empty($payload['date'])) {
-                $prefix = sprintf('%04d-%02d', $year, $month);
-                if (! str_starts_with((string) $payload['date'], $prefix)) {
-                    continue;
+        // 1. تجمیع ساعت کاری و اضافه‌کار از لاگ‌های سخت‌افزاری حضور و غیاب
+        if ($type === 'overtime' && Schema::hasTable('hrm_attendance_records')) {
+            $monthPrefix = sprintf('%04d-%02d', $year, $month);
+            $records = \Modules\Hrm\Entities\HrmAttendanceRecord::query()
+                ->where('employee_id', $employeeId)
+                ->where('date', 'like', $monthPrefix . '%')
+                ->get();
+
+            $deviceOvertime = 0.0;
+            foreach ($records as $rec) {
+                if ($rec->check_in && $rec->check_out) {
+                    $in = strtotime((string) $rec->check_in);
+                    $out = strtotime((string) $rec->check_out);
+                    if ($out > $in) {
+                        $diffHours = ($out - $in) / 3600;
+                        if ($diffHours > 8) {
+                            $deviceOvertime += ($diffHours - 8);
+                        }
+                    }
                 }
             }
-            $total += (float) ($payload[$field] ?? 0);
+            if ($deviceOvertime > 0) {
+                $total += $deviceOvertime;
+            }
         }
 
-        return $total;
+        // 2. تجمیع درخواست‌های تاییدشده مرخصی/مأموریت/اضافه‌کار دستی
+        if (Schema::hasTable('hrm_requests')) {
+            $rows = HrmRequest::query()
+                ->where('employee_id', $employeeId)
+                ->where('type', $type)
+                ->where('status', 'approved')
+                ->get();
+
+            foreach ($rows as $row) {
+                $payload = $row->payload ?? [];
+                $y = (int) ($payload['year'] ?? 0);
+                $m = (int) ($payload['month'] ?? 0);
+                if ($y && $m) {
+                    if ($y !== $year || $m !== $month) {
+                        continue;
+                    }
+                } elseif (! empty($payload['date'])) {
+                    $prefix = sprintf('%04d-%02d', $year, $month);
+                    if (! str_starts_with((string) $payload['date'], $prefix)) {
+                        continue;
+                    }
+                }
+                $total += (float) ($payload[$field] ?? 0);
+            }
+        }
+
+        return round($total, 2);
     }
 
-    /**
-     * @param  list<array<string, mixed>>  $brackets
-     */
     private function progressiveTax(float $taxable, array $brackets): float
     {
         if ($taxable <= 0) {
