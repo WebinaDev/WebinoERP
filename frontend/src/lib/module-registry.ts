@@ -335,7 +335,6 @@ export const ERP_MODULES: ErpModuleDef[] = [
         titleKey: 'nav.erp.sales.group',
         icon: 'ri-file-list-3-line',
         children: [
-          { id: 'pos', path: 'sales/pos', titleKey: 'nav.erp.sales.pos', icon: 'ri-store-3-line' },
           { id: 'invoices', path: 'sales/invoices', titleKey: 'nav.erp.sales.invoices', icon: 'ri-file-list-3-line' },
           { id: 'services', path: 'sales/catalog', titleKey: 'nav.erp.sales.catalog', icon: 'ri-service-line' },
           { id: 'storefront', path: 'sales/storefront', titleKey: 'nav.erp.sales.storefront', icon: 'ri-store-2-line' },

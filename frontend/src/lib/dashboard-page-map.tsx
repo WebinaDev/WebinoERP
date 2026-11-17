@@ -140,7 +140,6 @@ import { StockPage } from '@/features/modules/scm/stock_page';
 import { InboundPage } from '@/features/modules/scm/inbound_page';
 import { OutboundPage } from '@/features/modules/scm/outbound_page';
 import { AuditPage } from '@/features/modules/scm/audit_page';
-import { PosOverviewPage, PosCashierPage, PosKdsPage, PosTablesPage, PosShiftPage } from '@/features/modules/sales/pos_page';
 import { InvoicesPage as SalesInvoicesPage } from '@/features/modules/sales/invoices_page';
 import { CatalogPage } from '@/features/modules/sales/catalog_page';
 import { StorefrontAdminPage } from '@/features/modules/sales/storefront_page';
@@ -376,11 +375,6 @@ const EXACT: Record<string, ReactNode> = {
   'ai-content/taxonomies': <AiTaxonomiesPage />,
   'ai-content/attributes': <AiAttributesPage />,
   'ai-content/settings': <AiSettingsPage />,
-  'sales/pos': <PosOverviewPage />,
-  'sales/pos/cashier': <PosCashierPage />,
-  'sales/pos/kds': <PosKdsPage />,
-  'sales/pos/tables': <PosTablesPage />,
-  'sales/pos/shift': <PosShiftPage />,
   'sales/invoices': <SalesInvoicesPage />,
   invoices: <InvoicesListPage />,
   'sales/catalog': <CatalogPage />,
