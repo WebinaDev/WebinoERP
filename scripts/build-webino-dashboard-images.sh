@@ -34,13 +34,13 @@ iran_docker_enabled() {
 # Use library/php (not dunglas/frankenphp) — frankenphp is often missing on IR mirrors.
 # COMPOSER_MIRROR: Packagist itself often fails from IR (curl HTTP/2 error 18).
 if iran_docker_enabled; then
-  PHP_IMAGE="${PHP_IMAGE:-hub.hamdocker.ir/library/php:8.3-cli-bookworm}"
+  PHP_IMAGE="${PHP_IMAGE:-hub.hamdocker.ir/library/php:8.3-fpm-bookworm}"
   COMPOSER_IMAGE="${COMPOSER_IMAGE:-hub.hamdocker.ir/library/composer:2}"
   NODE_IMAGE="${NODE_IMAGE:-hub.hamdocker.ir/library/node:22-alpine}"
   COMPOSER_MIRROR="${COMPOSER_MIRROR:-https://mirrors.aliyun.com/composer/}"
   log "Iran Docker mirrors enabled (WEBINO_IRAN_DOCKER=${WEBINO_IRAN_DOCKER})"
 else
-  PHP_IMAGE="${PHP_IMAGE:-php:8.3-cli-bookworm}"
+  PHP_IMAGE="${PHP_IMAGE:-php:8.3-fpm-bookworm}"
   COMPOSER_IMAGE="${COMPOSER_IMAGE:-composer:2}"
   NODE_IMAGE="${NODE_IMAGE:-node:22-alpine}"
   COMPOSER_MIRROR="${COMPOSER_MIRROR:-}"
@@ -56,6 +56,16 @@ for _pair in "PHP_IMAGE=${PHP_IMAGE}" "COMPOSER_IMAGE=${COMPOSER_IMAGE}" "NODE_I
     exit 1
   fi
 done
+
+# webino-web (nginx + php-fpm) requires an FPM base. Reject cli/zts overrides early.
+case "${PHP_IMAGE}" in
+  *php*fpm*|*php-fpm*) ;;
+  *)
+    log "error: PHP_IMAGE must be a php-fpm tag (got: ${PHP_IMAGE})"
+    log "hint: use hub.hamdocker.ir/library/php:8.3-fpm-bookworm or php:8.3-fpm-bookworm"
+    exit 1
+    ;;
+esac
 
 log "Base images: PHP_IMAGE=${PHP_IMAGE}"
 log "Base images: COMPOSER_IMAGE=${COMPOSER_IMAGE}"
