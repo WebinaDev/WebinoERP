@@ -9,6 +9,7 @@ import apiClient from '@/lib/api-client';
 import { unwrapData } from '@/lib/api-helpers';
 import { normalizeListPayload } from '@/lib/list-utils';
 import { CrmPageLayout } from '@/features/shared/layout/CrmPageLayout';
+import { SalesOrderToCashHub } from './SalesOrderToCashHub';
 import { useCrmFeedback } from '@/features/shared/hooks/useCrmFeedback';
 import { PmEmptyState, PmPagination } from '@/features/shared/pm';
 import { usePmPagination } from '@/features/shared/hooks/usePmPagination';
@@ -376,7 +377,9 @@ export function InvoicesPage() {
   };
 
   return (
-    <CrmPageLayout
+    <div className="space-y-6">
+      <SalesOrderToCashHub />
+      <CrmPageLayout
       title={tNav('nav.erp.sales.invoices')}
       actions={
         <div className="flex gap-2">
@@ -695,5 +698,6 @@ export function InvoicesPage() {
         />
       ) : null}
     </CrmPageLayout>
+    </div>
   );
 }

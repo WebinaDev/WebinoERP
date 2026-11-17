@@ -25,6 +25,12 @@ export interface MarketplaceRelease {
   gitea_release_id?: number | null;
   package_path?: string | null;
   package_source?: string | null;
+  checksum_sha256?: string | null;
+  package_size_bytes?: number | null;
+  release_channel?: 'stable' | 'beta' | 'nightly';
+  min_core_version?: string | null;
+  max_core_version?: string | null;
+  has_client_dist?: boolean;
   status: string;
   published_at?: string | null;
 }
