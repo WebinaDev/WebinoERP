@@ -163,6 +163,7 @@ export function StaffPage() {
         orgRows={orgRows}
         onClose={() => setWizardOpen(false)}
         onSaved={() => void load()}
+        onSuccess={(message) => setSuccess(message)}
       />
     </HrmPageLayout>
   );

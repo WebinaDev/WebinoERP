@@ -7,6 +7,7 @@ use Laravel\Sanctum\Sanctum;
 use Modules\Core\Entities\SystemModule;
 use Modules\Hrm\Entities\HrmEmployee;
 use Modules\Hrm\Entities\HrmLeaveRequest;
+use Modules\Hrm\Entities\HrmOrgPosition;
 use Modules\Hrm\Entities\HrmPayrollRun;
 use Modules\Hrm\Entities\HrmPayrollSetting;
 use Tests\Concerns\SeedsRbac;
@@ -233,6 +234,49 @@ class HrmApiTest extends TestCase
         ])->assertOk()->json('data');
         $this->assertEquals(1405, (int) $preview['law_year']);
         $this->assertArrayHasKey('severance', $preview);
+    }
+
+    public function test_staff_onboarding_accepts_null_unused_money_rates(): void
+    {
+        $user = $this->actingAsRole('hr_manager');
+        Sanctum::actingAs($user);
+
+        $position = HrmOrgPosition::create([
+            'title' => 'کارشناس',
+            'department' => 'مالی',
+            'is_active' => true,
+        ]);
+
+        // Monthly hire: unused daily/hourly/project rates arrive as JSON null from the wizard.
+        $res = $this->postJson('/api/v1/hrm/staff', [
+            'onboarding' => true,
+            'employee_code' => '0013542419',
+            'first_name' => 'آیدا',
+            'last_name' => 'تستی',
+            'status' => 'active',
+            'org_position_id' => $position->id,
+            'hire_date' => '2026-03-21',
+            'contract_start_date' => '2026-03-21',
+            'contract_type' => 'permanent',
+            'contract_status' => 'active',
+            'engagement_type' => 'full_time',
+            'pay_basis' => 'monthly',
+            'base_salary' => 200000000,
+            'daily_rate' => null,
+            'hourly_rate' => null,
+            'project_fee' => null,
+            'insurance_applicable' => true,
+            'tax_applicable' => true,
+            'issue_decree' => true,
+        ]);
+        $res->assertCreated();
+        $emp = HrmEmployee::query()->where('employee_code', '0013542419')->first();
+        $this->assertNotNull($emp);
+        $this->assertSame(0.0, (float) $emp->project_fee);
+        $this->assertSame(0.0, (float) $emp->daily_rate);
+        $this->assertSame(0.0, (float) $emp->hourly_rate);
+        $this->assertSame(200000000.0, (float) $emp->base_salary);
+        $this->assertDatabaseHas('hrm_employment_decrees', ['employee_id' => $emp->id, 'decree_type' => 'hire']);
     }
 
     public function test_multi_step_request_approval_chain(): void

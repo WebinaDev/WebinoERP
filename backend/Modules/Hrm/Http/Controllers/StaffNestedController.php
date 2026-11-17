@@ -60,6 +60,9 @@ class StaffNestedController extends Controller
         ]);
         $data['created_by'] = $request->user()->id;
         $data = app(HrmCompensationRules::class)->applyDefaults($data);
+        foreach (['base_salary', 'daily_rate', 'hourly_rate', 'project_fee'] as $moneyKey) {
+            $data[$moneyKey] = HrmCompensationRules::money($data[$moneyKey] ?? 0);
+        }
         app(HrmCompensationRules::class)->assertEmployee(new HrmEmployee($data));
         $employee = HrmEmployee::create($data);
 

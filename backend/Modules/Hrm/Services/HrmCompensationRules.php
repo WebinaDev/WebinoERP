@@ -56,7 +56,27 @@ class HrmCompensationRules
             $data['tax_applicable'] = (bool) $data['tax_applicable'];
         }
 
+        // Postgres columns are NOT NULL DEFAULT 0 — explicit NULL from JSON still fails.
+        $data['base_salary'] = self::money($data['base_salary'] ?? null);
+        $data['daily_rate'] = self::money($data['daily_rate'] ?? null);
+        $data['hourly_rate'] = self::money($data['hourly_rate'] ?? null);
+        $data['project_fee'] = self::money($data['project_fee'] ?? null);
+
         return $data;
+    }
+
+    /** Coerce blank/null rates to 0 so NOT NULL numeric columns never see SQL null. */
+    public static function money(mixed $value): float
+    {
+        if ($value === null || $value === '') {
+            return 0.0;
+        }
+        if (is_string($value)) {
+            $value = str_replace([',', '٬', '،'], '', $value);
+        }
+        $n = is_numeric($value) ? (float) $value : 0.0;
+
+        return $n >= 0 ? $n : 0.0;
     }
 
     /**
@@ -104,7 +124,7 @@ class HrmCompensationRules
                 return null;
             }
             if ((float) ($employee->daily_rate ?? 0) + 0.0001 < $minDaily) {
-                return 'Daily rate is below the configured legal daily minimum for this engagement.';
+                return 'نرخ روزانه از حداقل قانونی پیکربندی‌شده کمتر است.';
             }
 
             return null;
@@ -115,7 +135,7 @@ class HrmCompensationRules
                 return null;
             }
             if ((float) ($employee->hourly_rate ?? 0) + 0.0001 < $minHourly) {
-                return 'Hourly rate is below the configured legal hourly minimum for this engagement.';
+                return 'نرخ ساعتی از حداقل قانونی پیکربندی‌شده کمتر است.';
             }
 
             return null;
@@ -125,7 +145,7 @@ class HrmCompensationRules
             return null;
         }
         if ((float) ($employee->base_salary ?? 0) + 0.0001 < $minMonthly) {
-            return 'Base salary is below the configured legal monthly minimum for full-time engagement.';
+            return 'حقوق پایه ماهانه از حداقل قانونی تمام‌وقت کمتر است.';
         }
 
         return null;

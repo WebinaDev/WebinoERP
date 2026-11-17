@@ -34,6 +34,30 @@ class HrmEmployee extends Model
         'tax_applicable' => 'boolean',
     ];
 
+    protected $attributes = [
+        'project_fee' => 0,
+        'daily_rate' => 0,
+        'hourly_rate' => 0,
+        'base_salary' => 0,
+        'insurance_applicable' => true,
+        'tax_applicable' => true,
+        'engagement_type' => 'full_time',
+        'pay_basis' => 'monthly',
+        'contract_status' => 'active',
+        'status' => 'active',
+    ];
+
+    protected static function booted(): void
+    {
+        static::saving(function (self $employee): void {
+            foreach (['base_salary', 'daily_rate', 'hourly_rate', 'project_fee'] as $key) {
+                if ($employee->{$key} === null || $employee->{$key} === '') {
+                    $employee->{$key} = 0;
+                }
+            }
+        });
+    }
+
     public function user(): BelongsTo
     {
         return $this->belongsTo(\App\Models\User::class);

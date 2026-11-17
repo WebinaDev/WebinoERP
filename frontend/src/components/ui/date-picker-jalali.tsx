@@ -8,6 +8,7 @@ import DateObject from 'react-date-object';
 import persian from 'react-date-object/calendars/persian';
 import gregorian from 'react-date-object/calendars/gregorian';
 import persian_fa from 'react-date-object/locales/persian_fa';
+import gregorian_en from 'react-date-object/locales/gregorian_en';
 import { cn } from '@/lib/utils';
 
 export type JalaliDatePickerProps = {
@@ -17,6 +18,11 @@ export type JalaliDatePickerProps = {
   placeholder?: string;
   disabled?: boolean;
 };
+
+/** Latin-digit Gregorian `YYYY-MM-DD` — persian_fa locale would emit «۲۰۲۴-۱۱-۰۷» and fail Laravel `date`. */
+export function toGregorianIsoDate(d: DateObject): string {
+  return new DateObject(d).convert(gregorian, gregorian_en).format('YYYY-MM-DD');
+}
 
 /** Controlled Jalali date picker; value/onChange use ISO Gregorian `yyyy-mm-dd` strings. */
 export function JalaliDatePicker({
@@ -37,8 +43,9 @@ export function JalaliDatePicker({
       date: value,
       format: 'YYYY-MM-DD',
       calendar: gregorian,
+      locale: gregorian_en,
     });
-    return d.isValid ? d.convert(persian) : undefined;
+    return d.isValid ? d.convert(persian, persian_fa) : undefined;
   }, [value]);
 
   return (
@@ -55,8 +62,7 @@ export function JalaliDatePicker({
             onChange(null);
             return;
           }
-          const converted = new DateObject(d as DateObject).convert(gregorian);
-          onChange(converted.format('YYYY-MM-DD'));
+          onChange(toGregorianIsoDate(d as DateObject));
         }}
         disabled={disabled}
         inputClass="flex h-9 w-full rounded-md border border-input bg-background px-3 py-1 text-sm shadow-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
