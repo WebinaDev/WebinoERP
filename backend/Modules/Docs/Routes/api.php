@@ -16,3 +16,12 @@ Route::post('files/folders', [FileController::class, 'createFolder']);
 Route::post('files/{file}/share', [FileController::class, 'share']);
 Route::get('files/{file}/versions', [FileController::class, 'versions']);
 Route::delete('files/{file}', [FileController::class, 'destroy']);
+
+
+// Contract Lifecycle Management (CLM), Addenda & E-Signature
+Route::prefix('contracts/{contract}')->group(function () {
+    Route::post('/transition', [\Modules\Docs\Http\Controllers\ContractLifecycleController::class, 'transition']);
+    Route::post('/envelopes', [\Modules\Docs\Http\Controllers\ContractLifecycleController::class, 'createEnvelope']);
+    Route::post('/addenda', [\Modules\Docs\Http\Controllers\ContractLifecycleController::class, 'addAddendum']);
+});
+Route::post('/envelopes/{envelope}/sign', [\Modules\Docs\Http\Controllers\ContractLifecycleController::class, 'sign']);
