@@ -313,8 +313,7 @@
         "rahnPercent": "Nerkhnameh",
         "storefront": "Online store",
         "bale": "Bale business bot",
-        "modirpayamak": "SMS",
-        "pos": "Point of Sale (POS)"
+        "modirpayamak": "SMS"
       },
       "docs": {
         "group": "Documents & contracts",
@@ -10744,20 +10743,6 @@
       "peripheralsDesc": "Thermal/label printers, scanners, and weighing scales.",
       "printJobs": "Print Jobs Queue",
       "printJobsDesc": "Direct dispatch of ZPL and ESC/POS print jobs to hardware devices."
-    },
-    "pos": {
-      "title": "POS & Restaurant Operation Hub",
-      "description": "Fast order entry, Kitchen Display System (KDS), waiter table ordering, and cashier shift reconciliation.",
-      "cashier": "Cashier POS",
-      "cashierDesc": "Sub-10s touch-first ordering, table floor map, and quick integrated PC-POS checkout.",
-      "kds": "Kitchen Display (KDS)",
-      "kdsDesc": "Live colored ticket cards, prep lifecycle timer, station routing, and audio alerts.",
-      "manager": "Manager & Operational Cockpit",
-      "managerDesc": "Real-time KPIs, table occupancy rates, cash drawer reconciliation, and critical inventory.",
-      "waiter": "Waiter Table Ordering",
-      "waiterDesc": "Handheld tablet interface for table-side ordering, kitchen dispatch, and bill requests.",
-      "shift": "Shift Management & Cash Drawer",
-      "shiftDesc": "Shift opening/closing, physical vs expected cash reconciliation, and discrepancy audits."
     }
   }
 }
