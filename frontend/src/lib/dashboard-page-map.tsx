@@ -173,6 +173,73 @@ import {
   MfgQualityPage,
   MfgPlanningPage,
 } from '@/features/modules/mfg';
+import {
+  OrgOverviewPage,
+  OrgCompaniesPage,
+  OrgBranchesPage,
+  OrgTransfersPage,
+  OrgSequencesPage,
+  OrgConsolidatedPage,
+} from '@/features/modules/org';
+import {
+  WorkflowOverviewPage,
+  WorkflowInboxPage,
+  WorkflowDefinitionsPage,
+  WorkflowDelegationsPage,
+  WorkflowHistoryPage,
+} from '@/features/modules/workflow';
+import {
+  BiOverviewPage,
+  BiKpisPage,
+  BiDashboardsPage,
+  BiSubscriptionsPage,
+  BiAlertsPage,
+} from '@/features/modules/bi';
+import {
+  FieldServiceOverviewPage,
+  FieldServiceInstallBasePage,
+  FieldServiceOrdersPage,
+  FieldServiceTechniciansPage,
+  FieldServiceReportsPage,
+} from '@/features/modules/field-service';
+import {
+  QmOverviewPage,
+  QmPlansPage,
+  QmLotsPage,
+  QmInspectionsPage,
+  QmNcrsPage,
+  QmCapasPage,
+  QmAnalyticsPage,
+} from '@/features/modules/qm';
+import {
+  AssetsOverviewPage,
+  AssetsItemsPage,
+  AssetsDepreciationPage,
+  AssetsMaintenancePlansPage,
+  AssetsMaintenanceOrdersPage,
+  AssetsInsurancesPage,
+} from '@/features/modules/assets';
+import {
+  AuthzOverviewPage,
+  AuthzRolesPage,
+  AuthzPermissionsPage,
+  AuthzPoliciesPage,
+  AuthzSimulatorPage,
+  AuthzAuditLogsPage,
+} from '@/features/modules/authz';
+import {
+  ProcurementOverviewPage,
+  ProcurementRequestsPage,
+  ProcurementRfqsPage,
+  ProcurementOrdersPage,
+  ProcurementReceiptsPage,
+} from '@/features/modules/procurement';
+import {
+  DeviceGatewayOverviewPage,
+  DeviceGatewayGatewaysPage,
+  DeviceGatewayPeripheralsPage,
+  DeviceGatewayPrintJobsPage,
+} from '@/features/modules/device-gateway';
 import { ModirpayamakSendPage } from '@/features/modules/admin/integrations/modirpayamak/send_page';
 import { ModirpayamakReportsPage } from '@/features/modules/admin/integrations/modirpayamak/reports_page';
 import { ModirpayamakCustomersPage } from '@/features/modules/admin/integrations/modirpayamak/customers_page';
@@ -372,6 +439,61 @@ const EXACT: Record<string, ReactNode> = {
   'mfg/work-orders': <MfgWorkOrdersPage />,
   'mfg/quality': <MfgQualityPage />,
   'mfg/planning': <MfgPlanningPage />,
+  org: <OrgOverviewPage />,
+  'org/companies': <OrgCompaniesPage />,
+  'org/branches': <OrgBranchesPage />,
+  'org/transfers': <OrgTransfersPage />,
+  'org/sequences': <OrgSequencesPage />,
+  'org/consolidated': <OrgConsolidatedPage />,
+
+  workflow: <WorkflowOverviewPage />,
+  'workflow/inbox': <WorkflowInboxPage />,
+  'workflow/definitions': <WorkflowDefinitionsPage />,
+  'workflow/delegations': <WorkflowDelegationsPage />,
+  'workflow/history': <WorkflowHistoryPage />,
+
+  bi: <BiOverviewPage />,
+  'bi/kpis': <BiKpisPage />,
+  'bi/dashboards': <BiDashboardsPage />,
+  'bi/subscriptions': <BiSubscriptionsPage />,
+  'bi/alerts': <BiAlertsPage />,
+
+  'field-service': <FieldServiceOverviewPage />,
+  'field-service/install-base': <FieldServiceInstallBasePage />,
+  'field-service/orders': <FieldServiceOrdersPage />,
+  'field-service/technicians': <FieldServiceTechniciansPage />,
+  'field-service/reports': <FieldServiceReportsPage />,
+
+  qm: <QmOverviewPage />,
+  'qm/plans': <QmPlansPage />,
+  'qm/lots': <QmLotsPage />,
+  'qm/inspections': <QmInspectionsPage />,
+  'qm/ncrs': <QmNcrsPage />,
+  'qm/capas': <QmCapasPage />,
+  'qm/analytics': <QmAnalyticsPage />,
+
+  assets: <AssetsOverviewPage />,
+  'assets/items': <AssetsItemsPage />,
+  'assets/depreciation': <AssetsDepreciationPage />,
+  'assets/maintenance-plans': <AssetsMaintenancePlansPage />,
+  'assets/maintenance-orders': <AssetsMaintenanceOrdersPage />,
+  'assets/insurances': <AssetsInsurancesPage />,
+  authz: <AuthzOverviewPage />,
+  'authz/roles': <AuthzRolesPage />,
+  'authz/permissions': <AuthzPermissionsPage />,
+  'authz/policies': <AuthzPoliciesPage />,
+  'authz/simulator': <AuthzSimulatorPage />,
+  'authz/audit-logs': <AuthzAuditLogsPage />,
+  procurement: <ProcurementOverviewPage />,
+  'procurement/requests': <ProcurementRequestsPage />,
+  'procurement/rfqs': <ProcurementRfqsPage />,
+  'procurement/orders': <ProcurementOrdersPage />,
+  'procurement/receipts': <ProcurementReceiptsPage />,
+
+  'device-gateway': <DeviceGatewayOverviewPage />,
+  'device-gateway/gateways': <DeviceGatewayGatewaysPage />,
+  'device-gateway/peripherals': <DeviceGatewayPeripheralsPage />,
+  'device-gateway/print-jobs': <DeviceGatewayPrintJobsPage />,
   'admin/licenses': <LicensesPageView />,
   licenses: <LicensesPageView />,
   'admin/logs': <LogsPageView />,

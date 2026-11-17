@@ -25,6 +25,15 @@ class SystemModulesSeeder extends Seeder
             ['name' => 'Marketing', 'slug' => 'marketing', 'is_active' => true],
             ['name' => 'Platform', 'slug' => 'platform', 'is_active' => true],
             ['name' => 'AI Content', 'slug' => 'ai_content', 'is_active' => true],
+            ['name' => 'Org', 'slug' => 'org', 'is_active' => true],
+            ['name' => 'Workflow', 'slug' => 'workflow', 'is_active' => true],
+            ['name' => 'BI', 'slug' => 'bi', 'is_active' => true],
+            ['name' => 'Field Service', 'slug' => 'field_service', 'is_active' => true],
+            ['name' => 'QM', 'slug' => 'qm', 'is_active' => true],
+            ['name' => 'Assets', 'slug' => 'assets', 'is_active' => true],
+            ['name' => 'Authz', 'slug' => 'authz', 'is_active' => true],
+            ['name' => 'Procurement', 'slug' => 'procurement', 'is_active' => true],
+            ['name' => 'Device Gateway', 'slug' => 'device_gateway', 'is_active' => true],
         ];
 
         foreach ($modules as $module) {

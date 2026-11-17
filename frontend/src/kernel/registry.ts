@@ -9,6 +9,15 @@ import { integrationsManifest } from "../../modules/integrations/manifest"
 import { marketingManifest } from "../../modules/marketing/manifest"
 import { marketplaceManifest } from "../../modules/marketplace/manifest"
 import { mfgManifest } from "../../modules/mfg/manifest"
+import { orgManifest } from "../../modules/org/manifest"
+import { workflowManifest } from "../../modules/workflow/manifest"
+import { biManifest } from "../../modules/bi/manifest"
+import { fieldServiceManifest } from "../../modules/field_service/manifest"
+import { qmManifest } from "../../modules/qm/manifest"
+import { assetsManifest } from "../../modules/assets/manifest"
+import { authzManifest } from "../../modules/authz/manifest"
+import { procurementManifest } from "../../modules/procurement/manifest"
+import { deviceGatewayManifest } from "../../modules/device_gateway/manifest"
 import { projectsManifest } from "../../modules/projects/manifest"
 import { salesManifest } from "../../modules/sales/manifest"
 import { scmManifest } from "../../modules/scm/manifest"
@@ -38,6 +47,15 @@ export const MODULE_MANIFESTS: ModuleManifest[] = [
   scmManifest,
   salesManifest,
   mfgManifest,
+  orgManifest,
+  workflowManifest,
+  biManifest,
+  fieldServiceManifest,
+  qmManifest,
+  assetsManifest,
+  authzManifest,
+  procurementManifest,
+  deviceGatewayManifest,
   platformManifest,
   marketingManifest,
   docsManifest,

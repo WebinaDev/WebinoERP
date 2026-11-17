@@ -1,0 +1,13 @@
+{
+    "name": "Procurement",
+    "alias": "procurement",
+    "description": "End-to-end Procurement — Purchase Requests (PR), RFQs, Purchase Orders (PO), Goods Receipt Notes (GRN), and 3-way Matching",
+    "keywords": [],
+    "priority": 25,
+    "providers": [
+        "Modules\\Procurement\\Providers\\ProcurementServiceProvider"
+    ],
+    "aliases": {},
+    "files": [],
+    "requires": []
+}

@@ -1,0 +1,13 @@
+{
+    "name": "Workflow",
+    "alias": "workflow",
+    "description": "Central multi-step approval workflow engine across ERP modules",
+    "keywords": [],
+    "priority": 19,
+    "providers": [
+        "Modules\\Workflow\\Providers\\WorkflowServiceProvider"
+    ],
+    "aliases": {},
+    "files": [],
+    "requires": []
+}

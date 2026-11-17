@@ -1,0 +1,21 @@
+{
+  "slug": "field_service",
+  "name_fa": "خدمات پس از فروش و اعزام",
+  "name_en": "Field Service & Maintenance",
+  "submodules": [
+    "overview",
+    "install-base",
+    "requests",
+    "technicians",
+    "spare-parts",
+    "sla-reports"
+  ],
+  "admin_nav": {
+    "section": "field_service",
+    "order": 18
+  },
+  "site_types": [
+    "erp"
+  ],
+  "public_routes": []
+}

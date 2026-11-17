@@ -1,0 +1,13 @@
+{
+    "name": "DeviceGateway",
+    "alias": "device_gateway",
+    "description": "Hardware and Edge Device Gateway — Barcode Scanners, Thermal/Label Printers, Scales, and POS Terminals across OS platforms",
+    "keywords": [],
+    "priority": 26,
+    "providers": [
+        "Modules\\DeviceGateway\\Providers\\DeviceGatewayServiceProvider"
+    ],
+    "aliases": {},
+    "files": [],
+    "requires": []
+}

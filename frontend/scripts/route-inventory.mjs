@@ -137,6 +137,70 @@ export const ROUTE_INVENTORY = [
   { module: 'mfg', route: 'mfg/work-orders', legacy: [], menuId: 'mfg-work-orders', component: 'MfgWorkOrdersPage', api: '/v1/mfg/work-orders', db: '✅', fe: '✅', apiSt: '✅', i18n: '✅', tests: '✅', notes: '' },
   { module: 'mfg', route: 'mfg/quality', legacy: [], menuId: 'mfg-quality', component: 'MfgQualityPage', api: '/v1/mfg/inspections', db: '✅', fe: '✅', apiSt: '✅', i18n: '✅', tests: '✅', notes: '' },
   { module: 'mfg', route: 'mfg/planning', legacy: [], menuId: 'mfg-planning', component: 'MfgPlanningPage', api: '/v1/mfg/planning/mrp', db: '✅', fe: '✅', apiSt: '✅', i18n: '✅', tests: '✅', notes: '' },
+  // Priority 1 — Org & Multi-company
+  { module: 'org', route: 'org', legacy: [], menuId: 'org-overview', component: 'OrgOverviewPage', api: '/v1/org/context/active', db: '✅', fe: '✅', apiSt: '✅', i18n: '✅', tests: '✅', notes: 'ERP' },
+  { module: 'org', route: 'org/companies', legacy: [], menuId: 'org-companies', component: 'OrgCompaniesPage', api: '/v1/org/companies', db: '✅', fe: '✅', apiSt: '✅', i18n: '✅', tests: '✅', notes: '' },
+  { module: 'org', route: 'org/branches', legacy: [], menuId: 'org-branches', component: 'OrgBranchesPage', api: '/v1/org/branches', db: '✅', fe: '✅', apiSt: '✅', i18n: '✅', tests: '✅', notes: '' },
+  { module: 'org', route: 'org/transfers', legacy: [], menuId: 'org-transfers', component: 'OrgTransfersPage', api: '/v1/org/transfers', db: '✅', fe: '✅', apiSt: '✅', i18n: '✅', tests: '✅', notes: '' },
+  { module: 'org', route: 'org/sequences', legacy: [], menuId: 'org-sequences', component: 'OrgSequencesPage', api: '/v1/org/sequences', db: '✅', fe: '✅', apiSt: '✅', i18n: '✅', tests: '✅', notes: '' },
+  { module: 'org', route: 'org/consolidated', legacy: [], menuId: 'org-consolidated', component: 'OrgConsolidatedPage', api: '/v1/org/reports/consolidated', db: '✅', fe: '✅', apiSt: '✅', i18n: '✅', tests: '✅', notes: '' },
+
+  // Priority 2 — Workflow
+  { module: 'workflow', route: 'workflow', legacy: [], menuId: 'workflow-overview', component: 'WorkflowOverviewPage', api: '/v1/workflow/inbox', db: '✅', fe: '✅', apiSt: '✅', i18n: '✅', tests: '✅', notes: 'ERP' },
+  { module: 'workflow', route: 'workflow/inbox', legacy: [], menuId: 'workflow-inbox', component: 'WorkflowInboxPage', api: '/v1/workflow/inbox', db: '✅', fe: '✅', apiSt: '✅', i18n: '✅', tests: '✅', notes: '' },
+  { module: 'workflow', route: 'workflow/definitions', legacy: [], menuId: 'workflow-definitions', component: 'WorkflowDefinitionsPage', api: '/v1/workflow/definitions', db: '✅', fe: '✅', apiSt: '✅', i18n: '✅', tests: '✅', notes: '' },
+  { module: 'workflow', route: 'workflow/delegations', legacy: [], menuId: 'workflow-delegations', component: 'WorkflowDelegationsPage', api: '/v1/workflow/delegations', db: '✅', fe: '✅', apiSt: '✅', i18n: '✅', tests: '✅', notes: '' },
+  { module: 'workflow', route: 'workflow/history', legacy: [], menuId: 'workflow-history', component: 'WorkflowHistoryPage', api: '/v1/workflow/history', db: '✅', fe: '✅', apiSt: '✅', i18n: '✅', tests: '✅', notes: '' },
+
+  // Priority 3 — BI
+  { module: 'bi', route: 'bi', legacy: [], menuId: 'bi-overview', component: 'BiOverviewPage', api: '/v1/bi/kpis', db: '✅', fe: '✅', apiSt: '✅', i18n: '✅', tests: '✅', notes: 'ERP' },
+  { module: 'bi', route: 'bi/kpis', legacy: [], menuId: 'bi-kpis', component: 'BiKpisPage', api: '/v1/bi/kpis', db: '✅', fe: '✅', apiSt: '✅', i18n: '✅', tests: '✅', notes: '' },
+  { module: 'bi', route: 'bi/dashboards', legacy: [], menuId: 'bi-dashboards', component: 'BiDashboardsPage', api: '/v1/bi/dashboards/ceo', db: '✅', fe: '✅', apiSt: '✅', i18n: '✅', tests: '✅', notes: '' },
+  { module: 'bi', route: 'bi/subscriptions', legacy: [], menuId: 'bi-subscriptions', component: 'BiSubscriptionsPage', api: '/v1/bi/subscriptions', db: '✅', fe: '✅', apiSt: '✅', i18n: '✅', tests: '✅', notes: '' },
+  { module: 'bi', route: 'bi/alerts', legacy: [], menuId: 'bi-alerts', component: 'BiAlertsPage', api: '/v1/bi/alerts', db: '✅', fe: '✅', apiSt: '✅', i18n: '✅', tests: '✅', notes: '' },
+
+  // Priority 4 — Field Service
+  { module: 'field_service', route: 'field-service', legacy: [], menuId: 'fs-overview', component: 'FieldServiceOverviewPage', api: '/v1/field-service/reports', db: '✅', fe: '✅', apiSt: '✅', i18n: '✅', tests: '✅', notes: 'ERP' },
+  { module: 'field_service', route: 'field-service/install-base', legacy: [], menuId: 'fs-install-base', component: 'FieldServiceInstallBasePage', api: '/v1/field-service/install-bases', db: '✅', fe: '✅', apiSt: '✅', i18n: '✅', tests: '✅', notes: '' },
+  { module: 'field_service', route: 'field-service/orders', legacy: [], menuId: 'fs-orders', component: 'FieldServiceOrdersPage', api: '/v1/field-service/orders', db: '✅', fe: '✅', apiSt: '✅', i18n: '✅', tests: '✅', notes: '' },
+  { module: 'field_service', route: 'field-service/technicians', legacy: [], menuId: 'fs-technicians', component: 'FieldServiceTechniciansPage', api: '/v1/field-service/technicians', db: '✅', fe: '✅', apiSt: '✅', i18n: '✅', tests: '✅', notes: '' },
+  { module: 'field_service', route: 'field-service/reports', legacy: [], menuId: 'fs-reports', component: 'FieldServiceReportsPage', api: '/v1/field-service/reports', db: '✅', fe: '✅', apiSt: '✅', i18n: '✅', tests: '✅', notes: '' },
+
+  // Priority 5 — QM
+  { module: 'qm', route: 'qm', legacy: [], menuId: 'qm-overview', component: 'QmOverviewPage', api: '/v1/qm/analytics', db: '✅', fe: '✅', apiSt: '✅', i18n: '✅', tests: '✅', notes: 'ERP' },
+  { module: 'qm', route: 'qm/plans', legacy: [], menuId: 'qm-plans', component: 'QmPlansPage', api: '/v1/qm/plans', db: '✅', fe: '✅', apiSt: '✅', i18n: '✅', tests: '✅', notes: '' },
+  { module: 'qm', route: 'qm/lots', legacy: [], menuId: 'qm-lots', component: 'QmLotsPage', api: '/v1/qm/lots', db: '✅', fe: '✅', apiSt: '✅', i18n: '✅', tests: '✅', notes: '' },
+  { module: 'qm', route: 'qm/inspections', legacy: [], menuId: 'qm-inspections', component: 'QmInspectionsPage', api: '/v1/qm/inspections', db: '✅', fe: '✅', apiSt: '✅', i18n: '✅', tests: '✅', notes: '' },
+  { module: 'qm', route: 'qm/ncrs', legacy: [], menuId: 'qm-ncrs', component: 'QmNcrsPage', api: '/v1/qm/ncrs', db: '✅', fe: '✅', apiSt: '✅', i18n: '✅', tests: '✅', notes: '' },
+  { module: 'qm', route: 'qm/capas', legacy: [], menuId: 'qm-capas', component: 'QmCapasPage', api: '/v1/qm/capas', db: '✅', fe: '✅', apiSt: '✅', i18n: '✅', tests: '✅', notes: '' },
+  { module: 'qm', route: 'qm/analytics', legacy: [], menuId: 'qm-analytics', component: 'QmAnalyticsPage', api: '/v1/qm/analytics', db: '✅', fe: '✅', apiSt: '✅', i18n: '✅', tests: '✅', notes: '' },
+
+  // Priority 6 — Assets
+  { module: 'assets', route: 'assets', legacy: [], menuId: 'assets-overview', component: 'AssetsOverviewPage', api: '/v1/assets/items', db: '✅', fe: '✅', apiSt: '✅', i18n: '✅', tests: '✅', notes: 'ERP' },
+  { module: 'assets', route: 'assets/items', legacy: [], menuId: 'assets-items', component: 'AssetsItemsPage', api: '/v1/assets/items', db: '✅', fe: '✅', apiSt: '✅', i18n: '✅', tests: '✅', notes: '' },
+  { module: 'assets', route: 'assets/depreciation', legacy: [], menuId: 'assets-depreciation', component: 'AssetsDepreciationPage', api: '/v1/assets/depreciation-runs', db: '✅', fe: '✅', apiSt: '✅', i18n: '✅', tests: '✅', notes: '' },
+  { module: 'assets', route: 'assets/maintenance-plans', legacy: [], menuId: 'assets-maintenance-plans', component: 'AssetsMaintenancePlansPage', api: '/v1/assets/maintenance-plans', db: '✅', fe: '✅', apiSt: '✅', i18n: '✅', tests: '✅', notes: '' },
+  { module: 'assets', route: 'assets/maintenance-orders', legacy: [], menuId: 'assets-maintenance-orders', component: 'AssetsMaintenanceOrdersPage', api: '/v1/assets/maintenance-orders', db: '✅', fe: '✅', apiSt: '✅', i18n: '✅', tests: '✅', notes: '' },
+  { module: 'assets', route: 'assets/insurances', legacy: [], menuId: 'assets-insurances', component: 'AssetsInsurancesPage', api: '/v1/assets/insurances', db: '✅', fe: '✅', apiSt: '✅', i18n: '✅', tests: '✅', notes: '' },
+  // Unified Access Control Plane (Authz)
+  { module: 'authz', route: 'authz', legacy: [], menuId: 'authz-overview', component: 'AuthzOverviewPage', api: '/v1/authz/me', db: '✅', fe: '✅', apiSt: '✅', i18n: '✅', tests: '✅', notes: 'Core ERP' },
+  { module: 'authz', route: 'authz/roles', legacy: [], menuId: 'authz-roles', component: 'AuthzRolesPage', api: '/v1/authz/roles', db: '✅', fe: '✅', apiSt: '✅', i18n: '✅', tests: '✅', notes: '' },
+  { module: 'authz', route: 'authz/permissions', legacy: [], menuId: 'authz-permissions', component: 'AuthzPermissionsPage', api: '/v1/authz/permissions', db: '✅', fe: '✅', apiSt: '✅', i18n: '✅', tests: '✅', notes: '' },
+  { module: 'authz', route: 'authz/policies', legacy: [], menuId: 'authz-policies', component: 'AuthzPoliciesPage', api: '/v1/authz/field-policies', db: '✅', fe: '✅', apiSt: '✅', i18n: '✅', tests: '✅', notes: '' },
+  { module: 'authz', route: 'authz/simulator', legacy: [], menuId: 'authz-simulator', component: 'AuthzSimulatorPage', api: '/v1/authz/simulate', db: '✅', fe: '✅', apiSt: '✅', i18n: '✅', tests: '✅', notes: '' },
+  { module: 'authz', route: 'authz/audit-logs', legacy: [], menuId: 'authz-audit-logs', component: 'AuthzAuditLogsPage', api: '/v1/authz/audit-logs', db: '✅', fe: '✅', apiSt: '✅', i18n: '✅', tests: '✅', notes: '' },
+  // Procurement
+  { module: 'procurement', route: 'procurement', legacy: [], menuId: 'procurement-overview', component: 'ProcurementOverviewPage', api: '/v1/procurement/orders', db: '✅', fe: '✅', apiSt: '✅', i18n: '✅', tests: '✅', notes: 'Core ERP' },
+  { module: 'procurement', route: 'procurement/requests', legacy: [], menuId: 'procurement-requests', component: 'ProcurementRequestsPage', api: '/v1/procurement/requests', db: '✅', fe: '✅', apiSt: '✅', i18n: '✅', tests: '✅', notes: '' },
+  { module: 'procurement', route: 'procurement/rfqs', legacy: [], menuId: 'procurement-rfqs', component: 'ProcurementRfqsPage', api: '/v1/procurement/rfqs', db: '✅', fe: '✅', apiSt: '✅', i18n: '✅', tests: '✅', notes: '' },
+  { module: 'procurement', route: 'procurement/orders', legacy: [], menuId: 'procurement-orders', component: 'ProcurementOrdersPage', api: '/v1/procurement/orders', db: '✅', fe: '✅', apiSt: '✅', i18n: '✅', tests: '✅', notes: '' },
+  { module: 'procurement', route: 'procurement/receipts', legacy: [], menuId: 'procurement-receipts', component: 'ProcurementReceiptsPage', api: '/v1/procurement/receipts', db: '✅', fe: '✅', apiSt: '✅', i18n: '✅', tests: '✅', notes: '' },
+
+  // Device Gateway
+  { module: 'device_gateway', route: 'device-gateway', legacy: [], menuId: 'dev-overview', component: 'DeviceGatewayOverviewPage', api: '/v1/device-gateway/gateways', db: '✅', fe: '✅', apiSt: '✅', i18n: '✅', tests: '✅', notes: 'Hardware' },
+  { module: 'device_gateway', route: 'device-gateway/gateways', legacy: [], menuId: 'dev-gateways', component: 'DeviceGatewayGatewaysPage', api: '/v1/device-gateway/gateways', db: '✅', fe: '✅', apiSt: '✅', i18n: '✅', tests: '✅', notes: '' },
+  { module: 'device_gateway', route: 'device-gateway/peripherals', legacy: [], menuId: 'dev-peripherals', component: 'DeviceGatewayPeripheralsPage', api: '/v1/device-gateway/peripherals', db: '✅', fe: '✅', apiSt: '✅', i18n: '✅', tests: '✅', notes: '' },
+  { module: 'device_gateway', route: 'device-gateway/print-jobs', legacy: [], menuId: 'dev-print-jobs', component: 'DeviceGatewayPrintJobsPage', api: '/v1/device-gateway/print-jobs', db: '✅', fe: '✅', apiSt: '✅', i18n: '✅', tests: '✅', notes: '' },
 
   { module: 'admin', route: 'admin/hosting-infra', legacy: ['hosting-infra'], menuId: 'hosting-infra', component: 'HostingInfraPageView', api: '/webinocrm/v1/hosting/*', db: '✅', fe: '✅', apiSt: '✅', i18n: '✅', tests: '✅', notes: '' },
 ];

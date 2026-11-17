@@ -1,0 +1,21 @@
+{
+  "slug": "device_gateway",
+  "name_fa": "درگاه اتصال سخت‌افزار",
+  "name_en": "Device Gateway",
+  "submodules": [
+    "overview",
+    "devices",
+    "printers",
+    "scanners",
+    "pos",
+    "logs"
+  ],
+  "admin_nav": {
+    "section": "device_gateway",
+    "order": 21
+  },
+  "site_types": [
+    "erp"
+  ],
+  "public_routes": []
+}

@@ -1,0 +1,19 @@
+{
+  "slug": "workflow",
+  "name_fa": "موتور گردش کار و تاییدیه‌ها",
+  "name_en": "Approval Workflow Engine",
+  "submodules": [
+    "definitions",
+    "inbox",
+    "delegations",
+    "history"
+  ],
+  "admin_nav": {
+    "section": "workflow",
+    "order": 16
+  },
+  "site_types": [
+    "erp"
+  ],
+  "public_routes": []
+}

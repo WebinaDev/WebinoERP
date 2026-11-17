@@ -1,0 +1,21 @@
+{
+  "slug": "procurement",
+  "name_fa": "خرید و تدارکات",
+  "name_en": "Procurement & Sourcing",
+  "submodules": [
+    "overview",
+    "requests",
+    "rfqs",
+    "orders",
+    "receipts",
+    "vendors"
+  ],
+  "admin_nav": {
+    "section": "procurement",
+    "order": 13
+  },
+  "site_types": [
+    "erp"
+  ],
+  "public_routes": []
+}

@@ -111,7 +111,14 @@
       "chat": "Team chat",
       "documents": "Documents",
       "time-tracking": "Time tracking",
-      "aiContent": "AI Content"
+      "aiContent": "AI Content",
+      "org": "Organizations & Branches",
+      "workflow": "Workflow Engine",
+      "bi": "Business Intelligence",
+      "field_service": "Field Service",
+      "qm": "Quality Management",
+      "assets": "Fixed Assets",
+      "authz": "Access Control"
     },
     "erp": {
       "hubSection": "ERP modules",
@@ -381,7 +388,72 @@
         "taxonomies": "Taxonomies",
         "titles": "Titles",
         "description": "AI content automation for products, blog, and pages."
-      }
+      },
+      "org": {
+        "overview": "Organizations & Branches",
+        "companies": "Companies & Holding",
+        "branches": "Branches & Locations",
+        "transfers": "Inter-Branch & Co Transfers",
+        "sequences": "Document Numbering",
+        "consolidated": "Holding Consolidated Report"
+      },
+      "workflow": {
+        "overview": "Workflow Engine",
+        "inbox": "Approval Inbox",
+        "definitions": "Workflow Definitions",
+        "delegations": "Delegations",
+        "history": "Audit History"
+      },
+      "bi": {
+        "overview": "Business Intelligence",
+        "kpis": "Key Performance Indicators",
+        "dashboards": "Executive Dashboards",
+        "subscriptions": "Scheduled Subscriptions",
+        "alerts": "Threshold Alerts"
+      },
+      "field_service": {
+        "overview": "Field Service",
+        "installBase": "Install Base Dossier",
+        "orders": "Service & Dispatch Orders",
+        "technicians": "Technicians & Skills",
+        "reports": "SLA & Failure Reports"
+      },
+      "qm": {
+        "overview": "Quality Management (QM)",
+        "plans": "Inspection Plans",
+        "lots": "Lot/Batch Tracking & Quarantine",
+        "inspections": "Quality Inspections",
+        "ncrs": "Non-Conformance Reports (NCR)",
+        "capas": "CAPA Actions",
+        "analytics": "Defect & Scrap Analytics"
+      },
+      "assets": {
+        "overview": "Fixed Assets",
+        "items": "Asset Register Cards",
+        "depreciation": "Depreciation Runs",
+        "maintenancePlans": "Preventive Maintenance Plans",
+        "maintenanceOrders": "Maintenance Work Orders",
+        "insurances": "Insurance & Warranties"
+      },
+      "authz": {
+        "overview": "Access Control Plane",
+        "roles": "Roles & Capability Bundles",
+        "permissions": "Permissions Catalog Tree",
+        "policies": "Policies & Field Security",
+        "simulator": "Access Simulator",
+        "auditLogs": "Access Audit Logs"
+      },
+      "procurement": "Procurement",
+      "procurementOverview": "Procurement Overview",
+      "procurementRequests": "Purchase Requests",
+      "procurementRfqs": "RFQs",
+      "procurementOrders": "Purchase Orders",
+      "procurementReceipts": "Goods Receipts",
+      "deviceGateway": "Device Gateway",
+      "deviceGatewayOverview": "Gateway Overview",
+      "deviceGatewayGateways": "Gateways",
+      "deviceGatewayPeripherals": "Peripherals",
+      "deviceGatewayPrintJobs": "Print Jobs"
     },
     "overview": "Overview",
     "logout": "Sign out",
@@ -10553,5 +10625,124 @@
     "discount": "Discount",
     "shipping": "Shipping",
     "total": "Amount to pay"
+  },
+  "erp": {
+    "org": {
+      "title": "Organizations & Branches",
+      "description": "Multi-company, branch locations, inter-company transfers, numbering sequences, and consolidated reporting",
+      "selectCompany": "Select Company",
+      "companies": "Companies",
+      "companiesDesc": "Legal entities, tax IDs, national registration, and official reporting currencies",
+      "branches": "Branches & Stores",
+      "branchesDesc": "Regional branches, offices, retail outlets, and subordinate warehouses",
+      "transfers": "Transfers",
+      "transfersDesc": "Inter-branch and inter-company stock and document transfer vouchers",
+      "sequences": "Document Numbering",
+      "sequencesDesc": "Independent numbering sequence counters per company and branch",
+      "consolidated": "Consolidated Report",
+      "consolidatedDesc": "Consolidated holding financial and operational performance summary"
+    },
+    "workflow": {
+      "title": "Approval Workflow Engine",
+      "description": "Multi-step automated approval engine for quotes, contracts, discounts, purchases, and payments",
+      "inbox": "Approval Inbox",
+      "inboxDesc": "Pending approval items awaiting your review based on role and routing conditions",
+      "definitions": "Workflow Definitions",
+      "definitionsDesc": "Design approval stages, amount thresholds, dynamic conditions, SLAs, and sequential/parallel approvers",
+      "delegations": "Delegations",
+      "delegationsDesc": "Temporary approval authority delegation during leave or missions",
+      "history": "Decision History",
+      "historyDesc": "Immutable decision audit log, stage approvals, comments, and sent notifications"
+    },
+    "bi": {
+      "title": "Business Intelligence & KPIs",
+      "description": "Lightweight business data mart, role-based executive dashboards, and threshold alerts",
+      "kpis": "Key Performance Indicators",
+      "kpisDesc": "Track sales & margin, inventory turnover, AR aging, lead conversion, and support SLA",
+      "dashboards": "Executive Dashboards",
+      "dashboardsDesc": "Tailored executive dashboards for CEO, Sales, Operations, and Finance leadership",
+      "subscriptions": "Subscriptions & Schedules",
+      "subscriptionsDesc": "Automated periodic report generation and delivery in CSV and raw formats",
+      "alerts": "Threshold Alerts",
+      "alertsDesc": "Instant automated warnings on critical stock levels, contract expiries, or SLA breaches"
+    },
+    "field_service": {
+      "title": "Field Service & Maintenance",
+      "description": "Installed device dossiers, technician dispatch, spare parts consumption, and warranty tracking",
+      "installBase": "Install Base Dossier",
+      "installBaseDesc": "Customer equipment records, serial numbers, install dates, and warranty status",
+      "orders": "Service & Work Orders",
+      "ordersDesc": "Traceable lifecycle from customer request to dispatch, repairs, costing, and invoice",
+      "technicians": "Technicians & Skills",
+      "techniciansDesc": "Skill-based dispatch, territorial zones, and technician availability",
+      "reports": "SLA & Failure Reports",
+      "reportsDesc": "Response and resolution SLA compliance, recurrent failures, and technician metrics"
+    },
+    "qm": {
+      "title": "Quality Management (QM)",
+      "description": "Control plans, incoming/in-process/final inspections, quarantine gates, NCRs, and CAPAs",
+      "plans": "Inspection Plans",
+      "plansDesc": "Inspection criteria, tolerances, physicochemical parameters, and acceptance standards",
+      "lots": "Lot/Batch Tracking & Quarantine",
+      "lotsDesc": "Batch number tracking, expiry dates, and strict release gates to sellable stock",
+      "inspections": "Inspections & Tests",
+      "inspectionsDesc": "Sample measurement results, criteria evaluation, and pass/fail verdicts",
+      "ncrs": "Non-Conformance Reports (NCR)",
+      "ncrsDesc": "Defect documentation and dispositions: scrap, rework, or return to vendor",
+      "capas": "CAPA Actions",
+      "capasDesc": "Root-cause analysis and preventive action plans to prevent defect recurrence",
+      "analytics": "Defect & Scrap Analytics",
+      "analyticsDesc": "Scrap rates, recurring defect Pareto analysis, and continuous quality metrics"
+    },
+    "assets": {
+      "title": "Fixed Assets & Maintenance",
+      "description": "Asset register cards, periodic GL depreciation posting, PM plans, and maintenance orders",
+      "items": "Asset Register Cards",
+      "itemsDesc": "Asset codes, custody assignments, physical locations, and book value tracking",
+      "depreciation": "Depreciation Runs",
+      "depreciationDesc": "Periodic depreciation calculation and balanced GL journal posting",
+      "maintenancePlans": "Preventive Maintenance (PM)",
+      "maintenancePlansDesc": "Scheduled preventive maintenance, lubrication, and inspection routines",
+      "maintenanceOrders": "Maintenance Work Orders",
+      "maintenanceOrdersDesc": "Maintenance labor, spare parts consumed from warehouse, and asset cost rollups",
+      "insurances": "Asset Insurance & Warranties",
+      "insurancesDesc": "Coverage tracking for equipment insurance policies and supplier warranties"
+    },
+    "authz": {
+      "title": "Access Control Plane",
+      "description": "Unified 4-layer Authorization Engine (Membership, Company/Branch, Scope, Atomic Actions, and Field-Level Security)",
+      "roles": "Roles & Bundles",
+      "rolesDesc": "Manage permission bundles, assign per company, and enforce data record scopes",
+      "permissions": "Atomic Permissions Catalog",
+      "permissionsDesc": "Granular permission tree across modules, resources, standard actions, and risk tiers",
+      "policies": "Conditional Policies & Field Security",
+      "policiesDesc": "ABAC rules for amount thresholds, office hours, and field-level masking or hiding",
+      "simulator": "Access Decision Simulator",
+      "simulatorDesc": "Real-time authorization probe on specific records showing exact grant or denial reasons",
+      "auditLogs": "Audit Access Logs",
+      "auditLogsDesc": "Immutable audit logging of denied attempts, high-risk actions, and mass exports"
+    },
+    "procurement": {
+      "title": "Procurement & Purchasing",
+      "description": "End-to-end purchasing workflow from PR, RFQ, PO, GRN to 3-way invoice matching.",
+      "requests": "Purchase Requests",
+      "requestsDesc": "Manage and approve purchase requests across departments.",
+      "rfqs": "Requests for Quotation",
+      "rfqsDesc": "Solicit and compare vendor price quotations.",
+      "orders": "Purchase Orders",
+      "ordersDesc": "Issue and track official procurement orders.",
+      "receipts": "Goods Receipts (GRN)",
+      "receiptsDesc": "Record warehouse receipts against POs."
+    },
+    "device_gateway": {
+      "title": "Device Gateway & Peripherals",
+      "description": "Edge hardware gateway connectivity, label/receipt printing, barcode scanners, and scales.",
+      "gateways": "Edge Gateways",
+      "gatewaysDesc": "Heartbeat and health of remote hardware gateway nodes.",
+      "peripherals": "Peripherals",
+      "peripheralsDesc": "Thermal/label printers, scanners, and weighing scales.",
+      "printJobs": "Print Jobs Queue",
+      "printJobsDesc": "Direct dispatch of ZPL and ESC/POS print jobs to hardware devices."
+    }
   }
 }

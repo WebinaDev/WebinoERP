@@ -312,4 +312,6 @@ return [
     'attendance_select_employee_first' => 'Select an employee, or link this login to a staff record, before check-in.',
     'site_auth_failed' => 'Site authentication failed. Update the Dashboard plugin or re-link the site.',
     'site_auth_already_enrolled' => 'This domain is already enrolled; re-enrolling needs a request signed with the current key, or an admin reset.',
+    'action_successful' => 'Action performed successfully.',
+    'action_forbidden' => 'You do not have permission for this action.',
 ];

@@ -1,0 +1,13 @@
+{
+    "name": "Authz",
+    "alias": "authz",
+    "description": "Unified 4-layer Authorization Plane (User Membership, Company/Branch, Scope, Atomic Actions, Field-Level Security, Policies, and Simulator)",
+    "keywords": [],
+    "priority": 24,
+    "providers": [
+        "Modules\\Authz\\Providers\\AuthzServiceProvider"
+    ],
+    "aliases": {},
+    "files": [],
+    "requires": []
+}

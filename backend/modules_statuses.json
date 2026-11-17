@@ -14,5 +14,14 @@
     "Scm": true,
     "SiteBuilder": true,
     "Platform": true,
-    "Poetry": true
+    "Poetry": true,
+    "Org": true,
+    "Workflow": true,
+    "Bi": true,
+    "FieldService": true,
+    "Qm": true,
+    "Assets": true,
+    "Authz": true,
+    "Procurement": true,
+    "DeviceGateway": true
 }

@@ -1,0 +1,13 @@
+{
+    "name": "Org",
+    "alias": "org",
+    "description": "Multi-company and multi-branch management, transfers, and consolidation",
+    "keywords": [],
+    "priority": 18,
+    "providers": [
+        "Modules\\Org\\Providers\\OrgServiceProvider"
+    ],
+    "aliases": {},
+    "files": [],
+    "requires": []
+}

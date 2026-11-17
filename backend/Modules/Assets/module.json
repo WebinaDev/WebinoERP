@@ -1,0 +1,13 @@
+{
+    "name": "Assets",
+    "alias": "assets",
+    "description": "Fixed asset registry, depreciation schedules with GL journal posting, preventive maintenance, and work orders",
+    "keywords": [],
+    "priority": 23,
+    "providers": [
+        "Modules\\Assets\\Providers\\AssetsServiceProvider"
+    ],
+    "aliases": {},
+    "files": [],
+    "requires": []
+}

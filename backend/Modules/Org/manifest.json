@@ -1,0 +1,20 @@
+{
+  "slug": "org",
+  "name_fa": "سازمان و شعب",
+  "name_en": "Organizations & Branches",
+  "submodules": [
+    "companies",
+    "branches",
+    "transfers",
+    "numbering",
+    "consolidated"
+  ],
+  "admin_nav": {
+    "section": "org",
+    "order": 15
+  },
+  "site_types": [
+    "erp"
+  ],
+  "public_routes": []
+}
