@@ -135,3 +135,12 @@ Route::prefix('modirpayamak')->middleware(['auth:sanctum', 'module:integrations'
     Route::get('/reports', [ModirPayamakCustomerController::class, 'reportsOutbox']);
     Route::get('/send', fn () => response()->json(['data' => ['hint' => 'POST to /modirpayamak/send']]));
 });
+
+
+// Enterprise Unified Communication Hub
+Route::prefix('communication')->group(function () {
+    Route::get('/events', [\Modules\Integrations\Http\Controllers\CommunicationHubController::class, 'events']);
+    Route::get('/templates', [\Modules\Integrations\Http\Controllers\CommunicationHubController::class, 'templates']);
+    Route::post('/dispatch', [\Modules\Integrations\Http\Controllers\CommunicationHubController::class, 'dispatchTest']);
+    Route::post('/preferences', [\Modules\Integrations\Http\Controllers\CommunicationHubController::class, 'updatePreferences']);
+});
