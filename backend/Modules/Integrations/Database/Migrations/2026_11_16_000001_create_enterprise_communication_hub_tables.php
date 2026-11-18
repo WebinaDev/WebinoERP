@@ -59,14 +59,14 @@ return new class extends Migration
         }
 
         // 4. بهینه‌سازی جدول دفتر کل ارسال (Channel Delivery Ledger)
-        Schema::table('channel_deliveries', function (Blueprint $table) {
-            if (! Schema::hasColumn('channel_deliveries', 'dedup_hash')) {
+        Schema::table('int_channel_deliveries', function (Blueprint $table) {
+            if (! Schema::hasColumn('int_channel_deliveries', 'dedup_hash')) {
                 $table->string('dedup_hash', 64)->nullable()->index()->after('meta');
             }
-            if (! Schema::hasColumn('channel_deliveries', 'recipient')) {
+            if (! Schema::hasColumn('int_channel_deliveries', 'recipient')) {
                 $table->string('recipient', 191)->nullable()->after('user_id');
             }
-            if (! Schema::hasColumn('channel_deliveries', 'delivered_at')) {
+            if (! Schema::hasColumn('int_channel_deliveries', 'delivered_at')) {
                 $table->timestamp('delivered_at')->nullable()->after('status');
             }
         });
@@ -74,7 +74,7 @@ return new class extends Migration
 
     public function down(): void
     {
-        Schema::table('channel_deliveries', function (Blueprint $table) {
+        Schema::table('int_channel_deliveries', function (Blueprint $table) {
             $table->dropColumn(['dedup_hash', 'recipient', 'delivered_at']);
         });
 
