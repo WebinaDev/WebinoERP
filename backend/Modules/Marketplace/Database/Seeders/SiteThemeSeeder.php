@@ -9,7 +9,7 @@ class SiteThemeSeeder extends Seeder
 {
     public function run(): void
     {
-        SiteTheme::query()->updateOrCreate(
+        SiteTheme::query()->firstOrCreate(
             ['slug' => 'corporate-demo-v1'],
             [
                 'name_fa' => 'شرکتی دمو',

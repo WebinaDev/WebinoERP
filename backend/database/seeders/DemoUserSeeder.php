@@ -25,7 +25,9 @@ class DemoUserSeeder extends Seeder
                 'is_active' => true,
             ]
         );
-        $admin->syncRoles([RolesAndPermissionsSeeder::ROLE_SYSTEM_MANAGER]);
+        if ($admin->wasRecentlyCreated) {
+            $admin->assignRole(RolesAndPermissionsSeeder::ROLE_SYSTEM_MANAGER);
+        }
 
         $sales = User::firstOrCreate(
             ['email' => 'sales@webina.local'],
@@ -36,21 +38,24 @@ class DemoUserSeeder extends Seeder
                 'is_active' => true,
             ]
         );
-        $sales->syncRoles([RolesAndPermissionsSeeder::ROLE_SALES_CONSULTANT]);
+        if ($sales->wasRecentlyCreated) {
+            $sales->assignRole(RolesAndPermissionsSeeder::ROLE_SALES_CONSULTANT);
+        }
 
         $company = CrmCompany::query()->where('is_default', true)->first() ?? CrmCompany::query()->first();
         if ($company && DB::getSchemaBuilder()->hasTable('authz_memberships')) {
             foreach ([[$admin, 'super_admin'], [$sales, 'sales_agent']] as [$user, $roleCode]) {
-                DB::table('crm_company_users')->updateOrInsert(
-                    ['user_id' => $user->id, 'company_id' => $company->id],
-                    ['is_active' => true, 'created_at' => now(), 'updated_at' => now()]
-                );
-                AuthzMembership::query()->updateOrCreate(
+                if (! $user->wasRecentlyCreated) continue;
+                DB::table('crm_company_users')->insertOrIgnore([
+                    'user_id' => $user->id, 'company_id' => $company->id, 'is_active' => true,
+                    'created_at' => now(), 'updated_at' => now(),
+                ]);
+                AuthzMembership::query()->firstOrCreate(
                     ['user_id' => $user->id, 'company_id' => $company->id, 'branch_id' => null],
                     ['status' => 'active', 'is_default_context' => true]
                 );
                 $role = AuthzRole::query()->where('code', $roleCode)->whereNull('company_id')->first();
-                if ($role) AuthzUserRole::query()->updateOrCreate(
+                if ($role) AuthzUserRole::query()->firstOrCreate(
                     ['user_id' => $user->id, 'company_id' => $company->id, 'role_id' => $role->id],
                     ['scope_json' => null]
                 );

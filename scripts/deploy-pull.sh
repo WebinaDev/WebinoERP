@@ -57,6 +57,22 @@ if [[ "$IMAGE_TAG" != latest && "${ALLOW_SHA_MISMATCH:-0}" != 1 ]]; then
 fi
 compose_cli config -q
 compose_cli pull backend worker scheduler ws frontend
+compose_cli up -d db redis
+PG_USER="${POSTGRES_USER:-webino}"; PG_DB="${POSTGRES_DB:-webina_crm}"
+for i in $(seq 1 60); do
+  if compose_cli exec -T db pg_isready -U "$PG_USER" -d "$PG_DB" >/dev/null 2>&1; then break; fi
+  [[ $i -eq 60 ]] && { compose_cli logs --tail=80 db; die "database not ready; no app services started"; }
+  sleep 2
+done
+mkdir -p /var/lib/webino/backups/db
+BACKUP_FILE="/var/lib/webino/backups/db/$(date +%Y%m%d-%H%M%S).dump"
+if ! compose_cli exec -T db pg_dump -U "$PG_USER" -d "$PG_DB" -Fc > "$BACKUP_FILE"; then
+  rm -f "$BACKUP_FILE"; die "database backup failed; deploy stopped before app services/migrations"
+fi
+if ! compose_cli exec -T db pg_restore --list < "$BACKUP_FILE" >/dev/null; then
+  rm -f "$BACKUP_FILE"; die "database backup validation failed; deploy stopped"
+fi
+chmod 600 "$BACKUP_FILE"
 compose_cli up -d --no-build
 # Edge nginx caches upstream IPs; after frontend/backend are recreated it can keep
 # hitting a stale container IP (502). Reload it; never fail the deploy on this.
@@ -74,9 +90,6 @@ if [[ "${SKIP_MIGRATE:-0}" != 1 ]]; then
   # Same as update.sh: wait for backend, pg_dump backup, migrate --force + assert-schema.
   for i in $(seq 1 90); do compose_cli exec -T backend php -v >/dev/null 2>&1 && break; sleep 2
     [[ $i -eq 90 ]] && { compose_cli logs --tail=120 backend; die "backend not running"; }; done
-  PG_USER="${POSTGRES_USER:-webino}"; PG_DB="${POSTGRES_DB:-webina_crm}"
-  mkdir -p /var/lib/webino/backups/db
-  compose_cli exec -T db pg_dump -U "$PG_USER" -d "$PG_DB" -Fc > "/var/lib/webino/backups/db/$(date +%Y%m%d-%H%M%S).dump" || log "WARN: pg_dump failed"
   # shellcheck source=scripts/apply-erp-migrations.sh
   source scripts/apply-erp-migrations.sh
   apply_erp_migrations

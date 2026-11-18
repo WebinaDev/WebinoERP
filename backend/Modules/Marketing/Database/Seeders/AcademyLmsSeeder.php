@@ -10,7 +10,7 @@ use Modules\Marketing\Entities\MarketingAcademyLesson;
 
 /**
  * Full LMS content (chapters, lessons with durations, quizzes, instructor profile, materials...) for the
- * Webina Academy courses. Idempotent: course rows are upserted by slug (title/cover kept), syllabus is replaced.
+ * Webina Academy courses. Idempotent and additive: existing course metadata and syllabus are preserved.
  *   php artisan db:seed --class="Modules\Marketing\Database\Seeders\AcademyLmsSeeder" --force
  */
 class AcademyLmsSeeder extends Seeder
@@ -34,7 +34,7 @@ class AcademyLmsSeeder extends Seeder
                 }
                 $h = intdiv($mins, 60);
                 $m = $mins % 60;
-                $course->fill([
+                $defaults = [
                     'description' => $c['description'],
                     'level' => $c['level'],
                     'duration' => $fa($h).' ساعت'.($m ? ' و '.$fa($m).' دقیقه' : ''),
@@ -43,20 +43,21 @@ class AcademyLmsSeeder extends Seeder
                     'is_free' => (bool) $c['is_free'],
                     'published' => true,
                     'lms' => $c['lms'] + ['total_minutes' => $mins],
-                ])->save();
-
-                $course->lessons()->delete();
-                $course->chapters()->delete();
+                ];
+                foreach ($defaults as $key => $value) {
+                    if ($course->getAttribute($key) === null) $course->setAttribute($key, $value);
+                }
+                if ($course->isDirty()) $course->save();
                 $order = 0;
                 foreach ($c['chapters'] as $ci => $ch) {
-                    $chapter = MarketingAcademyChapter::create([
-                        'course_id' => $course->id, 'title' => $ch['title'], 'summary' => $ch['summary'], 'sort_order' => ($ci + 1) * 10,
-                    ]);
+                    $chapter = MarketingAcademyChapter::query()->firstOrCreate(
+                        ['course_id' => $course->id, 'title' => $ch['title']],
+                        ['summary' => $ch['summary'], 'sort_order' => ($ci + 1) * 10]
+                    );
                     foreach ($ch['lessons'] as $li => $l) {
-                        MarketingAcademyLesson::create([
-                            'course_id' => $course->id,
-                            'chapter_id' => $chapter->id,
-                            'slug' => 'c'.($ci + 1).'-l'.($li + 1),
+                        MarketingAcademyLesson::query()->firstOrCreate(
+                            ['course_id' => $course->id, 'slug' => 'c'.($ci + 1).'-l'.($li + 1)],
+                            ['chapter_id' => $chapter->id,
                             'title' => $l['title'],
                             'summary' => $l['summary'],
                             'duration_minutes' => (int) $l['minutes'],
@@ -64,8 +65,8 @@ class AcademyLmsSeeder extends Seeder
                             'is_preview' => (bool) $l['preview'],
                             'quiz' => $l['quiz'] ?? null,
                             'sort_order' => ++$order * 10,
-                            'published' => true,
-                        ]);
+                            'published' => true]
+                        );
                     }
                 }
             }

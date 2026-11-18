@@ -77,7 +77,7 @@ class WorkflowDefaultDefinitionsSeeder extends Seeder
         ];
 
         foreach ($definitions as $def) {
-            WfDefinition::updateOrCreate(
+            WfDefinition::firstOrCreate(
                 ['module_slug' => $def['module_slug'], 'entity_type' => $def['entity_type']],
                 $def
             );

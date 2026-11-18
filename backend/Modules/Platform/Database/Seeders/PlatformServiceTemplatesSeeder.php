@@ -64,7 +64,7 @@ services: {}
         ];
 
         foreach ($rows as [$slug, $name, $category, $compose]) {
-            PlatformServiceTemplate::query()->updateOrCreate(
+            PlatformServiceTemplate::query()->firstOrCreate(
                 ['slug' => $slug],
                 [
                     'name' => $name,

@@ -202,7 +202,7 @@ class WebinaContentSeeder extends Seeder
         ];
         $sort = 10;
         foreach ($rows as $slug => $title) {
-            MarketingAcademyCourse::query()->updateOrCreate(
+            MarketingAcademyCourse::query()->firstOrCreate(
                 ['slug' => $slug],
                 ['title' => $title, 'published' => true, 'sort_order' => $sort],
             );

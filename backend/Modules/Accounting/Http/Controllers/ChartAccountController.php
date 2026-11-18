@@ -42,8 +42,8 @@ class ChartAccountController extends Controller
 
     public function seedChartIran(Request $request): JsonResponse
     {
-        $data = $request->validate(['truncate' => 'boolean']);
-        $result = AccChartIranSeeder::run((bool) ($data['truncate'] ?? false));
+        $request->validate(['truncate' => 'prohibited']);
+        $result = AccChartIranSeeder::run();
 
         return response()->json(['data' => $result]);
     }

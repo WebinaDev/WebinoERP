@@ -274,6 +274,11 @@ ensure_install_dir
 log "Install dir : ${INSTALL_DIR}"
 log "App URL     : ${APP_URL}"
 
+if [ -d "${INSTALL_DIR}/WebinoERP/.git" ]; then
+  echo "ERROR: ${INSTALL_DIR}/WebinoERP already exists. install.sh is for fresh installs; use update.sh to preserve existing data and configuration." >&2
+  exit 1
+fi
+
 mkdir -p "${INSTALL_DIR}/packages"
 cd "${INSTALL_DIR}"
 
@@ -281,15 +286,6 @@ cd "${INSTALL_DIR}"
 if [ ! -d WebinoERP/.git ]; then
   log "Cloning WebinoERP (branch: ${ERP_REF})"
   git clone --branch "${ERP_REF}" --depth 1 "${ERP_REPO}" WebinoERP
-else
-  log "Updating WebinoERP to latest ${ERP_REF}"
-  git -C WebinoERP remote set-url origin "${ERP_REPO}"
-  git -C WebinoERP fetch origin "${ERP_REF}" 2>/dev/null || \
-    git -C WebinoERP fetch --depth 1 origin "${ERP_REF}" || true
-  git -C WebinoERP checkout -B "${ERP_REF}" "origin/${ERP_REF}" 2>/dev/null || true
-  git -C WebinoERP reset --hard "origin/${ERP_REF}" 2>/dev/null || true
-  # Remove stale untracked files (old deleted files like MarketingContent.php)
-  git -C WebinoERP clean -fd
 fi
 
 # ── fetch @webina/ui (frontend build dependency) ─────────────────────────────
@@ -439,9 +435,9 @@ if ! grep -q "^APP_KEY=base64:" backend/.env; then
   sed -i.bak "s|^APP_KEY=.*|APP_KEY=base64:${KEY}|" backend/.env
 fi
 
-# ── build & start all containers ──────────────────────────────────────────────
-log "Building and starting all Docker services (this may take several minutes)…"
-compose_cli up -d --build --remove-orphans
+# ── start database only and snapshot before any app can migrate ───────────────
+log "Starting database services before application services…"
+compose_cli up -d --build db redis
 
 # ── wait for Postgres to be healthy ──────────────────────────────────────────
 log "Waiting for database to become ready…"
@@ -459,6 +455,29 @@ if [ "${READY}" -eq 0 ]; then
   compose_cli logs db | tail -30
   exit 1
 fi
+
+DB_SNAP=/var/lib/webino/backups/db
+run_cmd mkdir -p "${DB_SNAP}"
+BACKUP_FILE="${DB_SNAP}/install-$(date +%Y%m%d-%H%M%S).dump"
+if ! compose_cli exec -T db pg_dump -U "${DB_USER}" -d "${DB_NAME}" -Fc > "${BACKUP_FILE}"; then
+  run_cmd rm -f "${BACKUP_FILE}"
+  echo "ERROR: database backup failed; install stopped before app services/migrations." >&2
+  exit 1
+fi
+if ! compose_cli exec -T db pg_restore --list < "${BACKUP_FILE}" >/dev/null; then
+  run_cmd rm -f "${BACKUP_FILE}"
+  echo "ERROR: database backup validation failed; install stopped." >&2
+  exit 1
+fi
+run_cmd chmod 600 "${BACKUP_FILE}"
+HAS_EXISTING_SCHEMA=0
+if compose_cli exec -T db psql -U "${DB_USER}" -d "${DB_NAME}" -tAc "SELECT to_regclass('public.migrations') IS NOT NULL" 2>/dev/null | grep -qx t; then
+  HAS_EXISTING_SCHEMA=1
+fi
+
+# ── build & start app containers only after verified backup ───────────────────
+log "Building and starting application services…"
+compose_cli up -d --build --remove-orphans
 
 # ── wait for backend HTTP (metrics — works before migrations) ────────────────
 log "Waiting for backend to boot…"
@@ -483,10 +502,14 @@ log "Running database migrations"
 source "${INSTALL_DIR}/WebinoERP/scripts/apply-erp-migrations.sh"
 apply_erp_migrations
 
-log "Seeding database"
-compose_cli exec -T backend php artisan db:seed --force
-compose_cli exec -T backend php artisan db:seed --class='Modules\\SiteBuilder\\Database\\Seeders\\SiteBuilderSeeder' --force || true
-compose_cli exec -T backend php artisan site-builder:ensure-hosting-defaults || true
+if [ "${HAS_EXISTING_SCHEMA}" -eq 0 ]; then
+  log "Fresh database detected; running initial seeders"
+  compose_cli exec -T backend php artisan db:seed --force
+  compose_cli exec -T backend php artisan db:seed --class='Modules\\SiteBuilder\\Database\\Seeders\\SiteBuilderSeeder' --force
+  compose_cli exec -T backend php artisan site-builder:ensure-hosting-defaults
+else
+  log "Existing database detected; skipping seeders to preserve user data and permissions"
+fi
 
 compose_cli exec -T backend php artisan storage:link 2>/dev/null || true
 

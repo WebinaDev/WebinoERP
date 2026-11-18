@@ -53,28 +53,28 @@ class RolesAndPermissionsSeeder extends Seeder
         $all = Permission::all();
 
         Role::firstOrCreate(['name' => self::ROLE_SYSTEM_MANAGER, 'guard_name' => $guard])
-            ->syncPermissions($all);
+            ->givePermissionTo($all);
 
         Role::firstOrCreate(['name' => self::ROLE_FINANCE_MANAGER, 'guard_name' => $guard])
-            ->syncPermissions(Permission::whereIn('name', $this->financeManagerPermissions())->get());
+            ->givePermissionTo(Permission::whereIn('name', $this->financeManagerPermissions())->get());
 
         Role::firstOrCreate(['name' => self::ROLE_TEAM_MEMBER, 'guard_name' => $guard])
-            ->syncPermissions(Permission::whereIn('name', $this->teamMemberPermissions())->get());
+            ->givePermissionTo(Permission::whereIn('name', $this->teamMemberPermissions())->get());
 
         Role::firstOrCreate(['name' => self::ROLE_SALES_CONSULTANT, 'guard_name' => $guard])
-            ->syncPermissions(Permission::whereIn('name', $this->salesConsultantPermissions())->get());
+            ->givePermissionTo(Permission::whereIn('name', $this->salesConsultantPermissions())->get());
 
         Role::firstOrCreate(['name' => self::ROLE_CRM_SPECIALIST, 'guard_name' => $guard])
-            ->syncPermissions(Permission::whereIn('name', $this->crmSpecialistPermissions())->get());
+            ->givePermissionTo(Permission::whereIn('name', $this->crmSpecialistPermissions())->get());
 
         Role::firstOrCreate(['name' => self::ROLE_PROJECT_MANAGER, 'guard_name' => $guard])
-            ->syncPermissions(Permission::whereIn('name', $this->projectManagerPermissions())->get());
+            ->givePermissionTo(Permission::whereIn('name', $this->projectManagerPermissions())->get());
 
         Role::firstOrCreate(['name' => self::ROLE_CLIENT, 'guard_name' => $guard])
-            ->syncPermissions(Permission::whereIn('name', $this->clientPermissions())->get());
+            ->givePermissionTo(Permission::whereIn('name', $this->clientPermissions())->get());
 
         Role::firstOrCreate(['name' => self::ROLE_HR_MANAGER, 'guard_name' => $guard])
-            ->syncPermissions(Permission::whereIn('name', $this->hrManagerPermissions())->get());
+            ->givePermissionTo(Permission::whereIn('name', $this->hrManagerPermissions())->get());
     }
 
     /**

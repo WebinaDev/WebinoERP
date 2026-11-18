@@ -100,7 +100,7 @@ class AuthzCatalogSeeder extends Seeder
         $actionNames = ['view' => 'View', 'create' => 'Create', 'update' => 'Update', 'delete' => 'Delete', 'approve' => 'Approve', 'export' => 'Export', 'manage' => 'Manage', 'edit_price' => 'Edit price', 'edit_discount' => 'Edit discount', 'view_cost' => 'View cost', 'force_status' => 'Force status', 'assign' => 'Assign'];
         foreach ($permissions as $p) {
             $p['title_en'] = $p['title_en'] ?? (($moduleNames[$p['module']] ?? ucfirst($p['module'])).' · '.ucwords(str_replace('_', ' ', $p['resource'])).' · '.($actionNames[$p['action']] ?? ucwords(str_replace('_', ' ', $p['action']))));
-            AuthzPermission::updateOrCreate(['code' => $p['code']], $p);
+            AuthzPermission::firstOrCreate(['code' => $p['code']], $p);
         }
 
         // Standard seed roles
@@ -117,7 +117,7 @@ class AuthzCatalogSeeder extends Seeder
         ];
 
         foreach ($roles as $r) {
-            $role = AuthzRole::updateOrCreate(['code' => $r['code'], 'company_id' => null], $r);
+            $role = AuthzRole::firstOrCreate(['code' => $r['code'], 'company_id' => null], $r);
             $catalog = AuthzPermission::query()->get();
             $grants = match ($r['code']) {
                 'super_admin' => $catalog,
@@ -140,7 +140,7 @@ class AuthzCatalogSeeder extends Seeder
                     $conditions = ['max_amount' => 10000000, 'overflow_effect' => 'allow_with_approval'];
                 }
                 if ($r['code'] === 'technician') $scope = 'own';
-                AuthzRolePermission::updateOrCreate(
+                AuthzRolePermission::firstOrCreate(
                     ['role_id' => $role->id, 'permission_id' => $permission->id],
                     ['effect' => $effect, 'scope' => $scope, 'conditions_json' => $conditions]
                 );

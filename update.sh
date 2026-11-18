@@ -209,9 +209,10 @@ fi
 
 maybe_enable_iran_compose_overlay
 
-log "Rebuilding containers (named volumes db_data / redis_data / caddy_data are untouched)"
-# Never add -v / --volumes here — wiping caddy_data re-triggers Let's Encrypt and hits rate limits.
-compose_cli up -d --build --force-recreate --remove-orphans
+log "Starting database services only before taking a verified backup"
+# The backend entrypoint can run migrations at startup. Do not start app services
+# until the existing database has a verified snapshot.
+compose_cli up -d --build db redis
 
 log "Waiting for Postgres…"
 # Compose service is `db` (container webinoerm-db-1), not `postgres`.
@@ -234,16 +235,33 @@ for i in $(seq 1 60); do
   fi
 done
 
+log "Backing up Postgres before migrations (keeps last 7)"
+DB_SNAP=/var/lib/webino/backups/db
+run_cmd mkdir -p "${DB_SNAP}"
+BACKUP_FILE="${DB_SNAP}/$(date +%Y%m%d-%H%M%S).dump"
+if ! compose_cli exec -T db pg_dump -U "${PG_USER}" -d "${PG_DB}" -Fc > "${BACKUP_FILE}"; then
+  run_cmd rm -f "${BACKUP_FILE}"
+  echo "ERROR: database backup failed; update stopped before app services/migrations." >&2
+  exit 1
+fi
+if ! compose_cli exec -T db pg_restore --list < "${BACKUP_FILE}" >/dev/null; then
+  run_cmd rm -f "${BACKUP_FILE}"
+  echo "ERROR: database backup validation failed; update stopped." >&2
+  exit 1
+fi
+run_cmd chmod 600 "${BACKUP_FILE}"
+ls -1t "${DB_SNAP}"/*.dump 2>/dev/null | tail -n +8 | xargs -r run_cmd rm -f
+
+log "Rebuilding application services (database backup verified)"
+# Never add -v / --volumes here — wiping caddy_data re-triggers Let's Encrypt and hits rate limits.
+compose_cli up -d --build --force-recreate --remove-orphans
+
 # Wait for backend container to be running (force-recreate can race).
-# RUN_MIGRATIONS=1 also migrates during boot and refuses to start if the
-# progress column is still missing; this check fails the update the same way.
 for i in $(seq 1 90); do
-  if compose_cli exec -T backend php -v >/dev/null 2>&1; then
-    break
-  fi
+  if compose_cli exec -T backend php -v >/dev/null 2>&1; then break; fi
   sleep 2
   if [ "${i}" -eq 90 ]; then
-    echo "ERROR: backend is not running (migrate on boot may have failed; see logs)." >&2
+    echo "ERROR: backend is not running (migration on boot may have failed; see logs)." >&2
     compose_cli ps -a
     compose_cli logs --tail=120 backend
     exit 1
@@ -251,10 +269,6 @@ for i in $(seq 1 90); do
 done
 # shellcheck source=scripts/apply-erp-migrations.sh
 source "${ERP_DIR}/scripts/apply-erp-migrations.sh"
-log "Backing up Postgres before migrations (keeps last 7)"
-DB_SNAP=/var/lib/webino/backups/db
-mkdir -p "${DB_SNAP}"
-compose_cli exec -T db pg_dump -U "${PG_USER}" -d "${PG_DB}" -Fc > "${DB_SNAP}/$(date +%Y%m%d-%H%M%S).dump" || echo "WARN: pg_dump failed" >&2
 ls -1t "${DB_SNAP}"/*.dump 2>/dev/null | tail -n +8 | xargs -r rm -f
 log "Applying migrations only (no seed, no fresh)"
 apply_erp_migrations

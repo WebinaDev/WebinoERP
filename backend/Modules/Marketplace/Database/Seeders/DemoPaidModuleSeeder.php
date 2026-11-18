@@ -11,7 +11,7 @@ class DemoPaidModuleSeeder extends Seeder
 {
     public function run(): void
     {
-        $source = ModuleGitSource::query()->updateOrCreate(
+        $source = ModuleGitSource::query()->firstOrCreate(
             ['slug' => 'demo_paid'],
             [
                 'clone_url' => 'https://github.com/WebinaDev/webino-module-demo-paid.git',
@@ -20,7 +20,7 @@ class DemoPaidModuleSeeder extends Seeder
             ]
         );
 
-        $module = MarketplaceModule::query()->updateOrCreate(
+        $module = MarketplaceModule::query()->firstOrCreate(
             ['slug' => 'demo_paid'],
             [
                 'name' => 'Demo Paid Module',
@@ -33,7 +33,7 @@ class DemoPaidModuleSeeder extends Seeder
             ]
         );
 
-        MarketplaceModuleRepo::query()->updateOrCreate(
+        MarketplaceModuleRepo::query()->firstOrCreate(
             ['module_id' => $module->id],
             [
                 'repo_url' => $source->clone_url,

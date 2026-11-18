@@ -2,8 +2,6 @@
 
 namespace Modules\Accounting\Database\Seeders;
 
-use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Schema;
 use Modules\Accounting\Entities\AccChartAccount;
 
 class AccChartIranSeeder
@@ -11,18 +9,9 @@ class AccChartIranSeeder
     /**
      * @return array{inserted:int, skipped:int}
      */
-    public static function run(bool $truncateFirst = false): array
+    public static function run(): array
     {
         $rows = require module_path('Accounting', 'Database/data/chart-iran.php');
-        if ($truncateFirst) {
-            if (Schema::hasTable('acc_journal_lines')) {
-                DB::table('acc_journal_lines')->delete();
-            }
-            if (Schema::hasTable('acc_journal_entries')) {
-                DB::table('acc_journal_entries')->delete();
-            }
-            AccChartAccount::query()->delete();
-        }
 
         $codeToId = [];
         $inserted = 0;
