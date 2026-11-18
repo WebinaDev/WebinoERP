@@ -20,7 +20,15 @@ class OrgController extends Controller
 {
     public function companies(Request $request): JsonResponse
     {
-        $companies = CrmCompany::query()->orderBy('name')->get();
+        $query = CrmCompany::query();
+        if (! $request->user()?->hasRole('system_manager')) {
+            $companyIds = DB::table('crm_company_users')
+                ->where('user_id', $request->user()->id)
+                ->where('is_active', true)
+                ->pluck('company_id');
+            $query->whereIn('id', $companyIds);
+        }
+        $companies = $query->orderBy('name')->get();
 
         return response()->json(['data' => $companies]);
     }

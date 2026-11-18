@@ -24,12 +24,18 @@ use Modules\Crm\Entities\CrmSigner;
 use Modules\Crm\Services\CpqService;
 use Modules\Crm\Services\EInvoiceBuilder;
 use Modules\Integrations\Services\NotificationFanout;
+use Modules\Org\Services\OrgContextService;
 
 class CrmExpansionController extends Controller
 {
-    public function companies(): JsonResponse
+    public function companies(Request $request): JsonResponse
     {
-        return response()->json(['data' => CrmCompany::query()->orderBy('name')->get()]);
+        $query = CrmCompany::query();
+        if (! $request->user()?->hasRole('system_manager')) {
+            $companyIds = DB::table('crm_company_users')->where('user_id', $request->user()->id)->pluck('company_id');
+            $query->whereIn('id', $companyIds);
+        }
+        return response()->json(['data' => $query->orderBy('name')->get()]);
     }
 
     public function storeCompany(Request $request): JsonResponse
@@ -50,14 +56,10 @@ class CrmExpansionController extends Controller
         return response()->json(['data' => $company], 201);
     }
 
-    public function switchCompany(Request $request, int $id): JsonResponse
+    public function switchCompany(Request $request, int $id, OrgContextService $orgContext): JsonResponse
     {
-        $company = CrmCompany::query()->findOrFail($id);
-        DB::table('crm_company_users')->where('user_id', $request->user()->id)->update(['is_active' => false, 'updated_at' => now()]);
-        DB::table('crm_company_users')->updateOrInsert(
-            ['user_id' => $request->user()->id, 'company_id' => $company->id],
-            ['is_active' => true, 'created_at' => now(), 'updated_at' => now()]
-        );
+        $context = $orgContext->switchContext($request->user(), $id);
+        $company = $context['company'];
 
         return response()->json(['data' => ['company_id' => $company->id, 'name' => $company->name]]);
     }

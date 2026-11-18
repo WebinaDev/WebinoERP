@@ -4,6 +4,10 @@
 export function resolveRoutePermission(path: string): string | undefined {
   const normalized = path.replace(/^\/+|\/+$/g, '');
 
+  if (normalized === 'authz' || normalized.startsWith('authz/')) {
+    return 'core.settings.manage';
+  }
+
   if (normalized === 'admin/logs' || normalized.startsWith('admin/logs/')) {
     return 'core.logs.view';
   }

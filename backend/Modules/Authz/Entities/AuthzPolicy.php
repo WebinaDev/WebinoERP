@@ -10,6 +10,7 @@ class AuthzPolicy extends Model
 
     protected $fillable = [
         'name',
+        'name_en',
         'target_permission',
         'target_resource',
         'condition_expression',

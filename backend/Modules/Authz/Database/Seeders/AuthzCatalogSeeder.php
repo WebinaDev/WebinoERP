@@ -96,25 +96,55 @@ class AuthzCatalogSeeder extends Seeder
             ['code' => 'platform.member.manage', 'module' => 'platform', 'resource' => 'member', 'action' => 'manage', 'title_fa' => 'مدیریت کاربران، عضویت و نقش‌ها', 'risk_level' => 'critical'],
         ];
 
+        $moduleNames = ['sales' => 'Sales', 'scm' => 'Supply Chain', 'finance' => 'Finance', 'qm' => 'Quality', 'fsm' => 'Field Service', 'assets' => 'Assets', 'bi' => 'Business Intelligence', 'workflow' => 'Workflow', 'platform' => 'Platform'];
+        $actionNames = ['view' => 'View', 'create' => 'Create', 'update' => 'Update', 'delete' => 'Delete', 'approve' => 'Approve', 'export' => 'Export', 'manage' => 'Manage', 'edit_price' => 'Edit price', 'edit_discount' => 'Edit discount', 'view_cost' => 'View cost', 'force_status' => 'Force status', 'assign' => 'Assign'];
         foreach ($permissions as $p) {
-            AuthzPermission::firstOrCreate(['code' => $p['code']], $p);
+            $p['title_en'] = $p['title_en'] ?? (($moduleNames[$p['module']] ?? ucfirst($p['module'])).' · '.ucwords(str_replace('_', ' ', $p['resource'])).' · '.($actionNames[$p['action']] ?? ucwords(str_replace('_', ' ', $p['action']))));
+            AuthzPermission::updateOrCreate(['code' => $p['code']], $p);
         }
 
         // Standard seed roles
         $roles = [
-            ['code' => 'super_admin', 'title_fa' => 'مدیر ارشد هلدینگ (System Super Admin)', 'is_system' => true],
-            ['code' => 'company_admin', 'title_fa' => 'مدیر اجرایی شرکت (Company Admin)', 'is_system' => true],
-            ['code' => 'sales_manager', 'title_fa' => 'مدیر فروش', 'is_system' => true],
-            ['code' => 'sales_agent', 'title_fa' => 'کارشناس فروش', 'is_system' => true],
-            ['code' => 'warehouse_operator', 'title_fa' => 'انباردار و کارشناس لجستیک', 'is_system' => true],
-            ['code' => 'finance_manager', 'title_fa' => 'مدیر مالی و خزانه', 'is_system' => true],
-            ['code' => 'finance_clerk', 'title_fa' => 'کمک‌حسابدار و دریافت/پرداخت', 'is_system' => true],
-            ['code' => 'technician', 'title_fa' => 'تکنسین فنی خدمات پس از فروش', 'is_system' => true],
-            ['code' => 'auditor', 'title_fa' => 'حسابرس و ناظر دسترسی (Read-Only Auditor)', 'is_system' => true],
+            ['code' => 'super_admin', 'title_fa' => 'مدیر ارشد هلدینگ', 'title_en' => 'Holding Super Admin', 'is_system' => true],
+            ['code' => 'company_admin', 'title_fa' => 'مدیر اجرایی شرکت', 'title_en' => 'Company Administrator', 'is_system' => true],
+            ['code' => 'sales_manager', 'title_fa' => 'مدیر فروش', 'title_en' => 'Sales Manager', 'is_system' => true],
+            ['code' => 'sales_agent', 'title_fa' => 'کارشناس فروش', 'title_en' => 'Sales Agent', 'is_system' => true],
+            ['code' => 'warehouse_operator', 'title_fa' => 'انباردار و کارشناس لجستیک', 'title_en' => 'Warehouse Operator', 'is_system' => true],
+            ['code' => 'finance_manager', 'title_fa' => 'مدیر مالی و خزانه', 'title_en' => 'Finance Manager', 'is_system' => true],
+            ['code' => 'finance_clerk', 'title_fa' => 'کمک‌حسابدار و دریافت/پرداخت', 'title_en' => 'Finance Clerk', 'is_system' => true],
+            ['code' => 'technician', 'title_fa' => 'تکنسین فنی خدمات پس از فروش', 'title_en' => 'Service Technician', 'is_system' => true],
+            ['code' => 'auditor', 'title_fa' => 'حسابرس و ناظر دسترسی', 'title_en' => 'Read-only Auditor', 'is_system' => true],
         ];
 
         foreach ($roles as $r) {
-            AuthzRole::firstOrCreate(['code' => $r['code'], 'company_id' => null], $r);
+            $role = AuthzRole::updateOrCreate(['code' => $r['code'], 'company_id' => null], $r);
+            $catalog = AuthzPermission::query()->get();
+            $grants = match ($r['code']) {
+                'super_admin' => $catalog,
+                'company_admin' => $catalog->reject(fn ($p) => str_starts_with($p->code, 'platform.') || $p->code === 'workflow.override.force'),
+                'sales_manager' => $catalog->filter(fn ($p) => $p->module === 'sales' || $p->code === 'scm.stock.view' || $p->module === 'workflow'),
+                'sales_agent' => $catalog->filter(fn ($p) => in_array($p->code, ['sales.quote.view', 'sales.quote.create', 'sales.quote.update', 'sales.order.view', 'sales.order.create', 'sales.order.update', 'sales.invoice.view', 'sales.invoice.create', 'sales.discount.edit'], true)),
+                'warehouse_operator' => $catalog->filter(fn ($p) => $p->module === 'scm'),
+                'finance_manager' => $catalog->filter(fn ($p) => $p->module === 'finance' || in_array($p->code, ['sales.cost.view', 'sales.invoice.view'], true)),
+                'finance_clerk' => $catalog->filter(fn ($p) => in_array($p->code, ['fin.gl.view', 'fin.ar.view', 'fin.ar.collect', 'fin.ap.view', 'fin.report.view'], true)),
+                'technician' => $catalog->filter(fn ($p) => $p->module === 'fsm'),
+                'auditor' => $catalog->filter(fn ($p) => in_array($p->action, ['view'], true)),
+                default => collect(),
+            };
+            foreach ($grants as $permission) {
+                $effect = 'allow';
+                $scope = 'all';
+                $conditions = null;
+                if ($r['code'] === 'sales_agent' && $permission->code === 'sales.discount.edit') {
+                    $effect = 'allow';
+                    $conditions = ['max_amount' => 10000000, 'overflow_effect' => 'allow_with_approval'];
+                }
+                if ($r['code'] === 'technician') $scope = 'own';
+                AuthzRolePermission::updateOrCreate(
+                    ['role_id' => $role->id, 'permission_id' => $permission->id],
+                    ['effect' => $effect, 'scope' => $scope, 'conditions_json' => $conditions]
+                );
+            }
         }
 
         // Standard Field-level Security rules
@@ -148,6 +178,15 @@ class AuthzCatalogSeeder extends Seeder
                 'condition_expression' => 'amount <= 50000000',
                 'effect' => 'allow',
                 'priority' => 20,
+                'is_active' => true,
+            ],
+            [
+                'name' => 'ارجاع تأیید فاکتورهای بیش از ۵۰ میلیون ریال به گردش کار',
+                'target_permission' => 'sales.invoice.approve',
+                'target_resource' => 'sales.invoice',
+                'condition_expression' => 'amount > 50000000',
+                'effect' => 'allow_with_approval',
+                'priority' => 30,
                 'is_active' => true,
             ],
         ];

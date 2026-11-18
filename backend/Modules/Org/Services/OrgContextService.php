@@ -5,6 +5,7 @@ namespace Modules\Org\Services;
 use App\Models\User;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
+use Illuminate\Auth\Access\AuthorizationException;
 use Modules\Crm\Entities\CrmCompany;
 use Modules\Org\Entities\OrgBranch;
 
@@ -59,31 +60,51 @@ class OrgContextService
 
     public function switchContext(User $user, int $companyId, ?int $branchId = null): array
     {
-        $company = CrmCompany::query()->findOrFail($companyId);
+        return DB::transaction(function () use ($user, $companyId, $branchId): array {
+            $company = CrmCompany::query()->findOrFail($companyId);
+            if (Schema::hasTable('crm_company_users')) {
+                $isMember = DB::table('crm_company_users')->where('user_id', $user->id)->where('company_id', $company->id)->exists();
+                if (! $isMember) throw new AuthorizationException('You are not a member of the selected company.');
+            }
 
-        if (Schema::hasTable('crm_company_users')) {
-            DB::table('crm_company_users')->where('user_id', $user->id)->update(['is_active' => false]);
-            DB::table('crm_company_users')->updateOrInsert(
-                ['user_id' => $user->id, 'company_id' => $company->id],
-                ['is_active' => true, 'updated_at' => now()]
-            );
-        }
+            if (! $branchId && Schema::hasTable('org_user_branches')) {
+                $assignedBranch = DB::table('org_user_branches as ub')
+                    ->join('org_branches as b', 'b.id', '=', 'ub.branch_id')
+                    ->where('ub.user_id', $user->id)->where('b.company_id', $company->id)
+                    ->where('b.is_active', true)->orderByDesc('ub.is_active')->orderBy('ub.id')->value('ub.branch_id');
+                if ($assignedBranch) $branchId = (int) $assignedBranch;
+            }
 
-        $branch = null;
-        if ($branchId) {
-            $branch = OrgBranch::query()->where('company_id', $company->id)->findOrFail($branchId);
-            if (Schema::hasTable('org_user_branches')) {
-                DB::table('org_user_branches')->where('user_id', $user->id)->update(['is_active' => false]);
-                DB::table('org_user_branches')->updateOrInsert(
-                    ['user_id' => $user->id, 'branch_id' => $branch->id],
-                    ['is_active' => true, 'updated_at' => now()]
+            $branch = null;
+            if ($branchId) {
+                $branch = OrgBranch::query()->where('company_id', $company->id)->where('is_active', true)->findOrFail($branchId);
+                if (Schema::hasTable('org_user_branches')) {
+                    $hasBranchMembership = DB::table('org_user_branches as ub')
+                        ->join('org_branches as b', 'b.id', '=', 'ub.branch_id')
+                        ->where('ub.user_id', $user->id)->where('b.company_id', $company->id)->exists();
+                    if ($hasBranchMembership && ! DB::table('org_user_branches')->where('user_id', $user->id)->where('branch_id', $branch->id)->exists()) {
+                        throw new AuthorizationException('You are not a member of the selected branch.');
+                    }
+                }
+            }
+
+            if (Schema::hasTable('crm_company_users')) {
+                DB::table('crm_company_users')->where('user_id', $user->id)->update(['is_active' => false, 'updated_at' => now()]);
+                DB::table('crm_company_users')->where('user_id', $user->id)->where('company_id', $company->id)->update(['is_active' => true, 'updated_at' => now()]);
+            }
+            if ($branch && Schema::hasTable('org_user_branches')) {
+                DB::table('org_user_branches')->where('user_id', $user->id)->update(['is_active' => false, 'updated_at' => now()]);
+                DB::table('org_user_branches')->where('user_id', $user->id)->where('branch_id', $branch->id)->update(['is_active' => true, 'updated_at' => now()]);
+            }
+            if (Schema::hasTable('authz_memberships')) {
+                DB::table('authz_memberships')->where('user_id', $user->id)->update(['is_default_context' => false, 'updated_at' => now()]);
+                DB::table('authz_memberships')->updateOrInsert(
+                    ['user_id' => $user->id, 'company_id' => $company->id, 'branch_id' => $branch?->id],
+                    ['status' => 'active', 'is_default_context' => true, 'created_at' => now(), 'updated_at' => now()]
                 );
             }
-        }
 
-        return [
-            'company' => $company,
-            'branch' => $branch,
-        ];
+            return ['company' => $company, 'branch' => $branch];
+        });
     }
 }

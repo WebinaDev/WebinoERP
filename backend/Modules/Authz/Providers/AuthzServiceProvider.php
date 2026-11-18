@@ -14,7 +14,7 @@ class AuthzServiceProvider extends ServiceProvider
         $this->loadMigrationsFrom(module_path($this->moduleName, 'Database/Migrations'));
 
         Route::prefix('api/v1/authz')
-            ->middleware(['api', 'auth:sanctum', 'module:authz', 'module.permission:authz'])
+            ->middleware(['api', 'auth:sanctum'])
             ->group(module_path($this->moduleName, 'Routes/api.php'));
     }
 

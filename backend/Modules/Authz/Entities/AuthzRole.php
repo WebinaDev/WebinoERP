@@ -14,6 +14,7 @@ class AuthzRole extends Model
     protected $fillable = [
         'code',
         'title_fa',
+        'title_en',
         'company_id',
         'is_system',
     ];
