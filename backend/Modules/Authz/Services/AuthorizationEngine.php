@@ -158,7 +158,13 @@ class AuthorizationEngine
         $policies = AuthzPolicy::query()->where('is_active', true)
             ->where(fn ($q) => $q->whereNull('target_permission')->orWhere('target_permission', $code))
             ->where(fn ($q) => $q->whereNull('target_resource')->orWhereIn('target_resource', [$permission->resource, $permission->module.'.'.$permission->resource]))
+            ->where(fn ($q) => $q->whereNull('company_id')->orWhere('company_id', $companyId))
             ->orderByDesc('priority')->get();
+        $policies = $policies->groupBy(fn ($policy) => ($policy->target_permission ?? '*').'|'.($policy->target_resource ?? '*'))
+            ->flatMap(function ($group) use ($companyId) {
+                $companyPolicies = $group->where('company_id', $companyId);
+                return $companyPolicies->isNotEmpty() ? $companyPolicies : $group->whereNull('company_id');
+            })->values();
         $hasAllowPolicy = $policies->contains('effect', 'allow');
         $allowPolicyMatched = false;
         foreach ($policies as $policy) {
@@ -233,7 +239,15 @@ class AuthorizationEngine
 
     public function filterFields(User $user, string $resource, array $data, ?int $companyId = null, ?int $branchId = null): array
     {
-        $policies = AuthzFieldPolicy::query()->where('resource', $resource)->get();
+        if ($companyId === null) {
+            $companyId = AuthzMembership::query()->where('user_id', $user->id)->where('status', 'active')
+                ->orderByDesc('is_default_context')->orderBy('id')->value('company_id');
+        }
+        $policies = AuthzFieldPolicy::query()->where('resource', $resource)
+            ->where(fn ($q) => $q->whereNull('company_id')->orWhere('company_id', $companyId))
+            ->get()->groupBy('field')->map(function ($group) use ($companyId) {
+                return $group->firstWhere('company_id', $companyId) ?? $group->firstWhere('company_id', null);
+            })->filter()->values();
         foreach ($policies as $policy) {
             if (! array_key_exists($policy->field, $data)) continue;
             $allowed = $this->authorize(['user' => $user, 'permission' => $policy->permission_needed, 'company_id' => $companyId, 'branch_id' => $branchId])['allowed'];

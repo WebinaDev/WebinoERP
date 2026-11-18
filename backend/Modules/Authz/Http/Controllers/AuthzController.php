@@ -29,7 +29,7 @@ class AuthzController extends Controller
 
         $userRoles = AuthzUserRole::query()->with('role')
             ->where('user_id', $user->id)
-            ->when($companyId, fn ($q) => $q->where('company_id', $companyId))
+            ->where('company_id', $companyId ?? 0)
             ->get();
 
         $roleIds = $userRoles->pluck('role_id')->toArray();
@@ -39,7 +39,7 @@ class AuthzController extends Controller
 
         $directPerms = AuthzUserPermission::query()->with('permission')
             ->where('user_id', $user->id)
-            ->when($companyId, fn ($q) => $q->where('company_id', $companyId))
+            ->where('company_id', $companyId ?? 0)
             ->get();
 
         $summary = [];
@@ -275,18 +275,27 @@ class AuthzController extends Controller
 
     public function fieldPolicies(Request $request): JsonResponse
     {
-        $policies = AuthzFieldPolicy::query()->get();
+        $membership = $this->activeMembership($request->user(), $request->integer('company_id') ?: null);
+        abort_unless($membership, 403, 'An active company membership is required.');
+        $policies = AuthzFieldPolicy::query()->where(fn ($q) => $q->whereNull('company_id')->orWhere('company_id', $membership->company_id))
+            ->get()->groupBy(fn ($policy) => $policy->resource.'|'.$policy->field)
+            ->map(fn ($group) => $group->firstWhere('company_id', $membership->company_id) ?? $group->first(fn ($policy) => $policy->company_id === null))
+            ->filter()->values();
 
         return response()->json(['data' => $policies]);
     }
 
     public function policies(Request $request): JsonResponse
     {
-        return response()->json(['data' => AuthzPolicy::query()->orderByDesc('priority')->get()]);
+        $membership = $this->activeMembership($request->user(), $request->integer('company_id') ?: null);
+        abort_unless($membership, 403, 'An active company membership is required.');
+        return response()->json(['data' => AuthzPolicy::query()->where(fn ($q) => $q->whereNull('company_id')->orWhere('company_id', $membership->company_id))->orderByDesc('priority')->get()]);
     }
 
     public function storePolicy(Request $request): JsonResponse
     {
+        $membership = $this->activeMembership($request->user(), $request->integer('company_id') ?: null);
+        abort_unless($membership, 403, 'An active company membership is required.');
         $data = $request->validate([
             'name' => 'required|string|max:160',
             'name_en' => 'required|string|max:160',
@@ -297,7 +306,10 @@ class AuthzController extends Controller
             'priority' => 'required|integer|min:0|max:10000',
             'is_active' => 'required|boolean',
         ]);
-        $policy = AuthzPolicy::query()->updateOrCreate(['name' => $data['name']], $data);
+        $policy = AuthzPolicy::query()->updateOrCreate(
+            ['company_id' => $membership->company_id, 'name' => $data['name']],
+            array_merge($data, ['company_id' => $membership->company_id])
+        );
         return response()->json(['data' => $policy], 201);
     }
 
@@ -352,16 +364,18 @@ class AuthzController extends Controller
 
     public function storeFieldPolicy(Request $request): JsonResponse
     {
+        $membership = $this->activeMembership($request->user(), $request->integer('company_id') ?: null);
+        abort_unless($membership, 403, 'An active company membership is required.');
         $data = $request->validate([
             'resource' => 'required|string|max:48',
             'field' => 'required|string|max:64',
-            'permission_needed' => 'required|string|max:80',
+            'permission_needed' => 'required|string|max:80|exists:authz_permissions,code',
             'effect' => 'required|in:hide,mask,read_only',
         ]);
 
         $policy = AuthzFieldPolicy::query()->updateOrCreate(
-            ['resource' => $data['resource'], 'field' => $data['field']],
-            ['permission_needed' => $data['permission_needed'], 'effect' => $data['effect']]
+            ['company_id' => $membership->company_id, 'resource' => $data['resource'], 'field' => $data['field']],
+            array_merge($data, ['company_id' => $membership->company_id])
         );
 
         return response()->json(['data' => $policy], 201);

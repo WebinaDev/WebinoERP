@@ -9,6 +9,7 @@ class AuthzFieldPolicy extends Model
     protected $table = 'authz_field_policies';
 
     protected $fillable = [
+        'company_id',
         'resource',
         'field',
         'permission_needed',

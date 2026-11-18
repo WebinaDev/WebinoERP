@@ -36,11 +36,11 @@ return Application::configure(basePath: dirname(__DIR__))
         $schedule->command('webino:moadian:retry')->everyFiveMinutes();
         $schedule->command('webino:content:publish')->everyFiveMinutes();
         $schedule->command('webino:reports:send')->hourly();
-        ->command('workflow:check-sla-reminders')->everyFifteenMinutes();
-        ->command('bi:deliver-scheduled-reports')->hourly();
-        ->command('bi:check-threshold-alerts')->hourly();
-        ->command('field-service:check-sla-breaches')->everyThirtyMinutes();
-        ->command('assets:check-pm-due')->dailyAt('06:00');
+        $schedule->command('workflow:check-sla-reminders')->everyFifteenMinutes();
+        $schedule->command('bi:deliver-scheduled-reports')->hourly();
+        $schedule->command('bi:check-threshold-alerts')->hourly();
+        $schedule->command('field-service:check-sla-breaches')->everyThirtyMinutes();
+        $schedule->command('assets:check-pm-due')->dailyAt('06:00');
         if (class_exists(\Spatie\Backup\Commands\BackupCommand::class)) {
             $schedule->command('backup:run --only-db')->dailyAt('02:40');
         }
