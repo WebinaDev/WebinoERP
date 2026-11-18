@@ -38,10 +38,7 @@ class StaffSpreadsheetController extends Controller
         return response()->json(['data' => $result]);
     }
 
-    /**
-     * Contract for WebinoDashboard. Linking an ERP employee to a dashboard/site user
-     * is owned by WebinoDashboard. This ERP only exposes the current user_id.
-     */
+    /** ERP employee self-service accounts are ERP users; tenant website users remain Dashboard users. */
     public function userLink(\Modules\Hrm\Entities\HrmEmployee $staff): JsonResponse
     {
         if (! HrmAccess::seesAllStaff()) {
@@ -54,11 +51,13 @@ class StaffSpreadsheetController extends Controller
                 'employee_code' => $staff->employee_code,
                 'user_id' => $staff->user_id,
                 'linked' => $staff->user_id !== null,
-                'owner' => 'WebinoDashboard',
+                'owner' => 'ERP',
                 'contract' => [
                     'read' => 'GET /api/v1/hrm/staff/{id}/user-link',
-                    'write' => 'WebinoDashboard sets hrm_employees.user_id. Do not create site users from this module.',
-                    'match' => ['employee_code', 'national_id', 'mobile', 'email'],
+                    'account' => 'POST /api/v1/hrm/staff/{id}/account',
+                    'password_reset' => 'POST /api/v1/hrm/staff/{id}/account/reset-password',
+                    'unlink' => 'DELETE /api/v1/hrm/staff/{id}/account',
+                    'match' => ['email'],
                 ],
             ],
         ]);

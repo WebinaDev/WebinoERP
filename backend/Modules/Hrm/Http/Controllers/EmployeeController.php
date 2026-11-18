@@ -51,7 +51,6 @@ class EmployeeController extends Controller
             'status' => 'nullable|string|max:20',
             'base_salary' => 'nullable|numeric|min:0',
             'notes' => 'nullable|string',
-            'user_id' => 'nullable|exists:users,id',
         ]);
 
         $data['created_by'] = $request->user()->id;
@@ -100,7 +99,6 @@ class EmployeeController extends Controller
             'status' => 'nullable|string|max:20',
             'base_salary' => 'nullable|numeric|min:0',
             'notes' => 'nullable|string',
-            'user_id' => 'nullable|exists:users,id',
         ]);
 
         $merged = array_merge($employee->only([

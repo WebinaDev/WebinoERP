@@ -56,6 +56,17 @@ class HrmEmployee extends Model
                 }
             }
         });
+
+        static::saved(function (self $employee): void {
+            if (! $employee->wasChanged('status') || ! $employee->user_id) {
+                return;
+            }
+            $user = $employee->user;
+            if (! $user) return;
+            $active = $employee->status === 'active';
+            $user->forceFill(['is_active' => $active])->save();
+            if (! $active) $user->tokens()->delete();
+        });
     }
 
     public function user(): BelongsTo

@@ -9,6 +9,8 @@ use App\Support\CustomerAccess;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Schema;
+use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
 use Modules\Core\Database\Seeders\RolesAndPermissionsSeeder;
@@ -156,6 +158,57 @@ class AccountController extends Controller
                 'temporary_password' => $temporary,
             ],
         ], $created ? 201 : 200);
+    }
+
+    public function resetPortalPassword(Request $request, int $id, int $userId): JsonResponse
+    {
+        $account = CrmAccount::query()->findOrFail($id);
+        $user = $account->portalUsers()->whereKey($userId)->firstOrFail();
+        foreach (CustomerAccess::STAFF_ROLES as $role) {
+            if ($user->hasRole($role)) {
+                throw ValidationException::withMessages(['user' => ['رمز حساب کارکنان را از بخش مدیریت کارکنان تغییر دهید.']]);
+            }
+        }
+
+        $temporaryPassword = \Illuminate\Support\Str::password(18);
+        $user->forceFill(['password' => Hash::make($temporaryPassword)])->save();
+        $user->tokens()->delete();
+        Log::notice('CRM customer portal password reset', [
+            'actor_id' => $request->user()?->id,
+            'account_id' => $account->id,
+            'user_id' => $user->id,
+        ]);
+
+        return response()->json(['data' => [
+            'user_id' => $user->id,
+            'email' => $user->email,
+            'temporary_password' => $temporaryPassword,
+        ]]);
+    }
+
+    public function revokePortalAccess(Request $request, int $id, int $userId): JsonResponse
+    {
+        $account = CrmAccount::query()->findOrFail($id);
+        $user = $account->portalUsers()->whereKey($userId)->firstOrFail();
+        $account->portalUsers()->detach($user->id);
+        $isStaff = false;
+        foreach (CustomerAccess::STAFF_ROLES as $role) {
+            if ($user->hasRole($role)) {
+                $isStaff = true;
+                break;
+            }
+        }
+        if (! $isStaff && $user->hasRole(RolesAndPermissionsSeeder::ROLE_CLIENT) && ! $user->crmAccounts()->exists()) {
+            $user->forceFill(['is_active' => false])->save();
+            $user->tokens()->delete();
+        }
+        Log::notice('CRM customer portal access revoked', [
+            'actor_id' => $request->user()?->id,
+            'account_id' => $account->id,
+            'user_id' => $user->id,
+        ]);
+
+        return response()->json(['data' => ['revoked' => true]]);
     }
 
     public function duplicates(int $id, DuplicateDetectionService $duplicates): JsonResponse

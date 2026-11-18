@@ -10,6 +10,32 @@ export async function getStaff(params?: Record<string, unknown>) {
   return unwrapData(res);
 }
 
+export type StaffLoginAccount = {
+  employee_id: number;
+  linked: boolean;
+  user: { id: number; name: string; email: string; is_active: boolean; roles: string[] } | null;
+};
+
+export async function getStaffAccount(id: number | string) {
+  const res = await apiClient.get(`${BASE}/staff/${id}/account`);
+  return unwrapData<StaffLoginAccount>(res);
+}
+
+export async function provisionStaffAccount(id: number | string) {
+  const res = await apiClient.post(`${BASE}/staff/${id}/account`);
+  return unwrapData<{ account: StaffLoginAccount; temporary_password: string | null }>(res);
+}
+
+export async function resetStaffAccountPassword(id: number | string) {
+  const res = await apiClient.post(`${BASE}/staff/${id}/account/reset-password`);
+  return unwrapData<{ account: StaffLoginAccount; temporary_password: string }>(res);
+}
+
+export async function unlinkStaffAccount(id: number | string) {
+  const res = await apiClient.delete(`${BASE}/staff/${id}/account`);
+  return unwrapData<{ account: StaffLoginAccount }>(res);
+}
+
 export async function saveStaff(data: Record<string, unknown>) {
   const res = await apiClient.post(`${BASE}/staff`, data);
   return unwrapData(res);

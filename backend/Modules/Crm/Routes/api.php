@@ -60,6 +60,8 @@ Route::get('/accounts/list', [CrmParityController::class, 'accountsList']);
 Route::get('/accounts/export', [CrmParityController::class, 'exportAccounts']);
 Route::post('/accounts/import', [CrmParityController::class, 'importAccounts']);
 Route::post('/accounts/{id}/portal-access', [AccountController::class, 'portalAccess'])->whereNumber('id');
+Route::post('/accounts/{id}/portal-users/{user}/reset-password', [AccountController::class, 'resetPortalPassword'])->whereNumber('id')->whereNumber('user');
+Route::delete('/accounts/{id}/portal-users/{user}', [AccountController::class, 'revokePortalAccess'])->whereNumber('id')->whereNumber('user');
 Route::get('/accounts/{id}/360', [CrmParityController::class, 'account360'])->middleware('fieldsec:account')->whereNumber('id');
 Route::get('/accounts/{id}/notes', [CrmParityController::class, 'accountNotes'])->middleware('fieldsec:account')->whereNumber('id');
 Route::post('/accounts/{id}/notes', [CrmParityController::class, 'storeAccountNote'])->middleware('fieldsec:account')->whereNumber('id');

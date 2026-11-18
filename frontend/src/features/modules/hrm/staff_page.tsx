@@ -6,6 +6,7 @@ import { useParams } from 'next/navigation';
 import { useTranslations } from 'next-intl';
 import { HrmDigits, HrmPageLayout, HrmStatus } from '@/features/modules/hrm/HrmPageLayout';
 import { StaffOnboardingWizard } from '@/features/modules/hrm/staff_onboarding_wizard';
+import { StaffAccountDialog } from '@/features/modules/hrm/StaffAccountDialog';
 import { useCrmFeedback } from '@/features/shared/hooks/useCrmFeedback';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -28,6 +29,7 @@ export function StaffPage() {
   const [loading, setLoading] = useState(true);
   const [wizardOpen, setWizardOpen] = useState(false);
   const [editing, setEditing] = useState<Record<string, unknown> | null>(null);
+  const [accountEmployee, setAccountEmployee] = useState<Record<string, unknown> | null>(null);
   const [orgTitle, setOrgTitle] = useState('');
   const [orgDept, setOrgDept] = useState('');
 
@@ -96,14 +98,15 @@ export function StaffPage() {
                     <TableHead>{t('lastName')}</TableHead>
                     <TableHead>{t('department')}</TableHead>
                     <TableHead>{t('status')}</TableHead>
+                    <TableHead>{t('account.column')}</TableHead>
                     <TableHead />
                   </TableRow>
                 </TableHeader>
                 <TableBody>
                   {loading ? (
-                    <TableRow><TableCell colSpan={6}><PageLoadingState /></TableCell></TableRow>
+                    <TableRow><TableCell colSpan={7}><PageLoadingState /></TableCell></TableRow>
                   ) : rows.length === 0 ? (
-                    <TableRow><TableCell colSpan={6}><PageEmptyState /></TableCell></TableRow>
+                    <TableRow><TableCell colSpan={7}><PageEmptyState /></TableCell></TableRow>
                   ) : rows.map((r) => (
                     <TableRow key={String(r.id)}>
                       <TableCell><HrmDigits value={r.employee_code ?? r.id} /></TableCell>
@@ -111,7 +114,9 @@ export function StaffPage() {
                       <TableCell>{String(r.last_name ?? '')}</TableCell>
                       <TableCell>{String(r.department ?? '')}</TableCell>
                       <TableCell><HrmStatus value={r.status} /></TableCell>
+                      <TableCell>{r.user_id ? t('account.linked') : t('account.notLinked')}</TableCell>
                       <TableCell className="flex flex-wrap gap-2">
+                        <Button variant="outline" size="sm" onClick={() => setAccountEmployee(r)}>{t('account.manage')}</Button>
                         <Button variant="link" size="sm" asChild>
                           <Link href={dashboardHref(locale, `hrm/staff/${r.id}`)}>{tNav('common.view')}</Link>
                         </Button>
@@ -164,6 +169,12 @@ export function StaffPage() {
         onClose={() => setWizardOpen(false)}
         onSaved={() => void load()}
         onSuccess={(message) => setSuccess(message)}
+      />
+      <StaffAccountDialog
+        open={accountEmployee !== null}
+        employee={accountEmployee}
+        onClose={() => setAccountEmployee(null)}
+        onChanged={() => void load()}
       />
     </HrmPageLayout>
   );

@@ -1,6 +1,8 @@
 'use client';
 
 import { useCallback, useEffect, useState } from 'react';
+import Link from 'next/link';
+import { useParams } from 'next/navigation';
 import { useTranslations } from 'next-intl';
 import apiClient from '@/lib/api-client';
 import { getAxiosMessage } from '@/lib/api-helpers';
@@ -8,8 +10,10 @@ import { normalizeListPayload, readEntity } from '@/lib/list-utils';
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sheet';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
 import { useLocale } from '@/hooks/use-locale-next';
+import { dashboardHref } from '@/lib/route-resolver';
 
 type Props = {
   accountId: number | null;
@@ -19,6 +23,8 @@ type Props = {
 
 export function Customer360Sheet({ accountId, open, onOpenChange }: Props) {
   const t = useTranslations();
+  const params = useParams();
+  const locale = (params?.locale as string) || 'fa';
   const { formatDate } = useLocale();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -79,6 +85,11 @@ export function Customer360Sheet({ accountId, open, onOpenChange }: Props) {
               {account.description ? (
                 <p className="mt-2 text-sm text-muted-foreground">{String(account.description)}</p>
               ) : null}
+              <Button type="button" variant="outline" size="sm" className="mt-3" asChild>
+                <Link href={dashboardHref(locale, `crm/customers/${accountId}?tab=classic`)}>
+                  {t('crm.customer360.portalManage')}
+                </Link>
+              </Button>
             </div>
             <Separator />
             <Tabs defaultValue="deals">

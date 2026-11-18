@@ -27,6 +27,8 @@ class TenantFrontendBackendProbeTest extends TestCase
         $this->assertStringContainsString('WEBINO_SITE_SLUG: "bluecafe"', $yaml);
         $this->assertStringContainsString('mem_limit: 512m', $yaml);
         $this->assertStringContainsString('cpus: 1', $yaml);
+        // The heap cap must stay inside mem_limit so a busy tenant cannot take the host down.
+        $this->assertStringContainsString('NODE_OPTIONS: --max-old-space-size=358', $yaml);
         $this->assertDoesNotMatchRegularExpression('/INTERNAL_API_URL:\s+http:\/\/backend:8080/', $yaml);
         $this->assertDoesNotMatchRegularExpression('/API_PROXY_TARGET:\s+http:\/\/backend:8080/', $yaml);
         $this->assertSame(1, substr_count($yaml, 'aliases: [backend]'));

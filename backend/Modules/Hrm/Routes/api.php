@@ -30,6 +30,7 @@ use Modules\Hrm\Http\Controllers\OffboardingController;
 use Modules\Hrm\Http\Controllers\ApprovalFlowController;
 use Modules\Hrm\Http\Controllers\CalendarFeedController;
 use Modules\Hrm\Http\Controllers\StaffSpreadsheetController;
+use Modules\Hrm\Http\Controllers\StaffAccountController;
 use Modules\Hrm\Http\Controllers\HrmSettingsController;
 
 // Employee self-service portal
@@ -86,6 +87,10 @@ Route::prefix('staff')->group(function () {
     Route::get('import-template', [StaffSpreadsheetController::class, 'template']);
     Route::post('import', [StaffSpreadsheetController::class, 'import']);
     Route::get('{staff}/user-link', [StaffSpreadsheetController::class, 'userLink']);
+    Route::get('{staff}/account', [StaffAccountController::class, 'show']);
+    Route::post('{staff}/account', [StaffAccountController::class, 'provision']);
+    Route::post('{staff}/account/reset-password', [StaffAccountController::class, 'resetPassword']);
+    Route::delete('{staff}/account', [StaffAccountController::class, 'unlink']);
     Route::get('/', [StaffNestedController::class, 'index']);
     Route::post('/', [StaffNestedController::class, 'store']);
     Route::delete('/{staff}', [StaffNestedController::class, 'destroy']);

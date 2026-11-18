@@ -110,6 +110,33 @@ export function CustomerClassicPanel({ id }: Props) {
     }
   }
 
+  async function resetPortalPassword(userId: number) {
+    setPortalBusy(true);
+    setPortalPassword(null);
+    try {
+      const res = await apiClient.post(`/v1/crm/accounts/${id}/portal-users/${userId}/reset-password`);
+      const result = unwrapData<{ temporary_password?: string }>(res);
+      setPortalPassword(result?.temporary_password ?? null);
+    } catch (err) {
+      applyAxiosError(err);
+    } finally {
+      setPortalBusy(false);
+    }
+  }
+
+  async function revokePortalAccess(userId: number) {
+    if (!window.confirm(t('portalRevokeConfirm'))) return;
+    setPortalBusy(true);
+    try {
+      await apiClient.delete(`/v1/crm/accounts/${id}/portal-users/${userId}`);
+      await load();
+    } catch (err) {
+      applyAxiosError(err);
+    } finally {
+      setPortalBusy(false);
+    }
+  }
+
   function contactLabel(c: Record<string, unknown>): string {
     const joined = [c.first_name, c.last_name].filter(Boolean).join(' ');
     return joined || String(c.name ?? c.email ?? c.id);
@@ -160,10 +187,33 @@ export function CustomerClassicPanel({ id }: Props) {
               <Button type="button" size="sm" disabled={portalBusy} onClick={() => void grantPortal()}>
                 {t('portalGrant')}
               </Button>
+              {Array.isArray(account.portal_users) && account.portal_users.length > 0 ? (
+                <div className="space-y-2 rounded-md border p-3">
+                  <p className="font-medium">{t('portalUsers')}</p>
+                  {(account.portal_users as Record<string, unknown>[]).map((user) => (
+                    <div key={String(user.id)} className="flex flex-wrap items-center justify-between gap-2 border-t pt-2">
+                      <div>
+                        <p>{String(user.name ?? tNav('common.none'))}</p>
+                        <p dir="ltr" className="text-muted-foreground">{String(user.email ?? '')}</p>
+                      </div>
+                      <div className="flex gap-2">
+                        <Button type="button" size="sm" variant="outline" disabled={portalBusy} onClick={() => void resetPortalPassword(Number(user.id))}>
+                          {t('portalResetPassword')}
+                        </Button>
+                        <Button type="button" size="sm" variant="outline" className="text-destructive" disabled={portalBusy} onClick={() => void revokePortalAccess(Number(user.id))}>
+                          {t('portalRevoke')}
+                        </Button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              ) : null}
               {portalPassword ? (
-                <p className="rounded-md border bg-muted/40 p-2 text-xs" dir="ltr">
-                  {t('portalPassword')}: {portalPassword}
-                </p>
+                <div className="flex flex-wrap items-center gap-2 rounded-md border bg-muted/40 p-2 text-xs">
+                  <span>{t('portalPassword')}:</span>
+                  <code dir="ltr">{portalPassword}</code>
+                  <Button type="button" size="sm" variant="outline" onClick={() => void navigator.clipboard?.writeText(portalPassword)}>{t('portalCopyPassword')}</Button>
+                </div>
               ) : null}
             </CardContent>
           </Card>

@@ -83,6 +83,10 @@ final class TenantSiteStack
         $redisMem = TenantSiteLimits::memLimit((int) $lim['redis_memory_mb']);
         $beMem = TenantSiteLimits::memLimit((int) $lim['backend_memory_mb']);
         $feMem = TenantSiteLimits::memLimit((int) $lim['frontend_memory_mb']);
+        // Leave headroom under mem_limit for the Node runtime itself (buffers,
+        // code, native allocations), so the heap cap never trips the cgroup.
+        $feMemoryMb = (int) $lim['frontend_memory_mb'];
+        $feHeapMb = max(64, min((int) floor($feMemoryMb * 0.7), $feMemoryMb - 64));
         $beCpus = TenantSiteLimits::cpusYaml((float) $lim['backend_cpus']);
         $feCpus = TenantSiteLimits::cpusYaml((float) $lim['frontend_cpus']);
 
@@ -154,6 +158,9 @@ services:
       REVALIDATE_SECRET: \${REVALIDATE_SECRET}
       WEBINO_INTERNAL_API_SECRET: \${WEBINO_INTERNAL_API_SECRET}
       INLINE_MEDIA_DIR: /app/.next/cache/inline-media
+      # Keep the Node heap inside mem_limit: without a cap a busy tenant can
+      # reserve 11 GB of virtual memory and get OOM-killed by the host.
+      NODE_OPTIONS: --max-old-space-size={$feHeapMb}
     volumes:
       - ./next-cache:/app/.next/cache
     depends_on:
