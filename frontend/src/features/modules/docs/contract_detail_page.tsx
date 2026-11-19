@@ -27,7 +27,6 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { dashboardHref } from '@/lib/route-resolver';
-import { EnterpriseContractSuite } from './EnterpriseContractSuite';
 
 type Props = { id: string };
 
@@ -81,9 +80,7 @@ export function ContractDetailPage({ id }: Props) {
   const lead = data?.lead as Record<string, unknown> | undefined;
 
   return (
-    <div className="space-y-6">
-      <EnterpriseContractSuite />
-      <CrmPageLayout
+    <CrmPageLayout
       title={String(data?.title ?? data?.name ?? tNav('nav.erp.docs.contracts'))}
       actions={
         <>
@@ -159,6 +156,5 @@ export function ContractDetailPage({ id }: Props) {
         </DialogContent>
       </Dialog>
     </CrmPageLayout>
-    </div>
   );
 }

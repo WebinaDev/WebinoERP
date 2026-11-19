@@ -219,12 +219,12 @@ class CentralApprovalEngine
             if ($item->target_user_id) {
                 $u = User::query()->find($item->target_user_id);
                 if ($u) {
-                    StaffNotifier::notify($u, "تاییدیه گردش کار: {$instance->title}", "درخواست تایید جدید برای {$instance->title} ثبت شد.");
+                    StaffNotifier::notify((int) $u->id, 'workflow.approval', "تاییدیه گردش کار: {$instance->title}", "درخواست تایید جدید برای {$instance->title} ثبت شد.");
                 }
             } elseif ($item->target_role) {
                 $users = User::role($item->target_role)->get();
                 foreach ($users as $u) {
-                    StaffNotifier::notify($u, "تاییدیه گردش کار: {$instance->title}", "درخواست تایید جدید با نقش {$item->target_role} برای {$instance->title} ثبت شد.");
+                    StaffNotifier::notify((int) $u->id, 'workflow.approval', "تاییدیه گردش کار: {$instance->title}", "درخواست تایید جدید با نقش {$item->target_role} برای {$instance->title} ثبت شد.");
                 }
             }
         }

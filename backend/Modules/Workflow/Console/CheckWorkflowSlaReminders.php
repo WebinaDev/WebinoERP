@@ -5,6 +5,7 @@ namespace Modules\Workflow\Console;
 use App\Models\User;
 use App\Support\StaffNotifier;
 use Illuminate\Console\Command;
+use Illuminate\Support\Facades\Cache;
 use Modules\Workflow\Entities\WfStepApproval;
 
 class CheckWorkflowSlaReminders extends Command
@@ -28,6 +29,10 @@ class CheckWorkflowSlaReminders extends Command
             if (! $instance || $instance->status !== 'pending') {
                 continue;
             }
+            // Runs every 15 minutes: remind each pending approval at most once per 6 hours.
+            if (! Cache::add('workflow:sla-reminded:'.$approval->id, 1, now()->addHours(6))) {
+                continue;
+            }
 
             $title = "یادآوری مهلت زمانی تایید: {$instance->title}";
             $msg = "مهلت تاییدیه گام {$approval->step_order} رو به اتمام است.";
@@ -35,13 +40,13 @@ class CheckWorkflowSlaReminders extends Command
             if ($approval->target_user_id) {
                 $u = User::find($approval->target_user_id);
                 if ($u) {
-                    StaffNotifier::notify($u, $title, $msg);
+                    StaffNotifier::notify((int) $u->id, 'workflow.sla', $title, $msg);
                     $count++;
                 }
             } elseif ($approval->target_role) {
                 $users = User::role($approval->target_role)->get();
                 foreach ($users as $u) {
-                    StaffNotifier::notify($u, $title, $msg);
+                    StaffNotifier::notify((int) $u->id, 'workflow.sla', $title, $msg);
                     $count++;
                 }
             }

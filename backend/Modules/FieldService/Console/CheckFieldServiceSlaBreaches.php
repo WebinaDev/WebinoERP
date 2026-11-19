@@ -47,7 +47,7 @@ class CheckFieldServiceSlaBreaches extends Command
         if ($breached > 0) {
             $managers = User::role(['system_manager', 'project_manager'])->get();
             foreach ($managers as $mgr) {
-                StaffNotifier::notify($mgr, "نقض SLA خدمات پس از فروش", "تعداد {$breached} سفارش خدمات از مهلت زمانی مقرر (SLA) عبور کرده است.");
+                StaffNotifier::notify((int) $mgr->id, 'field_service.sla', "نقض SLA خدمات پس از فروش", "تعداد {$breached} سفارش خدمات از مهلت زمانی مقرر (SLA) عبور کرده است.");
             }
         }
 

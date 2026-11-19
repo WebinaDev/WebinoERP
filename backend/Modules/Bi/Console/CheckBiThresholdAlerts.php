@@ -38,12 +38,17 @@ class CheckBiThresholdAlerts extends Command
                 default => false,
             };
 
+            // Runs hourly: do not repeat the same alert more than once a day.
+            if ($breached && $alert->last_triggered_at && $alert->last_triggered_at->gt(now()->subDay())) {
+                continue;
+            }
+
             if ($breached) {
                 $alert->update(['last_triggered_at' => now()]);
                 if ($alert->notify_user_id) {
                     $u = User::find($alert->notify_user_id);
                     if ($u) {
-                        StaffNotifier::notify($u, "هشدار آستانه هوش تجاری: {$alert->title}", "مقدار شاخص {$alert->metric_key} برابر {$val} بوده و حد آستانه نقض گردید.");
+                        StaffNotifier::notify((int) $u->id, 'bi.alert', "هشدار آستانه هوش تجاری: {$alert->title}", "مقدار شاخص {$alert->metric_key} برابر {$val} بوده و حد آستانه نقض گردید.");
                         $triggered++;
                     }
                 }

@@ -26,7 +26,7 @@ class CheckPreventiveMaintenanceDue extends Command
         if ($count > 0) {
             $managers = User::role(['system_manager', 'team_member'])->get();
             foreach ($managers as $mgr) {
-                StaffNotifier::notify($mgr, "سررسید نگهداری و تعمیرات پیشگیرانه (PM)", "تعداد {$count} برنامه نت پیشگیرانه اموال و تجهیزات طی ۷ روز آینده سررسید می‌شوند.");
+                StaffNotifier::notify((int) $mgr->id, 'assets.pm_due', "سررسید نگهداری و تعمیرات پیشگیرانه (PM)", "تعداد {$count} برنامه نت پیشگیرانه اموال و تجهیزات طی ۷ روز آینده سررسید می‌شوند.");
             }
         }
 

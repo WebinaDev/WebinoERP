@@ -48,7 +48,29 @@ class OrgController extends Controller
             CrmCompany::query()->update(['is_default' => false]);
         }
 
-        $company = CrmCompany::query()->create($data);
+        $user = $request->user();
+        $company = DB::transaction(function () use ($data, $user): CrmCompany {
+            $company = CrmCompany::query()->create($data);
+
+            // The creator must be able to work inside the company they just created
+            // (context switch and authz both require an active membership).
+            if ($user && Schema::hasTable('crm_company_users')) {
+                $hasActive = DB::table('crm_company_users')->where('user_id', $user->id)->where('is_active', true)->exists();
+                DB::table('crm_company_users')->updateOrInsert(
+                    ['user_id' => $user->id, 'company_id' => $company->id],
+                    ['is_active' => ! $hasActive, 'created_at' => now(), 'updated_at' => now()]
+                );
+                if (Schema::hasTable('authz_memberships')) {
+                    $hasDefault = DB::table('authz_memberships')->where('user_id', $user->id)->where('is_default_context', true)->exists();
+                    DB::table('authz_memberships')->updateOrInsert(
+                        ['user_id' => $user->id, 'company_id' => $company->id, 'branch_id' => null],
+                        ['status' => 'active', 'is_default_context' => ! $hasDefault, 'created_at' => now(), 'updated_at' => now()]
+                    );
+                }
+            }
+
+            return $company;
+        });
 
         return response()->json(['data' => $company], 201);
     }
@@ -103,7 +125,7 @@ class OrgController extends Controller
             'branch_id' => 'nullable|exists:org_branches,id',
         ]);
 
-        $result = $orgService->switchContext($request->user(), (int) $data['company_id'], $data['branch_id'] ? (int) $data['branch_id'] : null);
+        $result = $orgService->switchContext($request->user(), (int) $data['company_id'], ! empty($data['branch_id']) ? (int) $data['branch_id'] : null);
 
         return response()->json(['data' => $result]);
     }
@@ -156,7 +178,7 @@ class OrgController extends Controller
 
         $num = $numbering->generateNextNumber(
             (int) $data['company_id'],
-            $data['branch_id'] ? (int) $data['branch_id'] : null,
+            ! empty($data['branch_id']) ? (int) $data['branch_id'] : null,
             $data['document_type'],
             $data['prefix'] ?? 'DOC-'
         );
@@ -198,7 +220,7 @@ class OrgController extends Controller
 
         $num = $numbering->generateNextNumber(
             (int) $data['from_company_id'],
-            $data['from_branch_id'] ? (int) $data['from_branch_id'] : null,
+            ! empty($data['from_branch_id']) ? (int) $data['from_branch_id'] : null,
             'transfer_voucher',
             'TRF-'
         );

@@ -38,7 +38,6 @@ import {
   UsersRound,
   type LucideIcon,
 } from 'lucide-react';
-import { ErpCommandCenter } from '@/features/modules/dashboard/ErpCommandCenter';
 import { CustomerPortalPanel } from '@/features/modules/portal/CustomerPortalPanel';
 import { CrmPmSnapshot } from '@/features/modules/dashboard/CrmPmSnapshot';
 import { GlobalSearchBox } from '@/features/modules/dashboard/GlobalSearchBox';
@@ -527,14 +526,7 @@ export function DashboardHomePage() {
         </div>
       ) : null}
 
-      {role === 'client' ? (
-        <CustomerPortalPanel />
-      ) : (
-        <div className="space-y-6">
-          <ErpCommandCenter role={role} userName={user?.name} />
-          {showSnapshot ? <CrmPmSnapshot /> : null}
-        </div>
-      )}
+      {role === 'client' ? <CustomerPortalPanel /> : showSnapshot ? <CrmPmSnapshot /> : null}
 
       <Tabs defaultValue="overview" dir={isRtl ? 'rtl' : 'ltr'} className="mt-2 text-start md:mt-0">
         <TabsList className="mx-0 w-full justify-start overflow-x-auto rounded-xl bg-muted/70 p-1 md:w-auto">

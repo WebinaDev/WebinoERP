@@ -181,7 +181,7 @@ class FieldServiceController extends Controller
 
     public function completeOrder(Request $request, int $id, FieldServiceCostingService $costing, WarehouseService $whService): JsonResponse
     {
-        $order = FsServiceOrder::query()->with(['spareParts', 'account', 'installBase']).findOrFail($id);
+        $order = FsServiceOrder::query()->with(['spareParts', 'account', 'installBase'])->findOrFail($id);
         $data = $request->validate([
             'resolution_notes' => 'required|string',
             'labor_cost' => 'nullable|numeric|min:0',

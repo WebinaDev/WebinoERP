@@ -7,6 +7,9 @@ const API_WILDCARD_RESOLVE = {
   '/v1/integrations/bale/*': '/api/webinocrm/v1/bale/settings',
   '/webinocrm/v1/hosting/*': '/api/webinocrm/v1/hosting/settings',
   '/v1/core/auth/*': null,
+  // POST-only endpoints: no GET smoke.
+  '/v1/ai-content/suggest-categories': null,
+  '/v1/authz/simulate': null,
 };
 
 const API_HINT_OVERRIDES = {
@@ -16,14 +19,15 @@ const API_HINT_OVERRIDES = {
   '/v1/integrations/modirpayamak/tickets': '/api/v1/integrations/modirpayamak/admin/dashboard',
   '/v1/integrations/modirpayamak/drafts': '/api/v1/integrations/modirpayamak/admin/dashboard',
   '/v1/integrations/modirpayamak/send': '/api/v1/integrations/modirpayamak/send',
-  '/v1/integrations/modirpayamak/reports': '/api/v1/integrations/modirpayamak/reports',
-  '/v1/integrations/modirpayamak/patterns': '/api/v1/integrations/modirpayamak/patterns',
-  '/v1/integrations/modirpayamak/numbers': '/api/v1/integrations/modirpayamak/numbers',
-  '/v1/integrations/modirpayamak/phonebooks': '/api/v1/integrations/modirpayamak/phonebooks',
+  '/v1/integrations/modirpayamak/reports': '/api/v1/integrations/modirpayamak/admin/reports/outbox',
+  '/v1/integrations/modirpayamak/patterns': '/api/v1/integrations/modirpayamak/admin/patterns',
+  '/v1/integrations/modirpayamak/numbers': '/api/v1/integrations/modirpayamak/admin/numbers',
+  '/v1/integrations/modirpayamak/phonebooks': '/api/v1/integrations/modirpayamak/admin/phonebooks',
   '/v1/integrations/modirpayamak/packages': '/api/v1/integrations/modirpayamak/admin/packages',
   '/v1/integrations/modirpayamak/orders': '/api/v1/integrations/modirpayamak/admin/orders',
   '/v1/integrations/modirpayamak/settings': '/api/v1/integrations/modirpayamak/settings',
   '/v1/integrations/modirpayamak/customers': '/api/v1/integrations/modirpayamak/admin/customers',
+  '/v1/integrations/modirpayamak/admin/secretaries': '/api/v1/integrations/modirpayamak/admin/secretaries?domain=example.com',
 };
 
 /** Routes with dedicated Feature tests (beyond matrix smoke). */

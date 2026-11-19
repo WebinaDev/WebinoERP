@@ -3,7 +3,6 @@
 import { useEffect, useState } from 'react';
 import { useTranslations } from 'next-intl';
 import { CrmPageLayout } from '@/features/shared/layout/CrmPageLayout';
-import { EnterpriseCommunicationSuite } from './EnterpriseCommunicationSuite';
 import { useCrmFeedback } from '@/features/shared/hooks/useCrmFeedback';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { getModirPayamakDashboard, getModirPayamakAccount } from '@/lib/api/modirpayamak';
@@ -26,7 +25,6 @@ export function ModirpayamakPage() {
   return (
     <CrmPageLayout title={t('nav.erp.sales.modirpayamak')} {...layoutProps}>
       <ModirPayamakBreadcrumb />
-      <div className="mb-6"><EnterpriseCommunicationSuite /></div>
       {configLoading ? null : !configured ? <ModirPayamakNotConfigured /> : (
         <>
           <div className="grid gap-4 md:grid-cols-3">

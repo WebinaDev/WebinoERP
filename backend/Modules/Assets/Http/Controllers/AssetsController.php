@@ -78,7 +78,7 @@ class AssetsController extends Controller
 
         $run = $deprService->runPeriodicDepreciation(
             $data['period_date'],
-            $data['company_id'] ? (int) $data['company_id'] : null,
+            ! empty($data['company_id']) ? (int) $data['company_id'] : null,
             $request->user()
         );
 

@@ -4,7 +4,9 @@ namespace Tests\Feature;
 
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Laravel\Sanctum\Sanctum;
+use Modules\Authz\Entities\AuthzMembership;
 use Modules\Core\Entities\SystemModule;
+use Modules\Crm\Entities\CrmCompany;
 use Modules\Integrations\Entities\IntegrationSetting;
 use Modules\Integrations\Entities\ModirPayamakPackage;
 use PHPUnit\Framework\Attributes\DataProvider;
@@ -66,6 +68,17 @@ class ApiRouteMatrixTest extends TestCase
             foreach ($smoke['requiresModules'] as $slug) {
                 SystemModule::query()->where('slug', $slug)->update(['is_active' => true]);
             }
+        }
+
+        // The access control plane is company scoped: give the actor an active membership.
+        if (str_starts_with($smoke['path'], '/api/v1/authz')) {
+            $company = CrmCompany::query()->create(['name' => 'Matrix Co']);
+            AuthzMembership::query()->create([
+                'user_id' => $user->id,
+                'company_id' => $company->id,
+                'status' => 'active',
+                'is_default_context' => true,
+            ]);
         }
 
         $response = $this->getJson($smoke['path']);

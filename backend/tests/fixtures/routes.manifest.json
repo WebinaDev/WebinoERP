@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-11-17T16:38:09.700Z",
+  "generatedAt": "2026-11-19T10:45:00.620Z",
   "version": 1,
   "routes": [
     {
@@ -826,7 +826,7 @@
       "component": "ModirpayamakReportsPage",
       "apiSmoke": {
         "method": "GET",
-        "path": "/api/v1/integrations/modirpayamak/reports",
+        "path": "/api/v1/integrations/modirpayamak/admin/reports/outbox",
         "role": "system_manager",
         "allowNotFound": false
       }
@@ -882,7 +882,7 @@
       "component": "ModirpayamakPatternsPage",
       "apiSmoke": {
         "method": "GET",
-        "path": "/api/v1/integrations/modirpayamak/patterns",
+        "path": "/api/v1/integrations/modirpayamak/admin/patterns",
         "role": "system_manager",
         "allowNotFound": false
       }
@@ -896,7 +896,7 @@
       "component": "ModirpayamakPhonebooksPage",
       "apiSmoke": {
         "method": "GET",
-        "path": "/api/v1/integrations/modirpayamak/phonebooks",
+        "path": "/api/v1/integrations/modirpayamak/admin/phonebooks",
         "role": "system_manager",
         "allowNotFound": false
       }
@@ -910,7 +910,7 @@
       "component": "ModirpayamakNumbersPage",
       "apiSmoke": {
         "method": "GET",
-        "path": "/api/v1/integrations/modirpayamak/numbers",
+        "path": "/api/v1/integrations/modirpayamak/admin/numbers",
         "role": "system_manager",
         "allowNotFound": false
       }
@@ -952,7 +952,7 @@
       "component": "ModirpayamakSecretariesPage",
       "apiSmoke": {
         "method": "GET",
-        "path": "/api/v1/integrations/modirpayamak/admin/secretaries",
+        "path": "/api/v1/integrations/modirpayamak/admin/secretaries?domain=example.com",
         "role": "system_manager",
         "allowNotFound": false
       }
@@ -1144,13 +1144,7 @@
       "apiHint": "/v1/ai-content/suggest-categories",
       "e2ePath": "ai-content/taxonomies",
       "e2eAuth": true,
-      "component": "AiTaxonomiesPage",
-      "apiSmoke": {
-        "method": "GET",
-        "path": "/api/v1/ai-content/suggest-categories",
-        "role": "system_manager",
-        "allowNotFound": false
-      }
+      "component": "AiTaxonomiesPage"
     },
     {
       "route": "ai-content/attributes",
@@ -2060,12 +2054,6 @@
       "e2ePath": "authz/simulator",
       "e2eAuth": true,
       "component": "AuthzSimulatorPage",
-      "apiSmoke": {
-        "method": "GET",
-        "path": "/api/v1/authz/simulate",
-        "role": "system_manager",
-        "allowNotFound": false
-      },
       "featureTest": true
     },
     {

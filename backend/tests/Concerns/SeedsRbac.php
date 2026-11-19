@@ -15,7 +15,7 @@ trait SeedsRbac
 
     protected function seedLicensedModules(): void
     {
-        foreach (['crm', 'hrm', 'accounting', 'projects', 'scm', 'sales', 'docs', 'marketplace', 'integrations', 'mfg', 'org', 'workflow', 'bi', 'field_service', 'qm', 'assets', 'authz', 'procurement', 'device_gateway'] as $slug) {
+        foreach (['crm', 'hrm', 'accounting', 'projects', 'scm', 'sales', 'docs', 'marketplace', 'integrations', 'mfg', 'org', 'workflow', 'bi', 'field_service', 'qm', 'assets', 'authz', 'procurement', 'device_gateway', 'ai_content'] as $slug) {
             SystemModule::firstOrCreate(
                 ['slug' => $slug],
                 ['name' => strtoupper($slug), 'is_active' => true]
