@@ -67,7 +67,10 @@ class BiDataMartService
         $leadConverted = 0;
         if (Schema::hasTable('crm_leads')) {
             $leadTotal = DB::table('crm_leads')->count();
-            $leadConverted = DB::table('crm_leads')->where('status', 'converted')->count();
+            // crm_leads has no status column (status_id + converted_at); a converted lead has converted_at.
+            $leadConverted = Schema::hasColumn('crm_leads', 'converted_at')
+                ? DB::table('crm_leads')->whereNotNull('converted_at')->count()
+                : 0;
         }
 
         // 5. Projects
