@@ -61,7 +61,7 @@ class StaffAccountController extends Controller
                     'password' => Hash::make($temporaryPassword),
                     'email_verified_at' => now(),
                 ]);
-                $user->forceFill(['is_active' => $staff->status === 'active'])->save();
+                $user->forceFill(['is_active' => $staff->status === 'active', 'must_change_password' => true])->save();
                 $user->assignRole(RolesAndPermissionsSeeder::ROLE_TEAM_MEMBER);
                 $created = true;
             }
@@ -96,7 +96,7 @@ class StaffAccountController extends Controller
             throw ValidationException::withMessages(['account' => ['برای این کارمند هنوز حسابی متصل نیست.']]);
         }
         $temporaryPassword = Str::password(18);
-        $user->forceFill(['password' => Hash::make($temporaryPassword)])->save();
+        $user->forceFill(['password' => Hash::make($temporaryPassword), 'must_change_password' => true])->save();
         $user->tokens()->delete();
 
         Log::notice('HRM employee account password reset', [

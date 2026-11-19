@@ -14,6 +14,7 @@ return [
         'dashboard' => ['view' => 'core.dashboard.view', 'manage' => 'core.dashboard.view'],
         'settings' => ['view' => 'core.settings.view', 'manage' => 'core.settings.manage'],
         'users' => ['view' => 'core.users.view', 'manage' => 'core.users.manage'],
+        'me' => ['view' => 'core.navigation.view', 'manage' => 'core.navigation.view'],
         'licenses' => ['view' => 'core.licenses.view', 'manage' => 'core.licenses.manage'],
         'logs' => ['view' => 'core.logs.view', 'manage' => 'core.logs.manage'],
         'reports' => ['view' => 'core.dashboard.reports', 'manage' => 'core.dashboard.reports'],

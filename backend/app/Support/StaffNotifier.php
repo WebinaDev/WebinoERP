@@ -5,6 +5,7 @@ namespace App\Support;
 use App\Models\User;
 use Illuminate\Support\Facades\Mail;
 use Modules\Core\Entities\CoreNotification;
+use Modules\Core\Services\NotificationPreferences;
 
 class StaffNotifier
 {
@@ -28,7 +29,7 @@ class StaffNotifier
         ]);
 
         $user = User::query()->find($userId);
-        if (! $user || ! $user->email) {
+        if (! $user || ! $user->email || ! (new NotificationPreferences)->allows($userId, 'email', $type)) {
             return;
         }
 

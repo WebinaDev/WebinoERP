@@ -144,8 +144,11 @@ class HrmNotifier
                 $results[$channel] = match ($channel) {
                     'in_app' => self::sendInApp($employee?->user_id, $kind, $title, $body),
                     'sms' => self::sendSms($employee?->user_id, $employee?->mobile, $kind, $title, $body),
-                    'bale' => self::sendBot('bale', self::baleToken(), $profile?->bale_chat_id ?: ($custom['bale_chat_id'] ?? null), $text),
-                    'telegram' => self::sendBot('telegram', self::telegramToken(), $profile?->telegram_chat_id ?: ($custom['telegram_chat_id'] ?? null), $text),
+                    'bale', 'telegram' => $employee?->user_id && ! (new \Modules\Core\Services\NotificationPreferences)->allows((int) $employee->user_id, 'chat', 'hrm.'.$kind)
+                        ? 'user_preference_off'
+                        : ($channel === 'bale'
+                            ? self::sendBot('bale', self::baleToken(), $profile?->bale_chat_id ?: ($custom['bale_chat_id'] ?? null), $text)
+                            : self::sendBot('telegram', self::telegramToken(), $profile?->telegram_chat_id ?: ($custom['telegram_chat_id'] ?? null), $text)),
                 };
             } catch (\Throwable $e) {
                 Log::info('HrmNotifier '.$channel.' failed: '.$e->getMessage());

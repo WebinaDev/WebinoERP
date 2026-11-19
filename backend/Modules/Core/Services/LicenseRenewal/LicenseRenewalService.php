@@ -407,7 +407,7 @@ class LicenseRenewalService
         }
         $row = DB::table('crm_accounts')->where('id', $accountId)->first(['mobile', 'phone']);
         $to = trim((string) ($row->mobile ?? '') ?: (string) ($row->phone ?? ''));
-        if ($to === '') {
+        if ($to === '' || ! (new \Modules\Core\Services\NotificationPreferences)->allowsAddress('sms', $to, 'license.renewal')) {
             return false;
         }
         SendSmsJob::dispatch((string) $settings['provider'], $to, $text, $settings);

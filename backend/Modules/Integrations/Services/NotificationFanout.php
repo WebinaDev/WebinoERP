@@ -3,6 +3,7 @@
 namespace Modules\Integrations\Services;
 
 use Illuminate\Support\Facades\Mail;
+use Modules\Core\Services\NotificationPreferences;
 use Modules\Core\Entities\CoreNotification;
 use Modules\Integrations\Entities\ChannelDelivery;
 use Modules\Integrations\Entities\ChatBridge;
@@ -69,16 +70,31 @@ class NotificationFanout
                 ->where('event_key', $eventKey)
                 ->first();
 
+            if (! ($pref && $pref->quiet_hours_start && $pref->quiet_hours_end)) {
+                // Person-wide quiet hours from the user management screen.
+                $pref = UserNotificationPreference::query()
+                    ->where('user_id', $userId)
+                    ->where('event_key', '*')
+                    ->first();
+            }
+
             if ($pref && $pref->quiet_hours_start && $pref->quiet_hours_end) {
                 $nowTime = now()->format('H:i:s');
-                if ($nowTime >= $pref->quiet_hours_start && $nowTime <= $pref->quiet_hours_end) {
-                    $isQuietHour = true;
-                }
+                $start = (string) $pref->quiet_hours_start;
+                $end = (string) $pref->quiet_hours_end;
+                // Windows may cross midnight (23:00 to 07:00).
+                $isQuietHour = $start <= $end
+                    ? ($nowTime >= $start && $nowTime <= $end)
+                    : ($nowTime >= $start || $nowTime <= $end);
             }
         }
 
+        $prefs = new NotificationPreferences;
+
         // ۳. کانال اعلان درون‌برنامه‌ای (In-App)
-        if (in_array('in_app', $channels, true) && $userId) {
+        if (in_array('in_app', $channels, true) && $userId && ! $prefs->allows($userId, 'in_app', $eventKey)) {
+            $results['in_app'] = $this->log('in_app', $eventKey, $priority, 'suppressed', 'user_preference_off', $body, $userId, null, [], $dedupKey);
+        } elseif (in_array('in_app', $channels, true) && $userId) {
             $note = CoreNotification::query()->create([
                 'user_id' => $userId,
                 'type' => $eventKey,
@@ -95,7 +111,9 @@ class NotificationFanout
 
         // ۴. کانال ایمیل تراکنشی (Transactional Email)
         if (in_array('email', $channels, true) && ! empty($email)) {
-            if ($isQuietHour) {
+            if (! $prefs->allows($userId ?: $prefs->userIdForAddress('email', $email), 'email', $eventKey)) {
+                $results['email'] = $this->log('email', $eventKey, $priority, 'suppressed', 'user_preference_off', $body, $userId, $email, [], $dedupKey);
+            } elseif ($isQuietHour) {
                 $results['email'] = $this->log('email', $eventKey, $priority, 'suppressed', 'quiet_hours_active', $body, $userId, $email, [], $dedupKey);
             } else {
                 try {
@@ -126,7 +144,9 @@ class NotificationFanout
         // ۶. کانال پیامک (SMS Gate & ModirPayamak)
         if (in_array('sms', $channels, true)) {
             $decision = $this->sms->decide($priority, $eventKey);
-            if (! $decision['send'] || $isQuietHour) {
+            if (! $prefs->allows($userId ?: $prefs->userIdForAddress('sms', $phone), 'sms', $eventKey)) {
+                $results['sms'] = $this->log('sms', $eventKey, $priority, 'suppressed', 'user_preference_off', $body, $userId, $phone, $decision, $dedupKey);
+            } elseif (! $decision['send'] || $isQuietHour) {
                 $results['sms'] = $this->log('sms', $eventKey, $priority, 'suppressed', $isQuietHour ? 'quiet_hours' : $decision['reason'], $body, $userId, $phone, $decision, $dedupKey);
             } elseif (empty($phone)) {
                 $results['sms'] = $this->log('sms', $eventKey, $priority, 'skipped', 'no_phone', $body, $userId, null, $decision, $dedupKey);

@@ -119,6 +119,10 @@ class EnforceModulePermission
         if ($module === 'hrm' && (preg_match('#/hrm/me(/|$)#', $path) === 1)) {
             $segment = 'me';
         }
+        // Self-service profile under /core/users/me/* belongs to the person, not to user admins.
+        if ($module === 'core' && preg_match('#^users/me(/|$)#', $relative) === 1 && isset($map['me'])) {
+            $segment = 'me';
+        }
         $rules = $map[$segment] ?? $map['*'] ?? null;
 
         if (! is_array($rules)) {

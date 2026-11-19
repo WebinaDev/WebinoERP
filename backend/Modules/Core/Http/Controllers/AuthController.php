@@ -18,11 +18,20 @@ class AuthController extends Controller
     public function login(Request $request): JsonResponse
     {
         $request->validate([
-            'email' => 'required|email',
+            // Email or username.
+            'email' => 'required|string|max:191',
             'password' => 'required',
         ]);
 
-        $user = User::where('email', $request->email)->first();
+        $login = trim((string) $request->input('email'));
+        $user = User::where('email', $login)->first();
+        if (! $user && ! str_contains($login, '@')) {
+            try {
+                $user = User::where('username', strtolower($login))->first();
+            } catch (\Throwable) {
+                $user = null; // username column missing on older schemas
+            }
+        }
 
         if (! $user || ! Hash::check($request->password, $user->password)) {
             throw ValidationException::withMessages([
@@ -37,8 +46,15 @@ class AuthController extends Controller
             ], 403);
         }
 
+        if ($user->isLocked()) {
+            return response()->json([
+                'message' => __('api.forbidden'),
+                'errors' => ['code' => 'ACCOUNT_LOCKED', 'locked_until' => $user->locked_until?->toIso8601String()],
+            ], 403);
+        }
+
         try {
-            $user->forceFill(['last_login_at' => now()])->save();
+            $user->forceFill(['last_login_at' => now(), 'last_login_ip' => $request->ip()])->save();
         } catch (\Throwable) {
             // last_login_at may be missing on older schemas.
         }

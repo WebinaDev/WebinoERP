@@ -29,6 +29,9 @@ use Modules\Core\Http\Controllers\SystemLogController;
 use Modules\Core\Http\Controllers\TwoFactorController;
 use Modules\Core\Http\Controllers\StudioController;
 use Modules\Core\Http\Controllers\VisitorStatsController;
+use Modules\Core\Http\Controllers\UserManagementController;
+use Modules\Core\Http\Controllers\UserDocumentController;
+use Modules\Core\Http\Controllers\MeAccountController;
 
 /*
 |--------------------------------------------------------------------------
@@ -93,6 +96,43 @@ Route::middleware(['auth:sanctum', 'module.permission:core'])->group(function ()
     Route::patch('/users/{id}', [CrudParityController::class, 'usersUpdate'])->middleware('fieldsec:user')->whereNumber('id');
     Route::delete('/users/{id}', [CrudParityController::class, 'usersDestroy'])->middleware('fieldsec:user')->whereNumber('id');
     Route::get('/users/search', [CrudParityController::class, 'usersSearch']);
+
+    // User management (core.users.view / core.users.manage)
+    Route::get('/users/directory', [UserManagementController::class, 'directory']);
+    Route::get('/users/meta', [UserManagementController::class, 'meta']);
+    Route::post('/users/accounts', [UserManagementController::class, 'store']);
+    Route::prefix('/users/{id}')->whereNumber('id')->group(function () {
+        Route::get('/', [UserManagementController::class, 'show']);
+        Route::patch('/account', [UserManagementController::class, 'updateAccount']);
+        Route::post('/password', [UserManagementController::class, 'setPassword']);
+        Route::post('/lock', [UserManagementController::class, 'lock']);
+        Route::put('/roles', [UserManagementController::class, 'roles']);
+        Route::get('/sessions', [UserManagementController::class, 'sessions']);
+        Route::delete('/sessions', [UserManagementController::class, 'revokeAllSessions']);
+        Route::delete('/sessions/{token}', [UserManagementController::class, 'revokeSession'])->whereNumber('token');
+        Route::get('/profile', [UserManagementController::class, 'profile']);
+        Route::put('/profile', [UserManagementController::class, 'updateProfile']);
+        Route::get('/notification-preferences', [UserManagementController::class, 'notificationPreferences']);
+        Route::put('/notification-preferences', [UserManagementController::class, 'updateNotificationPreferences']);
+        Route::get('/activity', [UserManagementController::class, 'activity']);
+        Route::get('/documents', [UserDocumentController::class, 'index']);
+        Route::post('/documents', [UserDocumentController::class, 'store']);
+        Route::post('/documents/{doc}', [UserDocumentController::class, 'update'])->whereNumber('doc');
+        Route::get('/documents/{doc}/download', [UserDocumentController::class, 'download'])->whereNumber('doc');
+        Route::delete('/documents/{doc}', [UserDocumentController::class, 'destroy'])->whereNumber('doc');
+    });
+
+    // Self-service account (any signed-in person)
+    Route::get('/me', [MeAccountController::class, 'show']);
+    Route::patch('/me', [MeAccountController::class, 'update']);
+    Route::get('/me/notification-preferences', [MeAccountController::class, 'notificationPreferences']);
+    Route::put('/me/notification-preferences', [MeAccountController::class, 'updateNotificationPreferences']);
+    Route::get('/me/activity', [MeAccountController::class, 'activity']);
+    Route::get('/me/documents', [UserDocumentController::class, 'myIndex']);
+    Route::post('/me/documents', [UserDocumentController::class, 'myStore']);
+    Route::post('/me/documents/{doc}', [UserDocumentController::class, 'myUpdate'])->whereNumber('doc');
+    Route::get('/me/documents/{doc}/download', [UserDocumentController::class, 'myDownload'])->whereNumber('doc');
+    Route::delete('/me/documents/{doc}', [UserDocumentController::class, 'myDestroy'])->whereNumber('doc');
 
     Route::get('/canned-responses', [CrudParityController::class, 'cannedIndex']);
     Route::post('/canned-responses', [CrudParityController::class, 'cannedStore']);

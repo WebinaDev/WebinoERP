@@ -275,7 +275,9 @@ class CrudParityController extends Controller
             'email' => 'sometimes|email|unique:users,email,'.$user->id,
             'phone' => 'nullable|string|max:30',
             'password' => 'nullable|string|min:8|confirmed',
+            'current_password' => ['required_with:password', 'nullable', 'current_password'],
         ]);
+        unset($data['current_password']);
         if (! empty($data['password'])) {
             $data['password'] = Hash::make($data['password']);
         } else {

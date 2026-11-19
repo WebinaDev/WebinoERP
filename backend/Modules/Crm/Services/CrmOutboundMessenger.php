@@ -5,6 +5,7 @@ namespace Modules\Crm\Services;
 use App\Jobs\SendSmsJob;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Mail;
+use Modules\Core\Services\NotificationPreferences;
 use Modules\Crm\Entities\CrmAccount;
 use Modules\Crm\Entities\CrmActivity;
 use Modules\Crm\Entities\CrmContact;
@@ -33,9 +34,11 @@ class CrmOutboundMessenger
     ): CrmMessage {
         $renderedBody = $this->render($body, $context);
         $renderedSubject = $subject !== null ? $this->render($subject, $context) : null;
-        $delivery = $channel === 'sms'
-            ? $this->deliverSms($to, $renderedBody)
-            : $this->deliverEmail($to, $renderedSubject ?: 'Webino', $renderedBody);
+        $delivery = ! (new NotificationPreferences)->allowsAddress($channel === 'sms' ? 'sms' : 'email', $to, 'crm.message')
+            ? ['status' => 'suppressed', 'provider' => 'user_preference', 'error' => 'recipient turned this channel off']
+            : ($channel === 'sms'
+                ? $this->deliverSms($to, $renderedBody)
+                : $this->deliverEmail($to, $renderedSubject ?: 'Webino', $renderedBody));
 
         $message = CrmMessage::query()->create([
             'channel' => $channel,

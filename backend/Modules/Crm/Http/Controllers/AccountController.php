@@ -171,7 +171,7 @@ class AccountController extends Controller
         }
 
         $temporaryPassword = \Illuminate\Support\Str::password(18);
-        $user->forceFill(['password' => Hash::make($temporaryPassword)])->save();
+        $user->forceFill(['password' => Hash::make($temporaryPassword), 'must_change_password' => true])->save();
         $user->tokens()->delete();
         Log::notice('CRM customer portal password reset', [
             'actor_id' => $request->user()?->id,
