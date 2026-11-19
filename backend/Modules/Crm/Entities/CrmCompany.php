@@ -9,7 +9,8 @@ class CrmCompany extends Model
     protected $table = 'crm_companies';
 
     protected $fillable = [
-        'name', 'legal_name', 'national_id', 'economic_code', 'currency_code', 'is_default',
+        'name', 'legal_name', 'english_name', 'brand_name', 'national_id', 'registration_number', 'economic_code',
+        'currency_code', 'address', 'phone', 'email', 'website', 'is_default',
     ];
 
     protected function casts(): array

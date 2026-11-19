@@ -5,6 +5,7 @@ use Modules\Org\Http\Controllers\OrgController;
 
 Route::get('/companies', [OrgController::class, 'companies']);
 Route::post('/companies', [OrgController::class, 'storeCompany']);
+Route::put('/companies/{id}', [OrgController::class, 'updateCompany'])->whereNumber('id');
 
 Route::get('/branches', [OrgController::class, 'branches']);
 Route::post('/branches', [OrgController::class, 'storeBranch']);

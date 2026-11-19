@@ -37,12 +37,7 @@ class OrgController extends Controller
     {
         $data = $request->validate([
             'name' => 'required|string|max:160',
-            'legal_name' => 'nullable|string|max:200',
-            'national_id' => 'nullable|string|max:20',
-            'economic_code' => 'nullable|string|max:20',
-            'currency_code' => 'nullable|string|max:8',
-            'is_default' => 'nullable|boolean',
-        ]);
+        ] + $this->companyProfileRules());
 
         if (! empty($data['is_default'])) {
             CrmCompany::query()->update(['is_default' => false]);
@@ -73,6 +68,47 @@ class OrgController extends Controller
         });
 
         return response()->json(['data' => $company], 201);
+    }
+
+    public function updateCompany(Request $request, int $id): JsonResponse
+    {
+        $company = CrmCompany::query()->findOrFail($id);
+        $user = $request->user();
+        if (! $user?->hasRole('system_manager')) {
+            $isMember = DB::table('crm_company_users')->where('user_id', $user->id)->where('company_id', $company->id)->exists();
+            abort_unless($isMember, 403);
+        }
+        $data = $request->validate([
+            'name' => 'sometimes|required|string|max:160',
+        ] + $this->companyProfileRules());
+
+        DB::transaction(function () use ($company, $data): void {
+            if (! empty($data['is_default'])) {
+                CrmCompany::query()->whereKeyNot($company->id)->update(['is_default' => false]);
+            }
+            $company->fill($data)->save();
+        });
+
+        return response()->json(['data' => $company->fresh()]);
+    }
+
+    /** @return array<string, string> */
+    private function companyProfileRules(): array
+    {
+        return [
+            'legal_name' => 'nullable|string|max:200',
+            'english_name' => 'nullable|string|max:200',
+            'brand_name' => 'nullable|string|max:120',
+            'national_id' => 'nullable|string|max:20',
+            'registration_number' => 'nullable|string|max:32',
+            'economic_code' => 'nullable|string|max:20',
+            'currency_code' => 'nullable|string|max:8',
+            'address' => 'nullable|string|max:1000',
+            'phone' => 'nullable|string|max:32',
+            'email' => 'nullable|email|max:160',
+            'website' => 'nullable|string|max:200',
+            'is_default' => 'nullable|boolean',
+        ];
     }
 
     public function branches(Request $request): JsonResponse

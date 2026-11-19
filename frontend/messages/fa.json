@@ -10679,7 +10679,8 @@
       "newTransfer": "انتقال جدید",
       "noCompanies": "هنوز شرکتی ثبت نشده است",
       "receive": "دریافت",
-      "switchHere": "ورود به این شرکت"
+      "switchHere": "ورود به این شرکت",
+      "edit": "ویرایش"
     },
     "workflow": {
       "title": "موتور گردش کار و تاییدیه‌ها",
@@ -11108,7 +11109,12 @@
       "warranty_start": "شروع گارانتی",
       "winner": "برنده",
       "work_done": "کار انجام‌شده",
-      "zone": "منطقه"
+      "zone": "منطقه",
+      "english_name": "نام انگلیسی",
+      "brand_name": "نام تجاری",
+      "registration_number": "شماره ثبت",
+      "email": "ایمیل",
+      "website": "وب‌سایت"
     },
     "values": {
       "yes": "بله",

@@ -3,7 +3,7 @@
 import { Building2, GitBranch, Hash, Repeat, BarChart3 } from 'lucide-react';
 import { useLocale, useTranslations } from 'next-intl';
 import { formatMoney } from '@/lib/money';
-import { ErpModuleHub, ErpResourcePage, ErpStatGrid, SRC, useErpData, type Row } from '@/features/shared/erp-resource';
+import { ErpModuleHub, ErpResourcePage, ErpStatGrid, SRC, useErpData, type ErpField, type Row } from '@/features/shared/erp-resource';
 
 const NS = 'erp.org';
 
@@ -44,6 +44,22 @@ export function OrgOverviewPage() {
   );
 }
 
+const COMPANY_FIELDS: ErpField[] = [
+  { name: 'name', label: 'name', required: true },
+  { name: 'legal_name', label: 'legal_name' },
+  { name: 'english_name', label: 'english_name' },
+  { name: 'brand_name', label: 'brand_name' },
+  { name: 'national_id', label: 'national_id' },
+  { name: 'registration_number', label: 'registration_number' },
+  { name: 'economic_code', label: 'economic_code' },
+  { name: 'currency_code', label: 'currency_code', type: 'select', options: ['IRR', 'IRT', 'USD', 'EUR', 'AED'] },
+  { name: 'phone', label: 'phone' },
+  { name: 'email', label: 'email' },
+  { name: 'website', label: 'website' },
+  { name: 'address', label: 'address', type: 'textarea' },
+  { name: 'is_default', label: 'is_default', type: 'bool' },
+];
+
 export function OrgCompaniesPage() {
   return (
     <ErpResourcePage
@@ -54,20 +70,17 @@ export function OrgCompaniesPage() {
       columns={[
         { key: 'name', label: 'name' },
         { key: 'legal_name', label: 'legal_name' },
+        { key: 'brand_name', label: 'brand_name' },
         { key: 'national_id', label: 'national_id' },
-        { key: 'economic_code', label: 'economic_code' },
+        { key: 'registration_number', label: 'registration_number' },
         { key: 'currency_code', label: 'currency_code' },
         { key: 'is_default', label: 'is_default', type: 'bool' },
       ]}
-      createFields={[
-        { name: 'name', label: 'name', required: true },
-        { name: 'legal_name', label: 'legal_name' },
-        { name: 'national_id', label: 'national_id' },
-        { name: 'economic_code', label: 'economic_code' },
-        { name: 'currency_code', label: 'currency_code', type: 'select', options: ['IRR', 'IRT', 'USD', 'EUR', 'AED'] },
-        { name: 'is_default', label: 'is_default', type: 'bool' },
+      createFields={COMPANY_FIELDS}
+      rowActions={[
+        { label: 'switchHere', endpoint: () => '/v1/org/context/switch', body: (r) => ({ company_id: r.id }) },
+        { label: 'edit', endpoint: (r) => `/v1/org/companies/${String(r.id)}`, method: 'put', fields: COMPANY_FIELDS, prefill: true },
       ]}
-      rowActions={[{ label: 'switchHere', endpoint: () => '/v1/org/context/switch', body: (r) => ({ company_id: r.id }) }]}
     />
   );
 }

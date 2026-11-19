@@ -10679,7 +10679,8 @@
       "newTransfer": "New transfer",
       "noCompanies": "No companies yet",
       "receive": "Receive",
-      "switchHere": "Switch to this company"
+      "switchHere": "Switch to this company",
+      "edit": "Edit"
     },
     "workflow": {
       "title": "Approval Workflow Engine",
@@ -11108,7 +11109,12 @@
       "warranty_start": "Warranty start",
       "winner": "Winner",
       "work_done": "Work done",
-      "zone": "Zone"
+      "zone": "Zone",
+      "english_name": "English name",
+      "brand_name": "Brand name",
+      "registration_number": "Registration number",
+      "email": "Email",
+      "website": "Website"
     },
     "values": {
       "yes": "Yes",

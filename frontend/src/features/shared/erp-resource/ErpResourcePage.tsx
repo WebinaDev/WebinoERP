@@ -67,6 +67,8 @@ export type ErpRowAction = {
   visible?: (row: Row) => boolean;
   /** body merged into the form values */
   body?: (row: Row) => Record<string, unknown>;
+  /** prefill the action form from the row (edit dialogs) */
+  prefill?: boolean;
 };
 
 /* ------------------------------------------------------------------ */
@@ -363,15 +365,27 @@ export function ErpFormDialog({
   title,
   fields,
   submit,
+  initialValues,
 }: {
   open: boolean;
   onOpenChange: (o: boolean) => void;
   title: string;
   fields: ErpField[];
   submit: (payload: Row) => Promise<void>;
+  initialValues?: Row;
 }) {
   const tr = useTranslations('erp.resource');
-  const initial = useMemo(() => Object.fromEntries(fields.map((f) => [f.name, f.defaultValue ?? (f.type === 'lines' ? [{}] : '')])), [fields]);
+  const initial = useMemo(
+    () =>
+      Object.fromEntries(
+        fields.map((f) => {
+          const v = initialValues ? initialValues[f.name] : undefined;
+          if (v !== undefined && v !== null) return [f.name, f.type === 'bool' ? Boolean(v) : f.type === 'select' || f.type === 'remote' || f.type === 'number' ? String(v) : v];
+          return [f.name, f.defaultValue ?? (f.type === 'lines' ? [{}] : '')];
+        }),
+      ),
+    [fields, initialValues],
+  );
   const [values, setValues] = useState<Row>(initial);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -621,6 +635,7 @@ export function ErpResourcePage({
           onOpenChange={(o) => !o && setAction(null)}
           title={t(action.action.label)}
           fields={action.action.fields ?? []}
+          initialValues={action.action.prefill ? action.row : undefined}
           submit={(payload) => runAction(action.action, action.row, payload)}
         />
       ) : null}

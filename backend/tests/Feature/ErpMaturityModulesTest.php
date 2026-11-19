@@ -34,6 +34,34 @@ class ErpMaturityModulesTest extends TestCase
         $this->seedLicensedModules();
     }
 
+    public function test_company_profile_fields_create_update_and_creator_membership(): void
+    {
+        $user = $this->actingAsRole('system_manager');
+        Sanctum::actingAs($user);
+
+        $res = $this->postJson('/api/v1/org/companies', [
+            'name' => 'شرکت نمونه',
+            'english_name' => 'Sample Co.',
+            'brand_name' => 'نمونه',
+            'national_id' => '14000000000',
+            'registration_number' => '12345',
+            'address' => 'تهران',
+            'is_default' => true,
+        ])->assertCreated()
+            ->assertJsonPath('data.registration_number', '12345')
+            ->assertJsonPath('data.english_name', 'Sample Co.');
+        $id = $res->json('data.id');
+
+        $this->assertDatabaseHas('crm_company_users', ['user_id' => $user->id, 'company_id' => $id]);
+
+        $this->putJson("/api/v1/org/companies/{$id}", ['address' => 'شهریار، اندیشه', 'website' => 'https://example.test'])
+            ->assertOk()
+            ->assertJsonPath('data.address', 'شهریار، اندیشه')
+            ->assertJsonPath('data.brand_name', 'نمونه');
+
+        $this->putJson("/api/v1/org/companies/{$id}", ['email' => 'not-an-email'])->assertStatus(422);
+    }
+
     public function test_priority1_org_multi_company_and_branches(): void
     {
         $user = $this->actingAsRole('system_manager');
