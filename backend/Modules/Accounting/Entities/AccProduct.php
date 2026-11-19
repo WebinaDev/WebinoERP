@@ -3,6 +3,7 @@
 namespace Modules\Accounting\Entities;
 
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class AccProduct extends Model
 {
@@ -19,5 +20,10 @@ class AccProduct extends Model
             'sell_price' => 'decimal:2',
             'inventory_controlled' => 'boolean',
         ];
+    }
+
+    public function variants(): HasMany
+    {
+        return $this->hasMany(AccProductVariant::class, 'product_id');
     }
 }

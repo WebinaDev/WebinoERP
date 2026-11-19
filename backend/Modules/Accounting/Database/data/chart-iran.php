@@ -17,4 +17,5 @@ return [
     ['code' => '113', 'name' => 'حساب‌های دریافتنی', 'parent_code' => '11', 'type' => 'asset', 'is_postable' => true],
     ['code' => '21', 'name' => 'بدهی‌های جاری', 'parent_code' => '2', 'type' => 'liability', 'is_postable' => false],
     ['code' => '211', 'name' => 'حساب‌های پرداختنی', 'parent_code' => '21', 'type' => 'liability', 'is_postable' => true],
+    ['code' => '212', 'name' => 'مالیات بر ارزش افزوده فروش', 'parent_code' => '21', 'type' => 'liability', 'is_postable' => true],
 ];

@@ -128,6 +128,7 @@ return [
         'catalog' => ['view' => 'sales.catalog.view', 'manage' => 'sales.catalog.manage'],
         'campaigns' => ['view' => 'sales.campaigns.view', 'manage' => 'sales.campaigns.manage'],
         'invoices' => ['view' => 'sales.invoices.view', 'manage' => 'sales.invoices.manage'],
+        'pos' => ['view' => 'sales.pos.view', 'manage' => 'sales.pos.sell'],
         'services' => ['view' => 'sales.catalog.view', 'manage' => 'sales.catalog.manage'],
         '*' => ['view' => 'sales.catalog.view', 'manage' => 'sales.catalog.manage'],
     ],

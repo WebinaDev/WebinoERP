@@ -201,6 +201,9 @@ class RolesAndPermissionsSeeder extends Seeder
                 'sales.campaigns.manage',
                 'sales.invoices.view',
                 'sales.invoices.manage',
+                'sales.pos.view',
+                'sales.pos.sell',
+                'sales.pos.manage',
             ],
             [
                 'docs.contracts.view',
@@ -294,6 +297,9 @@ class RolesAndPermissionsSeeder extends Seeder
             'scm.warehouse.manage',
             'sales.invoices.view',
             'sales.invoices.manage',
+            'sales.pos.view',
+            'sales.pos.sell',
+            'sales.pos.manage',
         ];
     }
 
@@ -374,6 +380,8 @@ class RolesAndPermissionsSeeder extends Seeder
             'sales.campaigns.view',
             'sales.invoices.view',
             'sales.invoices.manage',
+            'sales.pos.view',
+            'sales.pos.sell',
             'crm.activities.view',
             'crm.activities.manage',
             'crm.messages.view',

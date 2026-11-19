@@ -1,0 +1,25 @@
+<?php
+
+return [
+    'register_inactive' => 'This register is inactive.',
+    'register_busy' => 'This register already has an open session.',
+    'user_has_open_session' => 'You already have an open session on another register.',
+    'not_enough_cash' => 'Not enough cash in the drawer.',
+    'session_closed' => 'This session is closed.',
+    'no_open_session' => 'Open a session first.',
+    'bad_quantity' => 'Quantity must be greater than zero.',
+    'variant_not_found' => 'Variant not found.',
+    'product_not_found' => 'Product not found.',
+    'line_incomplete' => 'A custom line needs a name and a price.',
+    'method_disabled' => 'This payment method is not enabled for the register.',
+    'non_cash_overpay' => 'Non-cash payments cannot exceed the total.',
+    'underpaid' => 'Payments are less than the total.',
+    'on_account_needs_customer' => 'Selling on account needs a customer.',
+    'refund_only_sales' => 'Only sales can be refunded.',
+    'bad_refund_line' => 'Invalid refund line.',
+    'refund_exceeds' => 'Refund quantity is more than what is left.',
+    'refund_payment_mismatch' => 'Refund payments must equal the refund amount.',
+    'insufficient_stock' => 'Not enough stock.',
+    'forbidden_manage' => 'POS manager permission is required.',
+    'not_your_session' => 'This session belongs to another cashier.',
+];

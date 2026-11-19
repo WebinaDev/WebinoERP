@@ -65,3 +65,30 @@ Route::prefix('quotes')->group(function () {
     Route::post('/{quote}/convert', [\Modules\Sales\Http\Controllers\QuoteController::class, 'convert']);
     Route::get('/growth/attribution', [\Modules\Sales\Http\Controllers\QuoteController::class, 'growthAttribution']);
 });
+
+// Point of sale (registers, shifts, checkout, refunds, Z reports)
+Route::prefix('pos')->group(function () {
+    $c = \Modules\Sales\Http\Controllers\PosController::class;
+    Route::get('overview', [$c, 'overview']);
+    Route::get('registers', [$c, 'registers']);
+    Route::post('registers', [$c, 'storeRegister']);
+    Route::put('registers/{id}', [$c, 'updateRegister'])->whereNumber('id');
+    Route::get('warehouses', [$c, 'warehouses']);
+    Route::get('sessions', [$c, 'sessions']);
+    Route::get('sessions/current', [$c, 'current']);
+    Route::post('sessions', [$c, 'openSession']);
+    Route::get('sessions/{id}', [$c, 'showSession'])->whereNumber('id');
+    Route::post('sessions/{id}/close', [$c, 'closeSession'])->whereNumber('id');
+    Route::post('sessions/{id}/cash-movements', [$c, 'cashMovement'])->whereNumber('id');
+    Route::get('products', [$c, 'products']);
+    Route::get('products/{id}/variants', [$c, 'variants'])->whereNumber('id');
+    Route::post('products/{id}/variants', [$c, 'storeVariant'])->whereNumber('id');
+    Route::put('variants/{variantId}', [$c, 'updateVariant'])->whereNumber('variantId');
+    Route::get('customers', [$c, 'customers']);
+    Route::post('customers', [$c, 'storeCustomer']);
+    Route::get('orders', [$c, 'orders']);
+    Route::post('orders', [$c, 'checkout']);
+    Route::get('orders/{id}', [$c, 'showOrder'])->whereNumber('id');
+    Route::post('orders/{id}/refund', [$c, 'refund'])->whereNumber('id');
+    Route::get('reports/daily', [$c, 'dailyReport']);
+});
