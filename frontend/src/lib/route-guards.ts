@@ -17,6 +17,9 @@ export function resolveRoutePermission(path: string): string | undefined {
   if (normalized === 'admin/analytics/visitors' || normalized.startsWith('admin/analytics/')) {
     return 'core.visitor_stats.view';
   }
+  if (normalized === 'admin/users' || normalized.startsWith('admin/users/') || normalized === 'users' || normalized.startsWith('users/')) {
+    return 'core.users.view';
+  }
   if (normalized === 'admin/settings' || normalized.startsWith('admin/settings/')) {
     return 'core.settings.manage';
   }

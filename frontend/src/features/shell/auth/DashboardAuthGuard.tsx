@@ -5,6 +5,7 @@ import { useTranslations } from 'next-intl';
 import { useRouter } from '@/lib/i18n-navigation';
 import { getCurrentUser } from '@/lib/auth';
 import { useLocaleSync } from '@/hooks/useLocaleSync';
+import { PasswordChangeGate } from '@/features/modules/core/users/PasswordChangeGate';
 
 /** Max wait for /auth/user — then treat as logged-out so UI is not stuck on loading. */
 const AUTH_BOOT_TIMEOUT_MS = 15_000;
@@ -58,5 +59,5 @@ export function DashboardAuthGuard({ children }: { children: React.ReactNode }) 
     );
   }
 
-  return <>{children}</>;
+  return <>{children}<PasswordChangeGate /></>;
 }

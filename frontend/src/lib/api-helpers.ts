@@ -288,6 +288,13 @@ export function getLoginErrorMessage(err: unknown): string {
     err && typeof err === 'object' && 'response' in err
       ? (err as { response?: { status?: number } }).response?.status
       : undefined;
+  const code = errorCode(err);
+  if (code === 'ACCOUNT_LOCKED') {
+    return 'حساب شما موقتاً قفل شده است. با مدیر سامانه تماس بگیرید.';
+  }
+  if (code === 'ACCOUNT_DISABLED') {
+    return 'حساب شما غیرفعال است. با مدیر سامانه تماس بگیرید.';
+  }
   if (status === 401 || status === 403) {
     return 'نام کاربری یا رمز عبور اشتباه است.';
   }

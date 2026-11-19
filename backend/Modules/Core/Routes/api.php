@@ -128,6 +128,9 @@ Route::middleware(['auth:sanctum', 'module.permission:core'])->group(function ()
     Route::get('/me/notification-preferences', [MeAccountController::class, 'notificationPreferences']);
     Route::put('/me/notification-preferences', [MeAccountController::class, 'updateNotificationPreferences']);
     Route::get('/me/activity', [MeAccountController::class, 'activity']);
+    Route::get('/me/sessions', [SessionController::class, 'index']);
+    Route::delete('/me/sessions/others', [SessionController::class, 'destroyOthers']);
+    Route::delete('/me/sessions/{id}', [SessionController::class, 'destroy'])->whereNumber('id');
     Route::get('/me/documents', [UserDocumentController::class, 'myIndex']);
     Route::post('/me/documents', [UserDocumentController::class, 'myStore']);
     Route::post('/me/documents/{doc}', [UserDocumentController::class, 'myUpdate'])->whereNumber('doc');

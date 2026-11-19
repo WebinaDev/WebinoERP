@@ -43,7 +43,8 @@ const EXACT: Record<string, DashboardRouteMeta> = {
     group: 'integrations',
     apiHint: '/webinocrm/v1/bale/settings, /webinocrm/v1/bale/stats, …',
   },
-  profile: { titleFa: 'پروفایل من', titleEn: 'My profile', group: 'core', apiHint: '/v1/core/users/me' },
+  profile: { titleFa: 'پروفایل من', titleEn: 'My profile', group: 'core', apiHint: '/v1/core/me' },
+  'admin/users': { titleFa: 'کاربران', titleEn: 'Users', group: 'core', apiHint: '/v1/core/users/directory' },
   accounting: {
     titleFa: 'حسابداری',
     titleEn: 'Accounting',
@@ -340,6 +341,7 @@ const DETAIL_ROOTS: Record<string, DashboardRouteMeta> = {
   projects: { titleFa: 'پروژه', titleEn: 'Project', group: 'projects', apiHint: '/v1/projects/projects/{id}' },
   'docs/contracts': { titleFa: 'قرارداد', titleEn: 'Contract', group: 'docs', apiHint: '/v1/docs/contracts/{id}' },
   contracts: { titleFa: 'قرارداد', titleEn: 'Contract', group: 'projects', apiHint: '/v1/projects/contracts/{id}' },
+  'admin/users': { titleFa: 'کاربر', titleEn: 'User', group: 'core', apiHint: '/v1/core/users/{id}' },
   'hrm/staff': { titleFa: 'کارمند', titleEn: 'Staff user', group: 'hrm', apiHint: '/v1/hrm/employees/{id}' },
   staff: { titleFa: 'کارمند', titleEn: 'Staff user', group: 'core', apiHint: '/v1/hrm/employees/{id}' },
   'hrm/payroll': { titleFa: 'حقوق', titleEn: 'Payroll', group: 'hrm', apiHint: '/v1/hrm/payroll/{id}' },

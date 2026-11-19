@@ -795,6 +795,7 @@ export const ERP_MODULES: ErpModuleDef[] = [
         titleKey: 'nav.erp.admin.group',
         icon: 'ri-settings-3-line',
         children: [
+          { id: 'users', path: 'admin/users', titleKey: 'nav.erp.admin.users', icon: 'ri-team-line', requiredPermission: 'core.users.view' },
           { id: 'logs', path: 'admin/logs', titleKey: 'nav.erp.admin.logs', icon: 'ri-file-list-2-line', requiredPermission: 'core.logs.view' },
           { id: 'visitor-statistics', path: 'admin/analytics/visitors', titleKey: 'nav.erp.admin.visitors', icon: 'ri-line-chart-line', requiredPermission: 'core.visitor_stats.view' },
           { id: 'settings', path: 'admin/settings', titleKey: 'nav.erp.admin.settings', icon: 'ri-settings-3-line', requiredPermission: 'core.settings.manage' },
@@ -813,6 +814,7 @@ export const ERP_MODULES: ErpModuleDef[] = [
       { from: 'modirpayamak', to: 'admin/integrations/modirpayamak' },
       { from: 'modirpayamak/*', to: 'admin/integrations/modirpayamak' },
       { from: 'logs', to: 'admin/logs' },
+      { from: 'users', to: 'admin/users' },
       { from: 'visitor-statistics', to: 'admin/analytics/visitors' },
       { from: 'settings', to: 'admin/settings' },
       { from: 'settings/*', to: 'admin/settings' },

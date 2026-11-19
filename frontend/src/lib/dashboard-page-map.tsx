@@ -27,6 +27,8 @@ import {
   VisitorStatsPageView,
 } from '@/components/dashboard/pages/CoreStaticPages';
 import { ProfilePage, ReportsPage } from '@/features/modules/core/core_pages';
+import { UsersAdminPage } from '@/features/modules/core/users/UsersAdminPage';
+import { UserDetailPage } from '@/features/modules/core/users/UserDetailPage';
 import { FieldPermissionsPage } from '@/features/modules/core/settings/FieldPermissionsPage';
 import {
   SettingsAccountingPage,
@@ -320,6 +322,8 @@ const EXACT: Record<string, ReactNode> = {
   '': <DashboardHomePage />,
   reports: <ReportsPage />,
   profile: <ProfilePage />,
+  'admin/users': <UsersAdminPage />,
+  users: <UsersAdminPage />,
   'crm/leads': <LeadsListPage />,
   leads: <LeadsListPage />,
   'crm/customers': <CustomersListPage />,
@@ -650,6 +654,7 @@ function resolveDetailPage(normalized: string): ReactNode | null {
   const root = parts.slice(0, -1).join('/');
 
   if (root === 'hrm/staff' || root === 'staff') return <StaffDetailPage id={id} />;
+  if ((root === 'admin/users' || root === 'users') && /^\d+$/.test(id)) return <UserDetailPage id={id} />;
   if ((root === 'hrm/payroll' || root === 'payroll') && /^\d+$/.test(id)) {
     return <PayrollRunDetailPage id={id} />;
   }
