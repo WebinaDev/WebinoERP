@@ -95,10 +95,15 @@ class PosService
             $report = $this->sessionReport($session);
             $expected = $report['cash']['expected'];
             $z = (int) PosSession::query()->where('register_id', $session->register_id)->max('z_number') + 1;
+            $closedAt = now();
+            $report['z_number'] = $z;
+            $report['closed_at'] = $closedAt->toIso8601String();
+            $report['cash']['counted'] = $countedCash;
+            $report['cash']['difference'] = round($countedCash - $expected, 2);
 
             $session->update([
                 'status' => 'closed',
-                'closed_at' => now(),
+                'closed_at' => $closedAt,
                 'expected_cash' => $expected,
                 'counted_cash' => $countedCash,
                 'cash_difference' => round($countedCash - $expected, 2),

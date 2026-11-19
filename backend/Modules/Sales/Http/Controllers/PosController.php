@@ -103,7 +103,7 @@ class PosController extends Controller
         }
         $s->load('register');
 
-        return response()->json(['data' => $s, 'report' => $this->pos->sessionReport($s)]);
+        return response()->json(['data' => ['session' => $s, 'report' => $this->pos->sessionReport($s)]]);
     }
 
     public function openSession(Request $request): JsonResponse
@@ -122,7 +122,7 @@ class PosController extends Controller
     {
         $s = $this->sessionFor($request, $id);
 
-        return response()->json(['data' => $s->load(['register', 'user:id,name', 'cashMovements']), 'report' => $s->status === 'closed' && $s->totals ? $s->totals + ['z_number' => $s->z_number] : $this->pos->sessionReport($s)]);
+        return response()->json(['data' => ['session' => $s->load(['register', 'user:id,name', 'cashMovements']), 'report' => $s->status === 'closed' && $s->totals ? array_merge($s->totals, ['z_number' => $s->z_number]) : $this->pos->sessionReport($s)]]);
     }
 
     public function closeSession(Request $request, int $id): JsonResponse
@@ -139,7 +139,7 @@ class PosController extends Controller
         }
         $closed = $this->pos->closeSession($s, isset($data['counted_cash']) ? (float) $data['counted_cash'] : null, $data['denominations'] ?? null, $data['note'] ?? null, $request->user()->id);
 
-        return response()->json(['data' => $closed, 'report' => $closed->totals + ['z_number' => $closed->z_number]]);
+        return response()->json(['data' => ['session' => $closed, 'report' => array_merge($closed->totals, ['z_number' => $closed->z_number])]]);
     }
 
     public function cashMovement(Request $request, int $id): JsonResponse
@@ -167,7 +167,7 @@ class PosController extends Controller
             $variant = AccProductVariant::query()->where('is_active', true)->where(fn ($q) => $q->where('barcode', $code)->orWhere('sku', $code))->first();
             $product = $variant ? AccProduct::query()->find($variant->product_id) : AccProduct::query()->where('barcode', $code)->first();
 
-            return response()->json(['data' => $product ? [$this->productRow($product, $warehouseId, $variant?->id)] : []]);
+            return response()->json(['data' => ['items' => $product ? [$this->productRow($product, $warehouseId, $variant?->id)] : [], 'categories' => []]]);
         }
         $q = AccProduct::query()->orderBy('name');
         if ($request->filled('q')) {
@@ -181,7 +181,7 @@ class PosController extends Controller
         $rows = $q->limit(min((int) $request->input('limit', 60), 200))->get()->map(fn ($p) => $this->productRow($p, $warehouseId, null));
         $categories = AccProduct::query()->whereNotNull('category')->where('category', '!=', '')->distinct()->orderBy('category')->pluck('category');
 
-        return response()->json(['data' => $rows, 'categories' => $categories]);
+        return response()->json(['data' => ['items' => $rows, 'categories' => $categories]]);
     }
 
     public function variants(int $id): JsonResponse
@@ -296,7 +296,7 @@ class PosController extends Controller
         }
         $order = $this->pos->checkout($session, $data, $request->user()->id);
 
-        return response()->json(['data' => $order, 'receipt' => $this->receipt($order)], 201);
+        return response()->json(['data' => $order->setAttribute('receipt', $this->receipt($order))], 201);
     }
 
     public function showOrder(Request $request, int $id): JsonResponse
@@ -306,7 +306,7 @@ class PosController extends Controller
             abort(403);
         }
 
-        return response()->json(['data' => $order, 'receipt' => $this->receipt($order)]);
+        return response()->json(['data' => $order->setAttribute('receipt', $this->receipt($order))]);
     }
 
     public function refund(Request $request, int $id): JsonResponse
@@ -329,7 +329,7 @@ class PosController extends Controller
         $order = PosOrder::query()->findOrFail($id);
         $refund = $this->pos->refund($order, $session, $data['lines'], $data['payments'] ?? null, (bool) ($data['restock'] ?? true), $data['reason'] ?? null, $request->user()->id);
 
-        return response()->json(['data' => $refund, 'receipt' => $this->receipt($refund)], 201);
+        return response()->json(['data' => $refund->setAttribute('receipt', $this->receipt($refund))], 201);
     }
 
     public function dailyReport(Request $request): JsonResponse

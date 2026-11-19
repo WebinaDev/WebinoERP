@@ -66,29 +66,27 @@ Route::prefix('quotes')->group(function () {
     Route::get('/growth/attribution', [\Modules\Sales\Http\Controllers\QuoteController::class, 'growthAttribution']);
 });
 
-// Point of sale (registers, shifts, checkout, refunds, Z reports)
-Route::prefix('pos')->group(function () {
-    $c = \Modules\Sales\Http\Controllers\PosController::class;
-    Route::get('overview', [$c, 'overview']);
-    Route::get('registers', [$c, 'registers']);
-    Route::post('registers', [$c, 'storeRegister']);
-    Route::put('registers/{id}', [$c, 'updateRegister'])->whereNumber('id');
-    Route::get('warehouses', [$c, 'warehouses']);
-    Route::get('sessions', [$c, 'sessions']);
-    Route::get('sessions/current', [$c, 'current']);
-    Route::post('sessions', [$c, 'openSession']);
-    Route::get('sessions/{id}', [$c, 'showSession'])->whereNumber('id');
-    Route::post('sessions/{id}/close', [$c, 'closeSession'])->whereNumber('id');
-    Route::post('sessions/{id}/cash-movements', [$c, 'cashMovement'])->whereNumber('id');
-    Route::get('products', [$c, 'products']);
-    Route::get('products/{id}/variants', [$c, 'variants'])->whereNumber('id');
-    Route::post('products/{id}/variants', [$c, 'storeVariant'])->whereNumber('id');
-    Route::put('variants/{variantId}', [$c, 'updateVariant'])->whereNumber('variantId');
-    Route::get('customers', [$c, 'customers']);
-    Route::post('customers', [$c, 'storeCustomer']);
-    Route::get('orders', [$c, 'orders']);
-    Route::post('orders', [$c, 'checkout']);
-    Route::get('orders/{id}', [$c, 'showOrder'])->whereNumber('id');
-    Route::post('orders/{id}/refund', [$c, 'refund'])->whereNumber('id');
-    Route::get('reports/daily', [$c, 'dailyReport']);
-});
+// Point of sale (registers, shifts, checkout, refunds, Z reports). Flat 'pos/...' URIs so module.permission maps the 'pos' segment.
+$posC = \Modules\Sales\Http\Controllers\PosController::class;
+Route::get('pos/overview', [$posC, 'overview']);
+Route::get('pos/registers', [$posC, 'registers']);
+Route::post('pos/registers', [$posC, 'storeRegister']);
+Route::put('pos/registers/{id}', [$posC, 'updateRegister'])->whereNumber('id');
+Route::get('pos/warehouses', [$posC, 'warehouses']);
+Route::get('pos/sessions', [$posC, 'sessions']);
+Route::get('pos/sessions/current', [$posC, 'current']);
+Route::post('pos/sessions', [$posC, 'openSession']);
+Route::get('pos/sessions/{id}', [$posC, 'showSession'])->whereNumber('id');
+Route::post('pos/sessions/{id}/close', [$posC, 'closeSession'])->whereNumber('id');
+Route::post('pos/sessions/{id}/cash-movements', [$posC, 'cashMovement'])->whereNumber('id');
+Route::get('pos/products', [$posC, 'products']);
+Route::get('pos/products/{id}/variants', [$posC, 'variants'])->whereNumber('id');
+Route::post('pos/products/{id}/variants', [$posC, 'storeVariant'])->whereNumber('id');
+Route::put('pos/variants/{variantId}', [$posC, 'updateVariant'])->whereNumber('variantId');
+Route::get('pos/customers', [$posC, 'customers']);
+Route::post('pos/customers', [$posC, 'storeCustomer']);
+Route::get('pos/orders', [$posC, 'orders']);
+Route::post('pos/orders', [$posC, 'checkout']);
+Route::get('pos/orders/{id}', [$posC, 'showOrder'])->whereNumber('id');
+Route::post('pos/orders/{id}/refund', [$posC, 'refund'])->whereNumber('id');
+Route::get('pos/reports/daily', [$posC, 'dailyReport']);
