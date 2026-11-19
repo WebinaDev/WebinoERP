@@ -8,10 +8,7 @@ const apiProxyTarget =
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   output: "standalone",
-  // TypeScript is enforced; ESLint warnings remain non-blocking until cleaned up.
-  eslint: {
-    ignoreDuringBuilds: true,
-  },
+  // TypeScript is enforced during builds. ESLint runs separately (npm run lint).
   compress: true,
   poweredByHeader: false,
   reactStrictMode: true,

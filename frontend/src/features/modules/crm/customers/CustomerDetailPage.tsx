@@ -1,5 +1,6 @@
 'use client';
 
+import type React from 'react';
 import { useCallback, useEffect, useState } from 'react';
 import { Download, Printer, Radio } from 'lucide-react';
 import Link from 'next/link';
@@ -33,7 +34,7 @@ const PRINT_CSS = `@media print {
 }`;
 
 /** Tab key → backend section that gates it (see CustomerHubAccess::VIEW). */
-export const TABS: { key: string; section: string; label: string; render: () => JSX.Element }[] = [
+export const TABS: { key: string; section: string; label: string; render: () => React.JSX.Element }[] = [
   { key: 'identity', section: 'identity', label: 'tab.identity', render: () => <IdentityTab /> },
   { key: 'assets', section: 'assets', label: 'tab.assets', render: () => <AssetsTab /> },
   { key: 'licenses', section: 'licenses', label: 'tab.licenses', render: () => <LicensesTab /> },

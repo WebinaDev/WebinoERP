@@ -60,7 +60,7 @@ function rewriteImageOptimizerSource(request: NextRequest): NextResponse | null 
   return NextResponse.rewrite(next)
 }
 
-export async function middleware(request: NextRequest) {
+export async function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl
   if (pathname === "/_next/image") return rewriteImageOptimizerSource(request) ?? NextResponse.next()
   const host = (request.headers.get("host") ?? "").split(":")[0].toLowerCase()

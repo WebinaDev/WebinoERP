@@ -222,7 +222,7 @@ export default function AccWarehouses() {
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle>{t('auto.accounting_AccWarehouses.s_c97ff919')}</AlertDialogTitle>
-            <AlertDialogDescription>{t('common.confirmDeleteNamed', { name: deleteTarget?.name })}</AlertDialogDescription>
+            <AlertDialogDescription>{t('common.confirmDeleteNamed', { name: deleteTarget?.name ?? '' })}</AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel>{t('auto.accounting_AccWarehouses.s_106dfb4e')}</AlertDialogCancel>

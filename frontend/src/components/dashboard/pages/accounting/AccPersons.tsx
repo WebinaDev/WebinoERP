@@ -271,7 +271,7 @@ export default function AccPersons() {
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle>{t('auto.accounting_AccPersons.s_d3594711')}</AlertDialogTitle>
-            <AlertDialogDescription>{t('common.confirmDeleteNamedIrreversible', { name: deleteTarget?.name })}</AlertDialogDescription>
+            <AlertDialogDescription>{t('common.confirmDeleteNamedIrreversible', { name: deleteTarget?.name ?? '' })}</AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel>{t('auto.accounting_AccPersons.s_106dfb4e')}</AlertDialogCancel>

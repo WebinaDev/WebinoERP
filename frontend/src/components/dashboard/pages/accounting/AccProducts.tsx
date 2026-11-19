@@ -323,7 +323,7 @@ export default function AccProducts() {
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle>{t('auto.accounting_AccProducts.s_e9a9c15e')}</AlertDialogTitle>
-            <AlertDialogDescription>{t('common.confirmDeleteNamed', { name: deleteTarget?.name })}</AlertDialogDescription>
+            <AlertDialogDescription>{t('common.confirmDeleteNamed', { name: deleteTarget?.name ?? '' })}</AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel>{t('auto.accounting_AccProducts.s_106dfb4e')}</AlertDialogCancel>

@@ -255,7 +255,7 @@ export default function AccCashAccounts() {
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle>{t('auto.accounting_AccCashAccounts.s_a00b2048')}</AlertDialogTitle>
-            <AlertDialogDescription>{t('common.confirmDeleteNamed', { name: deleteTarget?.name })}</AlertDialogDescription>
+            <AlertDialogDescription>{t('common.confirmDeleteNamed', { name: deleteTarget?.name ?? '' })}</AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel>{t('auto.accounting_AccCashAccounts.s_106dfb4e')}</AlertDialogCancel>

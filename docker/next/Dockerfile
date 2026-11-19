@@ -1,6 +1,6 @@
 # Build context: Plugins/Webina workspace root. @webina/ui is installed from git (WebinaDev/webina-ui, public).
-# NODE_IMAGE: override for Iranian mirrors, e.g. hub.hamdocker.ir/library/node:22-alpine
-ARG NODE_IMAGE=node:22-alpine
+# NODE_IMAGE: override for Iranian mirrors, e.g. hub.hamdocker.ir/library/node:24-alpine
+ARG NODE_IMAGE=node:24-alpine
 FROM ${NODE_IMAGE} AS deps
 WORKDIR /src
 RUN apk add --no-cache git
@@ -8,7 +8,7 @@ COPY WebinoERP/frontend/package.json WebinoERP/frontend/package-lock.json ./Webi
 WORKDIR /src/WebinoERP/frontend
 RUN npm ci --no-audit --no-fund
 
-ARG NODE_IMAGE=node:22-alpine
+ARG NODE_IMAGE=node:24-alpine
 FROM ${NODE_IMAGE} AS builder
 WORKDIR /src
 COPY WebinoERP/frontend ./WebinoERP/frontend
@@ -23,7 +23,7 @@ ARG NEXT_PUBLIC_API_URL=/api
 ENV NEXT_PUBLIC_API_URL=${NEXT_PUBLIC_API_URL}
 RUN npm run build
 
-ARG NODE_IMAGE=node:22-alpine
+ARG NODE_IMAGE=node:24-alpine
 FROM ${NODE_IMAGE} AS runner
 WORKDIR /app
 ENV NODE_ENV=production

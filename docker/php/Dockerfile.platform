@@ -1,5 +1,5 @@
 # Production backend image for WebinoERM multi-site platform.
-FROM php:8.3-cli-bookworm
+FROM php:8.5-cli-bookworm
 
 ARG APT_MIRROR=
 ARG FORCE_APT_IPV4=1

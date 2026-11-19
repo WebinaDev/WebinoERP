@@ -297,7 +297,7 @@ export default function AccReceipts() {
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle>{t('auto.accounting_AccReceipts.s_aad2c499')}</AlertDialogTitle>
-            <AlertDialogDescription>{t('common.confirmDeleteReceipt', { number: deleteTarget?.number })}</AlertDialogDescription>
+            <AlertDialogDescription>{t('common.confirmDeleteReceipt', { number: deleteTarget?.number ?? '' })}</AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel>{t('auto.accounting_AccReceipts.s_106dfb4e')}</AlertDialogCancel>

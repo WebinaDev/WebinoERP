@@ -195,7 +195,7 @@ export function WarehousesPage() {
           <AlertDialogHeader>
             <AlertDialogTitle>{tNav('common.delete')}</AlertDialogTitle>
             <AlertDialogDescription>
-              {tNav('common.confirmDeleteNamed', { name: deleteTarget?.name })}
+              {tNav('common.confirmDeleteNamed', { name: deleteTarget?.name ?? '' })}
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>

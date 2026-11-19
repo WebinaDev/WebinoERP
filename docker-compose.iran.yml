@@ -19,35 +19,35 @@ services:
   backend:
     build:
       args:
-        PHP_IMAGE: ${BACKEND_PHP_IMAGE:-hub.hamdocker.ir/library/php:8.3-fpm-bookworm}
+        PHP_IMAGE: ${BACKEND_PHP_IMAGE:-hub.hamdocker.ir/library/php:8.5-fpm-bookworm}
         COMPOSER_IMAGE: ${COMPOSER_IMAGE:-hub.hamdocker.ir/library/composer:2}
-        DOCKER_CLI_IMAGE: ${DOCKER_CLI_IMAGE:-hub.hamdocker.ir/library/docker:27-cli}
+        DOCKER_CLI_IMAGE: ${DOCKER_CLI_IMAGE:-hub.hamdocker.ir/library/docker:29-cli}
 
   worker:
     build:
       args:
-        PHP_IMAGE: ${PHP_IMAGE:-hub.hamdocker.ir/library/php:8.3-cli-bookworm}
+        PHP_IMAGE: ${PHP_IMAGE:-hub.hamdocker.ir/library/php:8.5-cli-bookworm}
         COMPOSER_IMAGE: ${COMPOSER_IMAGE:-hub.hamdocker.ir/library/composer:2}
-        DOCKER_CLI_IMAGE: ${DOCKER_CLI_IMAGE:-hub.hamdocker.ir/library/docker:27-cli}
+        DOCKER_CLI_IMAGE: ${DOCKER_CLI_IMAGE:-hub.hamdocker.ir/library/docker:29-cli}
 
   scheduler:
     build:
       args:
-        PHP_IMAGE: ${PHP_IMAGE:-hub.hamdocker.ir/library/php:8.3-cli-bookworm}
+        PHP_IMAGE: ${PHP_IMAGE:-hub.hamdocker.ir/library/php:8.5-cli-bookworm}
         COMPOSER_IMAGE: ${COMPOSER_IMAGE:-hub.hamdocker.ir/library/composer:2}
-        DOCKER_CLI_IMAGE: ${DOCKER_CLI_IMAGE:-hub.hamdocker.ir/library/docker:27-cli}
+        DOCKER_CLI_IMAGE: ${DOCKER_CLI_IMAGE:-hub.hamdocker.ir/library/docker:29-cli}
 
   ws:
     build:
       args:
-        PHP_IMAGE: ${PHP_IMAGE:-hub.hamdocker.ir/library/php:8.3-cli-bookworm}
+        PHP_IMAGE: ${PHP_IMAGE:-hub.hamdocker.ir/library/php:8.5-cli-bookworm}
         COMPOSER_IMAGE: ${COMPOSER_IMAGE:-hub.hamdocker.ir/library/composer:2}
-        DOCKER_CLI_IMAGE: ${DOCKER_CLI_IMAGE:-hub.hamdocker.ir/library/docker:27-cli}
+        DOCKER_CLI_IMAGE: ${DOCKER_CLI_IMAGE:-hub.hamdocker.ir/library/docker:29-cli}
 
   frontend:
     build:
       args:
-        NODE_IMAGE: ${NODE_IMAGE:-hub.hamdocker.ir/library/node:22-alpine}
+        NODE_IMAGE: ${NODE_IMAGE:-hub.hamdocker.ir/library/node:24-alpine}
 
   edge:
-    image: ${EDGE_IMAGE:-hub.hamdocker.ir/library/nginx:1.27-alpine}
+    image: ${EDGE_IMAGE:-hub.hamdocker.ir/library/nginx:1.30-alpine}

@@ -1,9 +1,9 @@
 # PHP_IMAGE / COMPOSER_IMAGE / DOCKER_CLI_IMAGE:
-# override for Iranian mirrors, e.g. hub.hamdocker.ir/library/php:8.3-cli-bookworm
+# override for Iranian mirrors, e.g. hub.hamdocker.ir/library/php:8.5-fpm-bookworm
 # Backend uses the -fpm image (php-fpm + nginx); it also ships the php CLI for workers.
-ARG PHP_IMAGE=php:8.3-fpm-bookworm
+ARG PHP_IMAGE=php:8.5-fpm-bookworm
 ARG COMPOSER_IMAGE=composer:2
-ARG DOCKER_CLI_IMAGE=docker:27-cli
+ARG DOCKER_CLI_IMAGE=docker:29-cli
 
 # BuildKit does not allow COPY --from=${VAR}; use named stages instead.
 # FrankenPHP image is intentionally omitted: entrypoint forces `artisan serve`
@@ -14,7 +14,7 @@ FROM ${DOCKER_CLI_IMAGE} AS docker_cli_src
 
 FROM ${PHP_IMAGE}
 
-ARG REDIS_PECL_VERSION=6.0.2
+ARG REDIS_PECL_VERSION=6.3.0
 
 COPY docker/php/install-redis.sh /tmp/install-redis.sh
 
@@ -23,11 +23,19 @@ RUN apt-get update \
         $PHPIZE_DEPS \
         git unzip libzip-dev libpq-dev libpng-dev libonig-dev libxml2-dev libsqlite3-dev \
         libbrotli-dev curl ca-certificates nginx-light \
-    && docker-php-ext-install dom xml zip pdo_sqlite pdo_pgsql pgsql mbstring pcntl bcmath gd opcache \
+    # Only compile what the base image lacks (dom/xml/mbstring/pdo_sqlite are built in;
+    # PHP 8.5 also ships OPcache built in, and rebuilding dom there fails on lexbor headers).
+    && missing="" \
+    && for ext in dom xml zip pdo_sqlite pdo_pgsql pgsql mbstring pcntl bcmath gd; do \
+         php -m | grep -qix "$ext" || missing="$missing $ext"; \
+       done \
+    && if [ -n "$missing" ]; then docker-php-ext-install $missing; fi \
+    && (php -m | grep -qi 'zend opcache' || docker-php-ext-install opcache) \
     && chmod +x /tmp/install-redis.sh \
     && REDIS_PECL_VERSION="$REDIS_PECL_VERSION" /tmp/install-redis.sh \
     && rm -f /tmp/install-redis.sh \
-    && docker-php-ext-enable redis opcache \
+    && docker-php-ext-enable redis \
+    && (php -m | grep -qi 'zend opcache' || docker-php-ext-enable opcache) \
     && rm -rf /var/lib/apt/lists/*
 
 RUN echo "opcache.enable=1" >> /usr/local/etc/php/conf.d/opcache.ini \
