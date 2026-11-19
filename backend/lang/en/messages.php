@@ -314,4 +314,5 @@ return [
     'site_auth_already_enrolled' => 'This domain is already enrolled; re-enrolling needs a request signed with the current key, or an admin reset.',
     'action_successful' => 'Action performed successfully.',
     'action_forbidden' => 'You do not have permission for this action.',
+    'invalid_status' => 'The current status does not allow this action.',
 ];

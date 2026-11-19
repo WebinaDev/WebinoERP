@@ -2,7 +2,9 @@
 
 namespace Modules\Docs\Services;
 
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
+use Modules\Crm\Services\CrmOutboundMessenger;
 use Illuminate\Support\Str;
 use Modules\Docs\Entities\DocsContract;
 use Modules\Docs\Entities\DocsContractAddendum;
@@ -58,7 +60,7 @@ class ContractLifecycleService
     public function createSignatureEnvelope(DocsContract $contract, string $signerName, string $signerMobile): DocsSignatureEnvelope
     {
         $token = Str::random(40);
-        $otp = (string) rand(100000, 999999);
+        $otp = (string) random_int(100000, 999999);
 
         $envelope = DocsSignatureEnvelope::create([
             'contract_id' => $contract->id,
@@ -71,6 +73,14 @@ class ContractLifecycleService
         ]);
 
         $contract->update(['status' => 'pending_signature']);
+
+        // Deliver the one-time code to the signer; without this the envelope can never be signed.
+        $title = $contract->title ?? $contract->contract_number ?? ('#'.$contract->id);
+        $sms = app(CrmOutboundMessenger::class)->deliverSms(
+            $signerMobile,
+            "کد امضای قرارداد «{$title}»: {$otp}\nاعتبار: ۱۰ دقیقه"
+        );
+        $envelope->setAttribute('otp_delivery', $sms['status'] ?? 'unknown');
 
         return $envelope;
     }
@@ -88,7 +98,14 @@ class ContractLifecycleService
             throw new \RuntimeException('کد یکبار مصرف امضا (OTP) منقضی شده است.');
         }
 
+        // Brute-force guard: at most 5 wrong codes per envelope.
+        $attemptsKey = 'docs:envelope-otp-attempts:'.$envelope->id;
+        if ((int) Cache::get($attemptsKey, 0) >= 5) {
+            throw new \RuntimeException('تعداد تلاش‌های ناموفق زیاد است. پاکت امضای جدید بسازید.');
+        }
+
         if (! password_verify($otp, $envelope->otp_code_hash)) {
+            Cache::put($attemptsKey, (int) Cache::get($attemptsKey, 0) + 1, now()->addMinutes(30));
             throw new \RuntimeException('کد اعتبارسنجی پیامک‌شده نامعتبر است.');
         }
 

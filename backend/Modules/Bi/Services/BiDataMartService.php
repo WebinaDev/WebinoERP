@@ -7,81 +7,107 @@ use Illuminate\Support\Facades\Schema;
 
 class BiDataMartService
 {
+    /**
+     * KPI snapshot computed from live tables only. A value the data cannot
+     * support (no cost data, no tickets, ...) is returned as null, never a guess.
+     */
     public function getKpiSummary(array $filters = []): array
     {
         $companyId = $filters['company_id'] ?? null;
         $from = $filters['from'] ?? now()->subDays(30)->toDateString();
         $to = $filters['to'] ?? now()->toDateString();
 
-        // 1. Sales & Margin
-        $salesQuery = DB::table('sales_invoices')->where('status', '!=', 'cancelled');
-        if ($companyId && Schema::hasColumn('sales_invoices', 'company_id')) {
-            $salesQuery->where('company_id', $companyId);
-        }
-        $totalSales = (float) $salesQuery->sum('total');
-        $marginEst = $totalSales * 0.28; // Standard 28% gross margin model
+        // 1. Sales in period (issue date, falling back to creation date)
+        $totalSales = 0.0;
+        $grossMargin = null;
+        if (Schema::hasTable('sales_invoices')) {
+            $salesQuery = DB::table('sales_invoices')->where('status', '!=', 'cancelled')
+                ->whereRaw('COALESCE(issue_date, DATE(created_at)) BETWEEN ? AND ?', [$from, $to]);
+            if ($companyId && Schema::hasColumn('sales_invoices', 'company_id')) {
+                $salesQuery->where('company_id', $companyId);
+            }
+            $totalSales = (float) (clone $salesQuery)->sum('total');
 
-        // 2. Inventory & Turnover
+            // Gross margin only when product cost prices exist for the invoiced lines.
+            if (Schema::hasTable('sales_invoice_lines') && Schema::hasTable('acc_products') && Schema::hasColumn('acc_products', 'buy_price')) {
+                $invoiceIds = (clone $salesQuery)->pluck('id');
+                $lines = DB::table('sales_invoice_lines as l')
+                    ->join('acc_products as p', 'p.id', '=', 'l.product_id')
+                    ->whereIn('l.invoice_id', $invoiceIds)
+                    ->selectRaw('SUM(l.line_total - l.tax_amount) as revenue, SUM(l.quantity * p.buy_price) as cost, COUNT(*) as n')
+                    ->first();
+                if ($lines && (int) $lines->n > 0 && (float) $lines->cost > 0) {
+                    $grossMargin = (float) $lines->revenue - (float) $lines->cost;
+                }
+            }
+        }
+
+        // 2. Inventory on hand
         $totalStockQty = 0.0;
         if (Schema::hasTable('scm_warehouse_stock')) {
             $totalStockQty = (float) DB::table('scm_warehouse_stock')->sum('quantity');
         }
-        $turnoverRatio = $totalStockQty > 0 ? round(($totalSales / max(1, $totalStockQty * 1000)), 2) : 1.4;
 
-        // 3. AR Collection
+        // 3. Receivables: unpaid part of sales invoices, and invoices more than 90 days past due
         $totalAr = 0.0;
-        if (Schema::hasTable('acc_invoices')) {
-            $totalAr = (float) DB::table('acc_invoices')->where('status', 'posted')->sum('total');
+        $agingCritical = 0;
+        if (Schema::hasTable('sales_invoices') && Schema::hasColumn('sales_invoices', 'paid_amount')) {
+            $ar = DB::table('sales_invoices')->where('status', '!=', 'cancelled')->where('payment_status', '!=', 'paid');
+            if ($companyId && Schema::hasColumn('sales_invoices', 'company_id')) {
+                $ar->where('company_id', $companyId);
+            }
+            $totalAr = (float) (clone $ar)->sum(DB::raw('total - paid_amount'));
+            if (Schema::hasColumn('sales_invoices', 'due_date')) {
+                $agingCritical = (clone $ar)->whereNotNull('due_date')->where('due_date', '<', now()->subDays(90)->toDateString())->count();
+            }
         }
 
-        // 4. Lead Conversion Rate
+        // 4. Lead conversion
         $leadTotal = 0;
         $leadConverted = 0;
         if (Schema::hasTable('crm_leads')) {
             $leadTotal = DB::table('crm_leads')->count();
             $leadConverted = DB::table('crm_leads')->where('status', 'converted')->count();
         }
-        $conversionRate = $leadTotal > 0 ? round(($leadConverted / $leadTotal) * 100, 1) : 0.0;
 
-        // 5. Project Profitability
+        // 5. Projects
         $projectCount = Schema::hasTable('prj_projects') ? DB::table('prj_projects')->count() : 0;
-        $avgMarginPercent = 24.5;
 
-        // 6. Support SLA
+        // 6. Support: share of tickets closed
         $ticketCount = 0;
-        $ticketResolvedOnTime = 0;
+        $ticketClosed = 0;
         if (Schema::hasTable('prj_tickets')) {
             $ticketCount = DB::table('prj_tickets')->count();
-            $ticketResolvedOnTime = DB::table('prj_tickets')->where('status', 'closed')->count();
+            $ticketClosed = DB::table('prj_tickets')->where('status', 'closed')->count();
         }
-        $slaComplianceRate = $ticketCount > 0 ? round(($ticketResolvedOnTime / $ticketCount) * 100, 1) : 92.0;
 
         return [
+            'period' => ['from' => $from, 'to' => $to],
             'sales_margin' => [
                 'total_sales' => $totalSales,
-                'gross_margin' => $marginEst,
-                'margin_percent' => $totalSales > 0 ? round(($marginEst / $totalSales) * 100, 1) : 0,
+                'gross_margin' => $grossMargin,
+                'margin_percent' => ($grossMargin !== null && $totalSales > 0) ? round(($grossMargin / $totalSales) * 100, 1) : null,
             ],
             'inventory_turnover' => [
                 'total_units' => $totalStockQty,
-                'turnover_ratio' => $turnoverRatio,
+                'turnover_ratio' => null,
             ],
             'ar_collection' => [
                 'outstanding_ar' => $totalAr,
-                'aging_critical_count' => 2,
+                'aging_critical_count' => $agingCritical,
             ],
             'lead_conversion' => [
                 'total_leads' => $leadTotal,
                 'converted_leads' => $leadConverted,
-                'conversion_rate' => $conversionRate,
+                'conversion_rate' => $leadTotal > 0 ? round(($leadConverted / $leadTotal) * 100, 1) : null,
             ],
             'project_profitability' => [
                 'active_projects' => $projectCount,
-                'average_margin_percent' => $avgMarginPercent,
+                'average_margin_percent' => null,
             ],
             'support_sla' => [
                 'total_tickets' => $ticketCount,
-                'compliance_rate' => $slaComplianceRate,
+                'compliance_rate' => $ticketCount > 0 ? round(($ticketClosed / $ticketCount) * 100, 1) : null,
             ],
         ];
     }
@@ -95,7 +121,7 @@ class BiDataMartService
                 'role' => 'ceo',
                 'title' => 'داشبورد مدیریتی مدیرعامل (CEO)',
                 'cards' => [
-                    ['key' => 'total_sales', 'title' => 'فروش کل', 'value' => $kpis['sales_margin']['total_sales'], 'unit' => 'ریال'],
+                    ['key' => 'total_sales', 'title' => 'فروش کل', 'value' => $kpis['sales_margin']['total_sales'], 'unit' => 'currency'],
                     ['key' => 'margin_percent', 'title' => 'درصد سود ناخالص', 'value' => $kpis['sales_margin']['margin_percent'], 'unit' => '%'],
                     ['key' => 'conversion_rate', 'title' => 'نرخ تبدیل سرنخ به مشتری', 'value' => $kpis['lead_conversion']['conversion_rate'], 'unit' => '%'],
                     ['key' => 'sla_compliance', 'title' => 'پایبندی به SLA خدمات و پشتیبانی', 'value' => $kpis['support_sla']['compliance_rate'], 'unit' => '%'],
@@ -106,7 +132,7 @@ class BiDataMartService
                 'role' => 'sales',
                 'title' => 'داشبورد اجرایی فروش و بازاریابی',
                 'cards' => [
-                    ['key' => 'total_sales', 'title' => 'فروش کل دوره‌ای', 'value' => $kpis['sales_margin']['total_sales'], 'unit' => 'ریال'],
+                    ['key' => 'total_sales', 'title' => 'فروش کل دوره‌ای', 'value' => $kpis['sales_margin']['total_sales'], 'unit' => 'currency'],
                     ['key' => 'conversion_rate', 'title' => 'نرخ تبدیل لید', 'value' => $kpis['lead_conversion']['conversion_rate'], 'unit' => '%'],
                     ['key' => 'total_leads', 'title' => 'تعداد سرنخ‌ها', 'value' => $kpis['lead_conversion']['total_leads'], 'unit' => 'مورد'],
                 ],
@@ -126,9 +152,9 @@ class BiDataMartService
                 'role' => 'finance',
                 'title' => 'داشبورد مدیریت مالی و وصول مطالبات',
                 'cards' => [
-                    ['key' => 'total_sales', 'title' => 'کل فروش صادره', 'value' => $kpis['sales_margin']['total_sales'], 'unit' => 'ریال'],
-                    ['key' => 'outstanding_ar', 'title' => 'مطالبات وصول‌نشده (AR)', 'value' => $kpis['ar_collection']['outstanding_ar'], 'unit' => 'ریال'],
-                    ['key' => 'gross_margin', 'title' => 'سود ناخالص عملیاتی', 'value' => $kpis['sales_margin']['gross_margin'], 'unit' => 'ریال'],
+                    ['key' => 'total_sales', 'title' => 'کل فروش صادره', 'value' => $kpis['sales_margin']['total_sales'], 'unit' => 'currency'],
+                    ['key' => 'outstanding_ar', 'title' => 'مطالبات وصول‌نشده (AR)', 'value' => $kpis['ar_collection']['outstanding_ar'], 'unit' => 'currency'],
+                    ['key' => 'gross_margin', 'title' => 'سود ناخالص عملیاتی', 'value' => $kpis['sales_margin']['gross_margin'], 'unit' => 'currency'],
                 ],
                 'highlights' => $kpis['ar_collection'],
             ],

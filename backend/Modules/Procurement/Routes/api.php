@@ -5,9 +5,12 @@ use Modules\Procurement\Http\Controllers\ProcurementController;
 
 Route::get('/requests', [ProcurementController::class, 'requests']);
 Route::post('/requests', [ProcurementController::class, 'storeRequest']);
+Route::post('/requests/{id}/decide', [ProcurementController::class, 'decideRequest'])->whereNumber('id');
 
 Route::get('/rfqs', [ProcurementController::class, 'rfqs']);
 Route::post('/rfqs', [ProcurementController::class, 'storeRfq']);
+Route::post('/rfqs/{id}/bids', [ProcurementController::class, 'storeBid'])->whereNumber('id');
+Route::post('/rfqs/{id}/award', [ProcurementController::class, 'awardRfq'])->whereNumber('id');
 
 Route::get('/orders', [ProcurementController::class, 'orders']);
 Route::post('/orders', [ProcurementController::class, 'storeOrder']);

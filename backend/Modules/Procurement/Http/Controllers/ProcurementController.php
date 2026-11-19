@@ -206,4 +206,53 @@ class ProcurementController extends Controller
 
         return response()->json(['data' => $matchResult]);
     }
+
+    /** Approve or reject a submitted/draft purchase request (not by its own requester). */
+    public function decideRequest(Request $request, int $id): JsonResponse
+    {
+        $data = $request->validate(['decision' => 'required|in:approve,reject']);
+        $pr = PrcPurchaseRequest::query()->findOrFail($id);
+        abort_unless(in_array($pr->status, ['draft', 'submitted'], true), 422, __('messages.invalid_status'));
+        $user = $request->user();
+        abort_if((int) $pr->requested_by === (int) $user->id && ! $user->hasRole('system_manager'), 403, __('api.permission_denied'));
+
+        $pr->update([
+            'status' => $data['decision'] === 'approve' ? 'approved' : 'rejected',
+            'approved_by' => $user->id,
+            'approved_at' => now(),
+        ]);
+
+        return response()->json(['data' => $pr->fresh(['requester', 'company', 'branch'])]);
+    }
+
+    /** Record a vendor bid on an open RFQ. */
+    public function storeBid(Request $request, int $id): JsonResponse
+    {
+        $data = $request->validate([
+            'vendor_id' => 'required|exists:acc_persons,id',
+            'amount' => 'required|numeric|min:0',
+            'delivery_days' => 'nullable|integer|min:0',
+            'notes' => 'nullable|string|max:500',
+        ]);
+        $rfq = PrcRfq::query()->findOrFail($id);
+        abort_unless(in_array($rfq->status, ['open', 'evaluating'], true), 422, __('messages.invalid_status'));
+
+        $bids = collect($rfq->bids ?? [])->reject(fn ($b) => (int) ($b['vendor_id'] ?? 0) === (int) $data['vendor_id'])->values()->all();
+        $bids[] = array_merge($data, ['submitted_at' => now()->toIso8601String()]);
+        $rfq->update(['bids' => $bids, 'status' => 'evaluating']);
+
+        return response()->json(['data' => $rfq->fresh()]);
+    }
+
+    /** Award an RFQ to one of its bidders. */
+    public function awardRfq(Request $request, int $id): JsonResponse
+    {
+        $data = $request->validate(['vendor_id' => 'required|integer']);
+        $rfq = PrcRfq::query()->findOrFail($id);
+        $hasBid = collect($rfq->bids ?? [])->contains(fn ($b) => (int) ($b['vendor_id'] ?? 0) === (int) $data['vendor_id']);
+        abort_unless($hasBid, 422, __('messages.invalid_status'));
+        $rfq->update(['winner_vendor_id' => $data['vendor_id'], 'status' => 'awarded']);
+
+        return response()->json(['data' => $rfq->fresh(['winnerVendor'])]);
+    }
 }

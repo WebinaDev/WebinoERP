@@ -20,7 +20,7 @@ class OrderToCashService
     public function createQuote(array $data, array $items): SalesQuote
     {
         return DB::transaction(function () use ($data, $items) {
-            $quoteNumber = 'SQ-' . date('Ymd') . '-' . rand(1000, 9999);
+            $quoteNumber = $this->nextNumber('SQ-'.date('Ymd').'-', SalesQuote::class, 'quote_number');
 
             $subtotal = 0;
             $discountTotal = 0;
@@ -87,7 +87,7 @@ class OrderToCashService
     {
         return DB::transaction(function () use ($quote, $dueDate) {
             $quote->loadMissing('lines');
-            $invoiceNumber = 'INV-' . date('Ymd') . '-' . rand(1000, 9999);
+            $invoiceNumber = $this->nextNumber('INV-'.date('Ymd').'-', SalesInvoice::class, 'number');
 
             $invoice = SalesInvoice::create([
                 'number' => $invoiceNumber,
@@ -165,5 +165,21 @@ class OrderToCashService
                 'total_converted_invoices' => (int) $rows->sum('total_invoices'),
             ],
         ];
+    }
+
+    /**
+     * Daily sequential number (PREFIX-0001, ...) that never collides with an existing row.
+     *
+     * @param  class-string<\Illuminate\Database\Eloquent\Model>  $model
+     */
+    private function nextNumber(string $prefix, string $model, string $column): string
+    {
+        $n = $model::query()->where($column, 'like', $prefix.'%')->count() + 1;
+        do {
+            $candidate = $prefix.str_pad((string) $n, 4, '0', STR_PAD_LEFT);
+            $n++;
+        } while ($model::query()->where($column, $candidate)->exists());
+
+        return $candidate;
     }
 }
