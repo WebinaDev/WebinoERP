@@ -40,7 +40,8 @@ final class CoreLicenseResolver
 
         // Map common aliases from legacy WP / Dashboard clients.
         return match ($product) {
-            'webinodashboard', 'webino-dashboard', 'dashboard' => 'webinodashboard',
+            // «وبینا استودیو» (Webina Studio) is the new name of the same product; the stored key stays.
+            'webinodashboard', 'webino-dashboard', 'dashboard', 'webinastudio', 'webina-studio', 'webina_studio' => 'webinodashboard',
             'webinocrm', 'webino-crm', 'crm', 'erp', 'webinoerp', 'webino-erp' => 'webino',
             'wordpress', 'wp', 'webinowp' => 'wordpress',
             default => $product,

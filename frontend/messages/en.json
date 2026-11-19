@@ -956,7 +956,7 @@
     "invalidGitDot": "Invalid git JSON.",
     "error": "An error occurred.",
     "status": "Status",
-    "appName": "Webino Dashboard",
+    "appName": "Webino Panel",
     "saving": "Saving…",
     "locale_en": "English",
     "locale_fa": "Persian",
@@ -2598,7 +2598,7 @@
     "noCategory": "No category",
     "isFree": "Free module",
     "isBuiltin": "Bundled with dashboard",
-    "isBuiltinHelp": "Shipped in the default Webino Dashboard bundle; separate from Gitea marketplace products.",
+    "isBuiltinHelp": "Shipped in the default Webina Studio bundle; separate from Gitea marketplace products.",
     "bundledWithDashboard": "Bundled with dashboard",
     "inactive": "Inactive",
     "statusActive": "Active",
@@ -5144,7 +5144,7 @@
     "defaultProductChannel": "Default product channel",
     "provisionWebhookSecret": "Provision webhook secret (leave blank to keep)",
     "platformSection": "Platform provisioning",
-    "platformSectionHint": "Servers, Docker, domains and Webino Dashboard sites are managed under Admin → Platform.",
+    "platformSectionHint": "Servers, Docker, domains and Webina Studio sites are managed under Admin → Platform.",
     "openPlatformSites": "Platform sites",
     "openPlatformDashboard": "Platform dashboard"
   },
@@ -5639,7 +5639,7 @@
         "image": "Docker image",
         "database": "Database",
         "service": "One-click service",
-        "webino_dashboard": "Webino dashboard"
+        "webino_dashboard": "Webina Studio"
       },
       "healthcheck": "Healthcheck path",
       "rollingUpdate": "Rolling update",
@@ -8258,7 +8258,7 @@
     "product": {
       "docsTitle": "Webina docs",
       "hostingTitle": "Hosting platform",
-      "dashboardTitle": "Webino Dashboard",
+      "dashboardTitle": "Webina Studio",
       "erpTitle": "WebinoERP"
     },
     "page": {
@@ -8857,7 +8857,7 @@
   },
   "builder": {
     "list_title": "Site builder",
-    "list_subtitle": "Build Webina pages, header, and footer with the same document as WebinoDashboard.",
+    "list_subtitle": "Build Webina pages, header, and footer with the same document as Webina Studio.",
     "open": "Edit",
     "create": "New page",
     "header": "Header",

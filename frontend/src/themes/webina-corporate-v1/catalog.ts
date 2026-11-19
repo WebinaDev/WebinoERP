@@ -15,7 +15,7 @@ export const PRODUCTS: {
     href: '/products#dashboard',
     portfolioSlug: 'webino-dashboard',
     icon: 'LayoutDashboard',
-    title: { fa: 'Webino Dashboard', en: 'Webino Dashboard' },
+    title: { fa: 'وبینا استودیو', en: 'Webina Studio' },
     body: {
       fa: 'محصول سایت‌ساز وبینا. از Site Builder با نوع فروشگاه، مجله، کافه، رزومه یا شرکت بالا می‌آید و لایسنس همان نوع را می‌گیرد.',
       en: 'Webina’s site product. Site Builder launches it as a store, magazine, cafe, resume, or company site, with a matching license profile.',

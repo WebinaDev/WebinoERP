@@ -9,6 +9,7 @@ use Modules\Platform\Entities\PlatformDeployment;
 use Modules\Platform\Entities\PlatformDomain;
 use Modules\Platform\Entities\PlatformResource;
 use Modules\Platform\Entities\PlatformServer;
+use Modules\Platform\Support\WebinaStudioSource;
 use Modules\Platform\Support\StackHealthReport;
 use Modules\Platform\Support\TenantAliasDomains;
 use Modules\Platform\Support\TenantEnvBuilder;
@@ -22,9 +23,9 @@ use Symfony\Component\Process\Process;
 use Throwable;
 
 /**
- * Provisions an isolated WebinoDashboard stack on the same VPS as WebinoERP (no SSH).
+ * Provisions an isolated Webina Studio (formerly WebinoDashboard) stack on the same VPS as WebinoERP (no SSH).
  *
- * Source: git clone https://github.com/Webinadev/WebinoDashboard into /var/lib/webino/src
+ * Source: git clone https://github.com/Webinadev/webina-studio into /var/lib/webino/src
  * (path shared with the host Docker daemon). Each site is a separate compose project.
  */
 class LocalSameVpsProvisioner
@@ -134,8 +135,8 @@ class LocalSameVpsProvisioner
                 'status' => 'running',
                 'fqdn' => $provision->domain,
                 'build_pack' => 'compose',
-                'git_repository' => (string) env('WEBINO_DASHBOARD_GIT_URL', 'https://github.com/Webinadev/WebinoDashboard.git'),
-                'git_branch' => (string) env('WEBINO_DASHBOARD_GIT_REF', 'main'),
+                'git_repository' => WebinaStudioSource::gitUrl(),
+                'git_branch' => WebinaStudioSource::gitRef(),
                 'site_type_slug' => $siteType,
                 'license_id' => $provision->license_id,
                 'crm_account_id' => $provision->crm_account_id,
@@ -1716,7 +1717,7 @@ class LocalSameVpsProvisioner
     }
 
     /**
-     * Env passed to scripts/build-webino-dashboard-images.sh (git + IR Hub mirrors).
+     * Env passed to scripts/build-webina-studio-images.sh (git + IR Hub mirrors).
      *
      * @param  array{force_git?:bool,no_cache?:bool}  $options
      * @return array<string, string>
@@ -1726,13 +1727,7 @@ class LocalSameVpsProvisioner
         $forceGit = (bool) ($options['force_git'] ?? false);
         $noCache = (bool) ($options['no_cache'] ?? false);
 
-        $env = [
-            'WEBINO_DASHBOARD_GIT_URL' => (string) env(
-                'WEBINO_DASHBOARD_GIT_URL',
-                'https://github.com/Webinadev/WebinoDashboard.git',
-            ),
-            'WEBINO_DASHBOARD_GIT_REF' => (string) env('WEBINO_DASHBOARD_GIT_REF', 'main'),
-            'WEBINO_DASHBOARD_SRC' => (string) env('WEBINO_DASHBOARD_SRC', '/var/lib/webino/src/WebinoDashboard'),
+        $env = WebinaStudioSource::scriptEnv() + [
             'WEBINO_IRAN_DOCKER' => (string) env('WEBINO_IRAN_DOCKER', 'auto'),
         ];
         if ($imageTag !== '' && $imageTag !== 'latest') {
@@ -1744,8 +1739,9 @@ class LocalSameVpsProvisioner
             $env['WEBINO_FORCE_GIT'] = '1';
             $env['WEBINO_DOCKER_NO_CACHE'] = $noCache ? '1' : (string) env('WEBINO_DOCKER_NO_CACHE', '1');
         } else {
-            $dashboardPath = (string) env('WEBINO_DASHBOARD_PATH', '');
+            $dashboardPath = WebinaStudioSource::env('PATH');
             if ($dashboardPath !== '' && is_file($dashboardPath.'/docker/php/Dockerfile.platform')) {
+                $env['WEBINA_STUDIO_PATH'] = $dashboardPath;
                 $env['WEBINO_DASHBOARD_PATH'] = $dashboardPath;
             }
             $noCacheEnv = (string) env('WEBINO_DOCKER_NO_CACHE', '');
@@ -1753,8 +1749,9 @@ class LocalSameVpsProvisioner
                 $env['WEBINO_DOCKER_NO_CACHE'] = $noCacheEnv;
             }
         }
-        $token = (string) env('WEBINO_DASHBOARD_GIT_TOKEN', '');
+        $token = WebinaStudioSource::env('GIT_TOKEN');
         if ($token !== '') {
+            $env['WEBINA_STUDIO_GIT_TOKEN'] = $token;
             $env['WEBINO_DASHBOARD_GIT_TOKEN'] = $token;
         }
         foreach (['PHP_IMAGE', 'COMPOSER_IMAGE', 'NODE_IMAGE', 'COMPOSER_MIRROR'] as $key) {
@@ -1775,8 +1772,7 @@ class LocalSameVpsProvisioner
      */
     protected function forceBuildImages(string $tag, string $only = 'all'): string
     {
-        $script = (string) (env('WEBINO_DASHBOARD_BUILD_SCRIPT')
-            ?: ($this->erpRoot().'/scripts/build-webino-dashboard-images.sh'));
+        $script = WebinaStudioSource::buildScript($this->erpRoot());
         if (! is_file($script)) {
             throw new RuntimeException('platform.build_script_missing');
         }
@@ -2148,15 +2144,14 @@ class LocalSameVpsProvisioner
             return;
         }
 
-        $script = (string) (env('WEBINO_DASHBOARD_BUILD_SCRIPT')
-            ?: ($this->erpRoot().'/scripts/build-webino-dashboard-images.sh'));
+        $script = WebinaStudioSource::buildScript($this->erpRoot());
         if (is_file($script)) {
             $env = $this->dashboardBuildEnv();
             $build = $this->runEnv(['bash', $script], 2400, $env);
             if ($build['exit_code'] !== 0) {
                 throw new RuntimeException(
                     'platform.dashboard_images_missing: git clone/build failed from '
-                    .$env['WEBINO_DASHBOARD_GIT_URL'].'. '
+                    .$env['WEBINA_STUDIO_GIT_URL'].'. '
                     .trim($build['stderr'] ?: $build['stdout'])
                 );
             }
@@ -2165,7 +2160,7 @@ class LocalSameVpsProvisioner
         if (! $this->imagesPresent()) {
             throw new RuntimeException(
                 'platform.dashboard_images_missing: need webino-backend:latest and webino-next:latest. '
-                .'ERP clones https://github.com/Webinadev/WebinoDashboard into /var/lib/webino/src and builds images.'
+                .'ERP clones '.WebinaStudioSource::gitUrl().' (Webina Studio) into /var/lib/webino/src and builds images.'
             );
         }
     }

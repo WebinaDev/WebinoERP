@@ -57,11 +57,18 @@ Rollback: same command with the previous sha (and checkout).
 
 ## Tenant site images (webino-backend / webino-next)
 
-Built today by `scripts/build-webino-dashboard-images.sh`. WebinoDashboard CI builds the same
-Dockerfiles as `ghcr.io/webinadev/webino-dashboard-{backend,frontend}`.
+The tenant app is «وبینا استودیو» (Webina Studio, formerly WebinoDashboard).
+Built today by `scripts/build-webina-studio-images.sh` (the old `build-webino-dashboard-images.sh`
+name is a thin wrapper). Source: `WEBINA_STUDIO_GIT_URL` (default
+`https://github.com/Webinadev/webina-studio.git`, falls back to the old WebinoDashboard repo
+while the rename is not live), `WEBINA_STUDIO_GIT_REF`, `WEBINA_STUDIO_SRC` (default
+`/var/lib/webino/src/webina-studio`, or the existing `WebinoDashboard` checkout).
+Legacy `WEBINO_DASHBOARD_*` env names are still read as a fallback.
+CI images: `ghcr.io/webinadev/webina-studio-{backend,next}` are tried first, then the legacy
+`ghcr.io/webinadev/webino-dashboard-{backend,frontend}`.
 
 ```
-WEBINO_DASHBOARD_IMAGE_TAG=<Dashboard SHA> [WEBINO_IMAGE_TAG=beta] scripts/pull-webino-dashboard-images.sh
+WEBINA_STUDIO_IMAGE_TAG=<Studio SHA> [WEBINO_IMAGE_TAG=beta] scripts/pull-webina-studio-images.sh
 ```
 Pulls and retags to `webino-backend:latest` / `webino-next:latest` (+ channel). Same sha/CI rules.
 It does not recreate tenant containers: recreate + migrate each site from the ERP panel, one at a time.

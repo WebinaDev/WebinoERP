@@ -2658,7 +2658,7 @@
     "noCategory": "بدون دسته",
     "isFree": "رایگان",
     "isBuiltin": "همراه داشبورد",
-    "isBuiltinHelp": "در بستهٔ پیش‌فرض Webino Dashboard عرض می‌شود؛ با محصولات Gitea بازارچه متفاوت است.",
+    "isBuiltinHelp": "در بستهٔ پیش‌فرض وبینا استودیو عرضه می‌شود؛ با محصولات Gitea بازارچه متفاوت است.",
     "bundledWithDashboard": "همراه داشبورد",
     "inactive": "غیرفعال",
     "statusActive": "فعال",
@@ -5144,7 +5144,7 @@
     "defaultProductChannel": "کانال محصول پیش‌فرض",
     "provisionWebhookSecret": "رمز webhook provisioning (خالی = بدون تغییر)",
     "platformSection": "پروویژن پلتفرم",
-    "platformSectionHint": "سرورها، داکر، دامنه‌ها و سایت‌های Webino Dashboard از مسیر ادمین ← پلتفرم مدیریت می‌شوند.",
+    "platformSectionHint": "سرورها، داکر، دامنه‌ها و سایت‌های وبینا استودیو از مسیر ادمین ← پلتفرم مدیریت می‌شوند.",
     "openPlatformSites": "سایت‌های پلتفرم",
     "openPlatformDashboard": "داشبورد پلتفرم"
   },
@@ -5639,7 +5639,7 @@
         "image": "ایمیج Docker",
         "database": "دیتابیس",
         "service": "سرویس آماده",
-        "webino_dashboard": "داشبورد Webino"
+        "webino_dashboard": "وبینا استودیو"
       },
       "healthcheck": "مسیر healthcheck",
       "rollingUpdate": "به‌روزرسانی غلتان",
@@ -8258,7 +8258,7 @@
     "product": {
       "docsTitle": "مستندات وبینا",
       "hostingTitle": "سکوی میزبانی",
-      "dashboardTitle": "Webino Dashboard",
+      "dashboardTitle": "وبینا استودیو",
       "erpTitle": "WebinoERP"
     },
     "page": {
@@ -8857,7 +8857,7 @@
   },
   "builder": {
     "list_title": "صفحه‌ساز",
-    "list_subtitle": "صفحات، سربرگ و پاورقی سایت وبینا با همان سند و ویجت‌های WebinoDashboard.",
+    "list_subtitle": "صفحات، سربرگ و پاورقی سایت وبینا با همان سند و ویجت‌های وبینا استودیو.",
     "open": "ویرایش",
     "create": "صفحه تازه",
     "header": "سربرگ",

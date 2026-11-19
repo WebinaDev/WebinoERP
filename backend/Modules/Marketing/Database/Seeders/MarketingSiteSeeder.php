@@ -207,7 +207,7 @@ class MarketingSiteSeeder extends Seeder
     private function portfolio(): void
     {
         $items = [
-            ['webino-dashboard', 'Webino Dashboard', 'سایت‌ساز وبینا با نوع فروشگاه، مجله، کافه، رزومه و شرکت.'],
+            ['webino-dashboard', 'وبینا استودیو', 'سایت‌ساز وبینا با نوع فروشگاه، مجله، کافه، رزومه و شرکت.'],
             ['webino-erp', 'WebinoERP', 'سامانه ماژولار مدیریت کسب‌وکار، API-first.'],
             ['webino-docs', 'مستندات وبینا', 'راهنمای API و ماژول‌ها در docs-site همین محصول.'],
             ['webino-hosting', 'سکوی میزبانی', 'Platform: سرور، داکر، دامنه، گواهی و پشتیبان.'],
@@ -250,7 +250,7 @@ class MarketingSiteSeeder extends Seeder
             ['name' => 'محصول']
         );
         $posts = [
-            ['webino-dashboard-site-types', 'پنج نوع سایت در Webino Dashboard', 'فروشگاه، مجله، کافه، رزومه و شرکت از Site Builder بالا می‌آیند.', '<p>Webino Dashboard از Site Builder یا مسیر راه‌اندازی وبینا ساخته می‌شود. نوع سایت یکی از این‌هاست: ecommerce، magazine، cafe، resume، corporate. هر نوع، ماژول‌های لایسنس خودش را دارد.</p>'],
+            ['webino-dashboard-site-types', 'پنج نوع سایت در وبینا استودیو', 'فروشگاه، مجله، کافه، رزومه و شرکت از Site Builder بالا می‌آیند.', '<p>وبینا استودیو از Site Builder یا مسیر راه‌اندازی وبینا ساخته می‌شود. نوع سایت یکی از این‌هاست: ecommerce، magazine، cafe، resume، corporate. هر نوع، ماژول‌های لایسنس خودش را دارد.</p>'],
             ['webinoerp-and-platform', 'WebinoERP و سکوی میزبانی', 'ERP ماژولار و Platform برای سرور، داکر و دامنه.', '<p>WebinoERP سامانه مدیریت کسب‌وکار همین محصول است. ماژول Platform نقش سکوی میزبانی را دارد: سرور SSH، داکر، دامنه، گواهی و پشتیبان. سایت عمومی شرکت از کانتینر frontend، پشت Caddy، سرو می‌شود.</p>'],
             ['where-to-edit-the-site', 'محتوای سایت شرکت را از کجا ویرایش کنیم؟', 'داشبورد بازاریابی، بدون دست زدن به قالب.', '<p>برگه‌ها، خدمات، راهکارها، بلاگ، نمونه‌کار، سوالات و نشان‌های اعتماد (فیلد trust_badges در تنظیمات) از داشبورد بازاریابی عوض می‌شوند. منوی بالای سایت به همین اسلاگ‌ها وصل است.</p>'],
         ];
@@ -281,7 +281,7 @@ class MarketingSiteSeeder extends Seeder
             ]
         );
         $lessons = [
-            ['dashboard', 'Webino Dashboard', 'نوع‌های سایت: فروشگاه، مجله، کافه، رزومه، شرکت.'],
+            ['dashboard', 'وبینا استودیو', 'نوع‌های سایت: فروشگاه، مجله، کافه، رزومه، شرکت.'],
             ['erp', 'WebinoERP', 'ماژول‌های کسب‌وکار و API.'],
             ['docs', 'مستندات', 'راهنمای API داخل docs-site.'],
             ['hosting', 'سکوی میزبانی', 'Platform: سرور، داکر، دامنه، پشتیبان.'],

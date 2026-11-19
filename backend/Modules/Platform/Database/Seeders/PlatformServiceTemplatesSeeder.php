@@ -58,7 +58,7 @@ command: server /data
 '],
             ['homepage', 'Homepage', 'dashboards', 'image: ghcr.io/gethomepage/homepage:latest
 '],
-            ['webino-dashboard', 'Webino Dashboard', 'webino', '# Provisioned via Platform Webino product
+            ['webino-dashboard', 'وبینا استودیو (Webina Studio)', 'webino', '# Provisioned via Platform Webino product
 services: {}
 '],
         ];

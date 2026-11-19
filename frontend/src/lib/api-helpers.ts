@@ -77,7 +77,7 @@ const KEY_MESSAGES: Record<string, string> = {
   'platform.license_revoked':
     'لایسنس این دامنه لغو یا ابطال شده است. در مدیریت لایسنس آن را فعال کنید، یا دامنهٔ دیگری انتخاب کنید.',
   'platform.license_wrong_product':
-    'برای این دامنه لایسنس محصول دیگری ثبت شده است. ساخت سایت فقط با لایسنس محصول داشبورد (webinodashboard) ممکن است.',
+    'برای این دامنه لایسنس محصول دیگری ثبت شده است. ساخت سایت فقط با لایسنس محصول وبینا استودیو ممکن است.',
   'platform.license_customer_conflict':
     'این دامنه برای مشتری دیگری لایسنس دارد. همان مشتری را انتخاب کنید یا دامنهٔ دیگری بگذارید.',
   'platform.license_reused': 'لایسنس موجود این دامنه دوباره استفاده شد.',
@@ -166,7 +166,7 @@ export function formatProvisionError(raw: string): string {
   ) {
     return [
       'ایمیج‌های سایت از GitHub ساخته نشدند.',
-      'ERP باید بتواند https://github.com/Webinadev/WebinoDashboard را کلون کند و webino-backend / webino-next را بسازد.',
+      'ERP باید بتواند مخزن وبینا استودیو (github.com/Webinadev/webina-studio) را کلون کند و webino-backend / webino-next را بسازد.',
       text.slice(0, 400),
     ].join('\n');
   }
@@ -219,7 +219,7 @@ export function getAxiosMessage(err: unknown): string {
       return STATUS_MESSAGES[500];
     }
     if (message.includes('platform.dashboard_images_missing') || message.includes('/opt/WebinoDashboard/docker')) {
-      return 'ایمیج‌های سایت از GitHub ساخته نشدند. دسترسی خروجی به github.com/Webinadev/WebinoDashboard را بررسی کنید و دوباره «ایجاد سایت» بزنید.';
+      return 'ایمیج‌های سایت از GitHub ساخته نشدند. دسترسی خروجی به مخزن وبینا استودیو در github.com/Webinadev را بررسی کنید و دوباره «ایجاد سایت» بزنید.';
     }
     if (message.startsWith('platform.tenant_api_failed')) {
       return (
