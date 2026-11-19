@@ -1,332 +1,145 @@
 'use client';
 
-import React, { useEffect, useState } from 'react';
+import { useEffect, useState } from 'react';
+import { Cpu, Printer, Router, Plug, Activity } from 'lucide-react';
 import { useTranslations } from 'next-intl';
-import { WebinoHardwareGatewayClient, GatewayHealth, PeripheralDevice } from '@/lib/hardware-gateway-client';
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import {
-  Cpu,
-  Printer,
-  Barcode,
-  Scale,
-  CreditCard,
-  Radio,
-  CheckCircle2,
-  RefreshCw,
-  Plus,
-  Play,
-  FileText,
-  Activity,
-  Laptop,
-} from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { WebinoHardwareGatewayClient, type GatewayHealth } from '@/lib/hardware-gateway-client';
+import { ErpModuleHub, ErpResourcePage, ErpStatGrid, SRC } from '@/features/shared/erp-resource';
 
-export function DeviceGatewayOverviewPage() {
-  const t = useTranslations('erp.device_gateway');
-  const [activeTab, setActiveTab] = useState<'peripherals' | 'test_print' | 'agent_status'>('peripherals');
-  const [health, setHealth] = useState<GatewayHealth | null>({
-    version: '1.2.0-rust',
-    uptimeSeconds: 84200,
-    devicesCount: 4,
-    status: 'healthy',
-  });
-  const [testPrintSuccess, setTestPrintSuccess] = useState(false);
-  const [isPrinting, setIsPrinting] = useState(false);
+const NS = 'erp.device_gateway';
 
-  const [devices] = useState<PeripheralDevice[]>([
-    {
-      id: 'dev-1',
-      name: 'کارتخوان بانکی سامان‌کیش (SEP PC-POS)',
-      type: 'pos',
-      driver: 'Ingenico iCT220 / PAX S80',
-      status: 'online',
-      connectionType: 'network',
-      address: '192.168.1.180:12000',
-    },
-    {
-      id: 'dev-2',
-      name: 'لیبل پرینتر بارکد انبار (Zebra ZPL)',
-      type: 'printer',
-      driver: 'Zebra ZD420 (203 DPI)',
-      status: 'online',
-      connectionType: 'usb',
-      address: 'USB001 /dev/usb/lp0',
-    },
-    {
-      id: 'dev-3',
-      name: 'فیش‌پرینتر حرارتی صندوق فروشگاهی',
-      type: 'printer',
-      driver: 'Bixolon SRP-350 Plus (80mm)',
-      status: 'online',
-      connectionType: 'network',
-      address: '192.168.1.185:9100',
-    },
-    {
-      id: 'dev-4',
-      name: 'بارکدخوان دوبعدی انبارگردانی',
-      type: 'scanner',
-      driver: 'Honeywell Voyager 1400g 2D',
-      status: 'online',
-      connectionType: 'usb',
-      address: 'HID Keyboard Emulation',
-    },
-  ]);
-
-  const handleTestPrint = (type: 'zpl' | 'pos') => {
-    setIsPrinting(true);
-    setTimeout(() => {
-      setIsPrinting(false);
-      setTestPrintSuccess(true);
-      setTimeout(() => setTestPrintSuccess(false), 2500);
-    }, 800);
+/** Status of the helper app on this computer (http://127.0.0.1:9100). */
+function LocalAgentStatus() {
+  const t = useTranslations(NS);
+  const [health, setHealth] = useState<GatewayHealth | null>(null);
+  const [checking, setChecking] = useState(true);
+  const check = () => {
+    setChecking(true);
+    new WebinoHardwareGatewayClient()
+      .checkHealth()
+      .then(setHealth)
+      .catch(() => setHealth(null))
+      .finally(() => setChecking(false));
   };
-
+  useEffect(check, []);
+  const online = Boolean(health && health.status !== 'offline');
   return (
-    <div className="space-y-6" dir="rtl">
-      {/* Header bar */}
-      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between border-b pb-4">
+    <div className="flex flex-col gap-3 rounded-xl border bg-card p-4 sm:flex-row sm:items-center sm:justify-between">
+      <div className="flex items-start gap-3">
+        <span className={`mt-1.5 size-2.5 shrink-0 rounded-full ${online ? 'bg-emerald-500' : 'bg-amber-500'}`} />
         <div>
-          <h1 className="text-2xl font-bold tracking-tight flex items-center gap-2">
-            <Cpu className="h-6 w-6 text-primary" />
-            درگاه اتصال سخت‌افزار عملیاتی (Webino Device Gateway)
-          </h1>
-          <p className="text-sm text-muted-foreground mt-1">
-            ارتباط زنده Agent محلی با تجهیزات فروشگاه و انبار: کارتخوان بانکی (PC-POS)، چاپگر لیبل بارکد، فیش‌پرینتر و بارکدخوان.
+          <p className="text-sm font-semibold">
+            {t('localAgent')} <Badge variant="outline">{checking ? t('checking') : online ? t('online') : t('offline')}</Badge>
           </p>
-        </div>
-
-        <div className="flex items-center gap-2">
-          <Badge variant="outline" className="bg-emerald-50 text-emerald-700 border-emerald-200 text-xs px-3 py-1.5 flex items-center gap-1.5">
-            <Radio className="h-3.5 w-3.5 text-emerald-500 animate-pulse" />
-            سرویس محلی فعال (نسخه {health?.version})
-          </Badge>
-          <Button size="sm" variant="outline">
-            <RefreshCw className="h-4 w-4 me-1.5" />
-            استعلام پورت‌ها
-          </Button>
+          <p className="mt-1 text-xs text-muted-foreground">{online ? t('localAgentOnline', { version: health?.version ?? '' }) : t('localAgentOffline')}</p>
         </div>
       </div>
-
-      {/* KPI Cards */}
-      <div className="grid gap-4 md:grid-cols-4">
-        <Card className="shadow-sm">
-          <CardHeader className="p-4 pb-2">
-            <CardTitle className="text-xs font-medium text-muted-foreground flex items-center justify-between">
-              تجهیزات جانبی متصل
-              <Cpu className="h-4 w-4 text-primary" />
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="p-4 pt-1">
-            <div className="text-xl font-bold">{devices.length} دستگاه آنلاین</div>
-            <p className="text-xs text-muted-foreground mt-0.5">USB، شبکه LAN و درگاه سریال</p>
-          </CardContent>
-        </Card>
-
-        <Card className="shadow-sm">
-          <CardHeader className="p-4 pb-2">
-            <CardTitle className="text-xs font-medium text-muted-foreground flex items-center justify-between">
-              کارتخوان بانکی (PC-POS)
-              <CreditCard className="h-4 w-4 text-emerald-500" />
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="p-4 pt-1">
-            <div className="text-xl font-bold text-emerald-600">سامان‌کیش (SEP) آماده</div>
-            <p className="text-xs text-muted-foreground mt-0.5 font-mono">192.168.1.180:12000</p>
-          </CardContent>
-        </Card>
-
-        <Card className="shadow-sm">
-          <CardHeader className="p-4 pb-2">
-            <CardTitle className="text-xs font-medium text-muted-foreground flex items-center justify-between">
-              لیبل‌پرینتر انبار (ZPL)
-              <Barcode className="h-4 w-4 text-blue-500" />
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="p-4 pt-1">
-            <div className="text-xl font-bold text-blue-600">Zebra ZD420 فعال</div>
-            <p className="text-xs text-muted-foreground mt-0.5 font-mono">203 DPI · عرض ۱۰۰mm</p>
-          </CardContent>
-        </Card>
-
-        <Card className="shadow-sm">
-          <CardHeader className="p-4 pb-2">
-            <CardTitle className="text-xs font-medium text-muted-foreground flex items-center justify-between">
-              زمان پایداری عامل محلی (Uptime)
-              <Activity className="h-4 w-4 text-purple-500" />
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="p-4 pt-1">
-            <div className="text-xl font-bold text-purple-600">۲۳.۴ ساعت پیوسته</div>
-            <p className="text-xs text-muted-foreground mt-0.5">بدون قطعی ارتباط با وب‌سوکت ERP</p>
-          </CardContent>
-        </Card>
-      </div>
-
-      {/* Tabs */}
-      <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as any)} className="w-full">
-        <TabsList className="grid w-full grid-cols-3 max-w-lg">
-          <TabsTrigger value="peripherals">تجهیزات و درایورها</TabsTrigger>
-          <TabsTrigger value="test_print">آزمون چاپ و تراکنش فوری</TabsTrigger>
-          <TabsTrigger value="agent_status">وضعیت ایجنت و Pairing</TabsTrigger>
-        </TabsList>
-
-        {/* Tab 1: Peripherals */}
-        <TabsContent value="peripherals" className="mt-4 space-y-4">
-          <Card className="shadow-sm">
-            <CardContent className="p-0 overflow-x-auto">
-              <Table>
-                <TableHeader>
-                  <TableRow className="bg-muted/40 text-xs">
-                    <TableHead>نوع سخت‌افزار</TableHead>
-                    <TableHead>عنوان دستگاه</TableHead>
-                    <TableHead>درایور سخت‌افزاری</TableHead>
-                    <TableHead>روش اتصال</TableHead>
-                    <TableHead>شناسه پورت / آدرس IP</TableHead>
-                    <TableHead className="text-end">وضعیت درایور</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody className="text-sm">
-                  {devices.map((dev) => (
-                    <TableRow key={dev.id} className="hover:bg-muted/20">
-                      <TableCell>
-                        <Badge variant="outline" className="text-xs font-mono">
-                          {dev.type === 'pos' ? (
-                            <CreditCard className="h-3 w-3 me-1 text-emerald-600 inline" />
-                          ) : dev.type === 'printer' ? (
-                            <Printer className="h-3 w-3 me-1 text-blue-600 inline" />
-                          ) : (
-                            <Barcode className="h-3 w-3 me-1 text-primary inline" />
-                          )}
-                          {dev.type}
-                        </Badge>
-                      </TableCell>
-                      <TableCell className="font-semibold text-xs">{dev.name}</TableCell>
-                      <TableCell className="text-xs text-muted-foreground">{dev.driver}</TableCell>
-                      <TableCell className="text-xs font-mono uppercase">{dev.connectionType}</TableCell>
-                      <TableCell className="text-xs font-mono">{dev.address}</TableCell>
-                      <TableCell className="text-end">
-                        <Badge variant="outline" className="bg-emerald-50 text-emerald-700 border-emerald-200 text-xs">
-                          آماده‌به‌کار ✓
-                        </Badge>
-                      </TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-            </CardContent>
-          </Card>
-        </TabsContent>
-
-        {/* Tab 2: Test Print & Commands */}
-        <TabsContent value="test_print" className="mt-4 space-y-4">
-          <div className="grid gap-4 sm:grid-cols-2">
-            <Card className="border-border">
-              <CardHeader className="pb-2">
-                <CardTitle className="text-base flex items-center gap-2">
-                  <Barcode className="h-5 w-5 text-blue-500" />
-                  آزمون چاپ مستقیم لیبل بارکد انبار (ZPL Engine)
-                </CardTitle>
-                <CardDescription className="text-xs">
-                  ارسال دستور خام ZPL به چاپگر لیبل Zebra بدون افت کیفیت و بدون نیاز به نصب درایور ویندوز.
-                </CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-4 pt-2">
-                <div className="p-3 bg-muted/30 rounded font-mono text-[11px] text-muted-foreground leading-relaxed">
-                  ^XA^FO50,50^ADN,36,20^FDWEBINO-ERP LOT-1405-8842^FS^FO50,100^BY3^BCN,100,Y,N,N^FD14058842^FS^XZ
-                </div>
-                <Button size="sm" onClick={() => handleTestPrint('zpl')} disabled={isPrinting}>
-                  <Play className={`h-3.5 w-3.5 me-1.5 ${isPrinting ? 'animate-spin' : ''}`} />
-                  ارسال به لیبل‌پرینتر
-                </Button>
-              </CardContent>
-            </Card>
-
-            <Card className="border-border">
-              <CardHeader className="pb-2">
-                <CardTitle className="text-base flex items-center gap-2">
-                  <CreditCard className="h-5 w-5 text-emerald-500" />
-                  آزمون تراکنش تستی کارتخوان (SEP PC-POS Test)
-                </CardTitle>
-                <CardDescription className="text-xs">
-                  ارسال دستور پرداخت ۱,۰۰۰ ریال به پورت کارتخوان جهت اعتبارسنجی ارتباط سریال/شبکه.
-                </CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-4 pt-2">
-                <div className="p-3 bg-muted/30 rounded font-mono text-[11px] text-muted-foreground leading-relaxed">
-                  STX [Len:0024] [Cmd:PR] [Amount:000000001000] [Invoice:TEST-001] ETX [LRC]
-                </div>
-                <Button size="sm" variant="outline" onClick={() => handleTestPrint('pos')} disabled={isPrinting}>
-                  <CreditCard className="h-3.5 w-3.5 me-1.5 text-emerald-600" />
-                  تست ارتباط با پوز بانکی
-                </Button>
-              </CardContent>
-            </Card>
-          </div>
-
-          {testPrintSuccess ? (
-            <div className="p-3 bg-emerald-50 text-emerald-700 text-xs rounded border border-emerald-200 flex items-center gap-2 animate-in fade-in">
-              <CheckCircle2 className="h-4 w-4" />
-              دستور سخت‌افزاری با موفقیت به درگاه ارسال شد و پیام ACK از دستگاه دریافت گردید!
-            </div>
-          ) : null}
-        </TabsContent>
-
-        {/* Tab 3: Agent Status */}
-        <TabsContent value="agent_status" className="mt-4 space-y-4">
-          <Card className="shadow-sm">
-            <CardHeader className="pb-3">
-              <CardTitle className="text-base flex items-center justify-between">
-                پیکربندی جفت‌سازی امن عامل محلی (Agent Pairing & Security)
-                <Laptop className="h-5 w-5 text-primary" />
-              </CardTitle>
-              <CardDescription>
-                اتصال امن کلاینت مقیم سیستم‌عامل (Windows / macOS / Linux / Android) به شعبه و انبار جاری در ERP.
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-3 p-4">
-              <div className="flex justify-between border-b pb-2 text-xs">
-                <span className="text-muted-foreground">کلید احراز هویت جفت‌سازی (Gateway Key):</span>
-                <span className="font-mono font-bold">gw_live_7f8841a02931b402e1</span>
-              </div>
-              <div className="flex justify-between border-b pb-2 text-xs">
-                <span className="text-muted-foreground">شعبه سازمانی تخصیص‌یافته:</span>
-                <span className="font-semibold">شعبه مرکزی تهران · انبار فناوری و تجهیزات (WH-TEH-01)</span>
-              </div>
-              <div className="flex justify-between text-xs">
-                <span className="text-muted-foreground">پروتکل ارتباطی لبه:</span>
-                <span className="font-mono text-emerald-600 font-semibold">WSS (WebSocket Secure) + TLS 1.3 Localhost Port 18080</span>
-              </div>
-            </CardContent>
-          </Card>
-        </TabsContent>
-      </Tabs>
+      <Button size="sm" variant="outline" onClick={check} disabled={checking}>
+        <Activity className="size-4 me-1" />
+        {t('recheck')}
+      </Button>
     </div>
   );
 }
 
+export function DeviceGatewayOverviewPage() {
+  return (
+    <ErpModuleHub
+      ns={NS}
+      stats={<LocalAgentStatus />}
+      links={[
+        { route: 'device-gateway/gateways', titleKey: 'gateways', descKey: 'gatewaysDesc', icon: <Router className="size-5" /> },
+        { route: 'device-gateway/peripherals', titleKey: 'peripherals', descKey: 'peripheralsDesc', icon: <Plug className="size-5" /> },
+        { route: 'device-gateway/print-jobs', titleKey: 'printJobs', descKey: 'printJobsDesc', icon: <Printer className="size-5" /> },
+      ]}
+    />
+  );
+}
+
 export function DeviceGatewayGatewaysPage() {
-  return <DeviceGatewayOverviewPage />;
+  return (
+    <ErpResourcePage
+      ns={NS}
+      descriptionKey="gatewaysDesc"
+      endpoint="/v1/device-gateway/gateways"
+      createLabel="newGateway"
+      columns={[
+        { key: 'name', label: 'name' },
+        { key: 'os_platform', label: 'os_platform', type: 'badge' },
+        { key: 'company.name', label: 'company' },
+        { key: 'branch.name', label: 'branch' },
+        { key: 'ip_address', label: 'ip_address' },
+        { key: 'gateway_key', label: 'gateway_key', render: (r) => <code className="text-xs" dir="ltr">{String(r.gateway_key ?? '')}</code> },
+        { key: 'last_heartbeat_at', label: 'last_heartbeat_at', type: 'datetime' },
+        { key: 'status', label: 'status', type: 'badge' },
+      ]}
+      createFields={[
+        { name: 'name', label: 'name', required: true },
+        { name: 'os_platform', label: 'os_platform', type: 'select', options: ['windows', 'linux', 'macos', 'android', 'ios'], required: true, defaultValue: 'windows' },
+        { name: 'company_id', label: 'company', type: 'remote', remote: SRC.companies },
+        { name: 'branch_id', label: 'branch', type: 'remote', remote: SRC.branches },
+        { name: 'warehouse_id', label: 'warehouse', type: 'remote', remote: SRC.warehouses },
+        { name: 'ip_address', label: 'ip_address' },
+      ]}
+    >
+      <LocalAgentStatus />
+    </ErpResourcePage>
+  );
 }
 
 export function DeviceGatewayPeripheralsPage() {
-  return <DeviceGatewayOverviewPage />;
-}
-
-export function DeviceGatewayPrintersPage() {
-  return <DeviceGatewayOverviewPage />;
+  return (
+    <ErpResourcePage
+      ns={NS}
+      descriptionKey="peripheralsDesc"
+      endpoint="/v1/device-gateway/peripherals"
+      createLabel="newPeripheral"
+      columns={[
+        { key: 'name', label: 'name' },
+        { key: 'device_type', label: 'device_type', type: 'badge' },
+        { key: 'model', label: 'model' },
+        { key: 'gateway.name', label: 'gateway' },
+        { key: 'connection_type', label: 'connection_type', type: 'badge' },
+        { key: 'port_identifier', label: 'port_identifier' },
+        { key: 'is_default', label: 'is_default', type: 'bool' },
+      ]}
+      createFields={[
+        { name: 'gateway_id', label: 'gateway', type: 'remote', remote: SRC.gateways, required: true },
+        { name: 'device_type', label: 'device_type', type: 'select', options: ['label_printer', 'receipt_printer', 'barcode_scanner', 'scale', 'pos_terminal'], required: true },
+        { name: 'name', label: 'name', required: true },
+        { name: 'model', label: 'model' },
+        { name: 'connection_type', label: 'connection_type', type: 'select', options: ['usb', 'network', 'serial', 'bluetooth'], required: true },
+        { name: 'port_identifier', label: 'port_identifier' },
+        { name: 'is_default', label: 'is_default', type: 'bool' },
+      ]}
+    />
+  );
 }
 
 export function DeviceGatewayPrintJobsPage() {
-  return <DeviceGatewayOverviewPage />;
-}
-
-export function DeviceGatewayPosPage() {
-  return <DeviceGatewayOverviewPage />;
-}
-
-export function DeviceGatewayLogsPage() {
-  return <DeviceGatewayOverviewPage />;
+  return (
+    <ErpResourcePage
+      ns={NS}
+      descriptionKey="printJobsDesc"
+      endpoint="/v1/device-gateway/print-jobs"
+      createEndpoint="/v1/device-gateway/print-jobs/dispatch"
+      createLabel="newPrintJob"
+      columns={[
+        { key: 'id', label: 'number' },
+        { key: 'peripheral.name', label: 'peripheral' },
+        { key: 'peripheral.gateway.name', label: 'gateway' },
+        { key: 'job_type', label: 'job_type', type: 'badge' },
+        { key: 'creator.name', label: 'created_by' },
+        { key: 'created_at', label: 'date', type: 'datetime' },
+        { key: 'status', label: 'status', type: 'badge' },
+      ]}
+      createFields={[
+        { name: 'peripheral_id', label: 'peripheral', type: 'remote', remote: SRC.peripherals, required: true },
+        { name: 'job_type', label: 'job_type', type: 'select', options: ['barcode_label', 'receipt', 'packing_slip', 'shipping_label'], required: true },
+        { name: 'payload', label: 'payload', type: 'textarea', required: true },
+      ]}
+    />
+  );
 }
