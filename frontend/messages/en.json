@@ -118,7 +118,9 @@
       "field_service": "Field Service",
       "qm": "Quality Management",
       "assets": "Fixed Assets",
-      "authz": "Access Control"
+      "authz": "Access Control",
+      "procurement": "Procurement",
+      "device_gateway": "Device gateway"
     },
     "erp": {
       "hubSection": "ERP modules",
