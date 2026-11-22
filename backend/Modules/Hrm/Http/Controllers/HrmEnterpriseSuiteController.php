@@ -345,4 +345,40 @@ class HrmEnterpriseSuiteController extends Controller
         return response()->json(['message' => 'حکم مأموریت اداری با موفقیت ثبت و ابلاغ شد.', 'data' => ]);
     }
 
+
+    // ── 12. Full End-to-End Integrated Lifecycle & Bank File ──
+
+    public function executeLifecycle(int , HrmPayrollEndToEndWorkflowService ): JsonResponse
+    {
+         = HrmPayrollRun::query()->findOrFail();
+         = ->executeFullPayrollCycle(, auth()->id());
+
+        return response()->json();
+    }
+
+    public function generateBankFile(int , HrmStandardBankFormatService ): JsonResponse
+    {
+         = HrmPayrollRun::query()->findOrFail();
+         = ->generatePayaPaymentFile();
+
+        return response()->json([
+            'message' => 'فایل استاندارد واریز گروهی پایا با موفقیت تولید شد.',
+            'data' => ,
+        ]);
+    }
+
+    public function employeeEydiSeverance(int , HrmEydiSeveranceCalculatorService ): JsonResponse
+    {
+         = HrmEmployee::query()->findOrFail();
+         = ->calculateYearlyEydi();
+         = ->calculateAccruedSeverance();
+
+        return response()->json([
+            'data' => [
+                'eydi' => ,
+                'severance' => ,
+            ],
+        ]);
+    }
+
 }

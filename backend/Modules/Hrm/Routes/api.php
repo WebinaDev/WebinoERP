@@ -59,7 +59,10 @@ Route::prefix('enterprise')->group(function () {
     Route::post('payroll/runs/{run}/generate-tax-diskette', [HrmEnterpriseSuiteController::class, 'generateTaxDiskette']);
 Route::post('payroll/runs/{run}/generate-sso-diskette', [HrmEnterpriseSuiteController::class, 'generateSsoDiskette']);
     Route::get('retirees', [HrmEnterpriseSuiteController::class, 'retirees']);
-    Route::post('payroll/runs/{run}/issue-vouchers', [HrmEnterpriseSuiteController::class, 'issueVouchersForRun']);
+        Route::post('payroll/runs/{run}/execute-lifecycle', [HrmEnterpriseSuiteController::class, 'executeLifecycle']);
+    Route::get('payroll/runs/{run}/bank-paya-file', [HrmEnterpriseSuiteController::class, 'generateBankFile']);
+    Route::get('employees/{employee}/eydi-severance', [HrmEnterpriseSuiteController::class, 'employeeEydiSeverance']);
+Route::post('payroll/runs/{run}/issue-vouchers', [HrmEnterpriseSuiteController::class, 'issueVouchersForRun']);
     Route::get('compensation/packages', [HrmEnterpriseSuiteController::class, 'compensationPackages']);
     Route::post('compensation/packages', [HrmEnterpriseSuiteController::class, 'storeCompensationPackage']);
     Route::get('performance/agreements', [HrmEnterpriseSuiteController::class, 'performanceAgreements']);
