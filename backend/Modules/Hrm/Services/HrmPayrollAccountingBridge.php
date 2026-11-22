@@ -10,13 +10,14 @@ use Modules\Hrm\Entities\HrmPayrollRun;
 
 /**
  * On payroll approve/paid: create AccJournalEntry with full segregated accounting lines:
- * - Gross wages expense
- * - Employer social security & unemployment insurance (23%)
- * - Retroactive pay expense (current year vs prior years)
- * - Worker insurance payable (7%)
- * - Tax payable
- * - Loan & advance deductions payable
- * - Net salary payable
+ * - Current payroll gross wage expense (هزینه حقوق جاری)
+ * - Current year retroactive salary differential (معوقات سال جاری)
+ * - Prior years retroactive adjustment (معوقات سنوات قبل)
+ * - Employer social security & unemployment insurance (بیمه سهم کارفرما)
+ * - Employee insurance payable (بیمه سهم کارگر - بستانکار)
+ * - Tax payable (مالیات پرداختنی)
+ * - Loan & advance deductions (کسورات وام)
+ * - Net salary payable (حقوق پرداختنی - خالص)
  */
 class HrmPayrollAccountingBridge
 {
@@ -46,7 +47,7 @@ class HrmPayrollAccountingBridge
         $employerIns = round((float) $run->items->sum('employer_insurance'), 2);
         $tax = round((float) $run->items->sum('tax'), 2);
         $deductions = round((float) $run->items->sum('deductions'), 2);
-        $otherDeductions = max(0.0, round($deductions - $employeeIns - $tax, 2));
+        $loanDeductions = max(0.0, round($deductions - $employeeIns - $tax, 2));
 
         if ($gross <= 0) {
             return ['ok' => false, 'journal_entry_id' => null, 'message' => 'empty_run'];
@@ -75,24 +76,77 @@ class HrmPayrollAccountingBridge
         $retroCode = (string) ($settings['acc_code_retro_current'] ?? '510102');
         $retroPriorCode = (string) ($settings['acc_code_retro_prior'] ?? '310201');
         $employerInsCode = (string) ($settings['acc_code_employer_ins'] ?? '510103');
+        $employeeSsoPayableCode = (string) ($settings['acc_code_employee_sso_payable'] ?? '210204');
         $ssoPayableCode = (string) ($settings['acc_code_sso_payable'] ?? '210201');
         $taxPayableCode = (string) ($settings['acc_code_tax_payable'] ?? '210202');
         $loanPayableCode = (string) ($settings['acc_code_loan_deductions'] ?? '210203');
         $netPayableCode = (string) ($settings['payroll_payable_account_code'] ?? '210301');
 
-        $accExpense = $this->findAccount($expenseCode);
-        $accNetPayable = $this->findAccount($netPayableCode);
+        $missingAccounts = [];
 
-        if (! $accExpense || ! $accNetPayable) {
-            return ['ok' => false, 'journal_entry_id' => null, 'message' => 'chart accounts missing'];
+        $accExpense = $this->findAccount($expenseCode);
+        if (! $accExpense) {
+            $missingAccounts[] = "حساب هزینه حقوق جاری (کد: {$expenseCode})";
         }
 
-        $accRetro = $this->findAccount($retroCode) ?: $accExpense;
-        $accRetroPrior = $this->findAccount($retroPriorCode) ?: $accExpense;
-        $accEmployerIns = $this->findAccount($employerInsCode) ?: $accExpense;
-        $accSsoPayable = $this->findAccount($ssoPayableCode) ?: $accNetPayable;
-        $accTaxPayable = $this->findAccount($taxPayableCode) ?: $accNetPayable;
-        $accLoanPayable = $this->findAccount($loanPayableCode) ?: $accNetPayable;
+        $accNetPayable = $this->findAccount($netPayableCode);
+        if (! $accNetPayable) {
+            $missingAccounts[] = "حساب حقوق پرداختنی خالص (کد: {$netPayableCode})";
+        }
+
+        $accRetro = null;
+        if ($retroCurrentYear > 0) {
+            $accRetro = $this->findAccount($retroCode);
+            if (! $accRetro) {
+                $missingAccounts[] = "حساب معوقات سال جاری (کد: {$retroCode})";
+            }
+        }
+
+        $accRetroPrior = null;
+        if ($retroPriorYears > 0) {
+            $accRetroPrior = $this->findAccount($retroPriorCode);
+            if (! $accRetroPrior) {
+                $missingAccounts[] = "حساب معوقات سنوات قبل (کد: {$retroPriorCode})";
+            }
+        }
+
+        $accEmployerIns = null;
+        if ($employerIns > 0) {
+            $accEmployerIns = $this->findAccount($employerInsCode);
+            if (! $accEmployerIns) {
+                $missingAccounts[] = "حساب هزینه بیمه سهم کارفرما (کد: {$employerInsCode})";
+            }
+        }
+
+        $accEmployeeSso = null;
+        if ($employeeIns > 0) {
+            $accEmployeeSso = $this->findAccount($employeeSsoPayableCode) ?: $this->findAccount($ssoPayableCode);
+            if (! $accEmployeeSso) {
+                $missingAccounts[] = "حساب بیمه سهم کارگر پرداختنی (کد: {$employeeSsoPayableCode} یا {$ssoPayableCode})";
+            }
+        }
+
+        $accTaxPayable = null;
+        if ($tax > 0) {
+            $accTaxPayable = $this->findAccount($taxPayableCode);
+            if (! $accTaxPayable) {
+                $missingAccounts[] = "حساب مالیات حقوق پرداختنی (کد: {$taxPayableCode})";
+            }
+        }
+
+        $accLoanPayable = null;
+        if ($loanDeductions > 0) {
+            $accLoanPayable = $this->findAccount($loanPayableCode);
+            if (! $accLoanPayable) {
+                $missingAccounts[] = "حساب کسورات وام و مساعده (کد: {$loanPayableCode})";
+            }
+        }
+
+        if (! empty($missingAccounts)) {
+            $errMessage = 'حساب‌های معین مورد نیاز در جدول کدینگ (Chart of Accounts) تعریف نشده‌اند: ' . implode('، ', $missingAccounts);
+            Log::error("HrmPayrollAccountingBridge: {$errMessage}");
+            return ['ok' => false, 'journal_entry_id' => null, 'message' => $errMessage];
+        }
 
         $fiscalYearId = null;
         if (Schema::hasTable('acc_fiscal_years') && class_exists(\Modules\Accounting\Entities\AccFiscalYear::class)) {
@@ -103,9 +157,9 @@ class HrmPayrollAccountingBridge
         try {
             $jeId = DB::transaction(function () use (
                 $run, $accExpense, $accRetro, $accRetroPrior, $accEmployerIns,
-                $accSsoPayable, $accTaxPayable, $accLoanPayable, $accNetPayable,
+                $accEmployeeSso, $accTaxPayable, $accLoanPayable, $accNetPayable,
                 $baseGross, $retroCurrentYear, $retroPriorYears, $employerIns,
-                $employeeIns, $tax, $otherDeductions, $net, $userId, $fiscalYearId
+                $employeeIns, $tax, $loanDeductions, $net, $userId, $fiscalYearId
             ) {
                 $serial = app(HrmSerialService::class)->next('payroll_run');
                 $je = \Modules\Accounting\Entities\AccJournalEntry::query()->create([
@@ -117,16 +171,20 @@ class HrmPayrollAccountingBridge
                     'created_by' => $userId,
                 ]);
 
-                // 1. Debits: Current Gross + Retros + Employer Insurance
-                \Modules\Accounting\Entities\AccJournalLine::query()->create([
-                    'journal_entry_id' => $je->id,
-                    'account_id' => $accExpense->id,
-                    'debit' => $baseGross,
-                    'credit' => 0,
-                    'description' => 'هزینه حقوق و دستمزد جاری',
-                ]);
+                // 1. Debits (بدهکار):
+                // 1.1 هزینه حقوق جاری
+                if ($baseGross > 0) {
+                    \Modules\Accounting\Entities\AccJournalLine::query()->create([
+                        'journal_entry_id' => $je->id,
+                        'account_id' => $accExpense->id,
+                        'debit' => $baseGross,
+                        'credit' => 0,
+                        'description' => 'هزینه حقوق و دستمزد جاری',
+                    ]);
+                }
 
-                if ($retroCurrentYear > 0) {
+                // 1.2 معوقات سال جاری
+                if ($retroCurrentYear > 0 && $accRetro) {
                     \Modules\Accounting\Entities\AccJournalLine::query()->create([
                         'journal_entry_id' => $je->id,
                         'account_id' => $accRetro->id,
@@ -136,7 +194,8 @@ class HrmPayrollAccountingBridge
                     ]);
                 }
 
-                if ($retroPriorYears > 0) {
+                // 1.3 معوقات سنوات قبل
+                if ($retroPriorYears > 0 && $accRetroPrior) {
                     \Modules\Accounting\Entities\AccJournalLine::query()->create([
                         'journal_entry_id' => $je->id,
                         'account_id' => $accRetroPrior->id,
@@ -146,7 +205,8 @@ class HrmPayrollAccountingBridge
                     ]);
                 }
 
-                if ($employerIns > 0) {
+                // 1.4 بیمه سهم کارفرما (هزینه بدهکار)
+                if ($employerIns > 0 && $accEmployerIns) {
                     \Modules\Accounting\Entities\AccJournalLine::query()->create([
                         'journal_entry_id' => $je->id,
                         'account_id' => $accEmployerIns->id,
@@ -156,19 +216,32 @@ class HrmPayrollAccountingBridge
                     ]);
                 }
 
-                // 2. Credits: Total SSO (30%) + Tax + Loans + Net
-                $totalSsoPayable = round($employeeIns + $employerIns, 2);
-                if ($totalSsoPayable > 0) {
+                // 2. Credits (بستانکار):
+                // 2.1 بیمه سهم کارفرما پرداختنی
+                if ($employerIns > 0 && $accEmployerIns) {
+                    $ssoAcc = $this->findAccount('210201') ?: $accEmployeeSso;
                     \Modules\Accounting\Entities\AccJournalLine::query()->create([
                         'journal_entry_id' => $je->id,
-                        'account_id' => $accSsoPayable->id,
+                        'account_id' => $ssoAcc->id,
                         'debit' => 0,
-                        'credit' => $totalSsoPayable,
-                        'description' => 'حق بیمه پرداختنی سازمان تأمین اجتماعی (۳۰٪)',
+                        'credit' => $employerIns,
+                        'description' => 'بیمه سهم کارفرما پرداختنی تأمین اجتماعی',
                     ]);
                 }
 
-                if ($tax > 0) {
+                // 2.2 بیمه سهم کارگر پرداختنی
+                if ($employeeIns > 0 && $accEmployeeSso) {
+                    \Modules\Accounting\Entities\AccJournalLine::query()->create([
+                        'journal_entry_id' => $je->id,
+                        'account_id' => $accEmployeeSso->id,
+                        'debit' => 0,
+                        'credit' => $employeeIns,
+                        'description' => 'حق بیمه سهم کارگر پرداختنی (۷٪)',
+                    ]);
+                }
+
+                // 2.3 مالیات پرداختنی
+                if ($tax > 0 && $accTaxPayable) {
                     \Modules\Accounting\Entities\AccJournalLine::query()->create([
                         'journal_entry_id' => $je->id,
                         'account_id' => $accTaxPayable->id,
@@ -178,22 +251,24 @@ class HrmPayrollAccountingBridge
                     ]);
                 }
 
-                if ($otherDeductions > 0) {
+                // 2.4 کسورات وام
+                if ($loanDeductions > 0 && $accLoanPayable) {
                     \Modules\Accounting\Entities\AccJournalLine::query()->create([
                         'journal_entry_id' => $je->id,
                         'account_id' => $accLoanPayable->id,
                         'debit' => 0,
-                        'credit' => $otherDeductions,
-                        'description' => 'کسور اقساط وام و مساعده حقوق',
+                        'credit' => $loanDeductions,
+                        'description' => 'کسور اقساط وام و مساعده پرسنل',
                     ]);
                 }
 
+                // 2.5 حقوق پرداختنی (خالص)
                 \Modules\Accounting\Entities\AccJournalLine::query()->create([
                     'journal_entry_id' => $je->id,
                     'account_id' => $accNetPayable->id,
                     'debit' => 0,
                     'credit' => $net,
-                    'description' => 'خالص پرداختنی پرسنل',
+                    'description' => 'خالص حقوق پرداختنی پرسنل',
                 ]);
 
                 $payload = ['journal_entry_id' => $je->id, 'paid_at' => now()];

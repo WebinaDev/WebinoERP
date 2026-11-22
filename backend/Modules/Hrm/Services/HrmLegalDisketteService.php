@@ -17,7 +17,7 @@ class HrmLegalDisketteService
     /**
      * Resolve enterprise workshop code from subsidiary company or organization settings.
      */
-    private function resolveWorkshopCode(?string $provided = null, ?HrmPayrollRun $run = null): string
+    public function resolveWorkshopCode(?string $provided = null, ?HrmPayrollRun $run = null): string
     {
         $code = trim((string) $provided);
         if ($code !== '' && strlen($code) === 10 && ctype_digit($code)) {
@@ -44,7 +44,7 @@ class HrmLegalDisketteService
     /**
      * Resolve enterprise Tax Identification Number (کد اقتصادی یا شناسه ملی کارفرما).
      */
-    private function resolveTaxTfn(?string $provided = null, ?HrmPayrollRun $run = null): string
+    public function resolveTaxTfn(?string $provided = null, ?HrmPayrollRun $run = null): string
     {
         $tfn = trim((string) $provided);
         if ($tfn !== '') {
@@ -71,7 +71,7 @@ class HrmLegalDisketteService
     /**
      * Resolve enterprise postal code.
      */
-    private function resolvePostalCode(?HrmPayrollRun $run = null): string
+    public function resolvePostalCode(?HrmPayrollRun $run = null): string
     {
         if ($run && $run->subsidiary_company_id && \Illuminate\Support\Facades\Schema::hasTable('hrm_subsidiary_companies')) {
             $company = HrmSubsidiaryCompany::query()->find($run->subsidiary_company_id);
@@ -91,7 +91,8 @@ class HrmLegalDisketteService
     }
 
     /**
-     * Validate pre-export integrity and return discrepancy report.
+     * Validate pre-export integrity and return detailed discrepancy report:
+     * - Strict validation for Employee Full Name, 10-digit National ID, SSO Insurance Number, and Workshop Code.
      *
      * @return array{is_valid: bool, errors: list<string>, warnings: list<string>}
      */
@@ -101,8 +102,21 @@ class HrmLegalDisketteService
         $errors = [];
         $warnings = [];
 
+        // 1. Verify Workshop Code configuration
+        try {
+            $this->resolveWorkshopCode(null, $run);
+        } catch (\Throwable $e) {
+            $errors[] = $e->getMessage();
+        }
+
+        // 2. Verify Runs & Items presence
         if ($run->items->isEmpty()) {
             $errors[] = 'دوره حقوق فاقد هرگونه رکورد یا فیش حقوقی است.';
+            return [
+                'is_valid' => false,
+                'errors' => $errors,
+                'warnings' => $warnings,
+            ];
         }
 
         foreach ($run->items as $idx => $item) {
@@ -115,17 +129,84 @@ class HrmLegalDisketteService
 
             $name = trim("{$emp->first_name} {$emp->last_name}");
             if (empty($emp->first_name) || empty($emp->last_name)) {
-                $errors[] = "ردیف {$line}: نام یا نام خانوادگی کارمند خالی است.";
+                $errors[] = "ردیف {$line}: نام و نام خانوادگی کارمند اجباری بوده و خالی است.";
             }
 
             $nid = trim((string) $emp->national_id);
             if (empty($nid) || strlen($nid) !== 10 || ! ctype_digit($nid)) {
-                $errors[] = "ردیف {$line} ({$name}): کد ملی ۱۰ رقمی نامعتبر است ({$nid}).";
+                $errors[] = "ردیف {$line} ({$name}): کد ملی ۱۰ رقمی کارمند اجباری و نامعتبر است ({$nid}).";
+            }
+
+            $profile = $emp->profile;
+            $custom = is_array($profile?->custom_fields) ? $profile->custom_fields : [];
+            $insuranceNo = trim((string) ($profile?->insurance_number ?: ($custom['insurance_no'] ?? $custom['ssn'] ?? $emp->insurance_no ?? '')));
+            if (empty($insuranceNo)) {
+                $errors[] = "ردیف {$line} ({$name}): شماره بیمه تأمین اجتماعی کارمند اجباری بوده و ثبت نشده است.";
             }
 
             $sheba = trim((string) $emp->sheba_number);
             if (! empty($sheba) && (! str_starts_with($sheba, 'IR') || strlen($sheba) !== 26)) {
                 $warnings[] = "ردیف {$line} ({$name}): فرمت شبای بانکی غیراستاندارد است ({$sheba}).";
+            }
+        }
+
+        return [
+            'is_valid' => empty($errors),
+            'errors' => $errors,
+            'warnings' => $warnings,
+        ];
+    }
+
+    /**
+     * Validate pre-export integrity specifically for Tax Diskette (WH/WP Article 84)
+     *
+     * @return array{is_valid: bool, errors: list<string>, warnings: list<string>}
+     */
+    public function validateTaxExportIntegrity(HrmPayrollRun $run): array
+    {
+        $run->loadMissing(['items.employee.profile']);
+        $errors = [];
+        $warnings = [];
+
+        // 1. Verify Employer Tax TFN and Postal Code
+        try {
+            $this->resolveTaxTfn(null, $run);
+        } catch (\Throwable $e) {
+            $errors[] = $e->getMessage();
+        }
+
+        try {
+            $this->resolvePostalCode($run);
+        } catch (\Throwable $e) {
+            $errors[] = $e->getMessage();
+        }
+
+        // 2. Verify Runs & Items presence
+        if ($run->items->isEmpty()) {
+            $errors[] = 'دوره حقوق فاقد هرگونه رکورد یا فیش حقوقی است.';
+            return [
+                'is_valid' => false,
+                'errors' => $errors,
+                'warnings' => $warnings,
+            ];
+        }
+
+        foreach ($run->items as $idx => $item) {
+            $line = $idx + 1;
+            $emp = $item->employee;
+            if (! $emp) {
+                $errors[] = "ردیف {$line}: رکورد فیش به هیچ کارمندی متصل نیست.";
+                continue;
+            }
+
+            $name = trim("{$emp->first_name} {$emp->last_name}");
+            if (empty($emp->first_name) || empty($emp->last_name)) {
+                $errors[] = "ردیف {$line}: نام و نام خانوادگی کارمند در دیسکت مالیات اجباری است.";
+            }
+
+            $nid = trim((string) $emp->national_id);
+            if (empty($nid) || strlen($nid) !== 10 || ! ctype_digit($nid)) {
+                $errors[] = "ردیف {$line} ({$name}): کد ملی ۱۰ رقمی برای دیسکت مالیات اجباری است ({$nid}).";
             }
         }
 
@@ -226,7 +307,7 @@ class HrmLegalDisketteService
      */
     public function generateTaxDiskette(HrmPayrollRun $run, ?string $tfn = null): array
     {
-        $integrity = $this->validateExportIntegrity($run);
+        $integrity = $this->validateTaxExportIntegrity($run);
         if (! $integrity['is_valid']) {
             throw new InvalidArgumentException('خطای اعتبارسنجی پیش از تولید دیسکت مالیات: ' . implode(' | ', $integrity['errors']));
         }
