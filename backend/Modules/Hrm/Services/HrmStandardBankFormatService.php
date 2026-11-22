@@ -54,6 +54,22 @@ class HrmStandardBankFormatService
     }
 
     /**
+     * Alias for backward compatibility with existing tests.
+     */
+    public function isValidSheba(string $sheba): bool
+    {
+        return $this->validateShebaMod97($sheba);
+    }
+
+    /**
+     * Compatibility alias for standard paya payment file generation.
+     */
+    public function generatePayaPaymentFile(HrmPayrollRun $run): array
+    {
+        return $this->generateBankExport($run, 'paya_standard');
+    }
+
+    /**
      * Generate standard banking bulk payment file (فرمت استاندارد پایا / ساتنا شبکه شتاب).
      *
      * @return array{

@@ -4,24 +4,32 @@ namespace Modules\Hrm\Http\Controllers;
 
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Modules\Hrm\Entities\HrmAttendanceCorrectionRequest;
 use Modules\Hrm\Entities\HrmAttritionRiskLog;
 use Modules\Hrm\Entities\HrmCareerPath;
+use Modules\Hrm\Entities\HrmCompensationPackage;
 use Modules\Hrm\Entities\HrmDecreeFormulaComponent;
 use Modules\Hrm\Entities\HrmEmployee;
 use Modules\Hrm\Entities\HrmEmploymentDecree;
 use Modules\Hrm\Entities\HrmJobApplicant;
 use Modules\Hrm\Entities\HrmJobPosting;
+use Modules\Hrm\Entities\HrmMissionOrder;
 use Modules\Hrm\Entities\HrmPayrollRetroAdjustment;
 use Modules\Hrm\Entities\HrmPayrollRun;
+use Modules\Hrm\Entities\HrmPerformanceAgreement;
 use Modules\Hrm\Entities\HrmPromotionProposal;
 use Modules\Hrm\Entities\HrmResumeAiMatch;
 use Modules\Hrm\Entities\HrmRetireeRecord;
 use Modules\Hrm\Services\HrmAttritionPredictionService;
 use Modules\Hrm\Services\HrmCareerProgressionService;
+use Modules\Hrm\Services\HrmEydiSeveranceCalculatorService;
 use Modules\Hrm\Services\HrmFormulaEvaluationService;
 use Modules\Hrm\Services\HrmLegalDisketteService;
+use Modules\Hrm\Services\HrmPayrollAccountingIntegrationService;
+use Modules\Hrm\Services\HrmPayrollEndToEndWorkflowService;
 use Modules\Hrm\Services\HrmRecruitmentAiService;
 use Modules\Hrm\Services\HrmRetroactivePayrollService;
+use Modules\Hrm\Services\HrmStandardBankFormatService;
 
 class HrmEnterpriseSuiteController extends Controller
 {
@@ -182,6 +190,20 @@ class HrmEnterpriseSuiteController extends Controller
         ]);
     }
 
+    public function approveAndIssuePromotion(int $proposalId, HrmCareerProgressionService $service): JsonResponse
+    {
+        $proposal = HrmPromotionProposal::query()->with(['employee', 'targetCareerPath'])->findOrFail($proposalId);
+        $decree = $service->approveProposalAndIssueDecree($proposal);
+
+        return response()->json([
+            'message' => 'پیشنهاد ترفیع تایید و حکم کارگزینی جدید با موفقیت صادر گردید.',
+            'data' => [
+                'proposal' => $proposal->fresh(),
+                'decree' => $decree,
+            ],
+        ]);
+    }
+
     // ── 6. Rahkaran Parity: SSO / Tax Diskette Generator (دیسکت بیمه و مالیات) ──
 
     public function generateSsoDiskette(int $runId, HrmLegalDisketteService $service): JsonResponse
@@ -195,6 +217,17 @@ class HrmEnterpriseSuiteController extends Controller
         ]);
     }
 
+    public function generateTaxDiskette(int $runId, HrmLegalDisketteService $service): JsonResponse
+    {
+        $run = HrmPayrollRun::query()->findOrFail($runId);
+        $result = $service->generateTaxDiskette($run);
+
+        return response()->json([
+            'message' => 'فایل دیسکت مالیات بر حقوق (سامانه ماده ۸۴) با موفقیت تولید شد.',
+            'data' => $result,
+        ]);
+    }
+
     // ── 7. Rahkaran Parity: Retiree & Pension Management (امور بازنشستگان) ──
 
     public function retirees(): JsonResponse
@@ -203,41 +236,17 @@ class HrmEnterpriseSuiteController extends Controller
             'data' => HrmRetireeRecord::query()->with('employee')->orderByDesc('retirement_date')->get(),
         ]);
     }
-}
-    public function generateTaxDiskette(int , HrmLegalDisketteService ): JsonResponse
-    {
-         = HrmPayrollRun::query()->findOrFail();
-         = ->generateTaxDiskette();
 
-        return response()->json([
-            'message' => 'فایل دیسکت مالیات بر حقوق (سامانه ماده ۸۴) با موفقیت تولید شد.',
-            'data' => ,
-        ]);
-    }
-
-    public function approveAndIssuePromotion(int , HrmCareerProgressionService ): JsonResponse
-    {
-         = HrmPromotionProposal::query()->with(['employee', 'targetCareerPath'])->findOrFail();
-         = ->approveProposalAndIssueDecree();
-
-        return response()->json([
-            'message' => 'پیشنهاد ترفیع تایید و حکم کارگزینی جدید با موفقیت صادر گردید.',
-            'data' => [
-                'proposal' => ->fresh(),
-                'decree' => ,
-            ],
-        ]);
-    
     // ── 8. Payroll Segregated Accounting Vouchers (اسناد تفکیک‌شده حسابداری) ──
 
-    public function issueVouchersForRun(int , HrmPayrollAccountingIntegrationService ): JsonResponse
+    public function issueVouchersForRun(int $runId, HrmPayrollAccountingIntegrationService $service): JsonResponse
     {
-         = HrmPayrollRun::query()->findOrFail();
-         = ->issuePayrollVouchers(, auth()->id());
+        $run = HrmPayrollRun::query()->findOrFail($runId);
+        $result = $service->issuePayrollVouchers($run, auth()->id());
 
         return response()->json([
-            'message' => ['message'] ?? 'سند حسابداری صادر گردید.',
-            'data' => ,
+            'message' => $result['message'] ?? 'سند حسابداری صادر گردید.',
+            'data' => $result,
         ]);
     }
 
@@ -246,77 +255,73 @@ class HrmEnterpriseSuiteController extends Controller
     public function compensationPackages(): JsonResponse
     {
         return response()->json([
-            'data' => \Modules\Hrm\Entities\HrmCompensationPackage::query()->where('is_active', true)->get(),
+            'data' => HrmCompensationPackage::query()->where('is_active', true)->get(),
         ]);
     }
 
-    public function storeCompensationPackage(Request ): JsonResponse
+    public function storeCompensationPackage(Request $request): JsonResponse
     {
-         = ->validate([
+        $validated = $request->validate([
             'code' => 'required|string|max:32',
             'title' => 'required|string|max:120',
-            'employment_group' => 'required|string',
-            'base_ratio' => 'nullable|numeric',
+            'job_grade' => 'nullable|string',
+            'base_salary_floor' => 'nullable|numeric',
         ]);
 
-         = \Modules\Hrm\Entities\HrmCompensationPackage::query()->updateOrCreate(
-            ['code' => ['code']],
-            
+        $pkg = HrmCompensationPackage::query()->updateOrCreate(
+            ['code' => $validated['code']],
+            $validated
         );
 
-        return response()->json(['message' => 'بسته جبران خدمات ذخیره شد.', 'data' => ]);
+        return response()->json(['message' => 'بسته جبران خدمات ذخیره شد.', 'data' => $pkg]);
     }
 
     // ── 10. Performance Agreements (موافقت‌نامه‌های رسمی عملکرد) ──
 
-    public function performanceAgreements(Request ): JsonResponse
+    public function performanceAgreements(Request $request): JsonResponse
     {
-         = \Modules\Hrm\Entities\HrmPerformanceAgreement::query()->with(['employee', 'manager']);
-        if (->filled('employee_id')) {
-            ->where('employee_id', ->input('employee_id'));
+        $query = HrmPerformanceAgreement::query()->with('employee');
+        if ($request->filled('employee_id')) {
+            $query->where('employee_id', $request->input('employee_id'));
         }
-        return response()->json(['data' => ->orderByDesc('id')->get()]);
+
+        return response()->json(['data' => $query->orderByDesc('id')->get()]);
     }
 
-    public function storePerformanceAgreement(Request ): JsonResponse
+    public function storePerformanceAgreement(Request $request): JsonResponse
     {
-         = ->validate([
+        $validated = $request->validate([
             'employee_id' => 'required|exists:hrm_employees,id',
-            'manager_id' => 'nullable|exists:hrm_employees,id',
-            'start_date' => 'required|date',
-            'end_date' => 'required|date',
-            'kpi_targets' => 'nullable|array',
+            'year_period' => 'required|string',
+            'stage' => 'nullable|string',
+            'manager_notes' => 'nullable|string',
         ]);
 
-         = 'AGR-' . now()->format('Ymd') . '-' . ['employee_id'];
-         = \Modules\Hrm\Entities\HrmPerformanceAgreement::query()->create([
-            'employee_id' => ['employee_id'],
-            'manager_id' => ['manager_id'] ?? null,
-            'agreement_code' => ,
-            'start_date' => ['start_date'],
-            'end_date' => ['end_date'],
-            'kpi_targets' => ['kpi_targets'] ?? [],
-            'status' => 'active',
-            'manager_signed_at' => now(),
+        $agreement = HrmPerformanceAgreement::query()->create([
+            'employee_id' => $validated['employee_id'],
+            'year_period' => $validated['year_period'],
+            'stage' => $validated['stage'] ?? 'planning',
+            'manager_notes' => $validated['manager_notes'] ?? null,
         ]);
 
-        return response()->json(['message' => 'موافقت‌نامه رسمی عملکرد با موفقیت ثبت و ابلاغ شد.', 'data' => ]);
+        return response()->json(['message' => 'موافقت‌نامه رسمی عملکرد با موفقیت ثبت و ابلاغ شد.', 'data' => $agreement]);
     }
 
     // ── 11. Mission & Travel Orders (احکام مأموریت و فوق‌العاده سفر) ──
 
-    public function missionOrders(Request ): JsonResponse
+    public function missionOrders(Request $request): JsonResponse
     {
-         = \Modules\Hrm\Entities\HrmMissionOrder::query()->with('employee');
-        if (->filled('employee_id')) {
-            ->where('employee_id', ->input('employee_id'));
+        $query = HrmMissionOrder::query()->with('employee');
+        if ($request->filled('employee_id')) {
+            $query->where('employee_id', $request->input('employee_id'));
         }
-        return response()->json(['data' => ->orderByDesc('id')->get()]);
+
+        return response()->json(['data' => $query->orderByDesc('id')->get()]);
     }
 
-    public function storeMissionOrder(Request ): JsonResponse
+    public function storeMissionOrder(Request $request): JsonResponse
     {
-         = ->validate([
+        $validated = $request->validate([
             'employee_id' => 'required|exists:hrm_employees,id',
             'destination' => 'required|string|max:150',
             'mission_type' => 'required|string',
@@ -326,76 +331,75 @@ class HrmEnterpriseSuiteController extends Controller
             'transport_expense' => 'nullable|numeric',
         ]);
 
-         = 'MIS-' . now()->format('Ymd') . '-' . rand(100, 999);
-         = (float) (['per_diem_rate'] ?? 0) + (float) (['transport_expense'] ?? 0);
+        $serial = app(\Modules\Hrm\Services\HrmSerialService::class)->next('decree');
+        $total = (float) ($validated['per_diem_rate'] ?? 0) + (float) ($validated['transport_expense'] ?? 0);
 
-         = \Modules\Hrm\Entities\HrmMissionOrder::query()->create([
-            'employee_id' => ['employee_id'],
-            'mission_no' => ,
-            'mission_type' => ['mission_type'],
-            'destination' => ['destination'],
-            'starts_at' => ['starts_at'],
-            'ends_at' => ['ends_at'],
-            'per_diem_rate' => ['per_diem_rate'] ?? 0,
-            'transport_expense' => ['transport_expense'] ?? 0,
-            'total_allowance' => ,
+        $order = HrmMissionOrder::query()->create([
+            'employee_id' => $validated['employee_id'],
+            'mission_no' => $serial,
+            'mission_type' => $validated['mission_type'],
+            'destination' => $validated['destination'],
+            'starts_at' => $validated['starts_at'],
+            'ends_at' => $validated['ends_at'],
+            'per_diem_rate' => $validated['per_diem_rate'] ?? 0,
+            'transport_expense' => $validated['transport_expense'] ?? 0,
+            'total_allowance' => $total,
             'status' => 'hr_approved',
         ]);
 
-        return response()->json(['message' => 'حکم مأموریت اداری با موفقیت ثبت و ابلاغ شد.', 'data' => ]);
+        return response()->json(['message' => 'حکم مأموریت اداری با موفقیت ثبت و ابلاغ شد.', 'data' => $order]);
     }
-
 
     // ── 12. Full End-to-End Integrated Lifecycle & Bank File ──
 
-    public function executeLifecycle(int , HrmPayrollEndToEndWorkflowService ): JsonResponse
+    public function executeLifecycle(int $runId, HrmPayrollEndToEndWorkflowService $service): JsonResponse
     {
-         = HrmPayrollRun::query()->findOrFail();
-         = ->executeFullPayrollCycle(, auth()->id());
+        $run = HrmPayrollRun::query()->findOrFail($runId);
+        $result = $service->executeFullPayrollCycle($run, auth()->id());
 
-        return response()->json();
+        return response()->json(['data' => $result]);
     }
 
-    public function generateBankFile(int , HrmStandardBankFormatService ): JsonResponse
+    public function generateBankFile(int $runId, HrmStandardBankFormatService $service): JsonResponse
     {
-         = HrmPayrollRun::query()->findOrFail();
-         = ->generatePayaPaymentFile();
+        $run = HrmPayrollRun::query()->findOrFail($runId);
+        $result = $service->generateBankExport($run, 'paya_standard');
 
         return response()->json([
             'message' => 'فایل استاندارد واریز گروهی پایا با موفقیت تولید شد.',
-            'data' => ,
+            'data' => $result,
         ]);
     }
 
-    public function employeeEydiSeverance(int , HrmEydiSeveranceCalculatorService ): JsonResponse
+    public function employeeEydiSeverance(int $employeeId, HrmEydiSeveranceCalculatorService $service): JsonResponse
     {
-         = HrmEmployee::query()->findOrFail();
-         = ->calculateYearlyEydi();
-         = ->calculateAccruedSeverance();
+        $employee = HrmEmployee::query()->findOrFail($employeeId);
+        $eydi = $service->calculateYearlyEydi($employee);
+        $severance = $service->calculateAccruedSeverance($employee);
 
         return response()->json([
             'data' => [
-                'eydi' => ,
-                'severance' => ,
+                'eydi' => $eydi,
+                'severance' => $severance,
             ],
         ]);
     }
 
-
     // ── 13. Attendance Correction Requests & Settlements ──
 
-    public function attendanceCorrections(Request ): JsonResponse
+    public function attendanceCorrections(Request $request): JsonResponse
     {
-         = \Modules\Hrm\Entities\HrmAttendanceCorrectionRequest::query()->with('employee');
-        if (->filled('employee_id')) {
-            ->where('employee_id', ->input('employee_id'));
+        $query = HrmAttendanceCorrectionRequest::query()->with('employee');
+        if ($request->filled('employee_id')) {
+            $query->where('employee_id', $request->input('employee_id'));
         }
-        return response()->json(['data' => ->orderByDesc('id')->get()]);
+
+        return response()->json(['data' => $query->orderByDesc('id')->get()]);
     }
 
-    public function storeAttendanceCorrection(Request ): JsonResponse
+    public function storeAttendanceCorrection(Request $request): JsonResponse
     {
-         = ->validate([
+        $validated = $request->validate([
             'employee_id' => 'required|exists:hrm_employees,id',
             'record_date' => 'required|date',
             'requested_clock_in' => 'nullable|string',
@@ -404,21 +408,20 @@ class HrmEnterpriseSuiteController extends Controller
             'description' => 'nullable|string',
         ]);
 
-         = \Modules\Hrm\Entities\HrmAttendanceCorrectionRequest::query()->create( + [
+        $correction = HrmAttendanceCorrectionRequest::query()->create($validated + [
             'status' => 'approved_by_hr',
             'approved_at' => now(),
             'approved_by' => auth()->id(),
         ]);
 
-        return response()->json(['message' => 'درخواست اصلاح تردد ثبت و تایید گردید.', 'data' => ]);
+        return response()->json(['message' => 'درخواست اصلاح تردد ثبت و تایید گردید.', 'data' => $correction]);
     }
 
-    public function executeSettlement(int , HrmEydiSeveranceCalculatorService ): JsonResponse
+    public function executeSettlement(int $employeeId, HrmEydiSeveranceCalculatorService $service): JsonResponse
     {
-         = HrmEmployee::query()->findOrFail();
-         = ->executeEmployeeSettlement();
+        $employee = HrmEmployee::query()->findOrFail($employeeId);
+        $result = $service->executeEmployeeSettlement($employee);
 
-        return response()->json(['message' => ['message'], 'data' => ]);
+        return response()->json(['message' => $result['message'], 'data' => $result]);
     }
-
 }
