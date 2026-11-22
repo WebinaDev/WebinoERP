@@ -32,6 +32,7 @@ use Modules\Hrm\Http\Controllers\CalendarFeedController;
 use Modules\Hrm\Http\Controllers\StaffSpreadsheetController;
 use Modules\Hrm\Http\Controllers\StaffAccountController;
 use Modules\Hrm\Http\Controllers\HrmSettingsController;
+use Modules\Hrm\Http\Controllers\HrmManagementReportController;
 
 
 use Modules\Hrm\Http\Controllers\HrmEnterpriseSuiteController;
@@ -307,6 +308,15 @@ Route::get('analytics/summary', [HrAnalyticsController::class, 'summary']);
 Route::get('analytics/budgets', [HrAnalyticsController::class, 'budgets']);
 Route::post('analytics/budgets', [HrAnalyticsController::class, 'budgetsStore']);
 Route::delete('analytics/budgets/{budget}', [HrAnalyticsController::class, 'budgetsDestroy']);
+
+// HRM Management Reports
+Route::prefix('reports')->group(function () {
+    Route::get('payroll-list', [HrmManagementReportController::class, 'payrollList']);
+    Route::get('insurance-and-tax', [HrmManagementReportController::class, 'insuranceAndTax']);
+    Route::get('attendance-and-overtime', [HrmManagementReportController::class, 'attendanceAndOvertime']);
+    Route::get('decrees-and-personnel-changes', [HrmManagementReportController::class, 'decreesAndPersonnelChanges']);
+    Route::get('loans-and-deductions', [HrmManagementReportController::class, 'loansAndDeductions']);
+});
 
 Route::prefix('training')->group(function () {
     Route::get('courses', [TrainingNestedController::class, 'coursesIndex']);
