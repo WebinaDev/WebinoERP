@@ -119,11 +119,14 @@ class MePortalController extends Controller
             ->where('employee_id', $employee->id)
             ->orderByDesc('date');
 
-        if ($request->filled('date_from')) {
-            $query->where('date', '>=', $request->string('date_from'));
+        $fromDate = $request->string('from')->toString() ?: $request->string('date_from')->toString();
+        $toDate = $request->string('to')->toString() ?: $request->string('date_to')->toString();
+
+        if ($fromDate !== '') {
+            $query->where('date', '>=', $fromDate);
         }
-        if ($request->filled('date_to')) {
-            $query->where('date', '<=', $request->string('date_to'));
+        if ($toDate !== '') {
+            $query->where('date', '<=', $toDate);
         }
 
         $items = $query->limit(62)->get()->map(fn (HrmAttendanceRecord $a) => [
@@ -478,14 +481,196 @@ class MePortalController extends Controller
 
             \Modules\Hrm\Entities\HrmLeaveRequest::query()->create(array_merge([
                 'employee_id' => $employee->id,
+                'leave_type_id' => $data['payload']['leave_type_id'] ?? null,
                 'type' => $data['payload']['leave_type'] ?? 'daily',
                 'start_date' => $startDate,
                 'end_date' => $endDate,
+                'starts_at' => Carbon::parse($startDate)->startOfDay(),
+                'ends_at' => Carbon::parse($endDate)->endOfDay(),
                 'reason' => $data['notes'] ?? null,
             ], $boot));
         }
 
         return response()->json(['data' => $this->formatRequest($row), 'message' => __('messages.request_submitted')], 201);
+    }
+
+    /**
+     * Dedicated ESS Leave Requests Index
+     */
+    public function leaveRequestsIndex(Request $request): JsonResponse
+    {
+        $employee = $this->resolveEmployee();
+        if (! $employee || ! Schema::hasTable('hrm_leave_requests')) {
+            return response()->json(['data' => []]);
+        }
+
+        $items = \Modules\Hrm\Entities\HrmLeaveRequest::query()
+            ->with('leaveType')
+            ->where('employee_id', $employee->id)
+            ->orderByDesc('id')
+            ->get()
+            ->map(fn (\Modules\Hrm\Entities\HrmLeaveRequest $r) => [
+                'id' => $r->id,
+                'leave_type_id' => $r->leave_type_id,
+                'leave_type_name' => $r->leaveType?->name ?? $r->type,
+                'type' => $r->type,
+                'start_date' => optional($r->start_date)?->toDateString(),
+                'end_date' => optional($r->end_date)?->toDateString(),
+                'starts_at' => optional($r->starts_at)?->toDateTimeString(),
+                'ends_at' => optional($r->ends_at)?->toDateTimeString(),
+                'status' => $r->status,
+                'approval_step' => $r->approval_step,
+                'current_role' => $r->current_role,
+                'reason' => $r->reason,
+                'rejection_reason' => $r->rejection_reason,
+                'created_at' => optional($r->created_at)?->toIso8601String(),
+            ]);
+
+        return response()->json(['data' => $items]);
+    }
+
+    /**
+     * Dedicated ESS Leave Requests Store with date and overlap validation
+     */
+    public function leaveRequestsStore(Request $request): JsonResponse
+    {
+        $employee = $this->resolveEmployee();
+        if (! $employee) {
+            return response()->json(['message' => __('messages.no_employee_profile_linked_to_this_user')], 404);
+        }
+
+        $data = $request->validate([
+            'leave_type_id' => 'nullable|integer|exists:hrm_leave_types,id',
+            'starts_at' => 'required|date',
+            'ends_at' => 'required|date|after_or_equal:starts_at',
+            'reason' => 'nullable|string|max:1000',
+        ]);
+
+        $startsAt = Carbon::parse($data['starts_at']);
+        $endsAt = Carbon::parse($data['ends_at']);
+        $startDate = $startsAt->toDateString();
+        $endDate = $endsAt->toDateString();
+
+        // Check for conflicting or overlapping leave requests
+        $hasOverlap = \Modules\Hrm\Entities\HrmLeaveRequest::query()
+            ->where('employee_id', $employee->id)
+            ->whereIn('status', ['pending', 'pending_manager', 'pending_hr', 'manager_approved', 'approved', 'hr_approved'])
+            ->where(function ($q) use ($startDate, $endDate) {
+                $q->whereBetween('start_date', [$startDate, $endDate])
+                    ->orWhereBetween('end_date', [$startDate, $endDate])
+                    ->orWhere(function ($q2) use ($startDate, $endDate) {
+                        $q2->where('start_date', '<=', $startDate)->where('end_date', '>=', $endDate);
+                    });
+            })
+            ->exists();
+
+        if ($hasOverlap) {
+            return response()->json([
+                'message' => 'تداخل تاریخ: شما قبلاً در این بازه زمانی درخواست مرخصی ثبت کرده‌اید.',
+            ], 422);
+        }
+
+        $wf = app(HrmApprovalWorkflow::class);
+        $boot = $wf->bootstrapFields('leave');
+
+        $leave = \Modules\Hrm\Entities\HrmLeaveRequest::query()->create([
+            'employee_id' => $employee->id,
+            'leave_type_id' => $data['leave_type_id'] ?? null,
+            'type' => 'daily',
+            'start_date' => $startDate,
+            'end_date' => $endDate,
+            'starts_at' => $startsAt,
+            'ends_at' => $endsAt,
+            'reason' => $data['reason'] ?? null,
+            'status' => 'pending',
+            'approval_step' => 1,
+            'current_role' => $wf->currentRoleForStep(1, 'leave') ?? 'direct_manager',
+            'approval_log' => [],
+        ]);
+
+        // Keep unified hrm_requests synced for cartable inbox
+        HrmRequest::query()->create([
+            'employee_id' => $employee->id,
+            'user_id' => auth()->id(),
+            'type' => 'leave',
+            'payload' => [
+                'leave_id' => $leave->id,
+                'leave_type_id' => $data['leave_type_id'] ?? null,
+                'starts_at' => $startsAt->toDateTimeString(),
+                'ends_at' => $endsAt->toDateTimeString(),
+                'start_date' => $startDate,
+                'end_date' => $endDate,
+            ],
+            'notes' => $data['reason'] ?? null,
+            'status' => 'pending',
+            'approval_step' => 1,
+            'current_role' => 'direct_manager',
+            'approval_log' => [],
+        ]);
+
+        return response()->json([
+            'data' => $leave->load('leaveType'),
+            'message' => 'درخواست مرخصی با موفقیت ثبت شد و در انتظار تأیید مدیر مستقیم قرار گرفت.',
+        ], 201);
+    }
+
+    /**
+     * Dedicated ESS Loan Requests Store
+     */
+    public function loanRequestsStore(Request $request): JsonResponse
+    {
+        $employee = $this->resolveEmployee();
+        if (! $employee) {
+            return response()->json(['message' => __('messages.no_employee_profile_linked_to_this_user')], 404);
+        }
+
+        $data = $request->validate([
+            'amount' => 'required|numeric|min:100000',
+            'reason' => 'nullable|string|max:1000',
+            'installments' => 'nullable|integer|min:1|max:60',
+            'type' => 'nullable|in:loan,advance',
+        ]);
+
+        $amount = (float) $data['amount'];
+        $installments = max(1, (int) ($data['installments'] ?? 10));
+        $loanType = $data['type'] ?? 'loan';
+
+        $wf = app(HrmApprovalWorkflow::class);
+        $boot = $wf->bootstrapFields('loan');
+
+        $hrmRequest = HrmRequest::query()->create([
+            'employee_id' => $employee->id,
+            'user_id' => auth()->id(),
+            'type' => $loanType,
+            'payload' => [
+                'amount' => $amount,
+                'installments' => $installments,
+            ],
+            'notes' => $data['reason'] ?? null,
+            'status' => 'pending',
+            'approval_step' => 1,
+            'current_role' => 'direct_manager',
+            'approval_log' => [],
+        ]);
+
+        if (Schema::hasTable('hrm_loans')) {
+            HrmLoan::query()->create([
+                'employee_id' => $employee->id,
+                'type' => $loanType,
+                'title' => ($loanType === 'advance' ? 'مساعده حقوق' : 'وام پرسنلی') . ' - ثبت خودکار پرتال',
+                'principal' => $amount,
+                'installment_amount' => round($amount / $installments, 2),
+                'remaining_balance' => $amount,
+                'installments_total' => $installments,
+                'installments_paid' => 0,
+                'status' => 'active',
+            ]);
+        }
+
+        return response()->json([
+            'data' => $this->formatRequest($hrmRequest),
+            'message' => 'درخواست وام/مساعده با موفقیت ثبت شد.',
+        ], 201);
     }
 
     public function requestApprove(Request $request, HrmRequest $hrmRequest): JsonResponse
