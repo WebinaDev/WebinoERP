@@ -251,20 +251,20 @@ class HrmEmployeeSelfServicePortalTest extends TestCase
         $this->assertEquals('pending_manager', $hrmRequest->status);
         $this->assertEquals(1, $hrmRequest->approval_step);
 
-        // 2. Step 1: Direct Manager approves request -> transitions to pending_hr
+        // 2. Step 1: Direct Manager approves request -> transitions to manager_approved
         $step1Response = $this->actingAs($managerUser)->postJson("/api/v1/hrm/requests/{$hrmRequest->id}/approve");
         $step1Response->assertStatus(200);
 
         $hrmRequest->refresh();
-        $this->assertEquals('pending_hr', $hrmRequest->status);
+        $this->assertEquals('manager_approved', $hrmRequest->status);
         $this->assertEquals(2, $hrmRequest->approval_step);
 
-        // 3. Step 2: HR Manager approves request -> transitions to approved
+        // 3. Step 2: HR Manager approves request -> transitions to hr_approved
         $step2Response = $this->actingAs($hrUser)->postJson("/api/v1/hrm/requests/{$hrmRequest->id}/approve");
         $step2Response->assertStatus(200);
 
         $hrmRequest->refresh();
-        $this->assertEquals('approved', $hrmRequest->status);
+        $this->assertEquals('hr_approved', $hrmRequest->status);
 
         // 4. Test Rejection flow on a second request
         $missionResponse = $this->actingAs($employeeUser)->postJson('/api/v1/hrm/me/requests', [
@@ -287,5 +287,96 @@ class HrmEmployeeSelfServicePortalTest extends TestCase
         $missionRequest->refresh();
         $this->assertEquals('rejected', $missionRequest->status);
         $this->assertEquals('عدم موافقت به دلیل نیاز مبرم پروژه', $missionRequest->notes);
+    }
+
+    /**
+     * Test Dedicated Leave Request Endpoint, Overlap Validation, Isolation and Permissions
+     */
+    public function test_dedicated_leave_request_ess_lifecycle_and_tenant_isolation(): void
+    {
+        $employeeUser1 = User::factory()->create();
+        $employeeUser2 = User::factory()->create();
+        $managerUser = User::factory()->create();
+        $hrUser = User::factory()->create();
+
+        if (method_exists($managerUser, 'assignRole')) {
+            $managerUser->assignRole('project_manager');
+            $hrUser->assignRole('hr_manager');
+        }
+
+        $emp1 = HrmEmployee::query()->create([
+            'user_id' => $employeeUser1->id,
+            'employee_code' => 'ESS-ISO-01',
+            'first_name' => 'داریوش',
+            'last_name' => 'فرهمند',
+            'base_salary' => 150000000,
+            'is_active' => true,
+        ]);
+
+        $emp2 = HrmEmployee::query()->create([
+            'user_id' => $employeeUser2->id,
+            'employee_code' => 'ESS-ISO-02',
+            'first_name' => 'مریم',
+            'last_name' => 'شمس',
+            'base_salary' => 120000000,
+            'is_active' => true,
+        ]);
+
+        // 1. Employee 1 submits leave request via POST /api/v1/hrm/me/leave-requests
+        $storeResp = $this->actingAs($employeeUser1)->postJson('/api/v1/hrm/me/leave-requests', [
+            'starts_at' => '2026-06-01 08:00:00',
+            'ends_at' => '2026-06-03 17:00:00',
+            'reason' => 'مرخصی استحقاقی سفر زیارتی',
+        ]);
+
+        $storeResp->assertStatus(201);
+        $this->assertEquals('pending', $storeResp->json('data.status'));
+        $leaveId = $storeResp->json('data.id');
+
+        // 2. Overlap validation: attempting to submit overlapping dates must be rejected (422)
+        $overlapResp = $this->actingAs($employeeUser1)->postJson('/api/v1/hrm/me/leave-requests', [
+            'starts_at' => '2026-06-02 08:00:00',
+            'ends_at' => '2026-06-04 17:00:00',
+            'reason' => 'تداخل با درخواست قبلی',
+        ]);
+        $overlapResp->assertStatus(422);
+        $this->assertStringContainsString('تداخل', $overlapResp->json('message'));
+
+        // 3. Employee only sees their own leave requests
+        $listResp1 = $this->actingAs($employeeUser1)->getJson('/api/v1/hrm/me/leave-requests');
+        $listResp1->assertStatus(200);
+        $this->assertCount(1, $listResp1->json('data'));
+
+        $listResp2 = $this->actingAs($employeeUser2)->getJson('/api/v1/hrm/me/leave-requests');
+        $listResp2->assertStatus(200);
+        $this->assertCount(0, $listResp2->json('data')); // Employee 2 cannot see Employee 1's leaves
+
+        // 4. Employee cannot approve/reject their own request (Forbidden 403)
+        $empApproveResp = $this->actingAs($employeeUser1)->postJson("/api/v1/hrm/requests/leaves/{$leaveId}/approve");
+        $empApproveResp->assertStatus(403);
+
+        // 5. Manager approves Step 1 -> status transitions to manager_approved
+        $mgrApproveResp = $this->actingAs($managerUser)->postJson("/api/v1/hrm/requests/leaves/{$leaveId}/approve");
+        $mgrApproveResp->assertStatus(200);
+        $this->assertEquals('manager_approved', $mgrApproveResp->json('data.status'));
+
+        // 6. HR approves Step 2 -> status transitions to hr_approved
+        $hrApproveResp = $this->actingAs($hrUser)->postJson("/api/v1/hrm/requests/leaves/{$leaveId}/approve");
+        $hrApproveResp->assertStatus(200);
+        $this->assertEquals('hr_approved', $hrApproveResp->json('data.status'));
+
+        // 7. Verify ESS Loan Request endpoint POST /api/v1/hrm/me/loan-requests
+        $loanResp = $this->actingAs($employeeUser1)->postJson('/api/v1/hrm/me/loan-requests', [
+            'amount' => 40000000,
+            'installments' => 4,
+            'reason' => 'مساعده پیش‌بینی نشده',
+            'type' => 'advance',
+        ]);
+        $loanResp->assertStatus(201);
+        $this->assertDatabaseHas('hrm_loans', [
+            'employee_id' => $emp1->id,
+            'principal' => 40000000,
+            'status' => 'active',
+        ]);
     }
 }

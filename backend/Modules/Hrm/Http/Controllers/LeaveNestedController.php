@@ -92,12 +92,13 @@ class LeaveNestedController extends Controller
             );
         }
 
-        return response()->json(['data' => $leaveRequest->fresh('employee'), 'message' => $status === 'approved' ? 'Approved' : 'Advanced']);
+        return response()->json(['data' => $leaveRequest->fresh(['employee', 'leaveType']), 'message' => $status === 'approved' ? 'Approved' : 'Advanced']);
     }
 
     public function requestReject(Request $request, HrmLeaveRequest $leaveRequest): JsonResponse
     {
         $data = $request->validate(['reason' => 'nullable|string|max:2000']);
+        $rejectionReason = $data['reason'] ?? $request->input('notes') ?? null;
         $wf = app(HrmApprovalWorkflow::class);
         if (Schema::hasColumn('hrm_leave_requests', 'approval_step')) {
             if ($leaveRequest->status === 'pending') {
@@ -107,9 +108,12 @@ class LeaveNestedController extends Controller
                     'current_role' => $wf->currentRoleForStep(1, 'leave'),
                 ]);
             }
-            $wf->rejectModel($leaveRequest, $request->user(), $data['reason'] ?? null);
+            $wf->rejectModel($leaveRequest, $request->user(), $rejectionReason);
         } else {
             $leaveRequest->update(['status' => 'rejected', 'approved_by' => $request->user()->id]);
+        }
+        if ($rejectionReason !== null && Schema::hasColumn('hrm_leave_requests', 'rejection_reason')) {
+            $leaveRequest->update(['rejection_reason' => $rejectionReason]);
         }
         HrmNotifier::notify(
             $leaveRequest->employee_id,
@@ -118,7 +122,7 @@ class LeaveNestedController extends Controller
             'درخواست مرخصی leave:'.$leaveRequest->id.' رد شد.'
         );
 
-        return response()->json(['data' => $leaveRequest->fresh('employee'), 'message' => __('messages.rejected')]);
+        return response()->json(['data' => $leaveRequest->fresh(['employee', 'leaveType']), 'message' => __('messages.rejected')]);
     }
 
     public function balancesIndex(Request $request): JsonResponse

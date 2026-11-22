@@ -262,6 +262,17 @@ class HrmApprovalWorkflow
         $done = $step >= count($chain);
         $next = $done ? $step : $step + 1;
         $status = $done ? self::STATUS_APPROVED : $this->statusForStep($next, $type);
+
+        // Map status specifically for leave and mission 2-step workflow:
+        // Step 1 done -> manager_approved (or pending_hr), Final done -> hr_approved (or approved)
+        if (in_array($type, ['leave', 'mission'], true)) {
+            if ($step === 1 && ! $done) {
+                $status = 'manager_approved';
+            } elseif ($done) {
+                $status = 'hr_approved';
+            }
+        }
+
         $payload = ['status' => $status, 'approval_log' => $log];
         if (Schema::hasColumn($model->getTable(), 'approval_step')) {
             $payload['approval_step'] = $next;

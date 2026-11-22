@@ -86,6 +86,9 @@ Route::prefix('me')->group(function () {
     Route::get('attendance', [MePortalController::class, 'attendanceIndex']);
     Route::post('attendance', [MePortalController::class, 'attendancePunch']);
     Route::get('decrees', [MePortalController::class, 'decrees']);
+    Route::get('leave-requests', [MePortalController::class, 'leaveRequestsIndex']);
+    Route::post('leave-requests', [MePortalController::class, 'leaveRequestsStore']);
+    Route::post('loan-requests', [MePortalController::class, 'loanRequestsStore']);
     Route::get('dependents', [MePortalController::class, 'dependentsIndex']);
     Route::post('dependents', [MePortalController::class, 'dependentsStore']);
     Route::get('org-chart', [MePortalController::class, 'orgChart']);
