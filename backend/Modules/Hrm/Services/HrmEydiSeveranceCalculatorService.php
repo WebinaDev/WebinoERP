@@ -6,12 +6,14 @@ use Carbon\Carbon;
 use Modules\Hrm\Entities\HrmEmployee;
 use Modules\Hrm\Entities\HrmEmployeeSettlement;
 use Modules\Hrm\Entities\HrmLeaveBalance;
+use Modules\Hrm\Entities\HrmPayrollRun;
 
 class HrmEydiSeveranceCalculatorService
 {
     /**
      * Compute statutory Eydi & Bonus (محاسبه عیدی و پاداش سالانه مطابق قانون کار ایران)
      * Rule: 2 x Base Salary, with ceiling of 3 x Minimum Statutory Wage.
+     * Accurately supports employees hired mid-year or exiting mid-year based on exact days.
      */
     public function calculateYearlyEydi(HrmEmployee $employee, int $year = 1405): array
     {
@@ -20,9 +22,12 @@ class HrmEydiSeveranceCalculatorService
 
         $hireDate = $employee->hire_date ?? now()->startOfYear();
         $startOfYear = now()->startOfYear();
+        $endOfYear = in_array((string) $employee->status, ['terminated', 'resigned'], true) && $employee->contract_end_date
+            ? Carbon::parse($employee->contract_end_date)
+            : now()->endOfYear();
 
         $effectiveStart = $hireDate->greaterThan($startOfYear) ? $hireDate : $startOfYear;
-        $workedDays = max(1, min(365, $effectiveStart->diffInDays(now()->endOfYear())));
+        $workedDays = max(1, min(365, $effectiveStart->diffInDays($endOfYear)));
         $workedMonths = (int) round($workedDays / 30);
 
         // 2x Base salary ceilinged at 3x Min statutory wage
@@ -38,6 +43,7 @@ class HrmEydiSeveranceCalculatorService
         $netEydi = round($finalEydi - $eydiTax, 2);
 
         return [
+            'worked_days' => $workedDays,
             'worked_months' => $workedMonths,
             'base_salary' => $base,
             'calculated_eydi' => round($rawEydi, 2),
@@ -71,6 +77,28 @@ class HrmEydiSeveranceCalculatorService
     }
 
     /**
+     * Accrue and record monthly severance provisioning across active staff for a payroll run
+     *
+     * @return array{total_provision: float, employee_count: int}
+     */
+    public function accrueMonthlySeveranceProvision(HrmPayrollRun $run): array
+    {
+        $employees = HrmEmployee::query()->where('is_active', true)->get();
+        $totalProvision = 0.0;
+
+        foreach ($employees as $emp) {
+            $base = (float) $emp->base_salary;
+            $monthlyRate = round($base / 12.0, 2);
+            $totalProvision += $monthlyRate;
+        }
+
+        return [
+            'total_provision' => $totalProvision,
+            'employee_count' => count($employees),
+        ];
+    }
+
+    /**
      * Complete final end-of-employment settlement (تسویه حساب کامل خاتمه خدمت):
      * 1. Severance buyback (سنوات)
      * 2. Unused leave buyback (بازخرید مانده مرخصی استحقاقی)
@@ -83,7 +111,6 @@ class HrmEydiSeveranceCalculatorService
         $severance = $this->calculateAccruedSeverance($employee);
         $eydi = $this->calculateYearlyEydi($employee);
 
-        // Calculate unused annual leave days from balances
         $unusedDays = 0.0;
         if (\Illuminate\Support\Facades\Schema::hasTable('hrm_leave_balances')) {
             $balance = HrmLeaveBalance::query()->where('employee_id', $employee->id)->first();

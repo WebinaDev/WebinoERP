@@ -16,6 +16,7 @@ class HrmRetroactivePayrollService
 
     /**
      * Calculate retroactive pay differentials when a new decree is issued effective in the past.
+     * Uses real progressive tax brackets (پلکان قانونی ماده ۸۴) rather than a flat 10%.
      *
      * @return array<int, HrmPayrollRetroAdjustment>
      */
@@ -40,7 +41,7 @@ class HrmRetroactivePayrollService
         $issueYear = (int) $decreeIssueDate->format('Y');
         $issueMonth = (int) $decreeIssueDate->format('n');
 
-        // Find existing payroll items that were processed under the previous decree/rates
+        // Find existing payroll runs processed under previous rates
         $historicalRuns = HrmPayrollRun::query()
             ->where(function ($q) use ($effectiveYear, $effectiveMonth, $issueYear, $issueMonth) {
                 $q->where(function ($q2) use ($effectiveYear, $effectiveMonth) {
@@ -55,7 +56,7 @@ class HrmRetroactivePayrollService
                         });
                 });
             })
-            ->where('status', 'approved')
+            ->whereIn('status', ['approved', 'paid'])
             ->orderBy('year')
             ->orderBy('month')
             ->get();
@@ -72,14 +73,15 @@ class HrmRetroactivePayrollService
                 continue;
             }
 
-            // Temporarily evaluate new compensation with the updated decree parameters
             $originalGross = (float) $existingItem->gross;
             $originalNet = (float) $existingItem->net;
+            $originalTax = (float) $existingItem->tax;
+            $originalIns = (float) $existingItem->employee_insurance;
 
             $newBase = (float) ($decree->base_salary ?: $employee->base_salary);
             $newDaily = (float) ($decree->daily_wage ?: $employee->daily_rate);
 
-            // Re-simulate calculation with the new base rate
+            // Re-simulate calculation with the new base rate and progressive tax brackets
             $tempEmployee = clone $employee;
             $tempEmployee->base_salary = $newBase;
             if ($newDaily > 0) {
@@ -89,20 +91,23 @@ class HrmRetroactivePayrollService
             $simulated = $this->calculator->forEmployee($tempEmployee, (int) $run->year, (int) $run->month, $run->id);
 
             $adjustedGross = (float) $simulated['gross'];
-            $diffGross = round($adjustedGross - $originalGross, 2);
+            $adjustedTax = (float) ($simulated['breakdown']['tax'] ?? 0);
+            $adjustedIns = (float) ($simulated['breakdown']['employee_insurance'] ?? 0);
 
+            $diffGross = round($adjustedGross - $originalGross, 2);
             if ($diffGross <= 0) {
                 continue;
             }
 
-            $diffInsurance = round($diffGross * 0.07, 2); // 7% worker SSO
-            $diffTax = round($diffGross * 0.10, 2);       // standard 10% progressive tier
+            // Exact progressive differential tax & insurance
+            $diffInsurance = round(max(0.0, $adjustedIns - $originalIns), 2);
+            $diffTax = round(max(0.0, $adjustedTax - $originalTax), 2);
             $diffNet = round($diffGross - $diffInsurance - $diffTax, 2);
 
             $adjustment = HrmPayrollRetroAdjustment::query()->create([
                 'employee_id' => $employee->id,
                 'decree_id' => $decree->id,
-                'payroll_run_id' => $run->id,
+                'payroll_run_id' => null, // pending allocation to next active run
                 'target_year' => $run->year,
                 'target_month' => $run->month,
                 'original_gross' => $originalGross,
@@ -117,6 +122,7 @@ class HrmRetroactivePayrollService
                     'decree_no' => $decree->decree_no,
                     'previous_base' => $employee->base_salary,
                     'new_base' => $newBase,
+                    'is_prior_fiscal_year' => (int) $run->year < (int) now()->format('Y'),
                 ],
             ]);
 
@@ -131,5 +137,13 @@ class HrmRetroactivePayrollService
         }
 
         return $adjustments;
+    }
+
+    /**
+     * Workflow: approve pending retro adjustment so it can be automatically pulled into next payroll run.
+     */
+    public function approveAdjustment(HrmPayrollRetroAdjustment $adjustment): void
+    {
+        $adjustment->update(['status' => 'applied']);
     }
 }
