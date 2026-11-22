@@ -227,6 +227,122 @@ class HrmEnterpriseSuiteController extends Controller
                 'decree' => ,
             ],
         ]);
+    
+    // ── 8. Payroll Segregated Accounting Vouchers (اسناد تفکیک‌شده حسابداری) ──
+
+    public function issueVouchersForRun(int , HrmPayrollAccountingIntegrationService ): JsonResponse
+    {
+         = HrmPayrollRun::query()->findOrFail();
+         = ->issuePayrollVouchers(, auth()->id());
+
+        return response()->json([
+            'message' => ['message'] ?? 'سند حسابداری صادر گردید.',
+            'data' => ,
+        ]);
     }
 
+    // ── 9. Compensation Packages (بسته‌های جبران خدمات شغلی) ──
 
+    public function compensationPackages(): JsonResponse
+    {
+        return response()->json([
+            'data' => \Modules\Hrm\Entities\HrmCompensationPackage::query()->where('is_active', true)->get(),
+        ]);
+    }
+
+    public function storeCompensationPackage(Request ): JsonResponse
+    {
+         = ->validate([
+            'code' => 'required|string|max:32',
+            'title' => 'required|string|max:120',
+            'employment_group' => 'required|string',
+            'base_ratio' => 'nullable|numeric',
+        ]);
+
+         = \Modules\Hrm\Entities\HrmCompensationPackage::query()->updateOrCreate(
+            ['code' => ['code']],
+            
+        );
+
+        return response()->json(['message' => 'بسته جبران خدمات ذخیره شد.', 'data' => ]);
+    }
+
+    // ── 10. Performance Agreements (موافقت‌نامه‌های رسمی عملکرد) ──
+
+    public function performanceAgreements(Request ): JsonResponse
+    {
+         = \Modules\Hrm\Entities\HrmPerformanceAgreement::query()->with(['employee', 'manager']);
+        if (->filled('employee_id')) {
+            ->where('employee_id', ->input('employee_id'));
+        }
+        return response()->json(['data' => ->orderByDesc('id')->get()]);
+    }
+
+    public function storePerformanceAgreement(Request ): JsonResponse
+    {
+         = ->validate([
+            'employee_id' => 'required|exists:hrm_employees,id',
+            'manager_id' => 'nullable|exists:hrm_employees,id',
+            'start_date' => 'required|date',
+            'end_date' => 'required|date',
+            'kpi_targets' => 'nullable|array',
+        ]);
+
+         = 'AGR-' . now()->format('Ymd') . '-' . ['employee_id'];
+         = \Modules\Hrm\Entities\HrmPerformanceAgreement::query()->create([
+            'employee_id' => ['employee_id'],
+            'manager_id' => ['manager_id'] ?? null,
+            'agreement_code' => ,
+            'start_date' => ['start_date'],
+            'end_date' => ['end_date'],
+            'kpi_targets' => ['kpi_targets'] ?? [],
+            'status' => 'active',
+            'manager_signed_at' => now(),
+        ]);
+
+        return response()->json(['message' => 'موافقت‌نامه رسمی عملکرد با موفقیت ثبت و ابلاغ شد.', 'data' => ]);
+    }
+
+    // ── 11. Mission & Travel Orders (احکام مأموریت و فوق‌العاده سفر) ──
+
+    public function missionOrders(Request ): JsonResponse
+    {
+         = \Modules\Hrm\Entities\HrmMissionOrder::query()->with('employee');
+        if (->filled('employee_id')) {
+            ->where('employee_id', ->input('employee_id'));
+        }
+        return response()->json(['data' => ->orderByDesc('id')->get()]);
+    }
+
+    public function storeMissionOrder(Request ): JsonResponse
+    {
+         = ->validate([
+            'employee_id' => 'required|exists:hrm_employees,id',
+            'destination' => 'required|string|max:150',
+            'mission_type' => 'required|string',
+            'starts_at' => 'required|date',
+            'ends_at' => 'required|date',
+            'per_diem_rate' => 'nullable|numeric',
+            'transport_expense' => 'nullable|numeric',
+        ]);
+
+         = 'MIS-' . now()->format('Ymd') . '-' . rand(100, 999);
+         = (float) (['per_diem_rate'] ?? 0) + (float) (['transport_expense'] ?? 0);
+
+         = \Modules\Hrm\Entities\HrmMissionOrder::query()->create([
+            'employee_id' => ['employee_id'],
+            'mission_no' => ,
+            'mission_type' => ['mission_type'],
+            'destination' => ['destination'],
+            'starts_at' => ['starts_at'],
+            'ends_at' => ['ends_at'],
+            'per_diem_rate' => ['per_diem_rate'] ?? 0,
+            'transport_expense' => ['transport_expense'] ?? 0,
+            'total_allowance' => ,
+            'status' => 'hr_approved',
+        ]);
+
+        return response()->json(['message' => 'حکم مأموریت اداری با موفقیت ثبت و ابلاغ شد.', 'data' => ]);
+    }
+
+}
