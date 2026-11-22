@@ -185,5 +185,27 @@ class HrmEmployeeSelfServicePortalTest extends TestCase
             'installment_amount' => 10000000,
             'status' => 'active',
         ]);
+
+        // 3. Submit Leave Request
+        $leaveResponse = $this->actingAs($user)->postJson('/api/v1/hrm/me/requests', [
+            'type' => 'leave',
+            'notes' => 'درخواست مرخصی استحقاقی سالانه',
+            'payload' => [
+                'leave_type' => 'daily',
+                'start_date' => '2026-04-15',
+                'days' => 2,
+            ],
+        ]);
+
+        $leaveResponse->assertStatus(201);
+        $this->assertDatabaseHas('hrm_requests', [
+            'employee_id' => $employee->id,
+            'type' => 'leave',
+        ]);
+        $this->assertDatabaseHas('hrm_leave_requests', [
+            'employee_id' => $employee->id,
+            'start_date' => '2026-04-15',
+            'end_date' => '2026-04-16',
+        ]);
     }
 }

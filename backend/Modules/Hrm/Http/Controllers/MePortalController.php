@@ -470,6 +470,22 @@ class MePortalController extends Controller
             ]);
         }
 
+        // Real integration with Leave Requests table if request is leave
+        if ($data['type'] === 'leave' && Schema::hasTable('hrm_leave_requests')) {
+            $startDate = $data['payload']['start_date'] ?? $data['payload']['date'] ?? now()->toDateString();
+            $days = max(1, (int) ($data['payload']['days'] ?? 1));
+            $endDate = $data['payload']['end_date'] ?? Carbon::parse($startDate)->addDays($days - 1)->toDateString();
+
+            \Modules\Hrm\Entities\HrmLeaveRequest::query()->create([
+                'employee_id' => $employee->id,
+                'type' => $data['payload']['leave_type'] ?? 'daily',
+                'start_date' => $startDate,
+                'end_date' => $endDate,
+                'reason' => $data['notes'] ?? null,
+                'status' => 'pending',
+            ]);
+        }
+
         return response()->json(['data' => $this->formatRequest($row), 'message' => __('messages.request_submitted')], 201);
     }
 

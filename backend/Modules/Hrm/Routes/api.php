@@ -80,6 +80,7 @@ Route::post('payroll/runs/{run}/issue-vouchers', [HrmEnterpriseSuiteController::
 // Employee self-service portal
 Route::prefix('me')->group(function () {
     Route::get('/', [MePortalController::class, 'me']);
+    Route::get('payslips', [MePortalController::class, 'myPayslips']);
     Route::get('notices', [MePortalController::class, 'notices']);
     Route::get('shift', [MePortalController::class, 'shift']);
     Route::get('attendance', [MePortalController::class, 'attendanceIndex']);
