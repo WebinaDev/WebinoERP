@@ -455,4 +455,257 @@ class HrmManagementReportService
             'loans' => $rows,
         ];
     }
+
+    /**
+     * Pre-Approval Control Reports (گزارش‌های کنترلی پیش از تأیید نهایی دوره حقوق):
+     * 1. لیست مغایرت بیمه (افراد بدون شماره بیمه یا کد ملی نامعتبر)
+     * 2. لیست مغایرت بانکی (شبا نامعتبر یا خالی)
+     * 3. خلاصه اضافه‌کاری و نوبت‌کاری غیرعادی
+     * 4. لیست معوقات و تأثیر آن‌ها روی دوره جاری
+     * 5. مقایسه جمع ناخالص / کسور / خالص با دوره قبل
+     *
+     * @return array{
+     *   run_id: int,
+     *   period: string,
+     *   is_ready_for_approval: bool,
+     *   insurance_discrepancies: array{count: int, items: list<array<string, mixed>>},
+     *   banking_discrepancies: array{count: int, items: list<array<string, mixed>>},
+     *   abnormal_attendance: array{count: int, items: list<array<string, mixed>>},
+     *   retro_adjustments: array{count: int, total_amount: float, items: list<array<string, mixed>>},
+     *   period_comparison: array{
+     *     current: array{gross: float, deductions: float, net: float, employee_count: int},
+     *     previous: array{gross: float, deductions: float, net: float, employee_count: int},
+     *     difference: array{gross: float, deductions: float, net: float, employee_count: int},
+     *     percentage_change: array{gross: float, net: float}
+     *   }
+     * }
+     */
+    public function getPayrollControlAuditReports(HrmPayrollRun $run, array $thresholds = []): array
+    {
+        $run->loadMissing(['items.employee.profile']);
+        $overtimeThreshold = (float) ($thresholds['overtime_hours_threshold'] ?? 120.0); // e.g. >120 hours/month abnormal
+        $shiftThreshold = (float) ($thresholds['shift_allowance_threshold'] ?? 22.5); // statutory max shift % is 22.5%
+
+        $insuranceDiscrepancies = [];
+        $bankingDiscrepancies = [];
+        $abnormalAttendance = [];
+        $retroItems = [];
+
+        $currentGross = 0.0;
+        $currentDeductions = 0.0;
+        $currentNet = 0.0;
+        $currentCount = 0;
+        $totalRetroAmount = 0.0;
+
+        $bankService = app(HrmStandardBankFormatService::class);
+
+        foreach ($run->items as $item) {
+            $emp = $item->employee;
+            $profile = $emp?->profile;
+            $bd = is_array($item->breakdown) ? $item->breakdown : [];
+
+            $gross = (float) $item->gross;
+            $net = (float) $item->net;
+            $ded = (float) $item->deductions;
+
+            $currentGross += $gross;
+            $currentNet += $net;
+            $currentDeductions += $ded;
+            $currentCount++;
+
+            if (! $emp) {
+                continue;
+            }
+
+            $empName = trim("{$emp->first_name} {$emp->last_name}");
+            $empCode = $emp->employee_code ?: (string) $emp->id;
+
+            // 1. Insurance Discrepancy Check (فاقد شماره بیمه یا کد ملی نامعتبر)
+            $nid = trim((string) ($profile?->national_id ?? $emp->national_id ?? ''));
+            $custom = is_array($profile?->custom_fields) ? $profile->custom_fields : [];
+            $insNo = trim((string) ($profile?->insurance_number ?: ($custom['insurance_no'] ?? $custom['ssn'] ?? $emp->insurance_no ?? '')));
+
+            $insErrors = [];
+            if ($nid === '' || ! \Modules\Hrm\Support\IranianNationalId::isValid($nid)) {
+                $insErrors[] = "کد ملی نامعتبر یا خالی است ({$nid})";
+            }
+            if ($insNo === '') {
+                $insErrors[] = "شماره بیمه تأمین اجتماعی ثبت نشده است";
+            }
+
+            if (! empty($insErrors)) {
+                $insuranceDiscrepancies[] = [
+                    'item_id' => $item->id,
+                    'employee_id' => $emp->id,
+                    'employee_code' => $empCode,
+                    'employee_name' => $empName,
+                    'national_id' => $nid,
+                    'insurance_no' => $insNo,
+                    'gross' => $gross,
+                    'errors' => $insErrors,
+                ];
+            }
+
+            // 2. Banking Discrepancy Check (شبا نامعتبر یا خالی یا مبلغ خالص غیرمثبت)
+            $sheba = trim((string) ($emp->sheba_number ?: ($profile?->sheba ?? $emp->bank_sheba ?? '')));
+            $bankErrors = [];
+            if ($sheba === '') {
+                $bankErrors[] = "شماره شبای بانکی خالی است";
+            } elseif (! $bankService->validateShebaMod97($sheba)) {
+                $bankErrors[] = "شماره شبا نامعتبر است (عدم تطابق با الگوریتم Mod-97)";
+            }
+            if ($net <= 0) {
+                $bankErrors[] = "مبلغ خالص پرداختی غیرمثبت است (" . number_format($net) . " ریال)";
+            }
+
+            if (! empty($bankErrors)) {
+                $bankingDiscrepancies[] = [
+                    'item_id' => $item->id,
+                    'employee_id' => $emp->id,
+                    'employee_code' => $empCode,
+                    'employee_name' => $empName,
+                    'sheba_number' => $sheba,
+                    'net' => $net,
+                    'errors' => $bankErrors,
+                ];
+            }
+
+            // 3. Abnormal Overtime and Shift Allowance Check
+            $overtimePay = (float) ($bd['overtime'] ?? 0);
+            $baseSalary = max(1.0, (float) ($bd['base'] ?? $emp->base_salary ?? 1.0));
+            $hourlyWage = $baseSalary / 220.0;
+            $overtimeHours = $hourlyWage > 0 ? round($overtimePay / ($hourlyWage * 1.4), 1) : 0.0;
+            $shiftAllowance = (float) ($bd['shift_allowance'] ?? 0);
+            $shiftPercent = $baseSalary > 0 ? round(($shiftAllowance / $baseSalary) * 100, 1) : 0.0;
+
+            if ($overtimeHours > $overtimeThreshold || $shiftPercent > $shiftThreshold || $overtimePay > $baseSalary) {
+                $abnormalAttendance[] = [
+                    'item_id' => $item->id,
+                    'employee_id' => $emp->id,
+                    'employee_code' => $empCode,
+                    'employee_name' => $empName,
+                    'base_salary' => $baseSalary,
+                    'overtime_pay' => $overtimePay,
+                    'overtime_hours_estimated' => $overtimeHours,
+                    'shift_allowance' => $shiftAllowance,
+                    'shift_percent' => $shiftPercent,
+                    'flags' => array_filter([
+                        $overtimeHours > $overtimeThreshold ? "اضافه‌کاری غیرعادی (> {$overtimeThreshold} ساعت)" : null,
+                        $shiftPercent > $shiftThreshold ? "درصد نوبت‌کاری فراتر از سقف قانونی ۲۲.۵٪" : null,
+                        $overtimePay > $baseSalary ? "مبلغ اضافه‌کاری بیش از ۱۰۰٪ حقوق پایه است" : null,
+                    ]),
+                ];
+            }
+
+            // 4. Retroactive adjustments impact on current period
+            $retroCurrent = (float) ($bd['retro_current_year'] ?? 0);
+            $retroPrior = (float) ($bd['retro_prior_years'] ?? 0);
+            $retroTotal = (float) ($bd['retro_total'] ?? ($retroCurrent + $retroPrior));
+
+            if ($retroTotal > 0) {
+                $totalRetroAmount += $retroTotal;
+                $retroItems[] = [
+                    'item_id' => $item->id,
+                    'employee_id' => $emp->id,
+                    'employee_code' => $empCode,
+                    'employee_name' => $empName,
+                    'retro_current_year' => $retroCurrent,
+                    'retro_prior_years' => $retroPrior,
+                    'total_retro' => $retroTotal,
+                    'gross_with_retro' => $gross,
+                    'retro_share_percent' => $gross > 0 ? round(($retroTotal / $gross) * 100, 1) : 0.0,
+                ];
+            }
+        }
+
+        // 5. Comparison with Previous Payroll Period
+        $prevYear = (int) $run->year;
+        $prevMonth = (int) $run->month - 1;
+        if ($prevMonth < 1) {
+            $prevMonth = 12;
+            $prevYear--;
+        }
+
+        $prevRun = HrmPayrollRun::query()
+            ->where('id', '!=', $run->id)
+            ->where('year', $prevYear)
+            ->where('month', $prevMonth)
+            ->when($run->subsidiary_company_id && Schema::hasColumn('hrm_payroll_runs', 'subsidiary_company_id'), function ($q) use ($run) {
+                $q->where('subsidiary_company_id', $run->subsidiary_company_id);
+            })
+            ->latest('id')
+            ->first();
+
+        $prevGross = 0.0;
+        $prevDeductions = 0.0;
+        $prevNet = 0.0;
+        $prevCount = 0;
+
+        if ($prevRun) {
+            $prevItems = HrmPayrollItem::query()->where('payroll_run_id', $prevRun->id)->get();
+            $prevGross = (float) $prevItems->sum('gross');
+            $prevDeductions = (float) $prevItems->sum('deductions');
+            $prevNet = (float) $prevItems->sum('net');
+            $prevCount = $prevItems->count();
+        }
+
+        $diffGross = round($currentGross - $prevGross, 2);
+        $diffDeductions = round($currentDeductions - $prevDeductions, 2);
+        $diffNet = round($currentNet - $prevNet, 2);
+        $diffCount = $currentCount - $prevCount;
+
+        $pctChangeGross = $prevGross > 0 ? round(($diffGross / $prevGross) * 100, 2) : 0.0;
+        $pctChangeNet = $prevNet > 0 ? round(($diffNet / $prevNet) * 100, 2) : 0.0;
+
+        $isReady = empty($insuranceDiscrepancies) && empty($bankingDiscrepancies);
+
+        return [
+            'run_id' => $run->id,
+            'period' => "{$run->year}/" . sprintf('%02d', $run->month),
+            'is_ready_for_approval' => $isReady,
+            'insurance_discrepancies' => [
+                'count' => count($insuranceDiscrepancies),
+                'items' => $insuranceDiscrepancies,
+            ],
+            'banking_discrepancies' => [
+                'count' => count($bankingDiscrepancies),
+                'items' => $bankingDiscrepancies,
+            ],
+            'abnormal_attendance' => [
+                'count' => count($abnormalAttendance),
+                'items' => $abnormalAttendance,
+            ],
+            'retro_adjustments' => [
+                'count' => count($retroItems),
+                'total_amount' => round($totalRetroAmount, 2),
+                'items' => $retroItems,
+            ],
+            'period_comparison' => [
+                'current' => [
+                    'period' => "{$run->year}/" . sprintf('%02d', $run->month),
+                    'gross' => round($currentGross, 2),
+                    'deductions' => round($currentDeductions, 2),
+                    'net' => round($currentNet, 2),
+                    'employee_count' => $currentCount,
+                ],
+                'previous' => [
+                    'period' => "{$prevYear}/" . sprintf('%02d', $prevMonth),
+                    'gross' => round($prevGross, 2),
+                    'deductions' => round($prevDeductions, 2),
+                    'net' => round($prevNet, 2),
+                    'employee_count' => $prevCount,
+                ],
+                'difference' => [
+                    'gross' => $diffGross,
+                    'deductions' => $diffDeductions,
+                    'net' => $diffNet,
+                    'employee_count' => $diffCount,
+                ],
+                'percentage_change' => [
+                    'gross' => $pctChangeGross,
+                    'net' => $pctChangeNet,
+                ],
+            ],
+        ];
+    }
 }
