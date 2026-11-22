@@ -55,8 +55,18 @@ Route::prefix('enterprise')->group(function () {
     Route::get('career/promotion-proposals', [HrmEnterpriseSuiteController::class, 'promotionProposals']);
     Route::post('career/proposals/{employee}/evaluate', [HrmEnterpriseSuiteController::class, 'evaluatePromotion']);
 
-    Route::post('payroll/runs/{run}/generate-sso-diskette', [HrmEnterpriseSuiteController::class, 'generateSsoDiskette']);
+        Route::post('career/proposals/{proposal}/approve-and-issue', [HrmEnterpriseSuiteController::class, 'approveAndIssuePromotion']);
+    Route::post('payroll/runs/{run}/generate-tax-diskette', [HrmEnterpriseSuiteController::class, 'generateTaxDiskette']);
+Route::post('payroll/runs/{run}/generate-sso-diskette', [HrmEnterpriseSuiteController::class, 'generateSsoDiskette']);
     Route::get('retirees', [HrmEnterpriseSuiteController::class, 'retirees']);
+    Route::post('payroll/runs/{run}/issue-vouchers', [HrmEnterpriseSuiteController::class, 'issueVouchersForRun']);
+    Route::get('compensation/packages', [HrmEnterpriseSuiteController::class, 'compensationPackages']);
+    Route::post('compensation/packages', [HrmEnterpriseSuiteController::class, 'storeCompensationPackage']);
+    Route::get('performance/agreements', [HrmEnterpriseSuiteController::class, 'performanceAgreements']);
+    Route::post('performance/agreements', [HrmEnterpriseSuiteController::class, 'storePerformanceAgreement']);
+    Route::get('missions', [HrmEnterpriseSuiteController::class, 'missionOrders']);
+    Route::post('missions', [HrmEnterpriseSuiteController::class, 'storeMissionOrder']);
+
 });
 
 // Employee self-service portal
