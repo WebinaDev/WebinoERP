@@ -13,7 +13,7 @@ class HrmFormulaEvaluationService
     ) {}
 
     /**
-     * Safely evaluate expression using HrmExpressionParserService (RPN / Shunting Yard parser)
+     * Compute expression with all extended workforce variables
      *
      * @param string $formula
      * @param array<string, float|int|string|bool> $context
@@ -27,7 +27,7 @@ class HrmFormulaEvaluationService
     }
 
     /**
-     * Compute all active dynamic formula components for an employee decree
+     * Build rich context map for an employee and calculate all active formula components
      *
      * @return array<string, array{title: string, amount: float, is_taxable: bool, is_insurable: bool}>
      */
@@ -55,13 +55,21 @@ class HrmFormulaEvaluationService
             }
         }
 
+        // Expanded workforce parameters
         $context = [
             'BASE' => $baseSalary,
             'DAILY' => round($baseSalary / 30, 2),
             'EXP_YEARS' => $expYears,
+            'SENIORITY_YEARS' => $expYears,
             'CHILDREN_COUNT' => $employee->dependents()->count() ?? 0,
+            'INSURED_CHILDREN' => $employee->dependents()->where('is_insured', true)->count() ?? 0,
             'RANK' => (int) ($employee->rank_level ?? 1),
+            'JOB_GRADE' => (int) ($employee->rank_level ?? 1),
             'MIN_WAGE' => $minWage,
+            'MARITAL_STATUS' => $employee->marital_status === 'married' ? 1 : 0,
+            'ENGAGEMENT_TYPE' => $employee->engagement_type ?? 'permanent',
+            'OVERTIME_HOURS' => 0,
+            'SHIFT_DAYS' => 30,
         ];
 
         $results = [];

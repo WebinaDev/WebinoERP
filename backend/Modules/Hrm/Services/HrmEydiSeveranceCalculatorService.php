@@ -4,25 +4,14 @@ namespace Modules\Hrm\Services;
 
 use Carbon\Carbon;
 use Modules\Hrm\Entities\HrmEmployee;
-use Modules\Hrm\Entities\HrmPayrollSetting;
+use Modules\Hrm\Entities\HrmEmployeeSettlement;
+use Modules\Hrm\Entities\HrmLeaveBalance;
 
 class HrmEydiSeveranceCalculatorService
 {
     /**
      * Compute statutory Eydi & Bonus (محاسبه عیدی و پاداش سالانه مطابق قانون کار ایران)
      * Rule: 2 x Base Salary, with ceiling of 3 x Minimum Statutory Wage.
-     * Pro-rated if working months in year < 12.
-     *
-     * @return array{
-     *   worked_months: int,
-     *   base_salary: float,
-     *   calculated_eydi: float,
-     *   statutory_ceiling: float,
-     *   final_eydi: float,
-     *   tax_exempt_portion: float,
-     *   taxable_eydi: float,
-     *   net_eydi: float
-     * }
      */
     public function calculateYearlyEydi(HrmEmployee $employee, int $year = 1405): array
     {
@@ -45,7 +34,7 @@ class HrmEydiSeveranceCalculatorService
         $monthlyTaxExemption = 120000000.0;
         $taxExempt = min($finalEydi, $monthlyTaxExemption);
         $taxablePortion = max(0.0, $finalEydi - $taxExempt);
-        $eydiTax = round($taxablePortion * 0.10, 2); // 10% flat tier
+        $eydiTax = round($taxablePortion * 0.10, 2);
         $netEydi = round($finalEydi - $eydiTax, 2);
 
         return [
@@ -61,15 +50,7 @@ class HrmEydiSeveranceCalculatorService
     }
 
     /**
-     * Compute Severance reserve and Buyback (محاسبه حق سنوات خدمت و ذخیره سنوات پایان کار)
-     * Rule: 1 month of last salary per year of completed service (ماده ۲۴ قانون کار).
-     *
-     * @return array{
-     *   tenure_years: float,
-     *   last_base_salary: float,
-     *   total_accrued_severance: float,
-     *   monthly_reserve_rate: float
-     * }
+     * Compute Severance reserve and Buyback (ماده ۲۴ قانون کار)
      */
     public function calculateAccruedSeverance(HrmEmployee $employee): array
     {
@@ -86,6 +67,58 @@ class HrmEydiSeveranceCalculatorService
             'last_base_salary' => $base,
             'total_accrued_severance' => $accruedSeverance,
             'monthly_reserve_rate' => $monthlyReserve,
+        ];
+    }
+
+    /**
+     * Complete final end-of-employment settlement (تسویه حساب کامل خاتمه خدمت):
+     * 1. Severance buyback (سنوات)
+     * 2. Unused leave buyback (بازخرید مانده مرخصی استحقاقی)
+     * 3. Pro-rated Eydi up to exit date (عیدی معوق تا تاریخ ترک کار)
+     *
+     * @return array<string, mixed>
+     */
+    public function executeEmployeeSettlement(HrmEmployee $employee, string $reason = 'resignation'): array
+    {
+        $severance = $this->calculateAccruedSeverance($employee);
+        $eydi = $this->calculateYearlyEydi($employee);
+
+        // Calculate unused annual leave days from balances
+        $unusedDays = 0.0;
+        if (\Illuminate\Support\Facades\Schema::hasTable('hrm_leave_balances')) {
+            $balance = HrmLeaveBalance::query()->where('employee_id', $employee->id)->first();
+            $unusedDays = (float) ($balance?->remaining_days ?? 12.0);
+        } else {
+            $unusedDays = 12.0;
+        }
+
+        $dailyRate = (float) ($employee->daily_rate ?: ($employee->base_salary / 30));
+        $leaveBuyback = round($unusedDays * $dailyRate, 2);
+
+        $totalPayable = round($severance['total_accrued_severance'] + $eydi['net_eydi'] + $leaveBuyback, 2);
+
+        $settlement = HrmEmployeeSettlement::query()->create([
+            'employee_id' => $employee->id,
+            'settlement_date' => now()->toDateString(),
+            'reason' => $reason,
+            'tenure_years' => $severance['tenure_years'],
+            'severance_amount' => $severance['total_accrued_severance'],
+            'unused_leave_days' => $unusedDays,
+            'leave_buyback_amount' => $leaveBuyback,
+            'pro_rated_eydi_amount' => $eydi['net_eydi'],
+            'final_net_payable' => $totalPayable,
+            'status' => 'settled',
+        ]);
+
+        return [
+            'settlement_id' => $settlement->id,
+            'employee_id' => $employee->id,
+            'severance_amount' => $severance['total_accrued_severance'],
+            'unused_leave_days' => $unusedDays,
+            'leave_buyback_amount' => $leaveBuyback,
+            'pro_rated_eydi' => $eydi['net_eydi'],
+            'total_settlement_net' => $totalPayable,
+            'message' => 'تسویه حساب قانونی پایان خدمت با موفقیت محاسبه و ثبت شد.',
         ];
     }
 }
