@@ -166,24 +166,25 @@ class IranianPayrollCalculator
             }
         }
 
-        // Direct integration with Attendance Work Rule Engine (ماده ۵۸، ۵۹ و ۶۲ قانون کار)
+        // Direct integration with Attendance Work Rule Engine & approved hours
         $workRuleEngine = app(HrmAttendanceWorkRuleEngine::class);
         $attendanceFactors = $workRuleEngine->evaluateMonthlyAttendanceFactors($employee, $year, $month);
 
         $monthlyHours = max(1, (float) ($settings['monthly_hours'] ?? 220));
         $hourly = $base > 0 ? $base / $monthlyHours : 0;
 
+        // Overtime: max of timesheets approved overtime vs physical attendance records
         $overtimeHours = max($this->approvedHours($employee->id, 'overtime', $year, $month), (float) ($attendanceFactors['overtime_hours'] ?? 0));
         $overtimeMultiplier = (float) ($settings['overtime_multiplier'] ?? 1.4);
         $overtime = round($overtimeHours * $hourly * $overtimeMultiplier, 2);
 
         // Night work allowance (فوق‌العاده شب‌کاری ماده ۵۸ - ۳۵٪)
-        $nightHours = (float) ($attendanceFactors['night_hours'] ?? 0);
+        $nightHours = max($this->approvedHours($employee->id, 'night', $year, $month), (float) ($attendanceFactors['night_hours'] ?? 0));
         $nightMultiplier = (float) ($settings['night_shift_multiplier'] ?? 1.35) - 1.0; // differential extra (35%)
         $nightAllowance = round($nightHours * $hourly * $nightMultiplier, 2);
 
         // Holiday work allowance (فوق‌العاده تعطیل‌کاری ماده ۶۲ - ۴۰٪)
-        $holidayHours = (float) ($attendanceFactors['holiday_hours'] ?? 0);
+        $holidayHours = max($this->approvedHours($employee->id, 'holiday', $year, $month), (float) ($attendanceFactors['holiday_hours'] ?? 0));
         $holidayMultiplier = (float) ($settings['holiday_shift_multiplier'] ?? 1.40) - 1.0; // differential extra (40%)
         $holidayAllowance = round($holidayHours * $hourly * $holidayMultiplier, 2);
 
@@ -329,9 +330,10 @@ class IranianPayrollCalculator
     }
 
     /**
-     * Real calculation of approved overtime, timesheet hours, or mission orders.
+     * Real calculation of approved overtime, night, holiday, or mission hours.
+     * Dynamic lookup supporting hour_type on timesheet and settings['monthly_hours'].
      */
-    private function approvedHours(int $employeeId, string $type, int $year, int $month, string $mode = 'hours'): float
+    public function approvedHours(int $employeeId, string $type, int $year, int $month, string $mode = 'hours'): float
     {
         $start = Carbon::create($year, $month, 1)->startOfMonth();
         $end = Carbon::create($year, $month, 1)->endOfMonth();
@@ -364,17 +366,44 @@ class IranianPayrollCalculator
             return 0.0;
         }
 
-        // Timesheet approved hours
         if (Schema::hasTable('hrm_timesheets')) {
-            $timesheetHours = HrmTimesheet::query()
-                ->where('employee_id', $employeeId)
-                ->where('status', 'approved')
-                ->whereBetween('work_date', [$start->toDateString(), $end->toDateString()])
-                ->sum('hours');
+            $hasHourType = Schema::hasColumn('hrm_timesheets', 'hour_type');
 
-            $standardMonthlyHours = 176.0; // 44h/week * 4 weeks
-            if ($timesheetHours > $standardMonthlyHours) {
-                return round($timesheetHours - $standardMonthlyHours, 2);
+            if ($hasHourType) {
+                // If specific hour_type is explicitly stored:
+                $query = HrmTimesheet::query()
+                    ->where('employee_id', $employeeId)
+                    ->where('status', 'approved')
+                    ->whereBetween('work_date', [$start->toDateString(), $end->toDateString()]);
+
+                if ($type === 'night') {
+                    return (float) (clone $query)->where('hour_type', 'night')->sum('hours');
+                }
+                if ($type === 'holiday') {
+                    return (float) (clone $query)->where('hour_type', 'holiday')->sum('hours');
+                }
+                if ($type === 'overtime') {
+                    $explicitOvertime = (float) (clone $query)->where('hour_type', 'overtime')->sum('hours');
+                    if ($explicitOvertime > 0) {
+                        return $explicitOvertime;
+                    }
+                }
+            }
+
+            // Fallback for general hours exceeding standard monthly hours from settings
+            if ($type === 'overtime') {
+                $settings = $this->settings();
+                $standardMonthlyHours = (float) ($settings['monthly_hours'] ?? 220);
+
+                $timesheetHours = (float) HrmTimesheet::query()
+                    ->where('employee_id', $employeeId)
+                    ->where('status', 'approved')
+                    ->whereBetween('work_date', [$start->toDateString(), $end->toDateString()])
+                    ->sum('hours');
+
+                if ($timesheetHours > $standardMonthlyHours) {
+                    return round($timesheetHours - $standardMonthlyHours, 2);
+                }
             }
         }
 
@@ -387,7 +416,7 @@ class IranianPayrollCalculator
      * - Creates or updates real installment records in hrm_loan_installments
      * - Syncs loan remaining balance and increments installments_paid
      */
-    private function applyLoanInstallments(int $employeeId, int $runId): array
+    public function applyLoanInstallments(int $employeeId, int $runId): array
     {
         if (! Schema::hasTable('hrm_loans') || ! Schema::hasTable('hrm_loan_installments')) {
             return [0.0, 0.0];
