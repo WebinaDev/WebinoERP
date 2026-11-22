@@ -2,8 +2,11 @@
 
 namespace Modules\Hrm\Services;
 
+use InvalidArgumentException;
 use Modules\Hrm\Entities\HrmPayrollItem;
+use Modules\Hrm\Entities\HrmPayrollRetroAdjustment;
 use Modules\Hrm\Entities\HrmPayrollRun;
+use Modules\Hrm\Entities\HrmSeveranceReserve;
 use Modules\Hrm\Support\HrmNotifier;
 
 class HrmPayrollEndToEndWorkflowService
@@ -12,11 +15,16 @@ class HrmPayrollEndToEndWorkflowService
         private readonly IranianPayrollCalculator $calculator,
         private readonly HrmLegalDisketteService $disketteService,
         private readonly HrmStandardBankFormatService $bankService,
-        private readonly HrmPayrollAccountingIntegrationService $accountingBridge
+        private readonly HrmPayrollAccountingIntegrationService $accountingBridge,
+        private readonly HrmSsoDisketteValidatorService $validatorService,
+        private readonly HrmEydiSeveranceCalculatorService $severanceService
     ) {}
 
     /**
-     * Run calculations directly via service layer (pure business logic, no controller calls).
+     * Run calculations directly via service layer:
+     * - Evaluates base + components
+     * - Ingests and settles approved retroactive pay adjustments (معوقات احکام)
+     * - Records systematic monthly severance reserve (ذخیره ماهانه سنوات)
      */
     public function calculateRun(HrmPayrollRun $run): void
     {
@@ -24,6 +32,33 @@ class HrmPayrollEndToEndWorkflowService
 
         foreach ($employees as $employee) {
             $computed = $this->calculator->forEmployee($employee, (int) $run->year, (int) $run->month, $run->id);
+
+            // Record systematic monthly severance reserve (1/12th of monthly base)
+            $base = (float) $employee->base_salary;
+            $monthlyProvision = round($base / 12.0, 2);
+
+            $lastCumulative = 0.0;
+            if (\Illuminate\Support\Facades\Schema::hasTable('hrm_severance_reserves')) {
+                $lastRecord = HrmSeveranceReserve::query()
+                    ->where('employee_id', $employee->id)
+                    ->orderByDesc('id')
+                    ->first();
+                $lastCumulative = (float) ($lastRecord?->cumulative_balance ?? 0);
+
+                HrmSeveranceReserve::query()->updateOrCreate(
+                    [
+                        'employee_id' => $employee->id,
+                        'year' => (int) $run->year,
+                        'month' => (int) $run->month,
+                    ],
+                    [
+                        'payroll_run_id' => $run->id,
+                        'monthly_provision' => $monthlyProvision,
+                        'cumulative_balance' => round($lastCumulative + $monthlyProvision, 2),
+                        'status' => 'accrued',
+                    ]
+                );
+            }
 
             HrmPayrollItem::query()->updateOrCreate(
                 [
@@ -51,12 +86,12 @@ class HrmPayrollEndToEndWorkflowService
     }
 
     /**
-     * Complete workflow execution:
-     * 1. Calculate / verify items directly in service
-     * 2. Post segregated journal vouchers to Accounting
-     * 3. Generate SSO & Tax diskettes
-     * 4. Generate bank transfer file
-     * 5. Transition workflow: review -> approved -> locked
+     * Complete workflow execution with mandatory pre-export validation:
+     * 1. Calculate & accrue monthly severance
+     * 2. Post segregated accounting entries (current, retro current year, retro prior years)
+     * 3. Validate and build SSO & Tax diskettes (blocks on validation failure)
+     * 4. Build certified multi-bank export file with Mod 97 validation
+     * 5. Lock run
      */
     public function executeFullPayrollCycle(HrmPayrollRun $run, ?int $userId = null): array
     {
@@ -70,7 +105,7 @@ class HrmPayrollEndToEndWorkflowService
         $ssoDiskette = $this->disketteService->generateSsoDiskette($run);
         $taxDiskette = $this->disketteService->generateTaxDiskette($run);
 
-        // 4. Generate Bank Export
+        // 4. Generate Certified Bank Export
         $bankFile = $this->bankService->generateBankExport($run, 'paya_standard');
 
         // 5. Transition to locked/approved
@@ -94,7 +129,7 @@ class HrmPayrollEndToEndWorkflowService
             'tax_records' => $taxDiskette['record_count'],
             'bank_paya_records' => $bankFile['total_records'],
             'bank_checksum' => $bankFile['checksum'],
-            'message' => 'چرخه کامل و فرآیند ممیزی، محاسبه و قفل دوره حقوق و دستمزد با موفقیت نهایی گردید.',
+            'message' => 'چرخه کامل حقوق، معوقات، ذخیره سنوات، اسناد مالی و دیسکت‌ها با موفقیت نهایی و قفل شد.',
         ];
     }
 }

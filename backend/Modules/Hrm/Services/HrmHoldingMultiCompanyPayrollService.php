@@ -4,15 +4,13 @@ namespace Modules\Hrm\Services;
 
 use Modules\Hrm\Entities\HrmPayrollItem;
 use Modules\Hrm\Entities\HrmPayrollRun;
-use Modules\Hrm\Entities\HrmWorkshop;
+use Modules\Hrm\Entities\HrmSubsidiaryCompany;
 
 class HrmHoldingMultiCompanyPayrollService
 {
     /**
-     * Holding Governance Models:
-     * - centralized: Single holding HQ manages uniform payroll policy & disbursement
-     * - semi_centralized: HQ processes calculation, subsidiaries disburse with independent bank/SSO accounts
-     * - decentralized: Independent subsidiary company operations with top-level financial rollups
+     * Consolidate payroll reporting across multi-subsidiary enterprise holdings
+     * by querying real subsidiary entities (`HrmSubsidiaryCompany`).
      *
      * @return array{
      *   holding_summary: array<string, mixed>,
@@ -22,8 +20,8 @@ class HrmHoldingMultiCompanyPayrollService
      */
     public function generateHoldingConsolidatedReport(int $year, int $month, string $governanceModel = 'semi_centralized'): array
     {
-        $workshops = \Illuminate\Support\Facades\Schema::hasTable('hrm_workshops')
-            ? HrmWorkshop::query()->where('is_active', true)->get()
+        $companies = \Illuminate\Support\Facades\Schema::hasTable('hrm_subsidiary_companies')
+            ? HrmSubsidiaryCompany::query()->where('is_active', true)->get()
             : collect();
 
         $runs = HrmPayrollRun::query()
@@ -53,13 +51,16 @@ class HrmHoldingMultiCompanyPayrollService
             $totalSso += $sso;
             $totalTax += $tax;
 
-            // Associate company metadata if workshop assigned
-            $workshop = $workshops->firstWhere('company_code', $run->company_code ?? 'MAIN');
+            $subsidiary = $run->subsidiary_company_id
+                ? $companies->firstWhere('id', $run->subsidiary_company_id)
+                : $companies->first();
 
             $companyReports[] = [
-                'company_code' => $workshop?->company_code ?? 'MAIN',
-                'company_name' => $workshop?->company_name ?? ($run->title ?: 'شرکت تابعه'),
-                'workshop_code' => $workshop?->workshop_code ?? 'دفتر مرکزی',
+                'company_id' => $subsidiary?->id,
+                'company_code' => $subsidiary?->code ?? 'HQ_MAIN',
+                'company_name' => $subsidiary?->name ?? ($run->title ?: 'شرکت تابعه هلدینگ'),
+                'workshop_code' => $subsidiary?->workshop_code ?? 'نامشخص',
+                'company_sheba' => $subsidiary?->company_sheba ?? 'تعریف نشده',
                 'payroll_run_id' => $run->id,
                 'run_title' => $run->title,
                 'staff_count' => $staffCount,
