@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-11-22T11:41:56.110Z",
+  "generatedAt": "2026-11-22T11:45:48.125Z",
   "counts": {
     "registryMenuPaths": 236,
     "pageMapExact": 283,
@@ -2626,7 +2626,7 @@
     }
   ],
   "manifestSummary": {
-    "generatedAt": "2026-11-22T11:41:56.109Z",
+    "generatedAt": "2026-11-22T11:45:48.122Z",
     "routes": 154
   }
 }
