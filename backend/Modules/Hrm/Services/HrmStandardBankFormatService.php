@@ -15,7 +15,10 @@ class HrmStandardBankFormatService
      */
     public const SUPPORTED_BANKS = [
         'paya_standard' => 'سامانه پایا (ACH بانک مرکزی)',
+        'paya_xml' => 'سامانه پایا (فرمت استاندارد ISO 20022 XML)',
         'satna_rtgs' => 'سامانه ساتنا (RTGS بانک مرکزی)',
+        'satna_xml' => 'سامانه ساتنا (فرمت استاندارد XML ساتنا)',
+        'mehr_txt' => 'بانک قرض‌الحسنه مهر ایران (فرمت متنی mehr.txt)',
         'melli_bmi' => 'بانک ملی ایران (سامانه بام/سیبا)',
         'mellat_batch' => 'بانک ملت (سامانه فرا/محبین)',
         'tejarat_batch' => 'بانک تجارت (فرمت ستاره‌دار/فراپایا)',
@@ -163,6 +166,302 @@ class HrmStandardBankFormatService
     }
 
     /**
+     * Format 1: Mehr Bank text file format (mehr.txt)
+     * Header: تعداد_تراکنش,جمع_مبلغ,شرح,کد (e.g. 1,2,7000000000,واریز حقوق,POSA)
+     * Body: شماره_حساب,مبلغ,نوع,شرح (D for debtor/source company, C for creditor/employees)
+     *
+     * @return array{
+     *   total_records: int,
+     *   total_amount: float,
+     *   source_sheba: string,
+     *   file_content: string,
+     *   checksum: string,
+     *   format: string
+     * }
+     */
+    public function generateMehrTextFile(HrmPayrollRun $run, ?string $companySheba = null, ?string $sourceAccount = null): array
+    {
+        $integrity = $this->validateBankExportIntegrity($run, $companySheba);
+        if (! $integrity['is_valid']) {
+            throw new InvalidArgumentException('خطای اعتبارسنجی پیش از صدور فایل بانک مهر: ' . implode(' | ', $integrity['errors']));
+        }
+
+        $sourceSheba = $companySheba ?: $this->resolveSourceSheba($run);
+        $run->loadMissing(['items.employee.profile']);
+
+        // Source account: use provided account, or derive from subsidiary company/settings, or default to numeric account from SHEBA
+        $debtorAccount = $sourceAccount;
+        if (empty($debtorAccount)) {
+            $setting = HrmPayrollSetting::query()->where('key', 'source_account')->first();
+            $debtorAccount = trim((string) ($setting?->value ?? ''));
+        }
+        if (empty($debtorAccount)) {
+            // Extract core account digits from SHEBA
+            $debtorAccount = ltrim(substr($sourceSheba, 6), '0');
+        }
+
+        $totalFormatted = number_format($integrity['total_amount'], 0, '', '');
+        $batchCount = $integrity['valid_count'];
+        $desc = "واریز حقوق ماه {$run->month}/{$run->year}";
+
+        $lines = [];
+        // Header line: 1,تعداد_تراکنش,جمع_مبلغ,شرح,کد
+        $lines[] = sprintf("1,%d,%s,%s,POSA", $batchCount, $totalFormatted, $desc);
+
+        // Line 1: Debtor (برداشت از حساب شرکت) - Type D
+        $lines[] = sprintf("%s,%s,D,%s", $debtorAccount, $totalFormatted, $desc);
+
+        // Lines 2..N: Creditors (واریز به حساب کارمندان) - Type C
+        $validCount = 0;
+        $totalSum = 0.0;
+        foreach ($run->items as $item) {
+            $emp = $item->employee;
+            $profile = $emp?->profile;
+            $net = (float) $item->net;
+            if ($net <= 0) {
+                continue;
+            }
+
+            $validCount++;
+            $totalSum += $net;
+            $netStr = number_format($net, 0, '', '');
+
+            // Creditor account: prefer bank_account, profile->bank_account, or extract account from SHEBA
+            $creditorAccount = trim((string) ($emp->bank_account ?? $profile?->bank_account ?? ''));
+            if ($creditorAccount === '') {
+                $sheba = trim((string) ($emp->sheba_number ?: ($profile?->sheba ?? $emp->bank_sheba ?? '')));
+                $creditorAccount = ltrim(substr($sheba, 6), '0');
+            }
+
+            $empDesc = "حقوق {$emp->first_name} {$emp->last_name} ({$emp->employee_code})";
+            $lines[] = sprintf("%s,%s,C,%s", $creditorAccount, $netStr, $empDesc);
+        }
+
+        $fileContent = implode("\r\n", $lines);
+
+        return [
+            'total_records' => $validCount,
+            'total_amount' => $totalSum,
+            'source_sheba' => $sourceSheba,
+            'file_content' => $fileContent,
+            'checksum' => hash('sha256', $fileContent),
+            'format' => 'mehr_txt',
+        ];
+    }
+
+    /**
+     * Format 2: Standard Paya ISO 20022 Customer Credit Transfer XML
+     *
+     * @return array{
+     *   total_records: int,
+     *   total_amount: float,
+     *   source_sheba: string,
+     *   file_content: string,
+     *   checksum: string,
+     *   format: string
+     * }
+     */
+    public function generatePayaXml(HrmPayrollRun $run, ?string $companySheba = null): array
+    {
+        $integrity = $this->validateBankExportIntegrity($run, $companySheba);
+        if (! $integrity['is_valid']) {
+            throw new InvalidArgumentException('خطای اعتبارسنجی پیش از صدور فایل پایا XML: ' . implode(' | ', $integrity['errors']));
+        }
+
+        $sourceSheba = $companySheba ?: $this->resolveSourceSheba($run);
+        $run->loadMissing(['items.employee.profile']);
+
+        $companyName = 'شرکت وبینا ارقام نوین';
+        if ($run->subsidiary_company_id && \Illuminate\Support\Facades\Schema::hasTable('hrm_subsidiary_companies')) {
+            $company = HrmSubsidiaryCompany::query()->find($run->subsidiary_company_id);
+            if ($company && ! empty($company->name)) {
+                $companyName = $company->name;
+            }
+        }
+
+        $msgId = sprintf("PAYA-%04d%02d-%03d-%s", $run->year, $run->month, $run->id, now()->format('YmdHis'));
+        $creDtTm = now()->format('Y-m-d\TH:i:s');
+        $nbOfTxs = $integrity['valid_count'];
+        $ctrlSum = number_format($integrity['total_amount'], 2, '.', '');
+
+        $xml = [];
+        $xml[] = '<?xml version="1.0" encoding="UTF-8"?>';
+        $xml[] = '<Document xmlns="urn:iso:std:iso:20022:tech:xsd:pain.001.001.03">';
+        $xml[] = '  <CstmrCdtTrfInitn>';
+        $xml[] = '    <GrpHdr>';
+        $xml[] = "      <MsgId>{$msgId}</MsgId>";
+        $xml[] = "      <CreDtTm>{$creDtTm}</CreDtTm>";
+        $xml[] = "      <NbOfTxs>{$nbOfTxs}</NbOfTxs>";
+        $xml[] = "      <CtrlSum>{$ctrlSum}</CtrlSum>";
+        $xml[] = '      <InitgPty>';
+        $xml[] = "        <Nm>{$companyName}</Nm>";
+        $xml[] = '      </InitgPty>';
+        $xml[] = '    </GrpHdr>';
+        $xml[] = '    <PmtInf>';
+        $xml[] = "      <PmtInfId>PMT-{$run->id}</PmtInfId>";
+        $xml[] = '      <PmtMtd>TRF</PmtMtd>';
+        $xml[] = '      <Dbtr>';
+        $xml[] = "        <Nm>{$companyName}</Nm>";
+        $xml[] = '      </Dbtr>';
+        $xml[] = '      <DbtrAcct>';
+        $xml[] = '        <Id>';
+        $xml[] = "          <IBAN>{$sourceSheba}</IBAN>";
+        $xml[] = '        </Id>';
+        $xml[] = '      </DbtrAcct>';
+
+        $validCount = 0;
+        $totalSum = 0.0;
+        foreach ($run->items as $idx => $item) {
+            $emp = $item->employee;
+            $profile = $emp?->profile;
+            $net = (float) $item->net;
+            if ($net <= 0) {
+                continue;
+            }
+
+            $validCount++;
+            $totalSum += $net;
+            $instrId = sprintf("INS-%04d%02d-%04d", $run->year, $run->month, $validCount);
+            $amountFormatted = number_format($net, 2, '.', '');
+            $fullName = htmlspecialchars(trim("{$emp->first_name} {$emp->last_name}"), ENT_XML1, 'UTF-8');
+            $nationalId = trim((string) ($profile?->national_id ?? $emp->national_id ?? ''));
+            $sheba = trim((string) ($emp->sheba_number ?: ($profile?->sheba ?? $emp->bank_sheba ?? '')));
+            $rmtInf = htmlspecialchars("حقوق ماه {$run->month}/{$run->year} - کد پرسنلی {$emp->employee_code}", ENT_XML1, 'UTF-8');
+
+            $xml[] = '      <CdtTrfTxInf>';
+            $xml[] = '        <PmtId>';
+            $xml[] = "          <InstrId>{$instrId}</InstrId>";
+            $xml[] = '        </PmtId>';
+            $xml[] = '        <Amt>';
+            $xml[] = "          <InstdAmt Ccy=\"IRR\">{$amountFormatted}</InstdAmt>";
+            $xml[] = '        </Amt>';
+            $xml[] = '        <Cdtr>';
+            $xml[] = "          <Nm>{$fullName}</Nm>";
+            $xml[] = '          <Id>';
+            $xml[] = '            <OrgId>';
+            $xml[] = "              <Othr><Id>{$nationalId}</Id></Othr>";
+            $xml[] = '            </OrgId>';
+            $xml[] = '          </Id>';
+            $xml[] = '        </Cdtr>';
+            $xml[] = '        <CdtrAcct>';
+            $xml[] = '          <Id>';
+            $xml[] = "            <IBAN>{$sheba}</IBAN>";
+            $xml[] = '          </Id>';
+            $xml[] = '        </CdtrAcct>';
+            $xml[] = '        <RmtInf>';
+            $xml[] = "          <Ustrd>{$rmtInf}</Ustrd>";
+            $xml[] = '        </RmtInf>';
+            $xml[] = '      </CdtTrfTxInf>';
+        }
+
+        $xml[] = '    </PmtInf>';
+        $xml[] = '  </CstmrCdtTrfInitn>';
+        $xml[] = '</Document>';
+
+        $fileContent = implode("\n", $xml);
+
+        return [
+            'total_records' => $validCount,
+            'total_amount' => $totalSum,
+            'source_sheba' => $sourceSheba,
+            'file_content' => $fileContent,
+            'checksum' => hash('sha256', $fileContent),
+            'format' => 'paya_xml',
+        ];
+    }
+
+    /**
+     * Format 3: Satna RTGS XML Format (High-value gross settlement)
+     *
+     * @return array{
+     *   total_records: int,
+     *   total_amount: float,
+     *   source_sheba: string,
+     *   file_content: string,
+     *   checksum: string,
+     *   format: string
+     * }
+     */
+    public function generateSatnaXml(HrmPayrollRun $run, ?string $companySheba = null): array
+    {
+        $integrity = $this->validateBankExportIntegrity($run, $companySheba);
+        if (! $integrity['is_valid']) {
+            throw new InvalidArgumentException('خطای اعتبارسنجی پیش از صدور فایل ساتنا XML: ' . implode(' | ', $integrity['errors']));
+        }
+
+        $sourceSheba = $companySheba ?: $this->resolveSourceSheba($run);
+        $run->loadMissing(['items.employee.profile']);
+
+        $companyName = 'شرکت وبینا ارقام نوین';
+        if ($run->subsidiary_company_id && \Illuminate\Support\Facades\Schema::hasTable('hrm_subsidiary_companies')) {
+            $company = HrmSubsidiaryCompany::query()->find($run->subsidiary_company_id);
+            if ($company && ! empty($company->name)) {
+                $companyName = $company->name;
+            }
+        }
+
+        $msgId = sprintf("SATNA-%04d%02d-%03d-%s", $run->year, $run->month, $run->id, now()->format('YmdHis'));
+        $totalCnt = $integrity['valid_count'];
+        $totalAmnt = number_format($integrity['total_amount'], 0, '', '');
+
+        $xml = [];
+        $xml[] = '<?xml version="1.0" encoding="UTF-8"?>';
+        $xml[] = '<SatnaBatchPayment xmlns="urn:cbi:satna:rtgs:batch:v1">';
+        $xml[] = "  <MsgId>{$msgId}</MsgId>";
+        $xml[] = "  <TotalCnt>{$totalCnt}</TotalCnt>";
+        $xml[] = "  <TotalAmnt>{$totalAmnt}</TotalAmnt>";
+        $xml[] = '  <DebtorInfo>';
+        $xml[] = "    <Iban>{$sourceSheba}</Iban>";
+        $xml[] = "    <Name>{$companyName}</Name>";
+        $xml[] = '  </DebtorInfo>';
+        $xml[] = '  <Payments>';
+
+        $validCount = 0;
+        $totalSum = 0.0;
+        foreach ($run->items as $idx => $item) {
+            $emp = $item->employee;
+            $net = (float) $item->net;
+            if ($net <= 0) {
+                continue;
+            }
+
+            $validCount++;
+            $totalSum += $net;
+            $id = $validCount;
+            $instrId = sprintf("SATNA-TX-%04d%02d-%04d", $run->year, $run->month, $validCount);
+            $amount = number_format($net, 0, '', '');
+            $firstName = htmlspecialchars(trim((string) $emp->first_name), ENT_XML1, 'UTF-8');
+            $lastName = htmlspecialchars(trim((string) $emp->last_name), ENT_XML1, 'UTF-8');
+            $sheba = trim((string) ($emp->sheba_number ?: ($emp->profile?->sheba ?? $emp->bank_sheba ?? '')));
+
+            $xml[] = '    <Payment>';
+            $xml[] = "      <Id>{$id}</Id>";
+            $xml[] = "      <Amount>{$amount}</Amount>";
+            $xml[] = "      <InstructionId>{$instrId}</InstructionId>";
+            $xml[] = '      <Creditor>';
+            $xml[] = "        <Iban>{$sheba}</Iban>";
+            $xml[] = "        <Name>{$firstName}</Name>";
+            $xml[] = "        <LastName>{$lastName}</LastName>";
+            $xml[] = '      </Creditor>';
+            $xml[] = '    </Payment>';
+        }
+
+        $xml[] = '  </Payments>';
+        $xml[] = '</SatnaBatchPayment>';
+
+        $fileContent = implode("\n", $xml);
+
+        return [
+            'total_records' => $validCount,
+            'total_amount' => $totalSum,
+            'source_sheba' => $sourceSheba,
+            'file_content' => $fileContent,
+            'checksum' => hash('sha256', $fileContent),
+            'format' => 'satna_xml',
+        ];
+    }
+
+    /**
      * Generate standard banking bulk payment file for Iranian Banks and Central Bank ACH (پایا / ساتنا / بانک‌ها).
      *
      * @return array{
@@ -176,6 +475,15 @@ class HrmStandardBankFormatService
      */
     public function generateBankExport(HrmPayrollRun $run, string $format = 'paya_standard', ?string $companySheba = null): array
     {
+        if ($format === 'mehr_txt') {
+            return $this->generateMehrTextFile($run, $companySheba);
+        }
+        if ($format === 'paya_xml') {
+            return $this->generatePayaXml($run, $companySheba);
+        }
+        if ($format === 'satna_xml') {
+            return $this->generateSatnaXml($run, $companySheba);
+        }
         // 1. Strict validation
         $integrity = $this->validateBankExportIntegrity($run, $companySheba);
         if (! $integrity['is_valid']) {
