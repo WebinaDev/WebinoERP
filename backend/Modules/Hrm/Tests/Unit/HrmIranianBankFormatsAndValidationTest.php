@@ -261,12 +261,11 @@ class HrmIranianBankFormatsAndValidationTest extends TestCase
         $lines = explode("\r\n", $res['file_content']);
         $this->assertCount(4, $lines); // 1 header + 1 D line + 2 C lines
 
-        // Header: تعداد_تراکنش,جمع_مبلغ,شرح,کد (1,2,7000000000,واریز حقوق...,POSA)
-        $this->assertStringStartsWith('1,2,7000000000,', $lines[0]);
-        $this->assertStringEndsWith(',POSA', $lines[0]);
+        // Header: تعداد_تراکنش,جمع_مبلغ,شرح,کد (2,7000000000,واریز حقوق,POSA)
+        $this->assertEquals('2,7000000000,واریز حقوق,POSA', $lines[0]);
 
-        // Line D (Company debit): 401870000467936001,7000000000,D,واریز حقوق...
-        $this->assertStringStartsWith('401870000467936001,7000000000,D,', $lines[1]);
+        // Line D (Company debit): 401870000467936001,7000000000,D,واریز حقوق
+        $this->assertEquals('401870000467936001,7000000000,D,واریز حقوق', $lines[1]);
 
         // Line C1 (Employee credit): 401802510293084001,1000000000,C,حقوق سعید طاهری...
         $this->assertStringStartsWith('401802510293084001,1000000000,C,', $lines[2]);
@@ -367,11 +366,14 @@ class HrmIranianBankFormatsAndValidationTest extends TestCase
         $xml = $res['file_content'];
 
         $this->assertStringContainsString('<?xml version="1.0" encoding="UTF-8"?>', $xml);
-        $this->assertStringContainsString('<SatnaBatchPayment', $xml);
+        $this->assertStringContainsString('<TibsGroupPymntOrdr', $xml);
         $this->assertStringContainsString('<MsgId>SATNA-140508-', $xml);
         $this->assertStringContainsString('<TotalCnt>1</TotalCnt>', $xml);
         $this->assertStringContainsString('<TotalAmnt>2500000000</TotalAmnt>', $xml);
         $this->assertStringContainsString("<Iban>{$this->validSourceSheba}</Iban>", $xml);
+        $this->assertStringContainsString('<PymntOrdrInfo>', $xml);
+        $this->assertStringContainsString('<Amount>2500000000</Amount>', $xml);
+        $this->assertStringContainsString('<InstructionId>SATNA-TX-', $xml);
         $this->assertStringContainsString("<Iban>{$this->validEmployeeSheba2}</Iban>", $xml);
         $this->assertStringContainsString('<Name>احسان</Name>', $xml);
         $this->assertStringContainsString('<LastName>یزدانی</LastName>', $xml);

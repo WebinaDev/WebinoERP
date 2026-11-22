@@ -202,11 +202,11 @@ class HrmStandardBankFormatService
 
         $totalFormatted = number_format($integrity['total_amount'], 0, '', '');
         $batchCount = $integrity['valid_count'];
-        $desc = "واریز حقوق ماه {$run->month}/{$run->year}";
+        $desc = "واریز حقوق";
 
         $lines = [];
-        // Header line: 1,تعداد_تراکنش,جمع_مبلغ,شرح,کد
-        $lines[] = sprintf("1,%d,%s,%s,POSA", $batchCount, $totalFormatted, $desc);
+        // Header line: تعداد_تراکنش,جمع_مبلغ,شرح,کد (e.g. 2,7000000000,واریز حقوق,POSA)
+        $lines[] = sprintf("%d,%s,%s,POSA", $batchCount, $totalFormatted, $desc);
 
         // Line 1: Debtor (برداشت از حساب شرکت) - Type D
         $lines[] = sprintf("%s,%s,D,%s", $debtorAccount, $totalFormatted, $desc);
@@ -406,7 +406,7 @@ class HrmStandardBankFormatService
 
         $xml = [];
         $xml[] = '<?xml version="1.0" encoding="UTF-8"?>';
-        $xml[] = '<SatnaBatchPayment xmlns="urn:cbi:satna:rtgs:batch:v1">';
+        $xml[] = '<TibsGroupPymntOrdr xmlns="urn:cbi:satna:rtgs:batch:v1">';
         $xml[] = "  <MsgId>{$msgId}</MsgId>";
         $xml[] = "  <TotalCnt>{$totalCnt}</TotalCnt>";
         $xml[] = "  <TotalAmnt>{$totalAmnt}</TotalAmnt>";
@@ -434,7 +434,7 @@ class HrmStandardBankFormatService
             $lastName = htmlspecialchars(trim((string) $emp->last_name), ENT_XML1, 'UTF-8');
             $sheba = trim((string) ($emp->sheba_number ?: ($emp->profile?->sheba ?? $emp->bank_sheba ?? '')));
 
-            $xml[] = '    <Payment>';
+            $xml[] = '    <PymntOrdrInfo>';
             $xml[] = "      <Id>{$id}</Id>";
             $xml[] = "      <Amount>{$amount}</Amount>";
             $xml[] = "      <InstructionId>{$instrId}</InstructionId>";
@@ -443,11 +443,11 @@ class HrmStandardBankFormatService
             $xml[] = "        <Name>{$firstName}</Name>";
             $xml[] = "        <LastName>{$lastName}</LastName>";
             $xml[] = '      </Creditor>';
-            $xml[] = '    </Payment>';
+            $xml[] = '    </PymntOrdrInfo>';
         }
 
         $xml[] = '  </Payments>';
-        $xml[] = '</SatnaBatchPayment>';
+        $xml[] = '</TibsGroupPymntOrdr>';
 
         $fileContent = implode("\n", $xml);
 
