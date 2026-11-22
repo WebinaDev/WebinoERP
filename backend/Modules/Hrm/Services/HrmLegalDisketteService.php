@@ -110,16 +110,16 @@ class HrmLegalDisketteService
      *   }>
      * }
      */
-    public function validateExportIntegrity(HrmPayrollRun $run): array
+    public function validateExportIntegrity(HrmPayrollRun $run, ?string $workshopCode = null): array
     {
         $run->loadMissing(['items.employee.profile']);
         $errors = [];
         $warnings = [];
         $discrepancies = [];
 
-        // 1. Verify Workshop Code configuration
+        // 1. Verify Workshop Code configuration (۱۰ رقمی عددی)
         try {
-            $this->resolveWorkshopCode(null, $run);
+            $this->resolveWorkshopCode($workshopCode, $run);
         } catch (\Throwable $e) {
             $errors[] = $e->getMessage();
             $discrepancies[] = [
@@ -246,16 +246,16 @@ class HrmLegalDisketteService
      *   }>
      * }
      */
-    public function validateTaxExportIntegrity(HrmPayrollRun $run): array
+    public function validateTaxExportIntegrity(HrmPayrollRun $run, ?string $tfn = null): array
     {
         $run->loadMissing(['items.employee.profile']);
         $errors = [];
         $warnings = [];
         $discrepancies = [];
 
-        // 1. Verify Employer Tax TFN and Postal Code
+        // 1. Verify Employer Tax TFN (شناسه ملی / کد اقتصادی ۱۱ الی ۱۴ رقمی) and Postal Code (کد پستی ۱۰ رقمی)
         try {
-            $this->resolveTaxTfn(null, $run);
+            $this->resolveTaxTfn($tfn, $run);
         } catch (\Throwable $e) {
             $errors[] = $e->getMessage();
             $discrepancies[] = [
@@ -375,7 +375,7 @@ class HrmLegalDisketteService
     public function generateSsoDiskette(HrmPayrollRun $run, ?string $workshopCode = null): array
     {
         // 1. Mandatory pre-export validation
-        $integrity = $this->validateExportIntegrity($run);
+        $integrity = $this->validateExportIntegrity($run, $workshopCode);
         if (! $integrity['is_valid']) {
             throw new InvalidArgumentException('خطای اعتبارسنجی پیش از تولید دیسکت بیمه: ' . implode(' | ', $integrity['errors']));
         }
@@ -387,18 +387,23 @@ class HrmLegalDisketteService
 
         $rows = $insuranceService->rows($run);
 
-        // Strict field-by-field verification
+        // Strict field-by-field verification (کد کارگاه ۱۰ رقمی، کد ملی، شماره بیمه، نام و نام خانوادگی)
+        $fieldErrors = [];
         foreach ($rows as $i => $r) {
             $line = $i + 1;
             if (empty($r['first_name']) || empty($r['last_name'])) {
-                throw new InvalidArgumentException("نام یا نام خانوادگی کارمند در ردیف {$line} خالی است.");
+                $fieldErrors[] = "ردیف {$line}: نام یا نام خانوادگی کارمند خالی است.";
             }
-            if (empty($r['national_id'])) {
-                throw new InvalidArgumentException("کد ملی کارمند در ردیف {$line} معتبر نیست.");
+            if (empty($r['national_id']) || ! IranianNationalId::isValid((string) $r['national_id'])) {
+                $fieldErrors[] = "ردیف {$line}: کد ملی ۱۰ رقمی معتبر کارمند یافت نشد (" . ($r['national_id'] ?? 'خالی') . ").";
             }
             if (empty($r['insurance_no'])) {
-                throw new InvalidArgumentException("شماره بیمه تأمین اجتماعی کارمند در ردیف {$line} ثبت نشده است.");
+                $fieldErrors[] = "ردیف {$line}: شماره بیمه تأمین اجتماعی کارمند ثبت نشده است.";
             }
+        }
+
+        if (! empty($fieldErrors)) {
+            throw new InvalidArgumentException('خطای اعتبارسنجی اقلام دیسکت بیمه: ' . implode(' | ', $fieldErrors));
         }
 
         $dskkarText = $insuranceService->dskkarText($header, $rows);
@@ -449,7 +454,7 @@ class HrmLegalDisketteService
      */
     public function generateTaxDiskette(HrmPayrollRun $run, ?string $tfn = null): array
     {
-        $integrity = $this->validateTaxExportIntegrity($run);
+        $integrity = $this->validateTaxExportIntegrity($run, $tfn);
         if (! $integrity['is_valid']) {
             throw new InvalidArgumentException('خطای اعتبارسنجی پیش از تولید دیسکت مالیات: ' . implode(' | ', $integrity['errors']));
         }
