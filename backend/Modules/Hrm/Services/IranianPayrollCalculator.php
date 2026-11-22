@@ -8,6 +8,7 @@ use InvalidArgumentException;
 use Modules\Hrm\Entities\HrmAttendanceRecord;
 use Modules\Hrm\Entities\HrmCompensationPackage;
 use Modules\Hrm\Entities\HrmEmployee;
+use Modules\Hrm\Entities\HrmEmploymentDecree;
 use Modules\Hrm\Entities\HrmLoan;
 use Modules\Hrm\Entities\HrmLoanInstallment;
 use Modules\Hrm\Entities\HrmMissionOrder;
@@ -68,7 +69,27 @@ class IranianPayrollCalculator
         $settings = $this->settings();
         $engagement = $employee->engagement_type ?? 'full_time';
 
+        // 1. Resolve Effective Base Salary:
+        // Automatically check for approved employment decrees (احکام کارگزینی) effective for this month
         $base = (float) $employee->base_salary;
+        $targetMonthEnd = Carbon::create($year, $month, 1)->endOfMonth()->toDateString();
+
+        if (Schema::hasTable('hrm_employment_decrees')) {
+            $effectiveDecree = HrmEmploymentDecree::query()
+                ->where('employee_id', $employee->id)
+                ->where('status', 'approved')
+                ->where('effective_from', '<=', $targetMonthEnd)
+                ->where(function ($q) use ($targetMonthEnd) {
+                    $q->whereNull('effective_to')->orWhere('effective_to', '>=', $targetMonthEnd);
+                })
+                ->latest('effective_from')
+                ->first();
+
+            if ($effectiveDecree && (float) $effectiveDecree->base_salary > 0) {
+                $base = (float) $effectiveDecree->base_salary;
+            }
+        }
+
         $lines = [];
 
         // Engagement rules: statutory benefits
