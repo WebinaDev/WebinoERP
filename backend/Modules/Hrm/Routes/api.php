@@ -33,6 +33,32 @@ use Modules\Hrm\Http\Controllers\StaffSpreadsheetController;
 use Modules\Hrm\Http\Controllers\StaffAccountController;
 use Modules\Hrm\Http\Controllers\HrmSettingsController;
 
+
+use Modules\Hrm\Http\Controllers\HrmEnterpriseSuiteController;
+
+// Enterprise Phase 1 & 2: Retro Payroll, Recruitment AI, and Attrition Analytics
+Route::prefix('enterprise')->group(function () {
+    Route::get('payroll/retro-adjustments', [HrmEnterpriseSuiteController::class, 'retroAdjustments']);
+    Route::post('payroll/decrees/{decree}/calculate-retro', [HrmEnterpriseSuiteController::class, 'calculateRetroForDecree']);
+    Route::post('payroll/retro-adjustments/{id}/apply', [HrmEnterpriseSuiteController::class, 'applyRetroAdjustment']);
+
+    Route::get('recruitment/resume-matches', [HrmEnterpriseSuiteController::class, 'resumeMatches']);
+    Route::post('recruitment/match/{applicant}/{posting}', [HrmEnterpriseSuiteController::class, 'runAiResumeMatch']);
+
+    Route::get('analytics/attrition-risks', [HrmEnterpriseSuiteController::class, 'attritionRisks']);
+    Route::post('analytics/attrition-risks/{employee}/evaluate', [HrmEnterpriseSuiteController::class, 'evaluateEmployeeAttrition']);
+
+    Route::get('decrees/formula-components', [HrmEnterpriseSuiteController::class, 'formulaComponents']);
+    Route::post('decrees/formula-components', [HrmEnterpriseSuiteController::class, 'saveFormulaComponent']);
+
+    Route::get('career/paths', [HrmEnterpriseSuiteController::class, 'careerPaths']);
+    Route::get('career/promotion-proposals', [HrmEnterpriseSuiteController::class, 'promotionProposals']);
+    Route::post('career/proposals/{employee}/evaluate', [HrmEnterpriseSuiteController::class, 'evaluatePromotion']);
+
+    Route::post('payroll/runs/{run}/generate-sso-diskette', [HrmEnterpriseSuiteController::class, 'generateSsoDiskette']);
+    Route::get('retirees', [HrmEnterpriseSuiteController::class, 'retirees']);
+});
+
 // Employee self-service portal
 Route::prefix('me')->group(function () {
     Route::get('/', [MePortalController::class, 'me']);

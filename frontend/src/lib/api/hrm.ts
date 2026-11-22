@@ -939,3 +939,42 @@ export async function updateMyOffboarding(id: number | string, data: Record<stri
   const res = await apiClient.patch(`${BASE}/me/offboarding/${id}`, data);
   return unwrapData(res);
 }
+
+
+
+// ── Enterprise Suite (Phase 1 & 2: Retroactive Pay, AI Matching, Attrition) ──
+
+export async function getRetroAdjustments(params?: Record<string, unknown>) {
+  const res = await apiClient.get(`${BASE}/enterprise/payroll/retro-adjustments`, { params });
+  return unwrapData<Record<string, unknown>>(res);
+}
+
+export async function calculateRetroForDecree(decreeId: number | string) {
+  const res = await apiClient.post(`${BASE}/enterprise/payroll/decrees/${decreeId}/calculate-retro`);
+  return unwrapData<Record<string, unknown>>(res);
+}
+
+export async function applyRetroAdjustment(id: number | string) {
+  const res = await apiClient.post(`${BASE}/enterprise/payroll/retro-adjustments/${id}/apply`);
+  return unwrapData<Record<string, unknown>>(res);
+}
+
+export async function getResumeMatches(params?: Record<string, unknown>) {
+  const res = await apiClient.get(`${BASE}/enterprise/recruitment/resume-matches`, { params });
+  return unwrapData<Record<string, unknown>>(res);
+}
+
+export async function runAiResumeMatch(applicantId: number | string, postingId: number | string) {
+  const res = await apiClient.post(`${BASE}/enterprise/recruitment/match/${applicantId}/${postingId}`);
+  return unwrapData<Record<string, unknown>>(res);
+}
+
+export async function getAttritionRisks(params?: Record<string, unknown>) {
+  const res = await apiClient.get(`${BASE}/enterprise/analytics/attrition-risks`, { params });
+  return unwrapData<Record<string, unknown>>(res);
+}
+
+export async function evaluateEmployeeAttrition(employeeId: number | string) {
+  const res = await apiClient.post(`${BASE}/enterprise/analytics/attrition-risks/${employeeId}/evaluate`);
+  return unwrapData<Record<string, unknown>>(res);
+}
