@@ -16,7 +16,6 @@ class HrmRetroactivePayrollService
 
     /**
      * Calculate retroactive pay differentials when a new decree is issued effective in the past.
-     * Uses real progressive tax brackets (پلکان قانونی ماده ۸۴) rather than a flat 10%.
      *
      * @return array<int, HrmPayrollRetroAdjustment>
      */
@@ -141,9 +140,10 @@ class HrmRetroactivePayrollService
 
     /**
      * Workflow: approve pending retro adjustment so it can be automatically pulled into next payroll run.
+     * Stays 'approved' until consumed by calculateRun which transitions it to 'applied'.
      */
     public function approveAdjustment(HrmPayrollRetroAdjustment $adjustment): void
     {
-        $adjustment->update(['status' => 'applied']);
+        $adjustment->update(['status' => 'approved']);
     }
 }
