@@ -3,6 +3,7 @@
 namespace Modules\Hrm\Services;
 
 use Carbon\Carbon;
+use Modules\Hrm\Entities\HrmAttendanceRecord;
 use Modules\Hrm\Entities\HrmDependent;
 use Modules\Hrm\Entities\HrmEmployee;
 use Modules\Hrm\Entities\HrmLoan;
@@ -331,7 +332,7 @@ class IranianPayrollCalculator
 
     /**
      * Real calculation of approved overtime, night, holiday, or mission hours.
-     * Dynamic lookup supporting hour_type on timesheet and settings['monthly_hours'].
+     * Dynamic lookup supporting hour_type on timesheet, fallback to WorkRuleEngine, and settings['monthly_hours'].
      */
     public function approvedHours(int $employeeId, string $type, int $year, int $month, string $mode = 'hours'): float
     {
@@ -377,10 +378,16 @@ class IranianPayrollCalculator
                     ->whereBetween('work_date', [$start->toDateString(), $end->toDateString()]);
 
                 if ($type === 'night') {
-                    return (float) (clone $query)->where('hour_type', 'night')->sum('hours');
+                    $nightSum = (float) (clone $query)->where('hour_type', 'night')->sum('hours');
+                    if ($nightSum > 0) {
+                        return $nightSum;
+                    }
                 }
                 if ($type === 'holiday') {
-                    return (float) (clone $query)->where('hour_type', 'holiday')->sum('hours');
+                    $holidaySum = (float) (clone $query)->where('hour_type', 'holiday')->sum('hours');
+                    if ($holidaySum > 0) {
+                        return $holidaySum;
+                    }
                 }
                 if ($type === 'overtime') {
                     $explicitOvertime = (float) (clone $query)->where('hour_type', 'overtime')->sum('hours');
@@ -390,7 +397,8 @@ class IranianPayrollCalculator
                 }
             }
 
-            // Fallback for general hours exceeding standard monthly hours from settings
+            // Fallback when hour_type is empty or standard:
+            // 1. Fallback for Overtime: hours exceeding standard monthly hours from settings
             if ($type === 'overtime') {
                 $settings = $this->settings();
                 $standardMonthlyHours = (float) ($settings['monthly_hours'] ?? 220);
@@ -403,6 +411,18 @@ class IranianPayrollCalculator
 
                 if ($timesheetHours > $standardMonthlyHours) {
                     return round($timesheetHours - $standardMonthlyHours, 2);
+                }
+            }
+
+            // 2. Fallback for Night & Holiday: evaluate from physical work records or WorkRuleEngine
+            if ($type === 'night' || $type === 'holiday') {
+                $employee = HrmEmployee::query()->find($employeeId);
+                if ($employee) {
+                    $workRuleEngine = app(HrmAttendanceWorkRuleEngine::class);
+                    $factors = $workRuleEngine->evaluateMonthlyAttendanceFactors($employee, $year, $month);
+                    return $type === 'night'
+                        ? (float) ($factors['night_hours'] ?? 0.0)
+                        : (float) ($factors['holiday_hours'] ?? 0.0);
                 }
             }
         }
