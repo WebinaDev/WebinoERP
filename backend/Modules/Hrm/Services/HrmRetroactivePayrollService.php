@@ -2,6 +2,7 @@
 
 namespace Modules\Hrm\Services;
 
+use Carbon\Carbon;
 use Modules\Hrm\Entities\HrmEmployee;
 use Modules\Hrm\Entities\HrmEmploymentDecree;
 use Modules\Hrm\Entities\HrmPayrollItem;
@@ -16,6 +17,8 @@ class HrmRetroactivePayrollService
 
     /**
      * Calculate retroactive pay differentials when a new decree is issued effective in the past.
+     * Evaluates historical approved/paid payroll runs, re-calculates statutory gross/tax/insurance,
+     * and records itemized differentials in hrm_payroll_retro_adjustments.
      *
      * @return array<int, HrmPayrollRetroAdjustment>
      */
@@ -26,9 +29,8 @@ class HrmRetroactivePayrollService
             return [];
         }
 
-        $effectiveDate = $decree->effective_from;
-        $now = now();
-        $decreeIssueDate = $decree->created_at ?: $now;
+        $effectiveDate = Carbon::parse($decree->effective_from);
+        $decreeIssueDate = $decree->created_at ? Carbon::parse($decree->created_at) : now();
 
         // If effective date is in the current month or future, no retro adjustment needed
         if ($effectiveDate->format('Y-m') >= $decreeIssueDate->format('Y-m')) {
@@ -87,7 +89,8 @@ class HrmRetroactivePayrollService
                 $tempEmployee->daily_rate = $newDaily;
             }
 
-            $simulated = $this->calculator->forEmployee($tempEmployee, (int) $run->year, (int) $run->month, $run->id);
+            // Exclude retro items during recalculation of historical base run
+            $simulated = $this->calculator->forEmployee($tempEmployee, (int) $run->year, (int) $run->month, $run->id, false);
 
             $adjustedGross = (float) $simulated['gross'];
             $adjustedTax = (float) ($simulated['breakdown']['tax'] ?? 0);
@@ -103,12 +106,16 @@ class HrmRetroactivePayrollService
             $diffTax = round(max(0.0, $adjustedTax - $originalTax), 2);
             $diffNet = round($diffGross - $diffInsurance - $diffTax, 2);
 
+            $currentYearInt = (int) now()->format('Y');
+            $targetYearInt = (int) $run->year;
+            $isPriorYear = $targetYearInt < $currentYearInt;
+
             $adjustment = HrmPayrollRetroAdjustment::query()->create([
                 'employee_id' => $employee->id,
                 'decree_id' => $decree->id,
                 'payroll_run_id' => null, // pending allocation to next active run
-                'target_year' => $run->year,
-                'target_month' => $run->month,
+                'target_year' => $targetYearInt,
+                'target_month' => (int) $run->month,
                 'original_gross' => $originalGross,
                 'adjusted_gross' => $adjustedGross,
                 'differential_amount' => $diffGross,
@@ -121,7 +128,8 @@ class HrmRetroactivePayrollService
                     'decree_no' => $decree->decree_no,
                     'previous_base' => $employee->base_salary,
                     'new_base' => $newBase,
-                    'is_prior_fiscal_year' => (int) $run->year < (int) now()->format('Y'),
+                    'is_prior_fiscal_year' => $isPriorYear,
+                    'year_category' => $isPriorYear ? 'prior_years' : 'current_year',
                 ],
             ]);
 
@@ -145,5 +153,26 @@ class HrmRetroactivePayrollService
     public function approveAdjustment(HrmPayrollRetroAdjustment $adjustment): void
     {
         $adjustment->update(['status' => 'approved']);
+    }
+
+    /**
+     * Attach pending/approved retro adjustments of an employee to a payroll run.
+     */
+    public function allocatePendingAdjustmentsToRun(int $employeeId, int $runId): array
+    {
+        $adjustments = HrmPayrollRetroAdjustment::query()
+            ->where('employee_id', $employeeId)
+            ->whereIn('status', ['pending', 'approved'])
+            ->whereNull('payroll_run_id')
+            ->get();
+
+        foreach ($adjustments as $adj) {
+            $adj->update([
+                'payroll_run_id' => $runId,
+                'status' => 'applied',
+            ]);
+        }
+
+        return $adjustments->all();
     }
 }

@@ -64,7 +64,7 @@ class IranianPayrollCalculator
         return $defaults;
     }
 
-    public function forEmployee(HrmEmployee $employee, int $year, int $month, ?int $runId = null): array
+    public function forEmployee(HrmEmployee $employee, int $year, int $month, ?int $runId = null, bool $includeRetro = true): array
     {
         $settings = $this->settings();
         $engagement = $employee->engagement_type ?? 'full_time';
@@ -226,8 +226,55 @@ class IranianPayrollCalculator
         $statutoryMissionAllowance = $missionDays > 0 ? max($missionAmount, round($missionDays * $dailyAllowanceConfig, 2)) : $missionAmount;
         $mission = round($statutoryMissionAllowance, 2);
 
+        // Segregate retroactive differentials (معوقات سال جاری و سنوات قبل)
+        $retroCurrentYear = 0.0;
+        $retroPriorYears = 0.0;
+        $retroEmployeeIns = 0.0;
+        $retroTax = 0.0;
+
+        if ($includeRetro && Schema::hasTable('hrm_payroll_retro_adjustments')) {
+            $retroQuery = HrmPayrollRetroAdjustment::query()
+                ->where('employee_id', $employee->id)
+                ->where(function ($q) use ($runId) {
+                    if ($runId) {
+                        $q->where('payroll_run_id', $runId)->orWhere(function ($q2) {
+                            $q2->whereNull('payroll_run_id')->whereIn('status', ['pending', 'approved']);
+                        });
+                    } else {
+                        $q->whereNull('payroll_run_id')->whereIn('status', ['pending', 'approved']);
+                    }
+                });
+
+            $retroList = $retroQuery->get();
+
+            foreach ($retroList as $r) {
+                $diffAmt = (float) $r->differential_amount;
+                $diffIns = (float) $r->differential_insurance;
+                $diffTx = (float) $r->differential_tax;
+
+                if ((int) $r->target_year === (int) $year) {
+                    $retroCurrentYear += $diffAmt;
+                } else {
+                    $retroPriorYears += $diffAmt;
+                }
+
+                $retroEmployeeIns += $diffIns;
+                $retroTax += $diffTx;
+
+                // If executing within an actual run, link and transition to applied
+                if ($runId && $r->payroll_run_id !== $runId) {
+                    $r->update([
+                        'payroll_run_id' => $runId,
+                        'status' => 'applied',
+                    ]);
+                }
+            }
+        }
+
+        $totalRetro = round($retroCurrentYear + $retroPriorYears, 2);
+
         $shiftTotal = round($nightAllowance + $holidayAllowance + $shiftAllowance, 2);
-        $earnings = round(array_sum(array_column($lines, 'amount')) + $overtime + $shiftTotal + $mission, 2);
+        $earnings = round(array_sum(array_column($lines, 'amount')) + $overtime + $shiftTotal + $mission + $totalRetro, 2);
         $gross = round($base + $earnings, 2);
 
         if ($insuranceOn) {
@@ -239,13 +286,14 @@ class IranianPayrollCalculator
 
         $ceiling = (float) ($settings['insurance_ceiling'] ?? 0);
         $insurableBase = $ceiling > 0 ? min($insurable, $ceiling) : $insurable;
-        $employeeIns = $insuranceOn ? round($insurableBase * ((float) ($settings['employee_insurance_percent'] ?? 7)) / 100, 2) : 0.0;
+        $employeeIns = $insuranceOn ? round(($insurableBase * ((float) ($settings['employee_insurance_percent'] ?? 7)) / 100) + $retroEmployeeIns, 2) : 0.0;
         $employerIns = $insuranceOn ? round($insurableBase * ((float) ($settings['employer_insurance_percent'] ?? 20)) / 100, 2) : 0.0;
         $unemployment = $insuranceOn ? round($insurableBase * ((float) ($settings['unemployment_insurance_percent'] ?? 3)) / 100, 2) : 0.0;
 
         $fraction = (float) ($settings['insurance_deductible_fraction'] ?? (2 / 7));
-        $taxable = $taxOn ? max(0, $taxableEarnings - ($employeeIns * $fraction)) : 0.0;
-        $tax = $taxOn ? $this->calculateTax($taxable, $settings['tax_brackets'] ?? []) : 0.0;
+        $taxable = $taxOn ? max(0, $taxableEarnings - (($employeeIns - $retroEmployeeIns) * $fraction)) : 0.0;
+        $regularTax = $taxOn ? $this->calculateTax($taxable, $settings['tax_brackets'] ?? []) : 0.0;
+        $tax = round($regularTax + $retroTax, 2);
 
         // Apply real loan deductions
         $loanDeduction = 0.0;
@@ -287,6 +335,9 @@ class IranianPayrollCalculator
                 'shift_allowance' => $shiftAllowance,
                 'shift_pattern' => (string) ($attendanceFactors['shift_pattern'] ?? 'standard'),
                 'mission' => $mission,
+                'retro_current_year' => $retroCurrentYear,
+                'retro_prior_years' => $retroPriorYears,
+                'retro_total' => $totalRetro,
                 'gross' => $gross,
                 'insurable' => round($insurableBase, 2),
                 'employee_insurance' => $employeeIns,

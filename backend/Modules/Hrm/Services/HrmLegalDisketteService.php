@@ -7,6 +7,7 @@ use Modules\Hrm\Entities\HrmLegalExportRecord;
 use Modules\Hrm\Entities\HrmPayrollRun;
 use Modules\Hrm\Entities\HrmPayrollSetting;
 use Modules\Hrm\Entities\HrmSubsidiaryCompany;
+use Modules\Hrm\Support\IranianNationalId;
 
 class HrmLegalDisketteService
 {
@@ -92,30 +93,62 @@ class HrmLegalDisketteService
 
     /**
      * Validate pre-export integrity and return detailed discrepancy report:
+     * - Itemized discrepancy report listing exact problematic employees and specific missing/invalid attributes
      * - Strict validation for Employee Full Name, 10-digit National ID, SSO Insurance Number, and Workshop Code.
      *
-     * @return array{is_valid: bool, errors: list<string>, warnings: list<string>}
+     * @return array{
+     *   is_valid: bool,
+     *   errors: list<string>,
+     *   warnings: list<string>,
+     *   discrepancies: list<array{
+     *     row: int,
+     *     employee_id: int|null,
+     *     employee_name: string,
+     *     employee_code: string,
+     *     issue_type: string,
+     *     description: string
+     *   }>
+     * }
      */
     public function validateExportIntegrity(HrmPayrollRun $run): array
     {
         $run->loadMissing(['items.employee.profile']);
         $errors = [];
         $warnings = [];
+        $discrepancies = [];
 
         // 1. Verify Workshop Code configuration
         try {
             $this->resolveWorkshopCode(null, $run);
         } catch (\Throwable $e) {
             $errors[] = $e->getMessage();
+            $discrepancies[] = [
+                'row' => 0,
+                'employee_id' => null,
+                'employee_name' => 'تنظیمات کارگاه',
+                'employee_code' => '-',
+                'issue_type' => 'missing_workshop_code',
+                'description' => $e->getMessage(),
+            ];
         }
 
         // 2. Verify Runs & Items presence
         if ($run->items->isEmpty()) {
-            $errors[] = 'دوره حقوق فاقد هرگونه رکورد یا فیش حقوقی است.';
+            $msg = 'دوره حقوق فاقد هرگونه رکورد یا فیش حقوقی است.';
+            $errors[] = $msg;
+            $discrepancies[] = [
+                'row' => 0,
+                'employee_id' => null,
+                'employee_name' => '-',
+                'employee_code' => '-',
+                'issue_type' => 'empty_run',
+                'description' => $msg,
+            ];
             return [
                 'is_valid' => false,
                 'errors' => $errors,
                 'warnings' => $warnings,
+                'discrepancies' => $discrepancies,
             ];
         }
 
@@ -123,30 +156,68 @@ class HrmLegalDisketteService
             $line = $idx + 1;
             $emp = $item->employee;
             if (! $emp) {
-                $errors[] = "ردیف {$line}: رکورد فیش به هیچ کارمندی متصل نیست.";
+                $msg = "ردیف {$line}: رکورد فیش به هیچ کارمندی متصل نیست.";
+                $errors[] = $msg;
+                $discrepancies[] = [
+                    'row' => $line,
+                    'employee_id' => null,
+                    'employee_name' => 'نامشخص',
+                    'employee_code' => '-',
+                    'issue_type' => 'missing_employee_relation',
+                    'description' => $msg,
+                ];
                 continue;
             }
 
             $name = trim("{$emp->first_name} {$emp->last_name}");
+            $empCode = (string) ($emp->employee_code ?: $emp->id);
+
             if (empty($emp->first_name) || empty($emp->last_name)) {
-                $errors[] = "ردیف {$line}: نام و نام خانوادگی کارمند اجباری بوده و خالی است.";
+                $msg = "ردیف {$line} (پرسنلی {$empCode}): نام و نام خانوادگی کارمند اجباری بوده و خالی است.";
+                $errors[] = $msg;
+                $discrepancies[] = [
+                    'row' => $line,
+                    'employee_id' => $emp->id,
+                    'employee_name' => $name ?: 'خالی',
+                    'employee_code' => $empCode,
+                    'issue_type' => 'missing_name',
+                    'description' => $msg,
+                ];
             }
 
             $nid = trim((string) $emp->national_id);
-            if (empty($nid) || strlen($nid) !== 10 || ! ctype_digit($nid)) {
-                $errors[] = "ردیف {$line} ({$name}): کد ملی ۱۰ رقمی کارمند اجباری و نامعتبر است ({$nid}).";
+            if (empty($nid) || ! IranianNationalId::isValid($nid)) {
+                $msg = "ردیف {$line} ({$name} - پرسنلی {$empCode}): کد ملی ۱۰ رقمی کارمند نامعتبر است ({$nid}).";
+                $errors[] = $msg;
+                $discrepancies[] = [
+                    'row' => $line,
+                    'employee_id' => $emp->id,
+                    'employee_name' => $name,
+                    'employee_code' => $empCode,
+                    'issue_type' => 'invalid_national_id',
+                    'description' => $msg,
+                ];
             }
 
             $profile = $emp->profile;
             $custom = is_array($profile?->custom_fields) ? $profile->custom_fields : [];
             $insuranceNo = trim((string) ($profile?->insurance_number ?: ($custom['insurance_no'] ?? $custom['ssn'] ?? $emp->insurance_no ?? '')));
             if (empty($insuranceNo)) {
-                $errors[] = "ردیف {$line} ({$name}): شماره بیمه تأمین اجتماعی کارمند اجباری بوده و ثبت نشده است.";
+                $msg = "ردیف {$line} ({$name} - پرسنلی {$empCode}): شماره بیمه تأمین اجتماعی کارمند اجباری بوده و ثبت نشده است.";
+                $errors[] = $msg;
+                $discrepancies[] = [
+                    'row' => $line,
+                    'employee_id' => $emp->id,
+                    'employee_name' => $name,
+                    'employee_code' => $empCode,
+                    'issue_type' => 'missing_insurance_number',
+                    'description' => $msg,
+                ];
             }
 
             $sheba = trim((string) $emp->sheba_number);
             if (! empty($sheba) && (! str_starts_with($sheba, 'IR') || strlen($sheba) !== 26)) {
-                $warnings[] = "ردیف {$line} ({$name}): فرمت شبای بانکی غیراستاندارد است ({$sheba}).";
+                $warnings[] = "ردیف {$line} ({$name} - پرسنلی {$empCode}): فرمت شبای بانکی غیراستاندارد است ({$sheba}).";
             }
         }
 
@@ -154,40 +225,80 @@ class HrmLegalDisketteService
             'is_valid' => empty($errors),
             'errors' => $errors,
             'warnings' => $warnings,
+            'discrepancies' => $discrepancies,
         ];
     }
 
     /**
      * Validate pre-export integrity specifically for Tax Diskette (WH/WP Article 84)
      *
-     * @return array{is_valid: bool, errors: list<string>, warnings: list<string>}
+     * @return array{
+     *   is_valid: bool,
+     *   errors: list<string>,
+     *   warnings: list<string>,
+     *   discrepancies: list<array{
+     *     row: int,
+     *     employee_id: int|null,
+     *     employee_name: string,
+     *     employee_code: string,
+     *     issue_type: string,
+     *     description: string
+     *   }>
+     * }
      */
     public function validateTaxExportIntegrity(HrmPayrollRun $run): array
     {
         $run->loadMissing(['items.employee.profile']);
         $errors = [];
         $warnings = [];
+        $discrepancies = [];
 
         // 1. Verify Employer Tax TFN and Postal Code
         try {
             $this->resolveTaxTfn(null, $run);
         } catch (\Throwable $e) {
             $errors[] = $e->getMessage();
+            $discrepancies[] = [
+                'row' => 0,
+                'employee_id' => null,
+                'employee_name' => 'تنظیمات مالیاتی کارفرما',
+                'employee_code' => '-',
+                'issue_type' => 'missing_tax_tfn',
+                'description' => $e->getMessage(),
+            ];
         }
 
         try {
             $this->resolvePostalCode($run);
         } catch (\Throwable $e) {
             $errors[] = $e->getMessage();
+            $discrepancies[] = [
+                'row' => 0,
+                'employee_id' => null,
+                'employee_name' => 'تنظیمات کد پستی',
+                'employee_code' => '-',
+                'issue_type' => 'missing_postal_code',
+                'description' => $e->getMessage(),
+            ];
         }
 
         // 2. Verify Runs & Items presence
         if ($run->items->isEmpty()) {
-            $errors[] = 'دوره حقوق فاقد هرگونه رکورد یا فیش حقوقی است.';
+            $msg = 'دوره حقوق فاقد هرگونه رکورد یا فیش حقوقی است.';
+            $errors[] = $msg;
+            $discrepancies[] = [
+                'row' => 0,
+                'employee_id' => null,
+                'employee_name' => '-',
+                'employee_code' => '-',
+                'issue_type' => 'empty_run',
+                'description' => $msg,
+            ];
             return [
                 'is_valid' => false,
                 'errors' => $errors,
                 'warnings' => $warnings,
+                'discrepancies' => $discrepancies,
             ];
         }
 
@@ -195,18 +306,47 @@ class HrmLegalDisketteService
             $line = $idx + 1;
             $emp = $item->employee;
             if (! $emp) {
-                $errors[] = "ردیف {$line}: رکورد فیش به هیچ کارمندی متصل نیست.";
+                $msg = "ردیف {$line}: رکورد فیش به هیچ کارمندی متصل نیست.";
+                $errors[] = $msg;
+                $discrepancies[] = [
+                    'row' => $line,
+                    'employee_id' => null,
+                    'employee_name' => 'نامشخص',
+                    'employee_code' => '-',
+                    'issue_type' => 'missing_employee_relation',
+                    'description' => $msg,
+                ];
                 continue;
             }
 
             $name = trim("{$emp->first_name} {$emp->last_name}");
+            $empCode = (string) ($emp->employee_code ?: $emp->id);
+
             if (empty($emp->first_name) || empty($emp->last_name)) {
-                $errors[] = "ردیف {$line}: نام و نام خانوادگی کارمند در دیسکت مالیات اجباری است.";
+                $msg = "ردیف {$line} (پرسنلی {$empCode}): نام و نام خانوادگی کارمند در دیسکت مالیات اجباری است.";
+                $errors[] = $msg;
+                $discrepancies[] = [
+                    'row' => $line,
+                    'employee_id' => $emp->id,
+                    'employee_name' => $name ?: 'خالی',
+                    'employee_code' => $empCode,
+                    'issue_type' => 'missing_name',
+                    'description' => $msg,
+                ];
             }
 
             $nid = trim((string) $emp->national_id);
-            if (empty($nid) || strlen($nid) !== 10 || ! ctype_digit($nid)) {
-                $errors[] = "ردیف {$line} ({$name}): کد ملی ۱۰ رقمی برای دیسکت مالیات اجباری است ({$nid}).";
+            if (empty($nid) || ! IranianNationalId::isValid($nid)) {
+                $msg = "ردیف {$line} ({$name} - پرسنلی {$empCode}): کد ملی ۱۰ رقمی برای دیسکت مالیات نامعتبر است ({$nid}).";
+                $errors[] = $msg;
+                $discrepancies[] = [
+                    'row' => $line,
+                    'employee_id' => $emp->id,
+                    'employee_name' => $name,
+                    'employee_code' => $empCode,
+                    'issue_type' => 'invalid_national_id',
+                    'description' => $msg,
+                ];
             }
         }
 
@@ -214,6 +354,7 @@ class HrmLegalDisketteService
             'is_valid' => empty($errors),
             'errors' => $errors,
             'warnings' => $warnings,
+            'discrepancies' => $discrepancies,
         ];
     }
 
@@ -295,6 +436,7 @@ class HrmLegalDisketteService
 
     /**
      * Generate standard Iranian Tax Organization Diskette format (سامانه مالیات بر درآمد حقوق ماده ۸۴)
+     * - Format conforms with Official INTA (سازمان امور مالیاتی کشور) WH & WP specifications
      *
      * @return array{
      *   record_count: int,
@@ -329,34 +471,41 @@ class HrmLegalDisketteService
             }
 
             $nationalId = trim((string) $emp->national_id);
-            if (empty($nationalId) || strlen($nationalId) !== 10 || ! ctype_digit($nationalId)) {
+            if (empty($nationalId) || ! IranianNationalId::isValid($nationalId)) {
                 $name = "{$emp->first_name} {$emp->last_name}";
                 throw new InvalidArgumentException("کد ملی ۱۰ رقمی برای کارمند «{$name}» نامعتبر است. صدور دیسکت مالیات متوقف شد.");
             }
 
+            $gross = (float) $item->gross;
             $taxable = (float) ($item->taxable_wage ?: $item->gross);
             $tax = (float) $item->tax;
+            $exemptions = max(0.0, round($gross - $taxable, 2));
 
             $totalTaxable += $taxable;
             $totalTax += $tax;
 
-            // WH format (اطلاعات هویتی و پرسنلی مالیاتی)
+            // WH format (مشخصات هویتی و شناسنامه‌ای پرسنل مالیاتی ماده ۸۴)
+            // TFN | NationalID | FirstName | LastName | InsuranceNo | PostalCode | HireDate | CountryCode
             $whLines[] = implode('|', [
                 $taxTfn,
                 $nationalId,
                 $emp->first_name,
                 $emp->last_name,
-                $emp->insurance_no ?: '',
+                $emp->insurance_no ?: ($emp->profile?->insurance_number ?: ''),
                 $postalCode,
-                $emp->hire_date ? $emp->hire_date->format('Ymd') : '',
+                $emp->hire_date ? $emp->hire_date->format('Ymd') : now()->format('Ymd'),
+                'IR', // National country code
             ]);
 
-            // WP format (اطلاعات مالی، حقوق ناخالص، معافیت‌ها و مالیات)
+            // WP format (اطلاعات اقلام درآمدی، ناخالص، معافیت‌ها، مشمول و مالیات تکلیفی)
+            // TFN | NationalID | Year | Month | Gross | Exemptions | Taxable | Tax
             $wpLines[] = implode('|', [
                 $taxTfn,
                 $nationalId,
                 (int) $run->year,
                 (int) $run->month,
+                number_format($gross, 0, '', ''),
+                number_format($exemptions, 0, '', ''),
                 number_format($taxable, 0, '', ''),
                 number_format($tax, 0, '', ''),
             ]);

@@ -2,6 +2,8 @@
 
 namespace Modules\Hrm\Http\Controllers;
 
+use App\Http\Controllers\Controller;
+use Carbon\Carbon;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Schema;
@@ -11,8 +13,8 @@ use Modules\Hrm\Entities\HrmDependent;
 use Modules\Hrm\Entities\HrmEmployee;
 use Modules\Hrm\Entities\HrmEmployeeProfile;
 use Modules\Hrm\Entities\HrmEmploymentDecree;
-use Modules\Hrm\Entities\HrmLeaveBalance;
 use Modules\Hrm\Entities\HrmLoan;
+use Modules\Hrm\Entities\HrmMissionOrder;
 use Modules\Hrm\Entities\HrmNotice;
 use Modules\Hrm\Entities\HrmOrgPosition;
 use Modules\Hrm\Entities\HrmPayrollItem;
@@ -44,154 +46,42 @@ class MePortalController extends Controller
         return HrmEmployee::query()->where('email', $email)->first();
     }
 
-    protected function noEmployeePayload(): array
-    {
-        return [
-            'identity' => null,
-            'decree' => null,
-            'leave_balances' => [],
-            'latest_payslip' => null,
-            'open_requests' => 0,
-        ];
-    }
-
     public function me(): JsonResponse
     {
         $employee = $this->resolveEmployee();
         if (! $employee) {
-            return response()->json(['data' => $this->noEmployeePayload()]);
+            return response()->json(['data' => ['employee' => null]]);
         }
 
         $employee->load(['profile', 'shiftTemplate']);
-        $custom = $employee->profile?->custom_fields ?? [];
-
-        $decree = null;
-        if (Schema::hasTable('hrm_employment_decrees')) {
-            $row = HrmEmploymentDecree::query()
-                ->where('employee_id', $employee->id)
-                ->whereIn('status', ['active', 'approved', 'issued'])
-                ->orderByDesc('effective_from')
-                ->orderByDesc('id')
-                ->first()
-                ?? HrmEmploymentDecree::query()
-                    ->where('employee_id', $employee->id)
-                    ->orderByDesc('effective_from')
-                    ->orderByDesc('id')
-                    ->first();
-            if ($row) {
-                $decree = $this->formatDecree($row);
-            }
-        }
-
-        $leaveBalances = [];
-        if (Schema::hasTable('hrm_leave_balances')) {
-            $year = (int) now()->format('Y');
-            $leaveBalances = HrmLeaveBalance::query()
-                ->with('leaveType')
-                ->where('employee_id', $employee->id)
-                ->where('year', $year)
-                ->get()
-                ->map(fn (HrmLeaveBalance $b) => [
-                    'leave_type_id' => $b->leave_type_id,
-                    'type_name' => $b->leaveType?->name ?? '',
-                    'year' => $b->year,
-                    'allocated' => (float) $b->allocated,
-                    'used' => (float) $b->used,
-                    'balance' => (float) $b->allocated - (float) $b->used,
-                ])
-                ->values()
-                ->all();
-        }
-
-        $latestPayslip = null;
-        if (Schema::hasTable('hrm_payroll_items')) {
-            $item = HrmPayrollItem::query()
-                ->with('payrollRun')
-                ->where('employee_id', $employee->id)
-                ->orderByDesc('id')
-                ->first();
-            if ($item) {
-                $run = $item->payrollRun;
-                $latestPayslip = [
-                    'id' => $item->id,
-                    'run_title' => $run?->title ?? '',
-                    'jalali_year' => $run?->year ?? 0,
-                    'jalali_month' => $run?->month ?? 0,
-                    'gross' => (float) $item->gross,
-                    'net' => (float) $item->net,
-                    'deposit_date' => null,
-                ];
-            }
-        }
-
-        $openRequests = 0;
-        if (Schema::hasTable('hrm_requests')) {
-            $openRequests = HrmRequest::query()
-                ->where('employee_id', $employee->id)
-                ->whereIn('status', ['pending_manager', 'pending_hr', 'draft'])
-                ->count();
-        }
-
-        $loanBalance = 0.0;
-        $advanceBalance = 0.0;
-        if (Schema::hasTable('hrm_loans')) {
-            $loanBalance = (float) HrmLoan::query()->where('employee_id', $employee->id)->where('type', 'loan')->where('status', 'active')->sum('remaining_balance');
-            $advanceBalance = (float) HrmLoan::query()->where('employee_id', $employee->id)->where('type', 'advance')->where('status', 'active')->sum('remaining_balance');
-        }
-
-        $missing = [];
-        if (Schema::hasTable('hrm_personnel_documents')) {
-            $cats = HrmPersonnelDocument::query()->where('employee_id', $employee->id)->pluck('category')->all();
-            if (! in_array('national_card', $cats, true)) {
-                $missing[] = 'national_card';
-            }
-            if (! in_array('contract', $cats, true)) {
-                $missing[] = 'contract';
-            }
-            if ($missing !== []) {
-                HrmNotifier::notify(
-                    $employee->id,
-                    'missing_docs',
-                    'نقص مدارک پرسنلی',
-                    'مدارک ناقص: '.implode(', ', $missing)
-                );
-            }
-        }
 
         return response()->json([
             'data' => [
-                'identity' => [
-                    'user_id' => $employee->user_id,
-                    'employee_id' => $employee->id,
-                    'display_name' => trim($employee->first_name.' '.$employee->last_name),
+                'employee' => [
+                    'id' => $employee->id,
                     'first_name' => $employee->first_name,
                     'last_name' => $employee->last_name,
                     'email' => $employee->email,
-                    'personnel_code' => $employee->employee_code,
-                    'national_id' => $employee->profile?->national_id,
-                    'insurance_number' => $custom['insurance_number'] ?? null,
-                    'job_title' => $employee->position,
+                    'phone' => $employee->phone,
+                    'employee_code' => $employee->employee_code,
                     'department' => $employee->department,
-                    'direct_manager' => isset($custom['direct_manager'])
-                        ? ['name' => (string) $custom['direct_manager']]
-                        : null,
-                    'workshop' => isset($custom['workshop']) && is_array($custom['workshop'])
-                        ? $custom['workshop']
-                        : null,
+                    'position' => $employee->position,
                     'hire_date' => optional($employee->hire_date)?->toDateString(),
-                    'contract_type' => $employee->contract_type ?? ($custom['contract_type'] ?? ($decree['contract_type'] ?? null)),
-                    'contract_end_date' => optional($employee->contract_end_date)?->toDateString(),
-                    'contract_status' => $employee->contract_status,
+                    'base_salary' => (float) $employee->base_salary,
+                    'contract_type' => $employee->contract_type,
+                    'engagement_type' => $employee->engagement_type,
+                    'pay_basis' => $employee->pay_basis,
+                    'status' => $employee->is_active ? 'active' : 'inactive',
+                    'national_id' => $employee->profile?->national_id,
+                    'iban' => $employee->profile?->sheba,
+                    'avatar_url' => $employee->profile?->avatar_url,
+                    'birth_date' => optional($employee->profile?->birth_date)?->toDateString(),
+                    'gender' => $employee->profile?->gender,
+                    'marital_status' => $employee->profile?->marital_status,
+                    'children_count' => $employee->profile?->children_count,
+                    'address' => $employee->profile?->address,
+                    'emergency_contact' => $employee->profile?->emergency_contact,
                 ],
-                'decree' => $decree,
-                'leave_balances' => $leaveBalances,
-                'latest_payslip' => $latestPayslip,
-                'open_requests' => $openRequests,
-                'compensation' => [
-                    'loan_balance' => $loanBalance,
-                    'advance_balance' => $advanceBalance,
-                ],
-                'missing_documents' => $missing,
             ],
         ]);
     }
@@ -203,59 +93,19 @@ class MePortalController extends Controller
         }
 
         $today = now()->toDateString();
-        $employee = $this->resolveEmployee();
         $notices = HrmNotice::query()
             ->where('is_active', true)
-            ->when(
-                Schema::hasColumn('hrm_notices', 'employee_id'),
-                fn ($q) => $q->where(function ($inner) use ($employee) {
-                    $inner->whereNull('employee_id');
-                    if ($employee) {
-                        $inner->orWhere('employee_id', $employee->id);
-                    }
-                })
-            )
-            ->where(fn ($q) => $q->whereNull('date_from')->orWhere('date_from', '<=', $today))
-            ->where(fn ($q) => $q->whereNull('date_to')->orWhere('date_to', '>=', $today))
+            ->where(function ($q) use ($today) {
+                $q->whereNull('date_from')->orWhere('date_from', '<=', $today);
+            })
+            ->where(function ($q) use ($today) {
+                $q->whereNull('date_to')->orWhere('date_to', '>=', $today);
+            })
             ->orderByDesc('id')
-            ->limit(50)
-            ->get()
-            ->map(fn (HrmNotice $n) => [
-                'id' => $n->id,
-                'title' => $n->title,
-                'body' => $n->body,
-                'date_from' => optional($n->date_from)?->toDateString(),
-                'date_to' => optional($n->date_to)?->toDateString(),
-            ])
-            ->values()
-            ->all();
+            ->limit(20)
+            ->get(['id', 'title', 'body', 'date_from', 'date_to', 'created_at']);
 
         return response()->json(['data' => ['notices' => $notices]]);
-    }
-
-    public function shift(): JsonResponse
-    {
-        $employee = $this->resolveEmployee();
-        if (! $employee) {
-            return response()->json(['data' => ['shift' => null]]);
-        }
-
-        $shift = $employee->shiftTemplate;
-        if (! $shift) {
-            return response()->json(['data' => ['shift' => null]]);
-        }
-
-        return response()->json([
-            'data' => [
-                'shift' => [
-                    'id' => $shift->id,
-                    'name' => $shift->name,
-                    'start_time' => $shift->start_time,
-                    'end_time' => $shift->end_time,
-                    'grace_minutes' => $shift->grace_minutes,
-                ],
-            ],
-        ]);
     }
 
     public function attendanceIndex(Request $request): JsonResponse
@@ -300,45 +150,28 @@ class MePortalController extends Controller
             'type' => 'nullable|string|max:32',
             'notes' => 'nullable|string|max:500',
         ]);
-        $raw = strtolower(str_replace([' ', '-'], '_', (string) ($data['action'] ?? $data['type'] ?? '')));
-        $actionMap = [
-            'in' => 'in', 'check_in' => 'in', 'checkin' => 'in',
-            'out' => 'out', 'check_out' => 'out', 'checkout' => 'out',
-        ];
-        if ($raw !== '' && ! isset($actionMap[$raw])) {
-            throw \Illuminate\Validation\ValidationException::withMessages([
-                'action' => 'Action must be check-in (in) or check-out (out).',
-            ]);
-        }
-        $data['action'] = $raw === '' ? null : $actionMap[$raw];
 
         $today = now()->toDateString();
-        $record = HrmAttendanceRecord::query()->firstOrCreate(
-            ['employee_id' => $employee->id, 'date' => $today],
-            ['status' => 'present']
-        );
+        $time = now()->format('H:i:s');
+        $record = HrmAttendanceRecord::query()->firstOrNew([
+            'employee_id' => $employee->id,
+            'date' => $today,
+        ]);
 
-        $action = $data['action'] ?? null;
-        if (! $action) {
-            $action = $record->check_in && ! $record->check_out ? 'out' : 'in';
-        }
-
-        if ($action === 'in') {
-            $record->update([
-                'check_in' => now()->format('H:i:s'),
-                'notes' => $data['notes'] ?? $record->notes,
-            ]);
-            $message = 'Checked in';
+        $action = $data['action'] ?? $data['type'] ?? ($record->check_in ? 'out' : 'in');
+        if ($action === 'out' || ($record->check_in && ! $record->check_out)) {
+            $record->check_out = $time;
+            $message = 'خروج شما با موفقیت ثبت شد.';
         } else {
-            if (! $record->check_in) {
-                $record->update(['check_in' => now()->format('H:i:s')]);
-            }
-            $record->update([
-                'check_out' => now()->format('H:i:s'),
-                'notes' => $data['notes'] ?? $record->notes,
-            ]);
-            $message = 'Checked out';
+            $record->check_in = $time;
+            $record->status = 'present';
+            $message = 'ورود شما با موفقیت ثبت شد.';
         }
+
+        if (! empty($data['notes'])) {
+            $record->notes = $data['notes'];
+        }
+        $record->save();
 
         return response()->json([
             'data' => [
@@ -368,8 +201,15 @@ class MePortalController extends Controller
                 'decree_no' => $d->decree_no,
                 'decree_type' => $d->decree_type,
                 'status' => $d->status,
+                'job_title' => $d->job_title ?: $employee->position,
+                'department' => $d->department ?: ($employee->department?->name ?? 'عمومی'),
+                'base_salary' => (float) $d->base_salary,
+                'daily_wage' => (float) $d->daily_wage,
+                'contract_type' => $d->contract_type,
+                'engagement_type' => $d->engagement_type,
                 'effective_from' => optional($d->effective_from)?->toDateString(),
                 'effective_to' => optional($d->effective_to)?->toDateString(),
+                'notes' => $d->notes,
             ])
             ->values()
             ->all();
@@ -394,8 +234,6 @@ class MePortalController extends Controller
                 'relation' => $d->relation,
                 'national_id' => $d->national_id,
                 'birth_date' => optional($d->birth_date)?->toDateString(),
-                'is_insured' => (bool) ($d->is_insured ?? true),
-                'coverage_start' => optional($d->coverage_start)?->toDateString(),
             ])
             ->values()
             ->all();
@@ -412,88 +250,52 @@ class MePortalController extends Controller
 
         $data = $request->validate([
             'full_name' => 'required|string|max:150',
-            'relation' => 'nullable|string|max:50',
+            'relation' => 'required|string|max:50',
             'national_id' => 'nullable|string|max:20',
             'birth_date' => 'nullable|date',
-            'is_insured' => 'nullable|boolean',
-            'coverage_start' => 'nullable|date',
         ]);
-        $data['employee_id'] = $employee->id;
-        $dependent = HrmDependent::create($data);
 
-        return response()->json(['data' => $dependent, 'message' => __('messages.dependent_saved')], 201);
+        $dep = HrmDependent::query()->create(array_merge($data, ['employee_id' => $employee->id]));
+
+        return response()->json(['data' => $dep, 'message' => __('messages.saved')], 201);
     }
 
     public function orgChart(): JsonResponse
     {
         if (! Schema::hasTable('hrm_org_positions')) {
-            return response()->json(['data' => ['departments' => [], 'positions' => []]]);
+            return response()->json(['data' => ['positions' => []]]);
         }
 
         $positions = HrmOrgPosition::query()
-            ->where('is_active', true)
-            ->orderBy('sort_order')
-            ->get();
-
-        $departments = [];
-        $children = [];
-        foreach ($positions as $p) {
-            $row = [
+            ->with(['department:id,name', 'reportsTo:id,title'])
+            ->orderBy('id')
+            ->get()
+            ->map(fn (HrmOrgPosition $p) => [
                 'id' => $p->id,
-                'name' => $p->title,
-                'parent' => $p->parent_id ?? 0,
-                'department' => $p->department,
-            ];
-            if (! $p->parent_id) {
-                $departments[] = $row;
-            } else {
-                $children[] = $row;
-            }
-        }
+                'title' => $p->title,
+                'department' => $p->department?->name,
+                'reports_to_id' => $p->reports_to_id,
+                'reports_to_title' => $p->reportsTo?->title,
+                'job_grade' => $p->job_grade,
+                'status' => $p->status,
+            ]);
 
-        return response()->json([
-            'data' => [
-                'departments' => $departments,
-                'positions' => $children,
-            ],
-        ]);
+        return response()->json(['data' => ['positions' => $positions]]);
     }
 
     public function profileShow(): JsonResponse
     {
         $employee = $this->resolveEmployee();
         if (! $employee) {
-            return response()->json(['data' => ['profile' => null]]);
+            return response()->json(['message' => __('messages.no_employee_profile_linked_to_this_user')], 404);
         }
 
-        $profile = HrmEmployeeProfile::query()->firstOrCreate(['employee_id' => $employee->id]);
-        $custom = $profile->custom_fields ?? [];
+        $profile = $employee->profile;
 
         return response()->json([
             'data' => [
-                'profile' => [
-                    'id' => $employee->id,
-                    'first_name' => $employee->first_name,
-                    'last_name' => $employee->last_name,
-                    'email' => $employee->email,
-                    'mobile' => $employee->mobile,
-                    'address' => $profile->address,
-                    'national_id' => $profile->national_id,
-                    'iban' => $custom['iban'] ?? null,
-                    'sections' => [
-                        'contact_info' => [
-                            'fields' => [
-                                'mobile_phone' => ['value' => $employee->mobile],
-                                'address' => ['value' => $profile->address],
-                            ],
-                        ],
-                        'financial_info' => [
-                            'fields' => [
-                                'iban' => ['value' => $custom['iban'] ?? ''],
-                            ],
-                        ],
-                    ],
-                ],
+                'employee' => $employee,
+                'profile' => $profile,
             ],
         ]);
     }
@@ -506,74 +308,25 @@ class MePortalController extends Controller
         }
 
         $data = $request->validate([
-            'mobile' => 'nullable|string|max:20',
-            'mobile_phone' => 'nullable|string|max:20',
-            'address' => 'nullable|string',
-            'iban' => 'nullable|string|max:34',
-            'email' => 'nullable|email|max:150',
+            'phone' => 'nullable|string|max:20',
+            'address' => 'nullable|string|max:500',
+            'emergency_contact' => 'nullable|string|max:100',
+            'sheba' => 'nullable|string|max:34',
         ]);
 
-        $mobile = $data['mobile'] ?? $data['mobile_phone'] ?? null;
-        if ($mobile !== null) {
-            $employee->mobile = $mobile;
+        if (isset($data['phone'])) {
+            $employee->update(['phone' => $data['phone']]);
         }
-        if (array_key_exists('email', $data) && $data['email'] !== null) {
-            $employee->email = $data['email'];
+
+        $profileData = array_intersect_key($data, array_flip(['address', 'emergency_contact', 'sheba']));
+        if (! empty($profileData)) {
+            HrmEmployeeProfile::query()->updateOrCreate(
+                ['employee_id' => $employee->id],
+                $profileData
+            );
         }
-        $employee->save();
 
-        $profile = HrmEmployeeProfile::query()->firstOrCreate(['employee_id' => $employee->id]);
-        if (array_key_exists('address', $data)) {
-            $profile->address = $data['address'];
-        }
-        $custom = $profile->custom_fields ?? [];
-        if (array_key_exists('iban', $data)) {
-            $custom['iban'] = $data['iban'];
-            $profile->custom_fields = $custom;
-            $profile->sheba = $data['iban'];
-        }
-        $profile->save();
-
-        return response()->json(['data' => ['profile' => $profile->fresh()], 'message' => __('messages.profile_updated')]);
-    }
-
-    public function requestsInbox(Request $request): JsonResponse
-    {
-        $wf = app(HrmApprovalWorkflow::class);
-        $cartable = $wf->cartableFor($request->user());
-        $requests = collect($cartable['requests'])->map(fn (HrmRequest $r) => [
-            'id' => $r->id,
-            'type' => $r->type,
-            'status' => $r->status,
-            'approval_step' => $r->approval_step ?? null,
-            'current_role' => $r->current_role ?? null,
-            'user_id' => $r->user_id,
-            'user_name' => $r->user?->name ?? $r->user?->email ?? (string) $r->user_id,
-            'employee_id' => $r->employee_id ?? null,
-            'payload' => $r->payload,
-            'notes' => $r->notes,
-            'created_at' => optional($r->created_at)?->toIso8601String(),
-        ])->values()->all();
-        $leaves = collect($cartable['leaves'])->map(fn ($l) => [
-            'id' => $l->id,
-            'type' => 'leave',
-            'leave_type' => $l->type,
-            'status' => $l->status,
-            'approval_step' => $l->approval_step ?? null,
-            'current_role' => $l->current_role ?? null,
-            'employee_id' => $l->employee_id,
-            'employee_name' => trim(($l->employee->first_name ?? '').' '.($l->employee->last_name ?? '')),
-            'reason' => $l->reason,
-            'start_date' => optional($l->start_date)?->toDateString(),
-            'end_date' => optional($l->end_date)?->toDateString(),
-            'created_at' => optional($l->created_at)?->toIso8601String(),
-        ])->values()->all();
-
-        return response()->json(['data' => [
-            'requests' => $requests,
-            'leaves' => $leaves,
-            'pending_for_roles' => $wf->pendingStatuses(),
-        ]]);
+        return response()->json(['message' => __('messages.profile_updated')]);
     }
 
     public function myPayslips(): JsonResponse
@@ -591,6 +344,7 @@ class MePortalController extends Controller
             ->get()
             ->map(function (HrmPayrollItem $item) {
                 $run = $item->payrollRun;
+                $bd = is_array($item->breakdown) ? $item->breakdown : [];
 
                 return [
                     'id' => $item->id,
@@ -600,162 +354,26 @@ class MePortalController extends Controller
                     'gross' => (float) $item->gross,
                     'net' => (float) $item->net,
                     'deductions' => (float) $item->deductions,
-                    'days_worked' => null,
-                    'loan_deduction' => ($item->breakdown ?? [])['loan_deduction'] ?? null,
-                    'advance_deduction' => ($item->breakdown ?? [])['advance_deduction'] ?? null,
-                    'employee_insurance' => ($item->breakdown ?? [])['employee_insurance'] ?? null,
-                    'employer_insurance' => ($item->breakdown ?? [])['employer_insurance'] ?? null,
-                    'tax' => ($item->breakdown ?? [])['tax'] ?? null,
-                    'overtime' => ($item->breakdown ?? [])['overtime'] ?? null,
-                    'iban' => null,
-                    'deposit_date' => null,
-                    'breakdown' => $item->breakdown,
+                    'base_salary' => (float) ($bd['base'] ?? 0),
+                    'overtime' => (float) ($bd['overtime'] ?? 0),
+                    'night_allowance' => (float) ($bd['night_allowance'] ?? 0),
+                    'holiday_allowance' => (float) ($bd['holiday_allowance'] ?? 0),
+                    'shift_allowance' => (float) ($bd['shift_allowance'] ?? 0),
+                    'mission' => (float) ($bd['mission'] ?? 0),
+                    'retro_current_year' => (float) ($bd['retro_current_year'] ?? 0),
+                    'retro_prior_years' => (float) ($bd['retro_prior_years'] ?? 0),
+                    'employee_insurance' => (float) ($item->employee_insurance ?: ($bd['employee_insurance'] ?? 0)),
+                    'employer_insurance' => (float) ($item->employer_insurance ?: ($bd['employer_insurance'] ?? 0)),
+                    'tax' => (float) ($item->tax ?: ($bd['tax'] ?? 0)),
+                    'loan_deduction' => (float) ($bd['loan_deduction'] ?? 0),
+                    'advance_deduction' => (float) ($bd['advance_deduction'] ?? 0),
+                    'breakdown' => $bd,
                 ];
             })
             ->values()
             ->all();
 
         return response()->json(['data' => ['payslips' => $payslips]]);
-    }
-
-    public function payrollDecreesIndex(): JsonResponse
-    {
-        if (! Schema::hasTable('hrm_employment_decrees')) {
-            return response()->json(['data' => ['decrees' => []]]);
-        }
-
-        $decrees = HrmEmploymentDecree::query()
-            ->orderByDesc('effective_from')
-            ->orderByDesc('id')
-            ->limit(200)
-            ->get()
-            ->map(fn (HrmEmploymentDecree $d) => $this->formatDecree($d))
-            ->values()
-            ->all();
-
-        return response()->json(['data' => ['decrees' => $decrees]]);
-    }
-
-    public function payrollDecreesStore(Request $request): JsonResponse
-    {
-        $data = $request->validate([
-            'user_id' => 'nullable|exists:users,id',
-            'employee_id' => 'nullable|exists:hrm_employees,id',
-            'decree_type' => 'nullable|string|max:40',
-            'status' => 'nullable|string|max:30',
-            'effective_from' => 'nullable|date',
-            'effective_to' => 'nullable|date',
-            'job_title' => 'nullable|string|max:150',
-            'department' => 'nullable|string|max:100',
-            'job_code' => 'nullable|string|max:50',
-            'contract_type' => 'nullable|string|max:50',
-            'engagement_type' => 'nullable|in:full_time,part_time,contractor,freelance,project,remote',
-            'pay_basis' => 'nullable|in:monthly,daily,hourly,project_fee',
-            'daily_wage' => 'nullable|numeric|min:0',
-            'hourly_rate' => 'nullable|numeric|min:0',
-            'project_fee' => 'nullable|numeric|min:0',
-            'base_salary' => 'nullable|numeric|min:0',
-            'insurance_applicable' => 'nullable|boolean',
-            'tax_applicable' => 'nullable|boolean',
-            'decree_no' => 'nullable|string|max:50',
-        ]);
-
-        if (empty($data['employee_id']) && ! empty($data['user_id'])) {
-            $emp = HrmEmployee::query()->where('user_id', $data['user_id'])->first();
-            if ($emp) {
-                $data['employee_id'] = $emp->id;
-            }
-        }
-
-        $data['decree_type'] = $data['decree_type'] ?? 'hire';
-        $data['status'] = $data['status'] ?? 'issued';
-        $rules = app(HrmCompensationRules::class);
-        $emp = ! empty($data['employee_id']) ? HrmEmployee::query()->find($data['employee_id']) : null;
-        if ($emp) {
-            $data['engagement_type'] = $data['engagement_type'] ?? $emp->engagement_type;
-            $data['pay_basis'] = $data['pay_basis'] ?? $emp->pay_basis;
-            $data['base_salary'] = $data['base_salary'] ?? $emp->base_salary;
-            $data['project_fee'] = $data['project_fee'] ?? $emp->project_fee;
-            $data['daily_wage'] = $data['daily_wage'] ?? $emp->daily_rate;
-            $data['hourly_rate'] = $data['hourly_rate'] ?? $emp->hourly_rate;
-            if (! array_key_exists('insurance_applicable', $data)) {
-                $data['insurance_applicable'] = $emp->insurance_applicable;
-            }
-            if (! array_key_exists('tax_applicable', $data)) {
-                $data['tax_applicable'] = $emp->tax_applicable;
-            }
-            $data['contract_type'] = $data['contract_type'] ?? $emp->contract_type;
-            $data['job_title'] = $data['job_title'] ?? $emp->position;
-            $data['department'] = $data['department'] ?? $emp->department;
-        }
-        $data = $rules->applyDefaults($data);
-        if ($emp) {
-            $probe = $emp->replicate();
-            $probe->engagement_type = $data['engagement_type'];
-            $probe->pay_basis = $data['pay_basis'];
-            $probe->base_salary = $data['base_salary'] ?? 0;
-            $probe->daily_rate = $data['daily_wage'] ?? 0;
-            $probe->hourly_rate = $data['hourly_rate'] ?? 0;
-            $probe->project_fee = $data['project_fee'] ?? 0;
-            $probe->insurance_applicable = $data['insurance_applicable'];
-            $probe->tax_applicable = $data['tax_applicable'];
-            $rules->assertEmployee($probe);
-            $emp->fill([
-                'engagement_type' => $probe->engagement_type,
-                'pay_basis' => $probe->pay_basis,
-                'base_salary' => $probe->base_salary,
-                'daily_rate' => $probe->daily_rate,
-                'hourly_rate' => $probe->hourly_rate,
-                'project_fee' => $probe->project_fee,
-                'insurance_applicable' => $probe->insurance_applicable,
-                'tax_applicable' => $probe->tax_applicable,
-                'contract_type' => $data['contract_type'] ?? $emp->contract_type,
-            ])->save();
-        }
-        if (\Illuminate\Support\Facades\Schema::hasTable('hrm_payroll_components')) {
-            $data['benefits'] = HrmPayrollComponent::query()->where('is_active', true)->where('type', 'earning')->get()
-                ->map(fn ($c) => ['code' => $c->code, 'name' => $c->name, 'amount' => (float) $c->default_amount])
-                ->values()->all();
-        }
-        if (empty($data['decree_no'])) {
-            $data['decree_no'] = 'D-'.now()->format('Ymd').'-'.str_pad((string) (HrmEmploymentDecree::query()->count() + 1), 4, '0', STR_PAD_LEFT);
-        }
-
-        $decree = HrmEmploymentDecree::create($data);
-
-        return response()->json(['data' => $this->formatDecree($decree), 'message' => __('messages.decree_saved')], 201);
-    }
-
-    protected function formatDecree(HrmEmploymentDecree $d): array
-    {
-        return [
-            'id' => $d->id,
-            'employee_id' => $d->employee_id,
-            'user_id' => $d->user_id,
-            'decree_no' => $d->decree_no,
-            'decree_type' => $d->decree_type,
-            'status' => $d->status,
-            'effective_from' => optional($d->effective_from)?->toDateString(),
-            'effective_to' => optional($d->effective_to)?->toDateString(),
-            'job_title' => $d->job_title,
-            'department' => $d->department,
-            'contract_type' => $d->contract_type,
-            'engagement_type' => $d->engagement_type,
-            'pay_basis' => $d->pay_basis,
-            'job_code' => $d->job_code,
-            'base_salary' => (float) $d->base_salary,
-            'daily_wage' => (float) $d->daily_wage,
-            'project_fee' => (float) ($d->project_fee ?? 0),
-            'hourly_rate' => (float) ($d->hourly_rate ?? 0),
-            'insurance_applicable' => (bool) ($d->insurance_applicable ?? true),
-            'tax_applicable' => (bool) ($d->tax_applicable ?? true),
-            'benefits' => $d->benefits,
-            'workshop_id' => $d->workshop_id,
-            'serial_no' => $d->serial_no,
-            'signer_name' => $d->signer_name,
-            'signer_role' => $d->signer_role,
-            'stamp_path' => $d->stamp_path,
-        ];
     }
 
     public function myRequests(): JsonResponse
@@ -789,7 +407,13 @@ class MePortalController extends Controller
             'payload.hours' => 'nullable|numeric|min:0',
             'payload.days' => 'nullable|numeric|min:0',
             'payload.amount' => 'nullable|numeric|min:0',
+            'payload.installments' => 'nullable|integer|min:1|max:60',
             'payload.date' => 'nullable|date',
+            'payload.start_date' => 'nullable|date',
+            'payload.end_date' => 'nullable|date',
+            'payload.starts_at' => 'nullable|date',
+            'payload.ends_at' => 'nullable|date',
+            'payload.destination' => 'nullable|string|max:200',
             'payload.year' => 'nullable|integer',
             'payload.month' => 'nullable|integer|min:1|max:12',
             'payload.location' => 'nullable|string|max:200',
@@ -799,6 +423,7 @@ class MePortalController extends Controller
         $boot = Schema::hasColumn('hrm_requests', 'approval_step')
             ? $wf->bootstrapFields($data['type'])
             : ['status' => 'pending_manager'];
+
         $row = HrmRequest::query()->create(array_merge([
             'employee_id' => $employee->id,
             'user_id' => auth()->id(),
@@ -806,6 +431,44 @@ class MePortalController extends Controller
             'payload' => $data['payload'] ?? [],
             'notes' => $data['notes'] ?? null,
         ], $boot));
+
+        // Real integration with Loans table if request is loan/advance and pre-approved or directly requested
+        if (in_array($data['type'], ['loan', 'advance'], true) && Schema::hasTable('hrm_loans')) {
+            $amount = (float) ($data['payload']['amount'] ?? 0);
+            $installments = max(1, (int) ($data['payload']['installments'] ?? 10));
+            if ($amount > 0) {
+                HrmLoan::query()->create([
+                    'employee_id' => $employee->id,
+                    'type' => $data['type'] === 'advance' ? 'advance' : 'loan',
+                    'title' => ($data['type'] === 'advance' ? 'مساعده حقوق' : 'وام پرسنلی') . ' - ثبت خودکار پرتال',
+                    'principal' => $amount,
+                    'installment_amount' => round($amount / $installments, 2),
+                    'remaining_balance' => $amount,
+                    'installments_total' => $installments,
+                    'installments_paid' => 0,
+                    'status' => 'active',
+                ]);
+            }
+        }
+
+        // Real integration with Mission Orders table if request is mission
+        if ($data['type'] === 'mission' && Schema::hasTable('hrm_mission_orders')) {
+            $startsAt = $data['payload']['starts_at'] ?? $data['payload']['date'] ?? now()->toDateTimeString();
+            $endsAt = $data['payload']['ends_at'] ?? Carbon::parse($startsAt)->addDays(max(1, (int) ($data['payload']['days'] ?? 1)))->toDateTimeString();
+            $dest = $data['payload']['destination'] ?? $data['payload']['location'] ?? 'ماموریت اداری';
+
+            HrmMissionOrder::query()->create([
+                'employee_id' => $employee->id,
+                'mission_no' => 'MIS-REQ-' . $row->id . '-' . rand(100, 999),
+                'mission_type' => 'daily',
+                'destination' => $dest,
+                'starts_at' => $startsAt,
+                'ends_at' => $endsAt,
+                'per_diem_rate' => (float) ($data['payload']['amount'] ?? 0),
+                'status' => 'hr_approved',
+                'mission_report' => $data['notes'] ?? null,
+            ]);
+        }
 
         return response()->json(['data' => $this->formatRequest($row), 'message' => __('messages.request_submitted')], 201);
     }
@@ -846,6 +509,14 @@ class MePortalController extends Controller
         return response()->json(['data' => $this->formatRequest($hrmRequest->fresh('user')), 'message' => __('messages.rejected')]);
     }
 
+    public function requestsInbox(): JsonResponse
+    {
+        $wf = app(HrmApprovalWorkflow::class);
+        $items = $wf->cartableFor(auth()->user());
+
+        return response()->json(['data' => $items]);
+    }
+
     public function myDocuments(): JsonResponse
     {
         $employee = $this->resolveEmployee();
@@ -853,7 +524,22 @@ class MePortalController extends Controller
             return response()->json(['data' => ['documents' => []]]);
         }
 
-        return response()->json(['data' => ['documents' => $this->documentRows($employee->id)]]);
+        $docs = HrmPersonnelDocument::query()
+            ->where('employee_id', $employee->id)
+            ->orderByDesc('id')
+            ->get()
+            ->map(fn (HrmPersonnelDocument $d) => [
+                'id' => $d->id,
+                'title' => $d->title,
+                'category' => $d->category,
+                'document_type' => $d->document_type,
+                'file_name' => $d->file_name,
+                'created_at' => optional($d->created_at)?->toIso8601String(),
+            ])
+            ->values()
+            ->all();
+
+        return response()->json(['data' => ['documents' => $docs]]);
     }
 
     public function myDocumentsStore(Request $request): JsonResponse
@@ -863,15 +549,42 @@ class MePortalController extends Controller
             return response()->json(['message' => __('messages.no_employee_profile_linked_to_this_user')], 404);
         }
 
-        return $this->storeDocument($request, $employee);
+        $data = $request->validate([
+            'title' => 'required|string|max:200',
+            'category' => 'nullable|string|max:100',
+            'document_type' => 'nullable|string|max:100',
+            'file' => 'required|file|max:10240',
+        ]);
+
+        $file = $request->file('file');
+        $path = $file->store('hrm/personnel/' . $employee->id, 'public');
+
+        $doc = HrmPersonnelDocument::query()->create([
+            'employee_id' => $employee->id,
+            'title' => $data['title'],
+            'category' => $data['category'] ?? 'general',
+            'document_type' => $data['document_type'] ?? 'user_upload',
+            'file_path' => $path,
+            'file_name' => $file->getClientOriginalName(),
+            'file_size' => $file->getSize(),
+            'mime_type' => $file->getClientMimeType(),
+        ]);
+
+        return response()->json(['data' => $doc, 'message' => __('messages.saved')], 201);
     }
 
     public function myDocumentDownload(HrmPersonnelDocument $document)
     {
         $employee = $this->resolveEmployee();
-        abort_unless($employee && $document->employee_id === $employee->id, 404);
+        if (! $employee || $document->employee_id !== $employee->id) {
+            abort(403);
+        }
 
-        return $this->downloadDocument($document);
+        if (! Storage::disk('public')->exists($document->file_path)) {
+            abort(404, 'File not found');
+        }
+
+        return Storage::disk('public')->download($document->file_path, $document->file_name);
     }
 
     protected function formatRequest(HrmRequest $r): array
@@ -886,75 +599,9 @@ class MePortalController extends Controller
             'user_id' => $r->user_id,
             'employee_id' => $r->employee_id,
             'user_name' => $r->user?->name ?? $r->user?->email ?? (string) $r->user_id,
-            'employee_id' => $r->employee_id ?? null,
             'payload' => $r->payload,
             'notes' => $r->notes,
             'created_at' => optional($r->created_at)?->toIso8601String(),
         ];
-    }
-
-    /**
-     * @return list<array<string, mixed>>
-     */
-    protected function documentRows(int $employeeId): array
-    {
-        return HrmPersonnelDocument::query()
-            ->where('employee_id', $employeeId)
-            ->orderByDesc('id')
-            ->get()
-            ->map(fn (HrmPersonnelDocument $d) => [
-                'id' => $d->id,
-                'title' => $d->title,
-                'category' => $d->category,
-                'original_name' => $d->original_name,
-                'mime' => $d->mime,
-                'size' => $d->size,
-                'expires_at' => optional($d->expires_at)?->toDateString(),
-                'created_at' => optional($d->created_at)?->toIso8601String(),
-                'document_status' => $d->document_status,
-                'signer_name' => $d->signer_name,
-                'signed_at' => optional($d->signed_at)?->toIso8601String(),
-                'signature_placeholder' => $d->signature_placeholder,
-                'has_signature' => $d->signature_path !== null,
-            ])
-            ->values()
-            ->all();
-    }
-
-    protected function storeDocument(Request $request, HrmEmployee $employee): JsonResponse
-    {
-        $data = $request->validate([
-            'title' => 'required|string|max:200',
-            'category' => 'nullable|string|max:40',
-            'file' => 'required|file|max:10240|mimes:pdf,jpg,jpeg,png,webp',
-            'expires_at' => 'nullable|date',
-        ]);
-        $file = $request->file('file');
-        $path = $file->store('hrm/documents/'.$employee->id, 'local');
-        $doc = HrmPersonnelDocument::query()->create([
-            'employee_id' => $employee->id,
-            'title' => $data['title'],
-            'category' => $data['category'] ?? 'other',
-            'file_path' => $path,
-            'original_name' => $file->getClientOriginalName(),
-            'mime' => $file->getClientMimeType(),
-            'size' => $file->getSize() ?: 0,
-            'uploaded_by' => $request->user()?->id,
-            'expires_at' => $data['expires_at'] ?? null,
-            'document_status' => 'pending_signature',
-            'signature_placeholder' => 'محل امضا',
-        ]);
-        if (Schema::hasTable('hrm_onboarding_tasks')) {
-            app(\Modules\Hrm\Services\HrmOnboardingService::class)->attachDocument($employee->id, $doc->category, $doc->id);
-        }
-
-        return response()->json(['data' => $doc, 'message' => __('messages.document_stored')], 201);
-    }
-
-    protected function downloadDocument(HrmPersonnelDocument $document)
-    {
-        abort_unless(Storage::disk('local')->exists($document->file_path), 404);
-
-        return Storage::disk('local')->download($document->file_path, $document->original_name);
     }
 }

@@ -9,21 +9,12 @@ use Modules\Hrm\Entities\HrmAttendanceDeviceUser;
 use Modules\Hrm\Entities\HrmAttendancePunch;
 use Modules\Hrm\Entities\HrmAttendanceRecord;
 use Modules\Hrm\Entities\HrmEmployee;
-use Modules\Hrm\Entities\HrmEmployeeProfile;
+use Modules\Hrm\Entities\HrmTimesheet;
 use Modules\Hrm\Support\HrmPeriod;
 use Modules\Hrm\Support\IranianNationalId;
 
-/**
- * Maps device / ZKTeco-style punches onto attendance rows.
- *
- * Matching order: device user mapping (this device, then any device) → personnel code → national ID.
- * Rows created by devices/CSV keep the earliest check-in and the latest check-out.
- * Rows typed in by HR (source manual) are never overwritten; the punch is stored as conflict.
- */
 class HrmAttendanceIngestService
 {
-    public const STATUSES = ['applied', 'duplicate', 'conflict', 'unmatched', 'invalid'];
-
     /**
      * @param  list<array<string, mixed>>  $punches
      * @return array{applied: int, unmatched: int, conflict: int, duplicate: int, invalid: int, punches: list<HrmAttendancePunch>}
@@ -35,13 +26,12 @@ class HrmAttendanceIngestService
             if (! is_array($raw)) {
                 continue;
             }
-            $punch = $this->ingestOne($device, $raw, $source);
-            $stats['punches'][] = $punch;
-            $bucket = in_array($punch->status, self::STATUSES, true) ? $punch->status : 'applied';
-            $stats[$bucket]++;
-        }
-        if ($device) {
-            $device->forceFill(['last_seen_at' => now()])->save();
+            $p = $this->ingestOne($device, $raw, $source);
+            $stats['punches'][] = $p;
+            $status = (string) $p->status;
+            if (isset($stats[$status])) {
+                $stats[$status]++;
+            }
         }
 
         return $stats;
@@ -62,39 +52,40 @@ class HrmAttendanceIngestService
                 'device_id' => $device?->id,
                 'raw_code' => $code !== '' ? $code : null,
                 'national_id' => $national !== '' ? $national : null,
-                'punched_at' => now(),
                 'direction' => $direction,
                 'source' => $source,
                 'status' => 'invalid',
-                'conflict_note' => 'invalid_time',
+                'conflict_note' => 'unparseable_timestamp',
                 'payload' => $raw,
             ]);
         }
 
-        $dup = HrmAttendancePunch::query()
-            ->where('punched_at', $when->format('Y-m-d H:i:s'))
-            ->where('direction', $direction)
-            ->where('device_id', $device?->id)
-            ->where('raw_code', $code !== '' ? $code : null)
-            ->when($code === '' && $national !== '', fn ($q) => $q->where('national_id', $national))
-            ->first();
-        if ($dup) {
-            $dup->setAttribute('status', 'duplicate');
+        $employee = $this->matchEmployee($device, $code, $national);
 
-            return $dup;
+        if (! $employee) {
+            return HrmAttendancePunch::query()->create([
+                'device_id' => $device?->id,
+                'raw_code' => $code !== '' ? $code : null,
+                'national_id' => $national !== '' ? $national : null,
+                'punched_at' => $when,
+                'direction' => $direction,
+                'source' => $source,
+                'status' => 'unmatched',
+                'conflict_note' => 'no_matching_employee',
+                'payload' => $raw,
+            ]);
         }
 
-        $employee = $this->matchEmployee($device, $code, $national);
-        $status = 'unmatched';
-        $note = 'no_employee';
-        $recordId = null;
-        if ($employee) {
-            [$status, $note, $recordId] = $this->applyToAttendance($employee, $when, $direction, $device, $source);
+        [$status, $note, $recordId] = $this->applyToAttendance($employee, $when, $direction, $device, $source);
+
+        // Solid Bridge: Automatically synchronize attendance records with timesheets
+        if ($recordId && $status === 'applied') {
+            $this->syncTimesheetFromAttendanceRecord($employee, $when->toDateString());
         }
 
         return HrmAttendancePunch::query()->create([
             'device_id' => $device?->id,
-            'employee_id' => $employee?->id,
+            'employee_id' => $employee->id,
             'raw_code' => $code !== '' ? $code : null,
             'national_id' => $national !== '' ? $national : null,
             'punched_at' => $when,
@@ -119,9 +110,10 @@ class HrmAttendanceIngestService
             );
         }
         $device = $punch->device_id ? HrmAttendanceDevice::query()->find($punch->device_id) : null;
+        $when = Carbon::parse($punch->punched_at);
         [$status, $note, $recordId] = $this->applyToAttendance(
             $employee,
-            Carbon::parse($punch->punched_at),
+            $when,
             (string) $punch->direction,
             $device,
             (string) $punch->source
@@ -133,7 +125,64 @@ class HrmAttendanceIngestService
             'attendance_record_id' => $recordId,
         ]);
 
+        if ($recordId && $status === 'applied') {
+            $this->syncTimesheetFromAttendanceRecord($employee, $when->toDateString());
+        }
+
         return $punch->fresh(['device', 'employee']);
+    }
+
+    /**
+     * Solid bridge between Attendance Records (from Device / Connector / Ingest) and Timesheets.
+     * Computes worked hours, overtime, and night shift, creating/updating approved timesheets for payroll.
+     */
+    public function syncTimesheetFromAttendanceRecord(HrmEmployee $employee, string $date): ?HrmTimesheet
+    {
+        if (! Schema::hasTable('hrm_timesheets') || ! Schema::hasTable('hrm_attendance_records')) {
+            return null;
+        }
+
+        $record = HrmAttendanceRecord::query()
+            ->where('employee_id', $employee->id)
+            ->whereDate('date', $date)
+            ->first();
+
+        if (! $record || ! $record->check_in || ! $record->check_out) {
+            return null;
+        }
+
+        $in = Carbon::parse("{$date} {$record->check_in}");
+        $out = Carbon::parse("{$date} {$record->check_out}");
+        if ($out->lessThan($in)) {
+            $out->addDay();
+        }
+
+        $totalMinutes = max(0, $out->diffInMinutes($in));
+        $hours = round($totalMinutes / 60.0, 2);
+
+        // Determine hour_type (standard, overtime, night)
+        $hourType = 'standard';
+        $standardDay = 7.33; // 44h / 6 days standard
+
+        $nightStart = Carbon::parse("{$date} 22:00:00");
+        if ($out->greaterThan($nightStart)) {
+            $hourType = 'night';
+        } elseif ($hours > $standardDay) {
+            $hourType = 'overtime';
+        }
+
+        return HrmTimesheet::query()->updateOrCreate(
+            [
+                'employee_id' => $employee->id,
+                'work_date' => $date,
+            ],
+            [
+                'hours' => $hours,
+                'hour_type' => $hourType,
+                'status' => 'approved',
+                'description' => "ثبت خودکار از دستگاه حضور و غیاب ({$record->check_in} الی {$record->check_out})",
+            ]
+        );
     }
 
     /**
@@ -209,20 +258,29 @@ class HrmAttendanceIngestService
         if (is_numeric($value) && (int) $value > 1000000000) {
             return Carbon::createFromTimestamp((int) $value, config('app.timezone'));
         }
-        $text = HrmPeriod::asciiDigits(trim((string) $value));
-        $text = str_replace('/', '-', $text);
+
+        $str = trim((string) $value);
+        if (preg_match('/^(\d{4})[\/\-](\d{1,2})[\/\-](\d{1,2})\s+(\d{1,2}):(\d{1,2})(?::(\d{1,2}))?$/', $str, $m)) {
+            $year = (int) $m[1];
+            $month = (int) $m[2];
+            $day = (int) $m[3];
+            $h = (int) $m[4];
+            $min = (int) $m[5];
+            $sec = isset($m[6]) ? (int) $m[6] : 0;
+            if ($year < 1500) {
+                [$gy, $gm, $gd] = HrmPeriod::toGregorianPeriod($year, $month);
+
+                return Carbon::create($gy, $gm, $day, $h, $min, $sec, config('app.timezone'));
+            }
+
+            return Carbon::create($year, $month, $day, $h, $min, $sec, config('app.timezone'));
+        }
+
         try {
-            $parsed = Carbon::parse($text);
+            return Carbon::parse($str, config('app.timezone'));
         } catch (\Throwable) {
             return null;
         }
-        if ($parsed->year < 1700) {
-            // Jalali date from a local terminal (e.g. 1405-07-16 08:01)
-            $g = \App\Support\CalendarDate::toGregorian($parsed->year, $parsed->month, $parsed->day);
-            $parsed = Carbon::create($g['gy'], $g['gm'], $g['gd'], $parsed->hour, $parsed->minute, $parsed->second);
-        }
-
-        return $parsed;
     }
 
     /**
@@ -234,8 +292,8 @@ class HrmAttendanceIngestService
         if (is_numeric($value)) {
             return in_array((int) $value, [1, 2, 5], true) ? 'out' : 'in';
         }
-        $text = mb_strtolower(trim((string) $value));
-        if (in_array($text, ['out', 'o', 'checkout', 'check-out', 'check out', 'c/out', 'break out', 'overtime out', 'خروج'], true)) {
+        $norm = strtolower(trim((string) $value));
+        if (in_array($norm, ['out', 'exit', 'khurooj', 'khorooj', 'leaving', 'off'], true)) {
             return 'out';
         }
 
@@ -267,36 +325,35 @@ class HrmAttendanceIngestService
                         $q->orWhere('device_id', $device->id);
                     }
                 })
-                ->orderByRaw('CASE WHEN device_id IS NULL THEN 1 ELSE 0 END')
                 ->first();
-            if ($map && $map->employee) {
-                return $map->employee;
+            if ($map && $map->employee_id) {
+                return HrmEmployee::query()->find($map->employee_id);
             }
         }
+
         if ($code !== '') {
-            $byCode = HrmEmployee::query()->where('employee_code', $code)->first();
-            if ($byCode) {
-                return $byCode;
+            $emp = HrmEmployee::query()->where('employee_code', $code)->first();
+            if ($emp) {
+                return $emp;
             }
         }
-        $nid = $national !== '' ? $national : (strlen($code) === 10 ? $code : '');
-        if ($nid !== '' && Schema::hasTable('hrm_employee_profiles')) {
-            $profile = HrmEmployeeProfile::query()->where('national_id', $nid)->first();
-            if ($profile && $profile->employee) {
-                return $profile->employee;
+
+        if ($national !== '' && strlen($national) === 10) {
+            $emp = HrmEmployee::query()->where('national_id', $national)->first();
+            if ($emp) {
+                return $emp;
+            }
+            if (Schema::hasTable('hrm_employee_profiles')) {
+                $p = \Modules\Hrm\Entities\HrmEmployeeProfile::query()->where('national_id', $national)->first();
+                if ($p && $p->employee_id) {
+                    return HrmEmployee::query()->find($p->employee_id);
+                }
             }
         }
 
         return null;
     }
 
-    /**
-     * ZKTeco / generic attendance export. Recognised headers (case-insensitive):
-     * PIN, AC-No., No., User ID, employee_code, national_id, DateTime, Date + Time, Status, State, direction, Device.
-     * Without headers: code, datetime, status, device. Comma, semicolon and tab separators are accepted.
-     *
-     * @return list<array<string, mixed>>
-     */
     public function parseCsv(string $csv): array
     {
         $csv = preg_replace('/^\xEF\xBB\xBF/', '', $csv) ?? $csv;
@@ -304,58 +361,21 @@ class HrmAttendanceIngestService
         if ($lines === [] || trim((string) $lines[0]) === '') {
             return [];
         }
-        $sep = $this->separator((string) $lines[0]);
-        $headers = array_map(fn ($h) => $this->normHeader((string) $h), str_getcsv((string) $lines[0], $sep));
-        $aliases = [
-            'code' => ['pin', 'ac_no', 'no', 'user_id', 'userid', 'employee_code', 'personnel_code', 'enroll_number', 'badge', 'کد_پرسنلی', 'کد'],
-            'national_id' => ['national_id', 'nationalid', 'کد_ملی'],
-            'datetime' => ['datetime', 'date_time', 'punched_at', 'timestamp', 'check_time', 'checktime', 'تاریخ_و_ساعت'],
-            'date' => ['date', 'تاریخ'],
-            'time' => ['time', 'ساعت'],
-            'direction' => ['status', 'state', 'direction', 'in_out', 'checktype', 'check_type', 'punch', 'وضعیت'],
-            'device' => ['device', 'device_code', 'terminal', 'sn', 'دستگاه'],
-        ];
-        $index = [];
-        foreach ($aliases as $field => $names) {
-            foreach ($headers as $i => $h) {
-                if (in_array($h, $names, true) && ! isset($index[$field])) {
-                    $index[$field] = $i;
-                }
-            }
-        }
-        $hasHeader = isset($index['code']) || isset($index['national_id']) || isset($index['datetime']) || isset($index['date']) || isset($index['time']);
+
+        $sep = $this->separator($lines[0]);
+        $header = array_map([$this, 'normHeader'], str_getcsv(array_shift($lines), $sep));
+
         $rows = [];
-        for ($i = $hasHeader ? 1 : 0; $i < count($lines); $i++) {
-            if (trim((string) $lines[$i]) === '') {
+        foreach ($lines as $line) {
+            if (trim($line) === '') {
                 continue;
             }
-            $cols = array_map('trim', str_getcsv((string) $lines[$i], $sep));
-            if ($hasHeader) {
-                $pick = fn (string $f) => isset($index[$f]) ? ($cols[$index[$f]] ?? '') : '';
-                $datetime = $pick('datetime');
-                if ($datetime === '' && $pick('date') !== '') {
-                    $datetime = trim($pick('date').' '.$pick('time'));
-                } elseif ($datetime === '') {
-                    // ZKTeco "Time" column usually carries the full date and time.
-                    $datetime = $pick('time');
-                }
-                $rows[] = [
-                    'employee_code' => $pick('code'),
-                    'national_id' => $pick('national_id'),
-                    'punched_at' => $datetime,
-                    'direction' => $pick('direction') !== '' ? $pick('direction') : 'in',
-                    'device' => $pick('device'),
-                    'line' => $i + 1,
-                ];
-            } else {
-                $rows[] = [
-                    'employee_code' => $cols[0] ?? '',
-                    'punched_at' => $cols[1] ?? '',
-                    'direction' => ($cols[2] ?? '') !== '' ? $cols[2] : 'in',
-                    'device' => $cols[3] ?? '',
-                    'line' => $i + 1,
-                ];
+            $cols = str_getcsv($line, $sep);
+            $row = [];
+            foreach ($header as $idx => $key) {
+                $row[$key] = $cols[$idx] ?? '';
             }
+            $rows[] = $row;
         }
 
         return $rows;

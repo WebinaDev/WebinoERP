@@ -4,8 +4,8 @@ namespace Modules\Hrm\Services;
 
 use Carbon\Carbon;
 use Illuminate\Support\Facades\Schema;
-use Modules\Hrm\Entities\HrmCalendarHoliday;
 use Modules\Hrm\Entities\HrmAttendanceRecord;
+use Modules\Hrm\Entities\HrmCalendarHoliday;
 use Modules\Hrm\Entities\HrmEmployee;
 use Modules\Hrm\Entities\HrmMissionOrder;
 use Modules\Hrm\Entities\HrmShiftAssignment;
@@ -47,14 +47,16 @@ class HrmAttendanceWorkRuleEngine
 
     /**
      * Strict evaluation of shift rotation pattern according to Articles 55 and 56 of Iranian Labor Law:
-     * - Article 55 & 56:
-     *   - Morning and Evening (صبح و عصر): 10% shift allowance
-     *   - Morning, Evening, and Night (صبح، عصر و شب): 15% shift allowance
-     *   - Morning and Night or Evening and Night (صبح و شب / عصر و شب): 22.5% shift allowance
+     * - Article 55: Rotating work is work that rotates between morning, evening, and night shifts during the month.
+     * - Article 56:
+     *   - Morning and Evening (نوبت‌کاری صبح و عصر): 10% shift allowance
+     *   - Morning, Evening, and Night (نوبت‌کاری صبح، عصر و شب - ۳ نوبته): 15% shift allowance
+     *   - Morning and Night or Evening and Night (نوبت‌کاری صبح و شب / عصر و شب): 22.5% shift allowance
      *
      * Resolves dynamically from:
      * 1. Active shift assignments and rotations (hrm_shift_assignments / hrm_shift_rotations)
-     * 2. Assigned employee shift template or explicit shift pattern attribute
+     * 2. Physical attendance clock-in distributions across the month
+     * 3. Assigned employee shift template or explicit shift pattern attribute
      */
     public function evaluateShiftRotationAllowance(HrmEmployee $employee, int $year, int $month): array
     {
@@ -91,7 +93,29 @@ class HrmAttendanceWorkRuleEngine
             }
         }
 
-        // Determine pattern from assignments if rotation exists
+        // 2. Cross-check physical attendance records for rotation if not assigned explicitly
+        if (! $shiftsCovered['morning'] && ! $shiftsCovered['evening'] && ! $shiftsCovered['night']) {
+            if (Schema::hasTable('hrm_attendance_records')) {
+                $records = HrmAttendanceRecord::query()
+                    ->where('employee_id', $employee->id)
+                    ->whereBetween('date', [$start->toDateString(), $end->toDateString()])
+                    ->whereNotNull('check_in')
+                    ->get();
+
+                foreach ($records as $r) {
+                    $hour = (int) Carbon::parse("{$r->date} {$r->check_in}")->format('H');
+                    if ($hour >= 6 && $hour < 14) {
+                        $shiftsCovered['morning'] = true;
+                    } elseif ($hour >= 14 && $hour < 22) {
+                        $shiftsCovered['evening'] = true;
+                    } else {
+                        $shiftsCovered['night'] = true;
+                    }
+                }
+            }
+        }
+
+        // Determine pattern according to Article 56
         $hasMorning = $shiftsCovered['morning'];
         $hasEvening = $shiftsCovered['evening'];
         $hasNight = $shiftsCovered['night'];
@@ -101,15 +125,15 @@ class HrmAttendanceWorkRuleEngine
 
         if ($hasMorning && $hasEvening && $hasNight) {
             $resolvedType = 'morning_evening_night';
-            $percent = 15.0;
+            $percent = 15.0; // ماده ۵۶: نوبت‌کاری صبح، عصر و شب
         } elseif (($hasMorning && $hasNight) || ($hasEvening && $hasNight)) {
             $resolvedType = ($hasMorning && $hasNight) ? 'morning_night' : 'evening_night';
-            $percent = 22.5;
+            $percent = 22.5; // ماده ۵۶: نوبت‌کاری صبح و شب یا عصر و شب
         } elseif ($hasMorning && $hasEvening) {
             $resolvedType = 'morning_evening';
-            $percent = 10.0;
+            $percent = 10.0; // ماده ۵۶: نوبت‌کاری صبح و عصر
         } else {
-            // Fallback to employee profile shift_pattern or industry_rules
+            // Fallback to employee profile shift_pattern attribute
             $shiftType = $employee->shift_pattern ?? 'standard';
             $percent = match ($shiftType) {
                 'morning_evening' => 10.0,
@@ -283,10 +307,10 @@ class HrmAttendanceWorkRuleEngine
             }
         }
 
-        // Shift Rotation Evaluation
+        // Shift Rotation Evaluation (Articles 55 & 56)
         $shiftData = $this->evaluateShiftRotationAllowance($employee, $year, $month);
 
-        // Mission Evaluation
+        // Mission Evaluation (Article 46)
         $missionData = $this->evaluateMonthlyMissionFactors($employee, $year, $month);
 
         return [
