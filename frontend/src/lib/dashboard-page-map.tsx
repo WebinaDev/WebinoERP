@@ -435,7 +435,8 @@ const EXACT: Record<string, ReactNode> = {
   'hrm/attendance-devices': <AttendanceDevicesPage />,
   'hrm/sso-list': <SsoListPage />,
   'hrm/offboarding': <OffboardingCasesPage />,
-  'hrm/approval-flows': <ApprovalFlowsPage />,
+    'hrm/enterprise-suite': HrmEnterpriseSuitePage,
+'hrm/approval-flows': <ApprovalFlowsPage />,
   'hrm/hr-settings': <HrSettingsPage />,
   'hrm/staff-import': <StaffImportPage />,
   'hrm/workforce-budget': <WorkforceBudgetPage />,
@@ -718,4 +719,6 @@ export function resolveDashboardPage(path: string): ReactNode {
   if (detailPage) return detailPage;
 
   return <UnknownRoutePage path={normalized} />;
-}
+}import HrmEnterpriseSuitePage from '@/features/modules/hrm/hrm_enterprise_suite_page';
+
+

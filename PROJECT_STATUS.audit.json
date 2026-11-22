@@ -1,15 +1,15 @@
 {
-  "generatedAt": "2026-11-17T16:38:09.839Z",
+  "generatedAt": "2026-11-22T10:55:33.220Z",
   "counts": {
     "registryMenuPaths": 236,
-    "pageMapExact": 281,
+    "pageMapExact": 283,
     "financeSegments": 12,
     "detailRoots": 2,
-    "legacyRedirects": 74,
+    "legacyRedirects": 75,
     "webinocrmReferencePaths": 0,
     "routeInventoryRows": 154,
     "manifestRoutes": 154,
-    "apiSmokeRoutes": 152,
+    "apiSmokeRoutes": 150,
     "e2eAuthRoutes": 153,
     "missingFromPageMap": [],
     "webinocrmGaps": 0
@@ -303,6 +303,10 @@
     {
       "from": "logs",
       "to": "admin/logs"
+    },
+    {
+      "from": "users",
+      "to": "admin/users"
     },
     {
       "from": "visitor-statistics",
@@ -2461,7 +2465,7 @@
       "fe": "✅",
       "apiSt": "✅",
       "i18n": "✅",
-      "tests": "✅",
+      "tests": "🟡",
       "notes": ""
     },
     {
@@ -2622,7 +2626,7 @@
     }
   ],
   "manifestSummary": {
-    "generatedAt": "2026-11-17T16:38:09.838Z",
+    "generatedAt": "2026-11-22T10:55:33.219Z",
     "routes": 154
   }
 }
