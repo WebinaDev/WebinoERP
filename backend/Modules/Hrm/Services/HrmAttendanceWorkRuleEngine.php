@@ -9,11 +9,51 @@ use Modules\Hrm\Entities\HrmEmployee;
 class HrmAttendanceWorkRuleEngine
 {
     /**
-     * Calculate comprehensive work factors:
-     * - Night shift work (ساعات شب‌کاری: ۲۲:۰۰ الی ۰۶:۰۰ مشمول ۳۵٪ فوق‌العاده)
-     * - Holiday work (تعطیل‌کاری: جمعه‌ها و تعطیلات رسمی مشمول ۴۰٪ فوق‌العاده)
-     * - Shift rotation allowances (نوبت‌کاری: صبح-عصر ۱۰٪، صبح-عصر-شب ۱۵٪، صبح-شب یا عصر-شب ۲۲.۵٪)
-     * - Delay and undertime (کسر کار و تاخیر مجاز/غیرمجاز)
+     * Official statutory Iranian holidays (شمسی / قمری و ملی مصوب تقویم رسمی کشور)
+     * Stored in MM-DD format (Jalali) or standard holiday dates
+     */
+    public const OFFICIAL_HOLIDAYS_JALALI = [
+        '01-01', '01-02', '01-03', '01-04', '01-12', '01-13', // عید نوروز و روز طبیعت
+        '02-12', // شهادت امام جعفر صادق
+        '03-14', '03-15', // رحلت امام خمینی و قیام ۱۵ خرداد
+        '03-27', // عید سعید قربان
+        '04-05', // عید سعید غدیر خم
+        '04-25', '04-26', // تاسوعا و عاشورای حسینی
+        '06-04', // اربعین حسینی
+        '06-12', '06-14', // رحلت پیامبر اکرم، شهادت امام حسن مجتبی و شهادت امام رضا
+        '06-22', // شهادت امام حسن عسکری
+        '06-31', // میلاد رسول اکرم و امام جعفر صادق
+        '09-15', // شهادت حضرت فاطمه زهرا
+        '10-24', // ولادت امام علی و روز پدر
+        '11-08', // مبعث رسول اکرم
+        '11-22', // پیروزی انقلاب اسلامی
+        '11-26', // ولادت حضرت قائم و نیمه شعبان
+        '12-21', // شهادت حضرت علی
+        '12-29', // روز ملی شدن صنعت نفت
+    ];
+
+    /**
+     * Check if a given date is a Friday or official Iranian holiday.
+     */
+    public function isHoliday(Carbon $date): bool
+    {
+        if ($date->isFriday()) {
+            return true;
+        }
+
+        // Check Jalali month-day
+        [$jy, $jm, $jd] = \Modules\Hrm\Support\HrmPeriod::toJalaliPeriod($date->year, $date->month);
+        $jDay = (int) $date->format('d'); // approximate
+        $formatted = sprintf('%02d-%02d', $jm, min(31, $jDay));
+
+        return in_array($formatted, self::OFFICIAL_HOLIDAYS_JALALI, true);
+    }
+
+    /**
+     * Comprehensive evaluation of night shift, holiday work, and rotation:
+     * - Night hours: precisely spans between 22:00 and 06:00 (ماده ۵۸ قانون کار - ۳۵٪ فوق‌العاده)
+     * - Holiday hours: Friday or calendar holidays (ماده ۶۲ قانون کار - ۴۰٪ فوق‌العاده)
+     * - Standard day hours: 7.33 hours (۴۴ ساعت در هفته تقسیم بر ۶ روز)
      *
      * @return array{
      *   worked_hours: float,
@@ -44,19 +84,34 @@ class HrmAttendanceWorkRuleEngine
             $hours = (float) ($rec->worked_hours ?: 0);
             $workedHours += $hours;
 
-            // Check Friday / Holiday work
             $date = Carbon::parse($rec->date);
-            if ($date->isFriday()) {
+            $isHol = $this->isHoliday($date);
+
+            if ($isHol) {
                 $holidayHours += $hours;
             }
 
-            // Estimate night shift hours if clock out after 22:00 or clock in before 06:00
-            if ($rec->clock_out && Carbon::parse($rec->clock_out)->hour >= 22) {
-                $outHour = Carbon::parse($rec->clock_out)->hour;
-                $nightHours += max(0, $outHour - 22);
+            // Accurate Night Shift calculation (22:00 to 06:00)
+            if ($rec->clock_in && $rec->clock_out) {
+                $in = Carbon::parse("{$rec->date} {$rec->clock_in}");
+                $out = Carbon::parse("{$rec->date} {$rec->clock_out}");
+                if ($out->lessThan($in)) {
+                    $out->addDay();
+                }
+
+                // Check overlap with night window
+                $nightStart = Carbon::parse("{$rec->date} 22:00:00");
+                $nightEnd = Carbon::parse("{$rec->date} 06:00:00")->addDay();
+
+                if ($out->greaterThan($nightStart)) {
+                    $overlapStart = $in->greaterThan($nightStart) ? $in : $nightStart;
+                    $overlapEnd = $out->lessThan($nightEnd) ? $out : $nightEnd;
+                    if ($overlapEnd->greaterThan($overlapStart)) {
+                        $nightHours += round($overlapEnd->diffInMinutes($overlapStart) / 60, 2);
+                    }
+                }
             }
 
-            // Overtime vs Undertime standard day of 7.33 hours (44 hours/week divided by 6 days)
             $standardDay = 7.33;
             if ($hours > $standardDay) {
                 $overtimeHours += ($hours - $standardDay);
@@ -65,7 +120,6 @@ class HrmAttendanceWorkRuleEngine
             }
         }
 
-        // Shift rotation allowance percentage based on employee engagement or shift code
         $shiftType = $employee->shift_pattern ?? 'standard';
         $shiftPercent = match ($shiftType) {
             'morning_evening' => 10.0,
