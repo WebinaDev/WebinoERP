@@ -7,9 +7,11 @@ use Modules\Hrm\Entities\HrmDependent;
 use Modules\Hrm\Entities\HrmEmployee;
 use Modules\Hrm\Entities\HrmLoan;
 use Modules\Hrm\Entities\HrmLoanInstallment;
+use Modules\Hrm\Entities\HrmMissionOrder;
 use Modules\Hrm\Entities\HrmPayrollComponent;
 use Modules\Hrm\Entities\HrmPayrollItem;
 use Modules\Hrm\Entities\HrmPayrollSetting;
+use Modules\Hrm\Entities\HrmTimesheet;
 use Modules\Hrm\Support\HrmCompensationRules;
 use Modules\Hrm\Support\HrmTaxBrackets;
 use Illuminate\Support\Facades\Schema;
@@ -34,6 +36,7 @@ class IranianPayrollCalculator
             'overtime_multiplier' => 1.4,
             'night_shift_multiplier' => 1.35,
             'holiday_shift_multiplier' => 1.40,
+            'mission_daily_allowance' => 1500000,
             'employee_insurance_percent' => 7,
             'employer_insurance_percent' => 20,
             'unemployment_insurance_percent' => 3,
@@ -325,14 +328,109 @@ class IranianPayrollCalculator
         };
     }
 
+    /**
+     * Real calculation of approved overtime, timesheet hours, or mission orders.
+     */
     private function approvedHours(int $employeeId, string $type, int $year, int $month, string $mode = 'hours'): float
     {
+        $start = Carbon::create($year, $month, 1)->startOfMonth();
+        $end = Carbon::create($year, $month, 1)->endOfMonth();
+
+        if ($type === 'mission') {
+            if (! Schema::hasTable('hrm_mission_orders')) {
+                return 0.0;
+            }
+
+            $orders = HrmMissionOrder::query()
+                ->where('employee_id', $employeeId)
+                ->where('status', 'hr_approved')
+                ->whereBetween('starts_at', [$start->toDateTimeString(), $end->toDateTimeString()])
+                ->get();
+
+            if ($mode === 'days') {
+                $days = 0.0;
+                foreach ($orders as $order) {
+                    $s = Carbon::parse($order->starts_at);
+                    $e = Carbon::parse($order->ends_at);
+                    $days += max(1.0, round($e->diffInHours($s) / 24.0, 1));
+                }
+                return $days;
+            }
+
+            if ($mode === 'amount') {
+                return (float) $orders->sum('total_allowance');
+            }
+
+            return 0.0;
+        }
+
+        // Timesheet approved hours
+        if (Schema::hasTable('hrm_timesheets')) {
+            $timesheetHours = HrmTimesheet::query()
+                ->where('employee_id', $employeeId)
+                ->where('status', 'approved')
+                ->whereBetween('work_date', [$start->toDateString(), $end->toDateString()])
+                ->sum('hours');
+
+            $standardMonthlyHours = 176.0; // 44h/week * 4 weeks
+            if ($timesheetHours > $standardMonthlyHours) {
+                return round($timesheetHours - $standardMonthlyHours, 2);
+            }
+        }
+
         return 0.0;
     }
 
+    /**
+     * Real loan and salary advance installment deduction:
+     * - Finds active loans with remaining_balance > 0
+     * - Creates or updates real installment records in hrm_loan_installments
+     * - Syncs loan remaining balance and increments installments_paid
+     */
     private function applyLoanInstallments(int $employeeId, int $runId): array
     {
-        return [0.0, 0.0];
+        if (! Schema::hasTable('hrm_loans') || ! Schema::hasTable('hrm_loan_installments')) {
+            return [0.0, 0.0];
+        }
+
+        $activeLoans = HrmLoan::query()
+            ->where('employee_id', $employeeId)
+            ->where('status', 'active')
+            ->where('remaining_balance', '>', 0)
+            ->get();
+
+        $loanTotal = 0.0;
+        $advanceTotal = 0.0;
+
+        foreach ($activeLoans as $loan) {
+            $deduction = min((float) $loan->remaining_balance, (float) $loan->installment_amount);
+            if ($deduction <= 0) {
+                continue;
+            }
+
+            // Record installment
+            HrmLoanInstallment::query()->updateOrCreate(
+                [
+                    'loan_id' => $loan->id,
+                    'payroll_run_id' => $runId,
+                ],
+                [
+                    'amount' => $deduction,
+                    'paid_on' => now()->toDateString(),
+                    'status' => 'paid',
+                ]
+            );
+
+            $this->syncLoanBalance($loan);
+
+            if ($loan->type === 'advance') {
+                $advanceTotal += $deduction;
+            } else {
+                $loanTotal += $deduction;
+            }
+        }
+
+        return [$loanTotal, $advanceTotal];
     }
 
     private function progressiveTax(float $taxable, array $brackets): float
@@ -340,7 +438,32 @@ class IranianPayrollCalculator
         return HrmTaxBrackets::calculateTaxMonthly($taxable, $brackets);
     }
 
-    private function syncLoanBalance(HrmLoan $loan): void
+    /**
+     * Synchronize loan remaining balance and status based on installments paid.
+     */
+    public function syncLoanBalance(HrmLoan $loan): void
     {
+        if (! Schema::hasTable('hrm_loan_installments')) {
+            return;
+        }
+
+        $totalPaid = (float) HrmLoanInstallment::query()
+            ->where('loan_id', $loan->id)
+            ->where('status', 'paid')
+            ->sum('amount');
+
+        $remaining = max(0.0, round((float) $loan->principal - $totalPaid, 2));
+        $countPaid = HrmLoanInstallment::query()
+            ->where('loan_id', $loan->id)
+            ->where('status', 'paid')
+            ->count();
+
+        $newStatus = $remaining <= 0.0 ? 'settled' : 'active';
+
+        $loan->update([
+            'remaining_balance' => $remaining,
+            'installments_paid' => $countPaid,
+            'status' => $newStatus,
+        ]);
     }
 }

@@ -91,6 +91,52 @@ class HrmLegalDisketteService
     }
 
     /**
+     * Validate pre-export integrity and return discrepancy report.
+     *
+     * @return array{is_valid: bool, errors: list<string>, warnings: list<string>}
+     */
+    public function validateExportIntegrity(HrmPayrollRun $run): array
+    {
+        $run->loadMissing(['items.employee.profile']);
+        $errors = [];
+        $warnings = [];
+
+        if ($run->items->isEmpty()) {
+            $errors[] = 'دوره حقوق فاقد هرگونه رکورد یا فیش حقوقی است.';
+        }
+
+        foreach ($run->items as $idx => $item) {
+            $line = $idx + 1;
+            $emp = $item->employee;
+            if (! $emp) {
+                $errors[] = "ردیف {$line}: رکورد فیش به هیچ کارمندی متصل نیست.";
+                continue;
+            }
+
+            $name = trim("{$emp->first_name} {$emp->last_name}");
+            if (empty($emp->first_name) || empty($emp->last_name)) {
+                $errors[] = "ردیف {$line}: نام یا نام خانوادگی کارمند خالی است.";
+            }
+
+            $nid = trim((string) $emp->national_id);
+            if (empty($nid) || strlen($nid) !== 10 || ! ctype_digit($nid)) {
+                $errors[] = "ردیف {$line} ({$name}): کد ملی ۱۰ رقمی نامعتبر است ({$nid}).";
+            }
+
+            $sheba = trim((string) $emp->sheba_number);
+            if (! empty($sheba) && (! str_starts_with($sheba, 'IR') || strlen($sheba) !== 26)) {
+                $warnings[] = "ردیف {$line} ({$name}): فرمت شبای بانکی غیراستاندارد است ({$sheba}).";
+            }
+        }
+
+        return [
+            'is_valid' => empty($errors),
+            'errors' => $errors,
+            'warnings' => $warnings,
+        ];
+    }
+
+    /**
      * Generate standard Iranian SSO Insurance Diskette format
      *
      * @return array{
@@ -106,6 +152,12 @@ class HrmLegalDisketteService
      */
     public function generateSsoDiskette(HrmPayrollRun $run, ?string $workshopCode = null): array
     {
+        // 1. Mandatory pre-export validation
+        $integrity = $this->validateExportIntegrity($run);
+        if (! $integrity['is_valid']) {
+            throw new InvalidArgumentException('خطای اعتبارسنجی پیش از تولید دیسکت بیمه: ' . implode(' | ', $integrity['errors']));
+        }
+
         $code = $this->resolveWorkshopCode($workshopCode, $run);
         $insuranceService = $this->insuranceService ?: app(HrmInsuranceListService::class);
         $header = $insuranceService->header((int) $run->year, (int) $run->month);
@@ -113,14 +165,14 @@ class HrmLegalDisketteService
 
         $rows = $insuranceService->rows($run);
 
-        // Strict pre-export validation: ensure no missing critical employee data
+        // Strict field-by-field verification
         foreach ($rows as $i => $r) {
             $line = $i + 1;
             if (empty($r['first_name']) || empty($r['last_name'])) {
-                throw new InvalidArgumentException("نام یا نام خانوادگی کارمند در ردیف {$line} خالی است. صدور دیسکت قانونی متوقف شد.");
+                throw new InvalidArgumentException("نام یا نام خانوادگی کارمند در ردیف {$line} خالی است.");
             }
             if (empty($r['national_id'])) {
-                throw new InvalidArgumentException("کد ملی کارمند در ردیف {$line} ({$r['first_name']} {$r['last_name']}) معتبر نیست.");
+                throw new InvalidArgumentException("کد ملی کارمند در ردیف {$line} معتبر نیست.");
             }
             if (empty($r['insurance_no'])) {
                 throw new InvalidArgumentException("شماره بیمه تأمین اجتماعی کارمند در ردیف {$line} ثبت نشده است.");
@@ -174,6 +226,11 @@ class HrmLegalDisketteService
      */
     public function generateTaxDiskette(HrmPayrollRun $run, ?string $tfn = null): array
     {
+        $integrity = $this->validateExportIntegrity($run);
+        if (! $integrity['is_valid']) {
+            throw new InvalidArgumentException('خطای اعتبارسنجی پیش از تولید دیسکت مالیات: ' . implode(' | ', $integrity['errors']));
+        }
+
         $taxTfn = $this->resolveTaxTfn($tfn, $run);
         $postalCode = $this->resolvePostalCode($run);
 
