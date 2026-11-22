@@ -197,4 +197,185 @@ class HrmIranianBankFormatsAndValidationTest extends TestCase
         $this->expectException(InvalidArgumentException::class);
         $bankService->generateBankExport($run);
     }
+
+    /**
+     * 4. Test Mehr Bank text format (mehr.txt): Header + C/D lines
+     */
+    public function test_mehr_bank_text_format_header_and_cd_lines(): void
+    {
+        $engine = app(HrmMultiBankExportEngine::class);
+
+        $emp1 = HrmEmployee::query()->create([
+            'employee_code' => 'EMP-MEHR-01',
+            'first_name' => 'سعید',
+            'last_name' => 'طاهری',
+            'national_id' => '0012345678',
+            'sheba_number' => $this->validEmployeeSheba1,
+            'bank_account' => '401802510293084001',
+            'base_salary' => 1000000000,
+            'is_active' => true,
+        ]);
+
+        $emp2 = HrmEmployee::query()->create([
+            'employee_code' => 'EMP-MEHR-02',
+            'first_name' => 'مهدی',
+            'last_name' => 'صالحی',
+            'national_id' => '0076543210',
+            'sheba_number' => $this->validEmployeeSheba2,
+            'bank_account' => '401870014803728001',
+            'base_salary' => 6000000000,
+            'is_active' => true,
+        ]);
+
+        $run = HrmPayrollRun::query()->create([
+            'title' => 'حقوق ماهانه بانک مهر',
+            'year' => 1405,
+            'month' => 6,
+            'status' => 'approved',
+        ]);
+
+        HrmPayrollItem::query()->create([
+            'payroll_run_id' => $run->id,
+            'employee_id' => $emp1->id,
+            'gross' => 1000000000,
+            'net' => 1000000000,
+            'deductions' => 0,
+        ]);
+
+        HrmPayrollItem::query()->create([
+            'payroll_run_id' => $run->id,
+            'employee_id' => $emp2->id,
+            'gross' => 6000000000,
+            'net' => 6000000000,
+            'deductions' => 0,
+        ]);
+
+        // Generate Mehr bank text file
+        $sourceAccount = '401870000467936001';
+        $res = $engine->generateMehrTextFile($run, $this->validSourceSheba, $sourceAccount);
+
+        $this->assertEquals('mehr_txt', $res['format']);
+        $this->assertEquals(2, $res['total_records']);
+        $this->assertEquals(7000000000.0, $res['total_amount']);
+
+        $lines = explode("\r\n", $res['file_content']);
+        $this->assertCount(4, $lines); // 1 header + 1 D line + 2 C lines
+
+        // Header: تعداد_تراکنش,جمع_مبلغ,شرح,کد (2,7000000000,واریز حقوق,POSA)
+        $this->assertEquals('2,7000000000,واریز حقوق,POSA', $lines[0]);
+
+        // Line D (Company debit): 401870000467936001,7000000000,D,واریز حقوق
+        $this->assertEquals('401870000467936001,7000000000,D,واریز حقوق', $lines[1]);
+
+        // Line C1 (Employee credit): 401802510293084001,1000000000,C,حقوق سعید طاهری...
+        $this->assertStringStartsWith('401802510293084001,1000000000,C,', $lines[2]);
+
+        // Line C2 (Employee credit): 401870014803728001,6000000000,C,حقوق مهدی صالحی...
+        $this->assertStringStartsWith('401870014803728001,6000000000,C,', $lines[3]);
+    }
+
+    /**
+     * 5. Test Paya ISO 20022 XML Format: MsgId, CreDtTm, NbOfTxs, CtrlSum, Debtor, Creditor IBAN & National ID
+     */
+    public function test_paya_xml_iso20022_structure(): void
+    {
+        $engine = app(HrmMultiBankExportEngine::class);
+
+        $emp = HrmEmployee::query()->create([
+            'employee_code' => 'EMP-XML-01',
+            'first_name' => 'داریوش',
+            'last_name' => 'پژمان',
+            'national_id' => '0012345678',
+            'sheba_number' => $this->validEmployeeSheba1,
+            'base_salary' => 85000000,
+            'is_active' => true,
+        ]);
+
+        $run = HrmPayrollRun::query()->create([
+            'title' => 'پرداخت پایا XML',
+            'year' => 1405,
+            'month' => 7,
+            'status' => 'approved',
+        ]);
+
+        HrmPayrollItem::query()->create([
+            'payroll_run_id' => $run->id,
+            'employee_id' => $emp->id,
+            'gross' => 85000000,
+            'net' => 85000000,
+            'deductions' => 0,
+        ]);
+
+        $res = $engine->generatePayaXml($run);
+
+        $this->assertEquals('paya_xml', $res['format']);
+        $this->assertEquals(1, $res['total_records']);
+        $this->assertEquals(85000000.0, $res['total_amount']);
+
+        $xml = $res['file_content'];
+
+        $this->assertStringContainsString('<?xml version="1.0" encoding="UTF-8"?>', $xml);
+        $this->assertStringContainsString('<MsgId>PAYA-140507-', $xml);
+        $this->assertStringContainsString('<NbOfTxs>1</NbOfTxs>', $xml);
+        $this->assertStringContainsString('<CtrlSum>85000000.00</CtrlSum>', $xml);
+        $this->assertStringContainsString("<IBAN>{$this->validSourceSheba}</IBAN>", $xml);
+        $this->assertStringContainsString('<InstdAmt Ccy="IRR">85000000.00</InstdAmt>', $xml);
+        $this->assertStringContainsString('<Nm>داریوش پژمان</Nm>', $xml);
+        $this->assertStringContainsString('<Id>0012345678</Id>', $xml);
+        $this->assertStringContainsString("<IBAN>{$this->validEmployeeSheba1}</IBAN>", $xml);
+    }
+
+    /**
+     * 6. Test Satna XML Format: MsgId, TotalCnt, TotalAmnt, DebtorInfo, Creditor Name & LastName separated
+     */
+    public function test_satna_xml_structure_with_separate_name_and_lastname(): void
+    {
+        $engine = app(HrmMultiBankExportEngine::class);
+
+        $emp = HrmEmployee::query()->create([
+            'employee_code' => 'EMP-SATNA-01',
+            'first_name' => 'احسان',
+            'last_name' => 'یزدانی',
+            'national_id' => '0076543210',
+            'sheba_number' => $this->validEmployeeSheba2,
+            'base_salary' => 2500000000, // 2.5 Billion IRR (Satna threshold)
+            'is_active' => true,
+        ]);
+
+        $run = HrmPayrollRun::query()->create([
+            'title' => 'پرداخت ساتنا مبالغ کلان',
+            'year' => 1405,
+            'month' => 8,
+            'status' => 'approved',
+        ]);
+
+        HrmPayrollItem::query()->create([
+            'payroll_run_id' => $run->id,
+            'employee_id' => $emp->id,
+            'gross' => 2500000000,
+            'net' => 2500000000,
+            'deductions' => 0,
+        ]);
+
+        $res = $engine->generateSatnaXml($run);
+
+        $this->assertEquals('satna_xml', $res['format']);
+        $this->assertEquals(1, $res['total_records']);
+        $this->assertEquals(2500000000.0, $res['total_amount']);
+
+        $xml = $res['file_content'];
+
+        $this->assertStringContainsString('<?xml version="1.0" encoding="UTF-8"?>', $xml);
+        $this->assertStringContainsString('<TibsGroupPymntOrdr', $xml);
+        $this->assertStringContainsString('<MsgId>SATNA-140508-', $xml);
+        $this->assertStringContainsString('<TotalCnt>1</TotalCnt>', $xml);
+        $this->assertStringContainsString('<TotalAmnt>2500000000</TotalAmnt>', $xml);
+        $this->assertStringContainsString("<Iban>{$this->validSourceSheba}</Iban>", $xml);
+        $this->assertStringContainsString('<PymntOrdrInfo>', $xml);
+        $this->assertStringContainsString('<Amount>2500000000</Amount>', $xml);
+        $this->assertStringContainsString('<InstructionId>SATNA-TX-', $xml);
+        $this->assertStringContainsString("<Iban>{$this->validEmployeeSheba2}</Iban>", $xml);
+        $this->assertStringContainsString('<Name>احسان</Name>', $xml);
+        $this->assertStringContainsString('<LastName>یزدانی</LastName>', $xml);
+    }
 }

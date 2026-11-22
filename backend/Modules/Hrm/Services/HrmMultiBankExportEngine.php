@@ -37,7 +37,12 @@ class HrmMultiBankExportEngine
      */
     public function generateCertifiedBankFile(HrmPayrollRun $run, string $bank = 'paya_standard', ?string $companySheba = null): array
     {
-        $export = $this->standardService->generateBankExport($run, $bank, $companySheba);
+        $export = match ($bank) {
+            'mehr_txt' => $this->standardService->generateMehrTextFile($run, $companySheba),
+            'paya_xml' => $this->standardService->generatePayaXml($run, $companySheba),
+            'satna_xml' => $this->standardService->generateSatnaXml($run, $companySheba),
+            default => $this->standardService->generateBankExport($run, $bank, $companySheba),
+        };
 
         return [
             'bank' => $bank,
@@ -48,5 +53,29 @@ class HrmMultiBankExportEngine
             'file_content' => $export['file_content'],
             'checksum' => $export['checksum'],
         ];
+    }
+
+    /**
+     * Format 1: Direct delegation to Mehr Bank text file generator
+     */
+    public function generateMehrTextFile(HrmPayrollRun $run, ?string $companySheba = null, ?string $sourceAccount = null): array
+    {
+        return $this->standardService->generateMehrTextFile($run, $companySheba, $sourceAccount);
+    }
+
+    /**
+     * Format 2: Direct delegation to Paya ISO 20022 XML generator
+     */
+    public function generatePayaXml(HrmPayrollRun $run, ?string $companySheba = null): array
+    {
+        return $this->standardService->generatePayaXml($run, $companySheba);
+    }
+
+    /**
+     * Format 3: Direct delegation to Satna RTGS XML generator
+     */
+    public function generateSatnaXml(HrmPayrollRun $run, ?string $companySheba = null): array
+    {
+        return $this->standardService->generateSatnaXml($run, $companySheba);
     }
 }
