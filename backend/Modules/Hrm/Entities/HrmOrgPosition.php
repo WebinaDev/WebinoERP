@@ -4,27 +4,44 @@ namespace Modules\Hrm\Entities;
 
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class HrmOrgPosition extends Model
 {
     protected $table = 'hrm_org_positions';
 
-    protected $fillable = ['title', 'department', 'parent_id', 'sort_order', 'is_active', 'incumbent_employee_id'];
+    protected $fillable = [
+        'code',
+        'title',
+        'department_id',
+        'parent_position_id',
+        'is_approved_quota',
+        'job_grade',
+        'status',
+    ];
 
-    public function incumbent(): \Illuminate\Database\Eloquent\Relations\BelongsTo
+    protected $casts = [
+        'is_approved_quota' => 'boolean',
+        'job_grade' => 'integer',
+    ];
+
+    public function department(): BelongsTo
     {
-        return $this->belongsTo(HrmEmployee::class, 'incumbent_employee_id');
+        return $this->belongsTo(HrmDepartment::class, 'department_id');
     }
-
-    public function successors(): \Illuminate\Database\Eloquent\Relations\HasMany
-    {
-        return $this->hasMany(HrmSuccessionPlan::class, 'position_id');
-    }
-
-    protected $casts = ['is_active' => 'boolean'];
 
     public function parent(): BelongsTo
     {
-        return $this->belongsTo(self::class, 'parent_id');
+        return $this->belongsTo(self::class, 'parent_position_id');
+    }
+
+    public function children(): HasMany
+    {
+        return $this->hasMany(self::class, 'parent_position_id');
+    }
+
+    public function histories(): HasMany
+    {
+        return $this->hasMany(HrmOrgStructureHistory::class, 'position_id');
     }
 }

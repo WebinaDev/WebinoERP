@@ -9,6 +9,7 @@ class HrmExpressionParserService
     /**
      * Advanced expression parser supporting:
      * - Nested if(cond, a, b)
+     * - case(expr, val1, res1, val2, res2, default)
      * - lookup('TABLE_CODE', key)
      * - roundup(x, decimals), rounddown(x, decimals), round(x, decimals)
      * - min, max, abs, floor, ceil
@@ -28,21 +29,54 @@ class HrmExpressionParserService
         // 1. Process lookup(table, key)
         $expr = $this->evaluateLookupFunctions($expr, $variables);
 
-        // 2. Replace variables (longest name first to avoid prefix collisions)
+        // 2. Process CASE expressions: case(target, val1, res1, val2, res2, ..., default)
+        $expr = $this->evaluateCaseFunctions($expr, $variables);
+
+        // 3. Replace variables (longest name first to avoid prefix collisions)
         uksort($variables, fn ($a, $b) => strlen($b) <=> strlen($a));
         foreach ($variables as $var => $val) {
             $numVal = is_numeric($val) ? (float) $val : (is_bool($val) ? ($val ? 1 : 0) : 0);
             $expr = preg_replace('/\b' . preg_quote($var, '/') . '\b/i', (string) $numVal, $expr);
         }
 
-        // 3. Process nested conditionals if(cond, val1, val2) from inner to outer
+        // 4. Process nested conditionals if(cond, val1, val2) from inner to outer
         $expr = $this->evaluateNestedIfs($expr);
 
-        // 4. Process math functions
+        // 5. Process math functions
         $expr = $this->evaluateMathFunctions($expr);
 
-        // 5. Evaluate arithmetic
+        // 6. Evaluate arithmetic
         return $this->evaluateSimpleArithmetic($expr);
+    }
+
+    private function evaluateCaseFunctions(string $expr, array $variables): string
+    {
+        $maxLoops = 10;
+        while ($maxLoops-- > 0 && preg_match('/case\s*\(([^()]+)\)/i', $expr, $matches)) {
+            $parts = array_map('trim', explode(',', $matches[1]));
+            if (count($parts) < 3) {
+                $expr = str_replace($matches[0], '0', $expr);
+                continue;
+            }
+
+            $targetVal = isset($variables[$parts[0]]) ? (float) $variables[$parts[0]] : $this->evaluateSimpleArithmetic($parts[0]);
+            $defaultVal = end($parts);
+            $found = false;
+            $result = $defaultVal;
+
+            for ($i = 1; $i < count($parts) - 1; $i += 2) {
+                $caseKey = isset($variables[$parts[$i]]) ? (float) $variables[$parts[$i]] : $this->evaluateSimpleArithmetic($parts[$i]);
+                if (abs($targetVal - $caseKey) < 0.0001) {
+                    $result = $parts[$i + 1];
+                    $found = true;
+                    break;
+                }
+            }
+
+            $expr = str_replace($matches[0], (string) $result, $expr);
+        }
+
+        return $expr;
     }
 
     private function evaluateLookupFunctions(string $expr, array $variables): string
