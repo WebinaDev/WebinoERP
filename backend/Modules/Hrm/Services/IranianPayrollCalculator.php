@@ -3,36 +3,30 @@
 namespace Modules\Hrm\Services;
 
 use Carbon\Carbon;
+use Illuminate\Support\Facades\Schema;
+use InvalidArgumentException;
 use Modules\Hrm\Entities\HrmAttendanceRecord;
-use Modules\Hrm\Entities\HrmDependent;
+use Modules\Hrm\Entities\HrmCompensationPackage;
 use Modules\Hrm\Entities\HrmEmployee;
 use Modules\Hrm\Entities\HrmLoan;
 use Modules\Hrm\Entities\HrmLoanInstallment;
 use Modules\Hrm\Entities\HrmMissionOrder;
-use Modules\Hrm\Entities\HrmPayrollComponent;
 use Modules\Hrm\Entities\HrmPayrollItem;
+use Modules\Hrm\Entities\HrmPayrollRetroAdjustment;
+use Modules\Hrm\Entities\HrmPayrollRun;
 use Modules\Hrm\Entities\HrmPayrollSetting;
+use Modules\Hrm\Entities\HrmSalaryStructure;
 use Modules\Hrm\Entities\HrmTimesheet;
-use Modules\Hrm\Support\HrmCompensationRules;
-use Modules\Hrm\Support\HrmTaxBrackets;
-use Illuminate\Support\Facades\Schema;
 
 class IranianPayrollCalculator
 {
-    /**
-     * Default enterprise Iranian payroll parameters (1405 statutory rates).
-     *
-     * @return array<string, mixed>
-     */
-    public function defaults(): array
+    public function settings(): array
     {
-        return [
-            'minimum_daily_wage' => 3165000,
+        $defaults = [
             'housing_allowance' => 14000000,
             'bon_allowance' => 18000000,
-            'child_allowance_per_child' => 9495000,
-            'marital_allowance' => 5000000,
-            'working_days_per_month' => 30,
+            'child_allowance_per_child' => 7166184,
+            'marriage_allowance' => 5000000,
             'monthly_hours' => 220,
             'overtime_multiplier' => 1.4,
             'night_shift_multiplier' => 1.35,
@@ -49,121 +43,129 @@ class IranianPayrollCalculator
             'severance_prorate' => true,
             'insurance_deductible_fraction' => 2 / 7,
             'tax_brackets' => [
-                ['up_to' => 400000000, 'rate' => 0],
-                ['up_to' => 800000000, 'rate' => 10],
-                ['up_to' => 1000000000, 'rate' => 15],
-                ['up_to' => 1200000000, 'rate' => 20],
-                ['up_to' => 1400000000, 'rate' => 25],
-                ['up_to' => null, 'rate' => 30],
+                ['limit' => 400000000, 'rate' => 0.0],
+                ['limit' => 700000000, 'rate' => 0.10],
+                ['limit' => 1000000000, 'rate' => 0.15],
+                ['limit' => 1400000000, 'rate' => 0.20],
+                ['limit' => null, 'rate' => 0.30],
             ],
         ];
-    }
 
-    /**
-     * @return array<string, mixed>
-     */
-    public function settings(): array
-    {
-        $stored = [];
         if (Schema::hasTable('hrm_payroll_settings')) {
-            foreach (HrmPayrollSetting::query()->get() as $row) {
-                $stored[$row->key] = $row->value;
+            $rows = HrmPayrollSetting::all()->pluck('value', 'key')->toArray();
+            foreach ($rows as $k => $v) {
+                if (isset($defaults[$k])) {
+                    $defaults[$k] = is_numeric($v) ? (float) $v : $v;
+                }
             }
         }
 
-        return array_replace($this->defaults(), $stored);
+        return $defaults;
     }
 
-    public function resetRun(int $runId): void
-    {
-        if (! Schema::hasTable('hrm_loan_installments')) {
-            return;
-        }
-
-        $loanIds = HrmLoanInstallment::query()->where('payroll_run_id', $runId)->pluck('loan_id');
-        HrmLoanInstallment::query()->where('payroll_run_id', $runId)->delete();
-        if ($loanIds->isEmpty() || ! Schema::hasTable('hrm_loans')) {
-            return;
-        }
-        foreach (HrmLoan::query()->whereIn('id', $loanIds)->get() as $loan) {
-            $this->syncLoanBalance($loan);
-        }
-    }
-
-    /**
-     * @return array{gross: float, deductions: float, net: float, breakdown: array<string, mixed>}
-     */
-    public function forEmployee(HrmEmployee $employee, int $year, int $month, int $runId): array
+    public function forEmployee(HrmEmployee $employee, int $year, int $month, ?int $runId = null): array
     {
         $settings = $this->settings();
-        app(HrmCompensationRules::class)->assertEmployee($employee, $settings);
-        $engagement = (string) ($employee->engagement_type ?: 'full_time');
-        $basis = (string) ($employee->pay_basis ?: 'monthly');
-        $workingDays = max(1, (float) ($settings['working_days_per_month'] ?? 30));
-        $monthlyHoursSetting = max(1, (float) ($settings['monthly_hours'] ?? 220));
-        $base = match ($basis) {
-            'project_fee' => (float) ($employee->project_fee ?? 0),
-            'daily' => (float) ($employee->daily_rate ?? 0) * $workingDays,
-            'hourly' => (float) ($employee->hourly_rate ?? 0) * $monthlyHoursSetting,
-            default => (float) ($employee->base_salary ?? 0),
-        };
-        $benefitEngagements = $settings['apply_benefits_engagements'] ?? ['full_time', 'part_time', 'remote'];
-        $applyBenefits = is_array($benefitEngagements) && in_array($engagement, $benefitEngagements, true);
-        $insuranceOn = $this->applicability($employee, 'insurance_applicable', $engagement, ['freelance', 'project']);
-        $taxOn = $this->applicability($employee, 'tax_applicable', $engagement, []);
+        $engagement = $employee->engagement_type ?? 'full_time';
+
+        $base = (float) $employee->base_salary;
         $lines = [];
-        $standard = [
-            'bon' => 0.0, 'housing' => 0.0, 'child' => 0.0, 'seniority' => 0.0,
-            'reward' => 0.0, 'eydi' => 0.0, 'bon_card' => 0.0, 'marital' => 0.0, 'severance' => 0.0,
-        ];
+
+        // Engagement rules: statutory benefits
+        $housing = (float) ($settings['housing_allowance'] ?? 0);
+        $bon = (float) ($settings['bon_allowance'] ?? 0);
+
+        if (in_array($engagement, ['freelance', 'project'], true)) {
+            $housing = 0.0;
+            $bon = 0.0;
+        } elseif ($engagement === 'part_time' || $engagement === 'remote') {
+            $ratio = $this->prorationRatio($employee->id, $year, $month, (float) ($settings['monthly_hours'] ?? 220));
+            $housing = round($housing * $ratio, 2);
+            $bon = round($bon * $ratio, 2);
+        }
+
+        if ($housing > 0) {
+            $lines[] = ['title' => 'حق مسکن', 'amount' => $housing, 'is_insurable' => true, 'is_taxable' => true];
+        }
+        if ($bon > 0) {
+            $lines[] = ['title' => 'بن و خواربار', 'amount' => $bon, 'is_insurable' => true, 'is_taxable' => true];
+        }
+
+        // Child allowance (اولاد)
+        $children = (int) ($employee->profile?->children_count ?? 0);
+        if ($children > 0 && ! in_array($engagement, ['freelance', 'project'], true)) {
+            $childRate = (float) ($settings['child_allowance_per_child'] ?? 0);
+            $childTotal = round($childRate * $children, 2);
+            $lines[] = ['title' => "حق اولاد ({$children} فرزند)", 'amount' => $childTotal, 'is_insurable' => false, 'is_taxable' => false];
+        }
+
+        // Marriage allowance (تأهل)
+        $marital = $employee->marital_status ?? 'single';
+        if ($marital === 'married' && ! in_array($engagement, ['freelance', 'project'], true)) {
+            $marriage = (float) ($settings['marriage_allowance'] ?? 0);
+            if ($marriage > 0) {
+                $lines[] = ['title' => 'حق تأهل', 'amount' => $marriage, 'is_insurable' => true, 'is_taxable' => true];
+            }
+        }
+
+        // Active Compensation Package or Custom Salary Structure Components
+        $insuranceOn = ! in_array($engagement, ['freelance', 'project'], true);
+        $taxOn = $employee->tax_exempt ? false : true;
+
+        if (Schema::hasTable('hrm_compensation_packages')) {
+            $package = HrmCompensationPackage::query()
+                ->where('employee_id', $employee->id)
+                ->where('is_active', true)
+                ->where('effective_from', '<=', Carbon::create($year, $month, 1)->endOfMonth()->toDateString())
+                ->latest('effective_from')
+                ->first();
+
+            if ($package) {
+                $structure = HrmSalaryStructure::query()->where('package_id', $package->id)->first();
+                if ($structure && is_array($structure->components)) {
+                    foreach ($structure->components as $c) {
+                        $amt = (float) ($c['amount'] ?? 0);
+                        if ($amt > 0) {
+                            $lines[] = [
+                                'title' => $c['title'] ?? 'مزایای مستمر',
+                                'amount' => $amt,
+                                'is_insurable' => (bool) ($c['is_insurable'] ?? true),
+                                'is_taxable' => (bool) ($c['is_taxable'] ?? true),
+                            ];
+                        }
+                    }
+                }
+            }
+        }
+
+        // Dynamic lookup from hrm_salary_components (if configured)
+        if (Schema::hasTable('hrm_salary_components') && Schema::hasTable('hrm_employee_salary_components')) {
+            $assignedComponents = $employee->salaryComponents()
+                ->where('is_active', true)
+                ->get();
+
+            foreach ($assignedComponents as $component) {
+                $amount = (float) $component->pivot->amount;
+                $lines[] = [
+                    'title' => $component->name,
+                    'amount' => $amount,
+                    'is_insurable' => (bool) $component->is_insurable,
+                    'is_taxable' => (bool) ($component->is_taxable ?? true),
+                ];
+            }
+        }
+
+        // Compute insurable & taxable base from lines
         $insurable = $insuranceOn ? $base : 0.0;
         $taxableEarnings = $taxOn ? $base : 0.0;
 
-        $insuredDependents = 0;
-        if (Schema::hasTable('hrm_dependents')) {
-            $q = HrmDependent::query()->where('employee_id', $employee->id);
-            if (Schema::hasColumn('hrm_dependents', 'is_insured')) {
-                $q->where('is_insured', true);
+        foreach ($lines as $ln) {
+            $amount = (float) $ln['amount'];
+            if ($insuranceOn && ($ln['is_insurable'] ?? true)) {
+                $insurable += $amount;
             }
-            $insuredDependents = $q->count();
-        }
-
-        $salaryOverrides = $this->salaryComponentOverrides($employee);
-
-        if (Schema::hasTable('hrm_payroll_components')) {
-            $components = HrmPayrollComponent::query()->where('is_active', true)->orderBy('id')->get();
-            foreach ($components as $component) {
-                if ($component->type !== 'earning') {
-                    continue;
-                }
-                if (! $applyBenefits) {
-                    continue;
-                }
-                $override = $salaryOverrides[(string) $component->code] ?? null;
-                if (is_array($override) && array_key_exists('enabled', $override) && $override['enabled'] === false) {
-                    continue;
-                }
-                $overrideAmount = is_array($override) && array_key_exists('amount', $override) && $override['amount'] !== null && $override['amount'] !== ''
-                    ? (float) $override['amount']
-                    : null;
-                $amount = $this->componentAmount($component, $base, $year, $month, $settings, $insuredDependents, $employee, $overrideAmount);
-                if ($amount <= 0) {
-                    continue;
-                }
-                $lines[] = [
-                    'code' => $component->code,
-                    'name' => $component->name,
-                    'amount' => $amount,
-                ];
-                if (isset($standard[(string) $component->code])) {
-                    $standard[(string) $component->code] = $amount;
-                }
-                if ($insuranceOn && $component->is_insurable) {
-                    $insurable += $amount;
-                }
-                if ($taxOn && ($component->is_taxable ?? true)) {
-                    $taxableEarnings += $amount;
-                }
+            if ($taxOn && ($ln['is_taxable'] ?? true)) {
+                $taxableEarnings += $amount;
             }
         }
 
@@ -189,13 +191,19 @@ class IranianPayrollCalculator
         $holidayMultiplier = (float) ($settings['holiday_shift_multiplier'] ?? 1.40) - 1.0; // differential extra (40%)
         $holidayAllowance = round($holidayHours * $hourly * $holidayMultiplier, 2);
 
-        // Shift rotation allowance (فوق‌العاده نوبت‌کاری بر اساس درصد پایه)
+        // Shift rotation allowance (فوق‌العاده نوبت‌کاری مواد ۵۵ و ۵۶ بر اساس درصد پایه)
         $shiftPercent = (float) ($attendanceFactors['shift_allowance_percent'] ?? 0);
         $shiftAllowance = round($base * ($shiftPercent / 100.0), 2);
 
-        $missionDays = $this->approvedHours($employee->id, 'mission', $year, $month, 'days');
-        $missionAmount = $this->approvedHours($employee->id, 'mission', $year, $month, 'amount');
-        $mission = round($missionAmount + ($missionDays * (float) ($settings['mission_daily_allowance'] ?? 0)), 2);
+        // Mission Allowance (ماده ۴۶ قانون کار)
+        $missionDays = max($this->approvedHours($employee->id, 'mission', $year, $month, 'days'), (float) ($attendanceFactors['mission_days'] ?? 0));
+        $missionAmountFromOrders = (float) ($attendanceFactors['mission_pay'] ?? 0);
+        $missionAmountFromCalc = $this->approvedHours($employee->id, 'mission', $year, $month, 'amount');
+        $missionAmount = max($missionAmountFromOrders, $missionAmountFromCalc);
+
+        $dailyAllowanceConfig = (float) ($settings['mission_daily_allowance'] ?? 0);
+        $statutoryMissionAllowance = $missionDays > 0 ? max($missionAmount, round($missionDays * $dailyAllowanceConfig, 2)) : $missionAmount;
+        $mission = round($statutoryMissionAllowance, 2);
 
         $shiftTotal = round($nightAllowance + $holidayAllowance + $shiftAllowance, 2);
         $earnings = round(array_sum(array_column($lines, 'amount')) + $overtime + $shiftTotal + $mission, 2);
@@ -216,25 +224,33 @@ class IranianPayrollCalculator
 
         $fraction = (float) ($settings['insurance_deductible_fraction'] ?? (2 / 7));
         $taxable = $taxOn ? max(0, $taxableEarnings - ($employeeIns * $fraction)) : 0.0;
-        $brackets = is_array($settings['tax_brackets'] ?? null) ? $settings['tax_brackets'] : $this->defaults()['tax_brackets'];
-        $tax = $taxOn ? $this->progressiveTax($taxable, $brackets) : 0.0;
+        $tax = $taxOn ? $this->calculateTax($taxable, $settings['tax_brackets'] ?? []) : 0.0;
 
-        [$loanDeduction, $advanceDeduction] = $this->applyLoanInstallments($employee->id, $runId);
+        // Apply real loan deductions
+        $loanDeduction = 0.0;
+        $advanceDeduction = 0.0;
+        if ($runId) {
+            [$loanDeduction, $advanceDeduction] = $this->applyLoanInstallments($employee->id, $runId);
+        } else {
+            // Preview loan installments without saving
+            $activeLoans = HrmLoan::query()
+                ->where('employee_id', $employee->id)
+                ->where('status', 'active')
+                ->where('remaining_balance', '>', 0)
+                ->get();
 
-        $otherDeductions = 0.0;
-        if (Schema::hasTable('hrm_payroll_components')) {
-            foreach (HrmPayrollComponent::query()->where('is_active', true)->where('type', 'deduction')->get() as $component) {
-                $override = $salaryOverrides[(string) $component->code] ?? null;
-                if (is_array($override) && array_key_exists('enabled', $override) && $override['enabled'] === false) {
-                    continue;
+            foreach ($activeLoans as $l) {
+                $ded = min((float) $l->remaining_balance, (float) $l->installment_amount);
+                if ($l->type === 'advance') {
+                    $advanceDeduction += $ded;
+                } else {
+                    $loanDeduction += $ded;
                 }
-                $otherDeductions += is_array($override) && array_key_exists('amount', $override) && $override['amount'] !== null && $override['amount'] !== ''
-                    ? (float) $override['amount']
-                    : (float) $component->default_amount;
             }
         }
 
-        $deductions = round($employeeIns + $tax + $loanDeduction + $advanceDeduction + $otherDeductions, 2);
+        $otherDeductions = round($loanDeduction + $advanceDeduction, 2);
+        $deductions = round($employeeIns + $tax + $otherDeductions, 2);
         $net = round($gross - $deductions, 2);
 
         return [
@@ -243,20 +259,12 @@ class IranianPayrollCalculator
             'net' => $net,
             'breakdown' => [
                 'base' => $base,
-                'engagement_type' => $engagement,
-                'pay_basis' => $basis,
-                'insurance_applicable' => $insuranceOn,
-                'tax_applicable' => $taxOn,
-                'lines' => $standard,
-                'earnings' => $lines,
-                'earnings_total' => $earnings,
-                'overtime_hours' => $overtimeHours,
+                'lines' => $lines,
                 'overtime' => $overtime,
-                'night_hours' => $nightHours,
                 'night_allowance' => $nightAllowance,
-                'holiday_hours' => $holidayHours,
                 'holiday_allowance' => $holidayAllowance,
                 'shift_allowance' => $shiftAllowance,
+                'shift_pattern' => (string) ($attendanceFactors['shift_pattern'] ?? 'standard'),
                 'mission' => $mission,
                 'gross' => $gross,
                 'insurable' => round($insurableBase, 2),
@@ -268,66 +276,75 @@ class IranianPayrollCalculator
                 'loan_deduction' => $loanDeduction,
                 'advance_deduction' => $advanceDeduction,
                 'other_deductions' => round($otherDeductions, 2),
-                'deductions' => $deductions,
-                'net' => $net,
             ],
         ];
     }
 
-    /**
-     * @return array<string, mixed>
-     */
-    private function salaryComponentOverrides(HrmEmployee $employee): array
+    public function calculateTax(float $taxable, array $brackets): float
     {
-        $overrides = [];
-        if (Schema::hasTable('hrm_employee_salary_components')) {
-            $rows = \Modules\Hrm\Entities\HrmEmployeeSalaryComponent::query()
-                ->where('employee_id', $employee->id)
-                ->get();
-            foreach ($rows as $row) {
-                $overrides[$row->component_code] = [
-                    'amount' => $row->amount,
-                    'percentage' => $row->percentage,
-                    'formula' => $row->formula,
-                    'enabled' => $row->is_active ?? true,
-                ];
+        if ($taxable <= 0) {
+            return 0.0;
+        }
+
+        $tax = 0.0;
+        $prevLimit = 0.0;
+
+        foreach ($brackets as $b) {
+            $limit = $b['limit'] !== null ? (float) $b['limit'] : null;
+            $rate = (float) $b['rate'];
+
+            if ($limit === null) {
+                if ($taxable > $prevLimit) {
+                    $tax += ($taxable - $prevLimit) * $rate;
+                }
+                break;
+            }
+
+            if ($taxable > $limit) {
+                $tax += ($limit - $prevLimit) * $rate;
+                $prevLimit = $limit;
+            } else {
+                if ($taxable > $prevLimit) {
+                    $tax += ($taxable - $prevLimit) * $rate;
+                }
+                break;
             }
         }
 
-        return $overrides;
+        return round($tax, 2);
     }
 
-    private function applicability(HrmEmployee $employee, string $field, string $engagement, array $exemptEngagements): bool
+    public function prorationRatio(int $employeeId, int $year, int $month, float $monthlyHours = 220.0): float
     {
-        if (array_key_exists($field, $employee->getAttributes()) && $employee->{$field} !== null) {
-            return (bool) $employee->{$field};
+        $start = Carbon::create($year, $month, 1)->startOfMonth();
+        $end = Carbon::create($year, $month, 1)->endOfMonth();
+
+        $workedHours = 0.0;
+
+        if (Schema::hasTable('hrm_timesheets')) {
+            $workedHours = (float) HrmTimesheet::query()
+                ->where('employee_id', $employeeId)
+                ->where('status', 'approved')
+                ->whereBetween('work_date', [$start->toDateString(), $end->toDateString()])
+                ->sum('hours');
         }
 
-        return ! in_array($engagement, $exemptEngagements, true);
-    }
+        if ($workedHours <= 0 && Schema::hasTable('hrm_attendance_records')) {
+            $records = HrmAttendanceRecord::query()
+                ->where('employee_id', $employeeId)
+                ->whereBetween('date', [$start->toDateString(), $end->toDateString()])
+                ->get();
 
-    private function componentAmount(
-        HrmPayrollComponent $component,
-        float $base,
-        int $year,
-        int $month,
-        array $settings,
-        int $insuredDependents,
-        HrmEmployee $employee,
-        ?float $overrideAmount = null
-    ): float {
-        if ($overrideAmount !== null) {
-            return $overrideAmount;
+            foreach ($records as $r) {
+                $workedHours += (float) ($r->worked_hours ?: 0);
+            }
         }
 
-        $code = (string) $component->code;
-        return match ($code) {
-            'housing' => (float) ($settings['housing_allowance'] ?? 14000000),
-            'bon' => (float) ($settings['bon_allowance'] ?? 18000000),
-            'child' => (float) ($settings['child_allowance_per_child'] ?? 9495000) * $insuredDependents,
-            'marital' => $employee->marital_status === 'married' ? (float) ($settings['marital_allowance'] ?? 5000000) : 0.0,
-            default => (float) ($component->default_amount ?? 0),
-        };
+        if ($workedHours <= 0) {
+            return 1.0; // fallback full
+        }
+
+        return min(1.0, round($workedHours / max(1.0, $monthlyHours), 4));
     }
 
     /**
@@ -346,7 +363,7 @@ class IranianPayrollCalculator
 
             $orders = HrmMissionOrder::query()
                 ->where('employee_id', $employeeId)
-                ->where('status', 'hr_approved')
+                ->whereIn('status', ['hr_approved', 'settled', 'manager_approved'])
                 ->whereBetween('starts_at', [$start->toDateTimeString(), $end->toDateTimeString()])
                 ->get();
 
@@ -361,7 +378,15 @@ class IranianPayrollCalculator
             }
 
             if ($mode === 'amount') {
-                return (float) $orders->sum('total_allowance');
+                $sum = 0.0;
+                foreach ($orders as $order) {
+                    $amt = (float) $order->per_diem_rate;
+                    if ($amt <= 0) {
+                        $amt = (float) $order->total_allowance;
+                    }
+                    $sum += $amt;
+                }
+                return $sum;
             }
 
             return 0.0;
@@ -371,43 +396,28 @@ class IranianPayrollCalculator
             $hasHourType = Schema::hasColumn('hrm_timesheets', 'hour_type');
 
             if ($hasHourType) {
-                // If specific hour_type is explicitly stored:
-                $query = HrmTimesheet::query()
+                $explicitHours = (float) HrmTimesheet::query()
                     ->where('employee_id', $employeeId)
                     ->where('status', 'approved')
-                    ->whereBetween('work_date', [$start->toDateString(), $end->toDateString()]);
+                    ->where('hour_type', $type)
+                    ->whereBetween('work_date', [$start->toDateString(), $end->toDateString()])
+                    ->sum('hours');
 
-                if ($type === 'night') {
-                    $nightSum = (float) (clone $query)->where('hour_type', 'night')->sum('hours');
-                    if ($nightSum > 0) {
-                        return $nightSum;
-                    }
-                }
-                if ($type === 'holiday') {
-                    $holidaySum = (float) (clone $query)->where('hour_type', 'holiday')->sum('hours');
-                    if ($holidaySum > 0) {
-                        return $holidaySum;
-                    }
-                }
-                if ($type === 'overtime') {
-                    $explicitOvertime = (float) (clone $query)->where('hour_type', 'overtime')->sum('hours');
-                    if ($explicitOvertime > 0) {
-                        return $explicitOvertime;
-                    }
+                if ($explicitHours > 0) {
+                    return $explicitHours;
                 }
             }
 
-            // Fallback when hour_type is empty or standard:
-            // 1. Fallback for Overtime: hours exceeding standard monthly hours from settings
+            // 1. Fallback for Overtime: if timesheets logged standard/null hours exceeding standard monthly hours
             if ($type === 'overtime') {
-                $settings = $this->settings();
-                $standardMonthlyHours = (float) ($settings['monthly_hours'] ?? 220);
-
                 $timesheetHours = (float) HrmTimesheet::query()
                     ->where('employee_id', $employeeId)
                     ->where('status', 'approved')
                     ->whereBetween('work_date', [$start->toDateString(), $end->toDateString()])
                     ->sum('hours');
+
+                $settings = $this->settings();
+                $standardMonthlyHours = (float) ($settings['monthly_hours'] ?? 220);
 
                 if ($timesheetHours > $standardMonthlyHours) {
                     return round($timesheetHours - $standardMonthlyHours, 2);
@@ -465,12 +475,13 @@ class IranianPayrollCalculator
                 ],
                 [
                     'amount' => $deduction,
-                    'paid_on' => now()->toDateString(),
-                    'status' => 'paid',
+                    'paid_at' => now(),
+                    'is_settled' => true,
                 ]
             );
 
-            $this->syncLoanBalance($loan);
+            // Sync balance and installments count
+            $this->syncLoanBalance($loan->id, $deduction, $runId);
 
             if ($loan->type === 'advance') {
                 $advanceTotal += $deduction;
@@ -479,40 +490,35 @@ class IranianPayrollCalculator
             }
         }
 
-        return [$loanTotal, $advanceTotal];
-    }
-
-    private function progressiveTax(float $taxable, array $brackets): float
-    {
-        return HrmTaxBrackets::calculateTaxMonthly($taxable, $brackets);
+        return [round($loanTotal, 2), round($advanceTotal, 2)];
     }
 
     /**
-     * Synchronize loan remaining balance and status based on installments paid.
+     * Synchronize loan balance after installment deduction and mark settled if fully repaid.
      */
-    public function syncLoanBalance(HrmLoan $loan): void
+    public function syncLoanBalance(int $loanId, float $installmentAmount, ?int $runId = null): void
     {
-        if (! Schema::hasTable('hrm_loan_installments')) {
+        if (! Schema::hasTable('hrm_loans')) {
             return;
         }
 
-        $totalPaid = (float) HrmLoanInstallment::query()
-            ->where('loan_id', $loan->id)
-            ->where('status', 'paid')
-            ->sum('amount');
+        $loan = HrmLoan::query()->find($loanId);
+        if (! $loan) {
+            return;
+        }
 
-        $remaining = max(0.0, round((float) $loan->principal - $totalPaid, 2));
-        $countPaid = HrmLoanInstallment::query()
-            ->where('loan_id', $loan->id)
-            ->where('status', 'paid')
-            ->count();
+        $newBalance = max(0.0, round((float) $loan->remaining_balance - $installmentAmount, 2));
+        $paidCount = (int) $loan->installments_paid + 1;
 
-        $newStatus = $remaining <= 0.0 ? 'settled' : 'active';
+        $updates = [
+            'remaining_balance' => $newBalance,
+            'installments_paid' => $paidCount,
+        ];
 
-        $loan->update([
-            'remaining_balance' => $remaining,
-            'installments_paid' => $countPaid,
-            'status' => $newStatus,
-        ]);
+        if ($newBalance <= 0) {
+            $updates['status'] = 'settled';
+        }
+
+        $loan->update($updates);
     }
 }
