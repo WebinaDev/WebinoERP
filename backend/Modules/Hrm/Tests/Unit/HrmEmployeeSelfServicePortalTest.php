@@ -208,4 +208,84 @@ class HrmEmployeeSelfServicePortalTest extends TestCase
             'end_date' => '2026-04-16',
         ]);
     }
+
+    /**
+     * Test Multi-Step Approval Workflow (Manager -> HR) for Leave and Mission Requests
+     */
+    public function test_two_step_approval_workflow_for_leave_and_mission(): void
+    {
+        $employeeUser = User::factory()->create();
+        $managerUser = User::factory()->create();
+        $hrUser = User::factory()->create();
+
+        // Assign Spatie roles or simulate direct manager / HR manager
+        if (method_exists($managerUser, 'assignRole')) {
+            $managerUser->assignRole('project_manager');
+            $hrUser->assignRole('hr_manager');
+        }
+
+        $employee = HrmEmployee::query()->create([
+            'user_id' => $employeeUser->id,
+            'employee_code' => 'ESS-WF-01',
+            'first_name' => 'سعید',
+            'last_name' => 'کاظمی',
+            'base_salary' => 110000000,
+            'is_active' => true,
+        ]);
+
+        // 1. Employee submits leave request through ESS
+        $leaveResponse = $this->actingAs($employeeUser)->postJson('/api/v1/hrm/me/requests', [
+            'type' => 'leave',
+            'notes' => 'مرخصی استعلاجی',
+            'payload' => [
+                'start_date' => '2026-05-01',
+                'days' => 3,
+            ],
+        ]);
+
+        $leaveResponse->assertStatus(201);
+        $requestId = $leaveResponse->json('data.id');
+        $this->assertNotNull($requestId);
+
+        $hrmRequest = HrmRequest::query()->find($requestId);
+        $this->assertEquals('pending_manager', $hrmRequest->status);
+        $this->assertEquals(1, $hrmRequest->approval_step);
+
+        // 2. Step 1: Direct Manager approves request -> transitions to pending_hr
+        $step1Response = $this->actingAs($managerUser)->postJson("/api/v1/hrm/requests/{$hrmRequest->id}/approve");
+        $step1Response->assertStatus(200);
+
+        $hrmRequest->refresh();
+        $this->assertEquals('pending_hr', $hrmRequest->status);
+        $this->assertEquals(2, $hrmRequest->approval_step);
+
+        // 3. Step 2: HR Manager approves request -> transitions to approved
+        $step2Response = $this->actingAs($hrUser)->postJson("/api/v1/hrm/requests/{$hrmRequest->id}/approve");
+        $step2Response->assertStatus(200);
+
+        $hrmRequest->refresh();
+        $this->assertEquals('approved', $hrmRequest->status);
+
+        // 4. Test Rejection flow on a second request
+        $missionResponse = $this->actingAs($employeeUser)->postJson('/api/v1/hrm/me/requests', [
+            'type' => 'mission',
+            'notes' => 'مأموریت ردشدنی',
+            'payload' => [
+                'days' => 1,
+                'destination' => 'قم',
+            ],
+        ]);
+        $missionResponse->assertStatus(201);
+        $missionRequestId = $missionResponse->json('data.id');
+        $missionRequest = HrmRequest::query()->find($missionRequestId);
+
+        $rejectResponse = $this->actingAs($managerUser)->postJson("/api/v1/hrm/requests/{$missionRequest->id}/reject", [
+            'notes' => 'عدم موافقت به دلیل نیاز مبرم پروژه',
+        ]);
+        $rejectResponse->assertStatus(200);
+
+        $missionRequest->refresh();
+        $this->assertEquals('rejected', $missionRequest->status);
+        $this->assertEquals('عدم موافقت به دلیل نیاز مبرم پروژه', $missionRequest->notes);
+    }
 }

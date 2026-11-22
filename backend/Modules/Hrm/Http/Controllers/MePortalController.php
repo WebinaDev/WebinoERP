@@ -476,14 +476,13 @@ class MePortalController extends Controller
             $days = max(1, (int) ($data['payload']['days'] ?? 1));
             $endDate = $data['payload']['end_date'] ?? Carbon::parse($startDate)->addDays($days - 1)->toDateString();
 
-            \Modules\Hrm\Entities\HrmLeaveRequest::query()->create([
+            \Modules\Hrm\Entities\HrmLeaveRequest::query()->create(array_merge([
                 'employee_id' => $employee->id,
                 'type' => $data['payload']['leave_type'] ?? 'daily',
                 'start_date' => $startDate,
                 'end_date' => $endDate,
                 'reason' => $data['notes'] ?? null,
-                'status' => 'pending',
-            ]);
+            ], $boot));
         }
 
         return response()->json(['data' => $this->formatRequest($row), 'message' => __('messages.request_submitted')], 201);
