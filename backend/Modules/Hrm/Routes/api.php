@@ -62,6 +62,10 @@ Route::post('payroll/runs/{run}/generate-sso-diskette', [HrmEnterpriseSuiteContr
         Route::post('payroll/runs/{run}/execute-lifecycle', [HrmEnterpriseSuiteController::class, 'executeLifecycle']);
     Route::get('payroll/runs/{run}/bank-paya-file', [HrmEnterpriseSuiteController::class, 'generateBankFile']);
     Route::get('employees/{employee}/eydi-severance', [HrmEnterpriseSuiteController::class, 'employeeEydiSeverance']);
+    Route::get('attendance/corrections', [HrmEnterpriseSuiteController::class, 'attendanceCorrections']);
+    Route::post('attendance/corrections', [HrmEnterpriseSuiteController::class, 'storeAttendanceCorrection']);
+    Route::post('employees/{employee}/settlement', [HrmEnterpriseSuiteController::class, 'executeSettlement']);
+
 Route::post('payroll/runs/{run}/issue-vouchers', [HrmEnterpriseSuiteController::class, 'issueVouchersForRun']);
     Route::get('compensation/packages', [HrmEnterpriseSuiteController::class, 'compensationPackages']);
     Route::post('compensation/packages', [HrmEnterpriseSuiteController::class, 'storeCompensationPackage']);

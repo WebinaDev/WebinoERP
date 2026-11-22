@@ -381,4 +381,44 @@ class HrmEnterpriseSuiteController extends Controller
         ]);
     }
 
+
+    // ── 13. Attendance Correction Requests & Settlements ──
+
+    public function attendanceCorrections(Request ): JsonResponse
+    {
+         = \Modules\Hrm\Entities\HrmAttendanceCorrectionRequest::query()->with('employee');
+        if (->filled('employee_id')) {
+            ->where('employee_id', ->input('employee_id'));
+        }
+        return response()->json(['data' => ->orderByDesc('id')->get()]);
+    }
+
+    public function storeAttendanceCorrection(Request ): JsonResponse
+    {
+         = ->validate([
+            'employee_id' => 'required|exists:hrm_employees,id',
+            'record_date' => 'required|date',
+            'requested_clock_in' => 'nullable|string',
+            'requested_clock_out' => 'nullable|string',
+            'reason_type' => 'required|string',
+            'description' => 'nullable|string',
+        ]);
+
+         = \Modules\Hrm\Entities\HrmAttendanceCorrectionRequest::query()->create( + [
+            'status' => 'approved_by_hr',
+            'approved_at' => now(),
+            'approved_by' => auth()->id(),
+        ]);
+
+        return response()->json(['message' => 'درخواست اصلاح تردد ثبت و تایید گردید.', 'data' => ]);
+    }
+
+    public function executeSettlement(int , HrmEydiSeveranceCalculatorService ): JsonResponse
+    {
+         = HrmEmployee::query()->findOrFail();
+         = ->executeEmployeeSettlement();
+
+        return response()->json(['message' => ['message'], 'data' => ]);
+    }
+
 }
