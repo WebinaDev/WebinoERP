@@ -101,4 +101,20 @@ class HrmManagementReportController extends Controller
 
         return response()->json(['data' => $report]);
     }
+
+    /**
+     * 6. گزارش‌های کنترلی پیش از تأیید نهایی دوره حقوق
+     */
+    public function preApprovalControlAudit(Request $request, int $runId): JsonResponse
+    {
+        $run = \Modules\Hrm\Entities\HrmPayrollRun::query()->findOrFail($runId);
+        $thresholds = $request->validate([
+            'overtime_hours_threshold' => 'nullable|numeric|min:0',
+            'shift_allowance_threshold' => 'nullable|numeric|min:0',
+        ]);
+
+        $report = $this->reportService->getPayrollControlAuditReports($run, $thresholds);
+
+        return response()->json(['data' => $report]);
+    }
 }

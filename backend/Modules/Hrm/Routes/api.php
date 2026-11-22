@@ -317,6 +317,7 @@ Route::prefix('reports')->group(function () {
     Route::get('attendance-and-overtime', [HrmManagementReportController::class, 'attendanceAndOvertime']);
     Route::get('decrees-and-personnel-changes', [HrmManagementReportController::class, 'decreesAndPersonnelChanges']);
     Route::get('loans-and-deductions', [HrmManagementReportController::class, 'loansAndDeductions']);
+    Route::get('payroll-control-audit/{run}', [HrmManagementReportController::class, 'preApprovalControlAudit']);
 });
 
 Route::prefix('training')->group(function () {

@@ -332,4 +332,151 @@ class HrmManagementReportsTest extends TestCase
         $loanResponse->assertStatus(200);
         $this->assertArrayHasKey('total_loans', $loanResponse->json('data'));
     }
+
+    /**
+     * 7. Test Pre-Approval Payroll Control Reports:
+     * - Item 1: Insurance Discrepancies (missing insurance number or invalid national id)
+     * - Item 2: Banking Discrepancies (missing or invalid Sheba Mod-97)
+     * - Item 3: Abnormal Overtime & Shift Allowance
+     * - Item 4: Retroactive Adjustments Impact
+     * - Item 5: Comparison of Gross/Deductions/Net with Previous Period
+     */
+    public function test_pre_approval_payroll_control_reports(): void
+    {
+        $service = app(HrmManagementReportService::class);
+
+        // 1. Create Previous Month Run (1405/01)
+        $prevRun = HrmPayrollRun::query()->create([
+            'title' => 'حقوق فروردین ۱۴۰۵',
+            'year' => 1405,
+            'month' => 1,
+            'status' => 'paid',
+        ]);
+
+        HrmPayrollItem::query()->create([
+            'payroll_run_id' => $prevRun->id,
+            'employee_id' => $this->emp1->id,
+            'gross' => 200000000,
+            'deductions' => 14000000,
+            'net' => 186000000,
+        ]);
+
+        // 2. Create Current Month Run (1405/02)
+        $currentRun = HrmPayrollRun::query()->create([
+            'title' => 'حقوق اردیبهشت ۱۴۰۵',
+            'year' => 1405,
+            'month' => 2,
+            'status' => 'draft',
+        ]);
+
+        // Valid employee with valid Sheba and complete profile
+        $empValid = HrmEmployee::query()->create([
+            'employee_code' => 'AUD-VAL-01',
+            'first_name' => 'سعید',
+            'last_name' => 'طاهری',
+            'national_id' => '0012345678',
+            'insurance_no' => '11223344',
+            'sheba_number' => 'IR020120000000001234567891', // Valid Sheba Mod-97
+            'base_salary' => 100000000,
+            'is_active' => true,
+        ]);
+
+        // Defective employee for Insurance (Missing insurance number, corrupt national id)
+        $empBadIns = HrmEmployee::query()->create([
+            'employee_code' => 'AUD-ERR-INS',
+            'first_name' => 'محسن',
+            'last_name' => 'نادری',
+            'national_id' => '111', // Invalid National ID
+            'insurance_no' => '', // Missing Insurance Number
+            'sheba_number' => 'IR820120000000009876543211', // Valid Sheba
+            'base_salary' => 150000000,
+            'is_active' => true,
+        ]);
+
+        // Defective employee for Banking (Corrupt/Missing Sheba) and Abnormal Overtime & Retroactive Adjustment
+        $empBadBank = HrmEmployee::query()->create([
+            'employee_code' => 'AUD-ERR-BNK',
+            'first_name' => 'کیوان',
+            'last_name' => 'مرادی',
+            'national_id' => '0076543210',
+            'insurance_no' => '55667788',
+            'sheba_number' => 'IR000000000000000000000000', // Invalid Mod-97 Sheba
+            'base_salary' => 100000000,
+            'is_active' => true,
+        ]);
+
+        HrmPayrollItem::query()->create([
+            'payroll_run_id' => $currentRun->id,
+            'employee_id' => $empValid->id,
+            'gross' => 100000000,
+            'deductions' => 7000000,
+            'net' => 93000000,
+            'breakdown' => ['base' => 100000000],
+        ]);
+
+        HrmPayrollItem::query()->create([
+            'payroll_run_id' => $currentRun->id,
+            'employee_id' => $empBadIns->id,
+            'gross' => 150000000,
+            'deductions' => 10500000,
+            'net' => 139500000,
+            'breakdown' => ['base' => 150000000],
+        ]);
+
+        HrmPayrollItem::query()->create([
+            'payroll_run_id' => $currentRun->id,
+            'employee_id' => $empBadBank->id,
+            'gross' => 280000000, // Includes high overtime and retro pay
+            'deductions' => 19600000,
+            'net' => 260400000,
+            'breakdown' => [
+                'base' => 100000000,
+                'overtime' => 120000000, // Abnormal overtime > 100% of base salary
+                'retro_current_year' => 60000000, // Retroactive impact
+                'retro_total' => 60000000,
+            ],
+        ]);
+
+        // Execute Control Audit Report
+        $report = $service->getPayrollControlAuditReports($currentRun);
+
+        $this->assertEquals($currentRun->id, $report['run_id']);
+        $this->assertFalse($report['is_ready_for_approval']); // Because discrepancies exist
+
+        // 1. Assert Insurance Discrepancy detected
+        $this->assertEquals(1, $report['insurance_discrepancies']['count']);
+        $insItem = $report['insurance_discrepancies']['items'][0];
+        $this->assertEquals('AUD-ERR-INS', $insItem['employee_code']);
+        $this->assertNotEmpty($insItem['errors']);
+
+        // 2. Assert Banking Discrepancy detected
+        $this->assertEquals(1, $report['banking_discrepancies']['count']);
+        $bankItem = $report['banking_discrepancies']['items'][0];
+        $this->assertEquals('AUD-ERR-BNK', $bankItem['employee_code']);
+        $this->assertStringContainsString('شبا', $bankItem['errors'][0]);
+
+        // 3. Assert Abnormal Attendance detected (Overtime > 100% of base salary)
+        $this->assertEquals(1, $report['abnormal_attendance']['count']);
+        $attItem = $report['abnormal_attendance']['items'][0];
+        $this->assertEquals('AUD-ERR-BNK', $attItem['employee_code']);
+        $this->assertEquals(120000000.0, $attItem['overtime_pay']);
+
+        // 4. Assert Retroactive adjustments impact detected
+        $this->assertEquals(1, $report['retro_adjustments']['count']);
+        $this->assertEquals(60000000.0, $report['retro_adjustments']['total_amount']);
+
+        // 5. Assert Previous Period Comparison
+        $comp = $report['period_comparison'];
+        $this->assertEquals(530000000.0, $comp['current']['gross']); // 100M + 150M + 280M = 530M
+        $this->assertEquals(200000000.0, $comp['previous']['gross']);
+        $this->assertEquals(330000000.0, $comp['difference']['gross']);
+        $this->assertEquals(165.0, $comp['percentage_change']['gross']); // +165% growth
+
+        // Test Endpoint Call
+        $apiResp = $this->getJson("/api/v1/hrm/reports/payroll-control-audit/{$currentRun->id}");
+        $apiResp->assertStatus(200);
+        $this->assertFalse($apiResp->json('data.is_ready_for_approval'));
+        $this->assertEquals(1, $apiResp->json('data.insurance_discrepancies.count'));
+        $this->assertEquals(1, $apiResp->json('data.banking_discrepancies.count'));
+    }
 }
