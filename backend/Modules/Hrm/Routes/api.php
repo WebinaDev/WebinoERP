@@ -55,7 +55,9 @@ Route::prefix('enterprise')->group(function () {
     Route::get('career/promotion-proposals', [HrmEnterpriseSuiteController::class, 'promotionProposals']);
     Route::post('career/proposals/{employee}/evaluate', [HrmEnterpriseSuiteController::class, 'evaluatePromotion']);
 
-    Route::post('payroll/runs/{run}/generate-sso-diskette', [HrmEnterpriseSuiteController::class, 'generateSsoDiskette']);
+        Route::post('career/proposals/{proposal}/approve-and-issue', [HrmEnterpriseSuiteController::class, 'approveAndIssuePromotion']);
+    Route::post('payroll/runs/{run}/generate-tax-diskette', [HrmEnterpriseSuiteController::class, 'generateTaxDiskette']);
+Route::post('payroll/runs/{run}/generate-sso-diskette', [HrmEnterpriseSuiteController::class, 'generateSsoDiskette']);
     Route::get('retirees', [HrmEnterpriseSuiteController::class, 'retirees']);
 });
 

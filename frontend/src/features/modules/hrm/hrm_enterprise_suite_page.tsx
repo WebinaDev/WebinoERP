@@ -373,6 +373,16 @@ export function HrmEnterpriseSuitePage() {
     }
   };
 
+  const handleApproveProposal = async (proposalId: number) => {
+    try {
+      const res = await apiClient.post(`/api/v1/hrm/enterprise/career/proposals/${proposalId}/approve-and-issue`);
+      toast.success(res.data?.message || 'حکم ارتقای کارگزینی با موفقیت صادر شد.');
+      void fetchProposals();
+    } catch (err) {
+      toast.error(getAxiosMessage(err, 'خطا در صدور حکم کارگزینی ترفیع'));
+    }
+  };
+
   const handleGenerateDiskette = async () => {
     if (!selectedRunId) {
       toast.error('لطفاً یک دوره حقوق و دستمزد را انتخاب فرمایید.');
@@ -774,9 +784,20 @@ export function HrmEnterpriseSuitePage() {
                           </div>
                           <p className="text-xs text-muted-foreground">{p.system_justification}</p>
                         </div>
-                        <div className="text-left">
-                          <span className="text-xl font-bold font-mono text-blue-600">{p.eligibility_score}٪</span>
-                          <div className="text-[10px] text-muted-foreground">امتیاز شایستگی ارتقا</div>
+                        <div className="flex items-center gap-3">
+                          <div className="text-left">
+                            <span className="text-xl font-bold font-mono text-blue-600">{p.eligibility_score}٪</span>
+                            <div className="text-[10px] text-muted-foreground">امتیاز شایستگی ارتقا</div>
+                          </div>
+                          {p.status !== 'decree_issued' && (
+                            <Button
+                              size="sm"
+                              className="bg-blue-600 hover:bg-blue-700 text-white text-xs h-8"
+                              onClick={() => handleApproveProposal(p.id)}
+                            >
+                              تایید و صدور حکم کارگزینی
+                            </Button>
+                          )}
                         </div>
                       </div>
                     ))}

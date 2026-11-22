@@ -204,3 +204,29 @@ class HrmEnterpriseSuiteController extends Controller
         ]);
     }
 }
+    public function generateTaxDiskette(int , HrmLegalDisketteService ): JsonResponse
+    {
+         = HrmPayrollRun::query()->findOrFail();
+         = ->generateTaxDiskette();
+
+        return response()->json([
+            'message' => 'فایل دیسکت مالیات بر حقوق (سامانه ماده ۸۴) با موفقیت تولید شد.',
+            'data' => ,
+        ]);
+    }
+
+    public function approveAndIssuePromotion(int , HrmCareerProgressionService ): JsonResponse
+    {
+         = HrmPromotionProposal::query()->with(['employee', 'targetCareerPath'])->findOrFail();
+         = ->approveProposalAndIssueDecree();
+
+        return response()->json([
+            'message' => 'پیشنهاد ترفیع تایید و حکم کارگزینی جدید با موفقیت صادر گردید.',
+            'data' => [
+                'proposal' => ->fresh(),
+                'decree' => ,
+            ],
+        ]);
+    }
+
+
