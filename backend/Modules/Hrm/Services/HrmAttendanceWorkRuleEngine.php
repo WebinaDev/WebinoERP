@@ -60,8 +60,7 @@ class HrmAttendanceWorkRuleEngine
      */
     public function evaluateShiftRotationAllowance(HrmEmployee $employee, int $year, int $month): array
     {
-        $start = Carbon::create($year, $month, 1)->startOfMonth();
-        $end = Carbon::create($year, $month, 1)->endOfMonth();
+        [$start, $end] = \Modules\Hrm\Support\HrmPeriod::gregorianRange($year, $month);
 
         $shiftsCovered = [
             'morning' => false,
@@ -169,8 +168,7 @@ class HrmAttendanceWorkRuleEngine
      */
     public function evaluateMonthlyMissionFactors(HrmEmployee $employee, int $year, int $month): array
     {
-        $start = Carbon::create($year, $month, 1)->startOfMonth();
-        $end = Carbon::create($year, $month, 1)->endOfMonth();
+        [$start, $end] = \Modules\Hrm\Support\HrmPeriod::gregorianRange($year, $month);
 
         $missionDays = 0.0;
         $missionHours = 0.0;
@@ -240,8 +238,7 @@ class HrmAttendanceWorkRuleEngine
      */
     public function evaluateMonthlyAttendanceFactors(HrmEmployee $employee, int $year, int $month): array
     {
-        $start = Carbon::create($year, $month, 1)->startOfMonth();
-        $end = Carbon::create($year, $month, 1)->endOfMonth();
+        [$start, $end] = \Modules\Hrm\Support\HrmPeriod::gregorianRange($year, $month);
 
         $records = HrmAttendanceRecord::query()
             ->where('employee_id', $employee->id)
