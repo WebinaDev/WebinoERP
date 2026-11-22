@@ -2,9 +2,11 @@
 
 namespace Modules\Hrm\Services;
 
+use InvalidArgumentException;
 use Modules\Hrm\Entities\HrmEmployee;
 use Modules\Hrm\Entities\HrmPayrollItem;
 use Modules\Hrm\Entities\HrmPayrollRun;
+use Modules\Hrm\Entities\HrmPayrollSetting;
 
 class HrmStandardBankFormatService
 {
@@ -18,17 +20,14 @@ class HrmStandardBankFormatService
             return false;
         }
 
-        // Rearrange: move first 4 chars to the end
         $rearranged = substr($clean, 4) . substr($clean, 0, 4);
 
-        // Convert letters to numbers: I = 18, R = 27
         $numericStr = '';
         for ($i = 0; $i < strlen($rearranged); $i++) {
             $char = $rearranged[$i];
             $numericStr .= is_numeric($char) ? $char : (ord($char) - ord('A') + 10);
         }
 
-        // Mod 97 check
         $remainder = 0;
         foreach (str_split($numericStr, 7) as $chunk) {
             $remainder = ($remainder . $chunk) % 97;
@@ -38,10 +37,27 @@ class HrmStandardBankFormatService
     }
 
     /**
-     * Generate multi-bank payroll transfer file:
-     * - paya_standard: Central Bank of Iran ACH/PAYA standard
-     * - mellat_batch: Bank Mellat multi-account payment file
-     * - melli_batch: Bank Melli BMI payroll transfer format
+     * Resolve company payment account/IBAN from enterprise settings.
+     */
+    private function resolveCompanySheba(?string $provided = null): string
+    {
+        $sheba = trim((string) $provided);
+        if ($sheba !== '') {
+            return $sheba;
+        }
+
+        $setting = HrmPayrollSetting::query()->where('key', 'company_sheba')->first();
+        $sheba = trim((string) ($setting?->value ?? ''));
+
+        if ($sheba === '' || ! $this->isValidSheba($sheba)) {
+            throw new InvalidArgumentException('شماره شبای مبدأ شرکت در تنظیمات سیستم حقوق تعریف نشده است.');
+        }
+
+        return $sheba;
+    }
+
+    /**
+     * Generate multi-bank payroll transfer file with strict SHEBA validation and rejection of empty/dummy data.
      *
      * @return array{
      *   bank_format: string,
@@ -53,51 +69,54 @@ class HrmStandardBankFormatService
      *   file_content: string
      * }
      */
-    public function generateBankExport(HrmPayrollRun $run, string $format = 'paya_standard', string $companyAccount = 'IR000000000000000000000000'): array
+    public function generateBankExport(HrmPayrollRun $run, string $format = 'paya_standard', ?string $companyAccount = null): array
     {
+        $companySheba = $this->resolveCompanySheba($companyAccount);
         $items = HrmPayrollItem::query()->where('payroll_run_id', $run->id)->with('employee.profile')->get();
+
+        if ($items->isEmpty()) {
+            throw new InvalidArgumentException('رکوردی در این دوره حقوق برای واریز بانکی وجود ندارد.');
+        }
+
         $totalAmount = 0.0;
         $validSheba = 0;
         $invalidSheba = 0;
         $lines = [];
 
-        // Header with timestamp and batch metadata
         $batchId = sprintf("PAYA%04d%02d%04d", $run->year, $run->month, $run->id);
-        $lines[] = sprintf("// WEBINO-ERP PAYROLL BATCH: %s | FORMAT: %s | CREATED: %s", $batchId, strtoupper($format), now()->toIso8601String());
+        $lines[] = sprintf("// BATCH: %s | FORMAT: %s | SOURCE_SHEBA: %s | CREATED: %s", $batchId, strtoupper($format), $companySheba, now()->toIso8601String());
 
         foreach ($items as $item) {
             $emp = $item->employee;
             $profile = $emp?->profile;
 
-            $rawSheba = (string) ($profile?->sheba ?? $emp?->bank_sheba ?? 'IR000000000000000000000000');
-            $cleanSheba = strtoupper(preg_replace('/[^A-Z0-9]/', '', $rawSheba));
-            if (! str_starts_with($cleanSheba, 'IR')) {
-                $cleanSheba = 'IR' . str_pad($cleanSheba, 24, '0', STR_PAD_LEFT);
+            $fullName = trim(($emp?->first_name . ' ' . $emp?->last_name) ?: '');
+            if ($fullName === '') {
+                throw new InvalidArgumentException("نام و نام خانوادگی کارمند شناسه #{$emp?->id} نامعتبر است.");
             }
 
-            if ($this->isValidSheba($cleanSheba)) {
-                $validSheba++;
-            } else {
-                $invalidSheba++;
+            $nationalId = trim((string) ($profile?->national_id ?? $emp?->national_id ?? ''));
+            if (! \Modules\Hrm\Support\IranianNationalId::isValid($nationalId)) {
+                throw new InvalidArgumentException("کد ملی کارمند ({$fullName}) نامعتبر است. صدور فایل پرداخت متوقف گردید.");
             }
 
+            $rawSheba = trim((string) ($profile?->sheba ?? $emp?->bank_sheba ?? ''));
+            if ($rawSheba === '' || ! $this->isValidSheba($rawSheba)) {
+                throw new InvalidArgumentException("شماره شبای بانکی کارمند ({$fullName}) نامعتبر است ({$rawSheba}).");
+            }
+
+            $validSheba++;
             $net = (float) $item->net;
             $totalAmount += $net;
 
-            $fullName = trim(($emp?->first_name . ' ' . $emp?->last_name) ?: 'پرسنل');
-            $nationalId = str_pad((string) ($emp?->national_id ?? '0000000000'), 10, '0', STR_PAD_LEFT);
-
             if ($format === 'mellat_batch') {
-                // Bank Mellat specific layout: Account/IBAN,Amount,Name,Ref,Description
-                $lines[] = sprintf("%s,%.0f,%s,%s,%s", $cleanSheba, $net, $fullName, $nationalId, "حقوق ماه {$run->month}");
+                $lines[] = sprintf("%s,%.0f,%s,%s,%s", $rawSheba, $net, $fullName, $nationalId, "حقوق ماه {$run->month}");
             } else {
-                // Standard Paya layout: SHEBA,Amount,FullName,NationalID,RefCode
                 $ref = sprintf("%04d%02d-%s", $run->year, $run->month, $emp?->id ?? '0');
-                $lines[] = sprintf("%s,%.0f,%s,%s,%s", $cleanSheba, $net, $fullName, $nationalId, $ref);
+                $lines[] = sprintf("%s,%.0f,%s,%s,%s", $rawSheba, $net, $fullName, $nationalId, $ref);
             }
         }
 
-        // Summary footer
         $lines[] = sprintf("// SUMMARY: COUNT=%d | TOTAL_AMOUNT=%.0f | VALID_SHEBA=%d", count($items), $totalAmount, $validSheba);
 
         $content = implode("\r\n", $lines);
