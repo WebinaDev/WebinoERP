@@ -4,9 +4,9 @@ namespace Modules\Hrm\Services;
 
 use InvalidArgumentException;
 use Modules\Hrm\Entities\HrmLegalExportRecord;
-use Modules\Hrm\Entities\HrmPayrollItem;
 use Modules\Hrm\Entities\HrmPayrollRun;
 use Modules\Hrm\Entities\HrmPayrollSetting;
+use Modules\Hrm\Entities\HrmSubsidiaryCompany;
 
 class HrmLegalDisketteService
 {
@@ -15,14 +15,20 @@ class HrmLegalDisketteService
     ) {}
 
     /**
-     * Resolve official enterprise workshop code from organization payroll settings.
-     * Throws InvalidArgumentException if unconfigured, eliminating fake defaults.
+     * Resolve enterprise workshop code from subsidiary company or organization settings.
      */
-    private function resolveWorkshopCode(?string $provided = null): string
+    private function resolveWorkshopCode(?string $provided = null, ?HrmPayrollRun $run = null): string
     {
         $code = trim((string) $provided);
-        if ($code !== '') {
+        if ($code !== '' && strlen($code) === 10 && ctype_digit($code)) {
             return $code;
+        }
+
+        if ($run && $run->subsidiary_company_id && \Illuminate\Support\Facades\Schema::hasTable('hrm_subsidiary_companies')) {
+            $company = HrmSubsidiaryCompany::query()->find($run->subsidiary_company_id);
+            if ($company && ! empty($company->workshop_code) && strlen($company->workshop_code) === 10 && ctype_digit($company->workshop_code)) {
+                return $company->workshop_code;
+            }
         }
 
         $setting = HrmPayrollSetting::query()->where('key', 'workshop_code')->first();
@@ -38,11 +44,18 @@ class HrmLegalDisketteService
     /**
      * Resolve enterprise Tax Identification Number (کد اقتصادی یا شناسه ملی کارفرما).
      */
-    private function resolveTaxTfn(?string $provided = null): string
+    private function resolveTaxTfn(?string $provided = null, ?HrmPayrollRun $run = null): string
     {
         $tfn = trim((string) $provided);
         if ($tfn !== '') {
             return $tfn;
+        }
+
+        if ($run && $run->subsidiary_company_id && \Illuminate\Support\Facades\Schema::hasTable('hrm_subsidiary_companies')) {
+            $company = HrmSubsidiaryCompany::query()->find($run->subsidiary_company_id);
+            if ($company && ! empty($company->tax_tfn) && strlen($company->tax_tfn) >= 11) {
+                return $company->tax_tfn;
+            }
         }
 
         $setting = HrmPayrollSetting::query()->where('key', 'tax_tfn')->first();
@@ -58,8 +71,15 @@ class HrmLegalDisketteService
     /**
      * Resolve enterprise postal code.
      */
-    private function resolvePostalCode(): string
+    private function resolvePostalCode(?HrmPayrollRun $run = null): string
     {
+        if ($run && $run->subsidiary_company_id && \Illuminate\Support\Facades\Schema::hasTable('hrm_subsidiary_companies')) {
+            $company = HrmSubsidiaryCompany::query()->find($run->subsidiary_company_id);
+            if ($company && ! empty($company->postal_code) && strlen($company->postal_code) === 10 && ctype_digit($company->postal_code)) {
+                return $company->postal_code;
+            }
+        }
+
         $setting = HrmPayrollSetting::query()->where('key', 'postal_code')->first();
         $postal = trim((string) ($setting?->value ?? ''));
 
@@ -86,7 +106,7 @@ class HrmLegalDisketteService
      */
     public function generateSsoDiskette(HrmPayrollRun $run, ?string $workshopCode = null): array
     {
-        $code = $this->resolveWorkshopCode($workshopCode);
+        $code = $this->resolveWorkshopCode($workshopCode, $run);
         $insuranceService = $this->insuranceService ?: app(HrmInsuranceListService::class);
         $header = $insuranceService->header((int) $run->year, (int) $run->month);
         $header['workshop_code'] = $code;
@@ -130,114 +150,106 @@ class HrmLegalDisketteService
 
         return [
             'record_count' => count($rows),
-            'total_wage' => (float) $totals['insurable'],
-            'total_employee_insurance' => (float) $totals['employee_insurance'],
-            'total_employer_insurance' => (float) $totals['employer_insurance'],
+            'total_wage' => $totals['insurable'],
+            'total_employee_insurance' => $totals['employee_insurance'],
+            'total_employer_insurance' => $totals['employer_insurance'],
             'dskkar00_content' => $dskkarText,
             'dskwor00_content' => $dskworText,
             'zip_base64' => base64_encode($zipBinary),
-            'content_sample' => mb_substr($dskkarText, 0, 300) . "\r\n" . mb_substr($dskworText, 0, 500),
+            'content_sample' => substr($dskkarText, 0, 500),
         ];
     }
 
     /**
-     * Generate standard Iranian Salary Tax Diskette (سامانه مالیات بر حقوق سازمان امور مالیاتی کشور - ماده ۸۴)
-     * Format: WH (Header) / WP (Personnel)
+     * Generate standard Iranian Tax Organization Diskette format (سامانه مالیات بر درآمد حقوق ماده ۸۴)
      *
      * @return array{
      *   record_count: int,
-     *   total_gross: float,
      *   total_taxable: float,
      *   total_tax: float,
      *   wh_content: string,
      *   wp_content: string,
-     *   tax_diskette_content: string
+     *   checksum: string
      * }
      */
-    public function generateTaxDiskette(HrmPayrollRun $run, ?string $taxTfn = null): array
+    public function generateTaxDiskette(HrmPayrollRun $run, ?string $tfn = null): array
     {
-        $tfn = $this->resolveTaxTfn($taxTfn);
-        $postalCode = $this->resolvePostalCode();
+        $taxTfn = $this->resolveTaxTfn($tfn, $run);
+        $postalCode = $this->resolvePostalCode($run);
 
-        $items = HrmPayrollItem::query()->where('payroll_run_id', $run->id)->with('employee.profile')->get();
-        if ($items->isEmpty()) {
-            throw new InvalidArgumentException('هیچ رکوردی در این دوره حقوق برای صدور دیسکت مالیات وجود ندارد.');
-        }
-
-        $totalGross = 0.0;
-        $totalTaxable = 0.0;
-        $totalTax = 0.0;
+        $run->loadMissing(['items.employee']);
 
         $whLines = [];
         $wpLines = [];
+        $totalTaxable = 0.0;
+        $totalTax = 0.0;
 
-        $whLines[] = sprintf("WH,%s,%04d,%02d,%d,0,0,0,%s,MAIN", $tfn, (int) $run->year, (int) $run->month, count($items), $postalCode);
-
-        foreach ($items as $i => $item) {
+        foreach ($run->items as $item) {
             $emp = $item->employee;
-            $profile = $emp?->profile;
-
-            $firstName = trim((string) $emp?->first_name);
-            $lastName = trim((string) $emp?->last_name);
-            $nationalCode = trim((string) ($profile?->national_id ?? $emp?->national_id ?? ''));
-
-            if ($firstName === '' || $lastName === '') {
-                throw new InvalidArgumentException("نام و نام خانوادگی کارمند شناسه #{$emp?->id} ثبت نشده است. درج مشخصات پیش‌فرض در دیسکت مالیات مجاز نیست.");
+            if (! $emp) {
+                continue;
             }
 
-            if (! \Modules\Hrm\Support\IranianNationalId::isValid($nationalCode)) {
-                throw new InvalidArgumentException("کد ملی کارمند ({$firstName} {$lastName}) معتبر نیست. صدور دیسکت مالیات رد شد.");
+            $nationalId = trim((string) $emp->national_id);
+            if (empty($nationalId) || strlen($nationalId) !== 10 || ! ctype_digit($nationalId)) {
+                $name = "{$emp->first_name} {$emp->last_name}";
+                throw new InvalidArgumentException("کد ملی ۱۰ رقمی برای کارمند «{$name}» نامعتبر است. صدور دیسکت مالیات متوقف شد.");
             }
 
-            $gross = (float) $item->gross;
-            $taxable = (float) ($item->taxable_wage ?: $gross);
-            $tax = (float) ($item->tax ?: 0);
-            $exemption = max(0.0, $gross - $taxable);
+            $taxable = (float) ($item->taxable_wage ?: $item->gross);
+            $tax = (float) $item->tax;
 
-            $totalGross += $gross;
             $totalTaxable += $taxable;
             $totalTax += $tax;
 
-            $wpLines[] = sprintf(
-                "WP,%s,%s,%s,IRN,1,%.0f,%.0f,%.0f,%.0f,0",
-                $nationalCode,
-                $firstName,
-                $lastName,
-                $gross,
-                $exemption,
-                $taxable,
-                $tax
-            );
+            // WH format (اطلاعات هویتی و پرسنلی مالیاتی)
+            $whLines[] = implode('|', [
+                $taxTfn,
+                $nationalId,
+                $emp->first_name,
+                $emp->last_name,
+                $emp->insurance_no ?: '',
+                $postalCode,
+                $emp->hire_date ? $emp->hire_date->format('Ymd') : '',
+            ]);
+
+            // WP format (اطلاعات مالی، حقوق ناخالص، معافیت‌ها و مالیات)
+            $wpLines[] = implode('|', [
+                $taxTfn,
+                $nationalId,
+                (int) $run->year,
+                (int) $run->month,
+                number_format($taxable, 0, '', ''),
+                number_format($tax, 0, '', ''),
+            ]);
         }
 
-        $whLines[0] = sprintf("WH,%s,%04d,%02d,%d,%.0f,%.0f,%.0f,%s,MAIN", $tfn, (int) $run->year, (int) $run->month, count($items), $totalGross, $totalTaxable, $totalTax, $postalCode);
-
-        $fullContent = implode("\r\n", $whLines) . "\r\n" . implode("\r\n", $wpLines);
+        $whContent = implode("\r\n", $whLines);
+        $wpContent = implode("\r\n", $wpLines);
+        $checksum = hash('sha256', $whContent . $wpContent);
 
         HrmLegalExportRecord::query()->create([
             'payroll_run_id' => $run->id,
             'export_type' => 'tax_diskette',
-            'format' => 'txt_wh_wp',
-            'total_records' => count($items),
+            'format' => 'wh_wp_pipe',
+            'total_records' => count($whLines),
             'total_amount' => $totalTax,
             'metadata' => [
-                'tfn' => $tfn,
+                'tax_tfn' => $taxTfn,
                 'postal_code' => $postalCode,
                 'year' => $run->year,
                 'month' => $run->month,
-                'total_gross' => $totalGross,
-                'total_tax' => $totalTax,
+                'total_taxable' => $totalTaxable,
             ],
         ]);
 
         return [
-            'record_count' => count($items),
-            'total_gross' => $totalGross,
+            'record_count' => count($whLines),
             'total_taxable' => $totalTaxable,
             'total_tax' => $totalTax,
-            'wh_content' => implode("\r\n", $whLines),
-            'wp_content' => implode("\r\n", $wpLines),
-            'tax_diskette_content' => $fullContent,
+            'wh_content' => $whContent,
+            'wp_content' => $wpContent,
+            'checksum' => $checksum,
         ];
     }
 }

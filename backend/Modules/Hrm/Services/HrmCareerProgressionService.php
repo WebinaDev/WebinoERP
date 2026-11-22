@@ -12,13 +12,26 @@ class HrmCareerProgressionService
 {
     /**
      * Analyze employee achievements and produce promotion proposals based exclusively on configured career paths.
+     * Incorporates official performance review agreements and weighted KPIs.
      */
     public function evaluatePromotionEligibility(HrmEmployee $employee): ?HrmPromotionProposal
     {
         $tenureMonths = $employee->hire_date ? (int) $employee->hire_date->diffInMonths(now()) : 12;
 
         $perfScore = 80.0;
-        if (\Illuminate\Support\Facades\Schema::hasTable('hrm_performance_reviews')) {
+
+        // 1. Check formal performance agreements if present
+        if (\Illuminate\Support\Facades\Schema::hasTable('hrm_performance_agreements')) {
+            $lastAgreement = \Illuminate\Support\Facades\DB::table('hrm_performance_agreements')
+                ->where('employee_id', $employee->id)
+                ->where('stage', 'finalized')
+                ->orderByDesc('id')
+                ->first();
+
+            if ($lastAgreement && $lastAgreement->final_score !== null) {
+                $perfScore = (float) $lastAgreement->final_score;
+            }
+        } elseif (\Illuminate\Support\Facades\Schema::hasTable('hrm_performance_reviews')) {
             $avgScore = HrmPerformanceReview::query()
                 ->where('employee_id', $employee->id)
                 ->where('status', 'completed')
@@ -46,7 +59,7 @@ class HrmCareerProgressionService
         }
 
         $formattedYears = round($tenureMonths / 12, 1);
-        $justification = "بر اساس ارزیابی عملکرد دوره‌ای و احراز {$formattedYears} سال سابقه خدمت مرتبط، کارمند واجد شرایط ارتقای رتبه سازمانی به عنوان «{$targetPath->title_fa}» تشخیص داده شد.";
+        $justification = "بر اساس ارزیابی عملکرد دوره‌ای با نمره مکتسبه {$perfScore} و احراز {$formattedYears} سال سابقه خدمت مرتبط، کارمند واجد شرایط ارتقای رتبه سازمانی به عنوان «{$targetPath->title_fa}» تشخیص داده شد.";
 
         return HrmPromotionProposal::query()->updateOrCreate(
             [
