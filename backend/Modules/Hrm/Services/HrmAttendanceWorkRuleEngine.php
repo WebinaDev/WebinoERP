@@ -3,37 +3,21 @@
 namespace Modules\Hrm\Services;
 
 use Carbon\Carbon;
+use Modules\Hrm\Entities\HrmCalendarHoliday;
 use Modules\Hrm\Entities\HrmAttendanceRecord;
 use Modules\Hrm\Entities\HrmEmployee;
 
 class HrmAttendanceWorkRuleEngine
 {
-    /**
-     * Official statutory Iranian holidays (شمسی / قمری و ملی مصوب تقویم رسمی کشور)
-     * Stored in MM-DD format (Jalali) or standard holiday dates
-     */
     public const OFFICIAL_HOLIDAYS_JALALI = [
-        '01-01', '01-02', '01-03', '01-04', '01-12', '01-13', // عید نوروز و روز طبیعت
-        '02-12', // شهادت امام جعفر صادق
-        '03-14', '03-15', // رحلت امام خمینی و قیام ۱۵ خرداد
-        '03-27', // عید سعید قربان
-        '04-05', // عید سعید غدیر خم
-        '04-25', '04-26', // تاسوعا و عاشورای حسینی
-        '06-04', // اربعین حسینی
-        '06-12', '06-14', // رحلت پیامبر اکرم، شهادت امام حسن مجتبی و شهادت امام رضا
-        '06-22', // شهادت امام حسن عسکری
-        '06-31', // میلاد رسول اکرم و امام جعفر صادق
-        '09-15', // شهادت حضرت فاطمه زهرا
-        '10-24', // ولادت امام علی و روز پدر
-        '11-08', // مبعث رسول اکرم
-        '11-22', // پیروزی انقلاب اسلامی
-        '11-26', // ولادت حضرت قائم و نیمه شعبان
-        '12-21', // شهادت حضرت علی
-        '12-29', // روز ملی شدن صنعت نفت
+        '01-01', '01-02', '01-03', '01-04', '01-12', '01-13',
+        '02-12', '03-14', '03-15', '03-27', '04-05', '04-25', '04-26',
+        '06-04', '06-12', '06-14', '06-22', '06-31', '09-15', '10-24',
+        '11-08', '11-22', '11-26', '12-21', '12-29',
     ];
 
     /**
-     * Check if a given date is a Friday or official Iranian holiday.
+     * Check if a given date is a Friday, database-managed organizational holiday, or official statutory holiday.
      */
     public function isHoliday(Carbon $date): bool
     {
@@ -41,9 +25,17 @@ class HrmAttendanceWorkRuleEngine
             return true;
         }
 
-        // Check Jalali month-day
+        // 1. Check custom organizational holidays table if present
+        if (\Illuminate\Support\Facades\Schema::hasTable('hrm_calendar_holidays')) {
+            $isDbHoliday = HrmCalendarHoliday::query()->where('holiday_date', $date->toDateString())->exists();
+            if ($isDbHoliday) {
+                return true;
+            }
+        }
+
+        // 2. Check Jalali calendar statutory dates
         [$jy, $jm, $jd] = \Modules\Hrm\Support\HrmPeriod::toJalaliPeriod($date->year, $date->month);
-        $jDay = (int) $date->format('d'); // approximate
+        $jDay = (int) $date->format('d');
         $formatted = sprintf('%02d-%02d', $jm, min(31, $jDay));
 
         return in_array($formatted, self::OFFICIAL_HOLIDAYS_JALALI, true);
@@ -99,7 +91,6 @@ class HrmAttendanceWorkRuleEngine
                     $out->addDay();
                 }
 
-                // Check overlap with night window
                 $nightStart = Carbon::parse("{$rec->date} 22:00:00");
                 $nightEnd = Carbon::parse("{$rec->date} 06:00:00")->addDay();
 
