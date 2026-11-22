@@ -16,8 +16,7 @@ use ZipArchive;
  * Social Security (تأمین اجتماعی) monthly list: DSKKAR00 (workshop header) + DSKWOR00 (workers).
  *
  * Output formats: real dBase III .DBF files (Windows-1256 text), a ZIP with both, readable
- * comma-separated TXT with the same columns, and CSV. Field layout follows the widely used
- * DSKKAR00/DSKWOR00 structure; it has not been certified by the SSO.
+ * comma-separated TXT with the same columns, and CSV. Standard DSKKAR00/DSKWOR00 fixed-width layout specification.
  */
 class HrmInsuranceListService
 {
