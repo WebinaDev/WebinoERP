@@ -2,7 +2,6 @@
 
 namespace Modules\Hrm\Services;
 
-use Carbon\Carbon;
 use InvalidArgumentException;
 use Modules\Accounting\Entities\AccChartAccount;
 use Modules\Accounting\Entities\AccFiscalYear;
@@ -18,7 +17,8 @@ class HrmPayrollAccountingIntegrationService
 {
     /**
      * Resolve account by chart code or configured setting key.
-     * Creates standard postable account node if missing to ensure balanced ledger entry.
+     * In enterprise environments, missing accounts must throw InvalidArgumentException
+     * rather than auto-creating ledger nodes without chart governance.
      */
     private function resolveAccount(string $settingKey, string $defaultCode, string $name, string $type): int
     {
@@ -36,6 +36,11 @@ class HrmPayrollAccountingIntegrationService
 
         $account = AccChartAccount::query()->where('code', $code)->first();
         if (! $account) {
+            // Enterprise strictness: verify chart node exists
+            if (app()->environment('production')) {
+                throw new InvalidArgumentException("کد حساب معین «{$code}» برای سرفصل «{$name}» در کدینگ حسابداری سازمان تعریف نشده است.");
+            }
+
             $account = AccChartAccount::query()->create([
                 'code' => $code,
                 'name' => $name,

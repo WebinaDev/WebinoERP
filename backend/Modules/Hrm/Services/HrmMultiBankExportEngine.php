@@ -5,6 +5,7 @@ namespace Modules\Hrm\Services;
 use InvalidArgumentException;
 use Modules\Hrm\Entities\HrmPayrollRun;
 use Modules\Hrm\Entities\HrmPayrollItem;
+use Modules\Hrm\Entities\HrmSubsidiaryCompany;
 
 class HrmMultiBankExportEngine
 {
@@ -19,6 +20,15 @@ class HrmMultiBankExportEngine
             throw new InvalidArgumentException('رکوردی در این دوره حقوق برای خروجی بانکی وجود ندارد.');
         }
 
+        // Strict subsidiary company resolution
+        $sourceSheba = $companySheba;
+        if (empty($sourceSheba) && $run->subsidiary_company_id && \Illuminate\Support\Facades\Schema::hasTable('hrm_subsidiary_companies')) {
+            $company = HrmSubsidiaryCompany::query()->find($run->subsidiary_company_id);
+            if ($company && ! empty($company->company_sheba)) {
+                $sourceSheba = $company->company_sheba;
+            }
+        }
+
         $lines = [];
         $totalAmount = 0.0;
         $validSheba = 0;
@@ -27,11 +37,11 @@ class HrmMultiBankExportEngine
         $batchRef = sprintf("%04d%02d-%03d", $run->year, $run->month, $run->id);
 
         if ($bank === 'satna_rtgs') {
-            $lines[] = "SATNA_HEADER:DATE={$dateStr}:BATCH={$batchRef}:CURRENCY=IRR";
+            $lines[] = "SATNA_HEADER:DATE={$dateStr}:BATCH={$batchRef}:SOURCE={$sourceSheba}:CURRENCY=IRR";
         } elseif ($bank === 'melli_bmi') {
-            $lines[] = "BMI_PAYROLL_HDR,{$dateStr},{$batchRef}," . count($items);
+            $lines[] = "BMI_PAYROLL_HDR,{$dateStr},{$batchRef}," . count($items) . ",{$sourceSheba}";
         } else {
-            $lines[] = "PAYA_ACH_HDR,{$dateStr},{$batchRef}," . count($items);
+            $lines[] = "PAYA_ACH_HDR,{$dateStr},{$batchRef}," . count($items) . ",{$sourceSheba}";
         }
 
         foreach ($items as $item) {
@@ -72,6 +82,7 @@ class HrmMultiBankExportEngine
 
         return [
             'bank' => $bank,
+            'source_sheba' => $sourceSheba,
             'record_count' => count($items),
             'total_amount' => $totalAmount,
             'valid_sheba_count' => $validSheba,

@@ -17,7 +17,8 @@ class HrmPayrollEndToEndWorkflowService
         private readonly HrmStandardBankFormatService $bankService,
         private readonly HrmPayrollAccountingIntegrationService $accountingBridge,
         private readonly HrmSsoDisketteValidatorService $validatorService,
-        private readonly HrmEydiSeveranceCalculatorService $severanceService
+        private readonly HrmEydiSeveranceCalculatorService $severanceService,
+        private readonly HrmPayrollWorkflowEngine $workflowEngine
     ) {}
 
     /**
@@ -27,8 +28,13 @@ class HrmPayrollEndToEndWorkflowService
      * - Records systematic monthly severance reserve with previous-month balance lookup (no double-counting)
      * - Respects company boundary if subsidiary_company_id is set
      */
-    public function calculateRun(HrmPayrollRun $run): void
+    public function calculateRun(HrmPayrollRun $run, ?int $userId = null): void
     {
+        // Advance workflow state via official engine: draft -> calculating
+        if (($run->workflow_state ?? 'draft') === 'draft') {
+            $run = $this->workflowEngine->transitionTo($run, 'calculating', $userId, 'آغاز محاسبه مکانیزه دوره حقوق');
+        }
+
         $employeeQuery = HrmEmployee::query()->where('is_active', true);
         if ($run->subsidiary_company_id && \Illuminate\Support\Facades\Schema::hasColumn('hrm_employees', 'subsidiary_company_id')) {
             $employeeQuery->where('subsidiary_company_id', $run->subsidiary_company_id);
@@ -123,24 +129,19 @@ class HrmPayrollEndToEndWorkflowService
             );
         }
 
-        $run->update([
-            'workflow_state' => 'review',
-            'status' => 'draft',
-        ]);
+        // Advance to review via state engine
+        $this->workflowEngine->transitionTo($run, 'review', $userId, 'تکمیل محاسبات و انتقال به کارتابل بازبینی');
     }
 
     /**
-     * Complete workflow execution:
-     * 1. Calculate & accrue monthly severance
-     * 2. Post segregated accounting entries (current, retro current year, retro prior years)
-     * 3. Validate and build SSO & Tax diskettes (blocks on validation failure)
-     * 4. Build certified multi-bank export file with Mod 97 validation
-     * 5. Lock run
+     * Complete workflow execution strictly traversing the official workflow engine:
+     * calculating -> review -> approved -> paid -> locked
+     * With full audit logging and state verification at each step.
      */
     public function executeFullPayrollCycle(HrmPayrollRun $run, ?int $userId = null): array
     {
-        // 1. Direct Service Calculation
-        $this->calculateRun($run);
+        // 1. Direct Service Calculation (moves draft -> calculating -> review)
+        $this->calculateRun($run, $userId);
 
         // 2. Issue Accounting Vouchers
         $voucherResult = $this->accountingBridge->issuePayrollVouchers($run, $userId);
@@ -152,19 +153,15 @@ class HrmPayrollEndToEndWorkflowService
         // 4. Generate Certified Bank Export
         $bankFile = $this->bankService->generateBankExport($run, 'paya_standard');
 
-        // 5. Transition to locked/approved
-        $run->update([
-            'status' => 'approved',
-            'workflow_state' => 'locked',
-            'approved_at' => now(),
-            'locked_at' => now(),
-            'locked_by' => $userId,
-        ]);
+        // 5. Strict sequential workflow transitions: review -> approved -> paid -> locked
+        $run = $this->workflowEngine->transitionTo($run, 'approved', $userId, 'تأیید نهایی ارقام حقوق توسط مدیر مالی');
+        $run = $this->workflowEngine->transitionTo($run, 'paid', $userId, 'تأیید پرداخت و صدور حواله بانکی پایا');
+        $run = $this->workflowEngine->transitionTo($run, 'locked', $userId, 'قفل قطعی دوره حقوق و دیسکت‌ها');
 
         return [
             'status' => 'completed',
             'payroll_run_id' => $run->id,
-            'workflow_state' => 'locked',
+            'workflow_state' => $run->workflow_state,
             'items_count' => $run->items()->count(),
             'total_gross' => (float) $run->items()->sum('gross'),
             'total_net' => (float) $run->items()->sum('net'),
@@ -173,7 +170,7 @@ class HrmPayrollEndToEndWorkflowService
             'tax_records' => $taxDiskette['record_count'],
             'bank_paya_records' => $bankFile['total_records'],
             'bank_checksum' => $bankFile['checksum'],
-            'message' => 'چرخه کامل حقوق، معوقات، ذخیره سنوات، اسناد مالی و دیسکت‌ها با موفقیت نهایی و قفل شد.',
+            'message' => 'چرخه کامل حقوق، معوقات، ذخیره سنوات، اسناد مالی و دیسکت‌ها با موفقیت در گردش کار رسمی نهایی و قفل شد.',
         ];
     }
 }
