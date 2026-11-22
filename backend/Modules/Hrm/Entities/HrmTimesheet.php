@@ -11,7 +11,7 @@ class HrmTimesheet extends Model
 
     protected $fillable = [
         'employee_id', 'project_id', 'task_id', 'project_name', 'task_name',
-        'work_date', 'hours', 'description', 'status', 'submitted_at',
+        'work_date', 'hours', 'hour_type', 'description', 'status', 'submitted_at',
         'approved_by', 'approved_at', 'decision_note',
         'approval_step', 'current_role', 'approval_log',
     ];
