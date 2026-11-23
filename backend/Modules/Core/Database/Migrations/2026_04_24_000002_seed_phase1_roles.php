@@ -1,18 +1,13 @@
 <?php
 
 use Illuminate\Database\Migrations\Migration;
-use Modules\Core\Database\Seeders\RolesAndPermissionsSeeder;
 
-/**
- * Idempotent migration that runs the roles/permissions seeder. Ensures the four parity roles
- * (finance_manager, system_manager, team_member, sales_consultant + client) and the full
- * permission list exist in any environment that runs `php artisan migrate`.
- */
+// Initial roles are created by the installation command.
 return new class extends Migration
 {
     public function up(): void
     {
-        app()->make(RolesAndPermissionsSeeder::class)->run();
+        \Modules\Core\Support\Initialization\LegacyUpgradeQueue::record('roles');
     }
 
     public function down(): void

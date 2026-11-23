@@ -302,6 +302,11 @@ class AuthParityController extends Controller
 
     public function register(Request $request): JsonResponse
     {
+        if (\Illuminate\Support\Facades\Schema::hasTable('webino_installation_state')
+            && \Illuminate\Support\Facades\DB::table('webino_installation_state')->where('id', 1)->value('status') === 'pending') {
+            return response()->json(['message' => __('api.install_in_progress')], 503);
+        }
+
         $data = $request->validate([
             'name' => 'required|string|max:191',
             'email' => 'required|email|unique:users,email',

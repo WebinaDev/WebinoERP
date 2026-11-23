@@ -470,10 +470,8 @@ if ! compose_cli exec -T db pg_restore --list < "${BACKUP_FILE}" >/dev/null; the
   exit 1
 fi
 run_cmd chmod 600 "${BACKUP_FILE}"
-HAS_EXISTING_SCHEMA=0
-if compose_cli exec -T db psql -U "${DB_USER}" -d "${DB_NAME}" -tAc "SELECT to_regclass('public.migrations') IS NOT NULL" 2>/dev/null | grep -qx t; then
-  HAS_EXISTING_SCHEMA=1
-fi
+source "${INSTALL_DIR}/WebinoERP/scripts/prepare-installation-state.sh"
+prepare_installation_state
 
 # ── build & start app containers only after verified backup ───────────────────
 log "Building and starting application services…"
@@ -496,19 +494,19 @@ if [ "${BACKEND_READY}" -eq 0 ]; then
   exit 1
 fi
 
-# ── migrate & seed ────────────────────────────────────────────────────────────
+# Apply schema migrations without seeding the database.
 log "Running database migrations"
 # shellcheck source=scripts/apply-erp-migrations.sh
 source "${INSTALL_DIR}/WebinoERP/scripts/apply-erp-migrations.sh"
 apply_erp_migrations
 
-if [ "${HAS_EXISTING_SCHEMA}" -eq 0 ]; then
-  log "Fresh database detected; running initial seeders"
-  compose_cli exec -T backend php artisan db:seed --force
-  compose_cli exec -T backend php artisan db:seed --class='Modules\\SiteBuilder\\Database\\Seeders\\SiteBuilderSeeder' --force
-  compose_cli exec -T backend php artisan site-builder:ensure-hosting-defaults
-else
-  log "Existing database detected; skipping seeders to preserve user data and permissions"
+if [ "${INSTALL_PENDING}" -eq 1 ]; then
+  if ! (: </dev/tty) 2>/dev/null; then
+    echo "ERROR: initial administrator setup requires an interactive terminal; rerun install.sh from a terminal." >&2
+    exit 1
+  fi
+  log "Creating the first administrator and initial settings"
+  compose_cli exec backend php artisan core:initialize-installation </dev/tty
 fi
 
 compose_cli exec -T backend php artisan storage:link 2>/dev/null || true
@@ -530,9 +528,6 @@ echo "║           WebinoERP installed! 🎉            ║"
 echo "╠══════════════════════════════════════════════╣"
 echo "║  Admin:  ${APP_URL}/dashboard"
 echo "║  API:    ${APP_URL}/api/v1"
-echo "║  Login:  admin@webina.local  /  password"
-echo "╠══════════════════════════════════════════════╣"
-echo "║  ⚠  Change the default password immediately! ║"
 echo "╚══════════════════════════════════════════════╝"
 echo
 echo "Project path : ${INSTALL_DIR}/WebinoERP"

@@ -25,7 +25,19 @@ class CoreServiceProvider extends ServiceProvider
     public function boot()
     {
         if ($this->app->runningInConsole()) {
+            \Illuminate\Support\Facades\Event::listen(\Illuminate\Console\Events\CommandStarting::class, function ($event): void {
+                if (! app()->environment('production')) {
+                    return;
+                }
+                $blocked = ['db:seed', 'db:wipe', 'migrate:fresh', 'migrate:refresh', 'migrate:reset', 'migrate:rollback'];
+                if (in_array($event->command, $blocked, true)
+                    || ($event->command === 'migrate' && $event->input->hasParameterOption('--seed'))) {
+                    throw new \RuntimeException(__('api.production_command_forbidden'));
+                }
+            });
             $this->commands([
+                \Modules\Core\Console\InitializeInstallationCommand::class,
+                \Modules\Core\Console\UpgradeLegacyInstallationCommand::class,
                 \Modules\Core\Console\SiteAuthCommand::class,
                 \Modules\Core\Console\SiteAuthProvisionCommand::class,
                 \Modules\Core\Console\LicenseRenewalRemindersCommand::class,

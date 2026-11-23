@@ -42,6 +42,10 @@ class ChartAccountController extends Controller
 
     public function seedChartIran(Request $request): JsonResponse
     {
+        if (app()->environment('production')) {
+            return response()->json(['message' => __('api.production_command_forbidden')], 403);
+        }
+
         $request->validate(['truncate' => 'prohibited']);
         $result = AccChartIranSeeder::run();
 

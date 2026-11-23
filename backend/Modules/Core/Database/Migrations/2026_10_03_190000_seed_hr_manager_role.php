@@ -1,17 +1,13 @@
 <?php
 
 use Illuminate\Database\Migrations\Migration;
-use Modules\Core\Database\Seeders\RolesAndPermissionsSeeder;
 
-/**
- * Idempotent: creates hr_manager (مدیر منابع انسانی) and hrm.ess.view
- * on databases that already ran the earlier roles migration.
- */
+// Initial roles are created by the installation command.
 return new class extends Migration
 {
     public function up(): void
     {
-        app()->make(RolesAndPermissionsSeeder::class)->run();
+        \Modules\Core\Support\Initialization\LegacyUpgradeQueue::record('roles');
     }
 
     public function down(): void

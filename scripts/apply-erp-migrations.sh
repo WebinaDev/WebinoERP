@@ -11,6 +11,11 @@ apply_erp_migrations() {
     exit 1
   fi
 
+  if ! compose_cli exec -T backend php artisan core:upgrade-legacy-installation --no-interaction; then
+    echo "ERROR: legacy metadata upgrade failed; fix the reported error and retry the update." >&2
+    exit 1
+  fi
+
   log "Verifying no pending migrations and webino_site_provisions.progress exists"
   if ! compose_cli exec -T backend php artisan site-builder:assert-schema; then
     echo "ERROR: database schema is still behind the code after migrate --force." >&2
