@@ -631,3 +631,317 @@ export async function reloadProxy(serverId: number | string) {
   const res = await apiClient.post(`${BASE}/servers/${serverId}/proxy/reload`);
   return unwrapData<unknown>(res);
 }
+
+// -------------------------------------------------------------
+// Monitoring Phase 1 API
+// -------------------------------------------------------------
+
+export type MonitoringOverview = {
+  counts: {
+    total_servers: number;
+    healthy_servers: number;
+    warning_servers: number;
+    critical_servers: number;
+    open_alerts: number;
+  };
+  servers: Array<{
+    id: number;
+    name: string;
+    ip: string;
+    status: string;
+    health_status: 'healthy' | 'warning' | 'critical';
+    last_seen_at?: string | null;
+    latest_metrics: {
+      cpu_usage: number;
+      mem_usage_percent: number;
+      disk_usage_percent: number;
+    };
+  }>;
+};
+
+export type MetricSnapshotItem = {
+  metric_key: string;
+  value: number;
+  unit: string;
+  labels?: Record<string, unknown> | null;
+  collected_at?: string;
+  bucket_start?: string;
+  value_avg?: number;
+  value_max?: number;
+  value_min?: number;
+  sample_count?: number;
+};
+
+export type ServerMetricsResponse = {
+  server_id: number;
+  interval: string;
+  metrics: MetricSnapshotItem[];
+};
+
+export type AlertEvent = {
+  id: number;
+  rule_id: number;
+  rule_name?: string;
+  server_id?: number | null;
+  server_name?: string | null;
+  status: 'open' | 'acknowledged' | 'resolved';
+  severity: 'info' | 'warning' | 'critical';
+  message: string;
+  metric_value: number;
+  opened_at?: string;
+  acknowledged_at?: string | null;
+  resolved_at?: string | null;
+  meta?: Record<string, unknown> | null;
+};
+
+export async function fetchMonitoringOverview() {
+  const res = await apiClient.get(`${BASE}/monitoring/overview`);
+  return unwrapData<MonitoringOverview>(res);
+}
+
+export async function fetchServerMetricsPhase1(serverId: number | string, params?: { from?: string; to?: string; metric_keys?: string[]; interval?: 'raw' | 'hourly' }) {
+  const res = await apiClient.get(`${BASE}/servers/${serverId}/metrics`, { params });
+  return unwrapData<ServerMetricsResponse>(res);
+}
+
+export async function collectServerMetricsNow(serverId: number | string) {
+  const res = await apiClient.post(`${BASE}/servers/${serverId}/metrics/collect`);
+  return unwrapData<{ server_id: number; collected_at: string; metrics: Record<string, unknown> }>(res);
+}
+
+export async function fetchAlertEvents(params?: { status?: string; severity?: string; server_id?: number | string; per_page?: number }) {
+  const res = await apiClient.get(`${BASE}/monitoring/alerts`, { params });
+  return unwrapData<{ data: AlertEvent[] } | AlertEvent[]>(res);
+}
+
+export async function acknowledgeAlert(alertId: number | string) {
+  const res = await apiClient.post(`${BASE}/monitoring/alerts/${alertId}/ack`);
+  return unwrapData<{ data: AlertEvent; message: string }>(res);
+}
+
+export async function resolveAlert(alertId: number | string) {
+  const res = await apiClient.post(`${BASE}/monitoring/alerts/${alertId}/resolve`);
+  return unwrapData<{ data: AlertEvent; message: string }>(res);
+}
+
+export async function fetchAlertRules() {
+  const res = await apiClient.get(`${BASE}/monitoring/rules`);
+  return unwrapData<Array<{
+    id: number;
+    name: string;
+    scope_type: string;
+    metric_key: string;
+    operator: string;
+    threshold: number;
+    duration_seconds: number;
+    severity: string;
+    is_enabled: boolean;
+  }>>(res);
+}
+
+// -------------------------------------------------------------
+// Quota & Resource/Project Usage (Phase 2) API
+// -------------------------------------------------------------
+
+export type ResourceQuota = {
+  id?: number;
+  resource_id: number;
+  cpu_percent_soft?: number | null;
+  cpu_percent_hard?: number | null;
+  ram_mb_soft?: number | null;
+  ram_mb_hard?: number | null;
+  disk_mb_soft?: number | null;
+  disk_mb_hard?: number | null;
+  inode_soft?: number | null;
+  inode_hard?: number | null;
+  bandwidth_gb_month_soft?: number | null;
+  bandwidth_gb_month_hard?: number | null;
+  enforce_action: 'alert' | 'throttle' | 'suspend';
+  is_enabled: boolean;
+};
+
+export type ProjectQuota = {
+  id?: number;
+  project_id: number;
+  cpu_percent_soft?: number | null;
+  cpu_percent_hard?: number | null;
+  ram_mb_soft?: number | null;
+  ram_mb_hard?: number | null;
+  disk_mb_soft?: number | null;
+  disk_mb_hard?: number | null;
+  inode_soft?: number | null;
+  inode_hard?: number | null;
+  bandwidth_gb_month_soft?: number | null;
+  bandwidth_gb_month_hard?: number | null;
+  enforce_action: 'alert' | 'throttle' | 'suspend';
+  is_enabled: boolean;
+};
+
+export type ProjectUsageResponse = {
+  project_id: number;
+  total_usage: {
+    disk_bytes: number;
+    ram_bytes: number;
+    cpu_usage: number;
+    inode_count: number;
+  };
+  quota?: ProjectQuota | null;
+  resources: Array<{
+    id: number;
+    name: string;
+    type: string;
+    status?: string;
+    disk_bytes: number;
+    mem_bytes: number;
+    cpu_usage: number;
+    inode_count: number;
+  }>;
+};
+
+export async function fetchResourceMetrics(resourceId: number | string, params?: { from?: string; to?: string }) {
+  const res = await apiClient.get(`${BASE}/resources/${resourceId}/metrics`, { params });
+  return unwrapData<{
+    resource_id: number;
+    latest: { disk_bytes: number; inode_count: number; cpu_usage: number; mem_bytes: number };
+    metrics: MetricSnapshotItem[];
+  }>(res);
+}
+
+export async function fetchResourceQuota(resourceId: number | string) {
+  const res = await apiClient.get(`${BASE}/resources/${resourceId}/quota`);
+  return unwrapData<ResourceQuota>(res);
+}
+
+export async function updateResourceQuota(resourceId: number | string, data: Partial<ResourceQuota>) {
+  const res = await apiClient.put(`${BASE}/resources/${resourceId}/quota`, data);
+  return unwrapData<{ data: ResourceQuota; message: string }>(res);
+}
+
+export async function fetchProjectUsage(projectId: number | string) {
+  const res = await apiClient.get(`${BASE}/projects/${projectId}/usage`);
+  return unwrapData<ProjectUsageResponse>(res);
+}
+
+export async function fetchProjectQuota(projectId: number | string) {
+  const res = await apiClient.get(`${BASE}/projects/${projectId}/quota`);
+  return unwrapData<ProjectQuota>(res);
+}
+
+export async function updateProjectQuota(projectId: number | string, data: Partial<ProjectQuota>) {
+  const res = await apiClient.put(`${BASE}/projects/${projectId}/quota`, data);
+  return unwrapData<{ data: ProjectQuota; message: string }>(res);
+}
+
+export async function fetchUsageReport(params?: {
+  from?: string;
+  to?: string;
+  server_id?: number | string;
+  project_id?: number | string;
+  resource_id?: number | string;
+  group_by?: 'hour' | 'day';
+}) {
+  const res = await apiClient.get(`${BASE}/monitoring/reports/usage`, { params });
+  return unwrapData<{
+    from: string;
+    to: string;
+    group_by: string;
+    series: unknown[];
+  }>(res);
+}
+
+// -------------------------------------------------------------
+// Service Health (Phase 3) API
+// -------------------------------------------------------------
+
+export type ServiceHealthItem = {
+  id: number;
+  server_id: number;
+  service_key: 'caddy' | 'nginx' | 'php' | 'octane' | 'redis' | 'queue' | 'scheduler' | 'mail' | string;
+  status: 'up' | 'down' | 'degraded' | 'unknown';
+  message?: string | null;
+  meta?: Record<string, unknown> | null;
+  checked_at: string;
+};
+
+export async function fetchServerServiceHealth(serverId: number | string) {
+  const res = await apiClient.get(`${BASE}/servers/${serverId}/services/health`);
+  return unwrapData<{ server_id: number; services: ServiceHealthItem[] }>(res);
+}
+
+// -------------------------------------------------------------
+// Monitoring Reports (Phase 4) API
+// -------------------------------------------------------------
+
+export type TopConsumerItem = {
+  resource_id: number;
+  resource_name: string;
+  resource_type: string;
+  server_name: string;
+  project_name: string;
+  metric_key: string;
+  value: number;
+  unit: string;
+  collected_at?: string;
+};
+
+export type QuotaRiskItem = {
+  type: 'resource' | 'project';
+  id: number;
+  name: string;
+  server_name: string;
+  project_name: string;
+  metric: string;
+  current_value: number;
+  threshold: number;
+  unit: string;
+  risk_level: 'soft_warning' | 'hard_breach';
+  severity: 'warning' | 'critical';
+  action: string;
+  usage_percent: number;
+};
+
+export type AlertsSummaryResponse = {
+  total_alerts: number;
+  by_status: Record<string, number>;
+  by_severity: Record<string, number>;
+  recent_alerts: Array<{
+    id: number;
+    rule_name?: string;
+    server_name?: string;
+    project_name?: string;
+    status: string;
+    severity: string;
+    message: string;
+    opened_at?: string;
+  }>;
+};
+
+export async function fetchTopConsumers(params?: {
+  metric?: 'cpu' | 'mem' | 'disk';
+  limit?: number;
+  server_id?: number | string;
+  project_id?: number | string;
+}) {
+  const res = await apiClient.get(`${BASE}/monitoring/reports/top-consumers`, { params });
+  return unwrapData<{ metric: string; limit: number; consumers: TopConsumerItem[] }>(res);
+}
+
+export async function fetchQuotaRisks() {
+  const res = await apiClient.get(`${BASE}/monitoring/reports/quota-risk`);
+  return unwrapData<{ total_risks: number; risks: QuotaRiskItem[] }>(res);
+}
+
+export async function fetchAlertsSummary(params?: {
+  from?: string;
+  to?: string;
+  server_id?: number | string;
+  project_id?: number | string;
+  severity?: string;
+}) {
+  const res = await apiClient.get(`${BASE}/monitoring/reports/alerts-summary`, { params });
+  return unwrapData<AlertsSummaryResponse>(res);
+}
+
+
+
+

@@ -112,6 +112,33 @@ Route::delete('tags/{tag}', [TagController::class, 'destroy']);
 Route::post('webino/launch', [WebinoProvisionController::class, 'launch']);
 Route::get('crm/{accountId}/sites', [CrmSitesController::class, 'show']);
 
+// Server & Infrastructure Monitoring (Phase 1, 2 & 4)
+Route::prefix('monitoring')->group(function () {
+    Route::get('overview', [\Modules\Platform\Http\Controllers\MonitoringController::class, 'overview']);
+    Route::get('alerts', [\Modules\Platform\Http\Controllers\MonitoringController::class, 'alerts']);
+    Route::post('alerts/{id}/ack', [\Modules\Platform\Http\Controllers\MonitoringController::class, 'ackAlert']);
+    Route::post('alerts/{id}/resolve', [\Modules\Platform\Http\Controllers\MonitoringController::class, 'resolveAlert']);
+    Route::get('rules', [\Modules\Platform\Http\Controllers\MonitoringController::class, 'rules']);
+    Route::post('rules', [\Modules\Platform\Http\Controllers\MonitoringController::class, 'storeRule']);
+    Route::put('rules/{id}', [\Modules\Platform\Http\Controllers\MonitoringController::class, 'updateRule']);
+    Route::get('reports/usage', [\Modules\Platform\Http\Controllers\MonitoringReportsController::class, 'usage']);
+    Route::get('reports/top-consumers', [\Modules\Platform\Http\Controllers\MonitoringReportsController::class, 'topConsumers']);
+    Route::get('reports/quota-risk', [\Modules\Platform\Http\Controllers\MonitoringReportsController::class, 'quotaRisk']);
+    Route::get('reports/alerts-summary', [\Modules\Platform\Http\Controllers\MonitoringReportsController::class, 'alertsSummary']);
+});
+Route::get('servers/{server}/metrics', [\Modules\Platform\Http\Controllers\MonitoringController::class, 'serverMetrics']);
+Route::post('servers/{server}/metrics/collect', [\Modules\Platform\Http\Controllers\MonitoringController::class, 'collectServerMetrics']);
+Route::get('servers/{server}/services/health', [\Modules\Platform\Http\Controllers\MonitoringController::class, 'serviceHealth']);
+
+// Quota and Resource/Project Usage (Phase 2)
+Route::get('resources/{resource}/metrics', [\Modules\Platform\Http\Controllers\QuotaAndUsageController::class, 'resourceMetrics']);
+Route::get('resources/{resource}/quota', [\Modules\Platform\Http\Controllers\QuotaAndUsageController::class, 'getResourceQuota']);
+Route::put('resources/{resource}/quota', [\Modules\Platform\Http\Controllers\QuotaAndUsageController::class, 'updateResourceQuota']);
+
+Route::get('projects/{project}/usage', [\Modules\Platform\Http\Controllers\QuotaAndUsageController::class, 'projectUsage']);
+Route::get('projects/{project}/quota', [\Modules\Platform\Http\Controllers\QuotaAndUsageController::class, 'getProjectQuota']);
+Route::put('projects/{project}/quota', [\Modules\Platform\Http\Controllers\QuotaAndUsageController::class, 'updateProjectQuota']);
+
 
 // Domain Email Infrastructure & Webmail Management
 Route::prefix('mail')->group(function () {

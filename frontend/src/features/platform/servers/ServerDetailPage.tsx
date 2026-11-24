@@ -29,6 +29,12 @@ import {
   serverContainerAction,
   updateServer,
   validateServer,
+  fetchServerMetricsPhase1,
+  collectServerMetricsNow,
+  fetchAlertEvents,
+  fetchServerServiceHealth,
+  type ServiceHealthItem,
+  type AlertEvent,
   type PlatformServer,
   type PlatformServerImage,
 } from '@/lib/api/platform';
@@ -51,6 +57,10 @@ export function ServerDetailPage({ id }: Props) {
   const [validateResult, setValidateResult] = useState<string | null>(null);
   const [bootstrapResult, setBootstrapResult] = useState<string | null>(null);
   const [metrics, setMetrics] = useState<unknown>(null);
+  const [phase1Metrics, setPhase1Metrics] = useState<Record<string, number>>({});
+  const [serverAlerts, setServerAlerts] = useState<AlertEvent[]>([]);
+  const [serviceHealth, setServiceHealth] = useState<ServiceHealthItem[]>([]);
+  const [collectingMetrics, setCollectingMetrics] = useState(false);
   const [proxy, setProxy] = useState('');
   const [cmd, setCmd] = useState('uname -a');
   const [termOut, setTermOut] = useState('');
@@ -76,7 +86,29 @@ export function ServerDetailPage({ id }: Props) {
     setError(null);
     try {
       if (tab === 'resources') setResources(await fetchServerResources(id));
-      if (tab === 'metrics') setMetrics(await fetchServerMetrics(id));
+      if (tab === 'metrics') {
+        const [mLegacy, mPhase1, mAlerts, mHealth] = await Promise.all([
+          fetchServerMetrics(id).catch(() => null),
+          fetchServerMetricsPhase1(id).catch(() => null),
+          fetchAlertEvents({ server_id: id }).catch(() => null),
+          fetchServerServiceHealth(id).catch(() => null),
+        ]);
+        setMetrics(mLegacy);
+        if (mPhase1?.metrics) {
+          const map: Record<string, number> = {};
+          for (const item of mPhase1.metrics) {
+            map[item.metric_key] = item.value;
+          }
+          setPhase1Metrics(map);
+        }
+        if (mAlerts) {
+          const alList = Array.isArray(mAlerts) ? mAlerts : (mAlerts.data ?? []);
+          setServerAlerts(alList);
+        }
+        if (mHealth?.services) {
+          setServiceHealth(mHealth.services);
+        }
+      }
       if (tab === 'proxy') {
         const p = await fetchServerProxy(id);
         setProxy(p.raw ?? '');
@@ -388,12 +420,162 @@ export function ServerDetailPage({ id }: Props) {
           </TabsContent>
 
           <TabsContent value="metrics">
-            <Card>
-              <CardContent className="pt-6">
-                <Button size="sm" variant="outline" className="mb-3" onClick={() => void loadTab('metrics')}>{tP('refresh')}</Button>
-                <pre className="text-xs font-mono whitespace-pre-wrap">{JSON.stringify(metrics, null, 2) || tP('noData')}</pre>
-              </CardContent>
-            </Card>
+            <div className="grid gap-4">
+              {/* Telemetry Summary Cards */}
+              <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+                <Card>
+                  <CardHeader className="pb-2">
+                    <CardTitle className="text-xs font-medium text-muted-foreground">CPU Usage</CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="text-2xl font-bold font-mono">
+                      {phase1Metrics['cpu.usage'] !== undefined ? `${Math.round(phase1Metrics['cpu.usage'])}%` : '—'}
+                    </div>
+                    <p className="text-[11px] text-muted-foreground mt-1">
+                      Load: {phase1Metrics['load.1'] ?? '—'} / {phase1Metrics['load.5'] ?? '—'}
+                    </p>
+                  </CardContent>
+                </Card>
+
+                <Card>
+                  <CardHeader className="pb-2">
+                    <CardTitle className="text-xs font-medium text-muted-foreground">Memory Usage</CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="text-2xl font-bold font-mono">
+                      {phase1Metrics['mem.usage_percent'] !== undefined ? `${Math.round(phase1Metrics['mem.usage_percent'])}%` : '—'}
+                    </div>
+                    <p className="text-[11px] text-muted-foreground mt-1">
+                      {phase1Metrics['mem.used'] ? `${(phase1Metrics['mem.used'] / (1024 * 1024 * 1024)).toFixed(1)} GB` : '—'} used
+                    </p>
+                  </CardContent>
+                </Card>
+
+                <Card>
+                  <CardHeader className="pb-2">
+                    <CardTitle className="text-xs font-medium text-muted-foreground">Disk (Root /)</CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="text-2xl font-bold font-mono">
+                      {phase1Metrics['disk.usage_percent'] !== undefined ? `${Math.round(phase1Metrics['disk.usage_percent'])}%` : '—'}
+                    </div>
+                    <p className="text-[11px] text-muted-foreground mt-1">
+                      {phase1Metrics['disk.used'] ? `${(phase1Metrics['disk.used'] / (1024 * 1024 * 1024)).toFixed(1)} GB` : '—'} used
+                    </p>
+                  </CardContent>
+                </Card>
+
+                <Card>
+                  <CardHeader className="pb-2">
+                    <CardTitle className="text-xs font-medium text-muted-foreground">Inodes</CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="text-2xl font-bold font-mono">
+                      {phase1Metrics['inode.usage_percent'] !== undefined ? `${Math.round(phase1Metrics['inode.usage_percent'])}%` : '—'}
+                    </div>
+                    <p className="text-[11px] text-muted-foreground mt-1">
+                      {phase1Metrics['inode.used'] !== undefined ? `${Number(phase1Metrics['inode.used']).toLocaleString()}` : '—'} used
+                    </p>
+                  </CardContent>
+                </Card>
+              </div>
+
+              {/* Server Alerts Section */}
+              {serverAlerts.length > 0 && (
+                <Card className="border-amber-500/30">
+                  <CardHeader className="pb-2">
+                    <CardTitle className="text-sm font-semibold text-amber-600 dark:text-amber-400">
+                      Active Alerts for this Server
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent className="space-y-2">
+                    {serverAlerts.map((al) => (
+                      <div key={al.id} className="flex items-center justify-between border-b pb-2 text-xs">
+                        <div>
+                          <Badge variant={al.severity === 'critical' ? 'destructive' : 'default'} className="me-2">
+                            {al.severity}
+                          </Badge>
+                          <span className="font-medium">{al.message}</span>
+                        </div>
+                        <span className="text-muted-foreground font-mono">{al.status}</span>
+                      </div>
+                    ))}
+                  </CardContent>
+                </Card>
+              )}
+
+              {/* Service Health Cards (Phase 3) */}
+              <Card>
+                <CardHeader className="pb-2">
+                  <CardTitle className="text-sm font-semibold">Subsystem & Service Health</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  {!serviceHealth.length ? (
+                    <p className="text-xs text-muted-foreground py-2">No service health check recorded yet.</p>
+                  ) : (
+                    <div className="grid gap-3 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-6">
+                      {serviceHealth.map((sh) => (
+                        <div key={sh.service_key} className="rounded-md border p-3 flex flex-col justify-between">
+                          <div className="flex items-center justify-between mb-1">
+                            <span className="font-mono text-xs font-bold uppercase">{sh.service_key}</span>
+                            <Badge
+                              variant={
+                                sh.status === 'up'
+                                  ? 'secondary'
+                                  : sh.status === 'degraded'
+                                  ? 'default'
+                                  : 'destructive'
+                              }
+                              className="text-[10px] px-1.5 py-0"
+                            >
+                              {sh.status}
+                            </Badge>
+                          </div>
+                          <p className="text-[11px] text-muted-foreground line-clamp-2" title={sh.message ?? ''}>
+                            {sh.message || 'Operational'}
+                          </p>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+
+              {/* Actions & Raw Output */}
+              <Card>
+                <CardHeader className="flex flex-row items-center justify-between">
+                  <CardTitle className="text-base">{t('tabMetrics')}</CardTitle>
+                  <div className="flex gap-2">
+                    <Button
+                      size="sm"
+                      variant="secondary"
+                      disabled={collectingMetrics}
+                      onClick={async () => {
+                        setCollectingMetrics(true);
+                        try {
+                          await collectServerMetricsNow(id);
+                          await loadTab('metrics');
+                        } catch (e) {
+                          setError(e instanceof Error ? e.message : tP('saveError'));
+                        } finally {
+                          setCollectingMetrics(false);
+                        }
+                      }}
+                    >
+                      {collectingMetrics ? 'Collecting...' : 'Collect Now'}
+                    </Button>
+                    <Button size="sm" variant="outline" onClick={() => void loadTab('metrics')}>
+                      {tP('refresh')}
+                    </Button>
+                  </div>
+                </CardHeader>
+                <CardContent>
+                  <pre className="text-xs font-mono whitespace-pre-wrap max-h-80 overflow-auto rounded-md border bg-muted/20 p-3">
+                    {JSON.stringify(metrics, null, 2) || tP('noData')}
+                  </pre>
+                </CardContent>
+              </Card>
+            </div>
           </TabsContent>
 
           <TabsContent value="cleanup">

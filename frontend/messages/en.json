@@ -149,6 +149,8 @@
         "group": "Platform",
         "dashboard": "Dashboard",
         "servers": "Servers",
+        "monitoring": "Monitoring",
+        "monitoringReports": "Monitoring Reports",
         "projects": "Projects",
         "resources": "Resources",
         "services": "Services",
@@ -5583,7 +5585,8 @@
       "environments": "Environments",
       "newEnvironment": "Environment name",
       "addEnvironment": "Add environment",
-      "viewResources": "View resources"
+      "viewResources": "View resources",
+      "tabGeneral": "General"
     },
     "resources": {
       "title": "Resources",

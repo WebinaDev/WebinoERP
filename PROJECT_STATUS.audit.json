@@ -1,8 +1,8 @@
 {
-  "generatedAt": "2026-11-22T14:10:02.601Z",
+  "generatedAt": "2026-11-24T11:41:31.468Z",
   "counts": {
-    "registryMenuPaths": 236,
-    "pageMapExact": 283,
+    "registryMenuPaths": 238,
+    "pageMapExact": 286,
     "financeSegments": 12,
     "detailRoots": 2,
     "legacyRedirects": 75,
@@ -2626,7 +2626,7 @@
     }
   ],
   "manifestSummary": {
-    "generatedAt": "2026-11-22T14:10:02.599Z",
+    "generatedAt": "2026-11-24T11:41:31.467Z",
     "routes": 154
   }
 }

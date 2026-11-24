@@ -149,6 +149,8 @@
         "group": "پلتفرم",
         "dashboard": "داشبورد",
         "servers": "سرورها",
+        "monitoring": "مانیتورینگ",
+        "monitoringReports": "گزارش‌های مانیتورینگ",
         "projects": "پروژه‌ها",
         "resources": "منابع",
         "services": "سرویس‌ها",
@@ -5583,7 +5585,8 @@
       "environments": "محیط‌ها",
       "newEnvironment": "نام محیط",
       "addEnvironment": "افزودن محیط",
-      "viewResources": "مشاهده منابع"
+      "viewResources": "مشاهده منابع",
+      "tabGeneral": "عمومی"
     },
     "resources": {
       "title": "منابع",

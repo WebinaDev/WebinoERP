@@ -32,6 +32,10 @@ import {
   syncResourceEnv,
   syncResourceVolumes,
   updateResource,
+  fetchResourceMetrics,
+  fetchResourceQuota,
+  updateResourceQuota,
+  type ResourceQuota,
   type PlatformDeployment,
   type PlatformDomain,
   type PlatformEnvVar,
@@ -68,6 +72,11 @@ export function ResourceDetailPage({ id }: Props) {
   const [projects, setProjects] = useState<PlatformProject[]>([]);
   const [pending, setPending] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  // Monitoring & Quota State (Phase 2)
+  const [resMetrics, setResMetrics] = useState<{ disk_bytes: number; inode_count: number; cpu_usage: number; mem_bytes: number } | null>(null);
+  const [resQuota, setResQuota] = useState<ResourceQuota | null>(null);
+  const [savingQuota, setSavingQuota] = useState(false);
 
   const load = useCallback(async () => {
     setError(null);
@@ -122,6 +131,33 @@ export function ResourceDetailPage({ id }: Props) {
     if (latest) {
       setContainerLogs(latest.logs ?? latest.log ?? '');
       setLogsSource('deployment');
+    }
+  }
+
+  async function loadMonitoringTab() {
+    try {
+      const [m, q] = await Promise.all([
+        fetchResourceMetrics(id).catch(() => null),
+        fetchResourceQuota(id).catch(() => null),
+      ]);
+      if (m?.latest) setResMetrics(m.latest);
+      if (q) setResQuota(q);
+    } catch (e) {
+      setError(e instanceof Error ? e.message : tP('loadError'));
+    }
+  }
+
+  async function saveResourceQuotaForm() {
+    if (!resQuota) return;
+    setSavingQuota(true);
+    try {
+      const res = await updateResourceQuota(id, resQuota);
+      setResQuota(res.data);
+      await loadMonitoringTab();
+    } catch (e) {
+      setError(e instanceof Error ? e.message : tP('saveError'));
+    } finally {
+      setSavingQuota(false);
     }
   }
 
@@ -343,12 +379,14 @@ export function ResourceDetailPage({ id }: Props) {
       {resource ? (
         <Tabs defaultValue="general" onValueChange={(v) => {
           if (v === 'logs') void loadLogsTab();
+          if (v === 'monitoring') void loadMonitoringTab();
           if (v === 'move') void loadMoveOptions();
           if (v === 'webhook' && !webhookUrl) void loadWebhook();
           if (v === 'advanced' && !webhookUrl) void loadWebhook();
         }}>
           <TabsList className="flex h-auto flex-wrap">
             <TabsTrigger value="general">{t('tabGeneral')}</TabsTrigger>
+            <TabsTrigger value="monitoring">Monitoring & Quotas</TabsTrigger>
             <TabsTrigger value="logs">{t('tabLogs')}</TabsTrigger>
             <TabsTrigger value="clone">{t('tabClone')}</TabsTrigger>
             <TabsTrigger value="move">{t('tabMove')}</TabsTrigger>
@@ -368,7 +406,20 @@ export function ResourceDetailPage({ id }: Props) {
                 <div className="grid gap-2"><Label>{t('fqdn')}</Label><Input value={resource.fqdn ?? ''} onChange={(e) => setResource({ ...resource, fqdn: e.target.value })} dir="ltr" className="font-mono" /></div>
                 <div className="md:col-span-2 flex gap-2">
                   <Badge variant="secondary">{resource.type}</Badge>
-                  <Badge variant="outline">{resource.status ?? '—'}</Badge>
+                  <Badge
+                    variant={
+                      resource.status === 'suspended'
+                        ? 'destructive'
+                        : resource.status === 'throttled'
+                        ? 'default'
+                        : 'outline'
+                    }
+                  >
+                    {resource.status ?? '—'}
+                  </Badge>
+                  {resource.settings?.is_suspended ? (
+                    <Badge variant="destructive">Quota Suspended</Badge>
+                  ) : null}
                   {resource.build_pack ? <Badge variant="outline">{resource.build_pack}</Badge> : null}
                 </div>
                 <div className="md:col-span-2 flex flex-wrap gap-2">
@@ -394,6 +445,152 @@ export function ResourceDetailPage({ id }: Props) {
                 ) : null}
               </CardContent>
             </Card>
+          </TabsContent>
+
+          {/* Monitoring & Quotas Tab (Phase 2) */}
+          <TabsContent value="monitoring" className="space-y-4">
+            <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+              <Card>
+                <CardHeader className="pb-2">
+                  <CardTitle className="text-xs font-medium text-muted-foreground">Disk Usage</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="text-2xl font-bold font-mono">
+                    {resMetrics?.disk_bytes
+                      ? resMetrics.disk_bytes > 1024 * 1024 * 1024
+                        ? `${(resMetrics.disk_bytes / (1024 * 1024 * 1024)).toFixed(2)} GB`
+                        : `${Math.round(resMetrics.disk_bytes / (1024 * 1024))} MB`
+                      : '0 MB'}
+                  </div>
+                  <p className="text-[11px] text-muted-foreground mt-1">
+                    Soft: {resQuota?.disk_mb_soft ?? '—'} MB · Hard: {resQuota?.disk_mb_hard ?? '—'} MB
+                  </p>
+                </CardContent>
+              </Card>
+
+              <Card>
+                <CardHeader className="pb-2">
+                  <CardTitle className="text-xs font-medium text-muted-foreground">Memory (RAM)</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="text-2xl font-bold font-mono">
+                    {resMetrics?.mem_bytes
+                      ? resMetrics.mem_bytes > 1024 * 1024 * 1024
+                        ? `${(resMetrics.mem_bytes / (1024 * 1024 * 1024)).toFixed(2)} GB`
+                        : `${Math.round(resMetrics.mem_bytes / (1024 * 1024))} MB`
+                      : '0 MB'}
+                  </div>
+                  <p className="text-[11px] text-muted-foreground mt-1">
+                    Soft: {resQuota?.ram_mb_soft ?? '—'} MB · Hard: {resQuota?.ram_mb_hard ?? '—'} MB
+                  </p>
+                </CardContent>
+              </Card>
+
+              <Card>
+                <CardHeader className="pb-2">
+                  <CardTitle className="text-xs font-medium text-muted-foreground">CPU Usage</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="text-2xl font-bold font-mono">
+                    {Math.round(resMetrics?.cpu_usage ?? 0)}%
+                  </div>
+                  <p className="text-[11px] text-muted-foreground mt-1">
+                    Soft: {resQuota?.cpu_percent_soft ?? '—'}% · Hard: {resQuota?.cpu_percent_hard ?? '—'}%
+                  </p>
+                </CardContent>
+              </Card>
+
+              <Card>
+                <CardHeader className="pb-2">
+                  <CardTitle className="text-xs font-medium text-muted-foreground">Inodes (Files)</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="text-2xl font-bold font-mono">
+                    {Number(resMetrics?.inode_count ?? 0).toLocaleString()}
+                  </div>
+                  <p className="text-[11px] text-muted-foreground mt-1">
+                    Soft: {resQuota?.inode_soft?.toLocaleString() ?? '—'}
+                  </p>
+                </CardContent>
+              </Card>
+            </div>
+
+            {resQuota && (
+              <Card>
+                <CardHeader>
+                  <CardTitle className="text-base font-semibold">Resource Quota Configuration</CardTitle>
+                </CardHeader>
+                <CardContent className="grid gap-4 md:grid-cols-2">
+                  <div className="grid gap-2">
+                    <Label>Disk Soft Quota (MB)</Label>
+                    <Input
+                      type="number"
+                      value={resQuota.disk_mb_soft ?? ''}
+                      onChange={(e) => setResQuota({ ...resQuota, disk_mb_soft: Number(e.target.value) || null })}
+                    />
+                  </div>
+                  <div className="grid gap-2">
+                    <Label>Disk Hard Quota (MB)</Label>
+                    <Input
+                      type="number"
+                      value={resQuota.disk_mb_hard ?? ''}
+                      onChange={(e) => setResQuota({ ...resQuota, disk_mb_hard: Number(e.target.value) || null })}
+                    />
+                  </div>
+                  <div className="grid gap-2">
+                    <Label>RAM Soft Quota (MB)</Label>
+                    <Input
+                      type="number"
+                      value={resQuota.ram_mb_soft ?? ''}
+                      onChange={(e) => setResQuota({ ...resQuota, ram_mb_soft: Number(e.target.value) || null })}
+                    />
+                  </div>
+                  <div className="grid gap-2">
+                    <Label>RAM Hard Quota (MB)</Label>
+                    <Input
+                      type="number"
+                      value={resQuota.ram_mb_hard ?? ''}
+                      onChange={(e) => setResQuota({ ...resQuota, ram_mb_hard: Number(e.target.value) || null })}
+                    />
+                  </div>
+                  <div className="grid gap-2">
+                    <Label>CPU Soft Quota (%)</Label>
+                    <Input
+                      type="number"
+                      value={resQuota.cpu_percent_soft ?? ''}
+                      onChange={(e) => setResQuota({ ...resQuota, cpu_percent_soft: Number(e.target.value) || null })}
+                    />
+                  </div>
+                  <div className="grid gap-2">
+                    <Label>CPU Hard Quota (%)</Label>
+                    <Input
+                      type="number"
+                      value={resQuota.cpu_percent_hard ?? ''}
+                      onChange={(e) => setResQuota({ ...resQuota, cpu_percent_hard: Number(e.target.value) || null })}
+                    />
+                  </div>
+                  <div className="md:col-span-2 flex items-center justify-between pt-2">
+                    <div className="flex items-center gap-2">
+                      <Label>Enforce Action:</Label>
+                      <select
+                        className="rounded-md border p-1 text-sm bg-background"
+                        value={resQuota.enforce_action}
+                        onChange={(e) =>
+                          setResQuota({ ...resQuota, enforce_action: e.target.value as 'alert' | 'throttle' | 'suspend' })
+                        }
+                      >
+                        <option value="alert">Alert (Notify only)</option>
+                        <option value="throttle">Throttle</option>
+                        <option value="suspend">Suspend</option>
+                      </select>
+                    </div>
+                    <Button disabled={savingQuota} onClick={() => void saveResourceQuotaForm()}>
+                      {savingQuota ? 'Saving...' : 'Save Resource Quota'}
+                    </Button>
+                  </div>
+                </CardContent>
+              </Card>
+            )}
           </TabsContent>
 
           <TabsContent value="logs">
