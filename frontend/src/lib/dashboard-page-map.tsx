@@ -47,6 +47,8 @@ import { SiteAnnouncementsPage } from '@/features/site-builder/SiteAnnouncements
 import { PlatformDashboardPage } from '@/features/platform/PlatformDashboardPage';
 import { ServersListPage } from '@/features/platform/servers/ServersListPage';
 import { ServerDetailPage } from '@/features/platform/servers/ServerDetailPage';
+import { PlatformMonitoringPage } from '@/features/platform/MonitoringPage';
+import { PlatformMonitoringReportsPage } from '@/features/platform/MonitoringReportsPage';
 import { ProjectsListPage as PlatformProjectsListPage } from '@/features/platform/projects/ProjectsListPage';
 import { ProjectDetailPage as PlatformProjectDetailPage } from '@/features/platform/projects/ProjectDetailPage';
 import { ResourcesListPage } from '@/features/platform/resources/ResourcesListPage';
@@ -533,6 +535,8 @@ const EXACT: Record<string, ReactNode> = {
   'admin/platform/sites/new': <SiteProvisionWizardPage />,
   'admin/platform/announcements': <SiteAnnouncementsPage />,
   'admin/platform/servers': <ServersListPage />,
+  'admin/platform/monitoring': <PlatformMonitoringPage />,
+  'admin/platform/monitoring/reports': <PlatformMonitoringReportsPage />,
   'admin/platform/projects': <PlatformProjectsListPage />,
   'admin/platform/resources': <ResourcesListPage />,
   'admin/platform/resources/new': <AddResourceWizardPage />,

@@ -115,6 +115,9 @@ class ResourceController extends Controller
 
     public function deploy(Request $request, PlatformResource $resource): JsonResponse
     {
+        // Enforce quota restrictions (Block deployment on hard quota with throttle/suspend)
+        app(\Modules\Platform\Services\PlatformQuotaEnforcer::class)->ensureDeployAllowed($resource);
+
         $deployment = PlatformDeployment::query()->create([
             'resource_id' => $resource->id,
             'status' => 'queued',

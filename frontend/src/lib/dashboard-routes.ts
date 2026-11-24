@@ -286,6 +286,8 @@ const EXACT: Record<string, DashboardRouteMeta> = {
   'pm/audit': { titleFa: 'گزارش تغییرات پروژه', titleEn: 'Project change log', group: 'pm' },
   'admin/platform': { titleFa: 'پلتفرم', titleEn: 'Platform', group: 'admin' },
   'admin/platform/servers': { titleFa: 'سرورها', titleEn: 'Servers', group: 'admin' },
+  'admin/platform/monitoring': { titleFa: 'مانیتورینگ سرورها', titleEn: 'Server Monitoring', group: 'admin' },
+  'admin/platform/monitoring/reports': { titleFa: 'گزارش‌های مانیتورینگ', titleEn: 'Monitoring Reports', group: 'admin' },
   'admin/platform/projects': { titleFa: 'پروژه‌های پلتفرم', titleEn: 'Platform projects', group: 'admin' },
   'admin/platform/resources': { titleFa: 'منابع', titleEn: 'Resources', group: 'admin' },
   'admin/platform/resources/new': { titleFa: 'منبع جدید', titleEn: 'New resource', group: 'admin' },
