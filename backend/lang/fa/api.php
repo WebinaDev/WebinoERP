@@ -1,6 +1,11 @@
 <?php
 
 return [
+    'payment_amount_not_representable' => 'مبلغ پرداخت باید مثبت و قابل تبدیل دقیق به تومان باشد.',
+    'payment_amount_mismatch' => 'مبلغ پرداخت با درخواست اولیه مطابقت ندارد.',
+    'payment_amount_must_be_positive' => 'مبلغ پرداخت باید مثبت باشد.',
+    'payment_exchange_rate_required' => 'نرخ تبدیل ریال برای ارز :currency الزامی است.',
+    'payment_foreign_amount_not_representable' => 'مبلغ پرداخت به صورت دقیق در واحد ارز درگاه قابل نمایش نیست.',
     'unauthorized' => 'دسترسی غیرمجاز',
     'forbidden' => 'دسترسی ممنوع',
     'module_not_active' => 'این قابلیت فعال نیست. لطفاً لایسنس ماژول را فعال کنید.',

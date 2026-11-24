@@ -31,9 +31,16 @@ describe("poetry page widgets (alikhabari mockups)", () => {
   })
   it("renders every widget server-side without a photo", () => {
     for (const w of POETRY_PAGE_WIDGETS) {
-      const html = renderToStaticMarkup(createElement(RENDER[w.type] as never, { widget: w.create() } as never))
+      const widget = w.create()
+      if (w.type === "media-archive") widget.props = { ...widget.props, source: "manual", items: "Test||audio|/test.mp3" }
+      const html = renderToStaticMarkup(createElement(RENDER[w.type] as never, { widget } as never))
       expect(html.length, w.type).toBeGreaterThan(0)
     }
+  })
+  it("does not render an empty media archive on the public site", () => {
+    const widget = POETRY_PAGE_WIDGETS.find((w) => w.type === "media-archive")!.create()
+    widget.props = { ...widget.props, source: "manual", items: "" }
+    expect(renderToStaticMarkup(createElement(R.MediaArchiveWidget, { widget }))).toBe("")
   })
   it("poet profile defaults to the logo slot, never a photo", () => {
     const n = POETRY_PAGE_WIDGETS.find((w) => w.type === "poet-profile")!.create()

@@ -56,8 +56,8 @@ export function fromRialAmount(
   try {
     return fromRial(rial || 0, code, fxFor(code))
   } catch {
-    // Missing FX: fall back to toman so UI never crashes.
-    return fromRial(rial || 0, "IRT")
+    // A missing exchange rate must not produce a mislabeled price.
+    return Number.NaN
   }
 }
 
@@ -88,10 +88,10 @@ export function formatMoney(
   const n = Number.isFinite(raw) ? raw : 0
   const code = normalizeStoreCurrency(opts.currency ?? cachedDisplay)
   const display = opts.alreadyDisplay ? n : fromRialAmount(n, code)
-  const decimals = isForeignCurrency(code) ? 2 : 0
-  const rounded = decimals > 0 ? Number(display.toFixed(decimals)) : Math.round(display)
+  if (!Number.isFinite(display)) return "-"
+  const decimals = isForeignCurrency(code) ? 2 : code === "IRT" ? 1 : code === "IRHT" ? 4 : 0
   const locale = normalizeUiLocale(opts.locale)
-  const formatted = formatNumber(rounded, locale)
+  const formatted = formatNumber(display, locale, { maximumFractionDigits: decimals })
   if (opts.bare) return formatted
   return `${formatted} ${currencyLabel(code, locale)}`
 }

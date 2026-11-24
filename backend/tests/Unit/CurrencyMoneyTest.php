@@ -86,4 +86,15 @@ class CurrencyMoneyTest extends TestCase
         $this->assertSame(85000, Currency::toGatewayApiAmount(850000, 'IRR', 'zarinpal', 'IRT'));
     }
 
+    public function test_gateway_rejects_rial_amount_not_exactly_representable_in_toman(): void
+    {
+        $this->expectException(\InvalidArgumentException::class);
+        Currency::fromRialToGateway(101, 'IRT');
+    }
+
+    public function test_gateway_converts_large_rial_amount_without_float_rounding(): void
+    {
+        $this->assertSame(900719925474100, Currency::fromRialToGateway(9007199254741000, 'IRT'));
+    }
+
 }

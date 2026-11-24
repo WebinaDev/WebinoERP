@@ -4018,6 +4018,7 @@
     }
   },
   "hrm": {
+    "enterpriseRequestFailed": "The request failed. Please try again.",
     "staffCode": "Employee code",
     "firstName": "First name",
     "lastName": "Last name",
@@ -8859,6 +8860,7 @@
     "overview": "Overview"
   },
   "builder": {
+    "tab_design": "Design",
     "list_title": "Site builder",
     "list_subtitle": "Build Webina pages, header, and footer with the same document as Webina Studio.",
     "open": "Edit",
@@ -9002,6 +9004,9 @@
     "opacity": "Opacity",
     "margin": "Margin",
     "width": "Width",
+    "min_width": "Min width",
+    "height": "Height",
+    "max_height": "Max height",
     "max_width": "Max width",
     "min_height": "Min height",
     "border_width": "Border width",
@@ -9087,7 +9092,14 @@
     "import_json": "Import JSON",
     "import_invalid": "Invalid file.",
     "import_too_large": "File is too large.",
-    "import_replace_confirm": "Replace the current page? (Cancel = append)",
+    "import_replace_confirm": "Replace the current content with the imported file?",
+    "import_append_confirm": "Append the imported sections and CSS? Imported CSS can affect the whole page. Select Cancel to stop importing.",
+    "import_id_conflict": "The imported document has node IDs already used on this page. Append was cancelled to preserve links and styles.",
+    "import_unknown_widgets": "Some component types are not available in this builder: {types}. They may not render correctly. Import anyway?",
+    "autosave_failed": "Automatic saving failed. Your changes are not saved; try saving again.",
+    "import_missing_dependencies": "Some referenced site-wide items are missing: {items}. The design may not render as intended. Import anyway?",
+    "import_dependency_conflict": "Import stopped because site-wide items have conflicting IDs: {items}.",
+    "import_dependencies_confirm": "This import adds {count} site-wide items and saves them as a draft. They can affect other pages and are not reverted by page undo. Continue?",
     "imported": "Imported.",
     "zoom": "Zoom",
     "shortcuts": "Keyboard shortcuts",

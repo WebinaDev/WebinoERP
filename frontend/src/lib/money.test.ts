@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest"
 
 import { fromRial, toGatewayRial, toRial } from "./currencies"
-import { formatMoney, fromRialAmount, setDisplayCurrency, toRialAmount } from "./money"
+import { formatMoney, fromRialAmount, setDisplayCurrency, setFxRates, toRialAmount } from "./money"
 
 describe("currency conversion", () => {
   it("converts Iranian display units ↔ rial", () => {
@@ -22,6 +22,17 @@ describe("currency conversion", () => {
     setDisplayCurrency("IRHT")
     expect(fromRialAmount(1_200_000, "IRHT")).toBe(120)
     setDisplayCurrency("IRT")
+  })
+
+  it("does not round fractional toman when displaying rials", () => {
+    expect(formatMoney(101, { locale: "en", currency: "IRT" })).toBe("10.1 Toman")
+    expect(formatMoney(101, { locale: "en", currency: "IRHT" })).toBe("0.0101 Thousand Toman")
+  })
+
+  it("does not label an amount as foreign currency when its exchange rate is missing", () => {
+    setFxRates({})
+    expect(fromRialAmount(1000, "USD")).toBeNaN()
+    expect(formatMoney(1000, { locale: "en", currency: "USD" })).toBe("-")
   })
 
   it("converts display entry back to rial for storage/gateways", () => {

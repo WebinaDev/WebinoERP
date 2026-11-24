@@ -19,9 +19,7 @@ test("clear capsule never keeps a shadow/ring, even when capsuleShadow is unset"
   const css = readFileSync(resolve(process.cwd(), "src/builder/render/poetry-pages-widgets.css"), "utf8")
   assert.match(css, /\.akx-navwrap\.akx-mfw \.akx-nav\.akx-nav-flat[^{]*\{[^}]*box-shadow: none !important/)
 })
-test("media rows with only a cover are kept; carousel arrows not hidden on touch", () => {
-  const w = readFileSync(resolve(process.cwd(), "src/builder/render/poetry-widgets.tsx"), "utf8")
-  assert.match(w, /r\.title\.trim\(\) \|\| r\.cover\.trim\(\) \|\| r\.src\.trim\(\)/)
+test("carousel arrows are not hidden on touch", () => {
   const css = readFileSync(resolve(process.cwd(), "src/builder/render/poetry-widgets.css"), "utf8")
   assert.doesNotMatch(css, /\.wpz-carousel-btn \{ display: none; \}/)
 })

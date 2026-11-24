@@ -62,7 +62,7 @@ export const POETRY_PAGE_WIDGETS: WidgetDef[] = [
       { kind: "color", key: "drawerBg", label: "زمینه منوی کشویی موبایل" }, { kind: "color", key: "drawerText", label: "رنگ متن منوی کشویی" },
       { kind: "color", key: "capsuleBg", label: "رنگ کپسول هدر (شفاف مجاز؛ خالی = رنگ قبلی)" }, { kind: "switch", key: "capsuleShadow", label: "سایه کپسول" }, { kind: "switch", key: "capsuleBorder", label: "حاشیه کپسول" }, { kind: "color", key: "searchBg", label: "رنگ جعبه جستجو" }, ...colors,
     ],
-    create: () => node("poetry-nav", { logo: "", brand: "علی خبری", links: NAV_DEFAULT, showSearch: true, searchPlaceholder: "جستجوی شعر، مصرع یا مناسبت…", searchHref: "/poems", navBg: "rgba(255,255,255,.92)", capsuleBg: "", capsuleShadow: true, capsuleBorder: false, searchBg: "#f5ebe6", logoOnly: false, logoHeight: 64, logoHeightMobile: 48, drawerBg: "#4a0710", drawerText: "#ffffff", mobileFullWidth: true, ...C }),
+    create: () => node("poetry-nav", { logo: "", brand: "علی خبری", links: NAV_DEFAULT, showSearch: true, searchWide: false, bottomBar: false, bottomItems: "", searchPlaceholder: "جستجوی شعر، مصرع یا مناسبت…", searchHref: "/poems", navBg: "rgba(255,255,255,.92)", capsuleBg: "", capsuleShadow: true, capsuleBorder: false, searchBg: "#f5ebe6", logoOnly: false, logoHeight: 64, logoHeightMobile: 48, drawerBg: "#4a0710", drawerText: "#ffffff", mobileFullWidth: true, ...C }),
   },
   {
     type: "poetry-page-hero", label: "سربرگ صفحه (مسیر + عنوان دورنگ)", category: "content",
@@ -126,7 +126,7 @@ export const POETRY_PAGE_WIDGETS: WidgetDef[] = [
       { kind: "text", key: "audioLabel", label: "برچسب صوت" }, { kind: "text", key: "videoLabel", label: "برچسب ویدیو" },
       photoMode("coverMode", "حالت کاور در نبود تصویر"), logo, SEC, ...colors,
     ],
-    create: () => node("media-archive", { source: "live", logo: "", items: "", featured: 1, topTitle: "پرشنونده‌ترین‌ها", topCount: 4, filters: "همه,صوت,ویدیو,محرم,فاطمیه,اربعین", perPage: 8, audioLabel: "صوت", videoLabel: "ویدیو", coverMode: "arabesque", sectionBg: DARK, ...C }),
+    create: () => node("media-archive", { mediaLayout: "auto", source: "live", logo: "", items: "", featured: 1, topTitle: "پرشنونده‌ترین‌ها", topCount: 4, filters: "همه,صوت,ویدیو,محرم,فاطمیه,اربعین", perPage: 8, audioLabel: "صوت", videoLabel: "ویدیو", coverMode: "arabesque", sectionBg: DARK, ...C }),
   },
   {
     type: "poetry-shop", label: "فروشگاه قاب‌ها (فیلتر + مرتب‌سازی)", category: "commerce",
@@ -206,6 +206,7 @@ for (const d of POETRY_PAGE_WIDGETS) if (!d.fields.some((f) => "key" in f && f.k
   const chrome = d.category === "chrome"
   d.create = () => {
     const n = make()
+    if (d.fields.some((field) => field.key === "tone") && n.props.tone === undefined) n.props.tone = ""
     if (n.props.mobileFullWidth === undefined) n.props.mobileFullWidth = true
     if (!chrome && n.props.mobilePaddingY === undefined) n.props.mobilePaddingY = 44
     if (!chrome && n.props.mobileGap === undefined) n.props.mobileGap = 28

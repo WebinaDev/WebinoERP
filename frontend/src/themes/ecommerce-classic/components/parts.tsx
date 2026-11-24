@@ -42,12 +42,13 @@ export function ClassicAmount({ value, className }: { value: number; className?:
 
 export function ClassicPrice({ price, compare, size = "md" }: { price: number; compare?: number; size?: "md" | "lg" }) {
   const digits = useDigits()
+  const oldPrice = fromRialAmount(compare ?? 0)
   const off = compare && compare > price ? Math.round((1 - price / compare) * 100) : 0
   return (
     <div className={`sfc-price sfc-price--${size}`}>
       {off > 0 ? (
         <div className="sfc-price__old">
-          <del>{digits(fromRialAmount(compare ?? 0))}</del>
+          <del>{Number.isFinite(oldPrice) ? digits(oldPrice) : "-"}</del>
           <span className="sfc-price__off">{digits(off)}٪</span>
         </div>
       ) : null}

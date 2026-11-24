@@ -9,7 +9,7 @@ import { fileURLToPath } from 'url';
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const ROOT = join(__dirname, '..');
 const messagesDir = join(ROOT, 'messages');
-const modulesDir = join(ROOT, 'features', 'modules');
+const modulesDir = join(ROOT, 'src', 'features', 'modules');
 
 const STRICT_LITERALS = process.argv.includes('--strict-literals');
 const PERSIAN_RE = /[\u0600-\u06FF]{3,}/;

@@ -13,7 +13,8 @@ import {
   normalizeStoreCurrency,
   type CurrencySymbolId,
 } from "@/lib/currencies"
-import { formatMoney, fromRialAmount, getDisplayCurrency } from "@/lib/money"
+import { formatMoney, fromRialAmount } from "@/lib/money"
+import { useDisplayCurrency } from "@/lib/display-currency"
 import { formatNumber, normalizeUiLocale } from "@/lib/locale"
 import { cn } from "@/lib/utils"
 
@@ -50,17 +51,20 @@ export function MoneyDisplay({
   bare = false,
 }: MoneyDisplayProps) {
   const locale = normalizeUiLocale(useLocale())
-  const code = normalizeStoreCurrency(currency ?? getDisplayCurrency())
+  const settings = useDisplayCurrency()
+  const code = normalizeStoreCurrency(currency ?? settings.currency)
   const display = alreadyDisplay
     ? Number(amount ?? 0) || 0
     : fromRialAmount(Number(amount ?? 0) || 0, code)
-  const decimals = isForeignCurrency(code) ? 2 : 0
-  const rounded = decimals > 0 ? Number(display.toFixed(decimals)) : Math.round(display)
+  if (!Number.isFinite(display)) return <span className={className}>-</span>
+  const decimals = isForeignCurrency(code) ? 2 : code === "IRT" ? 1 : code === "IRHT" ? 4 : 0
   const symbolId: CurrencySymbolId | null = isForeignCurrency(code)
     ? null
     : symbol
       ? normalizeCurrencySymbol(code, symbol)
-      : defaultSymbolForCurrency(code)
+      : code === settings.currency
+        ? normalizeCurrencySymbol(code, settings.symbol)
+        : defaultSymbolForCurrency(code)
 
   return (
     <span className={cn("inline-flex items-baseline gap-1 whitespace-nowrap", className)} dir="ltr">
@@ -70,7 +74,7 @@ export function MoneyDisplay({
       ) : bare ? null : (
         <span className="text-[0.85em] text-muted-foreground">{currencySymbolText(code)}</span>
       )}
-      <span className={cn("tabular-nums", amountClassName)}>{formatNumber(rounded, locale)}</span>
+      <span className={cn("tabular-nums", amountClassName)}>{formatNumber(display, locale, { maximumFractionDigits: decimals })}</span>
       {!symbolId && !bare ? null : null}
     </span>
   )

@@ -567,13 +567,6 @@ export const WIDGETS: WidgetDef[] = [
     create: () => node("add-to-cart-box", {}),
   },
   {
-    type: "story-strip",
-    label: "نوار استوری",
-    category: "commerce",
-    fields: [{ kind: "text", key: "title", label: "عنوان (دسترسی‌پذیری)" }, { kind: "number", key: "limit", label: "تعداد (۰ = پیش‌فرض)", min: 0, max: 48 }],
-    create: () => node("story-strip", { title: "استوری‌ها" }),
-  },
-  {
     type: "category-tiles",
     label: "کاشی دسته + پیشنهاد ویژه",
     category: "commerce",

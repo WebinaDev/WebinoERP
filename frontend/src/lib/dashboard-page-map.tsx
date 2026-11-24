@@ -435,7 +435,7 @@ const EXACT: Record<string, ReactNode> = {
   'hrm/attendance-devices': <AttendanceDevicesPage />,
   'hrm/sso-list': <SsoListPage />,
   'hrm/offboarding': <OffboardingCasesPage />,
-    'hrm/enterprise-suite': HrmEnterpriseSuitePage,
+  'hrm/enterprise-suite': <HrmEnterpriseSuitePage />,
 'hrm/approval-flows': <ApprovalFlowsPage />,
   'hrm/hr-settings': <HrSettingsPage />,
   'hrm/staff-import': <StaffImportPage />,

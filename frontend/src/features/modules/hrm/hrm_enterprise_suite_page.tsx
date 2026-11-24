@@ -13,9 +13,8 @@ import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { toast } from 'sonner';
 import apiClient from '@/lib/api-client';
-import { getStaff, getJobPostings, getJobApplicants, getPayrollDecrees, getPayrollRuns } from '@/lib/api/hrm';
+import { getStaff, getPayrollDecrees, getPayrollRuns } from '@/lib/api/hrm';
 import { normalizeListPayload } from '@/lib/list-utils';
-import { getAxiosMessage } from '@/lib/api-helpers';
 import {
   Calculator,
   History,
@@ -209,65 +208,65 @@ export function HrmEnterpriseSuitePage() {
       const res = await apiClient.get('/api/v1/hrm/enterprise/payroll/retro-adjustments');
       const items = res.data?.data?.data || res.data?.data || [];
       setRetroList(Array.isArray(items) ? items : []);
-    } catch (err) {
+    } catch {
       setRetroList([]);
-      toast.error(getAxiosMessage(err, 'خطا در دریافت لیست مابه‌التفاوت‌های حقوق'));
+      toast.error(t('enterpriseRequestFailed'));
     } finally {
       setRetroLoading(false);
     }
-  }, []);
+  }, [t]);
 
   const fetchFormulas = useCallback(async () => {
     setFormulaLoading(true);
     try {
       const res = await apiClient.get('/api/v1/hrm/enterprise/decrees/formula-components');
       setFormulaComponents(res.data?.data || []);
-    } catch (err) {
+    } catch {
       setFormulaComponents([]);
-      toast.error(getAxiosMessage(err, 'خطا در دریافت عوامل فرمول حکمی'));
+      toast.error(t('enterpriseRequestFailed'));
     } finally {
       setFormulaLoading(false);
     }
-  }, []);
+  }, [t]);
 
   const fetchProposals = useCallback(async () => {
     setProposalsLoading(true);
     try {
       const res = await apiClient.get('/api/v1/hrm/enterprise/career/promotion-proposals');
       setProposals(res.data?.data || []);
-    } catch (err) {
+    } catch {
       setProposals([]);
-      toast.error(getAxiosMessage(err, 'خطا در دریافت پیشنهادات ارتقا شغلی'));
+      toast.error(t('enterpriseRequestFailed'));
     } finally {
       setProposalsLoading(false);
     }
-  }, []);
+  }, [t]);
 
   const fetchAgreements = useCallback(async () => {
     setAgreementsLoading(true);
     try {
       const res = await apiClient.get('/api/v1/hrm/enterprise/performance/agreements');
       setAgreements(res.data?.data || []);
-    } catch (err) {
+    } catch {
       setAgreements([]);
-      toast.error(getAxiosMessage(err, 'خطا در دریافت موافقت‌نامه‌های عملکرد'));
+      toast.error(t('enterpriseRequestFailed'));
     } finally {
       setAgreementsLoading(false);
     }
-  }, []);
+  }, [t]);
 
   const fetchMissions = useCallback(async () => {
     setMissionsLoading(true);
     try {
       const res = await apiClient.get('/api/v1/hrm/enterprise/missions');
       setMissions(res.data?.data || []);
-    } catch (err) {
+    } catch {
       setMissions([]);
-      toast.error(getAxiosMessage(err, 'خطا در دریافت احکام مأموریت'));
+      toast.error(t('enterpriseRequestFailed'));
     } finally {
       setMissionsLoading(false);
     }
-  }, []);
+  }, [t]);
 
   useEffect(() => {
     void loadMasterData();
@@ -296,8 +295,8 @@ export function HrmEnterpriseSuitePage() {
         toast.info('برای این حکم، تفاوت عطف‌به‌ماسبق نیازمند پرداخت در دوره‌های گذشته یافت نشد.');
       }
       void fetchRetro();
-    } catch (err) {
-      toast.error(getAxiosMessage(err, 'خطا در اجرای فرآیند محاسبه معوقات'));
+    } catch {
+      toast.error(t('enterpriseRequestFailed'));
     } finally {
       setCalculatingDecree(false);
     }
@@ -308,8 +307,8 @@ export function HrmEnterpriseSuitePage() {
       await apiClient.post(`/api/v1/hrm/enterprise/payroll/retro-adjustments/${id}/apply`);
       toast.success('مابه‌التفاوت جهت کسر و واریز در فیش دوره بعد منظور گردید.');
       void fetchRetro();
-    } catch (err) {
-      toast.error(getAxiosMessage(err, 'خطا در تایید و اعمال مابه‌التفاوت'));
+    } catch {
+      toast.error(t('enterpriseRequestFailed'));
     }
   };
 
@@ -323,8 +322,8 @@ export function HrmEnterpriseSuitePage() {
       const res = await apiClient.post(`/api/v1/hrm/enterprise/payroll/runs/${voucherRunId}/issue-vouchers`);
       toast.success(res.data?.message || 'سند حسابداری حقوق و معوقات صادر گردید.');
       setVoucherResult(res.data?.data);
-    } catch (err) {
-      toast.error(getAxiosMessage(err, 'خطا در صدور سند حسابداری حقوق'));
+    } catch {
+      toast.error(t('enterpriseRequestFailed'));
     } finally {
       setIssuingVoucher(false);
     }
@@ -351,8 +350,8 @@ export function HrmEnterpriseSuitePage() {
       setNewTitle('');
       setNewFormula('');
       void fetchFormulas();
-    } catch (err) {
-      toast.error(getAxiosMessage(err, 'خطا در ثبت فرمول عامل حکمی'));
+    } catch {
+      toast.error(t('enterpriseRequestFailed'));
     } finally {
       setSavingFormula(false);
     }
@@ -368,8 +367,8 @@ export function HrmEnterpriseSuitePage() {
       const res = await apiClient.post(`/api/v1/hrm/enterprise/career/proposals/${careerEmpId}/evaluate`);
       toast.success(res.data?.message || 'ارزیابی مسیر شغلی انجام گردید.');
       void fetchProposals();
-    } catch (err) {
-      toast.error(getAxiosMessage(err, 'خطا در ارزیابی ترفیع شغلی'));
+    } catch {
+      toast.error(t('enterpriseRequestFailed'));
     } finally {
       setEvaluatingCareer(false);
     }
@@ -380,8 +379,8 @@ export function HrmEnterpriseSuitePage() {
       const res = await apiClient.post(`/api/v1/hrm/enterprise/career/proposals/${proposalId}/approve-and-issue`);
       toast.success(res.data?.message || 'حکم ارتقای کارگزینی با موفقیت صادر شد.');
       void fetchProposals();
-    } catch (err) {
-      toast.error(getAxiosMessage(err, 'خطا در صدور حکم کارگزینی ترفیع'));
+    } catch {
+      toast.error(t('enterpriseRequestFailed'));
     }
   };
 
@@ -400,8 +399,8 @@ export function HrmEnterpriseSuitePage() {
       });
       toast.success('موافقت‌نامه رسمی عملکرد با موفقیت صادر و ابلاغ شد.');
       void fetchAgreements();
-    } catch (err) {
-      toast.error(getAxiosMessage(err, 'خطا در صدور موافقت‌نامه'));
+    } catch {
+      toast.error(t('enterpriseRequestFailed'));
     } finally {
       setSubmittingAgr(false);
     }
@@ -426,8 +425,8 @@ export function HrmEnterpriseSuitePage() {
       toast.success('حکم مأموریت اداری با موفقیت صادر شد.');
       setMisDestination('');
       void fetchMissions();
-    } catch (err) {
-      toast.error(getAxiosMessage(err, 'خطا در ثبت مأموریت'));
+    } catch {
+      toast.error(t('enterpriseRequestFailed'));
     } finally {
       setSubmittingMis(false);
     }
@@ -447,8 +446,8 @@ export function HrmEnterpriseSuitePage() {
       toast.success('دیسکت‌های استاندارد بیمه تأمین اجتماعی و مالیات حقوق با موفقیت تولید شدند.');
       setDisketteResult(ssoRes.data?.data);
       setTaxResult(taxRes.data?.data);
-    } catch (err) {
-      toast.error(getAxiosMessage(err, 'خطا در تولید فایل‌های دیسکت قانونی'));
+    } catch {
+      toast.error(t('enterpriseRequestFailed'));
     } finally {
       setGeneratingDiskette(false);
     }

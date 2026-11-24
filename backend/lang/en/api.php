@@ -1,6 +1,11 @@
 <?php
 
 return [
+    'payment_amount_not_representable' => 'The payment amount must be positive and exactly representable in toman.',
+    'payment_amount_mismatch' => 'The payment amount does not match the original request.',
+    'payment_amount_must_be_positive' => 'The payment amount must be positive.',
+    'payment_exchange_rate_required' => 'A rial exchange rate is required for :currency.',
+    'payment_foreign_amount_not_representable' => 'The payment amount cannot be represented exactly in the gateway currency.',
     'unauthorized' => 'Unauthorized',
     'forbidden' => 'Forbidden',
     'module_not_active' => 'This feature is not enabled. Please activate the module license.',
