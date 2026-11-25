@@ -5,6 +5,7 @@ import Link from "next/link"
 import { useCallback, useEffect, useMemo, useRef, useState } from "react"
 
 import { toneClass, type ShopProduct } from "@/builder/catalog"
+import { repeaterCells } from "@/builder/props"
 import { useCatalog, useProductQuery, type CatalogState } from "@/builder/storefront/use-catalog"
 import { useClassicThemeSettings } from "@/themes/shared/site-branding-context"
 import { useBodyScrollLock } from "@/hooks/use-body-scroll-lock"
@@ -37,6 +38,10 @@ function lines(raw: string): string[][] {
     .map((line) => line.trim())
     .filter(Boolean)
     .map((line) => line.split("|").map((part) => part.trim()))
+}
+
+function builderRows(value: unknown, keys: string[]): string[][] {
+  return typeof value === "string" ? lines(value) : repeaterCells(value, keys)
 }
 
 /* ------------------------------------------------------------------ stories */
@@ -420,12 +425,12 @@ export function ClassicHero({
   height,
   imageOnly = false,
 }: {
-  slidesText?: string
+  slidesText?: unknown
   height?: number
   imageOnly?: boolean
 }) {
   const tx = useClassicText()
-  const parsed = lines(slidesText ?? "").map(([title, kicker, href, image, sub, cta, mobileImage]) => ({
+  const parsed = builderRows(slidesText, ["title", "kicker", "href", "image", "sub", "cta", "mobileImage"]).map(([title, kicker, href, image, sub, cta, mobileImage]) => ({
     title: title || "",
     kicker: kicker || "",
     href: href || "/shop",
@@ -668,10 +673,10 @@ const PROMO_DEFAULTS = [
   { kicker: "پرفروش‌ترین‌های", title: "لوازم شخصی برقی", href: "/shop", tone: "charcoal", image: "" },
 ]
 
-export function ClassicPromoTrio({ itemsText }: { itemsText?: string }) {
+export function ClassicPromoTrio({ itemsText }: { itemsText?: unknown }) {
   const homeCfg = useClassicThemeSettings().home ?? {}
   const tx = useClassicText()
-  const parsed = lines(itemsText ?? "").map(([title, kicker, href, image, tone]) => ({
+  const parsed = builderRows(itemsText, ["title", "badge", "href", "image", "tone"]).map(([title, kicker, href, image, tone]) => ({
     title: title || "",
     kicker: kicker || "",
     href: href || "/shop",

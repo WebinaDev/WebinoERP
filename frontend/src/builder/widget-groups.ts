@@ -1,4 +1,4 @@
-/* Widget groups: post lists, galleries, banners and academy lists.
+/* Widget groups: post lists and galleries.
  * Each group shows one canonical widget in the library; the other types become its "display style" options in the
  * inspector. Every member type stays registered with its own renderer, so saved pages render exactly as before. */
 import type { WidgetNode } from "./types"
@@ -10,20 +10,10 @@ export const WIDGET_GROUPS: WidgetGroup[] = [
     { type: "blog-posts", label: "شبکه یا فهرست ساده" },
     { type: "blog-list", label: "کارت با زمان مطالعه و فیلتر موضوع" },
     { type: "blog-slider", label: "اسلایدر" },
-    { type: "blog-teasers", label: "پیش‌نمایش کوتاه" },
-    { type: "magazine-feature", label: "مجله‌ای با مطلب ویژه" },
   ] },
   { id: "gallery", label: "گالری", canonical: "image-gallery", members: [
     { type: "image-gallery", label: "شبکه تصاویر" },
     { type: "image-carousel", label: "چرخ‌فلک تصاویر" },
-  ] },
-  { id: "banner", label: "بنر", canonical: "promo-banner", members: [
-    { type: "promo-banner", label: "بنر تبلیغاتی" },
-    { type: "banner-grid", label: "شبکه بنرها" },
-  ] },
-  { id: "academy-list", label: "دوره‌های آکادمی", canonical: "academy-grid", members: [
-    { type: "academy-grid", label: "شبکه دوره‌ها" },
-    { type: "academy-related-courses", label: "دوره‌های مرتبط" },
   ] },
 ]
 
@@ -42,7 +32,20 @@ export function isLibraryWidget(type: string): boolean {
 
 /** Switch a widget to another style in its group, keeping the props the user already set. */
 export function switchGroupMember(widget: WidgetNode, nextType: string, create: (type: string) => WidgetNode | null): WidgetNode {
+  const group = groupOf.get(widget.type)
+  if (!group || groupOf.get(nextType) !== group || nextType === widget.type) return widget
   const fresh = create(nextType)
   if (!fresh) return widget
-  return { ...widget, type: nextType, props: { ...fresh.props, ...widget.props }, children: widget.children ?? fresh.children }
+  const props = { ...fresh.props, ...widget.props }
+  if (group.id === "gallery" && typeof widget.props.images === "string") {
+    const hasLinks = widget.props._webinoGalleryHasLinks === true
+    props.images = widget.props.images.split("\n").map((line) => {
+      if (!line.trim()) return line
+      const [src, second = "", third = "", ...rest] = line.split("|")
+      if (nextType === "image-gallery") return [src, third, second, ...rest].join("|")
+      return hasLinks ? [src, third, second, ...rest].join("|") : [src, "", second, third, ...rest].join("|")
+    }).join("\n")
+    if (nextType === "image-gallery") props._webinoGalleryHasLinks = true
+  }
+  return { ...widget, type: nextType, props, children: widget.children ?? fresh.children }
 }

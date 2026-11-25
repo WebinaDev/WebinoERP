@@ -45,6 +45,17 @@ it("finds unknown types in nested sections without listing duplicates", () => {
   expect(unknownWidgetTypes(document, (type) => type === "container")).toEqual(["unknown"])
 })
 
+it("reports missing variants and unknown widgets in existing reusable components", () => {
+  const sections = [{ id: "cs", columns: [{ id: "cc", span: 12, widgets: [
+    { id: "unknown", type: "unavailable", props: {} },
+    { id: "cycle", type: "component", props: { component: "shared" } },
+  ] }] }]
+  const document: BuilderDocument = { version: 2, sections: [{ id: "s", columns: [{ id: "c", span: 12, widgets: [{ id: "w", type: "component", props: { component: "shared", variant: "missing" } }] }] }] }
+  const globals = { components: [{ id: "shared", name: "Shared", sections, props: [] }], classes: [], presets: [], queries: [] }
+  expect(unknownWidgetTypes(document, (type) => type === "component", globals)).toEqual(["unavailable"])
+  expect(missingDocumentDependencies(document, globals)).toContain("component-variant:shared:missing")
+})
+
 it("finds missing global dependencies through reusable components without looping", () => {
   const componentSections = [{ id: "cs", columns: [{ id: "cc", span: 12, widgets: [{ id: "cw", type: "component", props: { component: "shared", queryId: "missing-query" }, advanced: { classes: ["missing-class"] } }] }] }]
   const document: BuilderDocument = { version: 2, sections: [{ id: "s", advanced: { preset: "missing-preset" }, columns: [{ id: "c", span: 12, widgets: [{ id: "w", type: "component", props: { component: "shared" } }] }] }] }

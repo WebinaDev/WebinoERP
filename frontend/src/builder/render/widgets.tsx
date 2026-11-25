@@ -22,6 +22,7 @@ import {
 import { useCatalog } from "../storefront/use-catalog"
 import { fillDocumentTokens } from "../theme/tokens"
 import { propBool, propNum, propStr, parseLinks, linkAttrs } from "../props"
+import { dividerStyle } from "../divider"
 import { isCorporateType } from "@/themes/webina-corporate-v1/builder/blocks"
 import { resolveWidgetAlias } from "@webina/ui/builder"
 import type { BuilderDocument, EditorApi, WidgetNode } from "../types"
@@ -240,7 +241,7 @@ export function WidgetBody({ widget, editor }: { widget: WidgetNode; editor?: Ed
     case "spacer":
       return <div style={{ height: propNum(widget.props, "size", 32) }} />
     case "divider":
-      return <hr className="border-0 border-t" style={{ borderColor: propStr(widget.props, "color", "var(--color-border)") }} />
+      return <hr className="border-0 border-t" style={dividerStyle(widget.props)} />
     case "icon":
       return <IconWidget widget={widget} />
     case "video":
@@ -256,7 +257,7 @@ export function WidgetBody({ widget, editor }: { widget: WidgetNode; editor?: Ed
     case "hero-slider":
       return classic ? (
         <ClassicHero
-          slidesText={propStr(widget.props, "slides", "")}
+          slidesText={widget.props.slides}
           imageOnly={propBool(widget.props, "imageOnly", false)}
         />
       ) : (
@@ -279,7 +280,7 @@ export function WidgetBody({ widget, editor }: { widget: WidgetNode; editor?: Ed
     case "category-tiles":
       return <ClassicCategoryTiles tilesText={propStr(widget.props, "tiles", "")} />
     case "promo-trio":
-      return <ClassicPromoTrio itemsText={propStr(widget.props, "items", "")} />
+      return <ClassicPromoTrio itemsText={widget.props.items} />
     case "best-sellers":
       return <ClassicBestSellers title={propStr(widget.props, "title", "")} limit={propNum(widget.props, "limit", 9)} />
     case "recently-viewed":
