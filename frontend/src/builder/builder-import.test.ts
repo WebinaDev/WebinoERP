@@ -30,6 +30,10 @@ describe("builder JSON import", () => {
     expect(result.sections[0].id).not.toBe("w")
     expect(result.sections[0].columns[0].widgets[0].id).not.toBe("w")
   })
+  it("rejects invalid node IDs when custom CSS could reference them", () => {
+    const invalidIds = { ...doc, css: "#w { color: red }", sections: [{ ...doc.sections[0], id: "w" }] }
+    expect(importPayload(JSON.stringify(invalidIds), { preserveIds: true })).toBeNull()
+  })
   it("rejects malformed and unsupported documents", () => {
     for (const value of ["{", JSON.stringify({ version: 3, sections: [] }), JSON.stringify({ sections: [null] }), JSON.stringify({ sections: [{ columns: [{ span: 12, widgets: [{ type: "heading" }] }] }] })]) {
       expect(importPayload(value)).toBeNull()

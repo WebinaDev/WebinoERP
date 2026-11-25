@@ -10,7 +10,7 @@ import { LocaleDatePicker } from "@/components/LocaleDatePicker"
 import { MediaPickerDialog } from "@/components/content/MediaPickerDialog"
 import { DYNAMIC_TAGS, isDynamic, type DynamicBinding, type DynamicKind } from "../dynamic"
 import { COLOR_TOKENS } from "../globals"
-import { parseRows, rowsToLines, toLocalInput } from "../props"
+import { editRepeater, repeaterRows, toLocalInput } from "../props"
 import { WIcon } from "../render/extra-widgets"
 import type { FieldDef, RepeaterSubField } from "../types"
 
@@ -96,19 +96,11 @@ function RowAi({ field, value, row, onChange }: { field: RepeaterSubField; value
   return <AiAssist compact value={value} onApply={onChange} surface="builder.repeater" field={key} kind={field.kind === "textarea" ? "textarea" : "text"} context={context} />
 }
 
-/** Repeater: edits rows and stores them in the legacy `a|b|c` line format so existing renderers keep working. */
-export function RepeaterInput({ value, fields, onChange }: { value: unknown; fields: RepeaterSubField[]; onChange: (value: string) => void }) {
+export function RepeaterInput({ value, fields, onChange }: { value: unknown; fields: RepeaterSubField[]; onChange: (value: unknown) => void }) {
   const t = useTranslations("builder")
   const keys = fields.map((field) => field.key)
-  const rows = parseRows(value, keys)
-  const write = (next: Record<string, string>[]) => onChange(rowsToLines(next, keys))
-  const move = (index: number, delta: number) => {
-    const target = index + delta
-    if (target < 0 || target >= rows.length) return
-    const next = [...rows]
-    ;[next[index], next[target]] = [next[target], next[index]]
-    write(next)
-  }
+  const rows = repeaterRows(value, keys)
+  const move = (index: number, delta: number) => onChange(editRepeater(value, keys, { kind: "move", index, delta }))
   return (
     <div className="grid gap-2">
       {rows.map((row, index) => (
@@ -118,18 +110,18 @@ export function RepeaterInput({ value, fields, onChange }: { value: unknown; fie
             <span className="flex gap-1">
               <button type="button" aria-label={t("move_up")} onClick={() => move(index, -1)}><ArrowUp className="size-3.5" /></button>
               <button type="button" aria-label={t("move_down")} onClick={() => move(index, 1)}><ArrowDown className="size-3.5" /></button>
-              <button type="button" aria-label={t("delete")} onClick={() => write(rows.filter((_, i) => i !== index))}><Trash2 className="size-3.5 text-red-500" /></button>
+              <button type="button" aria-label={t("delete")} onClick={() => onChange(editRepeater(value, keys, { kind: "delete", index }))}><Trash2 className="size-3.5 text-red-500" /></button>
             </span>
           </div>
           {fields.map((field) => (
             <label key={field.key} className="grid gap-0.5 text-[11px]">
-              <span className="flex items-center justify-between">{field.label}<RowAi field={field} value={row[field.key] ?? ""} row={row} onChange={(v) => write(rows.map((r, i) => (i === index ? { ...r, [field.key]: v } : r)))} /></span>
-              <SubField field={field} value={row[field.key] ?? ""} onChange={(v) => write(rows.map((r, i) => (i === index ? { ...r, [field.key]: v } : r)))} />
+              <span className="flex items-center justify-between">{field.label}<RowAi field={field} value={row[field.key] ?? ""} row={row} onChange={(v) => onChange(editRepeater(value, keys, { kind: "set", index, key: field.key, value: v }))} /></span>
+              <SubField field={field} value={row[field.key] ?? ""} onChange={(v) => onChange(editRepeater(value, keys, { kind: "set", index, key: field.key, value: v }))} />
             </label>
           ))}
         </div>
       ))}
-      <button type="button" className="flex items-center justify-center gap-1 rounded-md border border-dashed py-1.5 text-xs" onClick={() => write([...rows, Object.fromEntries(keys.map((key) => [key, ""]))])}>
+      <button type="button" className="flex items-center justify-center gap-1 rounded-md border border-dashed py-1.5 text-xs" onClick={() => onChange(editRepeater(value, keys, { kind: "add" }))}>
         <Plus className="size-3.5" aria-hidden />
         {t("repeater_add")}
       </button>

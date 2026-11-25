@@ -14,6 +14,12 @@ describe("widget groups", () => {
     expect(isLibraryWidget("blog-list")).toBe(false)
     expect(WIDGETS.filter((w) => isLibraryWidget(w.type)).length).toBeGreaterThan(100)
   })
+  it("keeps distinct sales and course capabilities independently available", () => {
+    for (const type of ["sale-product-grid", "sale-product-hero", "sale-product-tabs", "sale-cart", "academy-course-hero", "academy-course-about", "academy-course-syllabus", "academy-course-instructor", "academy-course-quizzes", "academy-course-reviews", "academy-course-enroll", "announcements-list", "downloads-list", "portfolio-gallery", "portfolio-grid", "media-archive", "cta-banner", "special-banners", "deal-bar", "book-banner"]) {
+      expect(widgetDef(type), type).toBeTruthy()
+      expect(isLibraryWidget(type), type).toBe(true)
+    }
+  })
   it("legacy alias types still resolve", () => {
     expect(widgetDef("checkout-stub")?.type).toBe("checkout")
   })

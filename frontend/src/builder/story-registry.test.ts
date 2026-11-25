@@ -7,6 +7,8 @@ describe("story-strip compatibility", () => {
     expect(WIDGETS.filter((item) => item.type === "story-strip")).toHaveLength(1)
     expect(widgetDef("story-strip")?.create().props).toMatchObject({ title: "هایلایت‌ها", limit: 0, variant: "poetry" })
     expect(widgetDef("story-strip")?.fields.map((field) => field.key)).toEqual(expect.arrayContaining(["title", "limit", "variant", "tone"]))
+    expect(widgetDef("story-strip")?.fields.find((field) => field.key === "tone")?.panel).toBe("design")
+    expect(widgetDef("story-strip")?.fields.find((field) => field.key === "limit")?.panel).toBe("settings")
   })
   it("preserves existing story settings while importing legacy documents", () => {
     const props = { title: "Example", limit: 3, variant: "poetry", layout: "carousel", tone: "glass" }
