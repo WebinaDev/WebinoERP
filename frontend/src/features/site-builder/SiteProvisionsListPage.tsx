@@ -11,8 +11,10 @@ import {
   LayoutGrid,
   Newspaper,
   Plus,
+  Loader2,
   Power,
   PowerOff,
+  RefreshCw,
   Settings2,
   ShieldCheck,
   Sparkles,
@@ -30,6 +32,7 @@ import {
   fetchProvisions,
   startProvision,
   stopProvision,
+  syncProvisionStatus,
   type SiteProvision,
 } from '@/lib/api/site-builder';
 import { cn } from '@/lib/utils';
@@ -103,6 +106,7 @@ export function SiteProvisionsListPage() {
   const [lastPage, setLastPage] = useState(1);
   const [total, setTotal] = useState(0);
   const [error, setError] = useState<string | null>(null);
+  const [notice, setNotice] = useState<string | null>(null);
   const [busyId, setBusyId] = useState<number | null>(null);
 
   const load = useCallback(async (nextPage = page) => {
@@ -131,6 +135,21 @@ export function SiteProvisionsListPage() {
     try {
       if (action === 'start') await startProvision(id);
       else await stopProvision(id);
+      await load(page);
+    } catch (e) {
+      setError(getAxiosMessage(e) || t('loadError'));
+    } finally {
+      setBusyId(null);
+    }
+  }
+
+  async function syncStatus(id: number) {
+    setBusyId(id);
+    setError(null);
+    setNotice(null);
+    try {
+      const res = await syncProvisionStatus(id, { bootstrap: true });
+      setNotice(res.message || t('controlSynced'));
       await load(page);
     } catch (e) {
       setError(getAxiosMessage(e) || t('loadError'));
@@ -176,6 +195,7 @@ export function SiteProvisionsListPage() {
       </div>
 
       {error ? <p className="text-destructive text-sm">{error}</p> : null}
+      {notice ? <p className="text-sm text-emerald-600">{notice}</p> : null}
 
       <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
         {rows.map((row) => {
@@ -249,6 +269,22 @@ export function SiteProvisionsListPage() {
                       <Settings2 className="size-3.5" />
                       {t('controlOpenPanel')}
                     </Link>
+                  </Button>
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    type="button"
+                    className="gap-1.5"
+                    disabled={busyId === row.id}
+                    onClick={() => void syncStatus(row.id)}
+                    data-testid={`site-sync-status-${row.id}`}
+                  >
+                    {busyId === row.id ? (
+                      <Loader2 className="size-3.5 animate-spin" />
+                    ) : (
+                      <RefreshCw className="size-3.5" />
+                    )}
+                    {t('controlSyncStatus')}
                   </Button>
                   {row.status === 'ready' || row.status === 'ssl_pending' ? (
                     <Button asChild size="sm" variant="outline" className="gap-1.5">

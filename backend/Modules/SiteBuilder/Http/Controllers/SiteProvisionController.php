@@ -625,6 +625,30 @@ class SiteProvisionController extends Controller
         }
     }
 
+    public function syncStatus(WebinoSiteProvision $siteProvision, SiteProvisionOrchestrator $orchestrator, Request $request): JsonResponse
+    {
+        try {
+            $result = $orchestrator->syncStatus($siteProvision, $request->boolean('bootstrap'));
+            $fresh = $siteProvision->fresh(['license', 'package', 'crmAccount']);
+
+            return response()->json([
+                'data' => $fresh,
+                'checks' => $result['checks'] ?? [],
+                'bootstrapped' => (bool) ($result['bootstrapped'] ?? false),
+                'message' => $result['message'] ?? 'وضعیت سایت همگام شد.',
+            ]);
+        } catch (Throwable $e) {
+            $msg = $e->getMessage() !== '' ? $e->getMessage() : 'همگام‌سازی وضعیت ناموفق بود.';
+
+            return response()->json([
+                'data' => $siteProvision->fresh(['license', 'package', 'crmAccount']),
+                'checks' => [],
+                'bootstrapped' => false,
+                'message' => $msg,
+            ], 422);
+        }
+    }
+
     public function logs(WebinoSiteProvision $siteProvision, SiteProvisionOrchestrator $orchestrator, Request $request): JsonResponse
     {
         try {

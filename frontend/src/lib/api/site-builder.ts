@@ -437,6 +437,15 @@ export async function bootstrapProvisionSite(id: number) {
   return readActionWithCompose(res);
 }
 
+export async function syncProvisionStatus(id: number, opts?: { bootstrap?: boolean }) {
+  const res = await apiClient.post(
+    `${BASE}/provisions/${id}/sync-status`,
+    { bootstrap: Boolean(opts?.bootstrap) },
+    { timeout: 90_000 },
+  );
+  return readActionWithCompose(res);
+}
+
 export async function fetchProvisionLogs(id: number, tail = 80) {
   const res = await apiClient.get(`${BASE}/provisions/${id}/logs`, { params: { tail } });
   const raw = unwrapData<{ provision_id?: number; slug?: string; logs?: string } | string>(res);

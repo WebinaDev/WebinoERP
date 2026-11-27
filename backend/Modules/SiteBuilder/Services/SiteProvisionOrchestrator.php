@@ -182,6 +182,115 @@ class SiteProvisionOrchestrator
     }
 
     /**
+     * Recover a row stuck in "provisioning" whose launch already finished
+     * (progress done/100%) or whose stack is healthy. May bootstrap an empty
+     * tenant DB. Public DNS/SSL failure lands in ssl_pending, not ready.
+     */
+    public function reconcileStuckProvisioning(WebinoSiteProvision $provision): string
+    {
+        if ($provision->status !== WebinoSiteProvision::STATUS_PROVISIONING) {
+            return 'not_provisioning';
+        }
+
+        $progress = is_array($provision->progress) ? $provision->progress : [];
+        $phase = (string) ($progress['phase'] ?? '');
+        $percent = (int) ($progress['percent'] ?? 0);
+        $done = $phase === ProvisionProgress::PHASE_DONE || $percent >= 100;
+
+        $result = $this->syncStatus($provision, bootstrap: $done);
+        $status = (string) ($result['status'] ?? $provision->fresh()?->status ?? $provision->status);
+        if ($status !== WebinoSiteProvision::STATUS_PROVISIONING) {
+            return $status;
+        }
+
+        if ($done) {
+            $checks = $result['checks'] ?? [];
+            $publicOk = (bool) ($checks['public_readiness'] ?? false);
+            $provision->update([
+                'status' => $publicOk ? WebinoSiteProvision::STATUS_READY : WebinoSiteProvision::STATUS_SSL_PENDING,
+                'ready_at' => $publicOk ? ($provision->ready_at ?? now()) : $provision->ready_at,
+                'error_log' => $publicOk ? null : ($provision->error_log ?: 'دامنه در DNS/HTTPS عمومی در دسترس نیست.'),
+                'progress' => $publicOk
+                    ? ProvisionProgress::make(ProvisionProgress::PHASE_DONE)
+                    : ProvisionProgress::make(ProvisionProgress::PHASE_SSL),
+            ]);
+            if ($publicOk) {
+                $this->markComingSoon($provision);
+            }
+
+            return $publicOk ? 'ready' : 'ssl_pending';
+        }
+
+        return 'still_provisioning';
+    }
+
+    /**
+     * Inspect live container/health/tenant DB/DNS and reconcile status.
+     * When $bootstrap is true and the tenant DB is empty but the stack is healthy,
+     * re-runs provision bootstrap (with origin fallback if public DNS fails).
+     *
+     * @return array{status:string,message:string,checks:array<string,mixed>,bootstrapped:bool}
+     */
+    public function syncStatus(WebinoSiteProvision $provision, bool $bootstrap = false): array
+    {
+        $checks = $this->collectStatusChecks($provision);
+        $bootstrapped = false;
+        $dbEmpty = ($checks['tenants'] === 0 && $checks['users'] !== null)
+            || ($checks['tenants'] !== null && $checks['tenants'] === 0)
+            || ($checks['users'] !== null && $checks['users'] === 0);
+        $stackHealthy = (bool) $checks['origin_readiness'] || (bool) $checks['containers_running'];
+
+        if ($bootstrap && $dbEmpty && $stackHealthy && (string) $provision->provision_token !== '') {
+            $boot = $this->bootstrapSite($provision);
+            $bootstrapped = ((int) ($boot['exit_code'] ?? 1)) === 0;
+            $checks['bootstrap'] = [
+                'ok' => $bootstrapped,
+                'log' => $boot['log'] ?? '',
+            ];
+            $checks = array_merge($checks, $this->inspectTenantDatabase($provision));
+            // Re-probe after bootstrap; bootstrapSite may have set status=ready
+            // via the public domain, which we may still need to correct.
+            $checks = array_merge($checks, $this->collectStatusChecks($provision->fresh() ?? $provision));
+            $provision = $provision->fresh() ?? $provision;
+        } elseif ($dbEmpty && $stackHealthy) {
+            $checks['bootstrap_needed'] = true;
+        }
+
+        $target = $this->reconcileLifecycleStatus($provision, $checks);
+        $updates = [];
+        if ($target !== $provision->status) {
+            $updates['status'] = $target;
+            if ($target === WebinoSiteProvision::STATUS_READY) {
+                $updates['ready_at'] = $provision->ready_at ?? now();
+                $updates['error_log'] = null;
+                $updates['progress'] = ProvisionProgress::make(ProvisionProgress::PHASE_DONE);
+            } elseif ($target === WebinoSiteProvision::STATUS_SSL_PENDING) {
+                $updates['progress'] = ProvisionProgress::make(ProvisionProgress::PHASE_SSL);
+            }
+        } elseif ($target === WebinoSiteProvision::STATUS_READY && $provision->ready_at === null) {
+            $updates['ready_at'] = now();
+            $updates['progress'] = ProvisionProgress::make(ProvisionProgress::PHASE_DONE);
+        }
+
+        if ($updates !== []) {
+            $provision->update($updates);
+            $provision = $provision->fresh() ?? $provision;
+            if ($target === WebinoSiteProvision::STATUS_READY) {
+                $this->markComingSoon($provision);
+            }
+        }
+
+        $message = $this->syncStatusMessage($provision, $checks, $bootstrapped, $dbEmpty, $stackHealthy);
+
+        return [
+            'status' => $provision->status,
+            'message' => $message,
+            'checks' => $checks,
+            'bootstrapped' => $bootstrapped,
+        ];
+    }
+
+    /**
      * Advance one ssl_pending provision without relying on the status page poll:
      * health probe -> signed bootstrap -> ready. Failures go to error_log and
      * back off exponentially (1, 2, 4 … max 30 minutes) per provision.
@@ -639,8 +748,233 @@ class SiteProvisionOrchestrator
         ];
     }
 
+    /**
+     * @return array<string, mixed>
+     */
+    public function collectStatusChecks(WebinoSiteProvision $provision): array
+    {
+        $domain = strtolower(trim((string) $provision->domain));
+        $power = 'unknown';
+        try {
+            $power = $this->powerState($provision);
+        } catch (Throwable) {
+        }
+
+        $publicHome = $domain !== '' ? $this->probePublicUrl('https://'.$domain.'/', 5) : false;
+        $publicReady = $domain !== '' ? $this->probePublicUrl('https://'.$domain.'/api/v1/health/readiness', 5) : false;
+        $dnsOk = $publicHome || $publicReady || ($domain !== '' && $this->publicDomainResolves($domain));
+        $originReady = $this->probeOriginReadiness($domain, 5);
+        $db = $this->inspectTenantDatabase($provision);
+
+        return array_merge([
+            'domain' => $domain,
+            'power_state' => $power,
+            'containers_running' => $power === 'running',
+            'dns_ok' => $dnsOk,
+            'public_https' => $publicHome,
+            'public_readiness' => $publicReady,
+            'origin_readiness' => $originReady,
+        ], $db);
+    }
+
+    /**
+     * @return array{tenants:?int,users:?int,db_ok:bool,db_error:?string}
+     */
+    public function inspectTenantDatabase(WebinoSiteProvision $provision): array
+    {
+        $slug = (string) $provision->slug;
+        if ($slug === '' || ! preg_match('/^[a-z0-9-]+$/', $slug)) {
+            return ['tenants' => null, 'users' => null, 'db_ok' => false, 'db_error' => 'invalid slug'];
+        }
+        $container = 'ws-'.$slug.'-db';
+        $sql = "SELECT (SELECT COUNT(*) FROM tenants)::int || ',' || (SELECT COUNT(*) FROM users)::int;";
+        $script = 'psql -U "$POSTGRES_USER" -d "$POSTGRES_DB" -At -c '.escapeshellarg($sql);
+        $process = new \Symfony\Component\Process\Process([
+            'docker', 'exec', $container, 'sh', '-c', $script,
+        ]);
+        $process->setTimeout(20);
+        try {
+            $process->run();
+        } catch (Throwable $e) {
+            return ['tenants' => null, 'users' => null, 'db_ok' => false, 'db_error' => $e->getMessage()];
+        }
+        if ($process->getExitCode() !== 0) {
+            $err = trim($process->getErrorOutput().' '.$process->getOutput());
+
+            return ['tenants' => null, 'users' => null, 'db_ok' => false, 'db_error' => $err !== '' ? $err : 'docker exec failed'];
+        }
+        $out = trim($process->getOutput());
+        if (! preg_match('/^(\d+),(\d+)$/', $out, $m)) {
+            return ['tenants' => null, 'users' => null, 'db_ok' => false, 'db_error' => 'unexpected psql output'];
+        }
+
+        return [
+            'tenants' => (int) $m[1],
+            'users' => (int) $m[2],
+            'db_ok' => true,
+            'db_error' => null,
+        ];
+    }
+
+    /**
+     * @param  array<string, mixed>  $checks
+     */
+    protected function reconcileLifecycleStatus(WebinoSiteProvision $provision, array $checks): string
+    {
+        $current = (string) $provision->status;
+        if (in_array($current, [WebinoSiteProvision::STATUS_CANCELLED, WebinoSiteProvision::STATUS_DRAFT, WebinoSiteProvision::STATUS_PENDING], true)) {
+            return $current;
+        }
+
+        $publicOk = (bool) ($checks['public_readiness'] ?? false) || (bool) ($checks['public_https'] ?? false);
+        $originOk = (bool) ($checks['origin_readiness'] ?? false);
+        $running = (bool) ($checks['containers_running'] ?? false);
+        $progress = is_array($provision->progress) ? $provision->progress : [];
+        $done = (($progress['phase'] ?? '') === ProvisionProgress::PHASE_DONE) || ((int) ($progress['percent'] ?? 0) >= 100);
+
+        if ($publicOk && ($running || $originOk || $done || $current === WebinoSiteProvision::STATUS_READY || $current === WebinoSiteProvision::STATUS_SSL_PENDING || $current === WebinoSiteProvision::STATUS_PROVISIONING)) {
+            return WebinoSiteProvision::STATUS_READY;
+        }
+
+        if ($originOk || $running || $done) {
+            if ($current === WebinoSiteProvision::STATUS_FAILED) {
+                return WebinoSiteProvision::STATUS_SSL_PENDING;
+            }
+            if (in_array($current, [WebinoSiteProvision::STATUS_PROVISIONING, WebinoSiteProvision::STATUS_SSL_PENDING, WebinoSiteProvision::STATUS_READY], true)) {
+                // Keep ready only when public is actually reachable; otherwise ssl_pending.
+                return $publicOk ? WebinoSiteProvision::STATUS_READY : WebinoSiteProvision::STATUS_SSL_PENDING;
+            }
+        }
+
+        return $current;
+    }
+
+    /**
+     * @param  array<string, mixed>  $checks
+     */
+    protected function syncStatusMessage(
+        WebinoSiteProvision $provision,
+        array $checks,
+        bool $bootstrapped,
+        bool $dbEmpty,
+        bool $stackHealthy,
+    ): string {
+        $status = (string) $provision->status;
+        $tenants = $checks['tenants'];
+        $users = $checks['users'];
+        $dbPart = ($tenants === null && $users === null)
+            ? 'شمارش پایگاه داده در دسترس نبود'
+            : 'تعداد مستأجر '.$tenants.' و کاربر '.$users;
+
+        if ($bootstrapped) {
+            $suffix = $status === WebinoSiteProvision::STATUS_READY
+                ? 'وضعیت روی «آماده» تنظیم شد.'
+                : ($status === WebinoSiteProvision::STATUS_SSL_PENDING
+                    ? 'کانتینر سالم است اما دامنه در DNS/HTTPS عمومی در دسترس نیست؛ وضعیت روی «منتظر SSL» ماند.'
+                    : 'وضعیت فعلی: '.$status.'.');
+
+            return 'راه‌اندازی اولیه انجام شد ('.$dbPart.'). '.$suffix;
+        }
+
+        if ($dbEmpty && $stackHealthy) {
+            return 'کانتینرها سالم‌اند اما پایگاه داده مستأجر خالی است ('.$dbPart.'). برای راه‌اندازی اولیه، همگام‌سازی را با گزینه «راه‌اندازی در صورت نیاز» اجرا کنید.';
+        }
+
+        if ($status === WebinoSiteProvision::STATUS_READY) {
+            return 'وضعیت سایت همگام شد؛ سایت آماده است ('.$dbPart.').';
+        }
+
+        if ($status === WebinoSiteProvision::STATUS_SSL_PENDING) {
+            if (! ($checks['dns_ok'] ?? false)) {
+                return 'کانتینر و مبدأ سالم هستند، اما دامنه در DNS عمومی resolve نمی‌شود؛ وضعیت روی «منتظر SSL» ماند. NS دامنه را در پنل ایرنیک/CDN بررسی کنید. ('.$dbPart.')';
+            }
+
+            return 'سایت از مبدأ در دسترس است اما HTTPS/SSL عمومی کامل نیست؛ وضعیت روی «منتظر SSL» ماند. ('.$dbPart.')';
+        }
+
+        if ($status === WebinoSiteProvision::STATUS_PROVISIONING) {
+            return 'سایت هنوز در حال راه‌اندازی است و برای تغییر وضعیت شواهد کافی (سلامت کانتینر یا پیشرفت ۱۰۰٪) دیده نشد.';
+        }
+
+        if ($status === WebinoSiteProvision::STATUS_FAILED) {
+            return 'وضعیت سایت «ناموفق» است و همگام‌سازی آن را تغییر نداد.';
+        }
+
+        return 'وضعیت سایت همگام شد: '.$status.' ('.$dbPart.').';
+    }
+
+    protected function publicDomainResolves(string $domain): bool
+    {
+        if ($domain === '' || ! str_contains($domain, '.')) {
+            return false;
+        }
+        // Avoid blocking DNS lookups in tests (example.test can hang for seconds).
+        if (app()->environment('testing')) {
+            return false;
+        }
+        $ips = @gethostbynamel($domain);
+
+        return is_array($ips) && $ips !== [];
+    }
+
+    protected function originResolveIp(): ?string
+    {
+        foreach (['webinoerm-web-1'] as $host) {
+            $ip = gethostbyname($host);
+            if (is_string($ip) && $ip !== '' && $ip !== $host && filter_var($ip, FILTER_VALIDATE_IP)) {
+                return $ip;
+            }
+        }
+
+        return null;
+    }
+
+    protected function probePublicUrl(string $url, int $timeoutSeconds = 5): bool
+    {
+        try {
+            $res = Http::timeout(max(1, $timeoutSeconds))
+                ->connectTimeout(min(2, $timeoutSeconds))
+                ->get($url);
+
+            return $res->successful();
+        } catch (Throwable) {
+            return false;
+        }
+    }
+
+    protected function probeOriginReadiness(string $domain, int $timeoutSeconds = 5): bool
+    {
+        if ($domain === '') {
+            return false;
+        }
+        $ip = $this->originResolveIp();
+        if ($ip === null) {
+            return false;
+        }
+        try {
+            $res = Http::timeout(max(1, $timeoutSeconds))
+                ->connectTimeout(min(2, $timeoutSeconds))
+                ->withOptions([
+                    'verify' => false,
+                    'curl' => [
+                        CURLOPT_RESOLVE => [
+                            $domain.':443:'.$ip,
+                            $domain.':80:'.$ip,
+                        ],
+                    ],
+                ])
+                ->get('https://'.$domain.'/api/v1/health/readiness');
+
+            return $res->successful();
+        } catch (Throwable) {
+            return false;
+        }
+    }
+
     protected function waitForHealthy(string $domain, int $attempts = 12, int $timeoutSeconds = 8): bool
     {
+        // Public DNS/HTTPS only — origin fallback is reserved for bootstrap/sync.
+        // A site whose apex is NXDOMAIN must stay ssl_pending, not flip to ready.
         // Must hit /api/* so Caddy routes to the Laravel backend.
         // Plain /up is handled by Next (or 404 on older images) and never reaches Octane.
         // Tenant (WebinoDashboard) /health/metrics is token-gated and 404s without
@@ -675,14 +1009,43 @@ class SiteProvisionOrchestrator
             throw new \RuntimeException('platform.provision_hmac_missing');
         }
         $body = json_encode(['seed' => $seed], JSON_UNESCAPED_UNICODE);
-        Http::withHeaders([
+        $headers = [
             'X-Provision-Token' => $token,
             'X-Provision-Signature' => hash_hmac('sha256', $body, $secret),
-        ])
+        ];
+        $request = Http::withHeaders($headers)
             ->withBody($body, 'application/json')
-            ->timeout(60)
-            ->post('https://'.$domain.'/api/v1/provision/bootstrap')
-            ->throw();
+            ->timeout(60);
+        try {
+            $request->post('https://'.$domain.'/api/v1/provision/bootstrap')->throw();
+
+            return;
+        } catch (Throwable $e) {
+            // Only fall back to origin when the public hostname is unreachable
+            // (NXDOMAIN / connection). HTTP 4xx/5xx from a reached host must
+            // surface so callers can back off correctly.
+            if ($e instanceof \Illuminate\Http\Client\RequestException) {
+                throw $e;
+            }
+            $ip = $this->originResolveIp();
+            if ($ip === null) {
+                throw $e;
+            }
+            Http::withHeaders($headers)
+                ->withBody($body, 'application/json')
+                ->timeout(60)
+                ->withOptions([
+                    'verify' => false,
+                    'curl' => [
+                        CURLOPT_RESOLVE => [
+                            $domain.':443:'.$ip,
+                            $domain.':80:'.$ip,
+                        ],
+                    ],
+                ])
+                ->post('https://'.$domain.'/api/v1/provision/bootstrap')
+                ->throw();
+        }
     }
 
     /** New sites open as "coming soon" once the tenant is bootstrapped (no-op if a status was already set). */

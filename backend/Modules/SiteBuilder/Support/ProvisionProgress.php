@@ -144,9 +144,23 @@ final class ProvisionProgress
 
     public static function report(WebinoSiteProvision $provision, string $phase, ?bool $imagesCached = null, ?string $labelFa = null, ?string $labelEn = null): void
     {
+        // Callers such as LocalSameVpsProvisioner set status/ready_at in memory
+        // and then call report() before save(). refresh() would discard those
+        // unsaved lifecycle fields and leave the row stuck in "provisioning".
+        $preserved = [];
+        foreach (['status', 'ready_at'] as $field) {
+            if ($provision->isDirty($field)) {
+                $preserved[$field] = $provision->getAttribute($field);
+            }
+        }
+
         $provision->refresh();
         if ($provision->status === WebinoSiteProvision::STATUS_CANCELLED) {
             throw new RuntimeException('platform.provision_cancelled');
+        }
+
+        foreach ($preserved as $field => $value) {
+            $provision->setAttribute($field, $value);
         }
 
         $existing = is_array($provision->progress) ? $provision->progress : [];
@@ -155,9 +169,17 @@ final class ProvisionProgress
             $cached = $existing['images_cached'] === null ? null : (bool) $existing['images_cached'];
         }
 
-        $provision->update([
+        $payload = [
             'progress' => self::make($phase, $cached, $labelFa, $labelEn),
-        ]);
+        ];
+        if (array_key_exists('status', $preserved)) {
+            $payload['status'] = $preserved['status'];
+        }
+        if (array_key_exists('ready_at', $preserved)) {
+            $payload['ready_at'] = $preserved['ready_at'];
+        }
+
+        $provision->update($payload);
     }
 
     public static function assertNotCancelled(WebinoSiteProvision $provision): void

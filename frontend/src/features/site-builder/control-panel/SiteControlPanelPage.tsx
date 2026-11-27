@@ -44,6 +44,7 @@ import { dashboardHref } from '@/lib/route-resolver';
 import { getAxiosMessage } from '@/lib/api-helpers';
 import {
   bootstrapProvisionSite,
+  syncProvisionStatus,
   destroyProvision,
   fetchProvisionControl,
   fetchProvisionLogs,
@@ -352,6 +353,38 @@ export function SiteControlPanelPage({ id }: { id: string }) {
           <Button type="button" variant="outline" size="sm" onClick={() => void load()} className="gap-1.5">
             <RefreshCw className="size-3.5" />
             {t('refresh')}
+          </Button>
+          <Button
+            type="button"
+            variant="default"
+            size="sm"
+            className="gap-1.5"
+            disabled={busy !== null || loading}
+            data-testid="control-sync-status"
+            onClick={() =>
+              void (async () => {
+                setBusy('sync-status');
+                setError(null);
+                setMsg(null);
+                try {
+                  const res = await syncProvisionStatus(provisionId, { bootstrap: true });
+                  setMsg(res.message || t('controlSynced'));
+                  if (res.compose?.log) setComposeLogs(res.compose.log);
+                  await load();
+                } catch (e) {
+                  setError(getAxiosMessage(e) || t('saveError'));
+                } finally {
+                  setBusy(null);
+                }
+              })()
+            }
+          >
+            {busy === 'sync-status' ? (
+              <Loader2 className="size-3.5 animate-spin" />
+            ) : (
+              <RefreshCw className="size-3.5" />
+            )}
+            {t('controlSyncStatus')}
           </Button>
           {data?.provision.domain ? (
             <>
